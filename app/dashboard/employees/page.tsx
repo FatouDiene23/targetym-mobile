@@ -1,6 +1,7 @@
 'use client';
 
 import Header from '@/components/Header';
+import EmployeeModal from '@/components/EmployeeModal';
 import { useState } from 'react';
 import { 
   Search, 
@@ -204,6 +205,7 @@ export default function EmployeesPage() {
   const [selectedLocation, setSelectedLocation] = useState('Tous');
   const [selectedEmployee, setSelectedEmployee] = useState<typeof employees[0] | null>(null);
   const [activeTab, setActiveTab] = useState<'employees' | 'leaves'>('employees');
+  const [showModal, setShowModal] = useState(false);
 
   const filteredEmployees = employees.filter(emp => {
     const matchesSearch = emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -577,7 +579,10 @@ export default function EmployeesPage() {
                     </div>
 
                     <div className="flex gap-2 mt-6">
-                      <button className="flex-1 flex items-center justify-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
+                      <button 
+                        onClick={() => setShowModal(true)}
+                        className="flex-1 flex items-center justify-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"
+                      >
                         <Eye className="w-4 h-4 mr-2" />
                         Voir profil
                       </button>
@@ -704,6 +709,14 @@ export default function EmployeesPage() {
           </div>
         )}
       </main>
+
+      {/* Modal Dossier Collaborateur */}
+      {showModal && selectedEmployee && (
+        <EmployeeModal 
+          employee={selectedEmployee} 
+          onClose={() => setShowModal(false)} 
+        />
+      )}
     </>
   );
 }

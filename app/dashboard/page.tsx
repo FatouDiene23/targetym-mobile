@@ -3,8 +3,6 @@
 import Header from '@/components/Header';
 import { 
   Users, 
-  Target, 
-  TrendingUp, 
   TrendingDown,
   AlertCircle,
   CheckCircle,
@@ -31,31 +29,31 @@ const kpis = [
   { 
     title: 'Total Employés', 
     value: '248', 
-    change: '+12', 
+    change: '+12 ce mois', 
     changeType: 'positive',
     icon: Users,
     color: 'bg-blue-500'
   },
   { 
-    title: 'OKRs Complétés', 
-    value: '67%', 
-    change: '+8%', 
+    title: 'Employés Actifs', 
+    value: '245', 
+    change: '98.8%', 
     changeType: 'positive',
-    icon: Target,
+    icon: CheckCircle,
     color: 'bg-green-500'
   },
   { 
-    title: 'Score Engagement', 
-    value: '8.4', 
-    change: '+0.3', 
-    changeType: 'positive',
-    icon: TrendingUp,
+    title: 'En Congés', 
+    value: '15', 
+    change: '6% effectif', 
+    changeType: 'neutral',
+    icon: Clock,
     color: 'bg-purple-500'
   },
   { 
-    title: 'Turnover', 
-    value: '4.2%', 
-    change: '-1.2%', 
+    title: 'Taux Absentéisme', 
+    value: '3.2%', 
+    change: '-0.5%', 
     changeType: 'positive',
     icon: TrendingDown,
     color: 'bg-orange-500'
@@ -63,18 +61,18 @@ const kpis = [
 ];
 
 const performanceData = [
-  { month: 'Jan', score: 72 },
-  { month: 'Fév', score: 75 },
-  { month: 'Mar', score: 78 },
-  { month: 'Avr', score: 74 },
-  { month: 'Mai', score: 82 },
-  { month: 'Juin', score: 85 },
-  { month: 'Juil', score: 83 },
-  { month: 'Août', score: 86 },
-  { month: 'Sep', score: 88 },
-  { month: 'Oct', score: 85 },
-  { month: 'Nov', score: 89 },
-  { month: 'Déc', score: 92 },
+  { month: 'Jan', entrees: 8, sorties: 3 },
+  { month: 'Fév', entrees: 12, sorties: 2 },
+  { month: 'Mar', entrees: 6, sorties: 4 },
+  { month: 'Avr', entrees: 10, sorties: 3 },
+  { month: 'Mai', entrees: 15, sorties: 5 },
+  { month: 'Juin', entrees: 9, sorties: 2 },
+  { month: 'Juil', entrees: 7, sorties: 6 },
+  { month: 'Août', entrees: 4, sorties: 3 },
+  { month: 'Sep', entrees: 14, sorties: 4 },
+  { month: 'Oct', entrees: 11, sorties: 3 },
+  { month: 'Nov', entrees: 13, sorties: 2 },
+  { month: 'Déc', entrees: 12, sorties: 3 },
 ];
 
 const departmentData = [
@@ -85,24 +83,27 @@ const departmentData = [
   { name: 'Finance', employees: 35, color: '#EF4444' },
 ];
 
-const okrProgress = [
-  { name: 'Q1', completed: 85, target: 100 },
-  { name: 'Q2', completed: 78, target: 100 },
-  { name: 'Q3', completed: 92, target: 100 },
-  { name: 'Q4', completed: 45, target: 100 },
+const congesData = [
+  { name: 'Tech', enConges: 3, total: 85 },
+  { name: 'Sales', enConges: 4, total: 62 },
+  { name: 'Marketing', enConges: 2, total: 38 },
+  { name: 'RH', enConges: 1, total: 28 },
+  { name: 'Finance', enConges: 5, total: 35 },
 ];
 
 const alerts = [
-  { type: 'warning', message: '5 évaluations de performance en attente', time: '2h' },
-  { type: 'info', message: 'Nouveau candidat pour le poste Dev Senior', time: '4h' },
-  { type: 'success', message: 'Objectif Q3 atteint par l\'équipe Marketing', time: '1j' },
+  { type: 'warning', message: '8 demandes de congés en attente de validation', time: '2h' },
+  { type: 'info', message: '3 nouveaux employés à intégrer cette semaine', time: '4h' },
+  { type: 'success', message: 'Taux d\'absentéisme en baisse de 0.5%', time: '1j' },
+  { type: 'warning', message: '2 contrats arrivent à échéance ce mois', time: '2j' },
 ];
 
 const recentActivities = [
-  { user: 'Sophie Martin', action: 'a complété son évaluation 360°', time: '10 min' },
-  { user: 'Jean Dupont', action: 'a mis à jour ses OKRs Q4', time: '25 min' },
-  { user: 'Marie Leroy', action: 'a rejoint l\'équipe Tech', time: '1h' },
-  { user: 'Pierre Durant', action: 'a terminé la formation Leadership', time: '2h' },
+  { user: 'Sophie Martin', action: 'a demandé 5 jours de congés', time: '10 min' },
+  { user: 'Jean Dupont', action: 'a rejoint le département Tech', time: '25 min' },
+  { user: 'Marie Leroy', action: 'a mis à jour son dossier RH', time: '1h' },
+  { user: 'Pierre Durant', action: 'est revenu de congés', time: '2h' },
+  { user: 'Emma Richard', action: 'a validé 3 demandes de congés', time: '3h' },
 ];
 
 export default function DashboardPage() {
@@ -140,7 +141,7 @@ export default function DashboardPage() {
         <div className="grid lg:grid-cols-2 gap-6 mb-8">
           {/* Performance Trend */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Évolution Performance</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">Évolution des Effectifs</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={performanceData}>
@@ -156,22 +157,41 @@ export default function DashboardPage() {
                   />
                   <Line 
                     type="monotone" 
-                    dataKey="score" 
-                    stroke="#3B82F6" 
+                    dataKey="entrees" 
+                    stroke="#10B981" 
                     strokeWidth={3}
-                    dot={{ fill: '#3B82F6', strokeWidth: 2 }}
+                    dot={{ fill: '#10B981', strokeWidth: 2 }}
+                    name="Entrées"
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="sorties" 
+                    stroke="#EF4444" 
+                    strokeWidth={3}
+                    dot={{ fill: '#EF4444', strokeWidth: 2 }}
+                    name="Sorties"
                   />
                 </LineChart>
               </ResponsiveContainer>
             </div>
+            <div className="flex justify-center gap-6 mt-4">
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                <span className="text-sm text-gray-600">Entrées</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                <span className="text-sm text-gray-600">Sorties</span>
+              </div>
+            </div>
           </div>
 
-          {/* OKR Progress */}
+          {/* Congés par département */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Progression OKRs par Trimestre</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">Congés par Département</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={okrProgress}>
+                <BarChart data={congesData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                   <XAxis dataKey="name" stroke="#9CA3AF" fontSize={12} />
                   <YAxis stroke="#9CA3AF" fontSize={12} />
@@ -182,7 +202,7 @@ export default function DashboardPage() {
                       borderRadius: '8px'
                     }} 
                   />
-                  <Bar dataKey="completed" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="enConges" fill="#10B981" radius={[4, 4, 0, 0]} name="En congés" />
                 </BarChart>
               </ResponsiveContainer>
             </div>

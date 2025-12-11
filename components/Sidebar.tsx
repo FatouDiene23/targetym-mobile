@@ -24,7 +24,7 @@ import { useState } from 'react';
 const navigation = [
   { name: 'Tableau de Bord', href: '/dashboard', icon: LayoutDashboard, phase: 1, enabled: true },
   { name: 'OKR & Objectifs', href: '/dashboard/okr', icon: Target, phase: 1, enabled: true },
-  { name: 'Recrutement', href: '/dashboard/recruitment', icon: UserPlus, phase: 2, enabled: false },
+  { name: 'Recrutement', href: '/dashboard/recruitment', icon: UserPlus, phase: 1, enabled: true },
   { name: 'Talents & Carrière', href: '/dashboard/talents', icon: Sparkles, phase: 2, enabled: false },
   { name: 'Formation & Développement', href: '/dashboard/learning', icon: GraduationCap, phase: 2, enabled: false },
   { name: 'Performance & Feedback', href: '/dashboard/performance', icon: TrendingUp, phase: 2, enabled: false },

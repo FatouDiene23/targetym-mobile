@@ -23,10 +23,10 @@ import { useState } from 'react';
 // Les autres modules sont visibles mais grisés (coming soon)
 const navigation = [
   { name: 'Tableau de Bord', href: '/dashboard', icon: LayoutDashboard, phase: 1, enabled: true },
-  { name: 'OKR & Objectifs', href: '/dashboard/okr', icon: Target, phase: 2, enabled: false },
-  { name: 'Recrutement', href: '/dashboard/recruitment', icon: UserPlus, phase: 5, enabled: false },
-  { name: 'Talents & Carrière', href: '/dashboard/talents', icon: Sparkles, phase: 3, enabled: false },
-  { name: 'Formation & Développement', href: '/dashboard/learning', icon: GraduationCap, phase: 3, enabled: false },
+  { name: 'OKR & Objectifs', href: '/dashboard/okr', icon: Target, phase: 1, enabled: true },
+  { name: 'Recrutement', href: '/dashboard/recruitment', icon: UserPlus, phase: 2, enabled: false },
+  { name: 'Talents & Carrière', href: '/dashboard/talents', icon: Sparkles, phase: 2, enabled: false },
+  { name: 'Formation & Développement', href: '/dashboard/learning', icon: GraduationCap, phase: 2, enabled: false },
   { name: 'Performance & Feedback', href: '/dashboard/performance', icon: TrendingUp, phase: 2, enabled: false },
   { name: 'People Analytics', href: '/dashboard/analytics', icon: BarChart3, phase: 1, enabled: true },
   { name: 'Gestion du Personnel', href: '/dashboard/employees', icon: Users, phase: 1, enabled: true },

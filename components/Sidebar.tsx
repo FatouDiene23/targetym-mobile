@@ -17,10 +17,8 @@ import {
   GraduationCap,
   Lock
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-// Phase 1: Tableau de bord, Gestion du Personnel, People Analytics (light)
-// Les autres modules sont visibles mais grisés (coming soon)
 const navigation = [
   { name: 'Tableau de Bord', href: '/dashboard', icon: LayoutDashboard, phase: 1, enabled: true },
   { name: 'OKR & Objectifs', href: '/dashboard/okr', icon: Target, phase: 1, enabled: true },
@@ -33,9 +31,46 @@ const navigation = [
   { name: 'Paramètres', href: '/dashboard/settings', icon: Settings, phase: 1, enabled: true },
 ];
 
+interface UserData {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  role?: string;
+}
+
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [user, setUser] = useState<UserData | null>(null);
+
+  useEffect(() => {
+    // Accéder à localStorage seulement côté client
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        setUser(JSON.parse(userStr));
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+      }
+    }
+  }, []);
+
+  const initials = user 
+    ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'
+    : '?';
+  
+  const displayName = user 
+    ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || 'Utilisateur'
+    : 'Utilisateur';
+  
+  const role = user?.role || 'employee';
+
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    window.location.href = 'https://targetym-website.vercel.app/login';
+  };
 
   return (
     <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-dark min-h-screen flex flex-col transition-all duration-300`}>
@@ -68,7 +103,6 @@ export default function Sidebar() {
           const isActive = pathname === item.href || 
             (item.href !== '/dashboard' && pathname.startsWith(item.href));
           
-          // Module désactivé (coming soon)
           if (!item.enabled) {
             return (
               <div
@@ -83,7 +117,6 @@ export default function Sidebar() {
                     <Lock className="w-3.5 h-3.5 opacity-50" />
                   </>
                 )}
-                {/* Tooltip on hover */}
                 <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
                   Phase {item.phase} - Bientôt disponible
                 </div>
@@ -111,47 +144,26 @@ export default function Sidebar() {
 
       {/* User Section */}
       <div className="p-4 border-t border-gray-700">
-        {(() => {
-          const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
-          const user = userStr ? JSON.parse(userStr) : null;
-          const initials = user 
-            ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() || user.email?.[0]?.toUpperCase()
-            : '?';
-          const displayName = user 
-            ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email
-            : 'Utilisateur';
-          const role = user?.role || 'employee';
-
-          return (
-            <>
-              <div className={`flex items-center ${collapsed ? 'justify-center' : ''}`}>
-                <div className="w-9 h-9 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
-                  {initials}
-                </div>
-                {!collapsed && (
-                  <div className="ml-3 flex-1">
-                    <div className="text-sm font-medium text-white">{displayName}</div>
-                    <div className="text-xs text-gray-400 capitalize">{role.replace('_', ' ')}</div>
-                  </div>
-                )}
-              </div>
-              {!collapsed && (
-                <button 
-                  onClick={() => {
-                    localStorage.removeItem('access_token');
-                    localStorage.removeItem('refresh_token');
-                    localStorage.removeItem('user');
-                    window.location.href = 'https://targetym-website.vercel.app/login';
-                  }}
-                  className="mt-4 w-full flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Déconnexion
-                </button>
-              )}
-            </>
-          );
-        })()}
+        <div className={`flex items-center ${collapsed ? 'justify-center' : ''}`}>
+          <div className="w-9 h-9 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
+            {initials}
+          </div>
+          {!collapsed && (
+            <div className="ml-3 flex-1">
+              <div className="text-sm font-medium text-white">{displayName}</div>
+              <div className="text-xs text-gray-400 capitalize">{role.replace('_', ' ')}</div>
+            </div>
+          )}
+        </div>
+        {!collapsed && (
+          <button 
+            onClick={handleLogout}
+            className="mt-4 w-full flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Déconnexion
+          </button>
+        )}
       </div>
     </aside>
   );

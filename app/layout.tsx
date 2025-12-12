@@ -1,21 +1,19 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import AuthGuard from '@/components/AuthGuard';
+import Sidebar from '@/components/Sidebar';
 
-export const metadata: Metadata = {
-  title: "Targetym AI - Dashboard",
-  description: "Tableau de bord RH intelligent - Targetym AI",
-};
-
-export default function RootLayout({
+export default function DashboardLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="fr">
-      <body className="font-sans antialiased">
-        {children}
-      </body>
-    </html>
+    <AuthGuard>
+      <div className="flex min-h-screen bg-gray-50">
+        <Sidebar />
+        <main className="flex-1 overflow-auto">
+          {children}
+        </main>
+      </div>
+    </AuthGuard>
   );
 }

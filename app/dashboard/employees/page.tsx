@@ -21,10 +21,8 @@ import {
   TrendingUp,
   TrendingDown,
   Palmtree,
-  Clock,
   CheckCircle,
   XCircle,
-  AlertCircle,
   Filter,
   ChevronDown,
   Briefcase,
@@ -62,14 +60,16 @@ export default function EmployeesPage() {
   const [totalPages, setTotalPages] = useState(1);
 
   // Charger les données au montage
-  useEffect(() => {
-    loadData();
-  }, []);
+ useEffect(() => {
+  loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
 
   // Recharger quand les filtres changent
   useEffect(() => {
-    loadEmployees();
-  }, [searchTerm, selectedDepartment, currentPage]);
+  loadEmployees();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [searchTerm, selectedDepartment, currentPage]);
 
   async function loadData() {
     setIsLoading(true);

@@ -2,7 +2,7 @@
 
 import Header from '@/components/Header';
 import EmployeeModal from '@/components/EmployeeModal';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Search, 
   Plus, 
@@ -28,206 +28,197 @@ import {
   Filter,
   ChevronDown,
   Briefcase,
-  User
+  User,
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
+import { getEmployees, getEmployeeStats, getDepartments, type Employee, type EmployeeStats, type Department } from '@/lib/api';
 
-// Données enrichies des employés
-const employees = [
-  { 
-    id: 1, 
-    name: 'Marie Dupont', 
-    email: 'marie.dupont@company.com',
-    phone: '+33 6 12 34 56 78',
-    department: 'Tech',
-    position: 'Lead Developer',
-    location: 'Paris',
-    startDate: '15 Mar 2021',
-    status: 'active',
-    manager: 'Jean Martin',
-    gender: 'F',
-    birthYear: 1995,
-    isManager: false,
-    isTopManager: false,
-    onLeave: false
-  },
-  { 
-    id: 2, 
-    name: 'Jean Martin', 
-    email: 'jean.martin@company.com',
-    phone: '+33 6 98 76 54 32',
-    department: 'Tech',
-    position: 'CTO',
-    location: 'Paris',
-    startDate: '01 Jan 2019',
-    status: 'active',
-    manager: '-',
-    gender: 'M',
-    birthYear: 1980,
-    isManager: true,
-    isTopManager: true,
-    onLeave: false
-  },
-  { 
-    id: 3, 
-    name: 'Sophie Bernard', 
-    email: 'sophie.bernard@company.com',
-    phone: '+33 6 11 22 33 44',
-    department: 'Marketing',
-    position: 'Marketing Manager',
-    location: 'Lyon',
-    startDate: '20 Sep 2022',
-    status: 'active',
-    manager: 'Pierre Leroy',
-    gender: 'F',
-    birthYear: 1990,
-    isManager: true,
-    isTopManager: false,
-    onLeave: true
-  },
-  { 
-    id: 4, 
-    name: 'Pierre Leroy', 
-    email: 'pierre.leroy@company.com',
-    phone: '+33 6 55 66 77 88',
-    department: 'Marketing',
-    position: 'CMO',
-    location: 'Paris',
-    startDate: '05 Jun 2020',
-    status: 'active',
-    manager: '-',
-    gender: 'M',
-    birthYear: 1975,
-    isManager: true,
-    isTopManager: true,
-    onLeave: false
-  },
-  { 
-    id: 5, 
-    name: 'Emma Richard', 
-    email: 'emma.richard@company.com',
-    phone: '+33 6 99 88 77 66',
-    department: 'RH',
-    position: 'HR Business Partner',
-    location: 'Paris',
-    startDate: '12 Feb 2023',
-    status: 'active',
-    manager: 'Anne Moreau',
-    gender: 'F',
-    birthYear: 1998,
-    isManager: false,
-    isTopManager: false,
-    onLeave: false
-  },
-  { 
-    id: 6, 
-    name: 'Lucas Petit', 
-    email: 'lucas.petit@company.com',
-    phone: '+33 6 44 55 66 77',
-    department: 'Sales',
-    position: 'Account Executive',
-    location: 'Marseille',
-    startDate: '08 Nov 2021',
-    status: 'active',
-    manager: 'Thomas Blanc',
-    gender: 'M',
-    birthYear: 2000,
-    isManager: false,
-    isTopManager: false,
-    onLeave: false
-  },
-  { 
-    id: 7, 
-    name: 'Julie Moreau', 
-    email: 'julie.moreau@company.com',
-    phone: '+33 6 33 22 11 00',
-    department: 'Finance',
-    position: 'Financial Controller',
-    location: 'Paris',
-    startDate: '25 Jul 2020',
-    status: 'inactive',
-    manager: 'Marc Dubois',
-    gender: 'F',
-    birthYear: 1988,
-    isManager: false,
-    isTopManager: false,
-    onLeave: false
-  },
-  { 
-    id: 8, 
-    name: 'Thomas Blanc', 
-    email: 'thomas.blanc@company.com',
-    phone: '+33 6 77 88 99 00',
-    department: 'Sales',
-    position: 'Sales Director',
-    location: 'Paris',
-    startDate: '18 Apr 2019',
-    status: 'active',
-    manager: '-',
-    gender: 'M',
-    birthYear: 1982,
-    isManager: true,
-    isTopManager: true,
-    onLeave: true
-  },
-];
-
-// Demandes de congés
+// Données de congés (mockées pour l'instant)
 const leaveRequests = [
   { id: 1, employeeName: 'Sophie Bernard', type: 'Congés annuels', startDate: '15 Déc 2024', endDate: '22 Déc 2024', days: 5, status: 'approved' },
   { id: 2, employeeName: 'Thomas Blanc', type: 'Congés annuels', startDate: '23 Déc 2024', endDate: '02 Jan 2025', days: 8, status: 'approved' },
   { id: 3, employeeName: 'Marie Dupont', type: 'RTT', startDate: '20 Déc 2024', endDate: '20 Déc 2024', days: 1, status: 'pending' },
-  { id: 4, employeeName: 'Lucas Petit', type: 'Congés maladie', startDate: '10 Déc 2024', endDate: '12 Déc 2024', days: 3, status: 'pending' },
-  { id: 5, employeeName: 'Emma Richard', type: 'Congés annuels', startDate: '27 Déc 2024', endDate: '31 Déc 2024', days: 4, status: 'pending' },
 ];
 
-const departments = ['Tous', 'Tech', 'Marketing', 'Sales', 'RH', 'Finance'];
-const locations = ['Tous', 'Paris', 'Lyon', 'Marseille', 'Remote'];
-
-// Calcul des statistiques
-const stats = {
-  total: 248,
-  active: 245,
-  newThisMonth: 12,
-  departures: 3,
-  departments: 8,
-  managers: 32,
-  topManagers: 8,
-  genZRate: 28, // % de Gen Z (nés après 1997)
-  womenRate: 47, // % de femmes
-  onLeave: 15,
-  pendingLeaves: 8,
-  absenteeismRate: 3.2,
-};
+const locations = ['Tous', 'Dakar', 'Abidjan', 'Paris', 'Remote'];
 
 export default function EmployeesPage() {
+  // State pour les données API
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [stats, setStats] = useState<EmployeeStats | null>(null);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // State pour les filtres et UI
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('Tous');
   const [selectedLocation, setSelectedLocation] = useState('Tous');
-  const [selectedEmployee, setSelectedEmployee] = useState<typeof employees[0] | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [activeTab, setActiveTab] = useState<'employees' | 'leaves'>('employees');
   const [showModal, setShowModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
+  // Charger les données au montage
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Recharger quand les filtres changent
+  useEffect(() => {
+    loadEmployees();
+  }, [searchTerm, selectedDepartment, currentPage]);
+
+  async function loadData() {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await Promise.all([
+        loadEmployees(),
+        loadStats(),
+        loadDepartments(),
+      ]);
+    } catch (err) {
+      console.error('Error loading data:', err);
+      setError('Erreur lors du chargement des données');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function loadEmployees() {
+    try {
+      const deptId = selectedDepartment !== 'Tous' 
+        ? departments.find(d => d.name === selectedDepartment)?.id 
+        : undefined;
+
+      const response = await getEmployees({
+        page: currentPage,
+        page_size: 20,
+        search: searchTerm || undefined,
+        department_id: deptId,
+      });
+
+      setEmployees(response.items || []);
+      setTotalPages(response.total_pages || 1);
+    } catch (err) {
+      console.error('Error loading employees:', err);
+      // Utiliser des données vides si erreur
+      setEmployees([]);
+    }
+  }
+
+  async function loadStats() {
+    try {
+      const data = await getEmployeeStats();
+      setStats(data);
+    } catch (err) {
+      console.error('Error loading stats:', err);
+      // Stats par défaut si erreur
+      setStats({
+        total: 0,
+        active: 0,
+        inactive: 0,
+        on_leave: 0,
+        by_department: {},
+        by_gender: {},
+        by_contract_type: {},
+      });
+    }
+  }
+
+  async function loadDepartments() {
+    try {
+      const data = await getDepartments();
+      setDepartments(data);
+    } catch (err) {
+      console.error('Error loading departments:', err);
+      setDepartments([]);
+    }
+  }
+
+  // Filtrer côté client pour la recherche en temps réel
   const filteredEmployees = employees.filter(emp => {
-    const matchesSearch = emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         emp.position.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDept = selectedDepartment === 'Tous' || emp.department === selectedDepartment;
+    const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
+    const matchesSearch = !searchTerm || 
+      fullName.includes(searchTerm.toLowerCase()) ||
+      emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (emp.position?.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesLocation = selectedLocation === 'Tous' || emp.location === selectedLocation;
-    return matchesSearch && matchesDept && matchesLocation;
+    return matchesSearch && matchesLocation;
   });
+
+  // Helper pour obtenir les initiales
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
+  };
+
+  // Helper pour formater la date
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  // Helper pour le statut
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'ACTIVE':
+        return <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">Actif</span>;
+      case 'INACTIVE':
+        return <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Inactif</span>;
+      case 'ON_LEAVE':
+        return <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">En congés</span>;
+      case 'TERMINATED':
+        return <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">Terminé</span>;
+      default:
+        return <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">{status}</span>;
+    }
+  };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <>
+        <Header title="Gestion du Personnel" subtitle="Administration RH, effectifs et congés" />
+        <main className="flex-1 p-6 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-primary-500 mx-auto mb-4" />
+            <p className="text-gray-500">Chargement des données...</p>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
       <Header title="Gestion du Personnel" subtitle="Administration RH, effectifs et congés" />
       
       <main className="flex-1 p-6 overflow-auto">
+        {/* Error message */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
+            <span className="text-red-700">{error}</span>
+            <button onClick={loadData} className="flex items-center text-red-600 hover:text-red-800">
+              <RefreshCw className="w-4 h-4 mr-1" />
+              Réessayer
+            </button>
+          </div>
+        )}
+
         {/* Stats Row 1 - Effectifs */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <Users className="w-5 h-5 text-blue-500" />
             </div>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            <p className="text-2xl font-bold text-gray-900">{stats?.total || 0}</p>
             <p className="text-xs text-gray-500">Total Employés</p>
           </div>
           
@@ -235,7 +226,7 @@ export default function EmployeesPage() {
             <div className="flex items-center justify-between mb-2">
               <UserCheck className="w-5 h-5 text-green-500" />
             </div>
-            <p className="text-2xl font-bold text-green-600">{stats.active}</p>
+            <p className="text-2xl font-bold text-green-600">{stats?.active || 0}</p>
             <p className="text-xs text-gray-500">Actifs</p>
           </div>
           
@@ -246,7 +237,7 @@ export default function EmployeesPage() {
                 <TrendingUp className="w-3 h-3 mr-0.5" />+8%
               </span>
             </div>
-            <p className="text-2xl font-bold text-blue-600">{stats.newThisMonth}</p>
+            <p className="text-2xl font-bold text-blue-600">0</p>
             <p className="text-xs text-gray-500">Nouveaux</p>
           </div>
           
@@ -254,83 +245,44 @@ export default function EmployeesPage() {
             <div className="flex items-center justify-between mb-2">
               <TrendingDown className="w-5 h-5 text-red-500" />
             </div>
-            <p className="text-2xl font-bold text-red-600">{stats.departures}</p>
-            <p className="text-xs text-gray-500">Départs</p>
+            <p className="text-2xl font-bold text-red-600">{stats?.inactive || 0}</p>
+            <p className="text-xs text-gray-500">Inactifs</p>
           </div>
           
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <Briefcase className="w-5 h-5 text-purple-500" />
             </div>
-            <p className="text-2xl font-bold text-purple-600">{stats.managers}</p>
-            <p className="text-xs text-gray-500">Managers</p>
+            <p className="text-2xl font-bold text-purple-600">{departments.length}</p>
+            <p className="text-xs text-gray-500">Départements</p>
           </div>
           
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <User className="w-5 h-5 text-indigo-500" />
             </div>
-            <p className="text-2xl font-bold text-indigo-600">{stats.topManagers}</p>
-            <p className="text-xs text-gray-500">Top Managers</p>
+            <p className="text-2xl font-bold text-indigo-600">
+              {employees.filter(e => e.is_manager).length}
+            </p>
+            <p className="text-xs text-gray-500">Managers</p>
           </div>
           
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-bold text-orange-500">Gen Z</span>
+              <Palmtree className="w-5 h-5 text-green-500" />
             </div>
-            <p className="text-2xl font-bold text-orange-600">{stats.genZRate}%</p>
-            <p className="text-xs text-gray-500">Taux Gen Z</p>
+            <p className="text-2xl font-bold text-green-600">{stats?.on_leave || 0}</p>
+            <p className="text-xs text-gray-500">En congés</p>
           </div>
           
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-bold text-pink-500">♀</span>
             </div>
-            <p className="text-2xl font-bold text-pink-600">{stats.womenRate}%</p>
-            <p className="text-xs text-gray-500">Taux Femmes</p>
-          </div>
-        </div>
-
-        {/* Stats Row 2 - Congés & Absences */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-green-600 font-medium mb-1">En congés actuellement</p>
-                <p className="text-2xl font-bold text-green-700">{stats.onLeave}</p>
-              </div>
-              <Palmtree className="w-8 h-8 text-green-500" />
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 border border-yellow-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-yellow-600 font-medium mb-1">Demandes en attente</p>
-                <p className="text-2xl font-bold text-yellow-700">{stats.pendingLeaves}</p>
-              </div>
-              <Clock className="w-8 h-8 text-yellow-500" />
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 border border-red-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-red-600 font-medium mb-1">Taux d&apos;absentéisme</p>
-                <p className="text-2xl font-bold text-red-700">{stats.absenteeismRate}%</p>
-              </div>
-              <AlertCircle className="w-8 h-8 text-red-500" />
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-blue-600 font-medium mb-1">Départements</p>
-                <p className="text-2xl font-bold text-blue-700">{stats.departments}</p>
-              </div>
-              <Building2 className="w-8 h-8 text-blue-500" />
-            </div>
+            <p className="text-2xl font-bold text-pink-600">
+              {stats?.by_gender?.FEMALE || 0}
+            </p>
+            <p className="text-xs text-gray-500">Femmes</p>
           </div>
         </div>
 
@@ -357,11 +309,6 @@ export default function EmployeesPage() {
           >
             <Palmtree className="w-4 h-4 inline mr-2" />
             Congés
-            {stats.pendingLeaves > 0 && (
-              <span className="ml-2 px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">
-                {stats.pendingLeaves}
-              </span>
-            )}
           </button>
         </div>
 
@@ -386,8 +333,9 @@ export default function EmployeesPage() {
                     onChange={(e) => setSelectedDepartment(e.target.value)}
                     className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                   >
+                    <option value="Tous">Tous les départements</option>
                     {departments.map(dept => (
-                      <option key={dept} value={dept}>{dept === 'Tous' ? 'Tous les départements' : dept}</option>
+                      <option key={dept.id} value={dept.name}>{dept.name}</option>
                     ))}
                   </select>
                   <select 
@@ -416,81 +364,107 @@ export default function EmployeesPage() {
               {/* Employee List */}
               <div className="lg:col-span-2">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-100">
-                      <tr>
-                        <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Employé</th>
-                        <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Département</th>
-                        <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Localisation</th>
-                        <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Statut</th>
-                        <th className="text-right px-5 py-3 text-sm font-semibold text-gray-600">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredEmployees.map((employee) => (
-                        <tr 
-                          key={employee.id} 
-                          className={`border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${
-                            selectedEmployee?.id === employee.id ? 'bg-primary-50' : ''
-                          }`}
-                          onClick={() => setSelectedEmployee(employee)}
-                        >
-                          <td className="px-5 py-4">
-                            <div className="flex items-center">
-                              <div className="relative">
-                                <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium">
-                                  {employee.name.split(' ').map(n => n[0]).join('')}
-                                </div>
-                                {employee.onLeave && (
-                                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                                    <Palmtree className="w-2.5 h-2.5 text-white" />
-                                  </div>
-                                )}
-                              </div>
-                              <div className="ml-3">
-                                <div className="flex items-center">
-                                  <p className="font-medium text-gray-900">{employee.name}</p>
-                                  {employee.isTopManager && (
-                                    <span className="ml-2 px-1.5 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded">Top</span>
-                                  )}
-                                  {employee.isManager && !employee.isTopManager && (
-                                    <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">Mgr</span>
-                                  )}
-                                </div>
-                                <p className="text-sm text-gray-500">{employee.position}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-5 py-4">
-                            <span className="px-2 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">
-                              {employee.department}
-                            </span>
-                          </td>
-                          <td className="px-5 py-4 text-sm text-gray-600">{employee.location}</td>
-                          <td className="px-5 py-4">
-                            {employee.onLeave ? (
-                              <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
-                                En congés
-                              </span>
-                            ) : (
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                employee.status === 'active' 
-                                  ? 'bg-blue-100 text-blue-700' 
-                                  : 'bg-gray-100 text-gray-600'
-                              }`}>
-                                {employee.status === 'active' ? 'Actif' : 'Inactif'}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-5 py-4 text-right">
-                            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
-                          </td>
+                  {filteredEmployees.length === 0 ? (
+                    <div className="p-12 text-center">
+                      <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                      <p className="text-gray-500 mb-4">Aucun employé trouvé</p>
+                      <button 
+                        onClick={loadData}
+                        className="flex items-center mx-auto px-4 py-2 text-primary-600 hover:bg-primary-50 rounded-lg"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Actualiser
+                      </button>
+                    </div>
+                  ) : (
+                    <table className="w-full">
+                      <thead className="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                          <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Employé</th>
+                          <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Département</th>
+                          <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Localisation</th>
+                          <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Statut</th>
+                          <th className="text-right px-5 py-3 text-sm font-semibold text-gray-600">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {filteredEmployees.map((employee) => (
+                          <tr 
+                            key={employee.id} 
+                            className={`border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${
+                              selectedEmployee?.id === employee.id ? 'bg-primary-50' : ''
+                            }`}
+                            onClick={() => setSelectedEmployee(employee)}
+                          >
+                            <td className="px-5 py-4">
+                              <div className="flex items-center">
+                                <div className="relative">
+                                  <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium">
+                                    {getInitials(employee.first_name, employee.last_name)}
+                                  </div>
+                                  {employee.status === 'ON_LEAVE' && (
+                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                                      <Palmtree className="w-2.5 h-2.5 text-white" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="ml-3">
+                                  <div className="flex items-center">
+                                    <p className="font-medium text-gray-900">
+                                      {employee.first_name} {employee.last_name}
+                                    </p>
+                                    {employee.is_manager && (
+                                      <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">Mgr</span>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-gray-500">{employee.position || '-'}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-5 py-4">
+                              <span className="px-2 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">
+                                {employee.department_name || '-'}
+                              </span>
+                            </td>
+                            <td className="px-5 py-4 text-sm text-gray-600">{employee.location || '-'}</td>
+                            <td className="px-5 py-4">
+                              {getStatusBadge(employee.status)}
+                            </td>
+                            <td className="px-5 py-4 text-right">
+                              <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
+                                <MoreVertical className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
+                      <p className="text-sm text-gray-500">
+                        Page {currentPage} sur {totalPages}
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={currentPage === 1}
+                          className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50"
+                        >
+                          Précédent
+                        </button>
+                        <button
+                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                          disabled={currentPage === totalPages}
+                          className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50"
+                        >
+                          Suivant
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -501,36 +475,21 @@ export default function EmployeesPage() {
                     <div className="text-center mb-6">
                       <div className="relative inline-block">
                         <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 text-2xl font-bold mx-auto mb-3">
-                          {selectedEmployee.name.split(' ').map(n => n[0]).join('')}
+                          {getInitials(selectedEmployee.first_name, selectedEmployee.last_name)}
                         </div>
-                        {selectedEmployee.onLeave && (
+                        {selectedEmployee.status === 'ON_LEAVE' && (
                           <div className="absolute bottom-2 right-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
                             <Palmtree className="w-3.5 h-3.5 text-white" />
                           </div>
                         )}
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900">{selectedEmployee.name}</h3>
-                      <p className="text-sm text-gray-500">{selectedEmployee.position}</p>
+                      <h3 className="text-xl font-bold text-gray-900">
+                        {selectedEmployee.first_name} {selectedEmployee.last_name}
+                      </h3>
+                      <p className="text-sm text-gray-500">{selectedEmployee.position || '-'}</p>
                       <div className="flex items-center justify-center gap-2 mt-2">
-                        {selectedEmployee.onLeave ? (
-                          <span className="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
-                            En congés
-                          </span>
-                        ) : (
-                          <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                            selectedEmployee.status === 'active' 
-                              ? 'bg-blue-100 text-blue-700' 
-                              : 'bg-gray-100 text-gray-600'
-                          }`}>
-                            {selectedEmployee.status === 'active' ? 'Actif' : 'Inactif'}
-                          </span>
-                        )}
-                        {selectedEmployee.isTopManager && (
-                          <span className="px-3 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700">
-                            Top Manager
-                          </span>
-                        )}
-                        {selectedEmployee.isManager && !selectedEmployee.isTopManager && (
+                        {getStatusBadge(selectedEmployee.status)}
+                        {selectedEmployee.is_manager && (
                           <span className="px-3 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-700">
                             Manager
                           </span>
@@ -543,39 +502,33 @@ export default function EmployeesPage() {
                         <Mail className="w-4 h-4 mr-3 text-gray-400" />
                         {selectedEmployee.email}
                       </div>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Phone className="w-4 h-4 mr-3 text-gray-400" />
-                        {selectedEmployee.phone}
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <MapPin className="w-4 h-4 mr-3 text-gray-400" />
-                        {selectedEmployee.location}
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Building2 className="w-4 h-4 mr-3 text-gray-400" />
-                        {selectedEmployee.department}
-                      </div>
+                      {selectedEmployee.phone && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Phone className="w-4 h-4 mr-3 text-gray-400" />
+                          {selectedEmployee.phone}
+                        </div>
+                      )}
+                      {selectedEmployee.location && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <MapPin className="w-4 h-4 mr-3 text-gray-400" />
+                          {selectedEmployee.location}
+                        </div>
+                      )}
+                      {selectedEmployee.department_name && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Building2 className="w-4 h-4 mr-3 text-gray-400" />
+                          {selectedEmployee.department_name}
+                        </div>
+                      )}
                       <div className="flex items-center text-sm text-gray-600">
                         <Calendar className="w-4 h-4 mr-3 text-gray-400" />
-                        Depuis le {selectedEmployee.startDate}
+                        Depuis le {formatDate(selectedEmployee.hire_date)}
                       </div>
                     </div>
 
                     <div className="pt-4 border-t border-gray-100">
-                      <p className="text-sm text-gray-500 mb-2">Manager</p>
-                      <p className="font-medium text-gray-900">{selectedEmployee.manager}</p>
-                    </div>
-
-                    <div className="pt-4 border-t border-gray-100 mt-4">
-                      <p className="text-sm text-gray-500 mb-2">Solde de congés</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Congés annuels</span>
-                        <span className="font-medium text-gray-900">18 jours</span>
-                      </div>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-sm text-gray-600">RTT</span>
-                        <span className="font-medium text-gray-900">5 jours</span>
-                      </div>
+                      <p className="text-sm text-gray-500 mb-2">Type de contrat</p>
+                      <p className="font-medium text-gray-900">{selectedEmployee.contract_type || '-'}</p>
                     </div>
 
                     <div className="flex gap-2 mt-6">
@@ -601,9 +554,8 @@ export default function EmployeesPage() {
             </div>
           </>
         ) : (
-          /* Leave Management Tab */
+          /* Leave Management Tab - Garder les données mockées pour l'instant */
           <div className="grid lg:grid-cols-3 gap-6">
-            {/* Leave Requests List */}
             <div className="lg:col-span-2 space-y-4">
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -661,59 +613,47 @@ export default function EmployeesPage() {
               </div>
             </div>
 
-            {/* Leave Summary */}
             <div className="space-y-4">
               <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
                 <h3 className="font-semibold text-gray-900 mb-4">Résumé des congés</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">En congés aujourd&apos;hui</span>
-                    <span className="font-semibold text-green-600">{stats.onLeave}</span>
+                    <span className="font-semibold text-green-600">{stats?.on_leave || 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Demandes en attente</span>
-                    <span className="font-semibold text-yellow-600">{stats.pendingLeaves}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Approuvées ce mois</span>
-                    <span className="font-semibold text-blue-600">24</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Refusées ce mois</span>
-                    <span className="font-semibold text-red-600">2</span>
+                    <span className="font-semibold text-yellow-600">
+                      {leaveRequests.filter(l => l.status === 'pending').length}
+                    </span>
                   </div>
                 </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <h3 className="font-semibold text-gray-900 mb-4">Planning des congés</h3>
-                <p className="text-sm text-gray-500 mb-4">Décembre 2024</p>
-                <div className="space-y-2">
-                  {employees.filter(e => e.onLeave).map(emp => (
-                    <div key={emp.id} className="flex items-center p-2 bg-green-50 rounded-lg">
-                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-700 text-xs font-medium">
-                        {emp.name.split(' ').map(n => n[0]).join('')}
-                      </div>
-                      <div className="ml-2">
-                        <p className="text-sm font-medium text-gray-900">{emp.name}</p>
-                        <p className="text-xs text-gray-500">{emp.department}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <button className="w-full mt-4 px-4 py-2 text-sm text-primary-600 font-medium border border-primary-200 rounded-lg hover:bg-primary-50">
-                  Voir le calendrier complet
-                </button>
               </div>
             </div>
           </div>
         )}
       </main>
 
-      {/* Modal Dossier Collaborateur */}
+      {/* Modal - Note: EmployeeModal needs to be updated to work with new Employee type */}
       {showModal && selectedEmployee && (
         <EmployeeModal 
-          employee={selectedEmployee} 
+          employee={{
+            id: selectedEmployee.id,
+            name: `${selectedEmployee.first_name} ${selectedEmployee.last_name}`,
+            email: selectedEmployee.email,
+            phone: selectedEmployee.phone || '',
+            department: selectedEmployee.department_name || '',
+            position: selectedEmployee.position || '',
+            location: selectedEmployee.location || '',
+            startDate: formatDate(selectedEmployee.hire_date),
+            status: selectedEmployee.status === 'ACTIVE' ? 'active' : 'inactive',
+            manager: '-',
+            gender: selectedEmployee.gender === 'FEMALE' ? 'F' : 'M',
+            birthYear: selectedEmployee.birth_date ? new Date(selectedEmployee.birth_date).getFullYear() : 1990,
+            isManager: selectedEmployee.is_manager || false,
+            isTopManager: false,
+            onLeave: selectedEmployee.status === 'ON_LEAVE',
+          }} 
           onClose={() => setShowModal(false)} 
         />
       )}

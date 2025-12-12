@@ -1,14 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-gray-500">Chargement...</p>
+      </div>
+    </div>
+  );
+}
+
+function DashboardContent({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const searchParams = useSearchParams();
@@ -40,14 +47,7 @@ export default function DashboardLayout({
   }, [searchParams]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500">Chargement...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (!isAuthenticated) {
@@ -61,5 +61,17 @@ export default function DashboardLayout({
         {children}
       </main>
     </div>
+  );
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <DashboardContent>{children}</DashboardContent>
+    </Suspense>
   );
 }

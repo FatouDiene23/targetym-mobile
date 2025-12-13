@@ -16,6 +16,39 @@ function getAuthHeaders(): HeadersInit {
   };
 }
 
+// Helper pour parser les erreurs API
+async function parseApiError(response: Response): Promise<string> {
+  try {
+    const error = await response.json();
+    // Gérer différents formats d'erreur
+    if (typeof error === 'string') {
+      return error;
+    }
+    if (error.detail) {
+      // Si detail est un tableau d'objets (validation Pydantic)
+      if (Array.isArray(error.detail)) {
+        return error.detail.map((e: { msg?: string; message?: string; loc?: string[] }) => {
+          const field = e.loc ? e.loc[e.loc.length - 1] : '';
+          const msg = e.msg || e.message || 'Erreur de validation';
+          return field ? `${field}: ${msg}` : msg;
+        }).join(', ');
+      }
+      // Si detail est un string
+      if (typeof error.detail === 'string') {
+        return error.detail;
+      }
+      // Si detail est un objet
+      return JSON.stringify(error.detail);
+    }
+    if (error.message) {
+      return error.message;
+    }
+    return `Erreur ${response.status}: ${response.statusText}`;
+  } catch {
+    return `Erreur ${response.status}: ${response.statusText}`;
+  }
+}
+
 // Types
 export interface Employee {
   id: number;
@@ -74,6 +107,10 @@ export interface EmployeeStats {
   by_department: Record<string, number>;
   by_gender: Record<string, number>;
   by_contract_type: Record<string, number>;
+  new_this_month?: number;
+  managers?: number;
+  female?: number;
+  male?: number;
 }
 
 export interface Department {
@@ -84,7 +121,15 @@ export interface Department {
   parent_id?: number;
   manager_id?: number;
   employee_count?: number;
-  created_at: string;
+  created_at?: string;
+}
+
+export interface DepartmentCreate {
+  name: string;
+  code?: string;
+  description?: string;
+  parent_id?: number;
+  manager_id?: number;
 }
 
 export interface PaginatedResponse<T> {
@@ -117,7 +162,8 @@ export async function getEmployees(params?: {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to fetch employees');
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
   }
 
   return response.json();
@@ -129,37 +175,54 @@ export async function getEmployee(id: number): Promise<Employee> {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to fetch employee');
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
   }
 
   return response.json();
 }
 
 export async function createEmployee(data: EmployeeCreate): Promise<Employee> {
+  // Nettoyer les données - ne pas envoyer les champs vides
+  const cleanData: Record<string, unknown> = {};
+  Object.entries(data).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      cleanData[key] = value;
+    }
+  });
+
   const response = await fetch(`${API_URL}/api/employees/`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify(data),
+    body: JSON.stringify(cleanData),
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to create employee');
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
   }
 
   return response.json();
 }
 
 export async function updateEmployee(id: number, data: Partial<EmployeeCreate>): Promise<Employee> {
+  // Nettoyer les données
+  const cleanData: Record<string, unknown> = {};
+  Object.entries(data).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      cleanData[key] = value;
+    }
+  });
+
   const response = await fetch(`${API_URL}/api/employees/${id}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
-    body: JSON.stringify(data),
+    body: JSON.stringify(cleanData),
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to update employee');
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
   }
 
   return response.json();
@@ -172,7 +235,8 @@ export async function deleteEmployee(id: number): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to delete employee');
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
   }
 }
 
@@ -182,7 +246,8 @@ export async function getEmployeeStats(): Promise<EmployeeStats> {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to fetch employee stats');
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
   }
 
   return response.json();
@@ -195,10 +260,19 @@ export async function getDepartments(): Promise<Department[]> {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to fetch departments');
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
   }
 
-  return response.json();
+  const data = await response.json();
+  // Gérer le cas où l'API retourne un objet paginé
+  if (Array.isArray(data)) {
+    return data;
+  }
+  if (data.items && Array.isArray(data.items)) {
+    return data.items;
+  }
+  return [];
 }
 
 export async function getDepartment(id: number): Promise<Department> {
@@ -207,13 +281,14 @@ export async function getDepartment(id: number): Promise<Department> {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to fetch department');
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
   }
 
   return response.json();
 }
 
-export async function createDepartment(data: Partial<Department>): Promise<Department> {
+export async function createDepartment(data: DepartmentCreate): Promise<Department> {
   const response = await fetch(`${API_URL}/api/departments/`, {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -221,14 +296,14 @@ export async function createDepartment(data: Partial<Department>): Promise<Depar
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to create department');
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
   }
 
   return response.json();
 }
 
-export async function updateDepartment(id: number, data: Partial<Department>): Promise<Department> {
+export async function updateDepartment(id: number, data: Partial<DepartmentCreate>): Promise<Department> {
   const response = await fetch(`${API_URL}/api/departments/${id}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
@@ -236,8 +311,8 @@ export async function updateDepartment(id: number, data: Partial<Department>): P
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to update department');
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
   }
 
   return response.json();
@@ -250,20 +325,9 @@ export async function deleteDepartment(id: number): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to delete department');
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
   }
-}
-
-export async function getDepartmentTree(): Promise<Department[]> {
-  const response = await fetch(`${API_URL}/api/departments/tree`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch department tree');
-  }
-
-  return response.json();
 }
 
 // Export employees to CSV

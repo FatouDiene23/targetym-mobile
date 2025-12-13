@@ -2,13 +2,43 @@
 
 import { useState, useEffect } from 'react';
 import { X, Loader2, Trash2, Plus } from 'lucide-react';
-import { updateEmployee, deleteEmployee, getDepartments, createDepartment, type Employee, type Department } from '@/lib/api';
+import { updateEmployee, deleteEmployee, getDepartments, createDepartment, type Employee, type Department, type GenderType, type ContractType, type StatusType } from '@/lib/api';
 
 interface EditEmployeeModalProps {
   employee: Employee;
   onClose: () => void;
   onSuccess: () => void;
 }
+
+// Helper pour convertir les valeurs existantes en minuscule
+const normalizeGender = (value?: string): GenderType => {
+  if (!value) return 'male';
+  const lower = value.toLowerCase();
+  if (lower === 'female' || lower === 'f') return 'female';
+  if (lower === 'other') return 'other';
+  return 'male';
+};
+
+const normalizeStatus = (value?: string): StatusType => {
+  if (!value) return 'active';
+  const lower = value.toLowerCase();
+  if (lower === 'on_leave' || lower === 'onleave') return 'on_leave';
+  if (lower === 'suspended') return 'suspended';
+  if (lower === 'terminated') return 'terminated';
+  if (lower === 'probation') return 'probation';
+  return 'active';
+};
+
+const normalizeContractType = (value?: string): ContractType => {
+  if (!value) return 'cdi';
+  const lower = value.toLowerCase();
+  if (lower === 'cdd') return 'cdd';
+  if (lower === 'stage' || lower === 'intern') return 'stage';
+  if (lower === 'alternance') return 'alternance';
+  if (lower === 'consultant' || lower === 'freelance') return 'consultant';
+  if (lower === 'interim' || lower === 'part_time') return 'interim';
+  return 'cdi';
+};
 
 export default function EditEmployeeModal({ employee, onClose, onSuccess }: EditEmployeeModalProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -21,6 +51,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
   const [newDeptName, setNewDeptName] = useState('');
   const [newDeptCode, setNewDeptCode] = useState('');
   const [isCreatingDept, setIsCreatingDept] = useState(false);
+  const [deptError, setDeptError] = useState('');
   
   const [formData, setFormData] = useState({
     employee_id: employee.employee_id || '',
@@ -32,9 +63,9 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
     department_id: employee.department_id?.toString() || '',
     hire_date: employee.hire_date?.split('T')[0] || '',
     date_of_birth: employee.birth_date?.split('T')[0] || employee.date_of_birth?.split('T')[0] || '',
-    gender: employee.gender || 'MALE',
-    status: employee.status || 'ACTIVE',
-    contract_type: employee.contract_type || 'CDI',
+    gender: normalizeGender(employee.gender),
+    status: normalizeStatus(employee.status),
+    contract_type: normalizeContractType(employee.contract_type),
     site: employee.location || employee.site || '',
     salary: employee.salary?.toString() || '',
     currency: employee.currency || 'XOF',
@@ -58,22 +89,30 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
   }
 
   const handleCreateDepartment = async () => {
-    if (!newDeptName.trim()) return;
+    if (!newDeptName.trim()) {
+      setDeptError('Le nom du département est requis');
+      return;
+    }
     
     setIsCreatingDept(true);
+    setDeptError('');
+    
     try {
       const newDept = await createDepartment({
         name: newDeptName.trim(),
         code: newDeptCode.trim() || newDeptName.trim().substring(0, 4).toUpperCase(),
       });
-      setDepartments([...departments, newDept]);
-      setFormData({ ...formData, department_id: newDept.id.toString() });
+      
+      setDepartments(prev => [...prev, newDept]);
+      setFormData(prev => ({ ...prev, department_id: newDept.id.toString() }));
       setShowNewDeptForm(false);
       setNewDeptName('');
       setNewDeptCode('');
     } catch (err) {
       if (err instanceof Error) {
-        setError(`Erreur création département: ${err.message}`);
+        setDeptError(err.message);
+      } else {
+        setDeptError('Erreur lors de la création du département');
       }
     } finally {
       setIsCreatingDept(false);
@@ -87,9 +126,21 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
     try {
       await updateEmployee(employee.id, {
-        ...formData,
+        employee_id: formData.employee_id,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email,
+        phone: formData.phone || undefined,
+        job_title: formData.job_title || undefined,
         department_id: formData.department_id ? parseInt(formData.department_id) : undefined,
+        hire_date: formData.hire_date || undefined,
+        date_of_birth: formData.date_of_birth || undefined,
+        gender: formData.gender,
+        status: formData.status,
+        contract_type: formData.contract_type,
+        site: formData.site || undefined,
         salary: formData.salary ? parseFloat(formData.salary) : undefined,
+        currency: formData.currency,
       });
       onSuccess();
       onClose();
@@ -125,7 +176,8 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   return (
@@ -220,9 +272,9 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               >
-                <option value="MALE">Homme</option>
-                <option value="FEMALE">Femme</option>
-                <option value="OTHER">Autre</option>
+                <option value="male">Homme</option>
+                <option value="female">Femme</option>
+                <option value="other">Autre</option>
               </select>
             </div>
 
@@ -253,11 +305,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
             {/* Département */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Département</label>
-              {isLoadingDepts ? (
-                <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 text-sm">
-                  Chargement...
-                </div>
-              ) : showNewDeptForm ? (
+              {showNewDeptForm ? (
                 <div className="space-y-2">
                   <input
                     type="text"
@@ -273,18 +321,19 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                     placeholder="Code (ex: TECH)"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
                   />
+                  {deptError && <p className="text-xs text-red-600">{deptError}</p>}
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={handleCreateDepartment}
                       disabled={isCreatingDept || !newDeptName.trim()}
-                      className="flex-1 px-3 py-1.5 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 disabled:opacity-50"
+                      className="flex-1 px-3 py-1.5 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 disabled:opacity-50 flex items-center justify-center"
                     >
-                      {isCreatingDept ? 'Création...' : 'Créer'}
+                      {isCreatingDept ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Créer'}
                     </button>
                     <button
                       type="button"
-                      onClick={() => setShowNewDeptForm(false)}
+                      onClick={() => { setShowNewDeptForm(false); setDeptError(''); }}
                       className="px-3 py-1.5 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50"
                     >
                       Annuler
@@ -298,8 +347,11 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                     value={formData.department_id}
                     onChange={handleChange}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    disabled={isLoadingDepts}
                   >
-                    <option value="">Sélectionner...</option>
+                    <option value="">
+                      {isLoadingDepts ? 'Chargement...' : departments.length === 0 ? 'Aucun département' : 'Sélectionner...'}
+                    </option>
                     {departments.map(dept => (
                       <option key={dept.id} value={dept.id}>{dept.name}</option>
                     ))}
@@ -349,11 +401,12 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               >
-                <option value="CDI">CDI</option>
-                <option value="CDD">CDD</option>
-                <option value="INTERN">Stage</option>
-                <option value="FREELANCE">Freelance</option>
-                <option value="PART_TIME">Temps partiel</option>
+                <option value="cdi">CDI</option>
+                <option value="cdd">CDD</option>
+                <option value="stage">Stage</option>
+                <option value="alternance">Alternance</option>
+                <option value="consultant">Consultant</option>
+                <option value="interim">Intérim</option>
               </select>
             </div>
 
@@ -366,10 +419,11 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               >
-                <option value="ACTIVE">Actif</option>
-                <option value="INACTIVE">Inactif</option>
-                <option value="ON_LEAVE">En congés</option>
-                <option value="TERMINATED">Terminé</option>
+                <option value="active">Actif</option>
+                <option value="probation">Période d&apos;essai</option>
+                <option value="on_leave">En congés</option>
+                <option value="suspended">Suspendu</option>
+                <option value="terminated">Terminé</option>
               </select>
             </div>
 

@@ -20,12 +20,12 @@ function getAuthHeaders(): HeadersInit {
 async function parseApiError(response: Response): Promise<string> {
   try {
     const error = await response.json();
-    // Gérer différents formats d'erreur
+    console.log('API Error response:', error);
+    
     if (typeof error === 'string') {
       return error;
     }
     if (error.detail) {
-      // Si detail est un tableau d'objets (validation Pydantic)
       if (Array.isArray(error.detail)) {
         return error.detail.map((e: { msg?: string; message?: string; loc?: string[] }) => {
           const field = e.loc ? e.loc[e.loc.length - 1] : '';
@@ -33,11 +33,9 @@ async function parseApiError(response: Response): Promise<string> {
           return field ? `${field}: ${msg}` : msg;
         }).join(', ');
       }
-      // Si detail est un string
       if (typeof error.detail === 'string') {
         return error.detail;
       }
-      // Si detail est un objet
       return JSON.stringify(error.detail);
     }
     if (error.message) {
@@ -49,7 +47,11 @@ async function parseApiError(response: Response): Promise<string> {
   }
 }
 
-// Types
+// Types - Valeurs acceptées par l'API (en minuscule)
+export type GenderType = 'male' | 'female' | 'other';
+export type ContractType = 'cdi' | 'cdd' | 'stage' | 'alternance' | 'consultant' | 'interim';
+export type StatusType = 'active' | 'on_leave' | 'suspended' | 'terminated' | 'probation';
+
 export interface Employee {
   id: number;
   employee_id: string;
@@ -64,9 +66,9 @@ export interface Employee {
   hire_date?: string;
   birth_date?: string;
   date_of_birth?: string;
-  gender?: 'MALE' | 'FEMALE' | 'OTHER';
-  status: 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE' | 'TERMINATED';
-  contract_type?: 'CDI' | 'CDD' | 'INTERN' | 'FREELANCE' | 'PART_TIME';
+  gender?: string;
+  status: string;
+  contract_type?: string;
   salary?: number;
   currency?: string;
   manager_id?: number;
@@ -89,9 +91,9 @@ export interface EmployeeCreate {
   department_id?: number;
   hire_date?: string;
   date_of_birth?: string;
-  gender?: string;
-  status?: string;
-  contract_type?: string;
+  gender?: GenderType;
+  status?: StatusType;
+  contract_type?: ContractType;
   site?: string;
   salary?: number;
   currency?: string;
@@ -191,6 +193,8 @@ export async function createEmployee(data: EmployeeCreate): Promise<Employee> {
     }
   });
 
+  console.log('Creating employee with cleaned data:', cleanData);
+
   const response = await fetch(`${API_URL}/api/employees/`, {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -206,13 +210,14 @@ export async function createEmployee(data: EmployeeCreate): Promise<Employee> {
 }
 
 export async function updateEmployee(id: number, data: Partial<EmployeeCreate>): Promise<Employee> {
-  // Nettoyer les données
   const cleanData: Record<string, unknown> = {};
   Object.entries(data).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') {
       cleanData[key] = value;
     }
   });
+
+  console.log('Updating employee with cleaned data:', cleanData);
 
   const response = await fetch(`${API_URL}/api/employees/${id}`, {
     method: 'PUT',
@@ -255,23 +260,38 @@ export async function getEmployeeStats(): Promise<EmployeeStats> {
 
 // Departments
 export async function getDepartments(): Promise<Department[]> {
+  console.log('Fetching departments from:', `${API_URL}/api/departments/`);
+  
   const response = await fetch(`${API_URL}/api/departments/`, {
     headers: getAuthHeaders(),
   });
 
+  console.log('Departments response status:', response.status);
+
   if (!response.ok) {
     const errorMsg = await parseApiError(response);
+    console.error('Error fetching departments:', errorMsg);
     throw new Error(errorMsg);
   }
 
   const data = await response.json();
-  // Gérer le cas où l'API retourne un objet paginé
+  console.log('Departments raw response:', data);
+  
+  // Gérer différents formats de réponse
   if (Array.isArray(data)) {
+    console.log('Departments is array:', data.length, 'items');
     return data;
   }
   if (data.items && Array.isArray(data.items)) {
+    console.log('Departments from items:', data.items.length, 'items');
     return data.items;
   }
+  if (data.data && Array.isArray(data.data)) {
+    console.log('Departments from data:', data.data.length, 'items');
+    return data.data;
+  }
+  
+  console.log('Departments: unknown format, returning empty array');
   return [];
 }
 
@@ -289,18 +309,25 @@ export async function getDepartment(id: number): Promise<Department> {
 }
 
 export async function createDepartment(data: DepartmentCreate): Promise<Department> {
+  console.log('Creating department with data:', data);
+  
   const response = await fetch(`${API_URL}/api/departments/`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
   });
 
+  console.log('Create department response status:', response.status);
+
   if (!response.ok) {
     const errorMsg = await parseApiError(response);
+    console.error('Error creating department:', errorMsg);
     throw new Error(errorMsg);
   }
 
-  return response.json();
+  const result = await response.json();
+  console.log('Created department:', result);
+  return result;
 }
 
 export async function updateDepartment(id: number, data: Partial<DepartmentCreate>): Promise<Department> {
@@ -333,18 +360,8 @@ export async function deleteDepartment(id: number): Promise<void> {
 // Export employees to CSV
 export function exportEmployeesToCSV(employees: Employee[]): void {
   const headers = [
-    'Matricule',
-    'Prénom',
-    'Nom',
-    'Email',
-    'Téléphone',
-    'Poste',
-    'Département',
-    'Site',
-    'Date embauche',
-    'Statut',
-    'Type contrat',
-    'Genre'
+    'Matricule', 'Prénom', 'Nom', 'Email', 'Téléphone', 'Poste',
+    'Département', 'Site', 'Date embauche', 'Statut', 'Type contrat', 'Genre'
   ];
 
   const rows = employees.map(emp => [

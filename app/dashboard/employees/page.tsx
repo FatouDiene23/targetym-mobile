@@ -71,6 +71,7 @@ export default function EmployeesPage() {
   const fetchDepartments = async (): Promise<Department[]> => {
     try {
       const data = await getDepartments();
+      console.log('Page - Departments loaded:', data);
       setDepartments(data || []);
       departmentsRef.current = data || [];
       return data || [];
@@ -114,13 +115,20 @@ export default function EmployeesPage() {
     return selectedLocation === 'Tous' || emp.location === selectedLocation || emp.site === selectedLocation;
   });
 
+  // Calculer le nombre de femmes - chercher dans différentes clés possibles
   const getFemaleCount = (): number => {
     if (stats?.female !== undefined) return stats.female;
-    if (stats?.by_gender?.FEMALE !== undefined) return stats.by_gender.FEMALE;
-    const genderKeys = Object.keys(stats?.by_gender || {});
-    const femaleKey = genderKeys.find(k => k.toLowerCase() === 'female');
-    if (femaleKey && stats?.by_gender) return stats.by_gender[femaleKey];
-    return allEmployees.filter(e => e.gender === 'FEMALE').length;
+    if (stats?.by_gender) {
+      // Chercher la clé female (minuscule ou majuscule)
+      const keys = Object.keys(stats.by_gender);
+      for (const key of keys) {
+        if (key.toLowerCase() === 'female') {
+          return stats.by_gender[key];
+        }
+      }
+    }
+    // Fallback: compter depuis les employés
+    return allEmployees.filter(e => e.gender?.toLowerCase() === 'female').length;
   };
 
   const getManagerCount = (): number => {
@@ -135,12 +143,16 @@ export default function EmployeesPage() {
     return new Date(dateString).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
+  // Statut badges - avec valeurs en minuscule
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'ACTIVE': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">Actif</span>;
-      case 'INACTIVE': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Inactif</span>;
-      case 'ON_LEAVE': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">En congés</span>;
-      case 'TERMINATED': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">Terminé</span>;
+    const s = status?.toLowerCase();
+    switch (s) {
+      case 'active': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">Actif</span>;
+      case 'inactive': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Inactif</span>;
+      case 'on_leave': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">En congés</span>;
+      case 'terminated': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">Terminé</span>;
+      case 'probation': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700">Période d&apos;essai</span>;
+      case 'suspended': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-700">Suspendu</span>;
       default: return <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">{status}</span>;
     }
   };
@@ -285,7 +297,7 @@ export default function EmployeesPage() {
                               <div className="flex items-center">
                                 <div className="relative">
                                   <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium">{getInitials(employee.first_name, employee.last_name)}</div>
-                                  {employee.status === 'ON_LEAVE' && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center"><Palmtree className="w-2.5 h-2.5 text-white" /></div>}
+                                  {employee.status?.toLowerCase() === 'on_leave' && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center"><Palmtree className="w-2.5 h-2.5 text-white" /></div>}
                                 </div>
                                 <div className="ml-3">
                                   <div className="flex items-center">
@@ -328,7 +340,7 @@ export default function EmployeesPage() {
                     <div className="text-center mb-6">
                       <div className="relative inline-block">
                         <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 text-2xl font-bold mx-auto mb-3">{getInitials(selectedEmployee.first_name, selectedEmployee.last_name)}</div>
-                        {selectedEmployee.status === 'ON_LEAVE' && <div className="absolute bottom-2 right-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center"><Palmtree className="w-3.5 h-3.5 text-white" /></div>}
+                        {selectedEmployee.status?.toLowerCase() === 'on_leave' && <div className="absolute bottom-2 right-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center"><Palmtree className="w-3.5 h-3.5 text-white" /></div>}
                       </div>
                       <h3 className="text-xl font-bold text-gray-900">{selectedEmployee.first_name} {selectedEmployee.last_name}</h3>
                       <p className="text-sm text-gray-500">{selectedEmployee.position || selectedEmployee.job_title || '-'}</p>
@@ -346,7 +358,7 @@ export default function EmployeesPage() {
                     </div>
                     <div className="pt-4 border-t border-gray-100">
                       <p className="text-sm text-gray-500 mb-2">Type de contrat</p>
-                      <p className="font-medium text-gray-900">{selectedEmployee.contract_type || '-'}</p>
+                      <p className="font-medium text-gray-900">{selectedEmployee.contract_type?.toUpperCase() || '-'}</p>
                     </div>
                     <div className="flex gap-2 mt-6">
                       <button onClick={() => setShowViewModal(true)} className="flex-1 flex items-center justify-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"><Eye className="w-4 h-4 mr-2" />Voir profil</button>
@@ -414,7 +426,7 @@ export default function EmployeesPage() {
       </main>
 
       {showViewModal && selectedEmployee && (
-        <EmployeeModal employee={{ id: selectedEmployee.id, name: `${selectedEmployee.first_name} ${selectedEmployee.last_name}`, email: selectedEmployee.email, phone: selectedEmployee.phone || '', department: selectedEmployee.department_name || '', position: selectedEmployee.position || selectedEmployee.job_title || '', location: selectedEmployee.location || selectedEmployee.site || '', startDate: formatDate(selectedEmployee.hire_date), status: selectedEmployee.status === 'ACTIVE' ? 'active' : 'inactive', manager: '-', gender: selectedEmployee.gender === 'FEMALE' ? 'F' : 'M', birthYear: selectedEmployee.birth_date ? new Date(selectedEmployee.birth_date).getFullYear() : 1990, isManager: selectedEmployee.is_manager || false, isTopManager: false, onLeave: selectedEmployee.status === 'ON_LEAVE' }} onClose={() => setShowViewModal(false)} />
+        <EmployeeModal employee={{ id: selectedEmployee.id, name: `${selectedEmployee.first_name} ${selectedEmployee.last_name}`, email: selectedEmployee.email, phone: selectedEmployee.phone || '', department: selectedEmployee.department_name || '', position: selectedEmployee.position || selectedEmployee.job_title || '', location: selectedEmployee.location || selectedEmployee.site || '', startDate: formatDate(selectedEmployee.hire_date), status: selectedEmployee.status?.toLowerCase() === 'active' ? 'active' : 'inactive', manager: '-', gender: selectedEmployee.gender?.toLowerCase() === 'female' ? 'F' : 'M', birthYear: selectedEmployee.birth_date ? new Date(selectedEmployee.birth_date).getFullYear() : 1990, isManager: selectedEmployee.is_manager || false, isTopManager: false, onLeave: selectedEmployee.status?.toLowerCase() === 'on_leave' }} onClose={() => setShowViewModal(false)} />
       )}
       {showAddModal && <AddEmployeeModal onClose={() => setShowAddModal(false)} onSuccess={handleSuccess} />}
       {showEditModal && selectedEmployee && <EditEmployeeModal employee={selectedEmployee} onClose={() => setShowEditModal(false)} onSuccess={handleSuccess} />}

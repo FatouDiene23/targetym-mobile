@@ -25,10 +25,12 @@ export interface Employee {
   email: string;
   phone?: string;
   position?: string;
+  job_title?: string;
   department_id?: number;
   department_name?: string;
   hire_date?: string;
   birth_date?: string;
+  date_of_birth?: string;
   gender?: 'MALE' | 'FEMALE' | 'OTHER';
   status: 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE' | 'TERMINATED';
   contract_type?: 'CDI' | 'CDD' | 'INTERN' | 'FREELANCE' | 'PART_TIME';
@@ -36,9 +38,32 @@ export interface Employee {
   currency?: string;
   manager_id?: number;
   location?: string;
+  site?: string;
   is_manager?: boolean;
+  nationality?: string;
+  address?: string;
   created_at: string;
   updated_at?: string;
+}
+
+export interface EmployeeCreate {
+  employee_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  job_title?: string;
+  department_id?: number;
+  hire_date?: string;
+  date_of_birth?: string;
+  gender?: string;
+  status?: string;
+  contract_type?: string;
+  site?: string;
+  salary?: number;
+  currency?: string;
+  nationality?: string;
+  address?: string;
 }
 
 export interface EmployeeStats {
@@ -110,7 +135,7 @@ export async function getEmployee(id: number): Promise<Employee> {
   return response.json();
 }
 
-export async function createEmployee(data: Partial<Employee>): Promise<Employee> {
+export async function createEmployee(data: EmployeeCreate): Promise<Employee> {
   const response = await fetch(`${API_URL}/api/employees/`, {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -125,7 +150,7 @@ export async function createEmployee(data: Partial<Employee>): Promise<Employee>
   return response.json();
 }
 
-export async function updateEmployee(id: number, data: Partial<Employee>): Promise<Employee> {
+export async function updateEmployee(id: number, data: Partial<EmployeeCreate>): Promise<Employee> {
   const response = await fetch(`${API_URL}/api/employees/${id}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
@@ -239,4 +264,54 @@ export async function getDepartmentTree(): Promise<Department[]> {
   }
 
   return response.json();
+}
+
+// Export employees to CSV
+export function exportEmployeesToCSV(employees: Employee[]): void {
+  const headers = [
+    'Matricule',
+    'Prénom',
+    'Nom',
+    'Email',
+    'Téléphone',
+    'Poste',
+    'Département',
+    'Site',
+    'Date embauche',
+    'Statut',
+    'Type contrat',
+    'Genre'
+  ];
+
+  const rows = employees.map(emp => [
+    emp.employee_id,
+    emp.first_name,
+    emp.last_name,
+    emp.email,
+    emp.phone || '',
+    emp.position || emp.job_title || '',
+    emp.department_name || '',
+    emp.location || emp.site || '',
+    emp.hire_date ? new Date(emp.hire_date).toLocaleDateString('fr-FR') : '',
+    emp.status,
+    emp.contract_type || '',
+    emp.gender || ''
+  ]);
+
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+  ].join('\n');
+
+  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute('href', url);
+  link.setAttribute('download', `employees_${new Date().toISOString().split('T')[0]}.csv`);
+  link.style.visibility = 'hidden';
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }

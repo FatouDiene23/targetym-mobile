@@ -2,7 +2,9 @@
 
 import Header from '@/components/Header';
 import EmployeeModal from '@/components/EmployeeModal';
-import { useState, useEffect } from 'react';
+import AddEmployeeModal from '@/components/AddEmployeeModal';
+import EditEmployeeModal from '@/components/EditEmployeeModal';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Search, 
   Plus, 
@@ -30,7 +32,15 @@ import {
   Loader2,
   RefreshCw
 } from 'lucide-react';
-import { getEmployees, getEmployeeStats, getDepartments, type Employee, type EmployeeStats, type Department } from '@/lib/api';
+import { 
+  getEmployees, 
+  getEmployeeStats, 
+  getDepartments, 
+  exportEmployeesToCSV,
+  type Employee, 
+  type EmployeeStats, 
+  type Department 
+} from '@/lib/api';
 
 // Données de congés (mockées pour l'instant)
 const leaveRequests = [
@@ -39,11 +49,12 @@ const leaveRequests = [
   { id: 3, employeeName: 'Marie Dupont', type: 'RTT', startDate: '20 Déc 2024', endDate: '20 Déc 2024', days: 1, status: 'pending' },
 ];
 
-const locations = ['Tous', 'Dakar', 'Abidjan', 'Paris', 'Remote'];
+const locations = ['Tous', 'Abidjan', 'Dakar', 'Bamako', 'Ouagadougou', 'Conakry', 'Remote'];
 
 export default function EmployeesPage() {
   // State pour les données API
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [stats, setStats] = useState<EmployeeStats | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,40 +66,18 @@ export default function EmployeesPage() {
   const [selectedLocation, setSelectedLocation] = useState('Tous');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [activeTab, setActiveTab] = useState<'employees' | 'leaves'>('employees');
-  const [showModal, setShowModal] = useState(false);
+  
+  // Modals
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Charger les données au montage
- useEffect(() => {
-  loadData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
-
-  // Recharger quand les filtres changent
-  useEffect(() => {
-  loadEmployees();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [searchTerm, selectedDepartment, currentPage]);
-
-  async function loadData() {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await Promise.all([
-        loadEmployees(),
-        loadStats(),
-        loadDepartments(),
-      ]);
-    } catch (err) {
-      console.error('Error loading data:', err);
-      setError('Erreur lors du chargement des données');
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function loadEmployees() {
+  // Load data functions
+  const loadEmployees = useCallback(async () => {
     try {
       const deptId = selectedDepartment !== 'Tous' 
         ? departments.find(d => d.name === selectedDepartment)?.id 
@@ -96,27 +85,26 @@ export default function EmployeesPage() {
 
       const response = await getEmployees({
         page: currentPage,
-        page_size: 20,
+        page_size: 50,
         search: searchTerm || undefined,
         department_id: deptId,
       });
 
       setEmployees(response.items || []);
+      setAllEmployees(response.items || []);
       setTotalPages(response.total_pages || 1);
     } catch (err) {
       console.error('Error loading employees:', err);
-      // Utiliser des données vides si erreur
       setEmployees([]);
     }
-  }
+  }, [currentPage, searchTerm, selectedDepartment, departments]);
 
-  async function loadStats() {
+  const loadStats = useCallback(async () => {
     try {
       const data = await getEmployeeStats();
       setStats(data);
     } catch (err) {
       console.error('Error loading stats:', err);
-      // Stats par défaut si erreur
       setStats({
         total: 0,
         active: 0,
@@ -127,9 +115,9 @@ export default function EmployeesPage() {
         by_contract_type: {},
       });
     }
-  }
+  }, []);
 
-  async function loadDepartments() {
+  const loadDepartments = useCallback(async () => {
     try {
       const data = await getDepartments();
       setDepartments(data);
@@ -137,18 +125,48 @@ export default function EmployeesPage() {
       console.error('Error loading departments:', err);
       setDepartments([]);
     }
-  }
+  }, []);
 
-  // Filtrer côté client pour la recherche en temps réel
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await Promise.all([
+        loadDepartments(),
+        loadStats(),
+      ]);
+      await loadEmployees();
+    } catch (err) {
+      console.error('Error loading data:', err);
+      setError('Erreur lors du chargement des données');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loadDepartments, loadStats, loadEmployees]);
+
+  // Initial load
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Reload when filters change
+  useEffect(() => {
+    if (!isLoading) {
+      loadEmployees();
+    }
+  }, [searchTerm, selectedDepartment, currentPage, loadEmployees, isLoading]);
+
+  // Filtrer côté client pour la localisation
   const filteredEmployees = employees.filter(emp => {
-    const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
-    const matchesSearch = !searchTerm || 
-      fullName.includes(searchTerm.toLowerCase()) ||
-      emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (emp.position?.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesLocation = selectedLocation === 'Tous' || emp.location === selectedLocation;
-    return matchesSearch && matchesLocation;
+    const matchesLocation = selectedLocation === 'Tous' || 
+      emp.location === selectedLocation || 
+      emp.site === selectedLocation;
+    return matchesLocation;
   });
+
+  // Calculer les stats femmes
+  const femaleCount = stats?.by_gender?.FEMALE || 
+    allEmployees.filter(e => e.gender === 'FEMALE').length;
 
   // Helper pour obtenir les initiales
   const getInitials = (firstName: string, lastName: string) => {
@@ -179,6 +197,17 @@ export default function EmployeesPage() {
       default:
         return <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">{status}</span>;
     }
+  };
+
+  // Export CSV
+  const handleExport = () => {
+    exportEmployeesToCSV(filteredEmployees);
+  };
+
+  // Refresh after add/edit
+  const handleSuccess = () => {
+    loadData();
+    setSelectedEmployee(null);
   };
 
   // Loading state
@@ -251,7 +280,7 @@ export default function EmployeesPage() {
           
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-2">
-              <Briefcase className="w-5 h-5 text-purple-500" />
+              <Building2 className="w-5 h-5 text-purple-500" />
             </div>
             <p className="text-2xl font-bold text-purple-600">{departments.length}</p>
             <p className="text-xs text-gray-500">Départements</p>
@@ -259,10 +288,10 @@ export default function EmployeesPage() {
           
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-2">
-              <User className="w-5 h-5 text-indigo-500" />
+              <Briefcase className="w-5 h-5 text-indigo-500" />
             </div>
             <p className="text-2xl font-bold text-indigo-600">
-              {employees.filter(e => e.is_manager).length}
+              {allEmployees.filter(e => e.is_manager).length}
             </p>
             <p className="text-xs text-gray-500">Managers</p>
           </div>
@@ -279,9 +308,7 @@ export default function EmployeesPage() {
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-bold text-pink-500">♀</span>
             </div>
-            <p className="text-2xl font-bold text-pink-600">
-              {stats?.by_gender?.FEMALE || 0}
-            </p>
+            <p className="text-2xl font-bold text-pink-600">{femaleCount}</p>
             <p className="text-xs text-gray-500">Femmes</p>
           </div>
         </div>
@@ -327,7 +354,7 @@ export default function EmployeesPage() {
                     className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                   />
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-3 flex-wrap">
                   <select 
                     value={selectedDepartment}
                     onChange={(e) => setSelectedDepartment(e.target.value)}
@@ -347,11 +374,17 @@ export default function EmployeesPage() {
                       <option key={loc} value={loc}>{loc === 'Tous' ? 'Toutes les localisations' : loc}</option>
                     ))}
                   </select>
-                  <button className="flex items-center px-4 py-2.5 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
+                  <button 
+                    onClick={() => setShowAddModal(true)}
+                    className="flex items-center px-4 py-2.5 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Ajouter
                   </button>
-                  <button className="flex items-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                  <button 
+                    onClick={handleExport}
+                    className="flex items-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                  >
                     <Download className="w-4 h-4 mr-2" />
                     Exporter
                   </button>
@@ -417,7 +450,7 @@ export default function EmployeesPage() {
                                       <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">Mgr</span>
                                     )}
                                   </div>
-                                  <p className="text-sm text-gray-500">{employee.position || '-'}</p>
+                                  <p className="text-sm text-gray-500">{employee.position || employee.job_title || '-'}</p>
                                 </div>
                               </div>
                             </td>
@@ -426,14 +459,35 @@ export default function EmployeesPage() {
                                 {employee.department_name || '-'}
                               </span>
                             </td>
-                            <td className="px-5 py-4 text-sm text-gray-600">{employee.location || '-'}</td>
+                            <td className="px-5 py-4 text-sm text-gray-600">{employee.location || employee.site || '-'}</td>
                             <td className="px-5 py-4">
                               {getStatusBadge(employee.status)}
                             </td>
                             <td className="px-5 py-4 text-right">
-                              <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
-                                <MoreVertical className="w-4 h-4" />
-                              </button>
+                              <div className="flex items-center justify-end gap-1">
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedEmployee(employee);
+                                    setShowEditModal(true);
+                                  }}
+                                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                                  title="Modifier"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedEmployee(employee);
+                                    setShowViewModal(true);
+                                  }}
+                                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                                  title="Voir détails"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -486,7 +540,7 @@ export default function EmployeesPage() {
                       <h3 className="text-xl font-bold text-gray-900">
                         {selectedEmployee.first_name} {selectedEmployee.last_name}
                       </h3>
-                      <p className="text-sm text-gray-500">{selectedEmployee.position || '-'}</p>
+                      <p className="text-sm text-gray-500">{selectedEmployee.position || selectedEmployee.job_title || '-'}</p>
                       <div className="flex items-center justify-center gap-2 mt-2">
                         {getStatusBadge(selectedEmployee.status)}
                         {selectedEmployee.is_manager && (
@@ -508,10 +562,10 @@ export default function EmployeesPage() {
                           {selectedEmployee.phone}
                         </div>
                       )}
-                      {selectedEmployee.location && (
+                      {(selectedEmployee.location || selectedEmployee.site) && (
                         <div className="flex items-center text-sm text-gray-600">
                           <MapPin className="w-4 h-4 mr-3 text-gray-400" />
-                          {selectedEmployee.location}
+                          {selectedEmployee.location || selectedEmployee.site}
                         </div>
                       )}
                       {selectedEmployee.department_name && (
@@ -533,20 +587,23 @@ export default function EmployeesPage() {
 
                     <div className="flex gap-2 mt-6">
                       <button 
-                        onClick={() => setShowModal(true)}
+                        onClick={() => setShowViewModal(true)}
                         className="flex-1 flex items-center justify-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"
                       >
                         <Eye className="w-4 h-4 mr-2" />
                         Voir profil
                       </button>
-                      <button className="flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50">
+                      <button 
+                        onClick={() => setShowEditModal(true)}
+                        className="flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50"
+                      >
                         <Edit2 className="w-4 h-4" />
                       </button>
                     </div>
                   </>
                 ) : (
                   <div className="text-center text-gray-500 py-12">
-                    <Building2 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <User className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                     <p>Sélectionnez un employé pour voir les détails</p>
                   </div>
                 )}
@@ -554,7 +611,7 @@ export default function EmployeesPage() {
             </div>
           </>
         ) : (
-          /* Leave Management Tab - Garder les données mockées pour l'instant */
+          /* Leave Management Tab */
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-4">
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -634,8 +691,8 @@ export default function EmployeesPage() {
         )}
       </main>
 
-      {/* Modal - Note: EmployeeModal needs to be updated to work with new Employee type */}
-      {showModal && selectedEmployee && (
+      {/* Modals */}
+      {showViewModal && selectedEmployee && (
         <EmployeeModal 
           employee={{
             id: selectedEmployee.id,
@@ -643,8 +700,8 @@ export default function EmployeesPage() {
             email: selectedEmployee.email,
             phone: selectedEmployee.phone || '',
             department: selectedEmployee.department_name || '',
-            position: selectedEmployee.position || '',
-            location: selectedEmployee.location || '',
+            position: selectedEmployee.position || selectedEmployee.job_title || '',
+            location: selectedEmployee.location || selectedEmployee.site || '',
             startDate: formatDate(selectedEmployee.hire_date),
             status: selectedEmployee.status === 'ACTIVE' ? 'active' : 'inactive',
             manager: '-',
@@ -654,7 +711,22 @@ export default function EmployeesPage() {
             isTopManager: false,
             onLeave: selectedEmployee.status === 'ON_LEAVE',
           }} 
-          onClose={() => setShowModal(false)} 
+          onClose={() => setShowViewModal(false)} 
+        />
+      )}
+
+      {showAddModal && (
+        <AddEmployeeModal 
+          onClose={() => setShowAddModal(false)}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {showEditModal && selectedEmployee && (
+        <EditEmployeeModal 
+          employee={selectedEmployee}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={handleSuccess}
         />
       )}
     </>

@@ -4,7 +4,7 @@ import Header from '@/components/Header';
 import EmployeeModal from '@/components/EmployeeModal';
 import AddEmployeeModal from '@/components/AddEmployeeModal';
 import EditEmployeeModal from '@/components/EditEmployeeModal';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Search, 
   Plus, 
@@ -75,11 +75,15 @@ export default function EmployeesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Load data functions
-  const loadEmployees = useCallback(async () => {
+  // Ref pour éviter les doubles appels
+  const isInitialized = useRef(false);
+  const departmentsRef = useRef<Department[]>([]);
+
+  // Fonction pour charger les employés
+  const fetchEmployees = async (depts: Department[]) => {
     try {
       const deptId = selectedDepartment !== 'Tous' 
-        ? departments.find(d => d.name === selectedDepartment)?.id 
+        ? depts.find(d => d.name === selectedDepartment)?.id 
         : undefined;
 
       const response = await getEmployees({
@@ -96,9 +100,10 @@ export default function EmployeesPage() {
       console.error('Error loading employees:', err);
       setEmployees([]);
     }
-  }, [currentPage, searchTerm, selectedDepartment, departments]);
+  };
 
-  const loadStats = useCallback(async () => {
+  // Fonction pour charger les stats
+  const fetchStats = async () => {
     try {
       const data = await getEmployeeStats();
       setStats(data);
@@ -114,46 +119,57 @@ export default function EmployeesPage() {
         by_contract_type: {},
       });
     }
-  }, []);
+  };
 
-  const loadDepartments = useCallback(async () => {
+  // Fonction pour charger les départements
+  const fetchDepartments = async (): Promise<Department[]> => {
     try {
       const data = await getDepartments();
       setDepartments(data);
+      departmentsRef.current = data;
+      return data;
     } catch (err) {
       console.error('Error loading departments:', err);
       setDepartments([]);
+      return [];
     }
-  }, []);
+  };
 
-  const loadData = useCallback(async () => {
+  // Fonction principale de chargement
+  const loadAllData = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      await Promise.all([
-        loadDepartments(),
-        loadStats(),
-      ]);
-      await loadEmployees();
+      const depts = await fetchDepartments();
+      await fetchStats();
+      await fetchEmployees(depts);
     } catch (err) {
       console.error('Error loading data:', err);
       setError('Erreur lors du chargement des données');
     } finally {
       setIsLoading(false);
     }
-  }, [loadDepartments, loadStats, loadEmployees]);
+  };
 
-  // Initial load
+  // Chargement initial - une seule fois
   useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  // Reload when filters change
-  useEffect(() => {
-    if (!isLoading) {
-      loadEmployees();
+    if (!isInitialized.current) {
+      isInitialized.current = true;
+      loadAllData();
     }
-  }, [searchTerm, selectedDepartment, currentPage, loadEmployees, isLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Recharger les employés quand les filtres changent
+  useEffect(() => {
+    if (isInitialized.current && !isLoading && departmentsRef.current.length > 0) {
+      const timer = setTimeout(() => {
+        fetchEmployees(departmentsRef.current);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, selectedDepartment, currentPage]);
 
   // Filtrer côté client pour la localisation
   const filteredEmployees = employees.filter(emp => {
@@ -205,7 +221,7 @@ export default function EmployeesPage() {
 
   // Refresh after add/edit
   const handleSuccess = () => {
-    loadData();
+    loadAllData();
     setSelectedEmployee(null);
   };
 
@@ -233,7 +249,7 @@ export default function EmployeesPage() {
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
             <span className="text-red-700">{error}</span>
-            <button onClick={loadData} className="flex items-center text-red-600 hover:text-red-800">
+            <button onClick={loadAllData} className="flex items-center text-red-600 hover:text-red-800">
               <RefreshCw className="w-4 h-4 mr-1" />
               Réessayer
             </button>
@@ -401,7 +417,7 @@ export default function EmployeesPage() {
                       <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                       <p className="text-gray-500 mb-4">Aucun employé trouvé</p>
                       <button 
-                        onClick={loadData}
+                        onClick={loadAllData}
                         className="flex items-center mx-auto px-4 py-2 text-primary-600 hover:bg-primary-50 rounded-lg"
                       >
                         <RefreshCw className="w-4 h-4 mr-2" />

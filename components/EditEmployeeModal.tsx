@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Loader2, Trash2, Plus } from 'lucide-react';
-import { updateEmployee, deleteEmployee, getDepartments, createDepartment, type Employee, type Department, type GenderType, type ContractType, type StatusType } from '@/lib/api';
+import { X, Loader2, Trash2 } from 'lucide-react';
+import { updateEmployee, deleteEmployee, getDepartments, getEmployees, type Employee, type Department, type GenderType, type ContractType, type StatusType } from '@/lib/api';
 
 interface EditEmployeeModalProps {
   employee: Employee;
@@ -46,12 +46,8 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState('');
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [isLoadingDepts, setIsLoadingDepts] = useState(true);
-  const [showNewDeptForm, setShowNewDeptForm] = useState(false);
-  const [newDeptName, setNewDeptName] = useState('');
-  const [newDeptCode, setNewDeptCode] = useState('');
-  const [isCreatingDept, setIsCreatingDept] = useState(false);
-  const [deptError, setDeptError] = useState('');
+  const [managers, setManagers] = useState<Employee[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   
   const [formData, setFormData] = useState({
     employee_id: employee.employee_id || '',
@@ -61,6 +57,8 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
     phone: employee.phone || '',
     job_title: employee.position || employee.job_title || '',
     department_id: employee.department_id?.toString() || '',
+    manager_id: employee.manager_id?.toString() || '',
+    is_manager: employee.is_manager || false,
     hire_date: employee.hire_date?.split('T')[0] || '',
     date_of_birth: employee.birth_date?.split('T')[0] || employee.date_of_birth?.split('T')[0] || '',
     gender: normalizeGender(employee.gender),
@@ -72,52 +70,26 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
   });
 
   useEffect(() => {
-    loadDepartments();
+    loadData();
   }, []);
 
-  async function loadDepartments() {
-    setIsLoadingDepts(true);
+  async function loadData() {
+    setIsLoadingData(true);
     try {
-      const data = await getDepartments();
-      setDepartments(data || []);
+      // Charger départements
+      const depts = await getDepartments();
+      setDepartments(depts || []);
+      
+      // Charger les managers (employés avec is_manager = true, sauf l'employé actuel)
+      const empResponse = await getEmployees({ page_size: 500 });
+      const allManagers = (empResponse.items || []).filter(e => e.is_manager && e.id !== employee.id);
+      setManagers(allManagers);
     } catch (err) {
-      console.error('Error loading departments:', err);
-      setDepartments([]);
+      console.error('Error loading data:', err);
     } finally {
-      setIsLoadingDepts(false);
+      setIsLoadingData(false);
     }
   }
-
-  const handleCreateDepartment = async () => {
-    if (!newDeptName.trim()) {
-      setDeptError('Le nom du département est requis');
-      return;
-    }
-    
-    setIsCreatingDept(true);
-    setDeptError('');
-    
-    try {
-      const newDept = await createDepartment({
-        name: newDeptName.trim(),
-        code: newDeptCode.trim() || newDeptName.trim().substring(0, 4).toUpperCase(),
-      });
-      
-      setDepartments(prev => [...prev, newDept]);
-      setFormData(prev => ({ ...prev, department_id: newDept.id.toString() }));
-      setShowNewDeptForm(false);
-      setNewDeptName('');
-      setNewDeptCode('');
-    } catch (err) {
-      if (err instanceof Error) {
-        setDeptError(err.message);
-      } else {
-        setDeptError('Erreur lors de la création du département');
-      }
-    } finally {
-      setIsCreatingDept(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,6 +105,8 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
         phone: formData.phone || undefined,
         job_title: formData.job_title || undefined,
         department_id: formData.department_id ? parseInt(formData.department_id) : undefined,
+        manager_id: formData.manager_id ? parseInt(formData.manager_id) : undefined,
+        is_manager: formData.is_manager,
         hire_date: formData.hire_date || undefined,
         date_of_birth: formData.date_of_birth || undefined,
         gender: formData.gender,
@@ -176,8 +150,13 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setFormData(prev => ({ ...prev, [name]: checked }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   return (
@@ -305,67 +284,57 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
             {/* Département */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Département</label>
-              {showNewDeptForm ? (
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    value={newDeptName}
-                    onChange={(e) => setNewDeptName(e.target.value)}
-                    placeholder="Nom du département"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
-                  />
-                  <input
-                    type="text"
-                    value={newDeptCode}
-                    onChange={(e) => setNewDeptCode(e.target.value)}
-                    placeholder="Code (ex: TECH)"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
-                  />
-                  {deptError && <p className="text-xs text-red-600">{deptError}</p>}
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={handleCreateDepartment}
-                      disabled={isCreatingDept || !newDeptName.trim()}
-                      className="flex-1 px-3 py-1.5 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 disabled:opacity-50 flex items-center justify-center"
-                    >
-                      {isCreatingDept ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Créer'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setShowNewDeptForm(false); setDeptError(''); }}
-                      className="px-3 py-1.5 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50"
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <select
-                    name="department_id"
-                    value={formData.department_id}
-                    onChange={handleChange}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    disabled={isLoadingDepts}
-                  >
-                    <option value="">
-                      {isLoadingDepts ? 'Chargement...' : departments.length === 0 ? 'Aucun département' : 'Sélectionner...'}
-                    </option>
-                    {departments.map(dept => (
-                      <option key={dept.id} value={dept.id}>{dept.name}</option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => setShowNewDeptForm(true)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                    title="Créer un département"
-                  >
-                    <Plus className="w-4 h-4 text-gray-600" />
-                  </button>
-                </div>
-              )}
+              <select
+                name="department_id"
+                value={formData.department_id}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                disabled={isLoadingData}
+              >
+                <option value="">
+                  {isLoadingData ? 'Chargement...' : 'Sélectionner...'}
+                </option>
+                {departments.map(dept => (
+                  <option key={dept.id} value={dept.id}>
+                    {dept.parent_id ? `  ↳ ${dept.name}` : dept.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Manager (N+1) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Manager (N+1)</label>
+              <select
+                name="manager_id"
+                value={formData.manager_id}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                disabled={isLoadingData}
+              >
+                <option value="">
+                  {isLoadingData ? 'Chargement...' : 'Aucun (poste de direction)'}
+                </option>
+                {managers.map(mgr => (
+                  <option key={mgr.id} value={mgr.id}>
+                    {mgr.first_name} {mgr.last_name} - {mgr.job_title || mgr.position || ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Est manager */}
+            <div className="flex items-center">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="is_manager"
+                  checked={formData.is_manager}
+                  onChange={handleChange}
+                  className="w-4 h-4 text-primary-500 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <span className="ml-2 text-sm text-gray-700">Est un manager</span>
+              </label>
             </div>
 
             {/* Site */}

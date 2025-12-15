@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Loader2, Plus } from 'lucide-react';
-import { createEmployee, getDepartments, createDepartment, type Department, type GenderType, type ContractType, type StatusType } from '@/lib/api';
+import { X, Loader2, ChevronLeft } from 'lucide-react';
+import { createEmployee, getDepartments, getEmployees, type Department, type Employee, type GenderType, type ContractType, type StatusType } from '@/lib/api';
 
 interface AddEmployeeModalProps {
   onClose: () => void;
@@ -13,14 +13,9 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [isLoadingDepts, setIsLoadingDepts] = useState(true);
-  const [showNewDeptForm, setShowNewDeptForm] = useState(false);
-  const [newDeptName, setNewDeptName] = useState('');
-  const [newDeptCode, setNewDeptCode] = useState('');
-  const [isCreatingDept, setIsCreatingDept] = useState(false);
-  const [deptError, setDeptError] = useState('');
+  const [managers, setManagers] = useState<Employee[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   
-  // Valeurs par défaut en minuscule comme attendu par l'API
   const [formData, setFormData] = useState({
     employee_id: '',
     first_name: '',
@@ -29,6 +24,8 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
     phone: '',
     job_title: '',
     department_id: '',
+    manager_id: '',
+    is_manager: false,
     hire_date: '',
     date_of_birth: '',
     gender: 'male' as GenderType,
@@ -42,57 +39,26 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
   });
 
   useEffect(() => {
-    loadDepartments();
+    loadData();
   }, []);
 
-  async function loadDepartments() {
-    setIsLoadingDepts(true);
+  async function loadData() {
+    setIsLoadingData(true);
     try {
-      console.log('Loading departments...');
-      const data = await getDepartments();
-      console.log('Departments received in modal:', data);
-      setDepartments(data || []);
+      // Charger départements
+      const depts = await getDepartments();
+      setDepartments(depts || []);
+      
+      // Charger les managers (employés avec is_manager = true)
+      const empResponse = await getEmployees({ page_size: 500 });
+      const allManagers = (empResponse.items || []).filter(e => e.is_manager);
+      setManagers(allManagers);
     } catch (err) {
-      console.error('Error loading departments:', err);
-      setDepartments([]);
+      console.error('Error loading data:', err);
     } finally {
-      setIsLoadingDepts(false);
+      setIsLoadingData(false);
     }
   }
-
-  const handleCreateDepartment = async () => {
-    if (!newDeptName.trim()) {
-      setDeptError('Le nom du département est requis');
-      return;
-    }
-    
-    setIsCreatingDept(true);
-    setDeptError('');
-    
-    try {
-      console.log('Creating department:', newDeptName);
-      const newDept = await createDepartment({
-        name: newDeptName.trim(),
-        code: newDeptCode.trim() || newDeptName.trim().substring(0, 4).toUpperCase(),
-      });
-      console.log('Department created:', newDept);
-      
-      setDepartments(prev => [...prev, newDept]);
-      setFormData(prev => ({ ...prev, department_id: newDept.id.toString() }));
-      setShowNewDeptForm(false);
-      setNewDeptName('');
-      setNewDeptCode('');
-    } catch (err) {
-      console.error('Error creating department:', err);
-      if (err instanceof Error) {
-        setDeptError(err.message);
-      } else {
-        setDeptError('Erreur lors de la création du département');
-      }
-    } finally {
-      setIsCreatingDept(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,6 +74,8 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
         phone: formData.phone || undefined,
         job_title: formData.job_title,
         department_id: formData.department_id ? parseInt(formData.department_id) : undefined,
+        manager_id: formData.manager_id ? parseInt(formData.manager_id) : undefined,
+        is_manager: formData.is_manager,
         hire_date: formData.hire_date || undefined,
         date_of_birth: formData.date_of_birth || undefined,
         gender: formData.gender,
@@ -120,7 +88,6 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
         address: formData.address || undefined,
       };
       
-      console.log('Submitting employee data:', dataToSend);
       await createEmployee(dataToSend);
       onSuccess();
       onClose();
@@ -137,19 +104,24 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setFormData(prev => ({ ...prev, [name]: checked }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">Nouvel Employé</h2>
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-3">
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
-            <X className="w-5 h-5" />
+            <ChevronLeft className="w-5 h-5" />
           </button>
+          <h2 className="text-xl font-bold text-gray-900">Nouvel Employé</h2>
         </div>
 
         {/* Form */}
@@ -230,7 +202,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               />
             </div>
 
-            {/* Genre - Valeurs en minuscule */}
+            {/* Genre */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Genre *</label>
               <select
@@ -287,75 +259,58 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* Département */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Département {isLoadingDepts && <span className="text-gray-400">(chargement...)</span>}
+              <label className="block text-sm font-medium text-gray-700 mb-1">Département</label>
+              <select
+                name="department_id"
+                value={formData.department_id}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                disabled={isLoadingData}
+              >
+                <option value="">
+                  {isLoadingData ? 'Chargement...' : 'Sélectionner...'}
+                </option>
+                {departments.map(dept => (
+                  <option key={dept.id} value={dept.id}>
+                    {dept.parent_id ? `  ↳ ${dept.name}` : dept.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Manager */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Manager (N+1)</label>
+              <select
+                name="manager_id"
+                value={formData.manager_id}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                disabled={isLoadingData}
+              >
+                <option value="">
+                  {isLoadingData ? 'Chargement...' : 'Aucun (poste de direction)'}
+                </option>
+                {managers.map(mgr => (
+                  <option key={mgr.id} value={mgr.id}>
+                    {mgr.first_name} {mgr.last_name} - {mgr.job_title || mgr.position || ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Est manager */}
+            <div className="flex items-center">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="is_manager"
+                  checked={formData.is_manager}
+                  onChange={handleChange}
+                  className="w-4 h-4 text-primary-500 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <span className="ml-2 text-sm text-gray-700">Est un manager</span>
               </label>
-              {showNewDeptForm ? (
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    value={newDeptName}
-                    onChange={(e) => setNewDeptName(e.target.value)}
-                    placeholder="Nom du département"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
-                  />
-                  <input
-                    type="text"
-                    value={newDeptCode}
-                    onChange={(e) => setNewDeptCode(e.target.value)}
-                    placeholder="Code (ex: TECH)"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
-                  />
-                  {deptError && (
-                    <p className="text-xs text-red-600">{deptError}</p>
-                  )}
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={handleCreateDepartment}
-                      disabled={isCreatingDept || !newDeptName.trim()}
-                      className="flex-1 px-3 py-1.5 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 disabled:opacity-50 flex items-center justify-center"
-                    >
-                      {isCreatingDept ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Créer'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setShowNewDeptForm(false); setDeptError(''); }}
-                      className="px-3 py-1.5 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50"
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <select
-                    name="department_id"
-                    value={formData.department_id}
-                    onChange={handleChange}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    disabled={isLoadingDepts}
-                  >
-                    <option value="">
-                      {isLoadingDepts ? 'Chargement...' : departments.length === 0 ? 'Aucun département' : 'Sélectionner...'}
-                    </option>
-                    {departments.map(dept => (
-                      <option key={dept.id} value={dept.id}>{dept.name}</option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => setShowNewDeptForm(true)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                    title="Créer un département"
-                  >
-                    <Plus className="w-4 h-4 text-gray-600" />
-                  </button>
-                </div>
-              )}
-              {!isLoadingDepts && departments.length > 0 && (
-                <p className="text-xs text-gray-500 mt-1">{departments.length} département(s) disponible(s)</p>
-              )}
             </div>
 
             {/* Site */}
@@ -384,7 +339,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               />
             </div>
 
-            {/* Type de contrat - Valeurs en minuscule */}
+            {/* Type de contrat */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Type de contrat</label>
               <select
@@ -402,7 +357,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               </select>
             </div>
 
-            {/* Statut - Valeurs en minuscule */}
+            {/* Statut */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
               <select

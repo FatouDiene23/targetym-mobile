@@ -2,7 +2,7 @@
 
 import Header from '@/components/Header';
 import EmployeeModal from '@/components/EmployeeModal';
-import AddEmployeeModal from '@/components/AddEmployeeModal';
+import AddModal from '@/components/AddModal';
 import EditEmployeeModal from '@/components/EditEmployeeModal';
 import { useState, useEffect, useRef } from 'react';
 import { 
@@ -60,7 +60,6 @@ export default function EmployeesPage() {
   const fetchStats = async () => {
     try {
       const data = await getEmployeeStats();
-      console.log('Stats loaded:', data);
       setStats(data);
     } catch (err) {
       console.error('Error loading stats:', err);
@@ -71,7 +70,6 @@ export default function EmployeesPage() {
   const fetchDepartments = async (): Promise<Department[]> => {
     try {
       const data = await getDepartments();
-      console.log('Page - Departments loaded:', data);
       setDepartments(data || []);
       departmentsRef.current = data || [];
       return data || [];
@@ -115,11 +113,9 @@ export default function EmployeesPage() {
     return selectedLocation === 'Tous' || emp.location === selectedLocation || emp.site === selectedLocation;
   });
 
-  // Calculer le nombre de femmes - chercher dans différentes clés possibles
   const getFemaleCount = (): number => {
     if (stats?.female !== undefined) return stats.female;
     if (stats?.by_gender) {
-      // Chercher la clé female (minuscule ou majuscule)
       const keys = Object.keys(stats.by_gender);
       for (const key of keys) {
         if (key.toLowerCase() === 'female') {
@@ -127,7 +123,6 @@ export default function EmployeesPage() {
         }
       }
     }
-    // Fallback: compter depuis les employés
     return allEmployees.filter(e => e.gender?.toLowerCase() === 'female').length;
   };
 
@@ -143,7 +138,6 @@ export default function EmployeesPage() {
     return new Date(dateString).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
-  // Statut badges - avec valeurs en minuscule
   const getStatusBadge = (status: string) => {
     const s = status?.toLowerCase();
     switch (s) {
@@ -253,7 +247,11 @@ export default function EmployeesPage() {
                 <div className="flex gap-3 flex-wrap">
                   <select value={selectedDepartment} onChange={(e) => setSelectedDepartment(e.target.value)} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
                     <option value="Tous">Tous les départements</option>
-                    {departments.map(dept => <option key={dept.id} value={dept.name}>{dept.name}</option>)}
+                    {departments.map(dept => (
+                      <option key={dept.id} value={dept.name}>
+                        {dept.parent_id ? `  ↳ ${dept.name}` : dept.name}
+                      </option>
+                    ))}
                   </select>
                   <select value={selectedLocation} onChange={(e) => setSelectedLocation(e.target.value)} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
                     {locations.map(loc => <option key={loc} value={loc}>{loc === 'Tous' ? 'Toutes les localisations' : loc}</option>)}
@@ -428,7 +426,7 @@ export default function EmployeesPage() {
       {showViewModal && selectedEmployee && (
         <EmployeeModal employee={{ id: selectedEmployee.id, name: `${selectedEmployee.first_name} ${selectedEmployee.last_name}`, email: selectedEmployee.email, phone: selectedEmployee.phone || '', department: selectedEmployee.department_name || '', position: selectedEmployee.position || selectedEmployee.job_title || '', location: selectedEmployee.location || selectedEmployee.site || '', startDate: formatDate(selectedEmployee.hire_date), status: selectedEmployee.status?.toLowerCase() === 'active' ? 'active' : 'inactive', manager: '-', gender: selectedEmployee.gender?.toLowerCase() === 'female' ? 'F' : 'M', birthYear: selectedEmployee.birth_date ? new Date(selectedEmployee.birth_date).getFullYear() : 1990, isManager: selectedEmployee.is_manager || false, isTopManager: false, onLeave: selectedEmployee.status?.toLowerCase() === 'on_leave' }} onClose={() => setShowViewModal(false)} />
       )}
-      {showAddModal && <AddEmployeeModal onClose={() => setShowAddModal(false)} onSuccess={handleSuccess} />}
+      {showAddModal && <AddModal onClose={() => setShowAddModal(false)} onSuccess={handleSuccess} />}
       {showEditModal && selectedEmployee && <EditEmployeeModal employee={selectedEmployee} onClose={() => setShowEditModal(false)} onSuccess={handleSuccess} />}
     </>
   );

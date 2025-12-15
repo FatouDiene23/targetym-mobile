@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Loader2, ChevronLeft } from 'lucide-react';
+import { Loader2, ChevronLeft } from 'lucide-react';
 import { createEmployee, getDepartments, getEmployees, type Department, type Employee, type GenderType, type ContractType, type StatusType } from '@/lib/api';
 
 interface AddEmployeeModalProps {

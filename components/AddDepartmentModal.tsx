@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Loader2, ChevronLeft } from 'lucide-react';
+import { Loader2, ChevronLeft } from 'lucide-react';
 import { createDepartment } from '@/lib/api';
 
 interface AddDepartmentModalProps {

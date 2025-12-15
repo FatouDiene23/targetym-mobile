@@ -89,6 +89,8 @@ export interface EmployeeCreate {
   phone?: string;
   job_title?: string;
   department_id?: number;
+  manager_id?: number;
+  is_manager?: boolean;
   hire_date?: string;
   date_of_birth?: string;
   gender?: GenderType;
@@ -120,9 +122,11 @@ export interface Department {
   name: string;
   code?: string;
   description?: string;
+  color?: string;
   parent_id?: number;
-  manager_id?: number;
+  head_id?: number;
   employee_count?: number;
+  is_active?: boolean;
   created_at?: string;
 }
 
@@ -130,8 +134,9 @@ export interface DepartmentCreate {
   name: string;
   code?: string;
   description?: string;
+  color?: string;
   parent_id?: number;
-  manager_id?: number;
+  head_id?: number;
 }
 
 export interface PaginatedResponse<T> {

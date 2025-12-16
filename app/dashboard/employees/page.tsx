@@ -100,6 +100,7 @@ export default function EmployeesPage() {
       isInitialized.current = true;
       loadAllData();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -107,6 +108,7 @@ export default function EmployeesPage() {
       const timer = setTimeout(() => { fetchEmployees(departmentsRef.current); }, 300);
       return () => clearTimeout(timer);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, selectedDepartment, currentPage]);
 
   const filteredEmployees = employees.filter(emp => {
@@ -424,7 +426,11 @@ export default function EmployeesPage() {
       </main>
 
       {showViewModal && selectedEmployee && (
-        <EmployeeModal employee={selectedEmployee} onClose={() => setShowViewModal(false)} onEdit={() => { setShowViewModal(false); setShowEditModal(true); }} />
+        <EmployeeModal 
+          employee={selectedEmployee} 
+          onClose={() => setShowViewModal(false)} 
+          onEdit={() => { setShowViewModal(false); setShowEditModal(true); }}
+        />
       )}
       {showAddModal && <AddModal onClose={() => setShowAddModal(false)} onSuccess={handleSuccess} />}
       {showEditModal && selectedEmployee && <EditEmployeeModal employee={selectedEmployee} onClose={() => setShowEditModal(false)} onSuccess={handleSuccess} />}

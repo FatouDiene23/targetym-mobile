@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import EmployeeModal from '@/components/EmployeeModal';
 import LeaveRequestModal from '@/components/LeaveRequestModal';
 import { useState } from 'react';
+import { Employee } from '@/lib/api';
 import { 
   Search, 
   Plus, 
@@ -32,35 +33,19 @@ import {
   User
 } from 'lucide-react';
 
-// Type pour les données locales d'affichage
-interface LocalEmployee {
-  id: number;
-  employee_id: string;
-  first_name: string;
-  last_name: string;
+// Type étendu pour l'affichage local (avec champs supplémentaires)
+interface LocalEmployee extends Employee {
   name: string; // Nom complet pour affichage
-  email: string;
-  phone: string;
   department: string;
-  department_id?: number;
-  position: string;
-  location: string;
   startDate: string;
-  hire_date?: string;
-  status: string;
   manager: string;
-  manager_id?: number;
-  gender: string;
   birthYear: number;
-  date_of_birth?: string;
   isManager: boolean;
-  is_manager?: boolean;
   isTopManager: boolean;
   onLeave: boolean;
-  created_at: string;
 }
 
-// Données enrichies des employés (format compatible backend)
+// Données enrichies des employés (format compatible backend + champs d'affichage)
 const employees: LocalEmployee[] = [
   { 
     id: 1, 
@@ -72,16 +57,17 @@ const employees: LocalEmployee[] = [
     phone: '+33 6 12 34 56 78',
     department: 'Tech',
     department_id: 1,
+    department_name: 'Tech',
     position: 'Lead Developer',
     location: 'Paris',
     startDate: '15 Mar 2021',
     hire_date: '2021-03-15',
-    status: 'active',
+    status: 'ACTIVE',
     manager: 'Jean Martin',
     manager_id: 2,
-    gender: 'female',
+    gender: 'FEMALE',
     birthYear: 1995,
-    date_of_birth: '1995-06-15',
+    birth_date: '1995-06-15',
     isManager: false,
     is_manager: false,
     isTopManager: false,
@@ -98,15 +84,16 @@ const employees: LocalEmployee[] = [
     phone: '+33 6 98 76 54 32',
     department: 'Tech',
     department_id: 1,
+    department_name: 'Tech',
     position: 'CTO',
     location: 'Paris',
     startDate: '01 Jan 2019',
     hire_date: '2019-01-01',
-    status: 'active',
+    status: 'ACTIVE',
     manager: '-',
-    gender: 'male',
+    gender: 'MALE',
     birthYear: 1980,
-    date_of_birth: '1980-03-22',
+    birth_date: '1980-03-22',
     isManager: true,
     is_manager: true,
     isTopManager: true,
@@ -123,16 +110,17 @@ const employees: LocalEmployee[] = [
     phone: '+33 6 11 22 33 44',
     department: 'Marketing',
     department_id: 2,
+    department_name: 'Marketing',
     position: 'Marketing Manager',
     location: 'Lyon',
     startDate: '20 Sep 2022',
     hire_date: '2022-09-20',
-    status: 'active',
+    status: 'ON_LEAVE',
     manager: 'Pierre Leroy',
     manager_id: 4,
-    gender: 'female',
+    gender: 'FEMALE',
     birthYear: 1990,
-    date_of_birth: '1990-08-10',
+    birth_date: '1990-08-10',
     isManager: true,
     is_manager: true,
     isTopManager: false,
@@ -149,15 +137,16 @@ const employees: LocalEmployee[] = [
     phone: '+33 6 55 66 77 88',
     department: 'Marketing',
     department_id: 2,
+    department_name: 'Marketing',
     position: 'CMO',
     location: 'Paris',
     startDate: '05 Jun 2020',
     hire_date: '2020-06-05',
-    status: 'active',
+    status: 'ACTIVE',
     manager: '-',
-    gender: 'male',
+    gender: 'MALE',
     birthYear: 1975,
-    date_of_birth: '1975-12-01',
+    birth_date: '1975-12-01',
     isManager: true,
     is_manager: true,
     isTopManager: true,
@@ -174,16 +163,17 @@ const employees: LocalEmployee[] = [
     phone: '+33 6 99 88 77 66',
     department: 'RH',
     department_id: 3,
+    department_name: 'RH',
     position: 'HR Business Partner',
     location: 'Paris',
     startDate: '12 Feb 2023',
     hire_date: '2023-02-12',
-    status: 'active',
+    status: 'ACTIVE',
     manager: 'Anne Moreau',
     manager_id: 9,
-    gender: 'female',
+    gender: 'FEMALE',
     birthYear: 1998,
-    date_of_birth: '1998-04-25',
+    birth_date: '1998-04-25',
     isManager: false,
     is_manager: false,
     isTopManager: false,
@@ -200,16 +190,17 @@ const employees: LocalEmployee[] = [
     phone: '+33 6 44 55 66 77',
     department: 'Sales',
     department_id: 4,
+    department_name: 'Sales',
     position: 'Account Executive',
     location: 'Marseille',
     startDate: '08 Nov 2021',
     hire_date: '2021-11-08',
-    status: 'active',
+    status: 'ACTIVE',
     manager: 'Thomas Blanc',
     manager_id: 8,
-    gender: 'male',
+    gender: 'MALE',
     birthYear: 2000,
-    date_of_birth: '2000-07-14',
+    birth_date: '2000-07-14',
     isManager: false,
     is_manager: false,
     isTopManager: false,
@@ -226,16 +217,17 @@ const employees: LocalEmployee[] = [
     phone: '+33 6 33 22 11 00',
     department: 'Finance',
     department_id: 5,
+    department_name: 'Finance',
     position: 'Financial Controller',
     location: 'Paris',
     startDate: '25 Jul 2020',
     hire_date: '2020-07-25',
-    status: 'inactive',
+    status: 'INACTIVE',
     manager: 'Marc Dubois',
     manager_id: 10,
-    gender: 'female',
+    gender: 'FEMALE',
     birthYear: 1988,
-    date_of_birth: '1988-11-30',
+    birth_date: '1988-11-30',
     isManager: false,
     is_manager: false,
     isTopManager: false,
@@ -252,15 +244,16 @@ const employees: LocalEmployee[] = [
     phone: '+33 6 77 88 99 00',
     department: 'Sales',
     department_id: 4,
+    department_name: 'Sales',
     position: 'Sales Director',
     location: 'Paris',
     startDate: '18 Apr 2019',
     hire_date: '2019-04-18',
-    status: 'active',
+    status: 'ON_LEAVE',
     manager: '-',
-    gender: 'male',
+    gender: 'MALE',
     birthYear: 1982,
-    date_of_birth: '1982-02-28',
+    birth_date: '1982-02-28',
     isManager: true,
     is_manager: true,
     isTopManager: true,
@@ -676,7 +669,7 @@ export default function EmployeesPage() {
                                 <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium">
                                   {employee.name.split(' ').map(n => n[0]).join('')}
                                 </div>
-                                {employee.onLeave && (
+                                {employee.status === 'ON_LEAVE' && (
                                   <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                                     <Palmtree className="w-2.5 h-2.5 text-white" />
                                   </div>
@@ -703,17 +696,17 @@ export default function EmployeesPage() {
                           </td>
                           <td className="px-5 py-4 text-sm text-gray-600">{employee.location}</td>
                           <td className="px-5 py-4">
-                            {employee.onLeave ? (
+                            {employee.status === 'ON_LEAVE' ? (
                               <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
                                 En congés
                               </span>
                             ) : (
                               <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                employee.status === 'active' 
+                                employee.status === 'ACTIVE' 
                                   ? 'bg-blue-100 text-blue-700' 
                                   : 'bg-gray-100 text-gray-600'
                               }`}>
-                                {employee.status === 'active' ? 'Actif' : 'Inactif'}
+                                {employee.status === 'ACTIVE' ? 'Actif' : 'Inactif'}
                               </span>
                             )}
                           </td>
@@ -738,7 +731,7 @@ export default function EmployeesPage() {
                         <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 text-2xl font-bold mx-auto mb-3">
                           {selectedEmployee.name.split(' ').map(n => n[0]).join('')}
                         </div>
-                        {selectedEmployee.onLeave && (
+                        {selectedEmployee.status === 'ON_LEAVE' && (
                           <div className="absolute bottom-2 right-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
                             <Palmtree className="w-3.5 h-3.5 text-white" />
                           </div>
@@ -747,17 +740,17 @@ export default function EmployeesPage() {
                       <h3 className="text-xl font-bold text-gray-900">{selectedEmployee.name}</h3>
                       <p className="text-sm text-gray-500">{selectedEmployee.position}</p>
                       <div className="flex items-center justify-center gap-2 mt-2">
-                        {selectedEmployee.onLeave ? (
+                        {selectedEmployee.status === 'ON_LEAVE' ? (
                           <span className="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
                             En congés
                           </span>
                         ) : (
                           <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                            selectedEmployee.status === 'active' 
+                            selectedEmployee.status === 'ACTIVE' 
                               ? 'bg-blue-100 text-blue-700' 
                               : 'bg-gray-100 text-gray-600'
                           }`}>
-                            {selectedEmployee.status === 'active' ? 'Actif' : 'Inactif'}
+                            {selectedEmployee.status === 'ACTIVE' ? 'Actif' : 'Inactif'}
                           </span>
                         )}
                         {selectedEmployee.isTopManager && (
@@ -950,7 +943,7 @@ export default function EmployeesPage() {
                 <h3 className="font-semibold text-gray-900 mb-4">Planning des congés</h3>
                 <p className="text-sm text-gray-500 mb-4">Décembre 2024</p>
                 <div className="space-y-2">
-                  {employees.filter(e => e.onLeave).map(emp => (
+                  {employees.filter(e => e.status === 'ON_LEAVE').map(emp => (
                     <div key={emp.id} className="flex items-center p-2 bg-green-50 rounded-lg">
                       <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-700 text-xs font-medium">
                         {emp.name.split(' ').map(n => n[0]).join('')}
@@ -974,14 +967,7 @@ export default function EmployeesPage() {
       {/* Modal Dossier Collaborateur */}
       {showModal && selectedEmployee && (
         <EmployeeModal 
-          employee={{
-            ...selectedEmployee,
-            // Compatibilité avec format backend si nécessaire
-            employee_id: selectedEmployee.employee_id,
-            first_name: selectedEmployee.first_name,
-            last_name: selectedEmployee.last_name,
-            created_at: selectedEmployee.created_at,
-          } as any} 
+          employee={selectedEmployee}
           onClose={() => setShowModal(false)} 
         />
       )}

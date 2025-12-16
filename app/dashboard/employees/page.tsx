@@ -10,7 +10,7 @@ import {
   Search, Plus, Mail, Phone, MapPin, Calendar, Building2, Download,
   Edit2, Eye, Users, UserCheck, UserPlus, TrendingUp, TrendingDown,
   Palmtree, CheckCircle, XCircle, Filter, ChevronDown, Briefcase,
-  User, Loader2, RefreshCw
+  User, Loader2, RefreshCw, X
 } from 'lucide-react';
 import { 
   getEmployees, getEmployeeStats, getDepartments, exportEmployeesToCSV,
@@ -45,6 +45,10 @@ export default function EmployeesPage() {
   const [selectedLeaveRequest, setSelectedLeaveRequest] = useState<LeaveRequest | null>(null);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [isLoadingLeaves, setIsLoadingLeaves] = useState(false);
+  
+  // États pour le filtre des congés
+  const [showLeaveFilter, setShowLeaveFilter] = useState(false);
+  const [leaveStatusFilter, setLeaveStatusFilter] = useState<string>('all');
 
   const fetchEmployees = async (depts: Department[]) => {
     try {
@@ -85,7 +89,7 @@ export default function EmployeesPage() {
   const fetchLeaveRequests = async () => {
     setIsLoadingLeaves(true);
     try {
-      const response = await getLeaveRequests({ page_size: 50 });
+      const response = await getLeaveRequests({ page_size: 100 });
       setLeaveRequests(response.items || []);
     } catch (err) {
       console.error('Error loading leave requests:', err);
@@ -131,6 +135,20 @@ export default function EmployeesPage() {
     return selectedLocation === 'Tous' || emp.location === selectedLocation || emp.site === selectedLocation;
   });
 
+  // Filtrer les demandes de congés
+  const filteredLeaveRequests = leaveRequests.filter(leave => {
+    if (leaveStatusFilter === 'all') return true;
+    return leave.status === leaveStatusFilter;
+  });
+
+  // Stats calculées à partir des données locales (mise à jour immédiate)
+  const leaveStats = {
+    pending: leaveRequests.filter(l => l.status === 'pending').length,
+    approved: leaveRequests.filter(l => l.status === 'approved').length,
+    rejected: leaveRequests.filter(l => l.status === 'rejected').length,
+    total: leaveRequests.length
+  };
+
   const getFemaleCount = (): number => {
     if (stats?.female !== undefined) return stats.female;
     if (stats?.by_gender) {
@@ -169,13 +187,19 @@ export default function EmployeesPage() {
     }
   };
 
-  // Fonctions pour gérer les congés - CONNECTÉES AU BACKEND
+  // Fonctions pour gérer les congés - AVEC MISE À JOUR LOCALE IMMÉDIATE
   const handleApproveLeave = async (id: number) => {
     try {
       await approveLeaveRequest(id);
-      // Rafraîchir la liste
-      await fetchLeaveRequests();
-      await fetchStats();
+      // Mise à jour locale immédiate
+      setLeaveRequests(prev => 
+        prev.map(req => req.id === id ? { ...req, status: 'approved' as const } : req)
+      );
+      // Fermer le modal si ouvert
+      if (showLeaveModal && selectedLeaveRequest?.id === id) {
+        setShowLeaveModal(false);
+        setSelectedLeaveRequest(null);
+      }
     } catch (err) {
       console.error('Erreur lors de l\'approbation:', err);
       alert('Erreur lors de l\'approbation de la demande');
@@ -185,9 +209,13 @@ export default function EmployeesPage() {
   const handleRejectLeave = async (id: number, reason: string) => {
     try {
       await rejectLeaveRequest(id, reason);
-      // Rafraîchir la liste
-      await fetchLeaveRequests();
-      await fetchStats();
+      // Mise à jour locale immédiate
+      setLeaveRequests(prev => 
+        prev.map(req => req.id === id ? { ...req, status: 'rejected' as const, rejection_reason: reason } : req)
+      );
+      // Fermer le modal
+      setShowLeaveModal(false);
+      setSelectedLeaveRequest(null);
     } catch (err) {
       console.error('Erreur lors du refus:', err);
       alert('Erreur lors du refus de la demande');
@@ -196,8 +224,6 @@ export default function EmployeesPage() {
 
   const handleExport = () => exportEmployeesToCSV(filteredEmployees);
   const handleSuccess = () => { loadAllData(); setSelectedEmployee(null); };
-
-  const pendingCount = leaveRequests.filter(l => l.status === 'pending').length;
 
   if (isLoading) {
     return (
@@ -278,9 +304,9 @@ export default function EmployeesPage() {
           </button>
           <button onClick={() => setActiveTab('leaves')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'leaves' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
             <Palmtree className="w-4 h-4 inline mr-2" />Congés
-            {pendingCount > 0 && (
+            {leaveStats.pending > 0 && (
               <span className="ml-2 px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">
-                {pendingCount}
+                {leaveStats.pending}
               </span>
             )}
           </button>
@@ -423,12 +449,20 @@ export default function EmployeesPage() {
             </div>
           </>
         ) : (
-          /* Onglet Congés - CONNECTÉ AU BACKEND */
+          /* Onglet Congés */
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-4">
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-900">Demandes de congés</h3>
+                  <h3 className="font-semibold text-gray-900">
+                    Demandes de congés
+                    {leaveStatusFilter !== 'all' && (
+                      <span className="ml-2 text-sm font-normal text-gray-500">
+                        ({leaveStatusFilter === 'pending' ? 'En attente' : 
+                          leaveStatusFilter === 'approved' ? 'Approuvées' : 'Refusées'})
+                      </span>
+                    )}
+                  </h3>
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={fetchLeaveRequests}
@@ -437,9 +471,62 @@ export default function EmployeesPage() {
                       <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingLeaves ? 'animate-spin' : ''}`} />
                       Actualiser
                     </button>
-                    <button className="flex items-center px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
-                      <Filter className="w-4 h-4 mr-2" />Filtrer<ChevronDown className="w-4 h-4 ml-1" />
-                    </button>
+                    <div className="relative">
+                      <button 
+                        onClick={() => setShowLeaveFilter(!showLeaveFilter)}
+                        className={`flex items-center px-3 py-1.5 text-sm rounded-lg ${
+                          leaveStatusFilter !== 'all' 
+                            ? 'bg-primary-100 text-primary-700' 
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Filter className="w-4 h-4 mr-2" />
+                        Filtrer
+                        <ChevronDown className="w-4 h-4 ml-1" />
+                      </button>
+                      
+                      {/* Menu déroulant filtre */}
+                      {showLeaveFilter && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                          <button
+                            onClick={() => { setLeaveStatusFilter('all'); setShowLeaveFilter(false); }}
+                            className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'all' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}
+                          >
+                            Toutes les demandes
+                          </button>
+                          <button
+                            onClick={() => { setLeaveStatusFilter('pending'); setShowLeaveFilter(false); }}
+                            className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'pending' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}
+                          >
+                            <span className="inline-block w-2 h-2 bg-yellow-400 rounded-full mr-2"></span>
+                            En attente ({leaveStats.pending})
+                          </button>
+                          <button
+                            onClick={() => { setLeaveStatusFilter('approved'); setShowLeaveFilter(false); }}
+                            className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'approved' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}
+                          >
+                            <span className="inline-block w-2 h-2 bg-green-400 rounded-full mr-2"></span>
+                            Approuvées ({leaveStats.approved})
+                          </button>
+                          <button
+                            onClick={() => { setLeaveStatusFilter('rejected'); setShowLeaveFilter(false); }}
+                            className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'rejected' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}
+                          >
+                            <span className="inline-block w-2 h-2 bg-red-400 rounded-full mr-2"></span>
+                            Refusées ({leaveStats.rejected})
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {leaveStatusFilter !== 'all' && (
+                      <button
+                        onClick={() => setLeaveStatusFilter('all')}
+                        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+                        title="Effacer le filtre"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="divide-y divide-gray-100">
@@ -447,13 +534,18 @@ export default function EmployeesPage() {
                     <div className="p-8 text-center">
                       <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" />
                     </div>
-                  ) : leaveRequests.length === 0 ? (
+                  ) : filteredLeaveRequests.length === 0 ? (
                     <div className="p-8 text-center text-gray-500">
                       <Palmtree className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <p>Aucune demande de congé</p>
+                      <p>
+                        {leaveStatusFilter === 'all' 
+                          ? 'Aucune demande de congé'
+                          : `Aucune demande ${leaveStatusFilter === 'pending' ? 'en attente' : leaveStatusFilter === 'approved' ? 'approuvée' : 'refusée'}`
+                        }
+                      </p>
                     </div>
                   ) : (
-                    leaveRequests.map((leave) => (
+                    filteredLeaveRequests.map((leave) => (
                       <div 
                         key={leave.id} 
                         className="px-5 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
@@ -527,17 +619,26 @@ export default function EmployeesPage() {
                     <span className="text-sm text-gray-600">En congés aujourd&apos;hui</span>
                     <span className="font-semibold text-green-600">{stats?.on_leave || 0}</span>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div 
+                    className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded"
+                    onClick={() => setLeaveStatusFilter('pending')}
+                  >
                     <span className="text-sm text-gray-600">Demandes en attente</span>
-                    <span className="font-semibold text-yellow-600">{pendingCount}</span>
+                    <span className="font-semibold text-yellow-600">{leaveStats.pending}</span>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div 
+                    className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded"
+                    onClick={() => setLeaveStatusFilter('approved')}
+                  >
                     <span className="text-sm text-gray-600">Approuvées</span>
-                    <span className="font-semibold text-blue-600">{leaveRequests.filter(l => l.status === 'approved').length}</span>
+                    <span className="font-semibold text-blue-600">{leaveStats.approved}</span>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div 
+                    className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded"
+                    onClick={() => setLeaveStatusFilter('rejected')}
+                  >
                     <span className="text-sm text-gray-600">Refusées</span>
-                    <span className="font-semibold text-red-600">{leaveRequests.filter(l => l.status === 'rejected').length}</span>
+                    <span className="font-semibold text-red-600">{leaveStats.rejected}</span>
                   </div>
                 </div>
               </div>
@@ -545,6 +646,14 @@ export default function EmployeesPage() {
           </div>
         )}
       </main>
+
+      {/* Fermer le menu filtre si on clique ailleurs */}
+      {showLeaveFilter && (
+        <div 
+          className="fixed inset-0 z-0" 
+          onClick={() => setShowLeaveFilter(false)}
+        />
+      )}
 
       {showViewModal && selectedEmployee && (
         <EmployeeModal 

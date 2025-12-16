@@ -32,143 +32,240 @@ import {
   User
 } from 'lucide-react';
 
-// Données enrichies des employés
-const employees = [
+// Type pour les données locales d'affichage
+interface LocalEmployee {
+  id: number;
+  employee_id: string;
+  first_name: string;
+  last_name: string;
+  name: string; // Nom complet pour affichage
+  email: string;
+  phone: string;
+  department: string;
+  department_id?: number;
+  position: string;
+  location: string;
+  startDate: string;
+  hire_date?: string;
+  status: string;
+  manager: string;
+  manager_id?: number;
+  gender: string;
+  birthYear: number;
+  date_of_birth?: string;
+  isManager: boolean;
+  is_manager?: boolean;
+  isTopManager: boolean;
+  onLeave: boolean;
+  created_at: string;
+}
+
+// Données enrichies des employés (format compatible backend)
+const employees: LocalEmployee[] = [
   { 
     id: 1, 
+    employee_id: 'EMP001',
+    first_name: 'Marie',
+    last_name: 'Dupont',
     name: 'Marie Dupont', 
     email: 'marie.dupont@company.com',
     phone: '+33 6 12 34 56 78',
     department: 'Tech',
+    department_id: 1,
     position: 'Lead Developer',
     location: 'Paris',
     startDate: '15 Mar 2021',
+    hire_date: '2021-03-15',
     status: 'active',
     manager: 'Jean Martin',
-    gender: 'F',
+    manager_id: 2,
+    gender: 'female',
     birthYear: 1995,
+    date_of_birth: '1995-06-15',
     isManager: false,
+    is_manager: false,
     isTopManager: false,
-    onLeave: false
+    onLeave: false,
+    created_at: '2021-03-15T00:00:00Z'
   },
   { 
     id: 2, 
+    employee_id: 'EMP002',
+    first_name: 'Jean',
+    last_name: 'Martin',
     name: 'Jean Martin', 
     email: 'jean.martin@company.com',
     phone: '+33 6 98 76 54 32',
     department: 'Tech',
+    department_id: 1,
     position: 'CTO',
     location: 'Paris',
     startDate: '01 Jan 2019',
+    hire_date: '2019-01-01',
     status: 'active',
     manager: '-',
-    gender: 'M',
+    gender: 'male',
     birthYear: 1980,
+    date_of_birth: '1980-03-22',
     isManager: true,
+    is_manager: true,
     isTopManager: true,
-    onLeave: false
+    onLeave: false,
+    created_at: '2019-01-01T00:00:00Z'
   },
   { 
     id: 3, 
+    employee_id: 'EMP003',
+    first_name: 'Sophie',
+    last_name: 'Bernard',
     name: 'Sophie Bernard', 
     email: 'sophie.bernard@company.com',
     phone: '+33 6 11 22 33 44',
     department: 'Marketing',
+    department_id: 2,
     position: 'Marketing Manager',
     location: 'Lyon',
     startDate: '20 Sep 2022',
+    hire_date: '2022-09-20',
     status: 'active',
     manager: 'Pierre Leroy',
-    gender: 'F',
+    manager_id: 4,
+    gender: 'female',
     birthYear: 1990,
+    date_of_birth: '1990-08-10',
     isManager: true,
+    is_manager: true,
     isTopManager: false,
-    onLeave: true
+    onLeave: true,
+    created_at: '2022-09-20T00:00:00Z'
   },
   { 
     id: 4, 
+    employee_id: 'EMP004',
+    first_name: 'Pierre',
+    last_name: 'Leroy',
     name: 'Pierre Leroy', 
     email: 'pierre.leroy@company.com',
     phone: '+33 6 55 66 77 88',
     department: 'Marketing',
+    department_id: 2,
     position: 'CMO',
     location: 'Paris',
     startDate: '05 Jun 2020',
+    hire_date: '2020-06-05',
     status: 'active',
     manager: '-',
-    gender: 'M',
+    gender: 'male',
     birthYear: 1975,
+    date_of_birth: '1975-12-01',
     isManager: true,
+    is_manager: true,
     isTopManager: true,
-    onLeave: false
+    onLeave: false,
+    created_at: '2020-06-05T00:00:00Z'
   },
   { 
     id: 5, 
+    employee_id: 'EMP005',
+    first_name: 'Emma',
+    last_name: 'Richard',
     name: 'Emma Richard', 
     email: 'emma.richard@company.com',
     phone: '+33 6 99 88 77 66',
     department: 'RH',
+    department_id: 3,
     position: 'HR Business Partner',
     location: 'Paris',
     startDate: '12 Feb 2023',
+    hire_date: '2023-02-12',
     status: 'active',
     manager: 'Anne Moreau',
-    gender: 'F',
+    manager_id: 9,
+    gender: 'female',
     birthYear: 1998,
+    date_of_birth: '1998-04-25',
     isManager: false,
+    is_manager: false,
     isTopManager: false,
-    onLeave: false
+    onLeave: false,
+    created_at: '2023-02-12T00:00:00Z'
   },
   { 
     id: 6, 
+    employee_id: 'EMP006',
+    first_name: 'Lucas',
+    last_name: 'Petit',
     name: 'Lucas Petit', 
     email: 'lucas.petit@company.com',
     phone: '+33 6 44 55 66 77',
     department: 'Sales',
+    department_id: 4,
     position: 'Account Executive',
     location: 'Marseille',
     startDate: '08 Nov 2021',
+    hire_date: '2021-11-08',
     status: 'active',
     manager: 'Thomas Blanc',
-    gender: 'M',
+    manager_id: 8,
+    gender: 'male',
     birthYear: 2000,
+    date_of_birth: '2000-07-14',
     isManager: false,
+    is_manager: false,
     isTopManager: false,
-    onLeave: false
+    onLeave: false,
+    created_at: '2021-11-08T00:00:00Z'
   },
   { 
     id: 7, 
+    employee_id: 'EMP007',
+    first_name: 'Julie',
+    last_name: 'Moreau',
     name: 'Julie Moreau', 
     email: 'julie.moreau@company.com',
     phone: '+33 6 33 22 11 00',
     department: 'Finance',
+    department_id: 5,
     position: 'Financial Controller',
     location: 'Paris',
     startDate: '25 Jul 2020',
+    hire_date: '2020-07-25',
     status: 'inactive',
     manager: 'Marc Dubois',
-    gender: 'F',
+    manager_id: 10,
+    gender: 'female',
     birthYear: 1988,
+    date_of_birth: '1988-11-30',
     isManager: false,
+    is_manager: false,
     isTopManager: false,
-    onLeave: false
+    onLeave: false,
+    created_at: '2020-07-25T00:00:00Z'
   },
   { 
     id: 8, 
+    employee_id: 'EMP008',
+    first_name: 'Thomas',
+    last_name: 'Blanc',
     name: 'Thomas Blanc', 
     email: 'thomas.blanc@company.com',
     phone: '+33 6 77 88 99 00',
     department: 'Sales',
+    department_id: 4,
     position: 'Sales Director',
     location: 'Paris',
     startDate: '18 Apr 2019',
+    hire_date: '2019-04-18',
     status: 'active',
     manager: '-',
-    gender: 'M',
+    gender: 'male',
     birthYear: 1982,
+    date_of_birth: '1982-02-28',
     isManager: true,
+    is_manager: true,
     isTopManager: true,
-    onLeave: true
+    onLeave: true,
+    created_at: '2019-04-18T00:00:00Z'
   },
 ];
 
@@ -303,7 +400,7 @@ export default function EmployeesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('Tous');
   const [selectedLocation, setSelectedLocation] = useState('Tous');
-  const [selectedEmployee, setSelectedEmployee] = useState<typeof employees[0] | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<LocalEmployee | null>(null);
   const [activeTab, setActiveTab] = useState<'employees' | 'leaves'>('employees');
   const [showModal, setShowModal] = useState(false);
   
@@ -877,7 +974,14 @@ export default function EmployeesPage() {
       {/* Modal Dossier Collaborateur */}
       {showModal && selectedEmployee && (
         <EmployeeModal 
-          employee={selectedEmployee} 
+          employee={{
+            ...selectedEmployee,
+            // Compatibilité avec format backend si nécessaire
+            employee_id: selectedEmployee.employee_id,
+            first_name: selectedEmployee.first_name,
+            last_name: selectedEmployee.last_name,
+            created_at: selectedEmployee.created_at,
+          } as any} 
           onClose={() => setShowModal(false)} 
         />
       )}

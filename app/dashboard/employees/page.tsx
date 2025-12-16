@@ -424,7 +424,7 @@ export default function EmployeesPage() {
       </main>
 
       {showViewModal && selectedEmployee && (
-        <EmployeeModal employee={{ id: selectedEmployee.id, name: `${selectedEmployee.first_name} ${selectedEmployee.last_name}`, email: selectedEmployee.email, phone: selectedEmployee.phone || '', department: selectedEmployee.department_name || '', position: selectedEmployee.position || selectedEmployee.job_title || '', location: selectedEmployee.location || selectedEmployee.site || '', startDate: formatDate(selectedEmployee.hire_date), status: selectedEmployee.status?.toLowerCase() === 'active' ? 'active' : 'inactive', manager: '-', gender: selectedEmployee.gender?.toLowerCase() === 'female' ? 'F' : 'M', birthYear: selectedEmployee.birth_date ? new Date(selectedEmployee.birth_date).getFullYear() : 1990, isManager: selectedEmployee.is_manager || false, isTopManager: false, onLeave: selectedEmployee.status?.toLowerCase() === 'on_leave' }} onClose={() => setShowViewModal(false)} />
+        <EmployeeModal employee={selectedEmployee} onClose={() => setShowViewModal(false)} onEdit={() => { setShowViewModal(false); setShowEditModal(true); }} />
       )}
       {showAddModal && <AddModal onClose={() => setShowAddModal(false)} onSuccess={handleSuccess} />}
       {showEditModal && selectedEmployee && <EditEmployeeModal employee={selectedEmployee} onClose={() => setShowEditModal(false)} onSuccess={handleSuccess} />}

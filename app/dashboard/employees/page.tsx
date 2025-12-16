@@ -14,33 +14,9 @@ import {
 } from 'lucide-react';
 import { 
   getEmployees, getEmployeeStats, getDepartments, exportEmployeesToCSV,
-  type Employee, type EmployeeStats, type Department 
+  getLeaveRequests, approveLeaveRequest, rejectLeaveRequest,
+  type Employee, type EmployeeStats, type Department, type LeaveRequest
 } from '@/lib/api';
-
-// Type pour les demandes de congés
-interface LeaveRequest {
-  id: number;
-  employeeId?: number;
-  employeeName: string;
-  type: string;
-  typeCode?: string;
-  startDate: string;
-  endDate: string;
-  days: number;
-  status: string;
-  reason?: string;
-  department?: string;
-  position?: string;
-  manager?: string;
-  leaveBalance?: number;
-  createdAt?: string;
-}
-
-const initialLeaveRequests: LeaveRequest[] = [
-  { id: 1, employeeName: 'Sophie Bernard', type: 'Congés annuels', typeCode: 'CA', startDate: '2024-12-15', endDate: '2024-12-22', days: 5, status: 'approved', reason: 'Vacances de Noël', department: 'Marketing', position: 'Marketing Manager', leaveBalance: 15, createdAt: '2024-11-28' },
-  { id: 2, employeeName: 'Thomas Blanc', type: 'Congés annuels', typeCode: 'CA', startDate: '2024-12-23', endDate: '2025-01-02', days: 8, status: 'approved', reason: 'Fêtes de fin d\'année', department: 'Sales', position: 'Sales Director', leaveBalance: 12, createdAt: '2024-11-20' },
-  { id: 3, employeeName: 'Marie Dupont', type: 'RTT', typeCode: 'RTT', startDate: '2024-12-20', endDate: '2024-12-20', days: 1, status: 'pending', reason: 'Rendez-vous administratifs', department: 'Tech', position: 'Lead Developer', manager: 'Jean Martin', leaveBalance: 5, createdAt: '2024-12-10' },
-];
 
 const locations = ['Tous', 'Abidjan', 'Dakar', 'Bamako', 'Ouagadougou', 'Conakry', 'Remote'];
 
@@ -64,10 +40,11 @@ export default function EmployeesPage() {
   const isInitialized = useRef(false);
   const departmentsRef = useRef<Department[]>([]);
 
-  // États pour le modal de demande de congé
-  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(initialLeaveRequests);
+  // États pour les congés
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [selectedLeaveRequest, setSelectedLeaveRequest] = useState<LeaveRequest | null>(null);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [isLoadingLeaves, setIsLoadingLeaves] = useState(false);
 
   const fetchEmployees = async (depts: Department[]) => {
     try {
@@ -105,6 +82,19 @@ export default function EmployeesPage() {
     }
   };
 
+  const fetchLeaveRequests = async () => {
+    setIsLoadingLeaves(true);
+    try {
+      const response = await getLeaveRequests({ page_size: 50 });
+      setLeaveRequests(response.items || []);
+    } catch (err) {
+      console.error('Error loading leave requests:', err);
+      setLeaveRequests([]);
+    } finally {
+      setIsLoadingLeaves(false);
+    }
+  };
+
   const loadAllData = async () => {
     setIsLoading(true);
     setError(null);
@@ -112,6 +102,7 @@ export default function EmployeesPage() {
       const depts = await fetchDepartments();
       await fetchStats();
       await fetchEmployees(depts);
+      await fetchLeaveRequests();
     } catch (err) {
       console.error('Error loading data:', err);
       setError('Erreur lors du chargement des données');
@@ -165,11 +156,6 @@ export default function EmployeesPage() {
     return new Date(dateString).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
-  const formatLeaveDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
-  };
-
   const getStatusBadge = (status: string) => {
     const s = status?.toLowerCase();
     switch (s) {
@@ -183,24 +169,35 @@ export default function EmployeesPage() {
     }
   };
 
-  // Fonctions pour gérer les congés
+  // Fonctions pour gérer les congés - CONNECTÉES AU BACKEND
   const handleApproveLeave = async (id: number) => {
-    // TODO: Appeler l'API backend quand disponible
-    setLeaveRequests(prev => 
-      prev.map(req => req.id === id ? { ...req, status: 'approved' } : req)
-    );
+    try {
+      await approveLeaveRequest(id);
+      // Rafraîchir la liste
+      await fetchLeaveRequests();
+      await fetchStats();
+    } catch (err) {
+      console.error('Erreur lors de l\'approbation:', err);
+      alert('Erreur lors de l\'approbation de la demande');
+    }
   };
 
   const handleRejectLeave = async (id: number, reason: string) => {
-    // TODO: Appeler l'API backend quand disponible
-    setLeaveRequests(prev => 
-      prev.map(req => req.id === id ? { ...req, status: 'rejected' } : req)
-    );
-    console.log('Motif du refus:', reason);
+    try {
+      await rejectLeaveRequest(id, reason);
+      // Rafraîchir la liste
+      await fetchLeaveRequests();
+      await fetchStats();
+    } catch (err) {
+      console.error('Erreur lors du refus:', err);
+      alert('Erreur lors du refus de la demande');
+    }
   };
 
   const handleExport = () => exportEmployeesToCSV(filteredEmployees);
   const handleSuccess = () => { loadAllData(); setSelectedEmployee(null); };
+
+  const pendingCount = leaveRequests.filter(l => l.status === 'pending').length;
 
   if (isLoading) {
     return (
@@ -281,9 +278,9 @@ export default function EmployeesPage() {
           </button>
           <button onClick={() => setActiveTab('leaves')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'leaves' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
             <Palmtree className="w-4 h-4 inline mr-2" />Congés
-            {leaveRequests.filter(l => l.status === 'pending').length > 0 && (
+            {pendingCount > 0 && (
               <span className="ml-2 px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">
-                {leaveRequests.filter(l => l.status === 'pending').length}
+                {pendingCount}
               </span>
             )}
           </button>
@@ -426,75 +423,99 @@ export default function EmployeesPage() {
             </div>
           </>
         ) : (
-          /* Onglet Congés avec modal de détail */
+          /* Onglet Congés - CONNECTÉ AU BACKEND */
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-4">
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                   <h3 className="font-semibold text-gray-900">Demandes de congés</h3>
-                  <button className="flex items-center px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
-                    <Filter className="w-4 h-4 mr-2" />Filtrer<ChevronDown className="w-4 h-4 ml-1" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={fetchLeaveRequests}
+                      className="flex items-center px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+                    >
+                      <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingLeaves ? 'animate-spin' : ''}`} />
+                      Actualiser
+                    </button>
+                    <button className="flex items-center px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
+                      <Filter className="w-4 h-4 mr-2" />Filtrer<ChevronDown className="w-4 h-4 ml-1" />
+                    </button>
+                  </div>
                 </div>
                 <div className="divide-y divide-gray-100">
-                  {leaveRequests.map((leave) => (
-                    <div 
-                      key={leave.id} 
-                      className="px-5 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
-                      onClick={() => {
-                        setSelectedLeaveRequest(leave);
-                        setShowLeaveModal(true);
-                      }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium">
-                            {leave.employeeName.split(' ').map(n => n[0]).join('')}
-                          </div>
-                          <div className="ml-3">
-                            <p className="font-medium text-gray-900">{leave.employeeName}</p>
-                            <p className="text-sm text-gray-500">{leave.type}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium text-gray-900">{leave.days} jour{leave.days > 1 ? 's' : ''}</p>
-                          <p className="text-xs text-gray-500">{formatLeaveDate(leave.startDate)} → {formatLeaveDate(leave.endDate)}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between mt-3">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          leave.status === 'approved' ? 'bg-green-100 text-green-700' : 
-                          leave.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
-                          'bg-red-100 text-red-700'
-                        }`}>
-                          {leave.status === 'approved' ? 'Approuvé' : leave.status === 'pending' ? 'En attente' : 'Refusé'}
-                        </span>
-                        {leave.status === 'pending' && (
-                          <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleApproveLeave(leave.id);
-                              }}
-                              className="flex items-center px-3 py-1.5 bg-green-500 text-white text-xs font-medium rounded-lg hover:bg-green-600"
-                            >
-                              <CheckCircle className="w-3.5 h-3.5 mr-1" />Approuver
-                            </button>
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedLeaveRequest(leave);
-                                setShowLeaveModal(true);
-                              }}
-                              className="flex items-center px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-red-600"
-                            >
-                              <XCircle className="w-3.5 h-3.5 mr-1" />Refuser
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                  {isLoadingLeaves ? (
+                    <div className="p-8 text-center">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" />
                     </div>
-                  ))}
+                  ) : leaveRequests.length === 0 ? (
+                    <div className="p-8 text-center text-gray-500">
+                      <Palmtree className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                      <p>Aucune demande de congé</p>
+                    </div>
+                  ) : (
+                    leaveRequests.map((leave) => (
+                      <div 
+                        key={leave.id} 
+                        className="px-5 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                        onClick={() => {
+                          setSelectedLeaveRequest(leave);
+                          setShowLeaveModal(true);
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium">
+                              {leave.employee_name ? leave.employee_name.split(' ').map(n => n[0]).join('') : '?'}
+                            </div>
+                            <div className="ml-3">
+                              <p className="font-medium text-gray-900">{leave.employee_name || 'Employé inconnu'}</p>
+                              <p className="text-sm text-gray-500">{leave.leave_type_name || 'Congé'}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-gray-900">{leave.days_requested} jour{leave.days_requested > 1 ? 's' : ''}</p>
+                            <p className="text-xs text-gray-500">{formatDate(leave.start_date)} → {formatDate(leave.end_date)}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between mt-3">
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            leave.status === 'approved' ? 'bg-green-100 text-green-700' : 
+                            leave.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                            leave.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {leave.status === 'approved' ? 'Approuvé' : 
+                             leave.status === 'pending' ? 'En attente' : 
+                             leave.status === 'rejected' ? 'Refusé' : 
+                             leave.status}
+                          </span>
+                          {leave.status === 'pending' && (
+                            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleApproveLeave(leave.id);
+                                }}
+                                className="flex items-center px-3 py-1.5 bg-green-500 text-white text-xs font-medium rounded-lg hover:bg-green-600"
+                              >
+                                <CheckCircle className="w-3.5 h-3.5 mr-1" />Approuver
+                              </button>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedLeaveRequest(leave);
+                                  setShowLeaveModal(true);
+                                }}
+                                className="flex items-center px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-red-600"
+                              >
+                                <XCircle className="w-3.5 h-3.5 mr-1" />Refuser
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -508,11 +529,15 @@ export default function EmployeesPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Demandes en attente</span>
-                    <span className="font-semibold text-yellow-600">{leaveRequests.filter(l => l.status === 'pending').length}</span>
+                    <span className="font-semibold text-yellow-600">{pendingCount}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Approuvées</span>
                     <span className="font-semibold text-blue-600">{leaveRequests.filter(l => l.status === 'approved').length}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Refusées</span>
+                    <span className="font-semibold text-red-600">{leaveRequests.filter(l => l.status === 'rejected').length}</span>
                   </div>
                 </div>
               </div>
@@ -536,21 +561,26 @@ export default function EmployeesPage() {
         <LeaveRequestModal
           request={{
             id: selectedLeaveRequest.id,
-            employee_id: selectedLeaveRequest.employeeId || 0,
-            employee_name: selectedLeaveRequest.employeeName,
-            leave_type_id: 0,
-            leave_type_name: selectedLeaveRequest.type,
-            leave_type_code: selectedLeaveRequest.typeCode,
-            start_date: selectedLeaveRequest.startDate,
-            end_date: selectedLeaveRequest.endDate,
-            days_requested: selectedLeaveRequest.days,
+            employee_id: selectedLeaveRequest.employee_id,
+            employee_name: selectedLeaveRequest.employee_name || 'Employé',
+            leave_type_id: selectedLeaveRequest.leave_type_id,
+            leave_type_name: selectedLeaveRequest.leave_type_name || 'Congé',
+            leave_type_code: selectedLeaveRequest.leave_type_code,
+            start_date: selectedLeaveRequest.start_date,
+            end_date: selectedLeaveRequest.end_date,
+            days_requested: selectedLeaveRequest.days_requested,
+            start_half_day: selectedLeaveRequest.start_half_day,
+            end_half_day: selectedLeaveRequest.end_half_day,
             status: selectedLeaveRequest.status,
             reason: selectedLeaveRequest.reason,
             department: selectedLeaveRequest.department,
-            job_title: selectedLeaveRequest.position,
-            manager_name: selectedLeaveRequest.manager,
-            leave_balance: selectedLeaveRequest.leaveBalance,
-            created_at: selectedLeaveRequest.createdAt || new Date().toISOString(),
+            job_title: selectedLeaveRequest.job_title,
+            manager_name: selectedLeaveRequest.manager_name,
+            leave_balance: selectedLeaveRequest.leave_balance,
+            approved_by_name: selectedLeaveRequest.approved_by_name,
+            approved_at: selectedLeaveRequest.approved_at,
+            rejection_reason: selectedLeaveRequest.rejection_reason,
+            created_at: selectedLeaveRequest.created_at,
           }}
           onClose={() => {
             setShowLeaveModal(false);

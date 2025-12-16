@@ -320,7 +320,7 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
             <div className="bg-gray-50 rounded-xl p-4">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                 <Calendar className="w-4 h-4 mr-2 text-emerald-500" />
-                Période d'emploi
+                Période d&apos;emploi
               </h3>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>

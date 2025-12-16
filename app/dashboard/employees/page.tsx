@@ -405,7 +405,7 @@ export default function EmployeesPage() {
   const filteredEmployees = employees.filter(emp => {
     const matchesSearch = emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         emp.position.toLowerCase().includes(searchTerm.toLowerCase());
+                         (emp.position?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
     const matchesDept = selectedDepartment === 'Tous' || emp.department === selectedDepartment;
     const matchesLocation = selectedLocation === 'Tous' || emp.location === selectedLocation;
     return matchesSearch && matchesDept && matchesLocation;

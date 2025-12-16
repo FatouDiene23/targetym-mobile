@@ -15,9 +15,14 @@ import {
   Palmtree,
   TrendingUp,
   Edit2,
-  Download
+  Download,
+  FileDown,
+  Loader2
 } from 'lucide-react';
 import { Employee } from '@/lib/api';
+import { useState } from 'react';
+import generateEmployeePDF from '@/lib/generateEmployeePDF';
+import CertificateModal from './CertificateModal';
 
 interface EmployeeModalProps {
   employee: Employee;
@@ -26,6 +31,22 @@ interface EmployeeModalProps {
 }
 
 export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeModalProps) {
+  const [isExporting, setIsExporting] = useState(false);
+  const [showCertificateModal, setShowCertificateModal] = useState(false);
+
+  // Fonction d'export PDF
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+    try {
+      generateEmployeePDF(employee);
+    } catch (error) {
+      console.error('Erreur lors de la génération du PDF:', error);
+      alert('Erreur lors de la génération du PDF');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Calculer l'âge
   const calculateAge = () => {
     if (!employee.date_of_birth && !employee.birth_date) return null;
@@ -191,12 +212,18 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
               <button 
                 onClick={onEdit}
                 className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg"
+                title="Modifier"
               >
                 <Edit2 className="w-5 h-5" />
               </button>
             )}
-            <button className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg">
-              <Download className="w-5 h-5" />
+            <button 
+              onClick={handleExportPDF}
+              disabled={isExporting}
+              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg disabled:opacity-50"
+              title="Télécharger le dossier PDF"
+            >
+              {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
             </button>
             <button onClick={onClose} className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg">
               <X className="w-5 h-5" />
@@ -419,7 +446,23 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
             Fermer
           </button>
           <div className="flex gap-2">
-            <button className="px-4 py-2 text-sm text-gray-700 font-medium border border-gray-300 rounded-lg hover:bg-gray-100">
+            <button 
+              onClick={() => setShowCertificateModal(true)}
+              className="flex items-center px-4 py-2 text-sm text-emerald-700 font-medium border border-emerald-300 rounded-lg hover:bg-emerald-50"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Certificat de travail
+            </button>
+            <button 
+              onClick={handleExportPDF}
+              disabled={isExporting}
+              className="flex items-center px-4 py-2 text-sm text-gray-700 font-medium border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50"
+            >
+              {isExporting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <FileDown className="w-4 h-4 mr-2" />
+              )}
               Exporter PDF
             </button>
             {onEdit && (
@@ -433,6 +476,14 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
           </div>
         </div>
       </div>
+
+      {/* Modal Certificat de travail */}
+      {showCertificateModal && (
+        <CertificateModal 
+          employee={employee} 
+          onClose={() => setShowCertificateModal(false)} 
+        />
+      )}
     </div>
   );
 }

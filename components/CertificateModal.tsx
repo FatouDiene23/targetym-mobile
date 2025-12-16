@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { X, Upload, FileText, Loader2, Eye, Download, Building2, User, Calendar, Briefcase } from 'lucide-react';
+import { X, Upload, FileText, Loader2, Download, Building2, User, Calendar, Briefcase } from 'lucide-react';
 import { Employee } from '@/lib/api';
 import jsPDF from 'jspdf';
 
@@ -29,7 +29,6 @@ const departureReasons = [
 
 export default function CertificateModal({ employee, onClose, companyInfo }: CertificateModalProps) {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Formulaire pré-rempli
@@ -325,7 +324,7 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
               </h3>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Date d'entrée</label>
+                  <label className="block text-sm text-gray-600 mb-1">Date d&apos;entrée</label>
                   <input
                     type="date"
                     name="startDate"
@@ -394,7 +393,7 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
               </h3>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Nom de l'entreprise</label>
+                  <label className="block text-sm text-gray-600 mb-1">Nom de l&apos;entreprise</label>
                   <input
                     type="text"
                     name="companyName"
@@ -410,7 +409,7 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                     name="companyAddress"
                     value={formData.companyAddress}
                     onChange={handleChange}
-                    placeholder="Adresse de l'entreprise"
+                    placeholder="Adresse de l&apos;entreprise"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
@@ -487,6 +486,7 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                     </button>
                     {formData.signature && (
                       <div className="flex items-center gap-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={formData.signature} alt="Signature" className="h-10 border rounded" />
                         <button
                           type="button"

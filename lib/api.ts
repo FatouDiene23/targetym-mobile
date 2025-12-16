@@ -63,6 +63,8 @@ export interface Employee {
   job_title?: string;
   department_id?: number;
   department_name?: string;
+  manager_id?: number;
+  manager_name?: string;
   hire_date?: string;
   birth_date?: string;
   date_of_birth?: string;
@@ -71,7 +73,6 @@ export interface Employee {
   contract_type?: string;
   salary?: number;
   currency?: string;
-  manager_id?: number;
   location?: string;
   site?: string;
   is_manager?: boolean;

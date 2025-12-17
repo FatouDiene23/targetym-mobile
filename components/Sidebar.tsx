@@ -30,7 +30,7 @@ const navigation = [
   { name: 'People Analytics', href: '/dashboard/analytics', icon: BarChart3, phase: 1, enabled: true },
   { name: 'Gestion du Personnel', href: '/dashboard/employees', icon: Users, phase: 1, enabled: true },
   { name: 'Paramètres', href: '/dashboard/settings', icon: Settings, phase: 1, enabled: true },
-  { name: 'Mon Espace', href: '/dashboard/my-space', icon: User,}
+  { name: 'Mon Espace', href: '/dashboard/my-space', icon: User, phase: 1, enabled: true }
 ];
 
 interface UserData {

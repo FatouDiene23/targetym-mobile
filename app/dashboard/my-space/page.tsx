@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   User, Calendar, Clock, CheckCircle, XCircle, AlertCircle,
-  Plus, FileText, Users, ChevronRight, Edit2, Save, X,
+  Plus, FileText, Users, Edit2, Save, X,
   Briefcase, MapPin, Phone, Mail, Building, CalendarDays
 } from 'lucide-react';
 
@@ -879,7 +879,7 @@ function ManagerSection({
 // ============================================
 
 export default function MySpacePage() {
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [_user, setUser] = useState<UserProfile | null>(null);
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [balances, setBalances] = useState<LeaveBalanceSummary | null>(null);
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);

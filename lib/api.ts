@@ -569,3 +569,80 @@ export async function getLeaveStats(year?: number): Promise<LeaveStats> {
 
   return response.json();
 }
+
+
+// Types pour les rôles
+export type EmployeeRole = 'employee' | 'manager' | 'rh' | 'admin' | 'dg';
+
+export interface AccessStatus {
+  has_access: boolean;
+  user_id: number | null;
+  is_active: boolean;
+  is_verified: boolean;
+  last_login: string | null;
+  role: string | null;
+}
+
+export interface ActivateAccessResponse {
+  message: string;
+  user_id: number;
+  email: string;
+  temp_password: string;
+  role: string;
+}
+
+// Vérifier si un employé a un compte d'accès
+export async function getEmployeeAccessStatus(employeeId: number): Promise<AccessStatus> {
+  const response = await fetch(`${API_URL}/api/employees/${employeeId}/access-status`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch access status');
+  }
+
+  return response.json();
+}
+
+// Activer l'accès pour un employé (créer son compte)
+export async function activateEmployeeAccess(
+  employeeId: number, 
+  sendEmail: boolean = true
+): Promise<ActivateAccessResponse> {
+  const response = await fetch(
+    `${API_URL}/api/employees/${employeeId}/activate-access?send_email=${sendEmail}`, 
+    {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to activate access');
+  }
+
+  return response.json();
+}
+
+// Désactiver l'accès d'un employé
+export async function deactivateEmployeeAccess(employeeId: number): Promise<void> {
+  const response = await fetch(`${API_URL}/api/employees/${employeeId}/deactivate-access`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to deactivate access');
+  }
+}
+
+// Labels pour les rôles (affichage)
+export const ROLE_LABELS: Record<EmployeeRole, string> = {
+  employee: 'Employé',
+  manager: 'Manager',
+  rh: 'RH',
+  admin: 'Administrateur',
+  dg: 'Direction Générale',
+};

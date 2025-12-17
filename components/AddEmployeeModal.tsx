@@ -1,13 +1,24 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, ChevronLeft } from 'lucide-react';
-import { createEmployee, getDepartments, getEmployees, type Department, type Employee, type GenderType, type ContractType, type StatusType } from '@/lib/api';
+import { Loader2, ChevronLeft, Key } from 'lucide-react';
+import { 
+  createEmployee, getDepartments, getEmployees, activateEmployeeAccess,
+  type Department, type Employee, type GenderType, type ContractType, type StatusType, type EmployeeRole 
+} from '@/lib/api';
 
 interface AddEmployeeModalProps {
   onClose: () => void;
   onSuccess: () => void;
 }
+
+const ROLE_OPTIONS: { value: EmployeeRole; label: string; description: string }[] = [
+  { value: 'employee', label: 'Employé', description: 'Collaborateur standard' },
+  { value: 'manager', label: 'Manager', description: 'Gère une équipe' },
+  { value: 'rh', label: 'RH', description: 'Équipe Ressources Humaines' },
+  { value: 'admin', label: 'Administrateur', description: 'DAF, Directeur...' },
+  { value: 'dg', label: 'Direction Générale', description: 'DG, CODIR' },
+];
 
 export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModalProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -15,6 +26,8 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
   const [departments, setDepartments] = useState<Department[]>([]);
   const [managers, setManagers] = useState<Employee[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [createdEmployee, setCreatedEmployee] = useState<{ id: number; email: string } | null>(null);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     employee_id: '',
@@ -26,6 +39,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
     department_id: '',
     manager_id: '',
     is_manager: false,
+    role: 'employee' as EmployeeRole,
     hire_date: '',
     date_of_birth: '',
     gender: 'male' as GenderType,
@@ -36,20 +50,26 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
     currency: 'XOF',
     nationality: '',
     address: '',
+    create_access: false,  // Créer un compte d'accès
   });
 
   useEffect(() => {
     loadData();
   }, []);
 
+  // Auto-cocher is_manager si le rôle est manager ou supérieur
+  useEffect(() => {
+    if (['manager', 'rh', 'admin', 'dg'].includes(formData.role)) {
+      setFormData(prev => ({ ...prev, is_manager: true }));
+    }
+  }, [formData.role]);
+
   async function loadData() {
     setIsLoadingData(true);
     try {
-      // Charger départements
       const depts = await getDepartments();
       setDepartments(depts || []);
       
-      // Charger les managers (employés avec is_manager = true)
       const empResponse = await getEmployees({ page_size: 500 });
       const allManagers = (empResponse.items || []).filter(e => e.is_manager);
       setManagers(allManagers);
@@ -76,6 +96,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
         department_id: formData.department_id ? parseInt(formData.department_id) : undefined,
         manager_id: formData.manager_id ? parseInt(formData.manager_id) : undefined,
         is_manager: formData.is_manager,
+        role: formData.role,
         hire_date: formData.hire_date || undefined,
         date_of_birth: formData.date_of_birth || undefined,
         gender: formData.gender,
@@ -88,7 +109,22 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
         address: formData.address || undefined,
       };
       
-      await createEmployee(dataToSend);
+      const newEmployee = await createEmployee(dataToSend);
+      
+      // Si on doit créer un compte d'accès
+      if (formData.create_access && newEmployee.id) {
+        try {
+          const accessResult = await activateEmployeeAccess(newEmployee.id, false);
+          setCreatedEmployee({ id: newEmployee.id, email: newEmployee.email });
+          setTempPassword(accessResult.temp_password);
+          // Ne pas fermer le modal, afficher le mot de passe
+          return;
+        } catch (accessErr) {
+          console.error('Error creating access:', accessErr);
+          // L'employé est créé mais pas le compte - on continue
+        }
+      }
+      
       onSuccess();
       onClose();
     } catch (err) {
@@ -112,6 +148,48 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
       setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
+
+  const handleCloseAfterAccess = () => {
+    onSuccess();
+    onClose();
+  };
+
+  // Afficher le mot de passe temporaire si compte créé
+  if (tempPassword && createdEmployee) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl w-full max-w-md p-6">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Key className="w-8 h-8 text-green-600" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Compte créé avec succès !</h2>
+            <p className="text-gray-600 mb-6">
+              Un compte a été créé pour <strong>{createdEmployee.email}</strong>
+            </p>
+            
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-yellow-800 mb-2">Mot de passe temporaire :</p>
+              <p className="font-mono text-lg font-bold text-yellow-900 select-all">
+                {tempPassword}
+              </p>
+              <p className="text-xs text-yellow-700 mt-2">
+                ⚠️ Notez ce mot de passe, il ne sera plus affiché.
+                L&apos;employé devra le changer à sa première connexion.
+              </p>
+            </div>
+            
+            <button
+              onClick={handleCloseAfterAccess}
+              className="w-full px-4 py-2 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -204,13 +282,12 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* Genre */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Genre *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Genre</label>
               <select
                 name="gender"
                 value={formData.gender}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                required
               >
                 <option value="male">Homme</option>
                 <option value="female">Femme</option>
@@ -297,6 +374,26 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Rôle système - NOUVEAU */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              >
+                {ROLE_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                {ROLE_OPTIONS.find(r => r.value === formData.role)?.description}
+              </p>
             </div>
 
             {/* Est manager */}
@@ -411,6 +508,28 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
               />
             </div>
+
+            {/* Créer un compte d'accès - NOUVEAU */}
+            <div className="col-span-2 mt-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <label className="flex items-start cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="create_access"
+                  checked={formData.create_access}
+                  onChange={handleChange}
+                  className="w-4 h-4 mt-0.5 text-primary-500 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <div className="ml-3">
+                  <span className="text-sm font-medium text-gray-900 flex items-center">
+                    <Key className="w-4 h-4 mr-1" />
+                    Créer un compte d&apos;accès
+                  </span>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Un compte sera créé avec un mot de passe temporaire que vous devrez communiquer à l&apos;employé.
+                  </p>
+                </div>
+              </label>
+            </div>
           </div>
         </form>
 
@@ -429,7 +548,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
             className="px-4 py-2 text-sm text-white font-medium bg-primary-500 rounded-lg hover:bg-primary-600 disabled:opacity-50 flex items-center"
           >
             {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Créer l&apos;employé
+            {formData.create_access ? 'Créer avec compte' : 'Créer l\'employé'}
           </button>
         </div>
       </div>

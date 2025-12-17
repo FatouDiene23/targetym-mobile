@@ -879,7 +879,6 @@ function ManagerSection({
 // ============================================
 
 export default function MySpacePage() {
-  const [_user, setUser] = useState<UserProfile | null>(null);
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [balances, setBalances] = useState<LeaveBalanceSummary | null>(null);
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
@@ -895,7 +894,6 @@ export default function MySpacePage() {
     try {
       // 1. Get current user
       const currentUser = await getCurrentUser();
-      setUser(currentUser);
 
       if (!currentUser.employee_id) {
         setError('Votre compte n\'est pas lié à un profil employé.');

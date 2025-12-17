@@ -76,6 +76,7 @@ export interface Employee {
   location?: string;
   site?: string;
   is_manager?: boolean;
+  role?: EmployeeRole; 
   nationality?: string;
   address?: string;
   created_at: string;

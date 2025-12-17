@@ -93,6 +93,7 @@ export interface EmployeeCreate {
   department_id?: number;
   manager_id?: number;
   is_manager?: boolean;
+  role?: EmployeeRole; 
   hire_date?: string;
   date_of_birth?: string;
   gender?: GenderType;

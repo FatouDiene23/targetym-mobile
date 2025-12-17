@@ -9,6 +9,7 @@ import {
   UserPlus, 
   BarChart3, 
   Users, 
+  User,
   Settings,
   LogOut,
   ChevronLeft,
@@ -29,6 +30,7 @@ const navigation = [
   { name: 'People Analytics', href: '/dashboard/analytics', icon: BarChart3, phase: 1, enabled: true },
   { name: 'Gestion du Personnel', href: '/dashboard/employees', icon: Users, phase: 1, enabled: true },
   { name: 'Paramètres', href: '/dashboard/settings', icon: Settings, phase: 1, enabled: true },
+  { name: 'Mon Espace', href: '/dashboard/my-space', icon: User,}
 ];
 
 interface UserData {

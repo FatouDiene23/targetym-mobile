@@ -2,13 +2,24 @@
 
 import { useState, useEffect } from 'react';
 import { X, Loader2, Trash2 } from 'lucide-react';
-import { updateEmployee, deleteEmployee, getDepartments, getEmployees, type Employee, type Department, type GenderType, type ContractType, type StatusType } from '@/lib/api';
+import { 
+  updateEmployee, deleteEmployee, getDepartments, getEmployees, 
+  type Employee, type Department, type GenderType, type ContractType, type StatusType, type EmployeeRole 
+} from '@/lib/api';
 
 interface EditEmployeeModalProps {
   employee: Employee;
   onClose: () => void;
   onSuccess: () => void;
 }
+
+const ROLE_OPTIONS: { value: EmployeeRole; label: string; description: string }[] = [
+  { value: 'employee', label: 'Employé', description: 'Collaborateur standard' },
+  { value: 'manager', label: 'Manager', description: 'Gère une équipe' },
+  { value: 'rh', label: 'RH', description: 'Équipe Ressources Humaines' },
+  { value: 'admin', label: 'Administrateur', description: 'DAF, Directeur...' },
+  { value: 'dg', label: 'Direction Générale', description: 'DG, CODIR' },
+];
 
 // Helper pour convertir les valeurs existantes en minuscule
 const normalizeGender = (value?: string): GenderType => {
@@ -40,6 +51,16 @@ const normalizeContractType = (value?: string): ContractType => {
   return 'cdi';
 };
 
+const normalizeRole = (value?: string): EmployeeRole => {
+  if (!value) return 'employee';
+  const lower = value.toLowerCase();
+  if (lower === 'manager') return 'manager';
+  if (lower === 'rh') return 'rh';
+  if (lower === 'admin') return 'admin';
+  if (lower === 'dg') return 'dg';
+  return 'employee';
+};
+
 export default function EditEmployeeModal({ employee, onClose, onSuccess }: EditEmployeeModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -59,6 +80,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
     department_id: employee.department_id?.toString() || '',
     manager_id: employee.manager_id?.toString() || '',
     is_manager: employee.is_manager || false,
+    role: normalizeRole(employee.role),
     hire_date: employee.hire_date?.split('T')[0] || '',
     date_of_birth: employee.birth_date?.split('T')[0] || employee.date_of_birth?.split('T')[0] || '',
     gender: normalizeGender(employee.gender),
@@ -72,6 +94,13 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
   useEffect(() => {
     loadData();
   }, []);
+
+  // Auto-cocher is_manager si le rôle est manager ou supérieur
+  useEffect(() => {
+    if (['manager', 'rh', 'admin', 'dg'].includes(formData.role)) {
+      setFormData(prev => ({ ...prev, is_manager: true }));
+    }
+  }, [formData.role]);
 
   async function loadData() {
     setIsLoadingData(true);
@@ -107,6 +136,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
         department_id: formData.department_id ? parseInt(formData.department_id) : undefined,
         manager_id: formData.manager_id ? parseInt(formData.manager_id) : undefined,
         is_manager: formData.is_manager,
+        role: formData.role,
         hire_date: formData.hire_date || undefined,
         date_of_birth: formData.date_of_birth || undefined,
         gender: formData.gender,
@@ -199,8 +229,8 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
             </div>
 
@@ -212,8 +242,8 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                 name="first_name"
                 value={formData.first_name}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
             </div>
 
@@ -225,8 +255,8 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                 name="last_name"
                 value={formData.last_name}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
             </div>
 
@@ -321,6 +351,26 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Rôle système - NOUVEAU */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              >
+                {ROLE_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                {ROLE_OPTIONS.find(r => r.value === formData.role)?.description}
+              </p>
             </div>
 
             {/* Est manager */}

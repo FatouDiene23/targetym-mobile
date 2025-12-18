@@ -116,12 +116,12 @@ async function getLeaveCalendar(year: number, month: number): Promise<LeaveReque
       { headers: getAuthHeaders() }
     );
     if (!response.ok) return [];
-    return response.json();
+    const data = await response.json();
+    return data.entries || [];
   } catch {
     return [];
   }
 }
-
 async function getDepartments(): Promise<Department[]> {
   const response = await fetch(`${API_URL}/api/departments`, { headers: getAuthHeaders() });
   if (!response.ok) return [];

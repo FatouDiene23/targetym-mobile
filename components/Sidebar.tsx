@@ -130,6 +130,12 @@ const mySpaceNavigation: NavItem[] = [
     roles: ['employee', 'manager', 'rh', 'admin', 'dg']
   },
   {
+    name: 'Mes Objectifs',
+    href: '/dashboard/my-space/objectives',
+    icon: Target,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg']
+  },
+  {
     name: 'Mon Équipe',
     href: '/dashboard/my-space/team',
     icon: UsersRound,

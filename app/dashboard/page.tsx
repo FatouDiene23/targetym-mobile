@@ -108,7 +108,7 @@ interface OKRStats {
 // API
 // ============================================
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app';
+const API_URL = 'https://web-production-06c3.up.railway.app';
 
 function getAuthHeaders(): HeadersInit {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;

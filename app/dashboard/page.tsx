@@ -4,9 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   Calendar, Clock, CheckCircle, Target, Users,
   AlertCircle, ArrowRight, UserPlus, BarChart3,
-  CalendarDays, ClipboardList, Bell, ChevronRight
+  CalendarDays, ClipboardList, Bell, ChevronRight, TrendingUp, PieChart
 } from 'lucide-react';
 import Link from 'next/link';
+import {
+  LineChart, Line, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
+} from 'recharts';
 
 // ============================================
 // TYPES
@@ -28,6 +32,10 @@ interface Employee {
   first_name: string;
   last_name: string;
   is_manager?: boolean;
+  department_name?: string;
+  hire_date?: string;
+  termination_date?: string;
+  status?: string;
 }
 
 interface LeaveBalance {
@@ -68,6 +76,31 @@ interface TeamMember {
   last_name: string;
   status: string;
   job_title?: string;
+}
+
+interface DepartmentData {
+  name: string;
+  count: number;
+}
+
+interface MonthlyData {
+  month: string;
+  entrees: number;
+  sorties: number;
+}
+
+interface LeavesByMonth {
+  month: string;
+  jours: number;
+}
+
+interface OKRStats {
+  total: number;
+  completed: number;
+  in_progress: number;
+  not_started: number;
+  overdue: number;
+  avg_progress: number;
 }
 
 // ============================================
@@ -145,18 +178,26 @@ async function getTeamPendingRequests(teamMembers: TeamMember[]): Promise<LeaveR
   return allRequests;
 }
 
+async function getAllEmployees(): Promise<Employee[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/employees?page_size=1000`, { headers: getAuthHeaders() });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.items || [];
+  } catch {
+    return [];
+  }
+}
+
 async function getHRStats(): Promise<HRStats> {
   try {
-    // Récupérer les employés
     const empResponse = await fetch(`${API_URL}/api/employees?page_size=1000`, { headers: getAuthHeaders() });
     const empData = empResponse.ok ? await empResponse.json() : { items: [], total: 0 };
     const employees = empData.items || [];
     
-    // Récupérer les demandes en attente
     const reqResponse = await fetch(`${API_URL}/api/leaves/requests?status=pending&page_size=100`, { headers: getAuthHeaders() });
     const reqData = reqResponse.ok ? await reqResponse.json() : { items: [] };
     
-    // Récupérer les départements
     const deptResponse = await fetch(`${API_URL}/api/departments`, { headers: getAuthHeaders() });
     const deptData = deptResponse.ok ? await deptResponse.json() : [];
     const departments = Array.isArray(deptData) ? deptData : (deptData.items || []);
@@ -166,10 +207,10 @@ async function getHRStats(): Promise<HRStats> {
 
     return {
       total_employees: empData.total || employees.length,
-      active_employees: employees.filter((e: { status: string }) => e.status === 'active').length,
-      on_leave_today: employees.filter((e: { status: string }) => e.status === 'on_leave').length,
+      active_employees: employees.filter((e: Employee) => e.status === 'active').length,
+      on_leave_today: employees.filter((e: Employee) => e.status === 'on_leave').length,
       pending_requests: (reqData.items || []).length,
-      new_hires_this_month: employees.filter((e: { hire_date: string }) => 
+      new_hires_this_month: employees.filter((e: Employee) => 
         e.hire_date && new Date(e.hire_date) >= startOfMonth
       ).length,
       departments_count: departments.length
@@ -197,6 +238,73 @@ async function getAllPendingRequests(): Promise<LeaveRequest[]> {
   }
 }
 
+async function getAllLeaveRequests(): Promise<LeaveRequest[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/leaves/requests?page_size=500`, { headers: getAuthHeaders() });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.items || [];
+  } catch {
+    return [];
+  }
+}
+
+async function getOKRStats(): Promise<OKRStats> {
+  try {
+    const response = await fetch(`${API_URL}/api/okr/objectives?page_size=500`, { headers: getAuthHeaders() });
+    if (!response.ok) {
+      return { total: 0, completed: 0, in_progress: 0, not_started: 0, overdue: 0, avg_progress: 0 };
+    }
+    const data = await response.json();
+    const objectives = data.items || data || [];
+    
+    if (!Array.isArray(objectives) || objectives.length === 0) {
+      return { total: 0, completed: 0, in_progress: 0, not_started: 0, overdue: 0, avg_progress: 0 };
+    }
+
+    const now = new Date();
+    const completed = objectives.filter((o: { status: string }) => o.status === 'completed').length;
+    const inProgress = objectives.filter((o: { status: string }) => o.status === 'active').length;
+    const notStarted = objectives.filter((o: { status: string }) => o.status === 'draft').length;
+    const overdue = objectives.filter((o: { status: string; end_date: string }) => 
+      o.status === 'active' && o.end_date && new Date(o.end_date) < now
+    ).length;
+    const avgProgress = Math.round(
+      objectives.reduce((acc: number, o: { progress: number }) => acc + (o.progress || 0), 0) / objectives.length
+    );
+
+    return {
+      total: objectives.length,
+      completed,
+      in_progress: inProgress,
+      not_started: notStarted,
+      overdue,
+      avg_progress: avgProgress
+    };
+  } catch {
+    return { total: 0, completed: 0, in_progress: 0, not_started: 0, overdue: 0, avg_progress: 0 };
+  }
+}
+
+interface MyObjectiveData {
+  id: number;
+  title: string;
+  progress: number;
+  status: string;
+}
+
+async function getMyObjectives(employeeId: number): Promise<MyObjectiveData[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/okr/objectives?employee_id=${employeeId}`, { headers: getAuthHeaders() });
+    if (!response.ok) return [];
+    const data = await response.json();
+    const objectives = data.items || data || [];
+    return Array.isArray(objectives) ? objectives : [];
+  } catch {
+    return [];
+  }
+}
+
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
@@ -217,6 +325,87 @@ function getGreeting(): string {
   if (hour < 18) return 'Bon après-midi';
   return 'Bonsoir';
 }
+
+function getMonthName(monthIndex: number): string {
+  const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+  return months[monthIndex];
+}
+
+function calculateDepartmentData(employees: Employee[]): DepartmentData[] {
+  const deptCounts: Record<string, number> = {};
+  employees.forEach(emp => {
+    const dept = emp.department_name || 'Non assigné';
+    deptCounts[dept] = (deptCounts[dept] || 0) + 1;
+  });
+  return Object.entries(deptCounts)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
+}
+
+function calculateMonthlyEvolution(employees: Employee[]): MonthlyData[] {
+  const now = new Date();
+  const data: MonthlyData[] = [];
+  
+  for (let i = 11; i >= 0; i--) {
+    const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+    const monthEnd = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0);
+    
+    const entrees = employees.filter(emp => {
+      if (!emp.hire_date) return false;
+      const hireDate = new Date(emp.hire_date);
+      return hireDate >= monthStart && hireDate <= monthEnd;
+    }).length;
+    
+    const sorties = employees.filter(emp => {
+      if (!emp.termination_date) return false;
+      const termDate = new Date(emp.termination_date);
+      return termDate >= monthStart && termDate <= monthEnd;
+    }).length;
+    
+    data.push({
+      month: getMonthName(targetDate.getMonth()),
+      entrees,
+      sorties
+    });
+  }
+  
+  return data;
+}
+
+function calculateLeavesByMonth(requests: LeaveRequest[]): LeavesByMonth[] {
+  const now = new Date();
+  const data: LeavesByMonth[] = [];
+  
+  for (let i = 5; i >= 0; i--) {
+    const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+    const monthEnd = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0);
+    
+    const jours = requests
+      .filter(req => {
+        if (req.status !== 'approved') return false;
+        const startDate = new Date(req.start_date);
+        return startDate >= monthStart && startDate <= monthEnd;
+      })
+      .reduce((acc, req) => acc + req.days_requested, 0);
+    
+    data.push({
+      month: getMonthName(targetDate.getMonth()),
+      jours
+    });
+  }
+  
+  return data;
+}
+
+// ============================================
+// CHART COLORS
+// ============================================
+
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 // ============================================
 // WIDGET COMPONENTS
@@ -431,6 +620,234 @@ function HRStatsWidget({ stats }: { stats: HRStats }) {
   );
 }
 
+// Evolution Chart Widget
+function EvolutionChartWidget({ data }: { data: MonthlyData[] }) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <TrendingUp className="w-5 h-5 text-primary-600" />
+        Évolution des Effectifs
+      </h2>
+      
+      <div className="h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#9ca3af" />
+            <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'white', 
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                fontSize: '12px'
+              }} 
+            />
+            <Legend wrapperStyle={{ fontSize: '12px' }} />
+            <Area 
+              type="monotone" 
+              dataKey="entrees" 
+              name="Entrées" 
+              stroke="#10b981" 
+              fill="#10b981" 
+              fillOpacity={0.3} 
+            />
+            <Area 
+              type="monotone" 
+              dataKey="sorties" 
+              name="Sorties" 
+              stroke="#ef4444" 
+              fill="#ef4444" 
+              fillOpacity={0.3} 
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+// Department Distribution Widget
+function DepartmentChartWidget({ data }: { data: DepartmentData[] }) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <PieChart className="w-5 h-5 text-primary-600" />
+        Répartition par Département
+      </h2>
+      
+      <div className="h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <RechartsPieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={50}
+              outerRadius={80}
+              paddingAngle={2}
+              dataKey="count"
+              nameKey="name"
+              label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+              labelLine={false}
+            >
+              {data.map((_, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'white', 
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                fontSize: '12px'
+              }}
+              formatter={(value: number) => [`${value} employés`, 'Effectif']}
+            />
+          </RechartsPieChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+// Leaves by Month Chart Widget
+function LeavesChartWidget({ data }: { data: LeavesByMonth[] }) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <CalendarDays className="w-5 h-5 text-primary-600" />
+        Congés par Mois
+      </h2>
+      
+      <div className="h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#9ca3af" />
+            <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'white', 
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                fontSize: '12px'
+              }}
+              formatter={(value: number) => [`${value} jours`, 'Congés']}
+            />
+            <Bar dataKey="jours" name="Jours de congés" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+// OKR Stats Widget
+function OKRStatsWidget({ stats }: { stats: OKRStats }) {
+  const pieData = [
+    { name: 'Terminés', value: stats.completed, color: '#10b981' },
+    { name: 'En cours', value: stats.in_progress, color: '#3b82f6' },
+    { name: 'Non démarrés', value: stats.not_started, color: '#9ca3af' },
+    { name: 'En retard', value: stats.overdue, color: '#ef4444' },
+  ].filter(d => d.value > 0);
+
+  if (stats.total === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Target className="w-5 h-5 text-primary-600" />
+          Objectifs (OKR)
+        </h2>
+        <div className="text-center py-8 text-gray-500">
+          <Target className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+          <p>Aucun objectif défini</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <Target className="w-5 h-5 text-primary-600" />
+          Objectifs (OKR)
+        </h2>
+        <Link href="/dashboard/okr" className="text-primary-600 text-sm hover:underline flex items-center gap-1">
+          Voir tout <ChevronRight className="w-4 h-4" />
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="text-center">
+          <div className="relative inline-flex items-center justify-center w-24 h-24">
+            <svg className="w-24 h-24 transform -rotate-90">
+              <circle cx="48" cy="48" r="40" stroke="#e5e7eb" strokeWidth="8" fill="none" />
+              <circle 
+                cx="48" cy="48" r="40" 
+                stroke="#3b82f6" 
+                strokeWidth="8" 
+                fill="none"
+                strokeDasharray={`${stats.avg_progress * 2.51} 251`}
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="absolute text-xl font-bold text-gray-900">{stats.avg_progress}%</span>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">Progression moyenne</p>
+        </div>
+
+        <div className="h-32">
+          <ResponsiveContainer width="100%" height="100%">
+            <RechartsPieChart>
+              <Pie
+                data={pieData}
+                cx="50%"
+                cy="50%"
+                innerRadius={25}
+                outerRadius={45}
+                dataKey="value"
+              >
+                {pieData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'white', 
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  fontSize: '12px'
+                }}
+              />
+            </RechartsPieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-2 text-center text-xs">
+        <div>
+          <p className="font-bold text-green-600">{stats.completed}</p>
+          <p className="text-gray-500">Terminés</p>
+        </div>
+        <div>
+          <p className="font-bold text-blue-600">{stats.in_progress}</p>
+          <p className="text-gray-500">En cours</p>
+        </div>
+        <div>
+          <p className="font-bold text-gray-600">{stats.not_started}</p>
+          <p className="text-gray-500">Non démarrés</p>
+        </div>
+        <div>
+          <p className="font-bold text-red-600">{stats.overdue}</p>
+          <p className="text-gray-500">En retard</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Pending Requests Widget (RH/Admin)
 function PendingRequestsWidget({ requests }: { requests: LeaveRequest[] }) {
   return (
@@ -546,8 +963,44 @@ function TasksWidget() {
   );
 }
 
-// Objectives Widget
-function ObjectivesWidget() {
+// My Objectives Progress Widget (for employees)
+interface MyObjective {
+  id: number;
+  title: string;
+  progress: number;
+  status: string;
+}
+
+function MyObjectivesProgressWidget({ objectives }: { objectives: MyObjective[] }) {
+  if (objectives.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Target className="w-5 h-5 text-primary-600" />
+            Mes Objectifs
+          </h2>
+          <Link href="/dashboard/my-space/objectives" className="text-primary-600 text-sm hover:underline flex items-center gap-1">
+            Voir <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+        <div className="text-center py-6 text-gray-500">
+          <Target className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+          <p className="text-sm">Aucun objectif assigné</p>
+        </div>
+      </div>
+    );
+  }
+
+  const avgProgress = Math.round(
+    objectives.reduce((acc, o) => acc + o.progress, 0) / objectives.length
+  );
+
+  const chartData = objectives.slice(0, 5).map(obj => ({
+    name: obj.title.length > 20 ? obj.title.substring(0, 20) + '...' : obj.title,
+    progress: obj.progress
+  }));
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
@@ -560,9 +1013,51 @@ function ObjectivesWidget() {
         </Link>
       </div>
 
-      <div className="text-center py-6 text-gray-500">
-        <Target className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-        <p className="text-sm">Consultez vos objectifs assignés</p>
+      {/* Progress Gauge */}
+      <div className="flex items-center gap-6 mb-4">
+        <div className="relative inline-flex items-center justify-center w-20 h-20">
+          <svg className="w-20 h-20 transform -rotate-90">
+            <circle cx="40" cy="40" r="32" stroke="#e5e7eb" strokeWidth="8" fill="none" />
+            <circle 
+              cx="40" cy="40" r="32" 
+              stroke={avgProgress >= 70 ? '#10b981' : avgProgress >= 40 ? '#f59e0b' : '#ef4444'}
+              strokeWidth="8" 
+              fill="none"
+              strokeDasharray={`${avgProgress * 2.01} 201`}
+              strokeLinecap="round"
+            />
+          </svg>
+          <span className="absolute text-lg font-bold text-gray-900">{avgProgress}%</span>
+        </div>
+        <div>
+          <p className="text-sm font-medium text-gray-900">Progression globale</p>
+          <p className="text-xs text-gray-500">{objectives.length} objectif(s) assigné(s)</p>
+        </div>
+      </div>
+
+      {/* Progress Bars Chart */}
+      <div className="h-40">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 10 }}>
+            <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10 }} stroke="#9ca3af" />
+            <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={80} stroke="#9ca3af" />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'white', 
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                fontSize: '12px'
+              }}
+              formatter={(value: number) => [`${value}%`, 'Progression']}
+            />
+            <Bar 
+              dataKey="progress" 
+              fill="#3b82f6" 
+              radius={[0, 4, 4, 0]}
+              background={{ fill: '#f3f4f6', radius: 4 }}
+            />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
@@ -588,6 +1083,13 @@ export default function DashboardPage() {
   const [teamPendingRequests, setTeamPendingRequests] = useState<LeaveRequest[]>([]);
   const [hrStats, setHRStats] = useState<HRStats | null>(null);
   const [allPendingRequests, setAllPendingRequests] = useState<LeaveRequest[]>([]);
+  
+  // Chart data states
+  const [departmentData, setDepartmentData] = useState<DepartmentData[]>([]);
+  const [evolutionData, setEvolutionData] = useState<MonthlyData[]>([]);
+  const [leavesData, setLeavesData] = useState<LeavesByMonth[]>([]);
+  const [okrStats, setOkrStats] = useState<OKRStats>({ total: 0, completed: 0, in_progress: 0, not_started: 0, overdue: 0, avg_progress: 0 });
+  const [myObjectives, setMyObjectives] = useState<MyObjectiveData[]>([]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -618,7 +1120,8 @@ export default function DashboardPage() {
       if (employeeId) {
         promises.push(
           getMyLeaveBalances(employeeId).then(setLeaveBalances),
-          getMyPendingRequests(employeeId).then(setMyPendingRequests)
+          getMyPendingRequests(employeeId).then(setMyPendingRequests),
+          getMyObjectives(employeeId).then(setMyObjectives)
         );
       }
 
@@ -637,7 +1140,15 @@ export default function DashboardPage() {
       if (['rh', 'admin', 'dg'].includes(role)) {
         promises.push(
           getHRStats().then(setHRStats),
-          getAllPendingRequests().then(setAllPendingRequests)
+          getAllPendingRequests().then(setAllPendingRequests),
+          getAllEmployees().then(employees => {
+            setDepartmentData(calculateDepartmentData(employees));
+            setEvolutionData(calculateMonthlyEvolution(employees));
+          }),
+          getAllLeaveRequests().then(requests => {
+            setLeavesData(calculateLeavesByMonth(requests));
+          }),
+          getOKRStats().then(setOkrStats)
         );
       }
 
@@ -665,6 +1176,7 @@ export default function DashboardPage() {
   }
 
   const { name, role, isManager, employeeId } = userData;
+  const isHROrAdmin = ['rh', 'admin', 'dg'].includes(role);
 
   return (
     <div className="py-8 px-4 sm:px-6 lg:px-8">
@@ -672,12 +1184,22 @@ export default function DashboardPage() {
         {/* Welcome Card - All roles */}
         <WelcomeCard userName={name} role={role} />
 
+        {/* Charts Section - HR/Admin/DG only */}
+        {isHROrAdmin && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <EvolutionChartWidget data={evolutionData} />
+            <DepartmentChartWidget data={departmentData} />
+            <LeavesChartWidget data={leavesData} />
+            <OKRStatsWidget stats={okrStats} />
+          </div>
+        )}
+
         {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
             {/* HR Stats - RH/Admin/DG only */}
-            {['rh', 'admin', 'dg'].includes(role) && hrStats && (
+            {isHROrAdmin && hrStats && (
               <HRStatsWidget stats={hrStats} />
             )}
 
@@ -692,7 +1214,7 @@ export default function DashboardPage() {
             )}
 
             {/* Pending Requests - RH/Admin/DG */}
-            {['rh', 'admin', 'dg'].includes(role) && (
+            {isHROrAdmin && (
               <PendingRequestsWidget requests={allPendingRequests} />
             )}
           </div>
@@ -708,15 +1230,15 @@ export default function DashboardPage() {
             )}
 
             {/* Alerts - RH/Admin/DG */}
-            {['rh', 'admin', 'dg'].includes(role) && hrStats && (
+            {isHROrAdmin && hrStats && (
               <AlertsWidget 
                 pendingCount={hrStats.pending_requests} 
                 onLeaveCount={hrStats.on_leave_today} 
               />
             )}
 
-            {/* Objectives Widget - All roles */}
-            <ObjectivesWidget />
+            {/* Objectives Widget - All employees */}
+            {employeeId && <MyObjectivesProgressWidget objectives={myObjectives} />}
 
             {/* Tasks Widget - All roles */}
             <TasksWidget />

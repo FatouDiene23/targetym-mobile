@@ -81,6 +81,7 @@ interface TeamMember {
 interface DepartmentData {
   name: string;
   count: number;
+  [key: string]: string | number;
 }
 
 interface MonthlyData {

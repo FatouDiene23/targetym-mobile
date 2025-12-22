@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import {
-  BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell,
+  LineChart, Line, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
 
@@ -81,7 +81,6 @@ interface TeamMember {
 interface DepartmentData {
   name: string;
   count: number;
-  [key: string]: string | number;
 }
 
 interface MonthlyData {
@@ -406,6 +405,7 @@ function calculateLeavesByMonth(requests: LeaveRequest[]): LeavesByMonth[] {
 // ============================================
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 // ============================================
 // WIDGET COMPONENTS
@@ -623,42 +623,57 @@ function HRStatsWidget({ stats }: { stats: HRStats }) {
 // Evolution Chart Widget
 function EvolutionChartWidget({ data }: { data: MonthlyData[] }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-        <TrendingUp className="w-5 h-5 text-primary-600" />
-        Évolution des Effectifs
-      </h2>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+          <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+            <TrendingUp className="w-4 h-4 text-green-600" />
+          </div>
+          Évolution des Effectifs
+        </h2>
+      </div>
       
-      <div className="h-64">
+      <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#9ca3af" />
-            <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" />
+          <AreaChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+            <defs>
+              <linearGradient id="colorEntrees" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+              </linearGradient>
+              <linearGradient id="colorSorties" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+            <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="#9ca3af" axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11 }} stroke="#9ca3af" axisLine={false} tickLine={false} />
             <Tooltip 
               contentStyle={{ 
                 backgroundColor: 'white', 
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
+                border: 'none',
+                borderRadius: '12px',
+                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                 fontSize: '12px'
               }} 
             />
-            <Legend wrapperStyle={{ fontSize: '12px' }} />
+            <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
             <Area 
               type="monotone" 
               dataKey="entrees" 
               name="Entrées" 
               stroke="#10b981" 
-              fill="#10b981" 
-              fillOpacity={0.3} 
+              strokeWidth={2}
+              fill="url(#colorEntrees)" 
             />
             <Area 
               type="monotone" 
               dataKey="sorties" 
               name="Sorties" 
               stroke="#ef4444" 
-              fill="#ef4444" 
-              fillOpacity={0.3} 
+              strokeWidth={2}
+              fill="url(#colorSorties)" 
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -669,43 +684,74 @@ function EvolutionChartWidget({ data }: { data: MonthlyData[] }) {
 
 // Department Distribution Widget
 function DepartmentChartWidget({ data }: { data: DepartmentData[] }) {
+  if (data.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div className="flex items-center gap-2 mb-6">
+          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+            <PieChart className="w-4 h-4 text-blue-600" />
+          </div>
+          <h2 className="text-base font-semibold text-gray-900">Répartition par Département</h2>
+        </div>
+        <div className="h-56 flex items-center justify-center text-gray-500">
+          <p className="text-sm">Aucune donnée disponible</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-        <PieChart className="w-5 h-5 text-primary-600" />
-        Répartition par Département
-      </h2>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+      <div className="flex items-center gap-2 mb-6">
+        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+          <PieChart className="w-4 h-4 text-blue-600" />
+        </div>
+        <h2 className="text-base font-semibold text-gray-900">Répartition par Département</h2>
+      </div>
       
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <RechartsPieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={50}
-              outerRadius={80}
-              paddingAngle={2}
-              dataKey="count"
-              nameKey="name"
-              label={({ name, percent }) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}
-              labelLine={false}
-            >
-              {data.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: 'white', 
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                fontSize: '12px'
-              }}
-              formatter={(value: number) => [`${value} employés`, 'Effectif']}
-            />
-          </RechartsPieChart>
-        </ResponsiveContainer>
+      <div className="h-56 flex items-center">
+        <div className="w-1/2 h-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <RechartsPieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                innerRadius={40}
+                outerRadius={70}
+                paddingAngle={3}
+                dataKey="count"
+                nameKey="name"
+              >
+                {data.map((_, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'white', 
+                  border: 'none',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                  fontSize: '12px'
+                }}
+                formatter={(value: number) => [`${value} employés`, '']}
+              />
+            </RechartsPieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="w-1/2 space-y-2">
+          {data.map((item, index) => (
+            <div key={item.name} className="flex items-center gap-2">
+              <div 
+                className="w-3 h-3 rounded-full shrink-0" 
+                style={{ backgroundColor: COLORS[index % COLORS.length] }}
+              />
+              <span className="text-xs text-gray-600 truncate flex-1">{item.name}</span>
+              <span className="text-xs font-semibold text-gray-900">{item.count}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -714,28 +760,37 @@ function DepartmentChartWidget({ data }: { data: DepartmentData[] }) {
 // Leaves by Month Chart Widget
 function LeavesChartWidget({ data }: { data: LeavesByMonth[] }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-        <CalendarDays className="w-5 h-5 text-primary-600" />
-        Congés par Mois
-      </h2>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+      <div className="flex items-center gap-2 mb-6">
+        <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+          <CalendarDays className="w-4 h-4 text-orange-600" />
+        </div>
+        <h2 className="text-base font-semibold text-gray-900">Congés par Mois</h2>
+      </div>
       
-      <div className="h-64">
+      <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#9ca3af" />
-            <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" />
+          <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+            <defs>
+              <linearGradient id="colorConges" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#f97316" stopOpacity={1}/>
+                <stop offset="95%" stopColor="#fb923c" stopOpacity={0.8}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+            <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="#9ca3af" axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11 }} stroke="#9ca3af" axisLine={false} tickLine={false} />
             <Tooltip 
               contentStyle={{ 
                 backgroundColor: 'white', 
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
+                border: 'none',
+                borderRadius: '12px',
+                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                 fontSize: '12px'
               }}
               formatter={(value: number) => [`${value} jours`, 'Congés']}
             />
-            <Bar dataKey="jours" name="Jours de congés" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="jours" name="Jours de congés" fill="url(#colorConges)" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -754,60 +809,69 @@ function OKRStatsWidget({ stats }: { stats: OKRStats }) {
 
   if (stats.total === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Target className="w-5 h-5 text-primary-600" />
-          Objectifs (OKR)
-        </h2>
-        <div className="text-center py-8 text-gray-500">
-          <Target className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-          <p>Aucun objectif défini</p>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div className="flex items-center gap-2 mb-6">
+          <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+            <Target className="w-4 h-4 text-purple-600" />
+          </div>
+          <h2 className="text-base font-semibold text-gray-900">Objectifs (OKR)</h2>
+        </div>
+        <div className="h-56 flex items-center justify-center text-gray-500">
+          <div className="text-center">
+            <Target className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+            <p className="text-sm">Aucun objectif défini</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Target className="w-5 h-5 text-primary-600" />
-          Objectifs (OKR)
-        </h2>
-        <Link href="/dashboard/okr" className="text-primary-600 text-sm hover:underline flex items-center gap-1">
-          Voir tout <ChevronRight className="w-4 h-4" />
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+            <Target className="w-4 h-4 text-purple-600" />
+          </div>
+          <h2 className="text-base font-semibold text-gray-900">Objectifs (OKR)</h2>
+        </div>
+        <Link href="/dashboard/okr" className="text-primary-600 text-xs hover:underline flex items-center gap-1">
+          Voir tout <ChevronRight className="w-3 h-3" />
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="flex items-center gap-4 mb-4">
+        {/* Gauge */}
         <div className="text-center">
-          <div className="relative inline-flex items-center justify-center w-24 h-24">
-            <svg className="w-24 h-24 transform -rotate-90">
-              <circle cx="48" cy="48" r="40" stroke="#e5e7eb" strokeWidth="8" fill="none" />
+          <div className="relative inline-flex items-center justify-center w-20 h-20">
+            <svg className="w-20 h-20 transform -rotate-90">
+              <circle cx="40" cy="40" r="32" stroke="#e5e7eb" strokeWidth="6" fill="none" />
               <circle 
-                cx="48" cy="48" r="40" 
-                stroke="#3b82f6" 
-                strokeWidth="8" 
+                cx="40" cy="40" r="32" 
+                stroke={stats.avg_progress >= 70 ? '#10b981' : stats.avg_progress >= 40 ? '#f59e0b' : '#ef4444'}
+                strokeWidth="6" 
                 fill="none"
-                strokeDasharray={`${stats.avg_progress * 2.51} 251`}
+                strokeDasharray={`${stats.avg_progress * 2.01} 201`}
                 strokeLinecap="round"
               />
             </svg>
-            <span className="absolute text-xl font-bold text-gray-900">{stats.avg_progress}%</span>
+            <span className="absolute text-lg font-bold text-gray-900">{stats.avg_progress}%</span>
           </div>
-          <p className="text-sm text-gray-500 mt-2">Progression moyenne</p>
+          <p className="text-xs text-gray-500 mt-1">Progression</p>
         </div>
 
-        <div className="h-32">
+        {/* Mini Pie */}
+        <div className="h-24 flex-1">
           <ResponsiveContainer width="100%" height="100%">
             <RechartsPieChart>
               <Pie
                 data={pieData}
                 cx="50%"
                 cy="50%"
-                innerRadius={25}
-                outerRadius={45}
+                innerRadius={20}
+                outerRadius={38}
                 dataKey="value"
+                paddingAngle={2}
               >
                 {pieData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
@@ -816,8 +880,9 @@ function OKRStatsWidget({ stats }: { stats: OKRStats }) {
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: 'white', 
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
+                  border: 'none',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                   fontSize: '12px'
                 }}
               />
@@ -826,22 +891,23 @@ function OKRStatsWidget({ stats }: { stats: OKRStats }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 text-center text-xs">
-        <div>
-          <p className="font-bold text-green-600">{stats.completed}</p>
-          <p className="text-gray-500">Terminés</p>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-4 gap-2">
+        <div className="text-center p-2 bg-green-50 rounded-lg">
+          <p className="text-lg font-bold text-green-600">{stats.completed}</p>
+          <p className="text-xs text-green-700">Terminés</p>
         </div>
-        <div>
-          <p className="font-bold text-blue-600">{stats.in_progress}</p>
-          <p className="text-gray-500">En cours</p>
+        <div className="text-center p-2 bg-blue-50 rounded-lg">
+          <p className="text-lg font-bold text-blue-600">{stats.in_progress}</p>
+          <p className="text-xs text-blue-700">En cours</p>
         </div>
-        <div>
-          <p className="font-bold text-gray-600">{stats.not_started}</p>
-          <p className="text-gray-500">Non démarrés</p>
+        <div className="text-center p-2 bg-gray-50 rounded-lg">
+          <p className="text-lg font-bold text-gray-600">{stats.not_started}</p>
+          <p className="text-xs text-gray-700">À faire</p>
         </div>
-        <div>
-          <p className="font-bold text-red-600">{stats.overdue}</p>
-          <p className="text-gray-500">En retard</p>
+        <div className="text-center p-2 bg-red-50 rounded-lg">
+          <p className="text-lg font-bold text-red-600">{stats.overdue}</p>
+          <p className="text-xs text-red-700">En retard</p>
         </div>
       </div>
     </div>
@@ -1179,26 +1245,16 @@ export default function DashboardPage() {
   const isHROrAdmin = ['rh', 'admin', 'dg'].includes(role);
 
   return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8">
+    <div className="py-8 px-4 sm:px-6 lg:px-8 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Welcome Card - All roles */}
         <WelcomeCard userName={name} role={role} />
 
-        {/* Charts Section - HR/Admin/DG only */}
-        {isHROrAdmin && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <EvolutionChartWidget data={evolutionData} />
-            <DepartmentChartWidget data={departmentData} />
-            <LeavesChartWidget data={leavesData} />
-            <OKRStatsWidget stats={okrStats} />
-          </div>
-        )}
-
         {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column */}
+          {/* Left Column - 2/3 */}
           <div className="lg:col-span-2 space-y-6">
-            {/* HR Stats - RH/Admin/DG only */}
+            {/* HR Stats - RH/Admin/DG only - FIRST */}
             {isHROrAdmin && hrStats && (
               <HRStatsWidget stats={hrStats} />
             )}
@@ -1206,6 +1262,16 @@ export default function DashboardPage() {
             {/* Team Overview - Managers only */}
             {isManager && (
               <TeamOverviewWidget teamMembers={teamMembers} pendingRequests={teamPendingRequests} />
+            )}
+
+            {/* Charts Section - HR/Admin/DG only - AFTER STATS */}
+            {isHROrAdmin && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <EvolutionChartWidget data={evolutionData} />
+                <DepartmentChartWidget data={departmentData} />
+                <LeavesChartWidget data={leavesData} />
+                <OKRStatsWidget stats={okrStats} />
+              </div>
             )}
 
             {/* My Leave Balance - All roles */}
@@ -1219,15 +1285,10 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Right Column */}
+          {/* Right Column - 1/3 */}
           <div className="space-y-6">
             {/* Quick Actions - All roles */}
             <QuickActions role={role} isManager={isManager} />
-
-            {/* My Pending Requests - All roles */}
-            {employeeId && myPendingRequests.length > 0 && (
-              <MyPendingRequestsWidget requests={myPendingRequests} />
-            )}
 
             {/* Alerts - RH/Admin/DG */}
             {isHROrAdmin && hrStats && (
@@ -1235,6 +1296,11 @@ export default function DashboardPage() {
                 pendingCount={hrStats.pending_requests} 
                 onLeaveCount={hrStats.on_leave_today} 
               />
+            )}
+
+            {/* My Pending Requests - All roles */}
+            {employeeId && myPendingRequests.length > 0 && (
+              <MyPendingRequestsWidget requests={myPendingRequests} />
             )}
 
             {/* Objectives Widget - All employees */}

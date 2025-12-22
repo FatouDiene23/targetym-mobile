@@ -1,293 +1,728 @@
 'use client';
 
-import Header from '@/components/Header';
+import { useState, useEffect, useCallback } from 'react';
 import { 
-  Users, 
-  TrendingDown,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  ArrowUpRight,
-  ArrowDownRight
+  Calendar, Clock, CheckCircle, Target, Users, TrendingUp,
+  AlertCircle, ArrowRight, Briefcase, UserPlus, BarChart3,
+  CalendarDays, ClipboardList, Bell, ChevronRight
 } from 'lucide-react';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell
-} from 'recharts';
+import Link from 'next/link';
 
-const kpis = [
-  { 
-    title: 'Total Employés', 
-    value: '248', 
-    change: '+12 ce mois', 
-    changeType: 'positive',
-    icon: Users,
-    color: 'bg-blue-500'
-  },
-  { 
-    title: 'Employés Actifs', 
-    value: '245', 
-    change: '98.8%', 
-    changeType: 'positive',
-    icon: CheckCircle,
-    color: 'bg-green-500'
-  },
-  { 
-    title: 'En Congés', 
-    value: '15', 
-    change: '6% effectif', 
-    changeType: 'neutral',
-    icon: Clock,
-    color: 'bg-purple-500'
-  },
-  { 
-    title: 'Taux Absentéisme', 
-    value: '3.2%', 
-    change: '-0.5%', 
-    changeType: 'positive',
-    icon: TrendingDown,
-    color: 'bg-orange-500'
-  },
-];
+// ============================================
+// TYPES
+// ============================================
 
-const performanceData = [
-  { month: 'Jan', entrees: 8, sorties: 3 },
-  { month: 'Fév', entrees: 12, sorties: 2 },
-  { month: 'Mar', entrees: 6, sorties: 4 },
-  { month: 'Avr', entrees: 10, sorties: 3 },
-  { month: 'Mai', entrees: 15, sorties: 5 },
-  { month: 'Juin', entrees: 9, sorties: 2 },
-  { month: 'Juil', entrees: 7, sorties: 6 },
-  { month: 'Août', entrees: 4, sorties: 3 },
-  { month: 'Sep', entrees: 14, sorties: 4 },
-  { month: 'Oct', entrees: 11, sorties: 3 },
-  { month: 'Nov', entrees: 13, sorties: 2 },
-  { month: 'Déc', entrees: 12, sorties: 3 },
-];
+type UserRole = 'employee' | 'manager' | 'rh' | 'admin' | 'dg';
 
-const departmentData = [
-  { name: 'Tech', employees: 85, color: '#3B82F6' },
-  { name: 'Sales', employees: 62, color: '#10B981' },
-  { name: 'Marketing', employees: 38, color: '#8B5CF6' },
-  { name: 'RH', employees: 28, color: '#F59E0B' },
-  { name: 'Finance', employees: 35, color: '#EF4444' },
-];
+interface UserData {
+  id: number;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  role?: string;
+  employee_id?: number;
+}
 
-const congesData = [
-  { name: 'Tech', enConges: 3, total: 85 },
-  { name: 'Sales', enConges: 4, total: 62 },
-  { name: 'Marketing', enConges: 2, total: 38 },
-  { name: 'RH', enConges: 1, total: 28 },
-  { name: 'Finance', enConges: 5, total: 35 },
-];
+interface Employee {
+  id: number;
+  first_name: string;
+  last_name: string;
+  is_manager?: boolean;
+}
 
-const alerts = [
-  { type: 'warning', message: '8 demandes de congés en attente de validation', time: '2h' },
-  { type: 'info', message: '3 nouveaux employés à intégrer cette semaine', time: '4h' },
-  { type: 'success', message: 'Taux d\'absentéisme en baisse de 0.5%', time: '1j' },
-  { type: 'warning', message: '2 contrats arrivent à échéance ce mois', time: '2j' },
-];
+interface LeaveBalance {
+  leave_type_name: string;
+  available: number;
+  taken: number;
+  allocated: number;
+}
 
-const recentActivities = [
-  { user: 'Sophie Martin', action: 'a demandé 5 jours de congés', time: '10 min' },
-  { user: 'Jean Dupont', action: 'a rejoint le département Tech', time: '25 min' },
-  { user: 'Marie Leroy', action: 'a mis à jour son dossier RH', time: '1h' },
-  { user: 'Pierre Durant', action: 'est revenu de congés', time: '2h' },
-  { user: 'Emma Richard', action: 'a validé 3 demandes de congés', time: '3h' },
-];
+interface LeaveBalanceSummary {
+  total_available: number;
+  total_taken: number;
+  balances: LeaveBalance[];
+}
 
-export default function DashboardPage() {
+interface LeaveRequest {
+  id: number;
+  employee_name?: string;
+  leave_type_name?: string;
+  start_date: string;
+  end_date: string;
+  days_requested: number;
+  status: string;
+}
+
+interface HRStats {
+  total_employees: number;
+  active_employees: number;
+  on_leave_today: number;
+  pending_requests: number;
+  new_hires_this_month: number;
+  departments_count: number;
+}
+
+interface TeamMember {
+  id: number;
+  first_name: string;
+  last_name: string;
+  status: string;
+  job_title?: string;
+}
+
+// ============================================
+// API
+// ============================================
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app';
+
+function getAuthHeaders(): HeadersInit {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+}
+
+async function getCurrentUser(): Promise<UserData> {
+  const response = await fetch(`${API_URL}/api/auth/me`, { headers: getAuthHeaders() });
+  if (!response.ok) throw new Error('Erreur');
+  return response.json();
+}
+
+async function getEmployee(id: number): Promise<Employee> {
+  const response = await fetch(`${API_URL}/api/employees/${id}`, { headers: getAuthHeaders() });
+  if (!response.ok) throw new Error('Erreur');
+  return response.json();
+}
+
+async function getMyLeaveBalances(employeeId: number): Promise<LeaveBalanceSummary | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/leaves/balances/${employeeId}`, { headers: getAuthHeaders() });
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function getMyPendingRequests(employeeId: number): Promise<LeaveRequest[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/leaves/requests?employee_id=${employeeId}&status=pending`, { headers: getAuthHeaders() });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.items || [];
+  } catch {
+    return [];
+  }
+}
+
+async function getTeamMembers(managerId: number): Promise<TeamMember[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/employees/${managerId}/direct-reports`, { headers: getAuthHeaders() });
+    if (!response.ok) return [];
+    return response.json();
+  } catch {
+    return [];
+  }
+}
+
+async function getTeamPendingRequests(teamMembers: TeamMember[]): Promise<LeaveRequest[]> {
+  const allRequests: LeaveRequest[] = [];
+  for (const member of teamMembers.slice(0, 10)) {
+    try {
+      const response = await fetch(`${API_URL}/api/leaves/requests?employee_id=${member.id}&status=pending`, { headers: getAuthHeaders() });
+      if (response.ok) {
+        const data = await response.json();
+        const requests = (data.items || []).map((r: LeaveRequest) => ({
+          ...r,
+          employee_name: `${member.first_name} ${member.last_name}`
+        }));
+        allRequests.push(...requests);
+      }
+    } catch { /* ignore */ }
+  }
+  return allRequests;
+}
+
+async function getHRStats(): Promise<HRStats> {
+  try {
+    // Récupérer les employés
+    const empResponse = await fetch(`${API_URL}/api/employees?page_size=1000`, { headers: getAuthHeaders() });
+    const empData = empResponse.ok ? await empResponse.json() : { items: [], total: 0 };
+    const employees = empData.items || [];
+    
+    // Récupérer les demandes en attente
+    const reqResponse = await fetch(`${API_URL}/api/leaves/requests?status=pending&page_size=100`, { headers: getAuthHeaders() });
+    const reqData = reqResponse.ok ? await reqResponse.json() : { items: [] };
+    
+    // Récupérer les départements
+    const deptResponse = await fetch(`${API_URL}/api/departments`, { headers: getAuthHeaders() });
+    const deptData = deptResponse.ok ? await deptResponse.json() : [];
+    const departments = Array.isArray(deptData) ? deptData : (deptData.items || []);
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    return {
+      total_employees: empData.total || employees.length,
+      active_employees: employees.filter((e: { status: string }) => e.status === 'active').length,
+      on_leave_today: employees.filter((e: { status: string }) => e.status === 'on_leave').length,
+      pending_requests: (reqData.items || []).length,
+      new_hires_this_month: employees.filter((e: { hire_date: string }) => 
+        e.hire_date && new Date(e.hire_date) >= startOfMonth
+      ).length,
+      departments_count: departments.length
+    };
+  } catch {
+    return {
+      total_employees: 0,
+      active_employees: 0,
+      on_leave_today: 0,
+      pending_requests: 0,
+      new_hires_this_month: 0,
+      departments_count: 0
+    };
+  }
+}
+
+async function getAllPendingRequests(): Promise<LeaveRequest[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/leaves/requests?status=pending&page_size=10`, { headers: getAuthHeaders() });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.items || [];
+  } catch {
+    return [];
+  }
+}
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+function normalizeRole(role: string | undefined): UserRole {
+  if (!role) return 'employee';
+  const r = role.toLowerCase();
+  if (r === 'admin' || r === 'administrator') return 'admin';
+  if (r === 'dg' || r === 'director') return 'dg';
+  if (r === 'rh' || r === 'hr') return 'rh';
+  if (r === 'manager') return 'manager';
+  return 'employee';
+}
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Bonjour';
+  if (hour < 18) return 'Bon après-midi';
+  return 'Bonsoir';
+}
+
+// ============================================
+// WIDGET COMPONENTS
+// ============================================
+
+// Welcome Card
+function WelcomeCard({ userName, role }: { userName: string; role: UserRole }) {
+  const roleLabels: Record<UserRole, string> = {
+    employee: 'Employé',
+    manager: 'Manager',
+    rh: 'Ressources Humaines',
+    admin: 'Administrateur',
+    dg: 'Direction Générale'
+  };
+
   return (
-    <>
-      <Header title="Tableau de Bord" subtitle="Vue d'ensemble de vos métriques RH" />
+    <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-6 text-white">
+      <h1 className="text-2xl font-bold mb-1">{getGreeting()}, {userName} 👋</h1>
+      <p className="text-primary-100">{roleLabels[role]} • {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+    </div>
+  );
+}
+
+// Quick Actions
+function QuickActions({ role, isManager }: { role: UserRole; isManager: boolean }) {
+  const actions = [
+    { label: 'Demander un congé', href: '/dashboard/my-space/leaves', icon: Calendar, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+    { label: 'Mes objectifs', href: '/dashboard/my-space/objectives', icon: Target, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+    { label: 'Mon équipe', href: '/dashboard/my-space/team', icon: Users, roles: ['manager'], managerOnly: true },
+    { label: 'Gestion du personnel', href: '/dashboard/employees', icon: Users, roles: ['rh', 'admin', 'dg'] },
+    { label: 'Gestion des congés', href: '/dashboard/leaves', icon: CalendarDays, roles: ['rh', 'admin', 'dg'] },
+    { label: 'Recrutement', href: '/dashboard/recruitment', icon: UserPlus, roles: ['rh', 'admin', 'dg'] },
+  ];
+
+  const filteredActions = actions.filter(action => {
+    if (action.managerOnly && isManager) return true;
+    return action.roles.includes(role);
+  }).slice(0, 4);
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">Actions rapides</h2>
+      <div className="grid grid-cols-2 gap-3">
+        {filteredActions.map((action) => (
+          <Link
+            key={action.href}
+            href={action.href}
+            className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-primary-50 hover:text-primary-700 transition-colors group"
+          >
+            <action.icon className="w-5 h-5 text-gray-400 group-hover:text-primary-600" />
+            <span className="text-sm font-medium">{action.label}</span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// My Leave Balance Widget (Employee)
+function MyLeaveBalanceWidget({ balances }: { balances: LeaveBalanceSummary | null }) {
+  if (!balances) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-primary-600" />
+          Mes Congés
+        </h2>
+        <p className="text-gray-500 text-center py-4">Soldes non initialisés</p>
+        <Link href="/dashboard/my-space/leaves" className="text-primary-600 text-sm hover:underline flex items-center gap-1 justify-center">
+          Voir mes congés <ArrowRight className="w-4 h-4" />
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-primary-600" />
+          Mes Congés
+        </h2>
+        <span className="text-2xl font-bold text-primary-600">{balances.total_available}j</span>
+      </div>
       
-      <main className="flex-1 p-6 overflow-auto">
-        {/* KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {kpis.map((kpi, index) => (
-            <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`w-12 h-12 ${kpi.color} rounded-lg flex items-center justify-center`}>
-                  <kpi.icon className="w-6 h-6 text-white" />
-                </div>
-                <div className={`flex items-center text-sm font-medium ${
-                  kpi.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {kpi.changeType === 'positive' ? (
-                    <ArrowUpRight className="w-4 h-4 mr-1" />
-                  ) : (
-                    <ArrowDownRight className="w-4 h-4 mr-1" />
-                  )}
-                  {kpi.change}
-                </div>
+      <div className="space-y-3 mb-4">
+        {balances.balances.slice(0, 3).map((balance, i) => (
+          <div key={i} className="flex items-center justify-between">
+            <span className="text-sm text-gray-600">{balance.leave_type_name}</span>
+            <span className="text-sm font-medium text-gray-900">{balance.available} / {balance.allocated}</span>
+          </div>
+        ))}
+      </div>
+
+      <Link href="/dashboard/my-space/leaves" className="text-primary-600 text-sm hover:underline flex items-center gap-1">
+        Voir tous mes congés <ArrowRight className="w-4 h-4" />
+      </Link>
+    </div>
+  );
+}
+
+// My Pending Requests Widget
+function MyPendingRequestsWidget({ requests }: { requests: LeaveRequest[] }) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <Clock className="w-5 h-5 text-yellow-500" />
+        Mes demandes en attente
+      </h2>
+      
+      {requests.length === 0 ? (
+        <p className="text-gray-500 text-center py-4">Aucune demande en attente</p>
+      ) : (
+        <div className="space-y-3">
+          {requests.slice(0, 3).map((request) => (
+            <div key={request.id} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+              <div>
+                <p className="text-sm font-medium text-gray-900">{request.leave_type_name}</p>
+                <p className="text-xs text-gray-500">
+                  {new Date(request.start_date).toLocaleDateString('fr-FR')} - {request.days_requested}j
+                </p>
               </div>
-              <div className="text-2xl font-bold text-gray-900 mb-1">{kpi.value}</div>
-              <div className="text-sm text-gray-500">{kpi.title}</div>
+              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">En attente</span>
             </div>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
 
-        {/* Charts Row */}
-        <div className="grid lg:grid-cols-2 gap-6 mb-8">
-          {/* Performance Trend */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Évolution des Effectifs</h3>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={performanceData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <XAxis dataKey="month" stroke="#9CA3AF" fontSize={12} />
-                  <YAxis stroke="#9CA3AF" fontSize={12} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#fff', 
-                      border: '1px solid #E5E7EB',
-                      borderRadius: '8px'
-                    }} 
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="entrees" 
-                    stroke="#10B981" 
-                    strokeWidth={3}
-                    dot={{ fill: '#10B981', strokeWidth: 2 }}
-                    name="Entrées"
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="sorties" 
-                    stroke="#EF4444" 
-                    strokeWidth={3}
-                    dot={{ fill: '#EF4444', strokeWidth: 2 }}
-                    name="Sorties"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex justify-center gap-6 mt-4">
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-                <span className="text-sm text-gray-600">Entrées</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-                <span className="text-sm text-gray-600">Sorties</span>
-              </div>
-            </div>
-          </div>
+// Team Overview Widget (Manager)
+function TeamOverviewWidget({ teamMembers, pendingRequests }: { teamMembers: TeamMember[]; pendingRequests: LeaveRequest[] }) {
+  const activeCount = teamMembers.filter(m => m.status === 'active').length;
+  const onLeaveCount = teamMembers.filter(m => m.status === 'on_leave').length;
 
-          {/* Congés par département */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Congés par Département</h3>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={congesData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <XAxis dataKey="name" stroke="#9CA3AF" fontSize={12} />
-                  <YAxis stroke="#9CA3AF" fontSize={12} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#fff', 
-                      border: '1px solid #E5E7EB',
-                      borderRadius: '8px'
-                    }} 
-                  />
-                  <Bar dataKey="enConges" fill="#10B981" radius={[4, 4, 0, 0]} name="En congés" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <Users className="w-5 h-5 text-primary-600" />
+          Mon Équipe
+        </h2>
+        <Link href="/dashboard/my-space/team" className="text-primary-600 text-sm hover:underline flex items-center gap-1">
+          Voir <ChevronRight className="w-4 h-4" />
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="text-center">
+          <p className="text-2xl font-bold text-gray-900">{teamMembers.length}</p>
+          <p className="text-xs text-gray-500">Total</p>
+        </div>
+        <div className="text-center">
+          <p className="text-2xl font-bold text-green-600">{activeCount}</p>
+          <p className="text-xs text-gray-500">Actifs</p>
+        </div>
+        <div className="text-center">
+          <p className="text-2xl font-bold text-orange-600">{onLeaveCount}</p>
+          <p className="text-xs text-gray-500">En congé</p>
+        </div>
+      </div>
+
+      {pendingRequests.length > 0 && (
+        <div className="pt-4 border-t border-gray-100">
+          <div className="flex items-center gap-2 text-yellow-700 bg-yellow-50 p-3 rounded-lg">
+            <Bell className="w-5 h-5" />
+            <span className="text-sm font-medium">{pendingRequests.length} demande(s) à valider</span>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
 
-        {/* Bottom Row */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Department Distribution */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Répartition par Département</h3>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={departmentData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={40}
-                    outerRadius={70}
-                    paddingAngle={2}
-                    dataKey="employees"
-                  >
-                    {departmentData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+// HR Stats Widget
+function HRStatsWidget({ stats }: { stats: HRStats }) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <BarChart3 className="w-5 h-5 text-primary-600" />
+        Vue d&apos;ensemble RH
+      </h2>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="bg-blue-50 rounded-lg p-4">
+          <p className="text-2xl font-bold text-blue-700">{stats.total_employees}</p>
+          <p className="text-xs text-blue-600">Total employés</p>
+        </div>
+        <div className="bg-green-50 rounded-lg p-4">
+          <p className="text-2xl font-bold text-green-700">{stats.active_employees}</p>
+          <p className="text-xs text-green-600">Actifs</p>
+        </div>
+        <div className="bg-orange-50 rounded-lg p-4">
+          <p className="text-2xl font-bold text-orange-700">{stats.on_leave_today}</p>
+          <p className="text-xs text-orange-600">En congé</p>
+        </div>
+        <div className="bg-yellow-50 rounded-lg p-4">
+          <p className="text-2xl font-bold text-yellow-700">{stats.pending_requests}</p>
+          <p className="text-xs text-yellow-600">Demandes en attente</p>
+        </div>
+        <div className="bg-purple-50 rounded-lg p-4">
+          <p className="text-2xl font-bold text-purple-700">{stats.new_hires_this_month}</p>
+          <p className="text-xs text-purple-600">Nouveaux ce mois</p>
+        </div>
+        <div className="bg-indigo-50 rounded-lg p-4">
+          <p className="text-2xl font-bold text-indigo-700">{stats.departments_count}</p>
+          <p className="text-xs text-indigo-600">Départements</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Pending Requests Widget (RH/Admin)
+function PendingRequestsWidget({ requests }: { requests: LeaveRequest[] }) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <Clock className="w-5 h-5 text-yellow-500" />
+          Demandes à traiter ({requests.length})
+        </h2>
+        <Link href="/dashboard/leaves" className="text-primary-600 text-sm hover:underline flex items-center gap-1">
+          Voir tout <ChevronRight className="w-4 h-4" />
+        </Link>
+      </div>
+
+      {requests.length === 0 ? (
+        <div className="text-center py-6">
+          <CheckCircle className="w-12 h-12 text-green-300 mx-auto mb-2" />
+          <p className="text-gray-500">Toutes les demandes ont été traitées</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {requests.slice(0, 5).map((request) => (
+            <div key={request.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div>
+                <p className="text-sm font-medium text-gray-900">{request.employee_name}</p>
+                <p className="text-xs text-gray-500">
+                  {request.leave_type_name} • {request.days_requested}j • {new Date(request.start_date).toLocaleDateString('fr-FR')}
+                </p>
+              </div>
+              <Link 
+                href="/dashboard/leaves"
+                className="px-3 py-1 bg-primary-600 text-white text-xs rounded-lg hover:bg-primary-700"
+              >
+                Traiter
+              </Link>
             </div>
-            <div className="flex flex-wrap gap-3 mt-4">
-              {departmentData.map((dept, index) => (
-                <div key={index} className="flex items-center">
-                  <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: dept.color }}></div>
-                  <span className="text-sm text-gray-600">{dept.name}</span>
-                </div>
-              ))}
-            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Alerts Widget
+function AlertsWidget({ pendingCount, onLeaveCount }: { pendingCount: number; onLeaveCount: number }) {
+  const alerts = [];
+  
+  if (pendingCount > 0) {
+    alerts.push({
+      type: 'warning',
+      message: `${pendingCount} demande(s) de congé en attente de validation`,
+      link: '/dashboard/leaves'
+    });
+  }
+  
+  if (onLeaveCount > 0) {
+    alerts.push({
+      type: 'info',
+      message: `${onLeaveCount} employé(s) en congé aujourd'hui`,
+      link: '/dashboard/leaves'
+    });
+  }
+
+  if (alerts.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <Bell className="w-5 h-5 text-primary-600" />
+        Alertes & Notifications
+      </h2>
+
+      <div className="space-y-3">
+        {alerts.map((alert, i) => (
+          <Link
+            key={i}
+            href={alert.link}
+            className={`flex items-center gap-3 p-3 rounded-lg ${
+              alert.type === 'warning' ? 'bg-yellow-50 text-yellow-800' : 'bg-blue-50 text-blue-800'
+            } hover:opacity-80 transition-opacity`}
+          >
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <span className="text-sm">{alert.message}</span>
+            <ChevronRight className="w-4 h-4 ml-auto" />
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Tasks Placeholder Widget
+function TasksWidget() {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <ClipboardList className="w-5 h-5 text-primary-600" />
+          Mes Tâches
+        </h2>
+        <Link href="/dashboard/my-space/tasks" className="text-primary-600 text-sm hover:underline flex items-center gap-1">
+          Voir <ChevronRight className="w-4 h-4" />
+        </Link>
+      </div>
+
+      <div className="text-center py-6 text-gray-500">
+        <ClipboardList className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+        <p className="text-sm">Module bientôt disponible</p>
+      </div>
+    </div>
+  );
+}
+
+// Objectives Widget
+function ObjectivesWidget() {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <Target className="w-5 h-5 text-primary-600" />
+          Mes Objectifs
+        </h2>
+        <Link href="/dashboard/my-space/objectives" className="text-primary-600 text-sm hover:underline flex items-center gap-1">
+          Voir <ChevronRight className="w-4 h-4" />
+        </Link>
+      </div>
+
+      <div className="text-center py-6 text-gray-500">
+        <Target className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+        <p className="text-sm">Consultez vos objectifs assignés</p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// MAIN DASHBOARD COMPONENT
+// ============================================
+
+export default function DashboardPage() {
+  const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState<{ name: string; role: UserRole; isManager: boolean; employeeId: number | null }>({
+    name: '',
+    role: 'employee',
+    isManager: false,
+    employeeId: null
+  });
+
+  // Data states
+  const [leaveBalances, setLeaveBalances] = useState<LeaveBalanceSummary | null>(null);
+  const [myPendingRequests, setMyPendingRequests] = useState<LeaveRequest[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [teamPendingRequests, setTeamPendingRequests] = useState<LeaveRequest[]>([]);
+  const [hrStats, setHRStats] = useState<HRStats | null>(null);
+  const [allPendingRequests, setAllPendingRequests] = useState<LeaveRequest[]>([]);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Get current user
+      const user = await getCurrentUser();
+      const role = normalizeRole(user.role);
+      let isManager = role === 'manager';
+      let employeeId = user.employee_id || null;
+
+      // Check if employee is manager
+      if (employeeId) {
+        const employee = await getEmployee(employeeId);
+        isManager = isManager || (employee.is_manager === true);
+      }
+
+      setUserData({
+        name: user.first_name || user.email?.split('@')[0] || 'Utilisateur',
+        role,
+        isManager,
+        employeeId
+      });
+
+      // Load data based on role
+      const promises: Promise<void>[] = [];
+
+      // Employee data (for all roles)
+      if (employeeId) {
+        promises.push(
+          getMyLeaveBalances(employeeId).then(setLeaveBalances),
+          getMyPendingRequests(employeeId).then(setMyPendingRequests)
+        );
+      }
+
+      // Manager data
+      if (isManager && employeeId) {
+        promises.push(
+          getTeamMembers(employeeId).then(async (members) => {
+            setTeamMembers(members);
+            const teamRequests = await getTeamPendingRequests(members);
+            setTeamPendingRequests(teamRequests);
+          })
+        );
+      }
+
+      // HR/Admin data
+      if (['rh', 'admin', 'dg'].includes(role)) {
+        promises.push(
+          getHRStats().then(setHRStats),
+          getAllPendingRequests().then(setAllPendingRequests)
+        );
+      }
+
+      await Promise.all(promises);
+    } catch (error) {
+      console.error('Erreur chargement dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500">Chargement du tableau de bord...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { name, role, isManager, employeeId } = userData;
+
+  return (
+    <div className="py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Welcome Card - All roles */}
+        <WelcomeCard userName={name} role={role} />
+
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* HR Stats - RH/Admin/DG only */}
+            {['rh', 'admin', 'dg'].includes(role) && hrStats && (
+              <HRStatsWidget stats={hrStats} />
+            )}
+
+            {/* Team Overview - Managers only */}
+            {isManager && (
+              <TeamOverviewWidget teamMembers={teamMembers} pendingRequests={teamPendingRequests} />
+            )}
+
+            {/* My Leave Balance - All roles */}
+            {employeeId && (
+              <MyLeaveBalanceWidget balances={leaveBalances} />
+            )}
+
+            {/* Pending Requests - RH/Admin/DG */}
+            {['rh', 'admin', 'dg'].includes(role) && (
+              <PendingRequestsWidget requests={allPendingRequests} />
+            )}
           </div>
 
-          {/* Alerts */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Alertes & Notifications</h3>
-            <div className="space-y-4">
-              {alerts.map((alert, index) => (
-                <div key={index} className="flex items-start">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                    alert.type === 'warning' ? 'bg-yellow-100' :
-                    alert.type === 'success' ? 'bg-green-100' : 'bg-blue-100'
-                  }`}>
-                    {alert.type === 'warning' && <AlertCircle className="w-4 h-4 text-yellow-600" />}
-                    {alert.type === 'success' && <CheckCircle className="w-4 h-4 text-green-600" />}
-                    {alert.type === 'info' && <Clock className="w-4 h-4 text-blue-600" />}
-                  </div>
-                  <div className="ml-3 flex-1">
-                    <p className="text-sm text-gray-700">{alert.message}</p>
-                    <p className="text-xs text-gray-400 mt-1">Il y a {alert.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Right Column */}
+          <div className="space-y-6">
+            {/* Quick Actions - All roles */}
+            <QuickActions role={role} isManager={isManager} />
 
-          {/* Recent Activity */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Activité Récente</h3>
-            <div className="space-y-4">
-              {recentActivities.map((activity, index) => (
-                <div key={index} className="flex items-start">
-                  <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-medium text-gray-600">
-                    {activity.user.split(' ').map(n => n[0]).join('')}
-                  </div>
-                  <div className="ml-3 flex-1">
-                    <p className="text-sm text-gray-700">
-                      <span className="font-medium">{activity.user}</span> {activity.action}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">Il y a {activity.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {/* My Pending Requests - All roles */}
+            {employeeId && myPendingRequests.length > 0 && (
+              <MyPendingRequestsWidget requests={myPendingRequests} />
+            )}
+
+            {/* Alerts - RH/Admin/DG */}
+            {['rh', 'admin', 'dg'].includes(role) && hrStats && (
+              <AlertsWidget 
+                pendingCount={hrStats.pending_requests} 
+                onLeaveCount={hrStats.on_leave_today} 
+              />
+            )}
+
+            {/* Objectives Widget - All roles */}
+            <ObjectivesWidget />
+
+            {/* Tasks Widget - All roles */}
+            <TasksWidget />
           </div>
         </div>
-      </main>
-    </>
+      </div>
+    </div>
   );
 }

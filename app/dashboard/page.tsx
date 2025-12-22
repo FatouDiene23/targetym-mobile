@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  Calendar, Clock, CheckCircle, Target, Users, TrendingUp,
-  AlertCircle, ArrowRight, Briefcase, UserPlus, BarChart3,
+  Calendar, Clock, CheckCircle, Target, Users,
+  AlertCircle, ArrowRight, UserPlus, BarChart3,
   CalendarDays, ClipboardList, Bell, ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';
@@ -596,7 +596,7 @@ export default function DashboardPage() {
       const user = await getCurrentUser();
       const role = normalizeRole(user.role);
       let isManager = role === 'manager';
-      let employeeId = user.employee_id || null;
+      const employeeId = user.employee_id || null;
 
       // Check if employee is manager
       if (employeeId) {

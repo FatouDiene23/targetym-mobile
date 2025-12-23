@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  Plus, ChevronDown, ChevronRight, MoreVertical, Trash2, Edit, X,
+  Plus, ChevronDown, ChevronRight, Trash2, Edit, X,
   Building2, Users, User, Download, Link2, BarChart3, GitBranch, Layers, Loader2
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
@@ -253,8 +253,6 @@ const getLevelColor = (l: string) => {
   };
   return m[l] || 'bg-gray-100';
 };
-
-const CHART_COLORS = ['#10B981', '#F59E0B', '#EF4444', '#6366F1', '#8B5CF6', '#06B6D4'];
 
 // ============================================
 // COMPONENTS

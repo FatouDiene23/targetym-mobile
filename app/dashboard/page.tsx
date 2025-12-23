@@ -182,7 +182,7 @@ async function getTeamPendingRequests(teamMembers: TeamMember[]): Promise<LeaveR
 
 async function getAllEmployees(): Promise<Employee[]> {
   try {
-    const data = await getEmployees({ page_size: 100 });
+    const data = await getEmployees({ page_size: 500 });
     return data.items || [];
   } catch {
     return [];
@@ -198,7 +198,7 @@ async function getHRStatsData(): Promise<HRStats> {
     // Récupérer les demandes en attente
     let pendingRequests = 0;
     try {
-      const reqData = await getLeaveRequests({ status: 'pending', page_size: 100 });
+      const reqData = await getLeaveRequests({ status: 'pending', page_size: 500 });
       pendingRequests = (reqData.items || []).length;
     } catch {
       // ignore
@@ -226,7 +226,7 @@ async function getHRStatsData(): Promise<HRStats> {
 
 async function getAllPendingRequests(): Promise<LeaveRequest[]> {
   try {
-    const data = await getLeaveRequests({ status: 'pending', page_size: 10 });
+    const data = await getLeaveRequests({ status: 'pending', page_size: 500 });
     return data.items || [];
   } catch {
     return [];

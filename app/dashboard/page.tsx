@@ -12,6 +12,16 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
 
+// Import depuis lib/api.ts - les fonctions qui marchent déjà
+import { 
+  getEmployees, 
+  getEmployeeStats,
+  getDepartments,
+  getLeaveRequests,
+  type Employee,
+  type EmployeeStats
+} from '@/lib/api';
+
 // ============================================
 // TYPES
 // ============================================
@@ -25,17 +35,6 @@ interface UserData {
   last_name?: string;
   role?: string;
   employee_id?: number;
-}
-
-interface Employee {
-  id: number;
-  first_name: string;
-  last_name: string;
-  is_manager?: boolean;
-  department_name?: string;
-  hire_date?: string;
-  termination_date?: string;
-  status?: string;
 }
 
 interface LeaveBalance {
@@ -104,8 +103,15 @@ interface OKRStats {
   avg_progress: number;
 }
 
+interface MyObjectiveData {
+  id: number;
+  title: string;
+  progress: number;
+  status: string;
+}
+
 // ============================================
-// API
+// API - Utilise lib/api.ts + quelques fonctions locales
 // ============================================
 
 const API_URL = 'https://web-production-06c3.up.railway.app';
@@ -124,7 +130,7 @@ async function getCurrentUser(): Promise<UserData> {
   return response.json();
 }
 
-async function getEmployee(id: number): Promise<Employee> {
+async function getEmployeeById(id: number): Promise<Employee> {
   const response = await fetch(`${API_URL}/api/employees/${id}`, { headers: getAuthHeaders() });
   if (!response.ok) throw new Error('Erreur');
   return response.json();
@@ -142,9 +148,7 @@ async function getMyLeaveBalances(employeeId: number): Promise<LeaveBalanceSumma
 
 async function getMyPendingRequests(employeeId: number): Promise<LeaveRequest[]> {
   try {
-    const response = await fetch(`${API_URL}/api/leaves/requests?employee_id=${employeeId}&status=pending`, { headers: getAuthHeaders() });
-    if (!response.ok) return [];
-    const data = await response.json();
+    const data = await getLeaveRequests({ employee_id: employeeId, status: 'pending' });
     return data.items || [];
   } catch {
     return [];
@@ -165,15 +169,12 @@ async function getTeamPendingRequests(teamMembers: TeamMember[]): Promise<LeaveR
   const allRequests: LeaveRequest[] = [];
   for (const member of teamMembers.slice(0, 10)) {
     try {
-      const response = await fetch(`${API_URL}/api/leaves/requests?employee_id=${member.id}&status=pending`, { headers: getAuthHeaders() });
-      if (response.ok) {
-        const data = await response.json();
-        const requests = (data.items || []).map((r: LeaveRequest) => ({
-          ...r,
-          employee_name: `${member.first_name} ${member.last_name}`
-        }));
-        allRequests.push(...requests);
-      }
+      const data = await getLeaveRequests({ employee_id: member.id, status: 'pending' });
+      const requests = (data.items || []).map((r: LeaveRequest) => ({
+        ...r,
+        employee_name: `${member.first_name} ${member.last_name}`
+      }));
+      allRequests.push(...requests);
     } catch { /* ignore */ }
   }
   return allRequests;
@@ -181,39 +182,34 @@ async function getTeamPendingRequests(teamMembers: TeamMember[]): Promise<LeaveR
 
 async function getAllEmployees(): Promise<Employee[]> {
   try {
-    const response = await fetch(`${API_URL}/api/employees?page_size=1000`, { headers: getAuthHeaders() });
-    if (!response.ok) return [];
-    const data = await response.json();
+    const data = await getEmployees({ page_size: 1000 });
     return data.items || [];
   } catch {
     return [];
   }
 }
 
-async function getHRStats(): Promise<HRStats> {
+async function getHRStatsData(): Promise<HRStats> {
   try {
-    const empResponse = await fetch(`${API_URL}/api/employees?page_size=1000`, { headers: getAuthHeaders() });
-    const empData = empResponse.ok ? await empResponse.json() : { items: [], total: 0 };
-    const employees = empData.items || [];
+    // Utilise getEmployeeStats de lib/api.ts
+    const stats: EmployeeStats = await getEmployeeStats();
+    const departments = await getDepartments();
     
-    const reqResponse = await fetch(`${API_URL}/api/leaves/requests?status=pending&page_size=100`, { headers: getAuthHeaders() });
-    const reqData = reqResponse.ok ? await reqResponse.json() : { items: [] };
-    
-    const deptResponse = await fetch(`${API_URL}/api/departments`, { headers: getAuthHeaders() });
-    const deptData = deptResponse.ok ? await deptResponse.json() : [];
-    const departments = Array.isArray(deptData) ? deptData : (deptData.items || []);
-
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    // Récupérer les demandes en attente
+    let pendingRequests = 0;
+    try {
+      const reqData = await getLeaveRequests({ status: 'pending', page_size: 100 });
+      pendingRequests = (reqData.items || []).length;
+    } catch {
+      // ignore
+    }
 
     return {
-      total_employees: empData.total || employees.length,
-      active_employees: employees.filter((e: Employee) => e.status === 'active').length,
-      on_leave_today: employees.filter((e: Employee) => e.status === 'on_leave').length,
-      pending_requests: (reqData.items || []).length,
-      new_hires_this_month: employees.filter((e: Employee) => 
-        e.hire_date && new Date(e.hire_date) >= startOfMonth
-      ).length,
+      total_employees: stats.total || 0,
+      active_employees: stats.active || 0,
+      on_leave_today: stats.on_leave || 0,
+      pending_requests: pendingRequests,
+      new_hires_this_month: stats.new_this_month || 0,
       departments_count: departments.length
     };
   } catch {
@@ -230,9 +226,7 @@ async function getHRStats(): Promise<HRStats> {
 
 async function getAllPendingRequests(): Promise<LeaveRequest[]> {
   try {
-    const response = await fetch(`${API_URL}/api/leaves/requests?status=pending&page_size=10`, { headers: getAuthHeaders() });
-    if (!response.ok) return [];
-    const data = await response.json();
+    const data = await getLeaveRequests({ status: 'pending', page_size: 10 });
     return data.items || [];
   } catch {
     return [];
@@ -241,9 +235,7 @@ async function getAllPendingRequests(): Promise<LeaveRequest[]> {
 
 async function getAllLeaveRequests(): Promise<LeaveRequest[]> {
   try {
-    const response = await fetch(`${API_URL}/api/leaves/requests?page_size=500`, { headers: getAuthHeaders() });
-    if (!response.ok) return [];
-    const data = await response.json();
+    const data = await getLeaveRequests({ page_size: 500 });
     return data.items || [];
   } catch {
     return [];
@@ -285,13 +277,6 @@ async function getOKRStats(): Promise<OKRStats> {
   } catch {
     return { total: 0, completed: 0, in_progress: 0, not_started: 0, overdue: 0, avg_progress: 0 };
   }
-}
-
-interface MyObjectiveData {
-  id: number;
-  title: string;
-  progress: number;
-  status: string;
 }
 
 async function getMyObjectives(employeeId: number): Promise<MyObjectiveData[]> {
@@ -360,9 +345,10 @@ function calculateMonthlyEvolution(employees: Employee[]): MonthlyData[] {
     }).length;
     
     const sorties = employees.filter(emp => {
-      if (!emp.termination_date) return false;
-      const termDate = new Date(emp.termination_date);
-      return termDate >= monthStart && termDate <= monthEnd;
+      const termDate = (emp as Employee & { termination_date?: string }).termination_date;
+      if (!termDate) return false;
+      const date = new Date(termDate);
+      return date >= monthStart && date <= monthEnd;
     }).length;
     
     data.push({
@@ -1168,7 +1154,7 @@ export default function DashboardPage() {
 
       // Check if employee is manager
       if (employeeId) {
-        const employee = await getEmployee(employeeId);
+        const employee = await getEmployeeById(employeeId);
         isManager = isManager || (employee.is_manager === true);
       }
 
@@ -1202,10 +1188,10 @@ export default function DashboardPage() {
         );
       }
 
-      // HR/Admin data
+      // HR/Admin data - Utilise les fonctions de lib/api.ts
       if (['rh', 'admin', 'dg'].includes(role)) {
         promises.push(
-          getHRStats().then(setHRStats),
+          getHRStatsData().then(setHRStats),
           getAllPendingRequests().then(setAllPendingRequests),
           getAllEmployees().then(employees => {
             setDepartmentData(calculateDepartmentData(employees));

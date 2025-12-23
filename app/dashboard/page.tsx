@@ -182,7 +182,7 @@ async function getTeamPendingRequests(teamMembers: TeamMember[]): Promise<LeaveR
 
 async function getAllEmployees(): Promise<Employee[]> {
   try {
-    const data = await getEmployees({ page_size: 1000 });
+    const data = await getEmployees({ page_size: 100 });
     return data.items || [];
   } catch {
     return [];

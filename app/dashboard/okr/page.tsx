@@ -1,107 +1,821 @@
 'use client';
 
-import Header from '@/components/Header';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
-  Plus, ChevronDown, ChevronRight, MoreVertical,
-  Building2, Users, User, Download, Link2, BarChart3, GitBranch, Layers
+  Plus, ChevronDown, ChevronRight, MoreVertical, Trash2, Edit, X,
+  Building2, Users, User, Download, Link2, BarChart3, GitBranch, Layers, Loader2
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 
-interface KeyResult { id: string; title: string; target: number; current: number; unit: string; weight: number; }
-interface Initiative { id: string; title: string; source: string; progress: number; dueDate: string; status: string; }
-interface Objective { id: string; title: string; level: string; owner: string; ownerInitials: string; department?: string; period: string; progress: number; status: string; keyResults: KeyResult[]; initiatives?: Initiative[]; parentId?: string; expanded?: boolean; }
+// ============================================
+// TYPES
+// ============================================
 
-const okrData: Objective[] = [
-  { id: 'ent-1', title: 'Devenir le leader du marché RH en Afrique francophone', level: 'enterprise', owner: 'Amadou Diallo', ownerInitials: 'AD', period: '2024', progress: 72, status: 'on-track',
-    keyResults: [{ id: 'kr1', title: 'Atteindre 500 clients actifs', target: 500, current: 360, unit: 'clients', weight: 40 }, { id: 'kr2', title: 'Chiffre d\'affaires', target: 2000, current: 1440, unit: 'M XOF', weight: 35 }, { id: 'kr3', title: 'NPS clients', target: 50, current: 42, unit: 'points', weight: 25 }],
-    initiatives: [{ id: 'init1', title: 'Campagne marketing digital', source: 'Asana', progress: 85, dueDate: '15 Dec 2024', status: 'on-track' }, { id: 'init2', title: 'Expansion Côte d\'Ivoire', source: 'Notion', progress: 60, dueDate: '31 Dec 2024', status: 'at-risk' }], expanded: true },
-  { id: 'ent-2', title: 'Développer une culture d\'excellence et d\'innovation', level: 'enterprise', owner: 'Amadou Diallo', ownerInitials: 'AD', period: '2024', progress: 65, status: 'at-risk',
-    keyResults: [{ id: 'kr4', title: 'Score engagement employés', target: 85, current: 72, unit: '%', weight: 35 }, { id: 'kr5', title: 'Nouvelles fonctionnalités livrées', target: 24, current: 18, unit: '', weight: 40 }, { id: 'kr6', title: 'Taux de rétention talents clés', target: 95, current: 88, unit: '%', weight: 25 }], expanded: false },
-  { id: 'dept-1', title: 'Acquérir 200 nouveaux clients', level: 'department', owner: 'Ibrahima Fall', ownerInitials: 'IF', department: 'Commercial', period: 'Q4 2024', progress: 68, status: 'on-track', parentId: 'ent-1',
-    keyResults: [{ id: 'kr7', title: 'Nouveaux clients signés', target: 200, current: 136, unit: '', weight: 50 }, { id: 'kr8', title: 'Pipeline commercial', target: 500, current: 420, unit: 'leads', weight: 30 }, { id: 'kr9', title: 'Taux de conversion', target: 25, current: 22, unit: '%', weight: 20 }], expanded: false },
-  { id: 'dept-2', title: 'Livrer la V2 de la plateforme', level: 'department', owner: 'Moussa Sow', ownerInitials: 'MS', department: 'Technologie', period: 'Q4 2024', progress: 78, status: 'on-track', parentId: 'ent-1',
-    keyResults: [{ id: 'kr10', title: 'Modules livrés', target: 8, current: 6, unit: '', weight: 40 }, { id: 'kr11', title: 'Bugs critiques résolus', target: 100, current: 95, unit: '%', weight: 30 }, { id: 'kr12', title: 'Temps de chargement', target: 2, current: 2.3, unit: 'sec', weight: 30 }], expanded: false },
-  { id: 'dept-3', title: 'Renforcer la marque employeur', level: 'department', owner: 'Fatou Ndiaye', ownerInitials: 'FN', department: 'Ressources Humaines', period: 'Q4 2024', progress: 82, status: 'on-track', parentId: 'ent-1',
-    keyResults: [{ id: 'kr13', title: 'Candidatures spontanées', target: 500, current: 410, unit: '', weight: 30 }, { id: 'kr14', title: 'Score Glassdoor', target: 4.5, current: 4.2, unit: '/5', weight: 35 }, { id: 'kr15', title: 'Délai de recrutement', target: 25, current: 28, unit: 'jours', weight: 35 }], expanded: false },
-  { id: 'dept-4', title: 'Améliorer l\'engagement des équipes', level: 'department', owner: 'Fatou Ndiaye', ownerInitials: 'FN', department: 'Ressources Humaines', period: 'Q4 2024', progress: 58, status: 'at-risk', parentId: 'ent-2',
-    keyResults: [{ id: 'kr16', title: 'Participation aux événements', target: 90, current: 65, unit: '%', weight: 40 }, { id: 'kr17', title: 'Formation managers', target: 100, current: 70, unit: '%', weight: 30 }, { id: 'kr18', title: 'Score eNPS', target: 40, current: 28, unit: 'points', weight: 30 }], expanded: false },
-  { id: 'ind-1', title: 'Signer 50 nouveaux clients PME', level: 'individual', owner: 'Mamadou Diop', ownerInitials: 'MD', department: 'Commercial', period: 'Q4 2024', progress: 72, status: 'on-track', parentId: 'dept-1',
-    keyResults: [{ id: 'kr22', title: 'Clients PME signés', target: 50, current: 36, unit: '', weight: 60 }, { id: 'kr23', title: 'Démos réalisées', target: 100, current: 85, unit: '', weight: 40 }], expanded: false },
-  { id: 'ind-2', title: 'Développer le segment Grands Comptes', level: 'individual', owner: 'Awa Sarr', ownerInitials: 'AS', department: 'Commercial', period: 'Q4 2024', progress: 45, status: 'behind', parentId: 'dept-1',
-    keyResults: [{ id: 'kr24', title: 'Grands comptes signés', target: 10, current: 3, unit: '', weight: 50 }, { id: 'kr25', title: 'RDV C-Level', target: 30, current: 18, unit: '', weight: 50 }], expanded: false },
-  { id: 'ind-3', title: 'Développer le module Analytics', level: 'individual', owner: 'Aissatou Ba', ownerInitials: 'AB', department: 'Technologie', period: 'Q4 2024', progress: 85, status: 'on-track', parentId: 'dept-2',
-    keyResults: [{ id: 'kr26', title: 'Dashboards livrés', target: 12, current: 10, unit: '', weight: 50 }, { id: 'kr27', title: 'Performance API', target: 200, current: 180, unit: 'ms', weight: 50 }], expanded: false },
-  { id: 'ind-4', title: 'Optimiser l\'infrastructure cloud', level: 'individual', owner: 'Oumar Sy', ownerInitials: 'OS', department: 'Technologie', period: 'Q4 2024', progress: 92, status: 'exceeded', parentId: 'dept-2',
-    keyResults: [{ id: 'kr28', title: 'Uptime', target: 99.9, current: 99.95, unit: '%', weight: 50 }, { id: 'kr29', title: 'Coûts cloud réduits', target: 20, current: 25, unit: '%', weight: 50 }], expanded: false },
-];
+interface KeyResult {
+  id: number;
+  objective_id: number;
+  title: string;
+  description?: string;
+  target: number;
+  current: number;
+  unit: string;
+  weight: number;
+  progress: number;
+}
 
-const statusDistribution = [{ name: 'En bonne voie', value: 14, color: '#10B981' }, { name: 'À risque', value: 5, color: '#F59E0B' }, { name: 'En retard', value: 3, color: '#EF4444' }, { name: 'Dépassé', value: 2, color: '#6366F1' }];
-const departmentProgress = [{ name: 'Commercial', progress: 68 }, { name: 'Tech', progress: 78 }, { name: 'RH', progress: 70 }, { name: 'Finance', progress: 82 }, { name: 'Marketing', progress: 55 }];
+interface Initiative {
+  id: number;
+  objective_id: number;
+  title: string;
+  description?: string;
+  source: string;
+  external_id?: string;
+  external_url?: string;
+  progress: number;
+  status: string;
+  due_date?: string;
+}
+
+interface Objective {
+  id: number;
+  tenant_id: number;
+  title: string;
+  description?: string;
+  level: 'enterprise' | 'department' | 'individual';
+  owner_id?: number;
+  owner_name?: string;
+  owner_initials?: string;
+  department_id?: number;
+  department_name?: string;
+  parent_id?: number;
+  period: string;
+  start_date?: string;
+  end_date?: string;
+  progress: number;
+  status: string;
+  is_active: boolean;
+  key_results: KeyResult[];
+  initiatives: Initiative[];
+  // UI state
+  expanded?: boolean;
+}
+
+interface OKRStats {
+  total: number;
+  by_level: Record<string, number>;
+  by_status: Record<string, number>;
+  avg_progress: number;
+  completed: number;
+  in_progress: number;
+  not_started: number;
+  overdue: number;
+  by_department: Record<string, { count: number; avg_progress: number }>;
+}
+
+interface Department {
+  id: number;
+  name: string;
+}
+
+interface Employee {
+  id: number;
+  first_name: string;
+  last_name: string;
+}
+
+// ============================================
+// API
+// ============================================
+
+const API_URL = 'https://web-production-06c3.up.railway.app';
+
+function getAuthHeaders(): HeadersInit {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+}
+
+async function fetchObjectives(params?: { level?: string; status?: string; period?: string }): Promise<{ items: Objective[]; total: number }> {
+  const queryParams = new URLSearchParams();
+  queryParams.set('page_size', '100');
+  if (params?.level && params.level !== 'all') queryParams.set('level', params.level);
+  if (params?.status && params.status !== 'all') queryParams.set('status', params.status);
+  if (params?.period && params.period !== 'all') queryParams.set('period', params.period);
+  
+  const response = await fetch(`${API_URL}/api/okr/objectives?${queryParams}`, { headers: getAuthHeaders() });
+  if (!response.ok) throw new Error('Erreur lors du chargement des objectifs');
+  return response.json();
+}
+
+async function fetchOKRStats(): Promise<OKRStats> {
+  const response = await fetch(`${API_URL}/api/okr/stats`, { headers: getAuthHeaders() });
+  if (!response.ok) throw new Error('Erreur lors du chargement des stats');
+  return response.json();
+}
+
+async function fetchDepartments(): Promise<Department[]> {
+  const response = await fetch(`${API_URL}/api/departments/`, { headers: getAuthHeaders() });
+  if (!response.ok) return [];
+  const data = await response.json();
+  return Array.isArray(data) ? data : data.items || [];
+}
+
+async function fetchEmployees(): Promise<Employee[]> {
+  const response = await fetch(`${API_URL}/api/employees/?page_size=100`, { headers: getAuthHeaders() });
+  if (!response.ok) return [];
+  const data = await response.json();
+  return data.items || [];
+}
+
+async function createObjective(data: Partial<Objective>): Promise<Objective> {
+  const response = await fetch(`${API_URL}/api/okr/objectives`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Erreur lors de la création');
+  }
+  return response.json();
+}
+
+async function updateObjective(id: number, data: Partial<Objective>): Promise<Objective> {
+  const response = await fetch(`${API_URL}/api/okr/objectives/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Erreur lors de la modification');
+  }
+  return response.json();
+}
+
+async function deleteObjective(id: number): Promise<void> {
+  const response = await fetch(`${API_URL}/api/okr/objectives/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Erreur lors de la suppression');
+}
+
+async function createKeyResult(objectiveId: number, data: Partial<KeyResult>): Promise<KeyResult> {
+  const response = await fetch(`${API_URL}/api/okr/objectives/${objectiveId}/key-results`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Erreur lors de la création du KR');
+  return response.json();
+}
+
+async function updateKeyResult(krId: number, data: Partial<KeyResult>): Promise<KeyResult> {
+  const response = await fetch(`${API_URL}/api/okr/key-results/${krId}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Erreur lors de la modification du KR');
+  return response.json();
+}
+
+async function deleteKeyResult(krId: number): Promise<void> {
+  const response = await fetch(`${API_URL}/api/okr/key-results/${krId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Erreur lors de la suppression du KR');
+}
+
+// ============================================
+// HELPERS
+// ============================================
+
+const getStatusColor = (s: string) => {
+  const m: Record<string, string> = {
+    'on_track': 'bg-green-100 text-green-700',
+    'at_risk': 'bg-yellow-100 text-yellow-700',
+    'behind': 'bg-red-100 text-red-700',
+    'exceeded': 'bg-indigo-100 text-indigo-700',
+    'completed': 'bg-green-100 text-green-700',
+    'draft': 'bg-gray-100 text-gray-700',
+    'active': 'bg-blue-100 text-blue-700',
+    'cancelled': 'bg-gray-100 text-gray-500',
+  };
+  return m[s] || 'bg-gray-100 text-gray-700';
+};
+
+const getStatusLabel = (s: string) => {
+  const m: Record<string, string> = {
+    'on_track': 'En bonne voie',
+    'at_risk': 'À risque',
+    'behind': 'En retard',
+    'exceeded': 'Dépassé',
+    'completed': 'Terminé',
+    'draft': 'Brouillon',
+    'active': 'Actif',
+    'cancelled': 'Annulé',
+  };
+  return m[s] || s;
+};
+
+const getProgressColor = (p: number) => {
+  if (p >= 100) return 'bg-indigo-500';
+  if (p >= 70) return 'bg-green-500';
+  if (p >= 40) return 'bg-yellow-500';
+  return 'bg-red-500';
+};
+
+const getLevelIcon = (l: string) => {
+  if (l === 'enterprise') return <Building2 className="w-4 h-4" />;
+  if (l === 'department') return <Users className="w-4 h-4" />;
+  return <User className="w-4 h-4" />;
+};
+
+const getLevelLabel = (l: string) => {
+  const m: Record<string, string> = {
+    enterprise: 'Entreprise',
+    department: 'Département',
+    individual: 'Individuel',
+  };
+  return m[l] || l;
+};
+
+const getLevelColor = (l: string) => {
+  const m: Record<string, string> = {
+    enterprise: 'bg-purple-100 text-purple-700',
+    department: 'bg-blue-100 text-blue-700',
+    individual: 'bg-teal-100 text-teal-700',
+  };
+  return m[l] || 'bg-gray-100';
+};
+
+const CHART_COLORS = ['#10B981', '#F59E0B', '#EF4444', '#6366F1', '#8B5CF6', '#06B6D4'];
+
+// ============================================
+// COMPONENTS
+// ============================================
+
+// Modal pour créer/éditer un objectif
+function ObjectiveModal({
+  isOpen,
+  onClose,
+  onSave,
+  objective,
+  departments,
+  employees,
+  parentObjectives,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (data: Partial<Objective>) => Promise<void>;
+  objective?: Objective | null;
+  departments: Department[];
+  employees: Employee[];
+  parentObjectives: Objective[];
+}) {
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    level: 'individual' as 'enterprise' | 'department' | 'individual',
+    owner_id: undefined as number | undefined,
+    department_id: undefined as number | undefined,
+    parent_id: undefined as number | undefined,
+    period: '2025',
+    status: 'draft',
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (objective) {
+      setFormData({
+        title: objective.title,
+        description: objective.description || '',
+        level: objective.level,
+        owner_id: objective.owner_id,
+        department_id: objective.department_id,
+        parent_id: objective.parent_id,
+        period: objective.period,
+        status: objective.status,
+      });
+    } else {
+      setFormData({
+        title: '',
+        description: '',
+        level: 'individual',
+        owner_id: undefined,
+        department_id: undefined,
+        parent_id: undefined,
+        period: '2025',
+        status: 'draft',
+      });
+    }
+  }, [objective, isOpen]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await onSave(formData);
+      onClose();
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert(error instanceof Error ? error.message : 'Erreur lors de la sauvegarde');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h2 className="text-lg font-semibold text-gray-900">
+            {objective ? 'Modifier l\'objectif' : 'Nouvel objectif'}
+          </h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
+            <input
+              type="text"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              rows={3}
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Niveau *</label>
+              <select
+                value={formData.level}
+                onChange={(e) => setFormData({ ...formData, level: e.target.value as 'enterprise' | 'department' | 'individual' })}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="enterprise">Entreprise</option>
+                <option value="department">Département</option>
+                <option value="individual">Individuel</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Période *</label>
+              <select
+                value={formData.period}
+                onChange={(e) => setFormData({ ...formData, period: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="2025">2025</option>
+                <option value="Q1 2025">Q1 2025</option>
+                <option value="Q2 2025">Q2 2025</option>
+                <option value="Q3 2025">Q3 2025</option>
+                <option value="Q4 2025">Q4 2025</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Département</label>
+              <select
+                value={formData.department_id || ''}
+                onChange={(e) => setFormData({ ...formData, department_id: e.target.value ? parseInt(e.target.value) : undefined })}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="">-- Aucun --</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Propriétaire</label>
+              <select
+                value={formData.owner_id || ''}
+                onChange={(e) => setFormData({ ...formData, owner_id: e.target.value ? parseInt(e.target.value) : undefined })}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="">-- Aucun --</option>
+                {employees.map((e) => (
+                  <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Objectif parent (alignement)</label>
+            <select
+              value={formData.parent_id || ''}
+              onChange={(e) => setFormData({ ...formData, parent_id: e.target.value ? parseInt(e.target.value) : undefined })}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="">-- Aucun --</option>
+              {parentObjectives.filter(o => o.id !== objective?.id).map((o) => (
+                <option key={o.id} value={o.id}>[{getLevelLabel(o.level)}] {o.title}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="draft">Brouillon</option>
+              <option value="active">Actif</option>
+              <option value="on_track">En bonne voie</option>
+              <option value="at_risk">À risque</option>
+              <option value="behind">En retard</option>
+              <option value="completed">Terminé</option>
+              <option value="exceeded">Dépassé</option>
+            </select>
+          </div>
+          
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <button type="button" onClick={onClose} className="px-4 py-2 border rounded-lg hover:bg-gray-50">
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2"
+            >
+              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+              {objective ? 'Modifier' : 'Créer'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// Modal pour ajouter un Key Result
+function KeyResultModal({
+  isOpen,
+  onClose,
+  onSave,
+  objectiveId,
+  keyResult,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (objectiveId: number, data: Partial<KeyResult>) => Promise<void>;
+  objectiveId: number;
+  keyResult?: KeyResult | null;
+}) {
+  const [formData, setFormData] = useState({
+    title: '',
+    target: 100,
+    current: 0,
+    unit: '',
+    weight: 100,
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (keyResult) {
+      setFormData({
+        title: keyResult.title,
+        target: keyResult.target,
+        current: keyResult.current,
+        unit: keyResult.unit || '',
+        weight: keyResult.weight,
+      });
+    } else {
+      setFormData({ title: '', target: 100, current: 0, unit: '', weight: 100 });
+    }
+  }, [keyResult, isOpen]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await onSave(objectiveId, formData);
+      onClose();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Erreur');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h2 className="text-lg font-semibold text-gray-900">
+            {keyResult ? 'Modifier le Key Result' : 'Nouveau Key Result'}
+          </h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
+            <input
+              type="text"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+              required
+            />
+          </div>
+          
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Cible *</label>
+              <input
+                type="number"
+                value={formData.target}
+                onChange={(e) => setFormData({ ...formData, target: parseFloat(e.target.value) })}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                required
+                min="0"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Actuel</label>
+              <input
+                type="number"
+                value={formData.current}
+                onChange={(e) => setFormData({ ...formData, current: parseFloat(e.target.value) })}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                min="0"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Unité</label>
+              <input
+                type="text"
+                value={formData.unit}
+                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                placeholder="%"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Poids (%)</label>
+            <input
+              type="number"
+              value={formData.weight}
+              onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) })}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+              min="0"
+              max="100"
+            />
+          </div>
+          
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <button type="button" onClick={onClose} className="px-4 py-2 border rounded-lg hover:bg-gray-50">
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2"
+            >
+              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+              {keyResult ? 'Modifier' : 'Ajouter'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
 
 export default function OKRPage() {
-  const [objectives, setObjectives] = useState(okrData);
-  const [selectedPeriod, setSelectedPeriod] = useState('2024');
-  const [selectedLevel, setSelectedLevel] = useState('Tous');
+  const [loading, setLoading] = useState(true);
+  const [objectives, setObjectives] = useState<Objective[]>([]);
+  const [stats, setStats] = useState<OKRStats | null>(null);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  
   const [activeTab, setActiveTab] = useState<'list' | 'cascade' | 'dashboard'>('list');
+  const [filterLevel, setFilterLevel] = useState('all');
+  const [filterPeriod, setFilterPeriod] = useState('all');
+  
+  // Modals
+  const [showObjectiveModal, setShowObjectiveModal] = useState(false);
+  const [editingObjective, setEditingObjective] = useState<Objective | null>(null);
+  const [showKRModal, setShowKRModal] = useState(false);
+  const [krObjectiveId, setKrObjectiveId] = useState<number>(0);
+  const [editingKR, setEditingKR] = useState<KeyResult | null>(null);
 
-  const toggleExpand = (id: string) => setObjectives(objectives.map(obj => obj.id === id ? { ...obj, expanded: !obj.expanded } : obj));
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [objData, statsData, deptData, empData] = await Promise.all([
+        fetchObjectives({ level: filterLevel !== 'all' ? filterLevel : undefined, period: filterPeriod !== 'all' ? filterPeriod : undefined }),
+        fetchOKRStats(),
+        fetchDepartments(),
+        fetchEmployees(),
+      ]);
+      setObjectives(objData.items.map(o => ({ ...o, expanded: false })));
+      setStats(statsData);
+      setDepartments(deptData);
+      setEmployees(empData);
+    } catch (error) {
+      console.error('Erreur chargement:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [filterLevel, filterPeriod]);
 
-  const getStatusColor = (s: string) => { const m: Record<string,string> = { 'on-track': 'bg-green-100 text-green-700', 'at-risk': 'bg-yellow-100 text-yellow-700', 'behind': 'bg-red-100 text-red-700', 'exceeded': 'bg-indigo-100 text-indigo-700' }; return m[s] || 'bg-gray-100 text-gray-700'; };
-  const getStatusLabel = (s: string) => { const m: Record<string,string> = { 'on-track': 'En bonne voie', 'at-risk': 'À risque', 'behind': 'En retard', 'exceeded': 'Dépassé' }; return m[s] || s; };
-  const getProgressColor = (p: number) => p >= 90 ? 'bg-indigo-500' : p >= 70 ? 'bg-green-500' : p >= 40 ? 'bg-yellow-500' : 'bg-red-500';
-  const getLevelIcon = (l: string) => l === 'enterprise' ? <Building2 className="w-4 h-4" /> : l === 'department' ? <Users className="w-4 h-4" /> : <User className="w-4 h-4" />;
-  const getLevelLabel = (l: string) => { const m: Record<string,string> = { enterprise: 'Entreprise', department: 'Département', individual: 'Individuel' }; return m[l] || l; };
-  const getLevelColor = (l: string) => { const m: Record<string,string> = { enterprise: 'bg-purple-100 text-purple-700', department: 'bg-blue-100 text-blue-700', individual: 'bg-teal-100 text-teal-700' }; return m[l] || 'bg-gray-100'; };
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const toggleExpand = (id: number) => {
+    setObjectives(objectives.map(obj => obj.id === id ? { ...obj, expanded: !obj.expanded } : obj));
+  };
+
+  const handleSaveObjective = async (data: Partial<Objective>) => {
+    if (editingObjective) {
+      await updateObjective(editingObjective.id, data);
+    } else {
+      await createObjective(data);
+    }
+    await loadData();
+  };
+
+  const handleDeleteObjective = async (id: number) => {
+    if (!confirm('Supprimer cet objectif ?')) return;
+    await deleteObjective(id);
+    await loadData();
+  };
+
+  const handleSaveKR = async (objectiveId: number, data: Partial<KeyResult>) => {
+    if (editingKR) {
+      await updateKeyResult(editingKR.id, data);
+    } else {
+      await createKeyResult(objectiveId, data);
+    }
+    await loadData();
+  };
+
+  const handleDeleteKR = async (krId: number) => {
+    if (!confirm('Supprimer ce Key Result ?')) return;
+    await deleteKeyResult(krId);
+    await loadData();
+  };
 
   const enterpriseOKRs = objectives.filter(o => o.level === 'enterprise');
   const departmentOKRs = objectives.filter(o => o.level === 'department');
   const individualOKRs = objectives.filter(o => o.level === 'individual');
-  const avgProgress = Math.round(objectives.reduce((sum, o) => sum + o.progress, 0) / objectives.length);
+
+  // Stats pour le dashboard
+  const statusDistribution = stats ? [
+    { name: 'En bonne voie', value: stats.by_status['on_track'] || 0, color: '#10B981' },
+    { name: 'À risque', value: stats.by_status['at_risk'] || 0, color: '#F59E0B' },
+    { name: 'En retard', value: stats.by_status['behind'] || 0, color: '#EF4444' },
+    { name: 'Dépassé', value: stats.by_status['exceeded'] || 0, color: '#6366F1' },
+  ].filter(d => d.value > 0) : [];
+
+  const departmentProgress = stats ? Object.entries(stats.by_department).map(([name, data]) => ({
+    name: name.length > 10 ? name.substring(0, 10) + '...' : name,
+    progress: data.avg_progress,
+  })) : [];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-primary-500 mx-auto mb-4" />
+          <p className="text-gray-500">Chargement des OKRs...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <Header title="OKR & Objectifs" subtitle="Pilotage stratégique - Alignement Entreprise → Département → Individuel" />
-      <main className="flex-1 p-6 overflow-auto bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <h1 className="text-2xl font-bold text-gray-900">OKR & Objectifs</h1>
+        <p className="text-sm text-gray-500">Pilotage stratégique - Alignement Entreprise → Département → Individuel</p>
+      </div>
+
+      <main className="p-6">
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><p className="text-xs text-gray-500">Total OKRs</p><p className="text-2xl font-bold">{objectives.length}</p></div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><p className="text-xs text-gray-500">Progression Moy.</p><p className="text-2xl font-bold">{avgProgress}%</p></div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><p className="text-xs text-gray-500">En bonne voie</p><p className="text-2xl font-bold text-green-600">{objectives.filter(o => o.status === 'on-track').length}</p></div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><p className="text-xs text-gray-500">À risque</p><p className="text-2xl font-bold text-yellow-600">{objectives.filter(o => o.status === 'at-risk').length}</p></div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><p className="text-xs text-gray-500">En retard</p><p className="text-2xl font-bold text-red-600">{objectives.filter(o => o.status === 'behind').length}</p></div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><p className="text-xs text-gray-500">Dépassés</p><p className="text-2xl font-bold text-indigo-600">{objectives.filter(o => o.status === 'exceeded').length}</p></div>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <p className="text-xs text-gray-500">Total OKRs</p>
+            <p className="text-2xl font-bold">{stats?.total || 0}</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <p className="text-xs text-gray-500">Progression Moy.</p>
+            <p className="text-2xl font-bold">{stats?.avg_progress || 0}%</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <p className="text-xs text-gray-500">En bonne voie</p>
+            <p className="text-2xl font-bold text-green-600">{stats?.by_status['on_track'] || 0}</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <p className="text-xs text-gray-500">À risque</p>
+            <p className="text-2xl font-bold text-yellow-600">{stats?.by_status['at_risk'] || 0}</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <p className="text-xs text-gray-500">En retard</p>
+            <p className="text-2xl font-bold text-red-600">{stats?.by_status['behind'] || 0}</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <p className="text-xs text-gray-500">Dépassés</p>
+            <p className="text-2xl font-bold text-indigo-600">{stats?.by_status['exceeded'] || 0}</p>
+          </div>
         </div>
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
           <div className="flex border-b border-gray-200">
-            <button onClick={() => setActiveTab('list')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'list' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}><Layers className="w-4 h-4 inline mr-2" />Liste des OKRs</button>
-            <button onClick={() => setActiveTab('cascade')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'cascade' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}><GitBranch className="w-4 h-4 inline mr-2" />Cascade Stratégique</button>
-            <button onClick={() => setActiveTab('dashboard')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'dashboard' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}><BarChart3 className="w-4 h-4 inline mr-2" />Tableau de Bord</button>
+            <button onClick={() => setActiveTab('list')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'list' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
+              <Layers className="w-4 h-4 inline mr-2" />Liste des OKRs
+            </button>
+            <button onClick={() => setActiveTab('cascade')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'cascade' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
+              <GitBranch className="w-4 h-4 inline mr-2" />Cascade Stratégique
+            </button>
+            <button onClick={() => setActiveTab('dashboard')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'dashboard' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
+              <BarChart3 className="w-4 h-4 inline mr-2" />Tableau de Bord
+            </button>
           </div>
         </div>
 
         {/* Filters */}
         <div className="flex justify-between items-center gap-4 mb-6">
           <div className="flex gap-3">
-            <select value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value)} className="px-4 py-2 border rounded-lg text-sm bg-white">
-              <option>2024</option><option>Q4 2024</option><option>Q3 2024</option>
+            <select value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value)} className="px-4 py-2 border rounded-lg text-sm bg-white">
+              <option value="all">Toutes périodes</option>
+              <option value="2025">2025</option>
+              <option value="Q1 2025">Q1 2025</option>
+              <option value="Q2 2025">Q2 2025</option>
             </select>
-            <select value={selectedLevel} onChange={(e) => setSelectedLevel(e.target.value)} className="px-4 py-2 border rounded-lg text-sm bg-white">
-              <option>Tous</option><option>Entreprise</option><option>Département</option><option>Individuel</option>
+            <select value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)} className="px-4 py-2 border rounded-lg text-sm bg-white">
+              <option value="all">Tous niveaux</option>
+              <option value="enterprise">Entreprise</option>
+              <option value="department">Département</option>
+              <option value="individual">Individuel</option>
             </select>
           </div>
           <div className="flex gap-3">
-            <button className="flex items-center px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-50"><Download className="w-4 h-4 mr-2" />Exporter</button>
-            <button className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600"><Plus className="w-4 h-4 mr-2" />Nouvel OKR</button>
+            <button className="flex items-center px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-50">
+              <Download className="w-4 h-4 mr-2" />Exporter
+            </button>
+            <button 
+              onClick={() => { setEditingObjective(null); setShowObjectiveModal(true); }}
+              className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600"
+            >
+              <Plus className="w-4 h-4 mr-2" />Nouvel OKR
+            </button>
           </div>
         </div>
 
         {/* Tab Content: List */}
         {activeTab === 'list' && (
           <div className="space-y-6">
-            {[{ title: 'OKRs Entreprise', data: enterpriseOKRs, icon: Building2, color: 'purple' }, { title: 'OKRs Département', data: departmentOKRs, icon: Users, color: 'blue' }, { title: 'OKRs Individuels', data: individualOKRs, icon: User, color: 'teal' }].map(section => section.data.length > 0 && (
+            {[
+              { title: 'OKRs Entreprise', data: enterpriseOKRs, icon: Building2, color: 'purple' },
+              { title: 'OKRs Département', data: departmentOKRs, icon: Users, color: 'blue' },
+              { title: 'OKRs Individuels', data: individualOKRs, icon: User, color: 'teal' },
+            ].map(section => section.data.length > 0 && (
               <div key={section.title}>
                 <div className="flex items-center gap-2 mb-4">
                   <section.icon className={`w-5 h-5 text-${section.color}-600`} />
@@ -114,61 +828,131 @@ export default function OKRPage() {
                       <div className="p-4 cursor-pointer hover:bg-gray-50" onClick={() => toggleExpand(obj.id)}>
                         <div className="flex items-start justify-between">
                           <div className="flex items-start flex-1">
-                            <button className="mt-1 mr-3 text-gray-400">{obj.expanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}</button>
+                            <button className="mt-1 mr-3 text-gray-400">
+                              {obj.expanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                            </button>
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${getLevelColor(obj.level)}`}>{getLevelIcon(obj.level)}{getLevelLabel(obj.level)}</span>
-                                {obj.department && <span className="text-xs text-gray-500">• {obj.department}</span>}
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${getLevelColor(obj.level)}`}>
+                                  {getLevelIcon(obj.level)}{getLevelLabel(obj.level)}
+                                </span>
+                                {obj.department_name && <span className="text-xs text-gray-500">• {obj.department_name}</span>}
                               </div>
                               <h3 className="text-base font-semibold text-gray-900">{obj.title}</h3>
                               <div className="flex items-center gap-3 mt-2">
-                                <div className="flex items-center"><div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center text-xs font-medium text-primary-700">{obj.ownerInitials}</div><span className="ml-2 text-sm text-gray-600">{obj.owner}</span></div>
-                                <span className="text-sm text-gray-400">•</span><span className="text-sm text-gray-500">{obj.period}</span>
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(obj.status)}`}>{getStatusLabel(obj.status)}</span>
+                                {obj.owner_name && (
+                                  <div className="flex items-center">
+                                    <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center text-xs font-medium text-primary-700">
+                                      {obj.owner_initials}
+                                    </div>
+                                    <span className="ml-2 text-sm text-gray-600">{obj.owner_name}</span>
+                                  </div>
+                                )}
+                                <span className="text-sm text-gray-500">{obj.period}</span>
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(obj.status)}`}>
+                                  {getStatusLabel(obj.status)}
+                                </span>
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
                             <div className="text-right">
-                              <span className="text-2xl font-bold text-gray-900">{obj.progress}%</span>
-                              <div className="w-28 h-2 bg-gray-200 rounded-full mt-1"><div className={`h-full rounded-full ${getProgressColor(obj.progress)}`} style={{ width: `${obj.progress}%` }} /></div>
+                              <span className="text-2xl font-bold text-gray-900">{Math.round(obj.progress)}%</span>
+                              <div className="w-28 h-2 bg-gray-200 rounded-full mt-1">
+                                <div className={`h-full rounded-full ${getProgressColor(obj.progress)}`} style={{ width: `${Math.min(obj.progress, 100)}%` }} />
+                              </div>
                             </div>
-                            <button className="p-2 text-gray-400 hover:text-gray-600" onClick={(e) => e.stopPropagation()}><MoreVertical className="w-5 h-5" /></button>
+                            <div className="relative">
+                              <button 
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingObjective(obj);
+                                  setShowObjectiveModal(true);
+                                }}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button 
+                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteObjective(obj.id);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
+                      
                       {obj.expanded && (
                         <div className="border-t border-gray-100 bg-gray-50 p-4">
-                          <h4 className="text-sm font-semibold text-gray-700 mb-3">Résultats Clés ({obj.keyResults.length})</h4>
-                          <div className="space-y-3">
-                            {obj.keyResults.map((kr) => (
-                              <div key={kr.id} className="bg-white rounded-lg p-3 border border-gray-200">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-sm font-medium text-gray-900">{kr.title}</span>
-                                  <div className="flex items-center gap-2"><span className="text-xs text-gray-500">Poids: {kr.weight}%</span><span className="text-sm font-medium text-gray-700">{kr.current} / {kr.target} {kr.unit}</span></div>
-                                </div>
-                                <div className="w-full h-2 bg-gray-200 rounded-full"><div className={`h-full rounded-full ${getProgressColor((kr.current / kr.target) * 100)}`} style={{ width: `${Math.min((kr.current / kr.target) * 100, 100)}%` }} /></div>
-                              </div>
-                            ))}
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-sm font-semibold text-gray-700">Résultats Clés ({obj.key_results.length})</h4>
+                            <button 
+                              onClick={() => { setKrObjectiveId(obj.id); setEditingKR(null); setShowKRModal(true); }}
+                              className="flex items-center text-sm text-primary-600 hover:text-primary-700 font-medium"
+                            >
+                              <Plus className="w-4 h-4 mr-1" />Ajouter un KR
+                            </button>
                           </div>
+                          
+                          {obj.key_results.length === 0 ? (
+                            <p className="text-sm text-gray-500 text-center py-4">Aucun Key Result défini</p>
+                          ) : (
+                            <div className="space-y-3">
+                              {obj.key_results.map((kr) => (
+                                <div key={kr.id} className="bg-white rounded-lg p-3 border border-gray-200">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-medium text-gray-900">{kr.title}</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-gray-500">Poids: {kr.weight}%</span>
+                                      <span className="text-sm font-medium text-gray-700">{kr.current} / {kr.target} {kr.unit}</span>
+                                      <button 
+                                        onClick={() => { setKrObjectiveId(obj.id); setEditingKR(kr); setShowKRModal(true); }}
+                                        className="p-1 text-gray-400 hover:text-gray-600"
+                                      >
+                                        <Edit className="w-3 h-3" />
+                                      </button>
+                                      <button 
+                                        onClick={() => handleDeleteKR(kr.id)}
+                                        className="p-1 text-gray-400 hover:text-red-600"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="w-full h-2 bg-gray-200 rounded-full">
+                                    <div className={`h-full rounded-full ${getProgressColor(kr.progress)}`} style={{ width: `${Math.min(kr.progress, 100)}%` }} />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          
                           {obj.initiatives && obj.initiatives.length > 0 && (
                             <>
                               <h4 className="text-sm font-semibold text-gray-700 mt-4 mb-3">Initiatives & Projets liés</h4>
                               <div className="space-y-2">
                                 {obj.initiatives.map((init) => (
                                   <div key={init.id} className="bg-white rounded-lg p-3 border border-gray-200 flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-indigo-100 rounded flex items-center justify-center"><Link2 className="w-4 h-4 text-indigo-600" /></div>
-                                    <div className="flex-1"><p className="text-sm font-medium text-gray-900">{init.title}</p><p className="text-xs text-gray-500">{init.source} • {init.dueDate}</p></div>
-                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(init.status)}`}>{init.progress}%</span>
+                                    <div className="w-8 h-8 bg-indigo-100 rounded flex items-center justify-center">
+                                      <Link2 className="w-4 h-4 text-indigo-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className="text-sm font-medium text-gray-900">{init.title}</p>
+                                      <p className="text-xs text-gray-500">{init.source} • {init.due_date}</p>
+                                    </div>
+                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(init.status)}`}>
+                                      {init.progress}%
+                                    </span>
                                   </div>
                                 ))}
                               </div>
                             </>
                           )}
-                          <div className="flex gap-2 mt-4">
-                            <button className="flex items-center text-sm text-primary-600 hover:text-primary-700 font-medium"><Plus className="w-4 h-4 mr-1" />Ajouter un KR</button>
-                            <button className="flex items-center text-sm text-gray-500 hover:text-gray-700 font-medium ml-4"><Link2 className="w-4 h-4 mr-1" />Lier un projet</button>
-                          </div>
                         </div>
                       )}
                     </div>
@@ -176,6 +960,19 @@ export default function OKRPage() {
                 </div>
               </div>
             ))}
+            
+            {objectives.length === 0 && (
+              <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+                <Layers className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">Aucun objectif trouvé</p>
+                <button 
+                  onClick={() => { setEditingObjective(null); setShowObjectiveModal(true); }}
+                  className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+                >
+                  Créer un objectif
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -183,52 +980,94 @@ export default function OKRPage() {
         {activeTab === 'cascade' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-6">Vue Cascade : Alignement Stratégique</h2>
-            <div className="space-y-8">
-              {enterpriseOKRs.map((entOKR) => (
-                <div key={entOKR.id} className="border border-gray-200 rounded-xl overflow-hidden">
-                  <div className="bg-purple-50 p-4 border-b border-purple-200">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center"><Building2 className="w-5 h-5 text-white" /></div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2"><span className="text-xs font-medium text-purple-600 uppercase">Entreprise</span><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(entOKR.status)}`}>{getStatusLabel(entOKR.status)}</span></div>
-                        <h3 className="font-semibold text-gray-900">{entOKR.title}</h3>
-                      </div>
-                      <div className="text-right"><span className="text-2xl font-bold text-purple-600">{entOKR.progress}%</span><div className="w-32 h-2 bg-purple-200 rounded-full mt-1"><div className="h-full bg-purple-600 rounded-full" style={{ width: `${entOKR.progress}%` }} /></div></div>
-                    </div>
-                  </div>
-                  <div className="bg-white p-4">
-                    <div className="pl-8 border-l-2 border-purple-300 ml-4 space-y-4">
-                      {departmentOKRs.filter(d => d.parentId === entOKR.id).map((deptOKR) => (
-                        <div key={deptOKR.id}>
-                          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center"><Users className="w-4 h-4 text-white" /></div>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2"><span className="text-xs font-medium text-blue-600">{deptOKR.department}</span><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(deptOKR.status)}`}>{getStatusLabel(deptOKR.status)}</span></div>
-                                <h4 className="font-medium text-gray-900 text-sm">{deptOKR.title}</h4>
-                                <p className="text-xs text-gray-500 mt-1">Responsable: {deptOKR.owner}</p>
-                              </div>
-                              <div className="text-right"><span className="text-xl font-bold text-blue-600">{deptOKR.progress}%</span><div className="w-24 h-1.5 bg-blue-200 rounded-full mt-1"><div className="h-full bg-blue-600 rounded-full" style={{ width: `${deptOKR.progress}%` }} /></div></div>
-                            </div>
+            
+            {enterpriseOKRs.length === 0 ? (
+              <p className="text-center text-gray-500 py-8">Aucun OKR entreprise défini</p>
+            ) : (
+              <div className="space-y-8">
+                {enterpriseOKRs.map((entOKR) => (
+                  <div key={entOKR.id} className="border border-gray-200 rounded-xl overflow-hidden">
+                    <div className="bg-purple-50 p-4 border-b border-purple-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                          <Building2 className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-purple-600 uppercase">Entreprise</span>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(entOKR.status)}`}>
+                              {getStatusLabel(entOKR.status)}
+                            </span>
                           </div>
-                          <div className="pl-8 border-l-2 border-blue-300 ml-4 mt-3 space-y-2">
-                            {individualOKRs.filter(i => i.parentId === deptOKR.id).map((indOKR) => (
-                              <div key={indOKR.id} className="bg-teal-50 rounded-lg p-3 border border-teal-200">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-6 h-6 bg-teal-600 rounded flex items-center justify-center text-xs font-medium text-white">{indOKR.ownerInitials}</div>
-                                  <div className="flex-1"><p className="text-sm font-medium text-gray-900">{indOKR.title}</p><p className="text-xs text-gray-500">{indOKR.owner}</p></div>
-                                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(indOKR.status)}`}>{indOKR.progress}%</span>
-                                </div>
-                              </div>
-                            ))}
+                          <h3 className="font-semibold text-gray-900">{entOKR.title}</h3>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-2xl font-bold text-purple-600">{Math.round(entOKR.progress)}%</span>
+                          <div className="w-32 h-2 bg-purple-200 rounded-full mt-1">
+                            <div className="h-full bg-purple-600 rounded-full" style={{ width: `${Math.min(entOKR.progress, 100)}%` }} />
                           </div>
                         </div>
-                      ))}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white p-4">
+                      <div className="pl-8 border-l-2 border-purple-300 ml-4 space-y-4">
+                        {departmentOKRs.filter(d => d.parent_id === entOKR.id).map((deptOKR) => (
+                          <div key={deptOKR.id}>
+                            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                                  <Users className="w-4 h-4 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-medium text-blue-600">{deptOKR.department_name}</span>
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(deptOKR.status)}`}>
+                                      {getStatusLabel(deptOKR.status)}
+                                    </span>
+                                  </div>
+                                  <h4 className="font-medium text-gray-900 text-sm">{deptOKR.title}</h4>
+                                  {deptOKR.owner_name && <p className="text-xs text-gray-500 mt-1">Responsable: {deptOKR.owner_name}</p>}
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-xl font-bold text-blue-600">{Math.round(deptOKR.progress)}%</span>
+                                  <div className="w-24 h-1.5 bg-blue-200 rounded-full mt-1">
+                                    <div className="h-full bg-blue-600 rounded-full" style={{ width: `${Math.min(deptOKR.progress, 100)}%` }} />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="pl-8 border-l-2 border-blue-300 ml-4 mt-3 space-y-2">
+                              {individualOKRs.filter(i => i.parent_id === deptOKR.id).map((indOKR) => (
+                                <div key={indOKR.id} className="bg-teal-50 rounded-lg p-3 border border-teal-200">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 bg-teal-600 rounded flex items-center justify-center text-xs font-medium text-white">
+                                      {indOKR.owner_initials || '?'}
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className="text-sm font-medium text-gray-900">{indOKR.title}</p>
+                                      <p className="text-xs text-gray-500">{indOKR.owner_name}</p>
+                                    </div>
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(indOKR.status)}`}>
+                                      {Math.round(indOKR.progress)}%
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {departmentOKRs.filter(d => d.parent_id === entOKR.id).length === 0 && (
+                          <p className="text-sm text-gray-500 italic">Aucun OKR département lié</p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -237,49 +1076,127 @@ export default function OKRPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h3 className="font-semibold text-gray-900 mb-4">Répartition par Statut</h3>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart><Pie data={statusDistribution} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="value">{statusDistribution.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}</Pie><Tooltip /></PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="flex flex-wrap justify-center gap-4 mt-4">{statusDistribution.map((item) => (<div key={item.name} className="flex items-center gap-2"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} /><span className="text-sm text-gray-600">{item.name}</span></div>))}</div>
+              {statusDistribution.length > 0 ? (
+                <>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={statusDistribution} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="value">
+                          {statusDistribution.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-4 mt-4">
+                    {statusDistribution.map((item) => (
+                      <div key={item.name} className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                        <span className="text-sm text-gray-600">{item.name} ({item.value})</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="text-center text-gray-500 py-8">Aucune donnée</p>
+              )}
             </div>
+            
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h3 className="font-semibold text-gray-900 mb-4">Progression par Département</h3>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={departmentProgress} layout="vertical"><XAxis type="number" domain={[0, 100]} /><YAxis type="category" dataKey="name" width={80} /><Tooltip formatter={(value) => `${value}%`} /><Bar dataKey="progress" fill="#6366F1" radius={[0, 4, 4, 0]} /></BarChart>
-                </ResponsiveContainer>
-              </div>
+              {departmentProgress.length > 0 ? (
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={departmentProgress} layout="vertical">
+                      <XAxis type="number" domain={[0, 100]} />
+                      <YAxis type="category" dataKey="name" width={80} />
+                      <Tooltip formatter={(value) => `${value}%`} />
+                      <Bar dataKey="progress" fill="#6366F1" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <p className="text-center text-gray-500 py-8">Aucune donnée</p>
+              )}
             </div>
+            
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h3 className="font-semibold text-gray-900 mb-4">🚨 OKRs Critiques</h3>
-              <div className="space-y-3">
-                {objectives.filter(o => o.status === 'at-risk' || o.status === 'behind').slice(0, 5).map((okr) => (
-                  <div key={okr.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div className={`w-2 h-2 rounded-full ${okr.status === 'behind' ? 'bg-red-500' : 'bg-yellow-500'}`} />
-                    <div className="flex-1 min-w-0"><p className="text-sm font-medium text-gray-900 truncate">{okr.title}</p><p className="text-xs text-gray-500">{okr.owner} • {okr.department || 'Entreprise'}</p></div>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(okr.status)}`}>{okr.progress}%</span>
-                  </div>
-                ))}
-              </div>
+              {objectives.filter(o => o.status === 'at_risk' || o.status === 'behind').length > 0 ? (
+                <div className="space-y-3">
+                  {objectives.filter(o => o.status === 'at_risk' || o.status === 'behind').slice(0, 5).map((okr) => (
+                    <div key={okr.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <div className={`w-2 h-2 rounded-full ${okr.status === 'behind' ? 'bg-red-500' : 'bg-yellow-500'}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{okr.title}</p>
+                        <p className="text-xs text-gray-500">{okr.owner_name || 'Non assigné'} • {okr.department_name || 'Entreprise'}</p>
+                      </div>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(okr.status)}`}>
+                        {Math.round(okr.progress)}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-gray-500 py-8">Aucun OKR critique 🎉</p>
+              )}
             </div>
+            
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">📋 Initiatives Stratégiques</h3>
-              <div className="space-y-3">
-                {objectives.flatMap(o => o.initiatives || []).slice(0, 5).map((init) => (
-                  <div key={init.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-8 h-8 bg-indigo-100 rounded flex items-center justify-center"><Link2 className="w-4 h-4 text-indigo-600" /></div>
-                    <div className="flex-1 min-w-0"><p className="text-sm font-medium text-gray-900 truncate">{init.title}</p><p className="text-xs text-gray-500">{init.source} • {init.dueDate}</p></div>
-                    <div className="text-right"><span className="text-sm font-medium">{init.progress}%</span><div className="w-16 h-1.5 bg-gray-200 rounded-full mt-1"><div className={`h-full rounded-full ${getProgressColor(init.progress)}`} style={{ width: `${init.progress}%` }} /></div></div>
-                  </div>
-                ))}
+              <h3 className="font-semibold text-gray-900 mb-4">📊 Résumé par Niveau</h3>
+              <div className="space-y-4">
+                {[
+                  { level: 'enterprise', label: 'Entreprise', icon: Building2, color: 'purple' },
+                  { level: 'department', label: 'Département', icon: Users, color: 'blue' },
+                  { level: 'individual', label: 'Individuel', icon: User, color: 'teal' },
+                ].map(({ level, label, icon: Icon, color }) => {
+                  const count = stats?.by_level[level] || 0;
+                  const levelObjs = objectives.filter(o => o.level === level);
+                  const avgProg = levelObjs.length > 0 ? Math.round(levelObjs.reduce((sum, o) => sum + o.progress, 0) / levelObjs.length) : 0;
+                  return (
+                    <div key={level} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                      <div className={`w-10 h-10 bg-${color}-100 rounded-lg flex items-center justify-center`}>
+                        <Icon className={`w-5 h-5 text-${color}-600`} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">{label}</p>
+                        <p className="text-xs text-gray-500">{count} objectif(s)</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-lg font-bold text-gray-900">{avgProg}%</span>
+                        <div className="w-20 h-1.5 bg-gray-200 rounded-full mt-1">
+                          <div className={`h-full bg-${color}-500 rounded-full`} style={{ width: `${avgProg}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <p className="text-xs text-gray-500 mt-4 flex items-center gap-1"><Link2 className="w-3 h-3" />Données synchronisées depuis Asana, Notion, Trello</p>
             </div>
           </div>
         )}
       </main>
-    </>
+
+      {/* Modals */}
+      <ObjectiveModal
+        isOpen={showObjectiveModal}
+        onClose={() => { setShowObjectiveModal(false); setEditingObjective(null); }}
+        onSave={handleSaveObjective}
+        objective={editingObjective}
+        departments={departments}
+        employees={employees}
+        parentObjectives={objectives}
+      />
+      
+      <KeyResultModal
+        isOpen={showKRModal}
+        onClose={() => { setShowKRModal(false); setEditingKR(null); }}
+        onSave={handleSaveKR}
+        objectiveId={krObjectiveId}
+        keyResult={editingKR}
+      />
+    </div>
   );
 }

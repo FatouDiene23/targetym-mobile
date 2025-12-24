@@ -693,6 +693,7 @@ export default function OKRPage() {
   const [userDepartmentId, setUserDepartmentId] = useState<number | null>(null);
   const [userEmployeeId, setUserEmployeeId] = useState<number | null>(null);
   const [isManager, setIsManager] = useState(false);
+  const [userLoaded, setUserLoaded] = useState(false);
   
   const [activeTab, setActiveTab] = useState<'list' | 'cascade' | 'dashboard'>('list');
   const [filterLevel, setFilterLevel] = useState('all');
@@ -707,18 +708,56 @@ export default function OKRPage() {
 
   // Load user data on mount
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const userData: UserData = JSON.parse(userStr);
-        setUserRole(normalizeRole(userData.role));
-        setUserDepartmentId(userData.department_id || null);
-        setUserEmployeeId(userData.employee_id || null);
-        setIsManager(userData.is_manager || userData.role?.toLowerCase() === 'manager');
-      } catch (e) {
-        console.error('Error parsing user:', e);
+    const loadUserData = async () => {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const userData: UserData = JSON.parse(userStr);
+          console.log('User data from localStorage:', userData);
+          const role = normalizeRole(userData.role);
+          setUserRole(role);
+          setUserEmployeeId(userData.employee_id || null);
+          setIsManager(userData.is_manager || userData.role?.toLowerCase() === 'manager');
+          
+          // Pour RH/Admin/DG, pas besoin de department_id
+          if (['rh', 'admin', 'dg'].includes(role)) {
+            setUserLoaded(true);
+            return;
+          }
+          
+          // Si department_id est disponible directement
+          if (userData.department_id) {
+            setUserDepartmentId(userData.department_id);
+            setUserLoaded(true);
+          } 
+          // Sinon, récupérer depuis l'API employee
+          else if (userData.employee_id) {
+            try {
+              const response = await fetch(`${API_URL}/api/employees/${userData.employee_id}`, {
+                headers: getAuthHeaders(),
+              });
+              if (response.ok) {
+                const empData = await response.json();
+                console.log('Employee data from API:', empData);
+                setUserDepartmentId(empData.department_id || null);
+              }
+            } catch (e) {
+              console.error('Error fetching employee:', e);
+            }
+            setUserLoaded(true);
+          } else {
+            setUserLoaded(true);
+          }
+        } catch (e) {
+          console.error('Error parsing user:', e);
+          setUserLoaded(true);
+        }
+      } else {
+        setUserLoaded(true);
       }
-    }
+    };
+    
+    loadUserData();
   }, []);
 
   // Check if user can see all OKRs (RH, Admin, DG)
@@ -728,6 +767,11 @@ export default function OKRPage() {
   const canEdit = ['manager', 'rh', 'admin', 'dg'].includes(userRole) || isManager;
 
   const loadData = useCallback(async () => {
+    // Attendre que les données utilisateur soient chargées
+    if (!userLoaded) {
+      return;
+    }
+    
     setLoading(true);
     try {
       const [objData, statsData, deptData, empData] = await Promise.all([
@@ -740,20 +784,31 @@ export default function OKRPage() {
       // Filter objectives based on role
       let filteredObjectives = objData.items;
       
-      if (!canSeeAll && userDepartmentId) {
+      console.log('Filtering OKRs - canSeeAll:', canSeeAll, 'userDepartmentId:', userDepartmentId, 'userEmployeeId:', userEmployeeId);
+      
+      if (!canSeeAll) {
         // Manager: sees enterprise OKRs + their department OKRs + their individual OKRs
         filteredObjectives = objData.items.filter(obj => {
           // Always show enterprise-level OKRs (for context)
           if (obj.level === 'enterprise') return true;
-          // Show department OKRs for user's department
-          if (obj.level === 'department' && obj.department_id === userDepartmentId) return true;
+          
+          // Show department OKRs for user's department only
+          if (obj.level === 'department') {
+            if (userDepartmentId && obj.department_id === userDepartmentId) return true;
+            return false;
+          }
+          
           // Show individual OKRs for user's department or owned by user
           if (obj.level === 'individual') {
-            if (obj.department_id === userDepartmentId) return true;
-            if (obj.owner_id === userEmployeeId) return true;
+            if (userDepartmentId && obj.department_id === userDepartmentId) return true;
+            if (userEmployeeId && obj.owner_id === userEmployeeId) return true;
+            return false;
           }
+          
           return false;
         });
+        
+        console.log('Filtered from', objData.items.length, 'to', filteredObjectives.length, 'OKRs');
       }
       
       setObjectives(filteredObjectives.map(o => ({ ...o, expanded: false })));
@@ -765,7 +820,7 @@ export default function OKRPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterLevel, filterPeriod, canSeeAll, userDepartmentId, userEmployeeId]);
+  }, [filterLevel, filterPeriod, canSeeAll, userDepartmentId, userEmployeeId, userLoaded]);
 
   useEffect(() => {
     loadData();

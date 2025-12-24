@@ -109,16 +109,8 @@ async function fetchObjectives(params?: { level?: string; status?: string; perio
   return response.json();
 }
 
-async function fetchOKRStats(params?: { level?: string; period?: string }): Promise<OKRStats> {
-  const queryParams = new URLSearchParams();
-  if (params?.level && params.level !== 'all') queryParams.set('level', params.level);
-  if (params?.period && params.period !== 'all') queryParams.set('period', params.period);
-  
-  const url = queryParams.toString() 
-    ? `${API_URL}/api/okr/stats?${queryParams}` 
-    : `${API_URL}/api/okr/stats`;
-  
-  const response = await fetch(url, { headers: getAuthHeaders() });
+async function fetchOKRStats(): Promise<OKRStats> {
+  const response = await fetch(`${API_URL}/api/okr/stats`, { headers: getAuthHeaders() });
   if (!response.ok) throw new Error('Erreur lors du chargement des stats');
   return response.json();
 }
@@ -327,7 +319,7 @@ function ObjectiveModal({
     owner_id: undefined as number | undefined,
     department_id: undefined as number | undefined,
     parent_id: undefined as number | undefined,
-    period: '2025',
+    period: '2026',
     status: 'draft',
   });
   const [saving, setSaving] = useState(false);
@@ -352,7 +344,7 @@ function ObjectiveModal({
         owner_id: undefined,
         department_id: undefined,
         parent_id: undefined,
-        period: '2025',
+        period: '2026',
         status: 'draft',
       });
     }
@@ -429,6 +421,11 @@ function ObjectiveModal({
                 onChange={(e) => setFormData({ ...formData, period: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               >
+                <option value="2026">2026</option>
+                <option value="Q1 2026">Q1 2026</option>
+                <option value="Q2 2026">Q2 2026</option>
+                <option value="Q3 2026">Q3 2026</option>
+                <option value="Q4 2026">Q4 2026</option>
                 <option value="2025">2025</option>
                 <option value="Q1 2025">Q1 2025</option>
                 <option value="Q2 2025">Q2 2025</option>
@@ -688,10 +685,7 @@ export default function OKRPage() {
     try {
       const [objData, statsData, deptData, empData] = await Promise.all([
         fetchObjectives({ level: filterLevel !== 'all' ? filterLevel : undefined, period: filterPeriod !== 'all' ? filterPeriod : undefined }),
-        fetchOKRStats({ 
-        level: filterLevel !== 'all' ? filterLevel : undefined, 
-        period: filterPeriod !== 'all' ? filterPeriod : undefined 
-        }),
+        fetchOKRStats(),
         fetchDepartments(),
         fetchEmployees(),
       ]);
@@ -829,9 +823,16 @@ export default function OKRPage() {
           <div className="flex gap-3">
             <select value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value)} className="px-4 py-2 border rounded-lg text-sm bg-white">
               <option value="all">Toutes périodes</option>
+              <option value="2026">2026</option>
+              <option value="Q1 2026">Q1 2026</option>
+              <option value="Q2 2026">Q2 2026</option>
+              <option value="Q3 2026">Q3 2026</option>
+              <option value="Q4 2026">Q4 2026</option>
               <option value="2025">2025</option>
               <option value="Q1 2025">Q1 2025</option>
               <option value="Q2 2025">Q2 2025</option>
+              <option value="Q3 2025">Q3 2025</option>
+              <option value="Q4 2025">Q4 2025</option>
             </select>
             <select value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)} className="px-4 py-2 border rounded-lg text-sm bg-white">
               <option value="all">Tous niveaux</option>

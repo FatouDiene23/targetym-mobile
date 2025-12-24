@@ -195,9 +195,11 @@ async function getTeamPendingRequests(teamMembers: TeamMember[]): Promise<LeaveR
 
 async function getAllEmployees(): Promise<Employee[]> {
   try {
-    const data = await getEmployees({ page_size: 1000 });
+    // Utiliser une taille de page valide (max 500 pour employees)
+    const data = await getEmployees({ page_size: 500 });
     return data.items || [];
-  } catch {
+  } catch (error) {
+    console.error('Error fetching all employees:', error);
     return [];
   }
 }
@@ -248,9 +250,11 @@ async function getAllPendingRequests(): Promise<LeaveRequest[]> {
 
 async function getAllLeaveRequests(): Promise<LeaveRequest[]> {
   try {
-    const data = await getLeaveRequests({ page_size: 500 });
+    // Utiliser une taille de page valide (max 100 pour leaves)
+    const data = await getLeaveRequests({ page_size: 100 });
     return data.items || [];
-  } catch {
+  } catch (error) {
+    console.error('Error fetching all leave requests:', error);
     return [];
   }
 }
@@ -617,6 +621,24 @@ function HRStatsWidget({ stats }: { stats: HRStats }) {
 
 // Evolution Chart Widget
 function EvolutionChartWidget({ data }: { data: MonthlyData[] }) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+              <TrendingUp className="w-4 h-4 text-green-600" />
+            </div>
+            Évolution des Effectifs
+          </h2>
+        </div>
+        <div className="h-56 flex items-center justify-center text-gray-400">
+          <p className="text-sm">Aucune donnée disponible</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-6">
@@ -754,6 +776,22 @@ function DepartmentChartWidget({ data }: { data: DepartmentData[] }) {
 
 // Leaves by Month Chart Widget
 function LeavesChartWidget({ data }: { data: LeavesByMonth[] }) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div className="flex items-center gap-2 mb-6">
+          <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+            <CalendarDays className="w-4 h-4 text-orange-600" />
+          </div>
+          <h2 className="text-base font-semibold text-gray-900">Congés par Mois</h2>
+        </div>
+        <div className="h-56 flex items-center justify-center text-gray-400">
+          <p className="text-sm">Aucune donnée disponible</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
       <div className="flex items-center gap-2 mb-6">

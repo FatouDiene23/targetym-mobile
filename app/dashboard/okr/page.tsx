@@ -109,8 +109,16 @@ async function fetchObjectives(params?: { level?: string; status?: string; perio
   return response.json();
 }
 
-async function fetchOKRStats(): Promise<OKRStats> {
-  const response = await fetch(`${API_URL}/api/okr/stats`, { headers: getAuthHeaders() });
+async function fetchOKRStats(params?: { level?: string; period?: string }): Promise<OKRStats> {
+  const queryParams = new URLSearchParams();
+  if (params?.level && params.level !== 'all') queryParams.set('level', params.level);
+  if (params?.period && params.period !== 'all') queryParams.set('period', params.period);
+  
+  const url = queryParams.toString() 
+    ? `${API_URL}/api/okr/stats?${queryParams}` 
+    : `${API_URL}/api/okr/stats`;
+  
+  const response = await fetch(url, { headers: getAuthHeaders() });
   if (!response.ok) throw new Error('Erreur lors du chargement des stats');
   return response.json();
 }
@@ -680,7 +688,10 @@ export default function OKRPage() {
     try {
       const [objData, statsData, deptData, empData] = await Promise.all([
         fetchObjectives({ level: filterLevel !== 'all' ? filterLevel : undefined, period: filterPeriod !== 'all' ? filterPeriod : undefined }),
-        fetchOKRStats(),
+        fetchOKRStats({ 
+        level: filterLevel !== 'all' ? filterLevel : undefined, 
+        period: filterPeriod !== 'all' ? filterPeriod : undefined 
+        }),
         fetchDepartments(),
         fetchEmployees(),
       ]);

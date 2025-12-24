@@ -821,16 +821,6 @@ function OKRStatsWidget({ stats, criticalOKRs }: { stats: OKRStats; criticalOKRs
     return colors[status] || 'bg-gray-100 text-gray-700';
   };
 
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      'on_track': 'En bonne voie',
-      'at_risk': 'À risque',
-      'behind': 'En retard',
-      'exceeded': 'Dépassé',
-    };
-    return labels[status] || status;
-  };
-
   if (stats.total === 0) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">

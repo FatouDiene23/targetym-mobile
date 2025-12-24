@@ -389,7 +389,7 @@ function calculateLeavesByMonth(requests: LeaveRequest[]): LeavesByMonth[] {
         const startDate = new Date(req.start_date);
         return startDate >= monthStart && startDate <= monthEnd;
       })
-      .reduce((acc, req) => acc + (req.days_requested || 0), 0);
+      .reduce((acc, req) => acc + parseFloat(String(req.days_requested)), 0);
     
     data.push({
       month: getMonthName(targetDate.getMonth()),

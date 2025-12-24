@@ -96,11 +96,24 @@ interface LeavesByMonth {
 
 interface OKRStats {
   total: number;
+  by_level: Record<string, number>;
+  by_status: Record<string, number>;
+  avg_progress: number;
   completed: number;
   in_progress: number;
   not_started: number;
   overdue: number;
-  avg_progress: number;
+  by_department: Record<string, { count: number; avg_progress: number }>;
+}
+
+interface OKRObjective {
+  id: number;
+  title: string;
+  level: string;
+  progress: number;
+  status: string;
+  owner_name?: string;
+  department_name?: string;
 }
 
 interface MyObjectiveData {
@@ -182,7 +195,7 @@ async function getTeamPendingRequests(teamMembers: TeamMember[]): Promise<LeaveR
 
 async function getAllEmployees(): Promise<Employee[]> {
   try {
-    const data = await getEmployees({ page_size: 500 });
+    const data = await getEmployees({ page_size: 1000 });
     return data.items || [];
   } catch {
     return [];
@@ -226,7 +239,7 @@ async function getHRStatsData(): Promise<HRStats> {
 
 async function getAllPendingRequests(): Promise<LeaveRequest[]> {
   try {
-    const data = await getLeaveRequests({ status: 'pending', page_size: 100 });
+    const data = await getLeaveRequests({ status: 'pending', page_size: 10 });
     return data.items || [];
   } catch {
     return [];
@@ -235,7 +248,7 @@ async function getAllPendingRequests(): Promise<LeaveRequest[]> {
 
 async function getAllLeaveRequests(): Promise<LeaveRequest[]> {
   try {
-    const data = await getLeaveRequests({ page_size: 100 });
+    const data = await getLeaveRequests({ page_size: 500 });
     return data.items || [];
   } catch {
     return [];
@@ -244,38 +257,34 @@ async function getAllLeaveRequests(): Promise<LeaveRequest[]> {
 
 async function getOKRStats(): Promise<OKRStats> {
   try {
-    const response = await fetch(`${API_URL}/api/okr/objectives?page_size=500`, { headers: getAuthHeaders() });
+    const response = await fetch(`${API_URL}/api/okr/stats`, { headers: getAuthHeaders() });
     if (!response.ok) {
-      return { total: 0, completed: 0, in_progress: 0, not_started: 0, overdue: 0, avg_progress: 0 };
+      return { 
+        total: 0, by_level: {}, by_status: {}, avg_progress: 0, 
+        completed: 0, in_progress: 0, not_started: 0, overdue: 0, by_department: {} 
+      };
     }
-    const data = await response.json();
-    const objectives = data.items || data || [];
-    
-    if (!Array.isArray(objectives) || objectives.length === 0) {
-      return { total: 0, completed: 0, in_progress: 0, not_started: 0, overdue: 0, avg_progress: 0 };
-    }
-
-    const now = new Date();
-    const completed = objectives.filter((o: { status: string }) => o.status === 'completed').length;
-    const inProgress = objectives.filter((o: { status: string }) => o.status === 'active').length;
-    const notStarted = objectives.filter((o: { status: string }) => o.status === 'draft').length;
-    const overdue = objectives.filter((o: { status: string; end_date: string }) => 
-      o.status === 'active' && o.end_date && new Date(o.end_date) < now
-    ).length;
-    const avgProgress = Math.round(
-      objectives.reduce((acc: number, o: { progress: number }) => acc + (o.progress || 0), 0) / objectives.length
-    );
-
-    return {
-      total: objectives.length,
-      completed,
-      in_progress: inProgress,
-      not_started: notStarted,
-      overdue,
-      avg_progress: avgProgress
-    };
+    return response.json();
   } catch {
-    return { total: 0, completed: 0, in_progress: 0, not_started: 0, overdue: 0, avg_progress: 0 };
+    return { 
+      total: 0, by_level: {}, by_status: {}, avg_progress: 0, 
+      completed: 0, in_progress: 0, not_started: 0, overdue: 0, by_department: {} 
+    };
+  }
+}
+
+async function getCriticalOKRs(): Promise<OKRObjective[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/okr/objectives?page_size=100`, { headers: getAuthHeaders() });
+    if (!response.ok) return [];
+    const data = await response.json();
+    const objectives = data.items || [];
+    // Filtrer les OKRs critiques (at_risk ou behind)
+    return objectives
+      .filter((o: OKRObjective) => o.status === 'at_risk' || o.status === 'behind')
+      .slice(0, 5);
+  } catch {
+    return [];
   }
 }
 
@@ -376,7 +385,7 @@ function calculateLeavesByMonth(requests: LeaveRequest[]): LeavesByMonth[] {
         const startDate = new Date(req.start_date);
         return startDate >= monthStart && startDate <= monthEnd;
       })
-      .reduce((acc, req) => acc + parseFloat(String(req.days_requested)), 0);
+      .reduce((acc, req) => acc + req.days_requested, 0);
     
     data.push({
       month: getMonthName(targetDate.getMonth()),
@@ -784,14 +793,43 @@ function LeavesChartWidget({ data }: { data: LeavesByMonth[] }) {
   );
 }
 
-// OKR Stats Widget
-function OKRStatsWidget({ stats }: { stats: OKRStats }) {
+// OKR Stats Widget - Amélioré
+function OKRStatsWidget({ stats, criticalOKRs }: { stats: OKRStats; criticalOKRs: OKRObjective[] }) {
+  const onTrack = stats.by_status?.['on_track'] || 0;
+  const atRisk = stats.by_status?.['at_risk'] || 0;
+  const behind = stats.by_status?.['behind'] || 0;
+  const exceeded = stats.by_status?.['exceeded'] || 0;
+  const completed = stats.by_status?.['completed'] || 0;
+  const active = stats.by_status?.['active'] || 0;
+
   const pieData = [
-    { name: 'Terminés', value: stats.completed, color: '#10b981' },
-    { name: 'En cours', value: stats.in_progress, color: '#3b82f6' },
-    { name: 'Non démarrés', value: stats.not_started, color: '#9ca3af' },
-    { name: 'En retard', value: stats.overdue, color: '#ef4444' },
+    { name: 'En bonne voie', value: onTrack, color: '#10b981' },
+    { name: 'À risque', value: atRisk, color: '#f59e0b' },
+    { name: 'En retard', value: behind, color: '#ef4444' },
+    { name: 'Dépassé', value: exceeded, color: '#6366f1' },
+    { name: 'Terminé', value: completed, color: '#059669' },
+    { name: 'Actif', value: active, color: '#3b82f6' },
   ].filter(d => d.value > 0);
+
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      'on_track': 'bg-green-100 text-green-700',
+      'at_risk': 'bg-yellow-100 text-yellow-700',
+      'behind': 'bg-red-100 text-red-700',
+      'exceeded': 'bg-indigo-100 text-indigo-700',
+    };
+    return colors[status] || 'bg-gray-100 text-gray-700';
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      'on_track': 'En bonne voie',
+      'at_risk': 'À risque',
+      'behind': 'En retard',
+      'exceeded': 'Dépassé',
+    };
+    return labels[status] || status;
+  };
 
   if (stats.total === 0) {
     return (
@@ -806,6 +844,9 @@ function OKRStatsWidget({ stats }: { stats: OKRStats }) {
           <div className="text-center">
             <Target className="w-12 h-12 mx-auto mb-2 text-gray-300" />
             <p className="text-sm">Aucun objectif défini</p>
+            <Link href="/dashboard/okr" className="mt-2 inline-block text-primary-600 text-sm hover:underline">
+              Créer un OKR
+            </Link>
           </div>
         </div>
       </div>
@@ -814,7 +855,7 @@ function OKRStatsWidget({ stats }: { stats: OKRStats }) {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
             <Target className="w-4 h-4 text-purple-600" />
@@ -827,7 +868,7 @@ function OKRStatsWidget({ stats }: { stats: OKRStats }) {
       </div>
 
       <div className="flex items-center gap-4 mb-4">
-        {/* Gauge */}
+        {/* Gauge de progression */}
         <div className="text-center">
           <div className="relative inline-flex items-center justify-center w-20 h-20">
             <svg className="w-20 h-20 transform -rotate-90">
@@ -841,61 +882,108 @@ function OKRStatsWidget({ stats }: { stats: OKRStats }) {
                 strokeLinecap="round"
               />
             </svg>
-            <span className="absolute text-lg font-bold text-gray-900">{stats.avg_progress}%</span>
+            <span className="absolute text-lg font-bold text-gray-900">{Math.round(stats.avg_progress)}%</span>
           </div>
           <p className="text-xs text-gray-500 mt-1">Progression</p>
         </div>
 
-        {/* Mini Pie */}
-        <div className="h-24 flex-1">
-          <ResponsiveContainer width="100%" height="100%">
-            <RechartsPieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                innerRadius={20}
-                outerRadius={38}
-                dataKey="value"
-                paddingAngle={2}
-              >
-                {pieData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'white', 
-                  border: 'none',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                  fontSize: '12px'
-                }}
-              />
-            </RechartsPieChart>
-          </ResponsiveContainer>
+        {/* Mini Pie Chart */}
+        {pieData.length > 0 && (
+          <div className="h-20 flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <RechartsPieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={18}
+                  outerRadius={35}
+                  dataKey="value"
+                  paddingAngle={2}
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'white', 
+                    border: 'none',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    fontSize: '11px'
+                  }}
+                />
+              </RechartsPieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
+      {/* Stats par statut */}
+      <div className="grid grid-cols-4 gap-2 mb-4">
+        <div className="text-center p-2 bg-green-50 rounded-lg">
+          <p className="text-lg font-bold text-green-600">{onTrack}</p>
+          <p className="text-xs text-green-700">En voie</p>
+        </div>
+        <div className="text-center p-2 bg-yellow-50 rounded-lg">
+          <p className="text-lg font-bold text-yellow-600">{atRisk}</p>
+          <p className="text-xs text-yellow-700">À risque</p>
+        </div>
+        <div className="text-center p-2 bg-red-50 rounded-lg">
+          <p className="text-lg font-bold text-red-600">{behind}</p>
+          <p className="text-xs text-red-700">En retard</p>
+        </div>
+        <div className="text-center p-2 bg-indigo-50 rounded-lg">
+          <p className="text-lg font-bold text-indigo-600">{exceeded + completed}</p>
+          <p className="text-xs text-indigo-700">Terminés</p>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-4 gap-2">
-        <div className="text-center p-2 bg-green-50 rounded-lg">
-          <p className="text-lg font-bold text-green-600">{stats.completed}</p>
-          <p className="text-xs text-green-700">Terminés</p>
+      {/* OKRs Critiques */}
+      {criticalOKRs.length > 0 && (
+        <div className="border-t pt-3">
+          <p className="text-xs font-medium text-gray-500 mb-2">🚨 OKRs à surveiller</p>
+          <div className="space-y-2">
+            {criticalOKRs.slice(0, 3).map((okr) => (
+              <div key={okr.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                <div className={`w-2 h-2 rounded-full ${okr.status === 'behind' ? 'bg-red-500' : 'bg-yellow-500'}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-gray-900 truncate">{okr.title}</p>
+                  <p className="text-xs text-gray-500">{okr.owner_name || 'Non assigné'}</p>
+                </div>
+                <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${getStatusColor(okr.status)}`}>
+                  {Math.round(okr.progress)}%
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="text-center p-2 bg-blue-50 rounded-lg">
-          <p className="text-lg font-bold text-blue-600">{stats.in_progress}</p>
-          <p className="text-xs text-blue-700">En cours</p>
+      )}
+
+      {/* Stats par niveau */}
+      {stats.by_level && Object.keys(stats.by_level).length > 0 && (
+        <div className="border-t pt-3 mt-3">
+          <p className="text-xs font-medium text-gray-500 mb-2">Par niveau</p>
+          <div className="flex gap-2">
+            {stats.by_level['enterprise'] && (
+              <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded-full">
+                🏢 {stats.by_level['enterprise']} Entreprise
+              </span>
+            )}
+            {stats.by_level['department'] && (
+              <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
+                👥 {stats.by_level['department']} Dépt
+              </span>
+            )}
+            {stats.by_level['individual'] && (
+              <span className="px-2 py-1 bg-teal-50 text-teal-700 text-xs rounded-full">
+                👤 {stats.by_level['individual']} Indiv
+              </span>
+            )}
+          </div>
         </div>
-        <div className="text-center p-2 bg-gray-50 rounded-lg">
-          <p className="text-lg font-bold text-gray-600">{stats.not_started}</p>
-          <p className="text-xs text-gray-700">À faire</p>
-        </div>
-        <div className="text-center p-2 bg-red-50 rounded-lg">
-          <p className="text-lg font-bold text-red-600">{stats.overdue}</p>
-          <p className="text-xs text-red-700">En retard</p>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -1140,7 +1228,11 @@ export default function DashboardPage() {
   const [departmentData, setDepartmentData] = useState<DepartmentData[]>([]);
   const [evolutionData, setEvolutionData] = useState<MonthlyData[]>([]);
   const [leavesData, setLeavesData] = useState<LeavesByMonth[]>([]);
-  const [okrStats, setOkrStats] = useState<OKRStats>({ total: 0, completed: 0, in_progress: 0, not_started: 0, overdue: 0, avg_progress: 0 });
+  const [okrStats, setOkrStats] = useState<OKRStats>({ 
+    total: 0, by_level: {}, by_status: {}, avg_progress: 0, 
+    completed: 0, in_progress: 0, not_started: 0, overdue: 0, by_department: {} 
+  });
+  const [criticalOKRs, setCriticalOKRs] = useState<OKRObjective[]>([]);
   const [myObjectives, setMyObjectives] = useState<MyObjectiveData[]>([]);
 
   const loadData = useCallback(async () => {
@@ -1200,7 +1292,8 @@ export default function DashboardPage() {
           getAllLeaveRequests().then(requests => {
             setLeavesData(calculateLeavesByMonth(requests));
           }),
-          getOKRStats().then(setOkrStats)
+          getOKRStats().then(setOkrStats),
+          getCriticalOKRs().then(setCriticalOKRs)
         );
       }
 
@@ -1256,7 +1349,7 @@ export default function DashboardPage() {
                 <EvolutionChartWidget data={evolutionData} />
                 <DepartmentChartWidget data={departmentData} />
                 <LeavesChartWidget data={leavesData} />
-                <OKRStatsWidget stats={okrStats} />
+                <OKRStatsWidget stats={okrStats} criticalOKRs={criticalOKRs} />
               </div>
             )}
 

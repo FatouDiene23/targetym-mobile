@@ -662,12 +662,37 @@ function KeyResultModal({
 // MAIN COMPONENT
 // ============================================
 
+type UserRole = 'employee' | 'manager' | 'rh' | 'admin' | 'dg';
+
+interface UserData {
+  employee_id?: number;
+  department_id?: number;
+  role?: string;
+  is_manager?: boolean;
+}
+
+function normalizeRole(role: string | undefined): UserRole {
+  if (!role) return 'employee';
+  const r = role.toLowerCase();
+  if (r === 'admin' || r === 'administrator') return 'admin';
+  if (r === 'dg' || r === 'director') return 'dg';
+  if (r === 'rh' || r === 'hr') return 'rh';
+  if (r === 'manager') return 'manager';
+  return 'employee';
+}
+
 export default function OKRPage() {
   const [loading, setLoading] = useState(true);
   const [objectives, setObjectives] = useState<Objective[]>([]);
   const [stats, setStats] = useState<OKRStats | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  
+  // User context for role-based filtering
+  const [userRole, setUserRole] = useState<UserRole>('employee');
+  const [userDepartmentId, setUserDepartmentId] = useState<number | null>(null);
+  const [userEmployeeId, setUserEmployeeId] = useState<number | null>(null);
+  const [isManager, setIsManager] = useState(false);
   
   const [activeTab, setActiveTab] = useState<'list' | 'cascade' | 'dashboard'>('list');
   const [filterLevel, setFilterLevel] = useState('all');
@@ -680,6 +705,28 @@ export default function OKRPage() {
   const [krObjectiveId, setKrObjectiveId] = useState<number>(0);
   const [editingKR, setEditingKR] = useState<KeyResult | null>(null);
 
+  // Load user data on mount
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const userData: UserData = JSON.parse(userStr);
+        setUserRole(normalizeRole(userData.role));
+        setUserDepartmentId(userData.department_id || null);
+        setUserEmployeeId(userData.employee_id || null);
+        setIsManager(userData.is_manager || userData.role?.toLowerCase() === 'manager');
+      } catch (e) {
+        console.error('Error parsing user:', e);
+      }
+    }
+  }, []);
+
+  // Check if user can see all OKRs (RH, Admin, DG)
+  const canSeeAll = ['rh', 'admin', 'dg'].includes(userRole);
+  
+  // Check if user can create/edit OKRs
+  const canEdit = ['manager', 'rh', 'admin', 'dg'].includes(userRole) || isManager;
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -689,7 +736,27 @@ export default function OKRPage() {
         fetchDepartments(),
         fetchEmployees(),
       ]);
-      setObjectives(objData.items.map(o => ({ ...o, expanded: false })));
+      
+      // Filter objectives based on role
+      let filteredObjectives = objData.items;
+      
+      if (!canSeeAll && userDepartmentId) {
+        // Manager: sees enterprise OKRs + their department OKRs + their individual OKRs
+        filteredObjectives = objData.items.filter(obj => {
+          // Always show enterprise-level OKRs (for context)
+          if (obj.level === 'enterprise') return true;
+          // Show department OKRs for user's department
+          if (obj.level === 'department' && obj.department_id === userDepartmentId) return true;
+          // Show individual OKRs for user's department or owned by user
+          if (obj.level === 'individual') {
+            if (obj.department_id === userDepartmentId) return true;
+            if (obj.owner_id === userEmployeeId) return true;
+          }
+          return false;
+        });
+      }
+      
+      setObjectives(filteredObjectives.map(o => ({ ...o, expanded: false })));
       setStats(statsData);
       setDepartments(deptData);
       setEmployees(empData);
@@ -698,7 +765,7 @@ export default function OKRPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterLevel, filterPeriod]);
+  }, [filterLevel, filterPeriod, canSeeAll, userDepartmentId, userEmployeeId]);
 
   useEffect(() => {
     loadData();
@@ -771,7 +838,12 @@ export default function OKRPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <h1 className="text-2xl font-bold text-gray-900">OKR & Objectifs</h1>
-        <p className="text-sm text-gray-500">Pilotage stratégique - Alignement Entreprise → Département → Individuel</p>
+        <p className="text-sm text-gray-500">
+          {canSeeAll 
+            ? 'Pilotage stratégique - Alignement Entreprise → Département → Individuel'
+            : 'Vue de votre département - OKRs Entreprise et Département'
+          }
+        </p>
       </div>
 
       <main className="p-6">
@@ -848,12 +920,14 @@ export default function OKRPage() {
             >
               <Download className="w-4 h-4 mr-2" />Exporter
             </button>
-            <button 
-              onClick={() => { setEditingObjective(null); setShowObjectiveModal(true); }}
-              className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600"
-            >
-              <Plus className="w-4 h-4 mr-2" />Nouvel OKR
-            </button>
+            {canEdit && (
+              <button 
+                onClick={() => { setEditingObjective(null); setShowObjectiveModal(true); }}
+                className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600"
+              >
+                <Plus className="w-4 h-4 mr-2" />Nouvel OKR
+              </button>
+            )}
           </div>
         </div>
 
@@ -911,27 +985,29 @@ export default function OKRPage() {
                                 <div className={`h-full rounded-full ${getProgressColor(obj.progress)}`} style={{ width: `${Math.min(obj.progress, 100)}%` }} />
                               </div>
                             </div>
-                            <div className="relative">
-                              <button 
-                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingObjective(obj);
-                                  setShowObjectiveModal(true);
-                                }}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button 
-                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteObjective(obj.id);
-                                }}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
+                            {canEdit && (
+                              <div className="relative">
+                                <button 
+                                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingObjective(obj);
+                                    setShowObjectiveModal(true);
+                                  }}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button 
+                                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteObjective(obj.id);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -940,12 +1016,14 @@ export default function OKRPage() {
                         <div className="border-t border-gray-100 bg-gray-50 p-4">
                           <div className="flex items-center justify-between mb-3">
                             <h4 className="text-sm font-semibold text-gray-700">Résultats Clés ({obj.key_results.length})</h4>
-                            <button 
-                              onClick={() => { setKrObjectiveId(obj.id); setEditingKR(null); setShowKRModal(true); }}
-                              className="flex items-center text-sm text-primary-600 hover:text-primary-700 font-medium"
-                            >
-                              <Plus className="w-4 h-4 mr-1" />Ajouter un KR
-                            </button>
+                            {canEdit && (
+                              <button 
+                                onClick={() => { setKrObjectiveId(obj.id); setEditingKR(null); setShowKRModal(true); }}
+                                className="flex items-center text-sm text-primary-600 hover:text-primary-700 font-medium"
+                              >
+                                <Plus className="w-4 h-4 mr-1" />Ajouter un KR
+                              </button>
+                            )}
                           </div>
                           
                           {obj.key_results.length === 0 ? (
@@ -959,18 +1037,22 @@ export default function OKRPage() {
                                     <div className="flex items-center gap-2">
                                       <span className="text-xs text-gray-500">Poids: {kr.weight}%</span>
                                       <span className="text-sm font-medium text-gray-700">{kr.current} / {kr.target} {kr.unit}</span>
-                                      <button 
-                                        onClick={() => { setKrObjectiveId(obj.id); setEditingKR(kr); setShowKRModal(true); }}
-                                        className="p-1 text-gray-400 hover:text-gray-600"
-                                      >
-                                        <Edit className="w-3 h-3" />
-                                      </button>
-                                      <button 
-                                        onClick={() => handleDeleteKR(kr.id)}
-                                        className="p-1 text-gray-400 hover:text-red-600"
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </button>
+                                      {canEdit && (
+                                        <>
+                                          <button 
+                                            onClick={() => { setKrObjectiveId(obj.id); setEditingKR(kr); setShowKRModal(true); }}
+                                            className="p-1 text-gray-400 hover:text-gray-600"
+                                          >
+                                            <Edit className="w-3 h-3" />
+                                          </button>
+                                          <button 
+                                            onClick={() => handleDeleteKR(kr.id)}
+                                            className="p-1 text-gray-400 hover:text-red-600"
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </button>
+                                        </>
+                                      )}
                                     </div>
                                   </div>
                                   <div className="w-full h-2 bg-gray-200 rounded-full">

@@ -303,6 +303,7 @@ function ObjectiveModal({
   departments,
   employees,
   parentObjectives,
+  canCreateEnterprise = true,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -311,6 +312,7 @@ function ObjectiveModal({
   departments: Department[];
   employees: Employee[];
   parentObjectives: Objective[];
+  canCreateEnterprise?: boolean;
 }) {
   const [formData, setFormData] = useState({
     title: '',
@@ -340,7 +342,7 @@ function ObjectiveModal({
       setFormData({
         title: '',
         description: '',
-        level: 'individual',
+        level: canCreateEnterprise ? 'individual' : 'department',
         owner_id: undefined,
         department_id: undefined,
         parent_id: undefined,
@@ -348,7 +350,7 @@ function ObjectiveModal({
         status: 'draft',
       });
     }
-  }, [objective, isOpen]);
+  }, [objective, isOpen, canCreateEnterprise]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -408,7 +410,7 @@ function ObjectiveModal({
                 onChange={(e) => setFormData({ ...formData, level: e.target.value as 'enterprise' | 'department' | 'individual' })}
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               >
-                <option value="enterprise">Entreprise</option>
+                {canCreateEnterprise && <option value="enterprise">Entreprise</option>}
                 <option value="department">Département</option>
                 <option value="individual">Individuel</option>
               </select>
@@ -763,8 +765,30 @@ export default function OKRPage() {
   // Check if user can see all OKRs (RH, Admin, DG)
   const canSeeAll = ['rh', 'admin', 'dg'].includes(userRole);
   
-  // Check if user can create/edit OKRs
+  // Check if user can create/edit OKRs (general permission)
   const canEdit = ['manager', 'rh', 'admin', 'dg'].includes(userRole) || isManager;
+  
+  // Check if user can edit a specific OKR
+  const canEditObjective = (obj: Objective): boolean => {
+    // RH, Admin, DG can edit everything
+    if (['rh', 'admin', 'dg'].includes(userRole)) return true;
+    
+    // Managers cannot edit Enterprise-level OKRs
+    if (obj.level === 'enterprise') return false;
+    
+    // Managers can edit Department OKRs of their department
+    if (obj.level === 'department') {
+      return userDepartmentId !== null && obj.department_id === userDepartmentId;
+    }
+    
+    // Managers can edit Individual OKRs of their department or their own
+    if (obj.level === 'individual') {
+      if (userDepartmentId !== null && obj.department_id === userDepartmentId) return true;
+      if (userEmployeeId !== null && obj.owner_id === userEmployeeId) return true;
+    }
+    
+    return false;
+  };
 
   const loadData = useCallback(async () => {
     // Attendre que les données utilisateur soient chargées
@@ -1040,7 +1064,7 @@ export default function OKRPage() {
                                 <div className={`h-full rounded-full ${getProgressColor(obj.progress)}`} style={{ width: `${Math.min(obj.progress, 100)}%` }} />
                               </div>
                             </div>
-                            {canEdit && (
+                            {canEditObjective(obj) && (
                               <div className="relative">
                                 <button 
                                   className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
@@ -1071,7 +1095,7 @@ export default function OKRPage() {
                         <div className="border-t border-gray-100 bg-gray-50 p-4">
                           <div className="flex items-center justify-between mb-3">
                             <h4 className="text-sm font-semibold text-gray-700">Résultats Clés ({obj.key_results.length})</h4>
-                            {canEdit && (
+                            {canEditObjective(obj) && (
                               <button 
                                 onClick={() => { setKrObjectiveId(obj.id); setEditingKR(null); setShowKRModal(true); }}
                                 className="flex items-center text-sm text-primary-600 hover:text-primary-700 font-medium"
@@ -1092,7 +1116,7 @@ export default function OKRPage() {
                                     <div className="flex items-center gap-2">
                                       <span className="text-xs text-gray-500">Poids: {kr.weight}%</span>
                                       <span className="text-sm font-medium text-gray-700">{kr.current} / {kr.target} {kr.unit}</span>
-                                      {canEdit && (
+                                      {canEditObjective(obj) && (
                                         <>
                                           <button 
                                             onClick={() => { setKrObjectiveId(obj.id); setEditingKR(kr); setShowKRModal(true); }}
@@ -1374,6 +1398,7 @@ export default function OKRPage() {
         departments={departments}
         employees={employees}
         parentObjectives={objectives}
+        canCreateEnterprise={canSeeAll}
       />
       
       <KeyResultModal

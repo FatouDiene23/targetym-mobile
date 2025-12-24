@@ -389,11 +389,11 @@ function calculateLeavesByMonth(requests: LeaveRequest[]): LeavesByMonth[] {
         const startDate = new Date(req.start_date);
         return startDate >= monthStart && startDate <= monthEnd;
       })
-      .reduce((acc, req) => acc + req.days_requested, 0);
+      .reduce((acc, req) => acc + (req.days_requested || 0), 0);
     
     data.push({
       month: getMonthName(targetDate.getMonth()),
-      jours
+      jours: Math.round(jours)
     });
   }
   
@@ -821,7 +821,8 @@ function LeavesChartWidget({ data }: { data: LeavesByMonth[] }) {
                 boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                 fontSize: '12px'
               }}
-              formatter={(value: number) => [`${value} jours`, 'Congés']}
+              formatter={(value: number) => [`${Math.round(value)} jours`, 'Congés']}
+              labelFormatter={(label) => label}
             />
             <Bar dataKey="jours" name="Jours de congés" fill="url(#colorConges)" radius={[6, 6, 0, 0]} />
           </BarChart>

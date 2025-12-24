@@ -254,6 +254,42 @@ const getLevelColor = (l: string) => {
   return m[l] || 'bg-gray-100';
 };
 
+// Export OKRs to CSV
+function exportOKRsToCSV(objectives: Objective[]): void {
+  const headers = [
+    'Niveau', 'Titre', 'Département', 'Propriétaire', 'Période', 
+    'Progression', 'Statut', 'Key Results'
+  ];
+
+  const rows = objectives.map(obj => [
+    getLevelLabel(obj.level),
+    obj.title,
+    obj.department_name || '',
+    obj.owner_name || '',
+    obj.period,
+    `${Math.round(obj.progress)}%`,
+    getStatusLabel(obj.status),
+    obj.key_results.map(kr => `${kr.title}: ${kr.current}/${kr.target} ${kr.unit || ''}`).join(' | ')
+  ]);
+
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+  ].join('\n');
+
+  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute('href', url);
+  link.setAttribute('download', `okr_export_${new Date().toISOString().split('T')[0]}.csv`);
+  link.style.visibility = 'hidden';
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 // ============================================
 // COMPONENTS
 // ============================================
@@ -417,8 +453,8 @@ function ObjectiveModal({
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               >
                 <option value="">-- Aucun --</option>
-                {employees.map((e) => (
-                  <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>
+                {employees.map((emp) => (
+                  <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
                 ))}
               </select>
             </div>
@@ -794,7 +830,10 @@ export default function OKRPage() {
             </select>
           </div>
           <div className="flex gap-3">
-            <button className="flex items-center px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-50">
+            <button 
+              onClick={() => exportOKRsToCSV(objectives)}
+              className="flex items-center px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-50"
+            >
               <Download className="w-4 h-4 mr-2" />Exporter
             </button>
             <button 

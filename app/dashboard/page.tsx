@@ -1273,17 +1273,17 @@ export default function DashboardPage() {
       // HR/Admin data - Utilise les fonctions de lib/api.ts
       if (['rh', 'admin', 'dg'].includes(role)) {
         promises.push(
-          getHRStatsData().then(setHRStats),
-          getAllPendingRequests().then(setAllPendingRequests),
+          getHRStatsData().then(setHRStats).catch(() => {}),
+          getAllPendingRequests().then(setAllPendingRequests).catch(() => {}),
           getAllEmployees().then(employees => {
             setDepartmentData(calculateDepartmentData(employees));
             setEvolutionData(calculateMonthlyEvolution(employees));
-          }),
+          }).catch(() => {}),
           getAllLeaveRequests().then(requests => {
             setLeavesData(calculateLeavesByMonth(requests));
-          }),
-          getOKRStats().then(setOkrStats),
-          getCriticalOKRs().then(setCriticalOKRs)
+          }).catch(() => {}),
+          getOKRStats().then(setOkrStats).catch(() => {}),
+          getCriticalOKRs().then(setCriticalOKRs).catch(() => {})
         );
       }
 

@@ -727,8 +727,6 @@ export default function PerformancePage() {
   }, [loadData]);
 
   // Handlers
-  const [globalError, setGlobalError] = useState<string | null>(null);
-
   const handleCreateFeedback = async (data: { to_employee_id: number; type: string; message: string; is_public: boolean }): Promise<string | null> => {
     const result = await createFeedback(data);
     if (result.success) {

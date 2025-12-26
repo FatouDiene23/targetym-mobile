@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   TrendingUp, Star, Users, Calendar, ChevronRight, Plus, MessageSquare, Award, Target, CheckCircle,
-  Send, ThumbsUp, Eye, Edit, User, X, Loader2, Clock, AlertCircle, ExternalLink
+  Send, ThumbsUp, Eye, Edit, User, X, Loader2, ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
 import { 

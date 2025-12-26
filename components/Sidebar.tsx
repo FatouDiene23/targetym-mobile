@@ -87,7 +87,7 @@ const navigation: NavItem[] = [
     name: 'Performance & Feedback', 
     href: '/dashboard/performance', 
     icon: TrendingUp,
-    roles: ['manager', 'rh', 'admin', 'dg']
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg'] // ✅ Tous les employés peuvent accéder
   },
   { 
     name: 'People Analytics', 
@@ -156,7 +156,7 @@ const mySpaceNavigation: NavItem[] = [
 function normalizeRole(role: string | undefined): UserRole {
   if (!role) return 'employee';
   const r = role.toLowerCase().replace('_', '');
-  if (r === 'admin' || r === 'administrator') return 'admin';
+  if (r === 'admin' || r === 'administrator' || r === 'superadmin') return 'admin';
   if (r === 'dg' || r === 'director' || r === 'directeur') return 'dg';
   if (r === 'rh' || r === 'hr') return 'rh';
   if (r === 'manager') return 'manager';

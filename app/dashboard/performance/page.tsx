@@ -442,7 +442,7 @@ function FeedbackModal({ isOpen, onClose, onSubmit, employees }: {
       setType('recognition');
       setIsPublic(true);
       onClose();
-    } catch (err) {
+    } catch {
       setError('Erreur lors de l\'envoi du feedback');
     } finally {
       setSaving(false);

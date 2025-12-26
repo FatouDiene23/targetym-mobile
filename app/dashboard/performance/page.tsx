@@ -303,6 +303,19 @@ async function fetchEmployees(): Promise<Employee[]> {
   }
 }
 
+async function fetchDirectReports(employeeId: number): Promise<Employee[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/employees/${employeeId}/direct-reports`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data || [];
+  } catch {
+    return [];
+  }
+}
+
 // =============================================
 // HELPERS
 // =============================================
@@ -660,11 +673,13 @@ export default function PerformancePage() {
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [oneOnOnes, setOneOnOnes] = useState<OneOnOne[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [directReports, setDirectReports] = useState<Employee[]>([]);
   const [stats, setStats] = useState<PerformanceStats>(getMockStats());
   
   // User context
   const [userRole, setUserRole] = useState<UserRole>('admin'); // Default to admin for demo
   const [isManager, setIsManager] = useState(true);
+  const [currentEmployeeId, setCurrentEmployeeId] = useState<number | null>(null);
   
   // Modals
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -683,6 +698,7 @@ export default function PerformancePage() {
         const userData = JSON.parse(userStr);
         setUserRole(normalizeRole(userData.role));
         setIsManager(userData.is_manager || userData.role?.toLowerCase() === 'manager');
+        setCurrentEmployeeId(userData.employee_id || null);
       } catch (e) {
         console.error('Error parsing user:', e);
       }
@@ -708,6 +724,12 @@ export default function PerformancePage() {
       setEvaluations(evalData);
       setCampaigns(campaignData);
       setStats(statsData);
+      
+      // Charger les direct reports si manager
+      if (currentEmployeeId && isManager) {
+        const reports = await fetchDirectReports(currentEmployeeId);
+        setDirectReports(reports);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
       // Use mock data as fallback
@@ -720,7 +742,7 @@ export default function PerformancePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentEmployeeId, isManager]);
 
   useEffect(() => {
     loadData();
@@ -1130,7 +1152,7 @@ export default function PerformancePage() {
         isOpen={showOneOnOneModal} 
         onClose={() => setShowOneOnOneModal(false)} 
         onSubmit={handleCreateOneOnOne} 
-        employees={employees} 
+        employees={isHROrAdmin ? employees : (directReports.length > 0 ? directReports : employees)} 
       />
     </div>
   );

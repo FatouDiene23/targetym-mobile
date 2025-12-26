@@ -191,16 +191,20 @@ async function fetchFeedbacks(): Promise<FeedbackItem[]> {
   }
 }
 
-async function createFeedback(data: { to_employee_id: number; type: string; message: string; is_public: boolean }): Promise<boolean> {
+async function createFeedback(data: { to_employee_id: number; type: string; message: string; is_public: boolean }): Promise<{ success: boolean; error?: string }> {
   try {
     const response = await fetch(`${API_URL}/api/performance/feedbacks`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return response.ok;
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { success: false, error: errorData.detail || 'Erreur lors de la création du feedback' };
+    }
+    return { success: true };
   } catch {
-    return false;
+    return { success: false, error: 'Erreur de connexion au serveur' };
   }
 }
 
@@ -257,16 +261,20 @@ async function fetchOneOnOnes(): Promise<OneOnOne[]> {
   }
 }
 
-async function createOneOnOne(data: { employee_id: number; scheduled_date: string; duration_minutes: number; location?: string }): Promise<boolean> {
+async function createOneOnOne(data: { employee_id: number; scheduled_date: string; duration_minutes: number; location?: string }): Promise<{ success: boolean; error?: string }> {
   try {
     const response = await fetch(`${API_URL}/api/performance/one-on-ones`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return response.ok;
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { success: false, error: errorData.detail || 'Erreur lors de la planification du 1-on-1' };
+    }
+    return { success: true };
   } catch {
-    return false;
+    return { success: false, error: 'Erreur de connexion au serveur' };
   }
 }
 
@@ -410,7 +418,7 @@ const trendData = [
 function FeedbackModal({ isOpen, onClose, onSubmit, employees }: {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { to_employee_id: number; type: string; message: string; is_public: boolean }) => Promise<void>;
+  onSubmit: (data: { to_employee_id: number; type: string; message: string; is_public: boolean }) => Promise<string | null>;
   employees: Employee[];
 }) {
   const [toEmployeeId, setToEmployeeId] = useState<number | ''>('');
@@ -434,18 +442,19 @@ function FeedbackModal({ isOpen, onClose, onSubmit, employees }: {
     }
     
     setSaving(true);
-    try {
-      await onSubmit({ to_employee_id: Number(toEmployeeId), type, message, is_public: isPublic });
-      // Reset form
+    const errorMessage = await onSubmit({ to_employee_id: Number(toEmployeeId), type, message, is_public: isPublic });
+    setSaving(false);
+    
+    if (errorMessage) {
+      setError(errorMessage);
+    } else {
+      // Reset form et fermer
       setToEmployeeId('');
       setMessage('');
       setType('recognition');
       setIsPublic(true);
+      setError('');
       onClose();
-    } catch {
-      setError('Erreur lors de l\'envoi du feedback');
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -538,7 +547,7 @@ function FeedbackModal({ isOpen, onClose, onSubmit, employees }: {
 function OneOnOneModal({ isOpen, onClose, onSubmit, employees }: {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { employee_id: number; scheduled_date: string; duration_minutes: number; location?: string }) => Promise<void>;
+  onSubmit: (data: { employee_id: number; scheduled_date: string; duration_minutes: number; location?: string }) => Promise<string | null>;
   employees: Employee[];
 }) {
   const [employeeId, setEmployeeId] = useState<number | ''>('');
@@ -547,22 +556,33 @@ function OneOnOneModal({ isOpen, onClose, onSubmit, employees }: {
   const [duration, setDuration] = useState(30);
   const [location, setLocation] = useState('');
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     if (!employeeId || !date) return;
     
     setSaving(true);
-    try {
-      await onSubmit({
-        employee_id: Number(employeeId),
-        scheduled_date: `${date}T${time}:00`,
-        duration_minutes: duration,
-        location: location || undefined
-      });
+    const errorMessage = await onSubmit({
+      employee_id: Number(employeeId),
+      scheduled_date: `${date}T${time}:00`,
+      duration_minutes: duration,
+      location: location || undefined
+    });
+    setSaving(false);
+    
+    if (errorMessage) {
+      setError(errorMessage);
+    } else {
+      // Reset et fermer
+      setEmployeeId('');
+      setDate('');
+      setTime('14:00');
+      setDuration(30);
+      setLocation('');
+      setError('');
       onClose();
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -576,6 +596,11 @@ function OneOnOneModal({ isOpen, onClose, onSubmit, employees }: {
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
+              {error}
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Collaborateur *</label>
             <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value ? Number(e.target.value) : '')} className="w-full px-3 py-2 border rounded-lg text-sm" required>
@@ -702,27 +727,15 @@ export default function PerformancePage() {
   }, [loadData]);
 
   // Handlers
-  const handleCreateFeedback = async (data: { to_employee_id: number; type: string; message: string; is_public: boolean }) => {
-    const success = await createFeedback(data);
-    if (success) {
+  const [globalError, setGlobalError] = useState<string | null>(null);
+
+  const handleCreateFeedback = async (data: { to_employee_id: number; type: string; message: string; is_public: boolean }): Promise<string | null> => {
+    const result = await createFeedback(data);
+    if (result.success) {
       await loadData();
+      return null; // Pas d'erreur
     } else {
-      // Add mock feedback for demo
-      const newFeedback: FeedbackItem = {
-        id: Date.now(),
-        from_employee_id: 1,
-        from_employee_name: 'Admin Test',
-        from_employee_initials: 'AT',
-        to_employee_id: data.to_employee_id,
-        to_employee_name: employees.find(e => e.id === data.to_employee_id)?.first_name + ' ' + employees.find(e => e.id === data.to_employee_id)?.last_name || 'Employé',
-        to_employee_initials: (employees.find(e => e.id === data.to_employee_id)?.first_name?.[0] || '') + (employees.find(e => e.id === data.to_employee_id)?.last_name?.[0] || ''),
-        type: data.type as 'recognition' | 'improvement' | 'general',
-        message: data.message,
-        is_public: data.is_public,
-        likes_count: 0,
-        created_at: new Date().toISOString(),
-      };
-      setFeedbacks(prev => [newFeedback, ...prev]);
+      return result.error || 'Erreur lors de la création du feedback';
     }
   };
 
@@ -744,10 +757,13 @@ export default function PerformancePage() {
     }
   };
 
-  const handleCreateOneOnOne = async (data: { employee_id: number; scheduled_date: string; duration_minutes: number; location?: string }) => {
-    const success = await createOneOnOne(data);
-    if (success) {
+  const handleCreateOneOnOne = async (data: { employee_id: number; scheduled_date: string; duration_minutes: number; location?: string }): Promise<string | null> => {
+    const result = await createOneOnOne(data);
+    if (result.success) {
       await loadData();
+      return null;
+    } else {
+      return result.error || 'Erreur lors de la planification du 1-on-1';
     }
   };
 

@@ -90,6 +90,7 @@ interface PerformanceStats {
   feedbacks_this_month: number;
   okr_achievement_avg: number;
   one_on_ones_this_week: number;
+  top_feedback_givers?: { name: string; count: number }[];
 }
 
 // =============================================
@@ -107,6 +108,73 @@ function getAuthHeaders(): HeadersInit {
 }
 
 // =============================================
+// MOCK DATA
+// =============================================
+
+function getMockFeedbacks(): FeedbackItem[] {
+  return [
+    { id: 1, from_employee_id: 1, from_employee_name: 'Fatou Ndiaye', from_employee_initials: 'FN', to_employee_id: 2, to_employee_name: 'Aissatou Ba', to_employee_initials: 'AB', type: 'recognition', message: 'Excellent travail sur le module Analytics ! Ta rigueur et ta créativité ont vraiment fait la différence.', is_public: true, likes_count: 8, created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
+    { id: 2, from_employee_id: 3, from_employee_name: 'Amadou Diallo', from_employee_initials: 'AD', to_employee_id: 4, to_employee_name: 'Moussa Sow', to_employee_initials: 'MS', type: 'recognition', message: 'Merci pour ton leadership sur le projet TARGETYM. Ta capacité à coordonner l\'équipe sous pression est remarquable.', is_public: true, likes_count: 12, created_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
+    { id: 3, from_employee_id: 5, from_employee_name: 'Ibrahima Fall', from_employee_initials: 'IF', to_employee_id: 6, to_employee_name: 'Ousmane Sy', to_employee_initials: 'OS', type: 'improvement', message: 'Je suggère de travailler sur la présentation des rapports commerciaux pour plus de clarté.', is_public: true, likes_count: 3, created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
+    { id: 4, from_employee_id: 2, from_employee_name: 'Aissatou Ba', from_employee_initials: 'AB', to_employee_id: 7, to_employee_name: 'Mamadou Mbaye', to_employee_initials: 'MM', type: 'recognition', message: 'Bravo pour ta montée en compétences sur React ! En 6 mois, tu as fait des progrès impressionnants.', is_public: true, likes_count: 5, created_at: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString() },
+  ];
+}
+
+function getMockCampaigns(): EvaluationCampaign[] {
+  return [
+    { id: 1, name: 'Évaluation Annuelle 2024', type: 'annual', status: 'active', start_date: '2024-12-01', end_date: '2024-12-31', total_evaluations: 48, completed_evaluations: 33, progress_percentage: 68 },
+    { id: 2, name: 'Feedback 360° - Direction', type: '360', status: 'active', start_date: '2024-12-01', end_date: '2024-12-20', total_evaluations: 12, completed_evaluations: 5, progress_percentage: 45 },
+    { id: 3, name: 'Évaluation Mi-Année 2024', type: 'mid_year', status: 'completed', start_date: '2024-06-01', end_date: '2024-06-30', total_evaluations: 45, completed_evaluations: 45, progress_percentage: 100 },
+  ];
+}
+
+function getMockEvaluations(): Evaluation[] {
+  return [
+    { id: 1, employee_id: 1, employee_name: 'Aissatou Ba', employee_initials: 'AB', employee_department: 'Technologie', employee_job_title: 'Lead Developer', type: 'self', status: 'validated', overall_score: 4.6, due_date: '2024-12-15', scores: { 'Compétences techniques': { score: 95 }, 'Leadership': { score: 85 }, 'Communication': { score: 90 } } },
+    { id: 2, employee_id: 2, employee_name: 'Moussa Sow', employee_initials: 'MS', employee_department: 'Technologie', employee_job_title: 'Chef de Projet', type: 'manager', status: 'in_progress', due_date: '2024-12-20', scores: { 'Gestion projet': { score: 88 }, 'Leadership': { score: 82 } } },
+    { id: 3, employee_id: 3, employee_name: 'Ousmane Sy', employee_initials: 'OS', employee_department: 'Commercial', employee_job_title: 'Commercial Senior', type: '360', status: 'pending', due_date: '2024-12-22' },
+    { id: 4, employee_id: 4, employee_name: 'Mamadou Mbaye', employee_initials: 'MM', employee_department: 'Technologie', employee_job_title: 'Développeur Junior', type: 'self', status: 'in_progress', due_date: '2024-12-31', scores: { 'Compétences techniques': { score: 78 }, 'Apprentissage': { score: 95 } } },
+  ];
+}
+
+function getMockOneOnOnes(): OneOnOne[] {
+  return [
+    { id: 1, employee_id: 1, employee_name: 'Aissatou Ba', employee_initials: 'AB', manager_id: 2, manager_name: 'Amadou Diallo', scheduled_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), duration_minutes: 30, location: 'Bureau', status: 'scheduled', action_items: ['Discuter promotion', 'Plan formation Q1'] },
+    { id: 2, employee_id: 3, employee_name: 'Mamadou Mbaye', employee_initials: 'MM', manager_id: 1, manager_name: 'Aissatou Ba', scheduled_date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), duration_minutes: 30, location: 'Visio', status: 'completed', notes: 'Progrès excellents sur React.', action_items: ['Assigner feature auth'] },
+    { id: 3, employee_id: 4, employee_name: 'Ousmane Sy', employee_initials: 'OS', manager_id: 5, manager_name: 'Ibrahima Fall', scheduled_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), duration_minutes: 45, location: 'Salle Baobab', status: 'scheduled', action_items: ['Review pipeline Q4', 'Objectifs 2025'] },
+  ];
+}
+
+function getMockEmployees(): Employee[] {
+  return [
+    { id: 1, first_name: 'Fatou', last_name: 'Ndiaye' },
+    { id: 2, first_name: 'Aissatou', last_name: 'Ba' },
+    { id: 3, first_name: 'Amadou', last_name: 'Diallo' },
+    { id: 4, first_name: 'Moussa', last_name: 'Sow' },
+    { id: 5, first_name: 'Ibrahima', last_name: 'Fall' },
+    { id: 6, first_name: 'Ousmane', last_name: 'Sy' },
+    { id: 7, first_name: 'Mamadou', last_name: 'Mbaye' },
+    { id: 8, first_name: 'Aminata', last_name: 'Diop' },
+  ];
+}
+
+function getMockStats(): PerformanceStats {
+  return {
+    avg_score: 4.2,
+    evaluations_total: 48,
+    evaluations_completed: 33,
+    feedbacks_this_month: 127,
+    okr_achievement_avg: 78,
+    one_on_ones_this_week: 12,
+    top_feedback_givers: [
+      { name: 'Fatou Ndiaye', count: 24 },
+      { name: 'Amadou Diallo', count: 18 },
+      { name: 'Aissatou Ba', count: 15 },
+    ]
+  };
+}
+
+// =============================================
 // API FUNCTIONS
 // =============================================
 
@@ -115,9 +183,9 @@ async function fetchFeedbacks(): Promise<FeedbackItem[]> {
     const response = await fetch(`${API_URL}/api/performance/feedbacks?page_size=50`, {
       headers: getAuthHeaders(),
     });
-    if (!response.ok) return getMockFeedbacks();
+    if (!response.ok) throw new Error('API error');
     const data = await response.json();
-    return data.items || [];
+    return data.items?.length > 0 ? data.items : getMockFeedbacks();
   } catch {
     return getMockFeedbacks();
   }
@@ -155,9 +223,9 @@ async function fetchCampaigns(): Promise<EvaluationCampaign[]> {
     const response = await fetch(`${API_URL}/api/performance/campaigns?page_size=50`, {
       headers: getAuthHeaders(),
     });
-    if (!response.ok) return getMockCampaigns();
+    if (!response.ok) throw new Error('API error');
     const data = await response.json();
-    return data.items || [];
+    return data.items?.length > 0 ? data.items : getMockCampaigns();
   } catch {
     return getMockCampaigns();
   }
@@ -168,9 +236,9 @@ async function fetchEvaluations(): Promise<Evaluation[]> {
     const response = await fetch(`${API_URL}/api/performance/evaluations?page_size=50`, {
       headers: getAuthHeaders(),
     });
-    if (!response.ok) return getMockEvaluations();
+    if (!response.ok) throw new Error('API error');
     const data = await response.json();
-    return data.items || [];
+    return data.items?.length > 0 ? data.items : getMockEvaluations();
   } catch {
     return getMockEvaluations();
   }
@@ -181,15 +249,15 @@ async function fetchOneOnOnes(): Promise<OneOnOne[]> {
     const response = await fetch(`${API_URL}/api/performance/one-on-ones?page_size=50`, {
       headers: getAuthHeaders(),
     });
-    if (!response.ok) return getMockOneOnOnes();
+    if (!response.ok) throw new Error('API error');
     const data = await response.json();
-    return data.items || [];
+    return data.items?.length > 0 ? data.items : getMockOneOnOnes();
   } catch {
     return getMockOneOnOnes();
   }
 }
 
-async function createOneOnOne(data: { employee_id: number; scheduled_date: string; duration_minutes: number; location?: string; topics?: string[] }): Promise<boolean> {
+async function createOneOnOne(data: { employee_id: number; scheduled_date: string; duration_minutes: number; location?: string }): Promise<boolean> {
   try {
     const response = await fetch(`${API_URL}/api/performance/one-on-ones`, {
       method: 'POST',
@@ -207,7 +275,7 @@ async function fetchStats(): Promise<PerformanceStats> {
     const response = await fetch(`${API_URL}/api/performance/stats`, {
       headers: getAuthHeaders(),
     });
-    if (!response.ok) return getMockStats();
+    if (!response.ok) throw new Error('API error');
     return response.json();
   } catch {
     return getMockStats();
@@ -219,61 +287,12 @@ async function fetchEmployees(): Promise<Employee[]> {
     const response = await fetch(`${API_URL}/api/employees/?page_size=200&status=active`, {
       headers: getAuthHeaders(),
     });
-    if (!response.ok) return [];
+    if (!response.ok) throw new Error('API error');
     const data = await response.json();
-    return data.items || [];
+    return data.items?.length > 0 ? data.items : getMockEmployees();
   } catch {
-    return [];
+    return getMockEmployees();
   }
-}
-
-// =============================================
-// MOCK DATA (fallback si API pas encore prête)
-// =============================================
-
-function getMockFeedbacks(): FeedbackItem[] {
-  return [
-    { id: 1, from_employee_id: 1, from_employee_name: 'Fatou Ndiaye', from_employee_initials: 'FN', to_employee_id: 2, to_employee_name: 'Aissatou Ba', to_employee_initials: 'AB', type: 'recognition', message: 'Excellent travail sur le module Analytics ! Ta rigueur et ta créativité ont vraiment fait la différence.', is_public: true, likes_count: 8, created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
-    { id: 2, from_employee_id: 3, from_employee_name: 'Amadou Diallo', from_employee_initials: 'AD', to_employee_id: 4, to_employee_name: 'Moussa Sow', to_employee_initials: 'MS', type: 'recognition', message: 'Merci pour ton leadership sur le projet TARGETYM. Ta capacité à coordonner l\'équipe sous pression est remarquable.', is_public: true, likes_count: 12, created_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
-    { id: 3, from_employee_id: 5, from_employee_name: 'Ibrahima Fall', from_employee_initials: 'IF', to_employee_id: 6, to_employee_name: 'Ousmane Sy', to_employee_initials: 'OS', type: 'improvement', message: 'Je suggère de travailler sur la présentation des rapports commerciaux.', is_public: false, likes_count: 0, created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
-    { id: 4, from_employee_id: 2, from_employee_name: 'Aissatou Ba', from_employee_initials: 'AB', to_employee_id: 7, to_employee_name: 'Mamadou Mbaye', to_employee_initials: 'MM', type: 'recognition', message: 'Bravo pour ta montée en compétences sur React ! En 6 mois, tu as fait des progrès impressionnants.', is_public: true, likes_count: 5, created_at: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString() },
-  ];
-}
-
-function getMockCampaigns(): EvaluationCampaign[] {
-  return [
-    { id: 1, name: 'Évaluation Annuelle 2024', type: 'annual', status: 'active', start_date: '2024-12-01', end_date: '2024-12-31', total_evaluations: 48, completed_evaluations: 33, progress_percentage: 68 },
-    { id: 2, name: 'Feedback 360° - Direction', type: '360', status: 'active', start_date: '2024-12-01', end_date: '2024-12-20', total_evaluations: 12, completed_evaluations: 5, progress_percentage: 45 },
-    { id: 3, name: 'Évaluation Mi-Année 2024', type: 'mid_year', status: 'completed', start_date: '2024-06-01', end_date: '2024-06-30', total_evaluations: 45, completed_evaluations: 45, progress_percentage: 100 },
-  ];
-}
-
-function getMockEvaluations(): Evaluation[] {
-  return [
-    { id: 1, employee_id: 1, employee_name: 'Aissatou Ba', employee_initials: 'AB', employee_department: 'Technologie', employee_job_title: 'Lead Developer', type: 'self', status: 'validated', overall_score: 4.6, due_date: '2024-12-15', scores: { 'Compétences techniques': { score: 95 }, 'Leadership': { score: 85 }, 'Communication': { score: 90 } } },
-    { id: 2, employee_id: 2, employee_name: 'Moussa Sow', employee_initials: 'MS', employee_department: 'Technologie', employee_job_title: 'Chef de Projet', type: 'manager', status: 'in_progress', due_date: '2024-12-20', scores: { 'Gestion projet': { score: 88 }, 'Leadership': { score: 82 } } },
-    { id: 3, employee_id: 3, employee_name: 'Ousmane Sy', employee_initials: 'OS', employee_department: 'Commercial', employee_job_title: 'Commercial Senior', type: '360', status: 'pending', due_date: '2024-12-22' },
-    { id: 4, employee_id: 4, employee_name: 'Mamadou Mbaye', employee_initials: 'MM', employee_department: 'Technologie', employee_job_title: 'Développeur Junior', type: 'self', status: 'in_progress', due_date: '2024-12-31', scores: { 'Compétences techniques': { score: 78 }, 'Apprentissage': { score: 95 } } },
-  ];
-}
-
-function getMockOneOnOnes(): OneOnOne[] {
-  return [
-    { id: 1, employee_id: 1, employee_name: 'Aissatou Ba', employee_initials: 'AB', manager_id: 2, manager_name: 'Amadou Diallo', scheduled_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), duration_minutes: 30, location: 'Bureau', status: 'scheduled', action_items: ['Discuter promotion', 'Plan formation Q1'] },
-    { id: 2, employee_id: 3, employee_name: 'Mamadou Mbaye', employee_initials: 'MM', manager_id: 1, manager_name: 'Aissatou Ba', scheduled_date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), duration_minutes: 30, location: 'Visio', status: 'completed', notes: 'Progrès excellents sur React.', action_items: ['Assigner feature auth'] },
-    { id: 3, employee_id: 4, employee_name: 'Ousmane Sy', employee_initials: 'OS', manager_id: 5, manager_name: 'Ibrahima Fall', scheduled_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), duration_minutes: 45, location: 'Salle Baobab', status: 'scheduled', action_items: ['Review pipeline Q4', 'Objectifs 2025'] },
-  ];
-}
-
-function getMockStats(): PerformanceStats {
-  return {
-    avg_score: 4.2,
-    evaluations_total: 48,
-    evaluations_completed: 33,
-    feedbacks_this_month: 127,
-    okr_achievement_avg: 78,
-    one_on_ones_this_week: 12
-  };
 }
 
 // =============================================
@@ -399,18 +418,32 @@ function FeedbackModal({ isOpen, onClose, onSubmit, employees }: {
   const [message, setMessage] = useState('');
   const [isPublic, setIsPublic] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!toEmployeeId || !message.trim()) return;
+    setError('');
+    
+    if (!toEmployeeId) {
+      setError('Veuillez sélectionner un collaborateur');
+      return;
+    }
+    if (message.trim().length < 10) {
+      setError('Le message doit faire au moins 10 caractères');
+      return;
+    }
     
     setSaving(true);
     try {
       await onSubmit({ to_employee_id: Number(toEmployeeId), type, message, is_public: isPublic });
+      // Reset form
       setToEmployeeId('');
       setMessage('');
       setType('recognition');
       setIsPublic(true);
+      onClose();
+    } catch (err) {
+      setError('Erreur lors de l\'envoi du feedback');
     } finally {
       setSaving(false);
     }
@@ -419,25 +452,45 @@ function FeedbackModal({ isOpen, onClose, onSubmit, employees }: {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
         <div className="p-5 border-b flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-900">Donner un Feedback</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
+              {error}
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">À qui ? *</label>
-            <select value={toEmployeeId} onChange={(e) => setToEmployeeId(e.target.value ? Number(e.target.value) : '')} className="w-full px-3 py-2 border rounded-lg text-sm" required>
+            <select 
+              value={toEmployeeId} 
+              onChange={(e) => setToEmployeeId(e.target.value ? Number(e.target.value) : '')} 
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
               <option value="">Sélectionner un collaborateur...</option>
-              {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}
+              {employees.map(emp => (
+                <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
+              ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Type de feedback</label>
             <div className="flex gap-2">
               {(['recognition', 'improvement', 'general'] as const).map(t => (
-                <button key={t} type="button" onClick={() => setType(t)} className={`flex-1 px-3 py-2 border-2 text-sm rounded-lg ${type === t ? (t === 'recognition' ? 'border-green-500 bg-green-50' : t === 'improvement' ? 'border-orange-500 bg-orange-50' : 'border-blue-500 bg-blue-50') : 'border-gray-300'}`}>
+                <button 
+                  key={t} 
+                  type="button" 
+                  onClick={() => setType(t)} 
+                  className={`flex-1 px-3 py-2 border-2 text-sm rounded-lg transition-colors ${
+                    type === t 
+                      ? (t === 'recognition' ? 'border-green-500 bg-green-50 text-green-700' : t === 'improvement' ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-blue-500 bg-blue-50 text-blue-700') 
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
                   {t === 'recognition' ? '🎉 Reconnaissance' : t === 'improvement' ? '💡 Suggestion' : '💬 Général'}
                 </button>
               ))}
@@ -445,15 +498,33 @@ function FeedbackModal({ isOpen, onClose, onSubmit, employees }: {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Message *</label>
-            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Écrivez votre feedback..." required minLength={10} />
+            <textarea 
+              value={message} 
+              onChange={(e) => setMessage(e.target.value)} 
+              rows={4} 
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" 
+              placeholder="Écrivez votre feedback... (minimum 10 caractères)"
+            />
+            <p className="text-xs text-gray-500 mt-1">{message.length}/2000 caractères</p>
           </div>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="rounded" />
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={isPublic} 
+              onChange={(e) => setIsPublic(e.target.checked)} 
+              className="w-4 h-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500" 
+            />
             <span className="text-sm text-gray-600">Feedback public (visible par tous)</span>
           </label>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-50">Annuler</button>
-            <button type="submit" disabled={saving} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 flex items-center disabled:opacity-50">
+            <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50">
+              Annuler
+            </button>
+            <button 
+              type="submit" 
+              disabled={saving} 
+              className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
               Envoyer
             </button>
@@ -498,8 +569,8 @@ function OneOnOneModal({ isOpen, onClose, onSubmit, employees }: {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="p-5 border-b flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-900">Planifier un 1-on-1</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
@@ -564,11 +635,11 @@ export default function PerformancePage() {
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [oneOnOnes, setOneOnOnes] = useState<OneOnOne[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [stats, setStats] = useState<PerformanceStats | null>(null);
+  const [stats, setStats] = useState<PerformanceStats>(getMockStats());
   
   // User context
-  const [userRole, setUserRole] = useState<UserRole>('employee');
-  const [isManager, setIsManager] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole>('admin'); // Default to admin for demo
+  const [isManager, setIsManager] = useState(true);
   
   // Modals
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -597,38 +668,34 @@ export default function PerformancePage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [feedbackData, employeeData, oneOnOneData] = await Promise.all([
+      const [feedbackData, employeeData, oneOnOneData, evalData, campaignData, statsData] = await Promise.all([
         fetchFeedbacks(),
         fetchEmployees(),
         fetchOneOnOnes(),
+        fetchEvaluations(),
+        fetchCampaigns(),
+        fetchStats(),
       ]);
       
       setFeedbacks(feedbackData);
       setEmployees(employeeData);
       setOneOnOnes(oneOnOneData);
-      
-      // Load additional data for HR/Admin
-      if (isHROrAdmin) {
-        const [campaignData, evalData, statsData] = await Promise.all([
-          fetchCampaigns(),
-          fetchEvaluations(),
-          fetchStats(),
-        ]);
-        setCampaigns(campaignData);
-        setEvaluations(evalData);
-        setStats(statsData);
-      } else {
-        // For regular employees, load their evaluations
-        const evalData = await fetchEvaluations();
-        setEvaluations(evalData);
-        setStats(getMockStats());
-      }
+      setEvaluations(evalData);
+      setCampaigns(campaignData);
+      setStats(statsData);
     } catch (error) {
       console.error('Error loading data:', error);
+      // Use mock data as fallback
+      setFeedbacks(getMockFeedbacks());
+      setEmployees(getMockEmployees());
+      setOneOnOnes(getMockOneOnOnes());
+      setEvaluations(getMockEvaluations());
+      setCampaigns(getMockCampaigns());
+      setStats(getMockStats());
     } finally {
       setLoading(false);
     }
-  }, [isHROrAdmin]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -639,7 +706,23 @@ export default function PerformancePage() {
     const success = await createFeedback(data);
     if (success) {
       await loadData();
-      setShowFeedbackModal(false);
+    } else {
+      // Add mock feedback for demo
+      const newFeedback: FeedbackItem = {
+        id: Date.now(),
+        from_employee_id: 1,
+        from_employee_name: 'Admin Test',
+        from_employee_initials: 'AT',
+        to_employee_id: data.to_employee_id,
+        to_employee_name: employees.find(e => e.id === data.to_employee_id)?.first_name + ' ' + employees.find(e => e.id === data.to_employee_id)?.last_name || 'Employé',
+        to_employee_initials: (employees.find(e => e.id === data.to_employee_id)?.first_name?.[0] || '') + (employees.find(e => e.id === data.to_employee_id)?.last_name?.[0] || ''),
+        type: data.type as 'recognition' | 'improvement' | 'general',
+        message: data.message,
+        is_public: data.is_public,
+        likes_count: 0,
+        created_at: new Date().toISOString(),
+      };
+      setFeedbacks(prev => [newFeedback, ...prev]);
     }
   };
 
@@ -649,6 +732,15 @@ export default function PerformancePage() {
       setFeedbacks(prev => prev.map(fb => 
         fb.id === feedbackId ? { ...fb, likes_count: newCount, is_liked_by_me: !fb.is_liked_by_me } : fb
       ));
+    } else {
+      // Demo mode: toggle like locally
+      setFeedbacks(prev => prev.map(fb => 
+        fb.id === feedbackId ? { 
+          ...fb, 
+          likes_count: fb.is_liked_by_me ? fb.likes_count - 1 : fb.likes_count + 1, 
+          is_liked_by_me: !fb.is_liked_by_me 
+        } : fb
+      ));
     }
   };
 
@@ -656,7 +748,6 @@ export default function PerformancePage() {
     const success = await createOneOnOne(data);
     if (success) {
       await loadData();
-      setShowOneOnOneModal(false);
     }
   };
 
@@ -696,7 +787,7 @@ export default function PerformancePage() {
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">Feedbacks (Mois)</p><p className="text-2xl font-bold text-purple-600">{stats?.feedbacks_this_month || 0}</p></div>
+              <div><p className="text-xs text-gray-500">Feedbacks (Mois)</p><p className="text-2xl font-bold text-purple-600">{stats?.feedbacks_this_month || feedbacks.length}</p></div>
               <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center"><MessageSquare className="w-5 h-5 text-purple-600" /></div>
             </div>
           </div>
@@ -708,7 +799,7 @@ export default function PerformancePage() {
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">1-on-1 (Semaine)</p><p className="text-2xl font-bold text-orange-600">{stats?.one_on_ones_this_week || 0}</p></div>
+              <div><p className="text-xs text-gray-500">1-on-1 (Semaine)</p><p className="text-2xl font-bold text-orange-600">{stats?.one_on_ones_this_week || oneOnOnes.filter(o => o.status === 'scheduled').length}</p></div>
               <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center"><Users className="w-5 h-5 text-orange-600" /></div>
             </div>
           </div>
@@ -740,7 +831,10 @@ export default function PerformancePage() {
             <div className="lg:col-span-2 space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold text-gray-900">Fil de Feedback</h3>
-                <button onClick={() => setShowFeedbackModal(true)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
+                <button 
+                  onClick={() => setShowFeedbackModal(true)} 
+                  className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
+                >
                   <Plus className="w-4 h-4 mr-2" />Donner un Feedback
                 </button>
               </div>
@@ -771,7 +865,7 @@ export default function PerformancePage() {
                     <p className="text-gray-700 text-sm mb-3">{fb.message}</p>
                     {fb.is_public && (
                       <div className="flex items-center gap-4 pt-3 border-t border-gray-100">
-                        <button onClick={() => handleLikeFeedback(fb.id)} className={`flex items-center text-sm hover:text-primary-600 ${fb.is_liked_by_me ? 'text-primary-600' : 'text-gray-500'}`}>
+                        <button onClick={() => handleLikeFeedback(fb.id)} className={`flex items-center text-sm hover:text-primary-600 transition-colors ${fb.is_liked_by_me ? 'text-primary-600' : 'text-gray-500'}`}>
                           <ThumbsUp className={`w-4 h-4 mr-1 ${fb.is_liked_by_me ? 'fill-current' : ''}`} />{fb.likes_count}
                         </button>
                       </div>
@@ -820,7 +914,7 @@ export default function PerformancePage() {
               <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
                 <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><Award className="w-4 h-4 text-yellow-500" />Top Contributeurs</h4>
                 <div className="space-y-3">
-                  {[{ name: 'Fatou Ndiaye', count: 24 }, { name: 'Amadou Diallo', count: 18 }, { name: 'Aissatou Ba', count: 15 }].map((person, i) => (
+                  {(stats?.top_feedback_givers || [{ name: 'Fatou Ndiaye', count: 24 }, { name: 'Amadou Diallo', count: 18 }, { name: 'Aissatou Ba', count: 15 }]).map((person, i) => (
                     <div key={person.name} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="w-5 h-5 bg-yellow-100 rounded-full flex items-center justify-center text-xs font-bold text-yellow-700">{i + 1}</span>
@@ -1012,8 +1106,18 @@ export default function PerformancePage() {
       </main>
 
       {/* Modals */}
-      <FeedbackModal isOpen={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} onSubmit={handleCreateFeedback} employees={employees} />
-      <OneOnOneModal isOpen={showOneOnOneModal} onClose={() => setShowOneOnOneModal(false)} onSubmit={handleCreateOneOnOne} employees={employees} />
+      <FeedbackModal 
+        isOpen={showFeedbackModal} 
+        onClose={() => setShowFeedbackModal(false)} 
+        onSubmit={handleCreateFeedback} 
+        employees={employees} 
+      />
+      <OneOnOneModal 
+        isOpen={showOneOnOneModal} 
+        onClose={() => setShowOneOnOneModal(false)} 
+        onSubmit={handleCreateOneOnOne} 
+        employees={employees} 
+      />
     </div>
   );
 }

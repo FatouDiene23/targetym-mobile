@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   TrendingUp, Star, Users, Calendar, ChevronRight, Plus, MessageSquare, Award, Target, CheckCircle,
-  Send, ThumbsUp, Eye, Edit, User, X, Loader2, ExternalLink
+  Send, ThumbsUp, Eye, Edit, User, X, Loader2, ExternalLink, AlertCircle, Save
 } from 'lucide-react';
 import Link from 'next/link';
 import { 
@@ -122,18 +122,18 @@ function getMockFeedbacks(): FeedbackItem[] {
 
 function getMockCampaigns(): EvaluationCampaign[] {
   return [
-    { id: 1, name: 'Évaluation Annuelle 2024', type: 'annual', status: 'active', start_date: '2024-12-01', end_date: '2024-12-31', total_evaluations: 48, completed_evaluations: 33, progress_percentage: 68 },
-    { id: 2, name: 'Feedback 360° - Direction', type: '360', status: 'active', start_date: '2024-12-01', end_date: '2024-12-20', total_evaluations: 12, completed_evaluations: 5, progress_percentage: 45 },
+    { id: 1, name: 'Évaluation Annuelle 2025', type: 'annual', status: 'active', start_date: '2025-01-01', end_date: '2025-01-31', total_evaluations: 48, completed_evaluations: 12, progress_percentage: 25 },
+    { id: 2, name: 'Feedback 360° - Direction', type: '360', status: 'active', start_date: '2025-01-15', end_date: '2025-02-15', total_evaluations: 12, completed_evaluations: 3, progress_percentage: 25 },
     { id: 3, name: 'Évaluation Mi-Année 2024', type: 'mid_year', status: 'completed', start_date: '2024-06-01', end_date: '2024-06-30', total_evaluations: 45, completed_evaluations: 45, progress_percentage: 100 },
   ];
 }
 
 function getMockEvaluations(): Evaluation[] {
   return [
-    { id: 1, employee_id: 1, employee_name: 'Aissatou Ba', employee_initials: 'AB', employee_department: 'Technologie', employee_job_title: 'Lead Developer', type: 'self', status: 'validated', overall_score: 4.6, due_date: '2024-12-15', scores: { 'Compétences techniques': { score: 95 }, 'Leadership': { score: 85 }, 'Communication': { score: 90 } } },
-    { id: 2, employee_id: 2, employee_name: 'Moussa Sow', employee_initials: 'MS', employee_department: 'Technologie', employee_job_title: 'Chef de Projet', type: 'manager', status: 'in_progress', due_date: '2024-12-20', scores: { 'Gestion projet': { score: 88 }, 'Leadership': { score: 82 } } },
-    { id: 3, employee_id: 3, employee_name: 'Ousmane Sy', employee_initials: 'OS', employee_department: 'Commercial', employee_job_title: 'Commercial Senior', type: '360', status: 'pending', due_date: '2024-12-22' },
-    { id: 4, employee_id: 4, employee_name: 'Mamadou Mbaye', employee_initials: 'MM', employee_department: 'Technologie', employee_job_title: 'Développeur Junior', type: 'self', status: 'in_progress', due_date: '2024-12-31', scores: { 'Compétences techniques': { score: 78 }, 'Apprentissage': { score: 95 } } },
+    { id: 1, employee_id: 1, employee_name: 'Aissatou Ba', employee_initials: 'AB', employee_department: 'Technologie', employee_job_title: 'Lead Developer', type: 'self', status: 'validated', overall_score: 4.6, due_date: '2025-01-15', scores: { 'Compétences techniques': { score: 95 }, 'Leadership': { score: 85 }, 'Communication': { score: 90 } } },
+    { id: 2, employee_id: 2, employee_name: 'Moussa Sow', employee_initials: 'MS', employee_department: 'Technologie', employee_job_title: 'Chef de Projet', type: 'manager', status: 'in_progress', due_date: '2025-01-20', scores: { 'Gestion projet': { score: 88 }, 'Leadership': { score: 82 } } },
+    { id: 3, employee_id: 3, employee_name: 'Ousmane Sy', employee_initials: 'OS', employee_department: 'Commercial', employee_job_title: 'Commercial Senior', type: '360', status: 'pending', due_date: '2025-02-15' },
+    { id: 4, employee_id: 4, employee_name: 'Mamadou Mbaye', employee_initials: 'MM', employee_department: 'Technologie', employee_job_title: 'Développeur Junior', type: 'self', status: 'in_progress', due_date: '2025-01-31', scores: { 'Compétences techniques': { score: 78 }, 'Apprentissage': { score: 95 } } },
   ];
 }
 
@@ -313,6 +313,73 @@ async function fetchDirectReports(employeeId: number): Promise<Employee[]> {
     return data || [];
   } catch {
     return [];
+  }
+}
+
+async function createCampaign(data: {
+  name: string;
+  description?: string;
+  type: string;
+  start_date: string;
+  end_date: string;
+  employee_ids?: number[];
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${API_URL}/api/performance/campaigns`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { success: false, error: errorData.detail || 'Erreur lors de la création de la campagne' };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: 'Erreur de connexion au serveur' };
+  }
+}
+
+async function submitEvaluation(evaluationId: number, data: {
+  scores: Record<string, { score: number; comment?: string }>;
+  overall_score: number;
+  strengths?: string[];
+  improvements?: string[];
+  goals?: string[];
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${API_URL}/api/performance/evaluations/${evaluationId}/submit`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { success: false, error: errorData.detail || 'Erreur lors de la soumission' };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: 'Erreur de connexion au serveur' };
+  }
+}
+
+async function validateEvaluation(evaluationId: number, data: {
+  approved: boolean;
+  manager_comments?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${API_URL}/api/performance/evaluations/${evaluationId}/validate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { success: false, error: errorData.detail || 'Erreur lors de la validation' };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: 'Erreur de connexion au serveur' };
   }
 }
 
@@ -660,6 +727,295 @@ function OneOnOneModal({ isOpen, onClose, onSubmit, employees }: {
 }
 
 // =============================================
+// CAMPAIGN MODAL
+// =============================================
+
+function CampaignModal({ isOpen, onClose, onSubmit, employees }: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: { name: string; description?: string; type: string; start_date: string; end_date: string; employee_ids?: number[] }) => Promise<string | null>;
+  employees: Employee[];
+}) {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [type, setType] = useState('annual');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [selectAll, setSelectAll] = useState(true);
+  const [selectedEmployees, setSelectedEmployees] = useState<number[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!name.trim() || !startDate || !endDate) {
+      setError('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+    
+    setSaving(true);
+    const errorMessage = await onSubmit({
+      name,
+      description: description || undefined,
+      type,
+      start_date: startDate,
+      end_date: endDate,
+      employee_ids: selectAll ? undefined : selectedEmployees,
+    });
+    setSaving(false);
+    
+    if (errorMessage) {
+      setError(errorMessage);
+    } else {
+      setName(''); setDescription(''); setType('annual'); setStartDate(''); setEndDate('');
+      setSelectAll(true); setSelectedEmployees([]); setError('');
+      onClose();
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-5 border-b flex items-center justify-between sticky top-0 bg-white">
+          <h2 className="text-lg font-bold text-gray-900">Nouvelle Campagne d&apos;Évaluation</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nom de la campagne *</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Ex: Évaluation Annuelle 2025" required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Description..." />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
+            <select value={type} onChange={(e) => setType(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm">
+              <option value="annual">Évaluation Annuelle</option>
+              <option value="mid_year">Mi-Année</option>
+              <option value="360">Feedback 360°</option>
+              <option value="probation">Période d&apos;Essai</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Date début *</label>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Date fin *</label>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" required />
+            </div>
+          </div>
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={selectAll} onChange={(e) => setSelectAll(e.target.checked)} className="w-4 h-4 rounded" />
+              <span className="text-sm text-gray-600">Tous les employés actifs</span>
+            </label>
+            {!selectAll && (
+              <div className="mt-2 max-h-32 overflow-y-auto border rounded-lg p-2">
+                {employees.map(emp => (
+                  <label key={emp.id} className="flex items-center gap-2 p-1 hover:bg-gray-50 cursor-pointer">
+                    <input type="checkbox" checked={selectedEmployees.includes(emp.id)} onChange={(e) => {
+                      if (e.target.checked) setSelectedEmployees(p => [...p, emp.id]);
+                      else setSelectedEmployees(p => p.filter(id => id !== emp.id));
+                    }} className="w-4 h-4 rounded" />
+                    <span className="text-sm">{emp.first_name} {emp.last_name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 border text-gray-700 text-sm rounded-lg">Annuler</button>
+            <button type="submit" disabled={saving} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg flex items-center disabled:opacity-50">
+              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+              Créer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// =============================================
+// EVALUATION VIEW MODAL
+// =============================================
+
+function EvaluationViewModal({ isOpen, onClose, evaluation }: {
+  isOpen: boolean;
+  onClose: () => void;
+  evaluation: Evaluation | null;
+}) {
+  if (!isOpen || !evaluation) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-5 border-b flex items-center justify-between sticky top-0 bg-white">
+          <h2 className="text-lg font-bold text-gray-900">Détails de l&apos;Évaluation</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-5 space-y-6">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 text-xl font-bold">{evaluation.employee_initials}</div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">{evaluation.employee_name}</h3>
+              <p className="text-gray-500">{evaluation.employee_job_title} • {evaluation.employee_department}</p>
+              <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(evaluation.status)}`}>{getStatusLabel(evaluation.status)}</span>
+            </div>
+            {evaluation.overall_score && <div className="ml-auto text-center"><div className="text-3xl font-bold text-primary-600">{evaluation.overall_score}</div><div className="text-xs text-gray-500">/5</div></div>}
+          </div>
+          {evaluation.scores && Object.keys(evaluation.scores).length > 0 && (
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3">Scores par Compétence</h4>
+              <div className="space-y-3">
+                {Object.entries(evaluation.scores).map(([cat, data]) => (
+                  <div key={cat}>
+                    <div className="flex justify-between text-sm mb-1"><span className="text-gray-700">{cat}</span><span className="font-medium">{data.score}%</span></div>
+                    <div className="h-2 bg-gray-200 rounded-full"><div className={`h-full rounded-full ${data.score >= 90 ? 'bg-green-500' : data.score >= 75 ? 'bg-blue-500' : 'bg-yellow-500'}`} style={{ width: `${data.score}%` }} /></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {evaluation.due_date && <p className="text-sm text-gray-500">Deadline: {formatDate(evaluation.due_date)}</p>}
+        </div>
+        <div className="p-5 border-t bg-gray-50 flex justify-end">
+          <button onClick={onClose} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg">Fermer</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================
+// EVALUATION EDIT MODAL
+// =============================================
+
+function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, canValidate }: {
+  isOpen: boolean;
+  onClose: () => void;
+  evaluation: Evaluation | null;
+  onSave: () => void;
+  canValidate: boolean;
+}) {
+  const [scores, setScores] = useState<Record<string, { score: number; comment: string }>>({});
+  const [managerComments, setManagerComments] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const defaultCompetencies = ['Compétences techniques', 'Communication', 'Leadership', 'Travail d\'équipe', 'Innovation'];
+
+  useEffect(() => {
+    if (evaluation) {
+      const initialScores: Record<string, { score: number; comment: string }> = {};
+      if (evaluation.scores && Object.keys(evaluation.scores).length > 0) {
+        Object.entries(evaluation.scores).forEach(([key, val]) => {
+          initialScores[key] = { score: val.score, comment: val.comment || '' };
+        });
+      } else {
+        defaultCompetencies.forEach(comp => { initialScores[comp] = { score: 75, comment: '' }; });
+      }
+      setScores(initialScores);
+    }
+  }, [evaluation]);
+
+  const calculateOverall = () => {
+    const values = Object.values(scores);
+    if (values.length === 0) return 0;
+    return Math.round((values.reduce((s, v) => s + v.score, 0) / values.length / 100) * 5 * 10) / 10;
+  };
+
+  const handleSubmit = async () => {
+    if (!evaluation) return;
+    setError(''); setSaving(true);
+    const result = await submitEvaluation(evaluation.id, { scores, overall_score: calculateOverall() });
+    setSaving(false);
+    if (result.success) { onSave(); onClose(); }
+    else setError(result.error || 'Erreur');
+  };
+
+  const handleValidate = async (approved: boolean) => {
+    if (!evaluation) return;
+    setError(''); setSaving(true);
+    const result = await validateEvaluation(evaluation.id, { approved, manager_comments: managerComments || undefined });
+    setSaving(false);
+    if (result.success) { onSave(); onClose(); }
+    else setError(result.error || 'Erreur');
+  };
+
+  if (!isOpen || !evaluation) return null;
+
+  const canEdit = evaluation.status === 'pending' || evaluation.status === 'in_progress';
+  const showValidation = canValidate && evaluation.status === 'submitted';
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-5 border-b flex items-center justify-between sticky top-0 bg-white z-10">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">{showValidation ? 'Valider' : 'Éditer'} l&apos;Évaluation</h2>
+            <p className="text-sm text-gray-500">{evaluation.employee_name} - {evaluation.employee_job_title}</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-5 space-y-6">
+          {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-4">Évaluation des Compétences</h4>
+            <div className="space-y-4">
+              {Object.entries(scores).map(([comp, data]) => (
+                <div key={comp} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="font-medium text-gray-700">{comp}</label>
+                    <span className="text-lg font-bold text-primary-600">{data.score}%</span>
+                  </div>
+                  <input type="range" min="0" max="100" value={data.score} onChange={(e) => setScores(prev => ({ ...prev, [comp]: { ...prev[comp], score: Number(e.target.value) } }))} disabled={!canEdit} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500" />
+                  <input type="text" placeholder="Commentaire (optionnel)" value={data.comment} onChange={(e) => setScores(prev => ({ ...prev, [comp]: { ...prev[comp], comment: e.target.value } }))} disabled={!canEdit} className="w-full mt-2 px-3 py-2 text-sm border rounded-lg" />
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 p-4 bg-primary-50 rounded-lg text-center">
+              <span className="text-sm text-gray-600">Score Global:</span>
+              <span className="text-2xl font-bold text-primary-600 ml-2">{calculateOverall()}/5</span>
+            </div>
+          </div>
+          {showValidation && (
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-2">Commentaires du Manager</h4>
+              <textarea value={managerComments} onChange={(e) => setManagerComments(e.target.value)} rows={3} placeholder="Vos commentaires..." className="w-full px-3 py-2 text-sm border rounded-lg" />
+            </div>
+          )}
+        </div>
+        <div className="p-5 border-t bg-gray-50 flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 border text-gray-700 text-sm rounded-lg">Annuler</button>
+          {canEdit && (
+            <button onClick={handleSubmit} disabled={saving} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg flex items-center disabled:opacity-50">
+              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}Soumettre
+            </button>
+          )}
+          {showValidation && (
+            <>
+              <button onClick={() => handleValidate(false)} disabled={saving} className="px-4 py-2 border border-orange-500 text-orange-600 text-sm rounded-lg">Renvoyer</button>
+              <button onClick={() => handleValidate(true)} disabled={saving} className="px-4 py-2 bg-green-500 text-white text-sm rounded-lg flex items-center disabled:opacity-50">
+                {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}Valider
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================
 // MAIN COMPONENT
 // =============================================
 
@@ -684,6 +1040,9 @@ export default function PerformancePage() {
   // Modals
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showOneOnOneModal, setShowOneOnOneModal] = useState(false);
+  const [showCampaignModal, setShowCampaignModal] = useState(false);
+  const [showEvaluationViewModal, setShowEvaluationViewModal] = useState(false);
+  const [showEvaluationEditModal, setShowEvaluationEditModal] = useState(false);
   const [selectedEvaluation, setSelectedEvaluation] = useState<Evaluation | null>(null);
 
   // Permissions
@@ -785,6 +1144,26 @@ export default function PerformancePage() {
     } else {
       return result.error || 'Erreur lors de la planification du 1-on-1';
     }
+  };
+
+  const handleCreateCampaign = async (data: { name: string; description?: string; type: string; start_date: string; end_date: string; employee_ids?: number[] }): Promise<string | null> => {
+    const result = await createCampaign(data);
+    if (result.success) {
+      await loadData();
+      return null;
+    } else {
+      return result.error || 'Erreur lors de la création de la campagne';
+    }
+  };
+
+  const handleViewEvaluation = (evaluation: Evaluation) => {
+    setSelectedEvaluation(evaluation);
+    setShowEvaluationViewModal(true);
+  };
+
+  const handleEditEvaluation = (evaluation: Evaluation) => {
+    setSelectedEvaluation(evaluation);
+    setShowEvaluationEditModal(true);
   };
 
   if (loading) {
@@ -969,14 +1348,21 @@ export default function PerformancePage() {
         {activeTab === 'evaluations' && (
           <div className="space-y-6">
             {/* Campaigns - RH only */}
-            {isHROrAdmin && campaigns.length > 0 && (
+            {isHROrAdmin && (
               <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-semibold text-gray-900">Campagnes d&apos;Évaluation</h3>
-                  <button className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
+                  <button onClick={() => setShowCampaignModal(true)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
                     <Plus className="w-4 h-4 mr-2" />Nouvelle Campagne
                   </button>
                 </div>
+                {campaigns.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Star className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500">Aucune campagne d&apos;évaluation</p>
+                    <button onClick={() => setShowCampaignModal(true)} className="mt-2 text-primary-600 hover:underline text-sm">Créer la première campagne</button>
+                  </div>
+                ) : (
                 <div className="space-y-3">
                   {campaigns.map((camp) => (
                     <div key={camp.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
@@ -999,6 +1385,7 @@ export default function PerformancePage() {
                     </div>
                   ))}
                 </div>
+                )}
               </div>
             )}
 
@@ -1063,8 +1450,8 @@ export default function PerformancePage() {
                       </div>
                     )}
                     <div className="flex gap-2">
-                      <button className="flex-1 flex items-center justify-center px-3 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600"><Eye className="w-4 h-4 mr-1" />Voir</button>
-                      <button className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"><Edit className="w-4 h-4 mr-1" />Éditer</button>
+                      <button onClick={() => handleViewEvaluation(selectedEvaluation)} className="flex-1 flex items-center justify-center px-3 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600"><Eye className="w-4 h-4 mr-1" />Voir</button>
+                      <button onClick={() => handleEditEvaluation(selectedEvaluation)} className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"><Edit className="w-4 h-4 mr-1" />Éditer</button>
                     </div>
                   </>
                 ) : (
@@ -1153,6 +1540,24 @@ export default function PerformancePage() {
         onClose={() => setShowOneOnOneModal(false)} 
         onSubmit={handleCreateOneOnOne} 
         employees={isHROrAdmin ? employees : (directReports.length > 0 ? directReports : employees)} 
+      />
+      <CampaignModal
+        isOpen={showCampaignModal}
+        onClose={() => setShowCampaignModal(false)}
+        onSubmit={handleCreateCampaign}
+        employees={employees}
+      />
+      <EvaluationViewModal
+        isOpen={showEvaluationViewModal}
+        onClose={() => setShowEvaluationViewModal(false)}
+        evaluation={selectedEvaluation}
+      />
+      <EvaluationEditModal
+        isOpen={showEvaluationEditModal}
+        onClose={() => setShowEvaluationEditModal(false)}
+        evaluation={selectedEvaluation}
+        onSave={loadData}
+        canValidate={isHROrAdmin || isManager}
       />
     </div>
   );

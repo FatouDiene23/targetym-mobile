@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   TrendingUp, Star, Users, Calendar, ChevronRight, Plus, MessageSquare, Award, Target, CheckCircle,
-  Send, ThumbsUp, Eye, Edit, User, X, Loader2, ExternalLink, AlertCircle
+  Send, ThumbsUp, Eye, Edit, User, X, Loader2, ExternalLink, AlertCircle, RotateCcw
 } from 'lucide-react';
 import Link from 'next/link';
 import { 
@@ -15,7 +15,7 @@ import {
 // TYPES
 // =============================================
 
-type UserRole = 'employee' | 'manager' | 'rh' | 'admin' | 'dg';
+type UserRole = 'employee' | 'manager' | 'rh' | 'admin' | 'super_admin' | 'dg';
 
 interface FeedbackItem {
   id: number;
@@ -46,6 +46,11 @@ interface Evaluation {
   status: 'pending' | 'in_progress' | 'submitted' | 'validated';
   scores?: Record<string, { score: number; comment?: string }>;
   overall_score?: number;
+  strengths?: string;
+  improvements?: string;
+  goals?: string;
+  manager_comments?: string;
+  employee_comments?: string;
   due_date?: string;
 }
 
@@ -83,14 +88,27 @@ interface Employee {
   last_name: string;
 }
 
-interface PerformanceStats {
+interface MyStats {
+  scope: 'personal' | 'team' | 'global';
   avg_score: number;
   evaluations_total: number;
   evaluations_completed: number;
-  feedbacks_this_month: number;
-  okr_achievement_avg: number;
-  one_on_ones_this_week: number;
-  top_feedback_givers?: { name: string; count: number }[];
+  evaluations_pending: number;
+  evaluations_in_progress: number;
+  completion_rate: number;
+  feedbacks_received: number;
+  feedbacks_given: number;
+  one_on_ones_scheduled: number;
+  one_on_ones_completed: number;
+  okr_achievement: number;
+  team_size: number;
+}
+
+interface CurrentUser {
+  id: number;
+  email: string;
+  role: string;
+  employee_id?: number;
 }
 
 // =============================================
@@ -108,75 +126,46 @@ function getAuthHeaders(): HeadersInit {
 }
 
 // =============================================
-// MOCK DATA
-// =============================================
-
-function getMockFeedbacks(): FeedbackItem[] {
-  return [
-    { id: 1, from_employee_id: 1, from_employee_name: 'Fatou Ndiaye', from_employee_initials: 'FN', to_employee_id: 2, to_employee_name: 'Aissatou Ba', to_employee_initials: 'AB', type: 'recognition', message: 'Excellent travail sur le module Analytics ! Ta rigueur et ta créativité ont vraiment fait la différence.', is_public: true, likes_count: 8, created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
-    { id: 2, from_employee_id: 3, from_employee_name: 'Amadou Diallo', from_employee_initials: 'AD', to_employee_id: 4, to_employee_name: 'Moussa Sow', to_employee_initials: 'MS', type: 'recognition', message: 'Merci pour ton leadership sur le projet TARGETYM. Ta capacité à coordonner l\'équipe sous pression est remarquable.', is_public: true, likes_count: 12, created_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() },
-    { id: 3, from_employee_id: 5, from_employee_name: 'Ibrahima Fall', from_employee_initials: 'IF', to_employee_id: 6, to_employee_name: 'Ousmane Sy', to_employee_initials: 'OS', type: 'improvement', message: 'Je suggère de travailler sur la présentation des rapports commerciaux pour plus de clarté.', is_public: true, likes_count: 3, created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() },
-    { id: 4, from_employee_id: 2, from_employee_name: 'Aissatou Ba', from_employee_initials: 'AB', to_employee_id: 7, to_employee_name: 'Mamadou Mbaye', to_employee_initials: 'MM', type: 'recognition', message: 'Bravo pour ta montée en compétences sur React ! En 6 mois, tu as fait des progrès impressionnants.', is_public: true, likes_count: 5, created_at: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString() },
-  ];
-}
-
-function getMockCampaigns(): EvaluationCampaign[] {
-  return [
-    { id: 1, name: 'Évaluation Annuelle 2025', type: 'annual', status: 'active', start_date: '2025-01-01', end_date: '2025-01-31', total_evaluations: 48, completed_evaluations: 12, progress_percentage: 25 },
-    { id: 2, name: 'Feedback 360° - Direction', type: '360', status: 'active', start_date: '2025-01-15', end_date: '2025-02-15', total_evaluations: 12, completed_evaluations: 3, progress_percentage: 25 },
-    { id: 3, name: 'Évaluation Mi-Année 2024', type: 'mid_year', status: 'completed', start_date: '2024-06-01', end_date: '2024-06-30', total_evaluations: 45, completed_evaluations: 45, progress_percentage: 100 },
-  ];
-}
-
-function getMockEvaluations(): Evaluation[] {
-  return [
-    { id: 1, employee_id: 1, employee_name: 'Aissatou Ba', employee_initials: 'AB', employee_department: 'Technologie', employee_job_title: 'Lead Developer', type: 'self', status: 'validated', overall_score: 4.6, due_date: '2025-01-15', scores: { 'Compétences techniques': { score: 95 }, 'Leadership': { score: 85 }, 'Communication': { score: 90 } } },
-    { id: 2, employee_id: 2, employee_name: 'Moussa Sow', employee_initials: 'MS', employee_department: 'Technologie', employee_job_title: 'Chef de Projet', type: 'manager', status: 'in_progress', due_date: '2025-01-20', scores: { 'Gestion projet': { score: 88 }, 'Leadership': { score: 82 } } },
-    { id: 3, employee_id: 3, employee_name: 'Ousmane Sy', employee_initials: 'OS', employee_department: 'Commercial', employee_job_title: 'Commercial Senior', type: '360', status: 'pending', due_date: '2025-02-15' },
-    { id: 4, employee_id: 4, employee_name: 'Mamadou Mbaye', employee_initials: 'MM', employee_department: 'Technologie', employee_job_title: 'Développeur Junior', type: 'self', status: 'in_progress', due_date: '2025-01-31', scores: { 'Compétences techniques': { score: 78 }, 'Apprentissage': { score: 95 } } },
-  ];
-}
-
-function getMockOneOnOnes(): OneOnOne[] {
-  return [
-    { id: 1, employee_id: 1, employee_name: 'Aissatou Ba', employee_initials: 'AB', manager_id: 2, manager_name: 'Amadou Diallo', scheduled_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), duration_minutes: 30, location: 'Bureau', status: 'scheduled', action_items: ['Discuter promotion', 'Plan formation Q1'] },
-    { id: 2, employee_id: 3, employee_name: 'Mamadou Mbaye', employee_initials: 'MM', manager_id: 1, manager_name: 'Aissatou Ba', scheduled_date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), duration_minutes: 30, location: 'Visio', status: 'completed', notes: 'Progrès excellents sur React.', action_items: ['Assigner feature auth'] },
-    { id: 3, employee_id: 4, employee_name: 'Ousmane Sy', employee_initials: 'OS', manager_id: 5, manager_name: 'Ibrahima Fall', scheduled_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), duration_minutes: 45, location: 'Salle Baobab', status: 'scheduled', action_items: ['Review pipeline Q4', 'Objectifs 2025'] },
-  ];
-}
-
-function getMockEmployees(): Employee[] {
-  return [
-    { id: 1, first_name: 'Fatou', last_name: 'Ndiaye' },
-    { id: 2, first_name: 'Aissatou', last_name: 'Ba' },
-    { id: 3, first_name: 'Amadou', last_name: 'Diallo' },
-    { id: 4, first_name: 'Moussa', last_name: 'Sow' },
-    { id: 5, first_name: 'Ibrahima', last_name: 'Fall' },
-    { id: 6, first_name: 'Ousmane', last_name: 'Sy' },
-    { id: 7, first_name: 'Mamadou', last_name: 'Mbaye' },
-    { id: 8, first_name: 'Aminata', last_name: 'Diop' },
-  ];
-}
-
-function getMockStats(): PerformanceStats {
-  return {
-    avg_score: 4.2,
-    evaluations_total: 48,
-    evaluations_completed: 33,
-    feedbacks_this_month: 127,
-    okr_achievement_avg: 78,
-    one_on_ones_this_week: 12,
-    top_feedback_givers: [
-      { name: 'Fatou Ndiaye', count: 24 },
-      { name: 'Amadou Diallo', count: 18 },
-      { name: 'Aissatou Ba', count: 15 },
-    ]
-  };
-}
-
-// =============================================
 // API FUNCTIONS
 // =============================================
+
+async function fetchCurrentUser(): Promise<CurrentUser | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/auth/me`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchMyStats(): Promise<MyStats> {
+  try {
+    const response = await fetch(`${API_URL}/api/performance/my-stats`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('API error');
+    return response.json();
+  } catch {
+    return {
+      scope: 'personal',
+      avg_score: 0,
+      evaluations_total: 0,
+      evaluations_completed: 0,
+      evaluations_pending: 0,
+      evaluations_in_progress: 0,
+      completion_rate: 0,
+      feedbacks_received: 0,
+      feedbacks_given: 0,
+      one_on_ones_scheduled: 0,
+      one_on_ones_completed: 0,
+      okr_achievement: 0,
+      team_size: 0
+    };
+  }
+}
 
 async function fetchFeedbacks(): Promise<FeedbackItem[]> {
   try {
@@ -185,9 +174,9 @@ async function fetchFeedbacks(): Promise<FeedbackItem[]> {
     });
     if (!response.ok) throw new Error('API error');
     const data = await response.json();
-    return data.items?.length > 0 ? data.items : getMockFeedbacks();
+    return data.items || [];
   } catch {
-    return getMockFeedbacks();
+    return [];
   }
 }
 
@@ -229,22 +218,22 @@ async function fetchCampaigns(): Promise<EvaluationCampaign[]> {
     });
     if (!response.ok) throw new Error('API error');
     const data = await response.json();
-    return data.items?.length > 0 ? data.items : getMockCampaigns();
+    return data.items || [];
   } catch {
-    return getMockCampaigns();
+    return [];
   }
 }
 
 async function fetchEvaluations(): Promise<Evaluation[]> {
   try {
-    const response = await fetch(`${API_URL}/api/performance/evaluations?page_size=50`, {
+    const response = await fetch(`${API_URL}/api/performance/evaluations?page_size=100`, {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('API error');
     const data = await response.json();
-    return data.items?.length > 0 ? data.items : getMockEvaluations();
+    return data.items || [];
   } catch {
-    return getMockEvaluations();
+    return [];
   }
 }
 
@@ -255,38 +244,9 @@ async function fetchOneOnOnes(): Promise<OneOnOne[]> {
     });
     if (!response.ok) throw new Error('API error');
     const data = await response.json();
-    return data.items?.length > 0 ? data.items : getMockOneOnOnes();
+    return data.items || [];
   } catch {
-    return getMockOneOnOnes();
-  }
-}
-
-async function createOneOnOne(data: { employee_id: number; scheduled_date: string; duration_minutes: number; location?: string }): Promise<{ success: boolean; error?: string }> {
-  try {
-    const response = await fetch(`${API_URL}/api/performance/one-on-ones`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return { success: false, error: errorData.detail || 'Erreur lors de la planification du 1-on-1' };
-    }
-    return { success: true };
-  } catch {
-    return { success: false, error: 'Erreur de connexion au serveur' };
-  }
-}
-
-async function fetchStats(): Promise<PerformanceStats> {
-  try {
-    const response = await fetch(`${API_URL}/api/performance/stats`, {
-      headers: getAuthHeaders(),
-    });
-    if (!response.ok) throw new Error('API error');
-    return response.json();
-  } catch {
-    return getMockStats();
+    return [];
   }
 }
 
@@ -297,20 +257,7 @@ async function fetchEmployees(): Promise<Employee[]> {
     });
     if (!response.ok) throw new Error('API error');
     const data = await response.json();
-    return data.items?.length > 0 ? data.items : getMockEmployees();
-  } catch {
-    return getMockEmployees();
-  }
-}
-
-async function fetchDirectReports(employeeId: number): Promise<Employee[]> {
-  try {
-    const response = await fetch(`${API_URL}/api/employees/${employeeId}/direct-reports`, {
-      headers: getAuthHeaders(),
-    });
-    if (!response.ok) return [];
-    const data = await response.json();
-    return data || [];
+    return data.items || [];
   } catch {
     return [];
   }
@@ -343,9 +290,9 @@ async function createCampaign(data: {
 async function submitEvaluation(evaluationId: number, data: {
   scores: Record<string, { score: number; comment?: string }>;
   overall_score: number;
-  strengths?: string[];
-  improvements?: string[];
-  goals?: string[];
+  strengths?: string;
+  improvements?: string;
+  goals?: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     const response = await fetch(`${API_URL}/api/performance/evaluations/${evaluationId}/submit`, {
@@ -355,7 +302,13 @@ async function submitEvaluation(evaluationId: number, data: {
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      return { success: false, error: errorData.detail || 'Erreur lors de la soumission' };
+      let errorMsg = 'Erreur lors de la soumission';
+      if (typeof errorData.detail === 'string') {
+        errorMsg = errorData.detail;
+      } else if (Array.isArray(errorData.detail)) {
+        errorMsg = errorData.detail.map((e: any) => e.msg || e.message || JSON.stringify(e)).join(', ');
+      }
+      return { success: false, error: errorMsg };
     }
     return { success: true };
   } catch {
@@ -390,7 +343,7 @@ async function validateEvaluation(evaluationId: number, data: {
 function normalizeRole(role: string | undefined): UserRole {
   if (!role) return 'employee';
   const r = role.toLowerCase();
-  if (r === 'admin') return 'admin';
+  if (r === 'admin' || r === 'super_admin') return 'admin';
   if (r === 'dg') return 'dg';
   if (r === 'rh' || r === 'hr') return 'rh';
   if (r === 'manager') return 'manager';
@@ -398,143 +351,216 @@ function normalizeRole(role: string | undefined): UserRole {
 }
 
 function getStatusColor(status: string) {
-  const colors: Record<string, string> = {
-    'completed': 'bg-green-100 text-green-700',
-    'validated': 'bg-green-100 text-green-700',
-    'pending': 'bg-gray-100 text-gray-700',
-    'in_progress': 'bg-purple-100 text-purple-700',
-    'scheduled': 'bg-blue-100 text-blue-700',
-    'submitted': 'bg-indigo-100 text-indigo-700',
-    'active': 'bg-green-100 text-green-700',
-    'draft': 'bg-gray-100 text-gray-600',
-    'cancelled': 'bg-red-100 text-red-700',
-  };
-  return colors[status] || 'bg-gray-100 text-gray-700';
+  switch (status) {
+    case 'validated': case 'completed': return 'bg-green-100 text-green-700';
+    case 'submitted': return 'bg-blue-100 text-blue-700';
+    case 'in_progress': return 'bg-yellow-100 text-yellow-700';
+    case 'pending': case 'scheduled': return 'bg-gray-100 text-gray-600';
+    case 'active': return 'bg-primary-100 text-primary-700';
+    default: return 'bg-gray-100 text-gray-600';
+  }
 }
 
 function getStatusLabel(status: string) {
-  const labels: Record<string, string> = {
-    'completed': 'Terminé',
-    'validated': 'Validé',
-    'pending': 'En attente',
-    'in_progress': 'En cours',
-    'scheduled': 'Planifié',
-    'submitted': 'Soumis',
-    'active': 'Actif',
-    'draft': 'Brouillon',
-    'cancelled': 'Annulé',
-  };
-  return labels[status] || status;
+  switch (status) {
+    case 'validated': return 'Validé';
+    case 'submitted': return 'Soumis';
+    case 'in_progress': return 'En cours';
+    case 'pending': return 'En attente';
+    case 'completed': return 'Terminé';
+    case 'scheduled': return 'Planifié';
+    case 'active': return 'Actif';
+    case 'draft': return 'Brouillon';
+    default: return status;
+  }
 }
 
-function getFeedbackTypeStyle(type: string) {
-  if (type === 'recognition') return 'bg-green-50 border-green-200';
-  if (type === 'improvement') return 'bg-orange-50 border-orange-200';
-  return 'bg-blue-50 border-blue-200';
-}
-
-function getFeedbackTypeBadge(type: string) {
-  if (type === 'recognition') return { label: '🎉 Reconnaissance', class: 'bg-green-100 text-green-700' };
-  if (type === 'improvement') return { label: '💡 Suggestion', class: 'bg-orange-100 text-orange-700' };
-  return { label: '💬 Général', class: 'bg-blue-100 text-blue-700' };
-}
-
-function formatTimeAgo(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-  
-  if (diffMins < 60) return `Il y a ${diffMins}min`;
-  if (diffHours < 24) return `Il y a ${diffHours}h`;
-  if (diffDays < 7) return `Il y a ${diffDays}j`;
-  return date.toLocaleDateString('fr-FR');
-}
-
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function formatDateTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+function getInitials(name: string | undefined): string {
+  if (!name) return '??';
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+}
+
+function getFeedbackIcon(type: string) {
+  switch (type) {
+    case 'recognition': return '🎉';
+    case 'improvement': return '💡';
+    default: return '💬';
+  }
+}
+
+function getTypeLabel(type: string) {
+  switch (type) {
+    case 'self': return 'Auto-éval';
+    case 'manager': return 'Manager';
+    case 'peer': return 'Pair';
+    case '360': return '360°';
+    case 'annual': return 'Annuelle';
+    case 'mid_year': return 'Mi-année';
+    case 'probation': return 'Période d\'essai';
+    default: return type;
+  }
+}
+
+function canUserEditEvaluation(evaluation: Evaluation, userRole: UserRole, currentEmployeeId?: number): boolean {
+  // Seul l'employé peut éditer son auto-évaluation si status = pending ou in_progress
+  if (evaluation.status === 'pending' || evaluation.status === 'in_progress') {
+    if (evaluation.type === 'self' && evaluation.employee_id === currentEmployeeId) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function canUserValidateEvaluation(evaluation: Evaluation, userRole: UserRole): boolean {
+  // Manager ou RH peuvent valider si status = submitted
+  if (evaluation.status === 'submitted') {
+    if (userRole === 'manager' || userRole === 'rh' || userRole === 'admin' || userRole === 'dg') {
+      return true;
+    }
+  }
+  return false;
+}
+
+function getScopeLabel(scope: string): string {
+  switch (scope) {
+    case 'personal': return 'Mes statistiques';
+    case 'team': return 'Mon équipe';
+    case 'global': return 'Entreprise';
+    default: return '';
+  }
 }
 
 // =============================================
-// Chart Data
+// STAT CARD COMPONENT
 // =============================================
 
-const performanceDistribution = [
-  { rating: 'Exceptionnel', count: 8, color: '#10B981' },
-  { rating: 'Dépasse', count: 15, color: '#3B82F6' },
-  { rating: 'Atteint', count: 18, color: '#8B5CF6' },
-  { rating: 'À améliorer', count: 5, color: '#F59E0B' },
-  { rating: 'Insuffisant', count: 2, color: '#EF4444' },
-];
-
-const competencyData = [
-  { subject: 'Technique', score: 85 },
-  { subject: 'Leadership', score: 72 },
-  { subject: 'Communication', score: 88 },
-  { subject: 'Innovation', score: 75 },
-  { subject: 'Collaboration', score: 90 },
-  { subject: 'Résolution', score: 82 },
-];
-
-const trendData = [
-  { month: 'Jan', score: 3.8 },
-  { month: 'Fév', score: 3.9 },
-  { month: 'Mar', score: 4.0 },
-  { month: 'Avr', score: 3.9 },
-  { month: 'Mai', score: 4.1 },
-  { month: 'Jun', score: 4.2 },
-];
+function StatCard({ title, value, subValue, icon, color }: { 
+  title: string; 
+  value: string | number; 
+  subValue?: string;
+  icon: React.ReactNode; 
+  color: string;
+}) {
+  return (
+    <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-gray-500">{title}</p>
+          <p className={`text-2xl font-bold ${color}`}>{value}</p>
+          {subValue && <p className="text-xs text-gray-400 mt-1">{subValue}</p>}
+        </div>
+        <div className={`p-3 rounded-xl ${color.replace('text-', 'bg-').replace('-600', '-100').replace('-700', '-100')}`}>
+          {icon}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // =============================================
-// MODAL COMPONENTS
+// FEEDBACK CARD COMPONENT
 // =============================================
 
-function FeedbackModal({ isOpen, onClose, onSubmit, employees }: {
+function FeedbackCard({ feedback, onLike }: { feedback: FeedbackItem; onLike: (id: number) => void }) {
+  const [liked, setLiked] = useState(feedback.is_liked_by_me || false);
+  const [likes, setLikes] = useState(feedback.likes_count);
+
+  const handleLike = async () => {
+    const newCount = await likeFeedback(feedback.id);
+    if (newCount >= 0) {
+      setLikes(newCount);
+      setLiked(!liked);
+      onLike(feedback.id);
+    }
+  };
+
+  const timeAgo = (date: string) => {
+    const diff = Date.now() - new Date(date).getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    if (hours < 1) return 'Il y a moins d\'1h';
+    if (hours < 24) return `Il y a ${hours}h`;
+    return `Il y a ${Math.floor(hours / 24)}j`;
+  };
+
+  return (
+    <div className="bg-white rounded-xl p-4 border border-gray-100 hover:shadow-md transition-all">
+      <div className="flex gap-3">
+        <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-medium text-sm flex-shrink-0">
+          {feedback.from_employee_initials || getInitials(feedback.from_employee_name)}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-medium text-gray-900 text-sm">{feedback.from_employee_name}</span>
+            <span className="text-gray-400">→</span>
+            <span className="font-medium text-primary-600 text-sm">{feedback.to_employee_name}</span>
+            <span className="text-lg">{getFeedbackIcon(feedback.type)}</span>
+          </div>
+          <p className="text-gray-700 text-sm mt-2 leading-relaxed">{feedback.message}</p>
+          <div className="flex items-center gap-4 mt-3">
+            <button onClick={handleLike} className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? 'text-primary-600' : 'text-gray-400 hover:text-primary-500'}`}>
+              <ThumbsUp className={`w-4 h-4 ${liked ? 'fill-current' : ''}`} />
+              <span>{likes}</span>
+            </button>
+            <span className="text-xs text-gray-400">{timeAgo(feedback.created_at)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================
+// CREATE FEEDBACK MODAL
+// =============================================
+
+function CreateFeedbackModal({ isOpen, onClose, employees, onSuccess }: {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { to_employee_id: number; type: string; message: string; is_public: boolean }) => Promise<string | null>;
   employees: Employee[];
+  onSuccess: () => void;
 }) {
-  const [toEmployeeId, setToEmployeeId] = useState<number | ''>('');
-  const [type, setType] = useState<'recognition' | 'improvement' | 'general'>('recognition');
+  const [toEmployee, setToEmployee] = useState('');
+  const [feedbackType, setFeedbackType] = useState<'recognition' | 'improvement' | 'general'>('recognition');
   const [message, setMessage] = useState('');
   const [isPublic, setIsPublic] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    if (!toEmployee || !message.trim()) {
+      setError('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+    if (message.length < 10) {
+      setError('Le message doit contenir au moins 10 caractères');
+      return;
+    }
+
     setError('');
-    
-    if (!toEmployeeId) {
-      setError('Veuillez sélectionner un collaborateur');
-      return;
-    }
-    if (message.trim().length < 10) {
-      setError('Le message doit faire au moins 10 caractères');
-      return;
-    }
-    
     setSaving(true);
-    const errorMessage = await onSubmit({ to_employee_id: Number(toEmployeeId), type, message, is_public: isPublic });
+    
+    const result = await createFeedback({
+      to_employee_id: parseInt(toEmployee),
+      type: feedbackType,
+      message: message.trim(),
+      is_public: isPublic
+    });
+
     setSaving(false);
     
-    if (errorMessage) {
-      setError(errorMessage);
-    } else {
-      // Reset form et fermer
-      setToEmployeeId('');
+    if (result.success) {
+      setToEmployee('');
       setMessage('');
-      setType('recognition');
+      setFeedbackType('recognition');
       setIsPublic(true);
-      setError('');
+      onSuccess();
       onClose();
+    } else {
+      setError(result.error || 'Erreur lors de la création');
     }
   };
 
@@ -544,233 +570,121 @@ function FeedbackModal({ isOpen, onClose, onSubmit, employees }: {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
         <div className="p-5 border-b flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900">Donner un Feedback</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+          <h2 className="text-lg font-bold text-gray-900">Nouveau Feedback</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        
+        <div className="p-5 space-y-4">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
               {error}
             </div>
           )}
+          
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">À qui ? *</label>
-            <select 
-              value={toEmployeeId} 
-              onChange={(e) => setToEmployeeId(e.target.value ? Number(e.target.value) : '')} 
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="">Sélectionner un collaborateur...</option>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Destinataire *</label>
+            <select value={toEmployee} onChange={(e) => setToEmployee(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+              <option value="">Sélectionner un collègue</option>
               {employees.map(emp => (
                 <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
               ))}
             </select>
           </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Type de feedback</label>
             <div className="flex gap-2">
-              {(['recognition', 'improvement', 'general'] as const).map(t => (
-                <button 
-                  key={t} 
-                  type="button" 
-                  onClick={() => setType(t)} 
-                  className={`flex-1 px-3 py-2 border-2 text-sm rounded-lg transition-colors ${
-                    type === t 
-                      ? (t === 'recognition' ? 'border-green-500 bg-green-50 text-green-700' : t === 'improvement' ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-blue-500 bg-blue-50 text-blue-700') 
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  {t === 'recognition' ? '🎉 Reconnaissance' : t === 'improvement' ? '💡 Suggestion' : '💬 Général'}
+              {[
+                { value: 'recognition', label: '🎉 Reconnaissance', color: 'bg-green-100 text-green-700 border-green-300' },
+                { value: 'improvement', label: '💡 Amélioration', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
+                { value: 'general', label: '💬 Général', color: 'bg-gray-100 text-gray-700 border-gray-300' },
+              ].map(type => (
+                <button key={type.value} onClick={() => setFeedbackType(type.value as any)} className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${feedbackType === type.value ? type.color : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                  {type.label}
                 </button>
               ))}
             </div>
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Message *</label>
-            <textarea 
-              value={message} 
-              onChange={(e) => setMessage(e.target.value)} 
-              rows={4} 
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" 
-              placeholder="Écrivez votre feedback... (minimum 10 caractères)"
-            />
-            <p className="text-xs text-gray-500 mt-1">{message.length}/2000 caractères</p>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Message *</label>
+            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4} placeholder="Partagez votre feedback..." className="w-full px-3 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none" />
+            <p className="text-xs text-gray-400 mt-1">{message.length}/2000 caractères (min. 10)</p>
           </div>
+
           <label className="flex items-center gap-2 cursor-pointer">
-            <input 
-              type="checkbox" 
-              checked={isPublic} 
-              onChange={(e) => setIsPublic(e.target.checked)} 
-              className="w-4 h-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500" 
-            />
-            <span className="text-sm text-gray-600">Feedback public (visible par tous)</span>
+            <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="w-4 h-4 text-primary-600 rounded" />
+            <span className="text-sm text-gray-700">Feedback public (visible par tous)</span>
           </label>
-          <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50">
-              Annuler
-            </button>
-            <button 
-              type="submit" 
-              disabled={saving} 
-              className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-              Envoyer
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function OneOnOneModal({ isOpen, onClose, onSubmit, employees }: {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: { employee_id: number; scheduled_date: string; duration_minutes: number; location?: string }) => Promise<string | null>;
-  employees: Employee[];
-}) {
-  const [employeeId, setEmployeeId] = useState<number | ''>('');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('14:00');
-  const [duration, setDuration] = useState(30);
-  const [location, setLocation] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    if (!employeeId || !date) return;
-    
-    setSaving(true);
-    const errorMessage = await onSubmit({
-      employee_id: Number(employeeId),
-      scheduled_date: `${date}T${time}:00`,
-      duration_minutes: duration,
-      location: location || undefined
-    });
-    setSaving(false);
-    
-    if (errorMessage) {
-      setError(errorMessage);
-    } else {
-      // Reset et fermer
-      setEmployeeId('');
-      setDate('');
-      setTime('14:00');
-      setDuration(30);
-      setLocation('');
-      setError('');
-      onClose();
-    }
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
-        <div className="p-5 border-b flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900">Planifier un 1-on-1</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
-              {error}
-            </div>
-          )}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Collaborateur *</label>
-            <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value ? Number(e.target.value) : '')} className="w-full px-3 py-2 border rounded-lg text-sm" required>
-              <option value="">Sélectionner...</option>
-              {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Heure *</label>
-              <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" required />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Durée</label>
-              <select value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="w-full px-3 py-2 border rounded-lg text-sm">
-                <option value={15}>15 min</option>
-                <option value={30}>30 min</option>
-                <option value={45}>45 min</option>
-                <option value={60}>1h</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Lieu</label>
-              <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Bureau, Visio..." />
-            </div>
-          </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 border text-gray-700 text-sm rounded-lg">Annuler</button>
-            <button type="submit" disabled={saving} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg flex items-center disabled:opacity-50">
-              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Calendar className="w-4 h-4 mr-2" />}
-              Planifier
-            </button>
-          </div>
-        </form>
+
+        <div className="p-5 border-t bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
+          <button onClick={onClose} className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-100 transition-colors">
+            Annuler
+          </button>
+          <button onClick={handleSubmit} disabled={saving} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 transition-colors flex items-center disabled:opacity-50">
+            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+            Envoyer
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
 // =============================================
-// CAMPAIGN MODAL
+// CREATE CAMPAIGN MODAL
 // =============================================
 
-function CampaignModal({ isOpen, onClose, onSubmit, employees }: {
+function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { name: string; description?: string; type: string; start_date: string; end_date: string; employee_ids?: number[] }) => Promise<string | null>;
   employees: Employee[];
+  onSuccess: () => void;
 }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [type, setType] = useState('annual');
+  const [campaignType, setCampaignType] = useState('annual');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [selectAll, setSelectAll] = useState(true);
   const [selectedEmployees, setSelectedEmployees] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    if (!name.trim() || !startDate || !endDate) {
+  const handleSubmit = async () => {
+    if (!name || !startDate || !endDate) {
       setError('Veuillez remplir tous les champs obligatoires');
       return;
     }
-    
+
+    setError('');
     setSaving(true);
-    const errorMessage = await onSubmit({
+    
+    const result = await createCampaign({
       name,
       description: description || undefined,
-      type,
+      type: campaignType,
       start_date: startDate,
       end_date: endDate,
-      employee_ids: selectAll ? undefined : selectedEmployees,
+      employee_ids: selectedEmployees.length > 0 ? selectedEmployees : undefined
     });
+
     setSaving(false);
     
-    if (errorMessage) {
-      setError(errorMessage);
-    } else {
-      setName(''); setDescription(''); setType('annual'); setStartDate(''); setEndDate('');
-      setSelectAll(true); setSelectedEmployees([]); setError('');
+    if (result.success) {
+      setName('');
+      setDescription('');
+      setCampaignType('annual');
+      setStartDate('');
+      setEndDate('');
+      setSelectedEmployees([]);
+      onSuccess();
       onClose();
+    } else {
+      setError(result.error || 'Erreur lors de la création');
     }
   };
 
@@ -778,67 +692,73 @@ function CampaignModal({ isOpen, onClose, onSubmit, employees }: {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="p-5 border-b flex items-center justify-between sticky top-0 bg-white">
+      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-5 border-b flex items-center justify-between sticky top-0 bg-white z-10">
           <h2 className="text-lg font-bold text-gray-900">Nouvelle Campagne d&apos;Évaluation</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
+        
+        <div className="p-5 space-y-4">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {error}
+            </div>
+          )}
+          
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nom de la campagne *</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Ex: Évaluation Annuelle 2025" required />
+            <label className="block text-sm font-medium text-gray-700 mb-2">Nom de la campagne *</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Évaluation Annuelle 2025" className="w-full px-3 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Description..." />
+            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Description optionnelle..." className="w-full px-3 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
-            <select value={type} onChange={(e) => setType(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+            <select value={campaignType} onChange={(e) => setCampaignType(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
               <option value="annual">Évaluation Annuelle</option>
-              <option value="mid_year">Mi-Année</option>
+              <option value="mid_year">Évaluation Mi-Année</option>
               <option value="360">Feedback 360°</option>
-              <option value="probation">Période d&apos;Essai</option>
+              <option value="probation">Fin de Période d&apos;Essai</option>
             </select>
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date début *</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" required />
+              <label className="block text-sm font-medium text-gray-700 mb-2">Date de début *</label>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date fin *</label>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" required />
+              <label className="block text-sm font-medium text-gray-700 mb-2">Date de fin *</label>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
             </div>
           </div>
+
           <div>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={selectAll} onChange={(e) => setSelectAll(e.target.checked)} className="w-4 h-4 rounded" />
-              <span className="text-sm text-gray-600">Tous les employés actifs</span>
-            </label>
-            {!selectAll && (
-              <div className="mt-2 max-h-32 overflow-y-auto border rounded-lg p-2">
-                {employees.map(emp => (
-                  <label key={emp.id} className="flex items-center gap-2 p-1 hover:bg-gray-50 cursor-pointer">
-                    <input type="checkbox" checked={selectedEmployees.includes(emp.id)} onChange={(e) => {
-                      if (e.target.checked) setSelectedEmployees(p => [...p, emp.id]);
-                      else setSelectedEmployees(p => p.filter(id => id !== emp.id));
-                    }} className="w-4 h-4 rounded" />
-                    <span className="text-sm">{emp.first_name} {emp.last_name}</span>
-                  </label>
-                ))}
-              </div>
-            )}
+            <label className="block text-sm font-medium text-gray-700 mb-2">Employés concernés</label>
+            <p className="text-xs text-gray-500 mb-2">Laissez vide pour inclure tous les employés actifs</p>
+            <select multiple value={selectedEmployees.map(String)} onChange={(e) => setSelectedEmployees(Array.from(e.target.selectedOptions, o => parseInt(o.value)))} className="w-full px-3 py-2.5 border rounded-lg text-sm h-32">
+              {employees.map(emp => (
+                <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
+              ))}
+            </select>
           </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 border text-gray-700 text-sm rounded-lg">Annuler</button>
-            <button type="submit" disabled={saving} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg flex items-center disabled:opacity-50">
-              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-              Créer
-            </button>
-          </div>
-        </form>
+        </div>
+
+        <div className="p-5 border-t bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
+          <button onClick={onClose} className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-100 transition-colors">
+            Annuler
+          </button>
+          <button onClick={handleSubmit} disabled={saving} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 transition-colors flex items-center disabled:opacity-50">
+            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+            Créer
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -855,40 +775,106 @@ function EvaluationViewModal({ isOpen, onClose, evaluation }: {
 }) {
   if (!isOpen || !evaluation) return null;
 
+  const radarData = evaluation.scores ? Object.entries(evaluation.scores).map(([name, data]) => ({
+    subject: name.length > 15 ? name.substring(0, 15) + '...' : name,
+    score: data.score,
+    fullMark: 100
+  })) : [];
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="p-5 border-b flex items-center justify-between sticky top-0 bg-white">
-          <h2 className="text-lg font-bold text-gray-900">Détails de l&apos;Évaluation</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
-        </div>
-        <div className="p-5 space-y-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 text-xl font-bold">{evaluation.employee_initials}</div>
-            <div>
-              <h3 className="text-xl font-bold text-gray-900">{evaluation.employee_name}</h3>
-              <p className="text-gray-500">{evaluation.employee_job_title} • {evaluation.employee_department}</p>
-              <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(evaluation.status)}`}>{getStatusLabel(evaluation.status)}</span>
-            </div>
-            {evaluation.overall_score && <div className="ml-auto text-center"><div className="text-3xl font-bold text-primary-600">{evaluation.overall_score}</div><div className="text-xs text-gray-500">/5</div></div>}
+        <div className="p-5 border-b flex items-center justify-between sticky top-0 bg-white z-10">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Détails de l&apos;Évaluation</h2>
+            <p className="text-sm text-gray-500">{evaluation.employee_name} - {evaluation.employee_job_title}</p>
           </div>
-          {evaluation.scores && Object.keys(evaluation.scores).length > 0 && (
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <div className="p-5 space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-500">Type</p>
+              <p className="font-medium text-gray-900">{getTypeLabel(evaluation.type)}</p>
+            </div>
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-500">Status</p>
+              <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(evaluation.status)}`}>
+                {getStatusLabel(evaluation.status)}
+              </span>
+            </div>
+            {evaluation.due_date && (
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-500">Date limite</p>
+                <p className="font-medium text-gray-900">{formatDate(evaluation.due_date)}</p>
+              </div>
+            )}
+            {evaluation.overall_score && (
+              <div className="p-4 bg-primary-50 rounded-lg">
+                <p className="text-sm text-gray-500">Score Global</p>
+                <p className="text-2xl font-bold text-primary-600">{evaluation.overall_score}/5</p>
+              </div>
+            )}
+          </div>
+
+          {radarData.length > 0 && (
             <div>
-              <h4 className="font-semibold text-gray-900 mb-3">Scores par Compétence</h4>
-              <div className="space-y-3">
-                {Object.entries(evaluation.scores).map(([cat, data]) => (
-                  <div key={cat}>
-                    <div className="flex justify-between text-sm mb-1"><span className="text-gray-700">{cat}</span><span className="font-medium">{data.score}%</span></div>
-                    <div className="h-2 bg-gray-200 rounded-full"><div className={`h-full rounded-full ${data.score >= 90 ? 'bg-green-500' : data.score >= 75 ? 'bg-blue-500' : 'bg-yellow-500'}`} style={{ width: `${data.score}%` }} /></div>
+              <h4 className="font-semibold text-gray-900 mb-4">Scores par Compétence</h4>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={radarData}>
+                    <PolarGrid />
+                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11 }} />
+                    <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                    <Radar name="Score" dataKey="score" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-4 space-y-2">
+                {Object.entries(evaluation.scores || {}).map(([name, data]) => (
+                  <div key={name} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                    <span className="text-sm text-gray-700">{name}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="h-full bg-primary-500 rounded-full" style={{ width: `${data.score}%` }} />
+                      </div>
+                      <span className="text-sm font-medium text-gray-900 w-12 text-right">{data.score}%</span>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
-          {evaluation.due_date && <p className="text-sm text-gray-500">Deadline: {formatDate(evaluation.due_date)}</p>}
+
+          {evaluation.strengths && (
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-2">Points Forts</h4>
+              <p className="text-sm text-gray-700 bg-green-50 p-3 rounded-lg">{evaluation.strengths}</p>
+            </div>
+          )}
+
+          {evaluation.improvements && (
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-2">Axes d&apos;Amélioration</h4>
+              <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded-lg">{evaluation.improvements}</p>
+            </div>
+          )}
+
+          {evaluation.manager_comments && (
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-2">Commentaires du Manager</h4>
+              <p className="text-sm text-gray-700 bg-blue-50 p-3 rounded-lg">{evaluation.manager_comments}</p>
+            </div>
+          )}
         </div>
-        <div className="p-5 border-t bg-gray-50 flex justify-end">
-          <button onClick={onClose} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg">Fermer</button>
+
+        <div className="p-5 border-t bg-gray-50 flex justify-end rounded-b-2xl">
+          <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors">
+            Fermer
+          </button>
         </div>
       </div>
     </div>
@@ -899,14 +885,18 @@ function EvaluationViewModal({ isOpen, onClose, evaluation }: {
 // EVALUATION EDIT MODAL
 // =============================================
 
-function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, canValidate }: {
+function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, currentEmployeeId }: {
   isOpen: boolean;
   onClose: () => void;
   evaluation: Evaluation | null;
   onSave: () => void;
-  canValidate: boolean;
+  userRole: UserRole;
+  currentEmployeeId?: number;
 }) {
   const [scores, setScores] = useState<Record<string, { score: number; comment: string }>>({});
+  const [strengths, setStrengths] = useState('');
+  const [improvements, setImprovements] = useState('');
+  const [goals, setGoals] = useState('');
   const [managerComments, setManagerComments] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -923,6 +913,10 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, canValidate 
         defaultCompetencies.forEach(comp => { initialScores[comp] = { score: 75, comment: '' }; });
       }
       setScores(initialScores);
+      setStrengths(evaluation.strengths || '');
+      setImprovements(evaluation.improvements || '');
+      setGoals(evaluation.goals || '');
+      setManagerComments(evaluation.manager_comments || '');
     }
   }, [evaluation]);
 
@@ -934,8 +928,15 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, canValidate 
 
   const handleSubmit = async () => {
     if (!evaluation) return;
-    setError(''); setSaving(true);
-    const result = await submitEvaluation(evaluation.id, { scores, overall_score: calculateOverall() });
+    setError(''); 
+    setSaving(true);
+    const result = await submitEvaluation(evaluation.id, { 
+      scores, 
+      overall_score: calculateOverall(),
+      strengths: strengths || undefined,
+      improvements: improvements || undefined,
+      goals: goals || undefined
+    });
     setSaving(false);
     if (result.success) { onSave(); onClose(); }
     else setError(result.error || 'Erreur');
@@ -943,7 +944,8 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, canValidate 
 
   const handleValidate = async (approved: boolean) => {
     if (!evaluation) return;
-    setError(''); setSaving(true);
+    setError(''); 
+    setSaving(true);
     const result = await validateEvaluation(evaluation.id, { approved, manager_comments: managerComments || undefined });
     setSaving(false);
     if (result.success) { onSave(); onClose(); }
@@ -952,21 +954,47 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, canValidate 
 
   if (!isOpen || !evaluation) return null;
 
-  const canEdit = evaluation.status === 'pending' || evaluation.status === 'in_progress';
-  const showValidation = canValidate && evaluation.status === 'submitted';
+  const canEdit = canUserEditEvaluation(evaluation, userRole, currentEmployeeId);
+  const canValidate = canUserValidateEvaluation(evaluation, userRole);
+  const isReadOnly = !canEdit && !canValidate;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-5 border-b flex items-center justify-between sticky top-0 bg-white z-10">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">{showValidation ? 'Valider' : 'Éditer'} l&apos;Évaluation</h2>
+            <h2 className="text-lg font-bold text-gray-900">
+              {canValidate ? 'Valider l\'Évaluation' : canEdit ? 'Éditer l\'Évaluation' : 'Voir l\'Évaluation'}
+            </h2>
             <p className="text-sm text-gray-500">{evaluation.employee_name} - {evaluation.employee_job_title}</p>
+            <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(evaluation.status)}`}>
+              {getStatusLabel(evaluation.status)}
+            </span>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
+        
         <div className="p-5 space-y-6">
-          {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />{error}
+            </div>
+          )}
+
+          {/* Info si en lecture seule */}
+          {isReadOnly && (
+            <div className="p-3 bg-gray-50 border border-gray-200 text-gray-600 text-sm rounded-lg">
+              Cette évaluation est en lecture seule. Status: <strong>{getStatusLabel(evaluation.status)}</strong>
+            </div>
+          )}
+
+          {/* Info si en attente de validation */}
+          {evaluation.status === 'submitted' && !canValidate && (
+            <div className="p-3 bg-blue-50 border border-blue-200 text-blue-700 text-sm rounded-lg">
+              Cette évaluation a été soumise et est en attente de validation par un Manager ou RH.
+            </div>
+          )}
+
           <div>
             <h4 className="font-semibold text-gray-900 mb-4">Évaluation des Compétences</h4>
             <div className="space-y-4">
@@ -976,8 +1004,23 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, canValidate 
                     <label className="font-medium text-gray-700">{comp}</label>
                     <span className="text-lg font-bold text-primary-600">{data.score}%</span>
                   </div>
-                  <input type="range" min="0" max="100" value={data.score} onChange={(e) => setScores(prev => ({ ...prev, [comp]: { ...prev[comp], score: Number(e.target.value) } }))} disabled={!canEdit} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500" />
-                  <input type="text" placeholder="Commentaire (optionnel)" value={data.comment} onChange={(e) => setScores(prev => ({ ...prev, [comp]: { ...prev[comp], comment: e.target.value } }))} disabled={!canEdit} className="w-full mt-2 px-3 py-2 text-sm border rounded-lg" />
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="100" 
+                    value={data.score} 
+                    onChange={(e) => setScores(prev => ({ ...prev, [comp]: { ...prev[comp], score: Number(e.target.value) } }))} 
+                    disabled={!canEdit} 
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500 disabled:opacity-50" 
+                  />
+                  <input 
+                    type="text" 
+                    placeholder="Commentaire (optionnel)" 
+                    value={data.comment} 
+                    onChange={(e) => setScores(prev => ({ ...prev, [comp]: { ...prev[comp], comment: e.target.value } }))} 
+                    disabled={!canEdit} 
+                    className="w-full mt-2 px-3 py-2 text-sm border rounded-lg disabled:bg-gray-50" 
+                  />
                 </div>
               ))}
             </div>
@@ -986,25 +1029,109 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, canValidate 
               <span className="text-2xl font-bold text-primary-600 ml-2">{calculateOverall()}/5</span>
             </div>
           </div>
-          {showValidation && (
+
+          {/* Champs pour l'employé */}
+          {canEdit && (
+            <>
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Points Forts</h4>
+                <textarea 
+                  value={strengths} 
+                  onChange={(e) => setStrengths(e.target.value)} 
+                  rows={2} 
+                  placeholder="Décrivez vos points forts..." 
+                  className="w-full px-3 py-2 text-sm border rounded-lg" 
+                />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Axes d&apos;Amélioration</h4>
+                <textarea 
+                  value={improvements} 
+                  onChange={(e) => setImprovements(e.target.value)} 
+                  rows={2} 
+                  placeholder="Identifiez vos axes d'amélioration..." 
+                  className="w-full px-3 py-2 text-sm border rounded-lg" 
+                />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Objectifs</h4>
+                <textarea 
+                  value={goals} 
+                  onChange={(e) => setGoals(e.target.value)} 
+                  rows={2} 
+                  placeholder="Vos objectifs pour la prochaine période..." 
+                  className="w-full px-3 py-2 text-sm border rounded-lg" 
+                />
+              </div>
+            </>
+          )}
+
+          {/* Affichage lecture seule des champs soumis */}
+          {!canEdit && evaluation.strengths && (
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-2">Points Forts</h4>
+              <p className="text-sm text-gray-700 bg-green-50 p-3 rounded-lg">{evaluation.strengths}</p>
+            </div>
+          )}
+          {!canEdit && evaluation.improvements && (
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-2">Axes d&apos;Amélioration</h4>
+              <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded-lg">{evaluation.improvements}</p>
+            </div>
+          )}
+          {!canEdit && evaluation.goals && (
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-2">Objectifs</h4>
+              <p className="text-sm text-gray-700 bg-blue-50 p-3 rounded-lg">{evaluation.goals}</p>
+            </div>
+          )}
+
+          {/* Commentaires Manager (pour validation) */}
+          {canValidate && (
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-2">Commentaires du Manager/RH</h4>
+              <textarea 
+                value={managerComments} 
+                onChange={(e) => setManagerComments(e.target.value)} 
+                rows={3} 
+                placeholder="Vos commentaires pour l'employé..." 
+                className="w-full px-3 py-2 text-sm border rounded-lg" 
+              />
+            </div>
+          )}
+
+          {/* Affichage commentaires manager existants */}
+          {!canValidate && evaluation.manager_comments && (
             <div>
               <h4 className="font-semibold text-gray-900 mb-2">Commentaires du Manager</h4>
-              <textarea value={managerComments} onChange={(e) => setManagerComments(e.target.value)} rows={3} placeholder="Vos commentaires..." className="w-full px-3 py-2 text-sm border rounded-lg" />
+              <p className="text-sm text-gray-700 bg-blue-50 p-3 rounded-lg">{evaluation.manager_comments}</p>
             </div>
           )}
         </div>
+
         <div className="p-5 border-t bg-gray-50 flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 border text-gray-700 text-sm rounded-lg">Annuler</button>
+          <button onClick={onClose} className="px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-100">
+            {isReadOnly ? 'Fermer' : 'Annuler'}
+          </button>
+          
+          {/* Bouton Soumettre - uniquement si l'employé peut éditer */}
           {canEdit && (
-            <button onClick={handleSubmit} disabled={saving} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg flex items-center disabled:opacity-50">
-              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}Soumettre
+            <button onClick={handleSubmit} disabled={saving} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg flex items-center disabled:opacity-50 hover:bg-primary-600">
+              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+              Soumettre
             </button>
           )}
-          {showValidation && (
+          
+          {/* Boutons Renvoyer/Valider - uniquement pour Manager/RH si status = submitted */}
+          {canValidate && (
             <>
-              <button onClick={() => handleValidate(false)} disabled={saving} className="px-4 py-2 border border-orange-500 text-orange-600 text-sm rounded-lg">Renvoyer</button>
-              <button onClick={() => handleValidate(true)} disabled={saving} className="px-4 py-2 bg-green-500 text-white text-sm rounded-lg flex items-center disabled:opacity-50">
-                {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}Valider
+              <button onClick={() => handleValidate(false)} disabled={saving} className="px-4 py-2 border border-orange-500 text-orange-600 text-sm rounded-lg hover:bg-orange-50 flex items-center">
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Renvoyer
+              </button>
+              <button onClick={() => handleValidate(true)} disabled={saving} className="px-4 py-2 bg-green-500 text-white text-sm rounded-lg flex items-center disabled:opacity-50 hover:bg-green-600">
+                {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                Valider
               </button>
             </>
           )}
@@ -1019,544 +1146,409 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, canValidate 
 // =============================================
 
 export default function PerformancePage() {
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'feedback' | 'evaluations' | 'objectives' | 'analytics'>('feedback');
-  
-  // Data
+  const [activeTab, setActiveTab] = useState<'feedback' | 'evaluations' | 'objectives'>('feedback');
+  const [userRole, setUserRole] = useState<UserRole>('employee');
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [stats, setStats] = useState<MyStats | null>(null);
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
   const [campaigns, setCampaigns] = useState<EvaluationCampaign[]>([]);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [oneOnOnes, setOneOnOnes] = useState<OneOnOne[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [directReports, setDirectReports] = useState<Employee[]>([]);
-  const [stats, setStats] = useState<PerformanceStats>(getMockStats());
-  
-  // User context
-  const [userRole, setUserRole] = useState<UserRole>('admin'); // Default to admin for demo
-  const [isManager, setIsManager] = useState(true);
-  const [currentEmployeeId, setCurrentEmployeeId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
   
   // Modals
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [showOneOnOneModal, setShowOneOnOneModal] = useState(false);
   const [showCampaignModal, setShowCampaignModal] = useState(false);
-  const [showEvaluationViewModal, setShowEvaluationViewModal] = useState(false);
-  const [showEvaluationEditModal, setShowEvaluationEditModal] = useState(false);
+  const [showEvalViewModal, setShowEvalViewModal] = useState(false);
+  const [showEvalEditModal, setShowEvalEditModal] = useState(false);
   const [selectedEvaluation, setSelectedEvaluation] = useState<Evaluation | null>(null);
 
-  // Permissions
-  const isHROrAdmin = ['rh', 'admin', 'dg'].includes(userRole);
-  const canManageTeam = isHROrAdmin || isManager || userRole === 'manager';
-
-  // Load user data
-  useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const userData = JSON.parse(userStr);
-        setUserRole(normalizeRole(userData.role));
-        setIsManager(userData.is_manager || userData.role?.toLowerCase() === 'manager');
-        setCurrentEmployeeId(userData.employee_id || null);
-      } catch (e) {
-        console.error('Error parsing user:', e);
-      }
-    }
-  }, []);
-
-  // Load data
   const loadData = useCallback(async () => {
     setLoading(true);
-    try {
-      const [feedbackData, employeeData, oneOnOneData, evalData, campaignData, statsData] = await Promise.all([
-        fetchFeedbacks(),
-        fetchEmployees(),
-        fetchOneOnOnes(),
-        fetchEvaluations(),
-        fetchCampaigns(),
-        fetchStats(),
-      ]);
-      
-      setFeedbacks(feedbackData);
-      setEmployees(employeeData);
-      setOneOnOnes(oneOnOneData);
-      setEvaluations(evalData);
-      setCampaigns(campaignData);
-      setStats(statsData);
-      
-      // Charger les direct reports si manager
-      if (currentEmployeeId && isManager) {
-        const reports = await fetchDirectReports(currentEmployeeId);
-        setDirectReports(reports);
-      }
-    } catch (error) {
-      console.error('Error loading data:', error);
-      // Use mock data as fallback
-      setFeedbacks(getMockFeedbacks());
-      setEmployees(getMockEmployees());
-      setOneOnOnes(getMockOneOnOnes());
-      setEvaluations(getMockEvaluations());
-      setCampaigns(getMockCampaigns());
-      setStats(getMockStats());
-    } finally {
-      setLoading(false);
+    
+    // Charger l'utilisateur courant
+    const user = await fetchCurrentUser();
+    if (user) {
+      setCurrentUser(user);
+      setUserRole(normalizeRole(user.role));
     }
-  }, [currentEmployeeId, isManager]);
+    
+    // Charger toutes les données en parallèle
+    const [statsData, feedbacksData, campaignsData, evaluationsData, oneOnOnesData, employeesData] = await Promise.all([
+      fetchMyStats(),
+      fetchFeedbacks(),
+      fetchCampaigns(),
+      fetchEvaluations(),
+      fetchOneOnOnes(),
+      fetchEmployees()
+    ]);
+    
+    setStats(statsData);
+    setFeedbacks(feedbacksData);
+    setCampaigns(campaignsData);
+    setEvaluations(evaluationsData);
+    setOneOnOnes(oneOnOnesData);
+    setEmployees(employeesData);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // Handlers
-  const handleCreateFeedback = async (data: { to_employee_id: number; type: string; message: string; is_public: boolean }): Promise<string | null> => {
-    const result = await createFeedback(data);
-    if (result.success) {
-      await loadData();
-      return null; // Pas d'erreur
-    } else {
-      return result.error || 'Erreur lors de la création du feedback';
-    }
-  };
-
-  const handleLikeFeedback = async (feedbackId: number) => {
-    const newCount = await likeFeedback(feedbackId);
-    if (newCount >= 0) {
-      setFeedbacks(prev => prev.map(fb => 
-        fb.id === feedbackId ? { ...fb, likes_count: newCount, is_liked_by_me: !fb.is_liked_by_me } : fb
-      ));
-    } else {
-      // Demo mode: toggle like locally
-      setFeedbacks(prev => prev.map(fb => 
-        fb.id === feedbackId ? { 
-          ...fb, 
-          likes_count: fb.is_liked_by_me ? fb.likes_count - 1 : fb.likes_count + 1, 
-          is_liked_by_me: !fb.is_liked_by_me 
-        } : fb
-      ));
-    }
-  };
-
-  const handleCreateOneOnOne = async (data: { employee_id: number; scheduled_date: string; duration_minutes: number; location?: string }): Promise<string | null> => {
-    const result = await createOneOnOne(data);
-    if (result.success) {
-      await loadData();
-      return null;
-    } else {
-      return result.error || 'Erreur lors de la planification du 1-on-1';
-    }
-  };
-
-  const handleCreateCampaign = async (data: { name: string; description?: string; type: string; start_date: string; end_date: string; employee_ids?: number[] }): Promise<string | null> => {
-    const result = await createCampaign(data);
-    if (result.success) {
-      await loadData();
-      return null;
-    } else {
-      return result.error || 'Erreur lors de la création de la campagne';
-    }
-  };
-
   const handleViewEvaluation = (evaluation: Evaluation) => {
     setSelectedEvaluation(evaluation);
-    setShowEvaluationViewModal(true);
+    setShowEvalViewModal(true);
   };
 
   const handleEditEvaluation = (evaluation: Evaluation) => {
     setSelectedEvaluation(evaluation);
-    setShowEvaluationEditModal(true);
+    setShowEvalEditModal(true);
   };
+
+  // Déterminer quels boutons afficher pour une évaluation
+  const getEvaluationActions = (evaluation: Evaluation) => {
+    const canEdit = canUserEditEvaluation(evaluation, userRole, currentUser?.employee_id);
+    const canValidate = canUserValidateEvaluation(evaluation, userRole);
+    
+    return { canEdit, canValidate };
+  };
+
+  const canManageCampaigns = ['admin', 'rh', 'dg'].includes(userRole);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-10 h-10 animate-spin text-primary-500 mx-auto mb-3" />
-          <p className="text-gray-500">Chargement...</p>
-        </div>
+        <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-5">
-        <h1 className="text-2xl font-bold text-gray-900">Performance & Feedback</h1>
-        <p className="text-sm text-gray-500 mt-1">Évaluations, feedback continu, objectifs et entretiens</p>
-      </div>
-
-      <main className="p-6">
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">Score Moyen</p><p className="text-2xl font-bold text-gray-900">{stats?.avg_score || 0}<span className="text-sm text-gray-400">/5</span></p></div>
-              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center"><Star className="w-5 h-5 text-yellow-600" /></div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">Évaluations</p><p className="text-2xl font-bold text-green-600">{stats?.evaluations_completed || 0}<span className="text-sm text-gray-400">/{stats?.evaluations_total || 0}</span></p></div>
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center"><CheckCircle className="w-5 h-5 text-green-600" /></div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">Feedbacks (Mois)</p><p className="text-2xl font-bold text-purple-600">{stats?.feedbacks_this_month || feedbacks.length}</p></div>
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center"><MessageSquare className="w-5 h-5 text-purple-600" /></div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">OKRs Atteints</p><p className="text-2xl font-bold text-blue-600">{stats?.okr_achievement_avg || 0}%</p></div>
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><Target className="w-5 h-5 text-blue-600" /></div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">1-on-1 (Semaine)</p><p className="text-2xl font-bold text-orange-600">{stats?.one_on_ones_this_week || oneOnOnes.filter(o => o.status === 'scheduled').length}</p></div>
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center"><Users className="w-5 h-5 text-orange-600" /></div>
-            </div>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Performance & Feedback</h1>
+          <p className="text-gray-500">Évaluations, feedback continu, objectifs et entretiens</p>
+          {stats && (
+            <span className="inline-block mt-2 px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+              {getScopeLabel(stats.scope)}
+            </span>
+          )}
         </div>
 
-        {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
-          <div className="flex border-b border-gray-200">
-            <button onClick={() => setActiveTab('feedback')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'feedback' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
-              <MessageSquare className="w-4 h-4 inline mr-2" />Feedback Continu
-            </button>
-            <button onClick={() => setActiveTab('evaluations')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'evaluations' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
-              <Star className="w-4 h-4 inline mr-2" />Évaluations
-            </button>
-            <button onClick={() => setActiveTab('objectives')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'objectives' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
-              <Target className="w-4 h-4 inline mr-2" />Objectifs
-            </button>
-            {isHROrAdmin && (
-              <button onClick={() => setActiveTab('analytics')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'analytics' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
-                <TrendingUp className="w-4 h-4 inline mr-2" />Analytics
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* TAB: Feedback */}
-        {activeTab === 'feedback' && (
-          <div className="grid lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-900">Fil de Feedback</h3>
-                <button 
-                  onClick={() => setShowFeedbackModal(true)} 
-                  className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
-                >
-                  <Plus className="w-4 h-4 mr-2" />Donner un Feedback
-                </button>
-              </div>
-              
-              {feedbacks.length === 0 ? (
-                <div className="bg-white rounded-xl p-8 text-center border border-gray-200">
-                  <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500">Aucun feedback pour le moment</p>
-                  <p className="text-sm text-gray-400 mt-1">Soyez le premier à donner un feedback !</p>
-                </div>
-              ) : (
-                feedbacks.map((fb) => (
-                  <div key={fb.id} className={`bg-white rounded-xl p-5 shadow-sm border ${getFeedbackTypeStyle(fb.type)}`}>
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium text-sm">{fb.from_employee_initials}</div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-gray-900">{fb.from_employee_name}</span>
-                            <ChevronRight className="w-4 h-4 text-gray-400" />
-                            <span className="font-medium text-gray-900">{fb.to_employee_name}</span>
-                          </div>
-                          <span className="text-xs text-gray-500">{formatTimeAgo(fb.created_at)} {fb.is_public ? '• Public' : '• Privé'}</span>
-                        </div>
-                      </div>
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${getFeedbackTypeBadge(fb.type).class}`}>{getFeedbackTypeBadge(fb.type).label}</span>
-                    </div>
-                    <p className="text-gray-700 text-sm mb-3">{fb.message}</p>
-                    {fb.is_public && (
-                      <div className="flex items-center gap-4 pt-3 border-t border-gray-100">
-                        <button onClick={() => handleLikeFeedback(fb.id)} className={`flex items-center text-sm hover:text-primary-600 transition-colors ${fb.is_liked_by_me ? 'text-primary-600' : 'text-gray-500'}`}>
-                          <ThumbsUp className={`w-4 h-4 mr-1 ${fb.is_liked_by_me ? 'fill-current' : ''}`} />{fb.likes_count}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-6">
-              {/* 1-on-1 */}
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><Calendar className="w-4 h-4 text-primary-500" />Prochains 1-on-1</h4>
-                <div className="space-y-3">
-                  {oneOnOnes.filter(o => o.status === 'scheduled').slice(0, 3).map((meeting) => (
-                    <div key={meeting.id} className="p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium text-xs">{meeting.employee_initials}</div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">{meeting.employee_name}</p>
-                          <p className="text-xs text-gray-500">{formatDateTime(meeting.scheduled_date)}</p>
-                        </div>
-                      </div>
-                      {meeting.action_items && meeting.action_items.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {meeting.action_items.slice(0, 2).map((item, i) => (
-                            <span key={i} className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">{item}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {oneOnOnes.filter(o => o.status === 'scheduled').length === 0 && (
-                    <p className="text-sm text-gray-500 text-center py-2">Aucun 1-on-1 planifié</p>
-                  )}
-                </div>
-                {canManageTeam && (
-                  <button onClick={() => setShowOneOnOneModal(true)} className="w-full mt-4 text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center justify-center">
-                    <Plus className="w-4 h-4 mr-1" />Planifier un 1-on-1
-                  </button>
-                )}
-              </div>
-
-              {/* Top contributeurs */}
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2"><Award className="w-4 h-4 text-yellow-500" />Top Contributeurs</h4>
-                <div className="space-y-3">
-                  {(stats?.top_feedback_givers || [{ name: 'Fatou Ndiaye', count: 24 }, { name: 'Amadou Diallo', count: 18 }, { name: 'Aissatou Ba', count: 15 }]).map((person, i) => (
-                    <div key={person.name} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 bg-yellow-100 rounded-full flex items-center justify-center text-xs font-bold text-yellow-700">{i + 1}</span>
-                        <span className="text-sm text-gray-900">{person.name}</span>
-                      </div>
-                      <span className="text-sm font-medium text-primary-600">{person.count} feedbacks</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+        {/* Stats Cards */}
+        {stats && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+            <StatCard 
+              title="Score Moyen" 
+              value={stats.avg_score > 0 ? `${stats.avg_score}/5` : '-'} 
+              icon={<Star className="w-5 h-5 text-yellow-600" />} 
+              color="text-gray-900" 
+            />
+            <StatCard 
+              title="Évaluations" 
+              value={`${stats.evaluations_completed}/${stats.evaluations_total}`} 
+              subValue={stats.evaluations_total > 0 ? `${Math.round(stats.completion_rate)}% complétées` : undefined}
+              icon={<CheckCircle className="w-5 h-5 text-green-600" />} 
+              color="text-green-600" 
+            />
+            <StatCard 
+              title="Feedbacks (Reçus)" 
+              value={stats.feedbacks_received} 
+              subValue={`${stats.feedbacks_given} donnés`}
+              icon={<MessageSquare className="w-5 h-5 text-purple-600" />} 
+              color="text-purple-600" 
+            />
+            <StatCard 
+              title="OKRs Atteints" 
+              value={`${stats.okr_achievement}%`} 
+              icon={<Target className="w-5 h-5 text-orange-600" />} 
+              color="text-orange-600" 
+            />
+            <StatCard 
+              title="1-on-1 (Planifiés)" 
+              value={stats.one_on_ones_scheduled} 
+              subValue={`${stats.one_on_ones_completed} complétés`}
+              icon={<Users className="w-5 h-5 text-blue-600" />} 
+              color="text-blue-600" 
+            />
           </div>
         )}
 
-        {/* TAB: Évaluations */}
-        {activeTab === 'evaluations' && (
-          <div className="space-y-6">
-            {/* Campaigns - RH only */}
-            {isHROrAdmin && (
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-semibold text-gray-900">Campagnes d&apos;Évaluation</h3>
-                  <button onClick={() => setShowCampaignModal(true)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
-                    <Plus className="w-4 h-4 mr-2" />Nouvelle Campagne
+        {/* Tabs */}
+        <div className="bg-white rounded-xl shadow-sm mb-6">
+          <div className="flex border-b">
+            {[
+              { id: 'feedback', label: 'Feedback Continu', icon: MessageSquare },
+              { id: 'evaluations', label: 'Évaluations', icon: Star },
+              { id: 'objectives', label: 'Objectifs', icon: Target },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 text-sm font-medium transition-colors ${
+                  activeTab === tab.id 
+                    ? 'text-primary-600 border-b-2 border-primary-500' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <tab.icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            
+            {/* Feedback Tab */}
+            {activeTab === 'feedback' && (
+              <div className="bg-white rounded-xl p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">Feedbacks Récents</h2>
+                  <button onClick={() => setShowFeedbackModal(true)} className="flex items-center gap-2 px-3 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600">
+                    <Plus className="w-4 h-4" />
+                    Nouveau
                   </button>
                 </div>
-                {campaigns.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Star className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500">Aucune campagne d&apos;évaluation</p>
-                    <button onClick={() => setShowCampaignModal(true)} className="mt-2 text-primary-600 hover:underline text-sm">Créer la première campagne</button>
-                  </div>
-                ) : (
-                <div className="space-y-3">
-                  {campaigns.map((camp) => (
-                    <div key={camp.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${camp.status === 'active' ? 'bg-green-100' : 'bg-gray-200'}`}>
-                          <Star className={`w-5 h-5 ${camp.status === 'active' ? 'text-green-600' : 'text-gray-500'}`} />
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{camp.name}</p>
-                          <p className="text-xs text-gray-500">{camp.completed_evaluations}/{camp.total_evaluations} • Deadline: {formatDate(camp.end_date)}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-lg font-bold text-gray-900">{Math.round(camp.progress_percentage)}%</p>
-                          <div className="w-24 h-2 bg-gray-200 rounded-full"><div className={`h-full rounded-full ${camp.progress_percentage === 100 ? 'bg-green-500' : 'bg-primary-500'}`} style={{ width: `${camp.progress_percentage}%` }} /></div>
-                        </div>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(camp.status)}`}>{getStatusLabel(camp.status)}</span>
-                      </div>
-                    </div>
-                  ))}
+                
+                <div className="space-y-4">
+                  {feedbacks.length > 0 ? feedbacks.slice(0, 10).map(fb => (
+                    <FeedbackCard key={fb.id} feedback={fb} onLike={() => {}} />
+                  )) : (
+                    <p className="text-gray-500 text-center py-8">Aucun feedback pour le moment</p>
+                  )}
                 </div>
-                )}
               </div>
             )}
 
-            {/* Individual Evaluations */}
-            <div className="grid lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-                  <div className="p-5 border-b border-gray-100">
-                    <h3 className="font-semibold text-gray-900">{isHROrAdmin ? 'Toutes les Évaluations' : 'Mes Évaluations'}</h3>
+            {/* Evaluations Tab */}
+            {activeTab === 'evaluations' && (
+              <>
+                {/* Campaigns Section (RH/Admin only) */}
+                {canManageCampaigns && (
+                  <div className="bg-white rounded-xl p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-semibold text-gray-900">Campagnes d&apos;Évaluation</h2>
+                      <button onClick={() => setShowCampaignModal(true)} className="flex items-center gap-2 px-3 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600">
+                        <Plus className="w-4 h-4" />
+                        Nouvelle Campagne
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {campaigns.length > 0 ? campaigns.map(campaign => (
+                        <div key={campaign.id} className="p-4 border rounded-lg hover:shadow-sm transition-shadow">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <h3 className="font-medium text-gray-900">{campaign.name}</h3>
+                              <p className="text-sm text-gray-500">{getTypeLabel(campaign.type)} • {formatDate(campaign.start_date)} - {formatDate(campaign.end_date)}</p>
+                            </div>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(campaign.status)}`}>
+                              {getStatusLabel(campaign.status)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div className="h-full bg-primary-500 rounded-full transition-all" style={{ width: `${campaign.progress_percentage}%` }} />
+                            </div>
+                            <span className="text-sm text-gray-600">{campaign.completed_evaluations}/{campaign.total_evaluations}</span>
+                          </div>
+                        </div>
+                      )) : (
+                        <p className="text-gray-500 text-center py-4">Aucune campagne</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="divide-y divide-gray-100">
-                    {evaluations.length === 0 ? (
-                      <div className="p-8 text-center">
-                        <Star className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-500">Aucune évaluation</p>
-                      </div>
-                    ) : (
-                      evaluations.map((ev) => (
-                        <div key={ev.id} onClick={() => setSelectedEvaluation(ev)} className={`p-4 hover:bg-gray-50 cursor-pointer ${selectedEvaluation?.id === ev.id ? 'bg-primary-50' : ''}`}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium text-sm">{ev.employee_initials}</div>
-                              <div>
-                                <p className="font-medium text-gray-900">{ev.employee_name}</p>
-                                <p className="text-xs text-gray-500">{ev.employee_job_title} • {ev.employee_department}</p>
-                              </div>
+                )}
+
+                {/* My Evaluations */}
+                <div className="bg-white rounded-xl p-5 shadow-sm">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                    {userRole === 'employee' ? 'Mes Évaluations' : 'Évaluations'}
+                  </h2>
+                  
+                  <div className="space-y-3">
+                    {evaluations.length > 0 ? evaluations.map(evaluation => {
+                      const { canEdit, canValidate } = getEvaluationActions(evaluation);
+                      
+                      return (
+                        <div key={evaluation.id} className="p-4 border rounded-lg hover:shadow-sm transition-shadow">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-medium text-sm">
+                              {evaluation.employee_initials || getInitials(evaluation.employee_name)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-gray-900">{evaluation.employee_name}</h3>
+                              <p className="text-sm text-gray-500">{evaluation.employee_job_title} • {evaluation.employee_department}</p>
+                              <p className="text-xs text-gray-400 mt-1">
+                                Type: {getTypeLabel(evaluation.type)} 
+                                {evaluation.due_date && ` • Deadline: ${formatDate(evaluation.due_date)}`}
+                              </p>
                             </div>
                             <div className="flex items-center gap-3">
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(ev.status)}`}>{getStatusLabel(ev.status)}</span>
-                              {ev.overall_score && <span className="text-lg font-bold text-primary-600">{ev.overall_score}/5</span>}
-                              <ChevronRight className="w-4 h-4 text-gray-400" />
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(evaluation.status)}`}>
+                                {getStatusLabel(evaluation.status)}
+                              </span>
+                              {evaluation.overall_score && (
+                                <span className="font-bold text-primary-600">{evaluation.overall_score}/5</span>
+                              )}
+                              <ChevronRight className="w-5 h-5 text-gray-400" />
                             </div>
                           </div>
-                          <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
-                            <span>Type: {ev.type === 'self' ? 'Auto-éval' : ev.type === 'manager' ? 'Manager' : ev.type}</span>
-                            {ev.due_date && <span>Deadline: {formatDate(ev.due_date)}</span>}
+                          
+                          {/* Action Buttons */}
+                          <div className="flex gap-2 mt-3 pt-3 border-t">
+                            <button onClick={() => handleViewEvaluation(evaluation)} className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
+                              <Eye className="w-4 h-4" />
+                              Voir
+                            </button>
+                            
+                            {/* Bouton Éditer - seulement si l'employé peut éditer */}
+                            {canEdit && (
+                              <button onClick={() => handleEditEvaluation(evaluation)} className="flex items-center gap-1 px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg">
+                                <Edit className="w-4 h-4" />
+                                Éditer
+                              </button>
+                            )}
+                            
+                            {/* Boutons Valider/Renvoyer - seulement pour Manager/RH si soumis */}
+                            {canValidate && (
+                              <button onClick={() => handleEditEvaluation(evaluation)} className="flex items-center gap-1 px-3 py-1.5 text-sm text-green-600 hover:bg-green-50 rounded-lg">
+                                <CheckCircle className="w-4 h-4" />
+                                Valider / Renvoyer
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }) : (
+                      <p className="text-gray-500 text-center py-8">Aucune évaluation</p>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Objectives Tab */}
+            {activeTab === 'objectives' && (
+              <div className="bg-white rounded-xl p-5 shadow-sm">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Objectifs & 1-on-1</h2>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-medium text-gray-700 mb-3">Prochains 1-on-1</h3>
+                    {oneOnOnes.filter(o => o.status === 'scheduled').length > 0 ? (
+                      oneOnOnes.filter(o => o.status === 'scheduled').slice(0, 5).map(meeting => (
+                        <div key={meeting.id} className="p-3 border rounded-lg mb-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-xs">
+                                {meeting.employee_initials || getInitials(meeting.employee_name)}
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-900 text-sm">{meeting.employee_name}</p>
+                                <p className="text-xs text-gray-500">{formatDate(meeting.scheduled_date)} • {meeting.duration_minutes} min</p>
+                              </div>
+                            </div>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(meeting.status)}`}>
+                              {getStatusLabel(meeting.status)}
+                            </span>
                           </div>
                         </div>
                       ))
+                    ) : (
+                      <p className="text-gray-500 text-sm">Aucun 1-on-1 planifié</p>
                     )}
+                  </div>
+                  
+                  <div className="pt-4 border-t">
+                    <Link href="/okr" className="flex items-center justify-between p-3 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <Target className="w-5 h-5 text-primary-600" />
+                        <span className="font-medium text-primary-700">Voir mes OKRs</span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-primary-400" />
+                    </Link>
                   </div>
                 </div>
               </div>
-
-              {/* Selected Evaluation Detail */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 h-fit sticky top-6">
-                {selectedEvaluation ? (
-                  <>
-                    <div className="text-center mb-4">
-                      <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 text-xl font-bold mx-auto mb-2">{selectedEvaluation.employee_initials}</div>
-                      <h3 className="font-bold text-gray-900">{selectedEvaluation.employee_name}</h3>
-                      <p className="text-sm text-gray-500">{selectedEvaluation.employee_job_title}</p>
-                    </div>
-                    {selectedEvaluation.scores && (
-                      <div className="space-y-3 mb-4">
-                        {Object.entries(selectedEvaluation.scores).map(([cat, data]) => (
-                          <div key={cat}>
-                            <div className="flex justify-between text-sm mb-1"><span className="text-gray-600">{cat}</span><span className="font-medium">{data.score}%</span></div>
-                            <div className="h-2 bg-gray-200 rounded-full"><div className={`h-full rounded-full ${data.score >= 90 ? 'bg-green-500' : data.score >= 75 ? 'bg-blue-500' : 'bg-yellow-500'}`} style={{ width: `${data.score}%` }} /></div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <div className="flex gap-2">
-                      <button onClick={() => handleViewEvaluation(selectedEvaluation)} className="flex-1 flex items-center justify-center px-3 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600"><Eye className="w-4 h-4 mr-1" />Voir</button>
-                      <button onClick={() => handleEditEvaluation(selectedEvaluation)} className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"><Edit className="w-4 h-4 mr-1" />Éditer</button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center text-gray-500 py-8"><User className="w-12 h-12 mx-auto mb-2 text-gray-300" /><p className="text-sm">Sélectionnez une évaluation</p></div>
-                )}
-              </div>
-            </div>
+            )}
           </div>
-        )}
 
-        {/* TAB: Objectifs - Redirect to OKR */}
-        {activeTab === 'objectives' && (
-          <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 text-center">
-            <Target className="w-16 h-16 text-primary-500 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Gestion des Objectifs</h3>
-            <p className="text-gray-500 mb-6 max-w-md mx-auto">
-              Les objectifs sont gérés dans le module OKR & Objectifs pour un alignement stratégique complet.
-            </p>
-            <div className="flex justify-center gap-4">
-              <Link href="/dashboard/okr" className="flex items-center px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-medium">
-                <Target className="w-5 h-5 mr-2" />
-                Voir les OKRs
-                <ExternalLink className="w-4 h-4 ml-2" />
-              </Link>
-              <Link href="/dashboard/my-space/objectives" className="flex items-center px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium">
-                <User className="w-5 h-5 mr-2" />
-                Mes Objectifs
-              </Link>
-            </div>
-          </div>
-        )}
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Profile Card */}
+            {currentUser && (
+              <div className="bg-white rounded-xl p-5 shadow-sm text-center">
+                <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-xl mx-auto mb-3">
+                  {currentUser.email.charAt(0).toUpperCase()}
+                </div>
+                <h3 className="font-semibold text-gray-900">{currentUser.email.split('@')[0]}</h3>
+                <p className="text-sm text-gray-500 capitalize">{userRole}</p>
+                
+                <div className="flex gap-2 mt-4">
+                  <button onClick={() => setShowEvalViewModal(true)} className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600">
+                    <Eye className="w-4 h-4" />
+                    Voir
+                  </button>
+                  <button onClick={() => {}} className="flex-1 flex items-center justify-center gap-2 px-3 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-50">
+                    <Edit className="w-4 h-4" />
+                    Éditer
+                  </button>
+                </div>
+              </div>
+            )}
 
-        {/* TAB: Analytics - RH only */}
-        {activeTab === 'analytics' && isHROrAdmin && (
-          <div className="grid lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-              <h3 className="font-semibold text-gray-900 mb-4">Distribution des Notes</h3>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={performanceDistribution} layout="vertical"><XAxis type="number" /><YAxis type="category" dataKey="rating" width={80} tick={{ fontSize: 11 }} /><Tooltip /><Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                    {performanceDistribution.map((entry, i) => (<Cell key={i} fill={entry.color} />))}
-                  </Bar></BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-              <h3 className="font-semibold text-gray-900 mb-4">Évolution Score Moyen</h3>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={trendData}><XAxis dataKey="month" /><YAxis domain={[3, 5]} /><Tooltip /><Line type="monotone" dataKey="score" stroke="#6366F1" strokeWidth={2} dot={{ fill: '#6366F1' }} /></LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-              <h3 className="font-semibold text-gray-900 mb-4">Compétences Moyennes</h3>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={competencyData}><PolarGrid /><PolarAngleAxis dataKey="subject" tick={{ fontSize: 11 }} /><PolarRadiusAxis domain={[0, 100]} /><Radar dataKey="score" stroke="#6366F1" fill="#6366F1" fillOpacity={0.3} /></RadarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-              <h3 className="font-semibold text-gray-900 mb-4">Taux de Complétion par Type</h3>
-              <div className="space-y-4">
-                {[{ type: 'Annuelle', completed: 33, total: 48 }, { type: '360°', completed: 5, total: 12 }, { type: 'Mi-année', completed: 45, total: 45 }, { type: 'Période essai', completed: 3, total: 5 }].map((item) => (
-                  <div key={item.type}>
-                    <div className="flex justify-between text-sm mb-1"><span className="text-gray-600">{item.type}</span><span className="font-medium">{item.completed}/{item.total} ({Math.round(item.completed / item.total * 100)}%)</span></div>
-                    <div className="h-2 bg-gray-200 rounded-full"><div className="h-full bg-primary-500 rounded-full" style={{ width: `${item.completed / item.total * 100}%` }} /></div>
+            {/* Quick Stats */}
+            {stats && stats.scope === 'team' && stats.team_size > 0 && (
+              <div className="bg-white rounded-xl p-5 shadow-sm">
+                <h3 className="font-semibold text-gray-900 mb-4">Mon Équipe</h3>
+                <div className="flex items-center justify-center">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-primary-600">{stats.team_size}</p>
+                    <p className="text-sm text-gray-500">collaborateurs</p>
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
-        )}
-      </main>
+        </div>
+      </div>
 
       {/* Modals */}
-      <FeedbackModal 
+      <CreateFeedbackModal 
         isOpen={showFeedbackModal} 
         onClose={() => setShowFeedbackModal(false)} 
-        onSubmit={handleCreateFeedback} 
-        employees={employees} 
-      />
-      <OneOnOneModal 
-        isOpen={showOneOnOneModal} 
-        onClose={() => setShowOneOnOneModal(false)} 
-        onSubmit={handleCreateOneOnOne} 
-        employees={isHROrAdmin ? employees : (directReports.length > 0 ? directReports : employees)} 
-      />
-      <CampaignModal
-        isOpen={showCampaignModal}
-        onClose={() => setShowCampaignModal(false)}
-        onSubmit={handleCreateCampaign}
         employees={employees}
+        onSuccess={loadData}
       />
-      <EvaluationViewModal
-        isOpen={showEvaluationViewModal}
-        onClose={() => setShowEvaluationViewModal(false)}
+      
+      <CreateCampaignModal 
+        isOpen={showCampaignModal} 
+        onClose={() => setShowCampaignModal(false)} 
+        employees={employees}
+        onSuccess={loadData}
+      />
+      
+      <EvaluationViewModal 
+        isOpen={showEvalViewModal} 
+        onClose={() => setShowEvalViewModal(false)} 
         evaluation={selectedEvaluation}
       />
-      <EvaluationEditModal
-        isOpen={showEvaluationEditModal}
-        onClose={() => setShowEvaluationEditModal(false)}
+      
+      <EvaluationEditModal 
+        isOpen={showEvalEditModal} 
+        onClose={() => setShowEvalEditModal(false)} 
         evaluation={selectedEvaluation}
         onSave={loadData}
-        canValidate={isHROrAdmin || isManager}
+        userRole={userRole}
+        currentEmployeeId={currentUser?.employee_id}
       />
     </div>
   );

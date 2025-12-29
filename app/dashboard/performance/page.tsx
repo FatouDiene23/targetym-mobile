@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   TrendingUp, Star, Users, Calendar, ChevronRight, Plus, MessageSquare, Award, Target, CheckCircle,
-  Send, ThumbsUp, Eye, Edit, User, X, Loader2, ExternalLink, AlertCircle, Save
+  Send, ThumbsUp, Eye, Edit, User, X, Loader2, ExternalLink, AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { 
@@ -911,10 +911,9 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, canValidate 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const defaultCompetencies = ['Compétences techniques', 'Communication', 'Leadership', 'Travail d\'équipe', 'Innovation'];
-
   useEffect(() => {
     if (evaluation) {
+      const defaultCompetencies = ['Compétences techniques', 'Communication', 'Leadership', 'Travail d\'équipe', 'Innovation'];
       const initialScores: Record<string, { score: number; comment: string }> = {};
       if (evaluation.scores && Object.keys(evaluation.scores).length > 0) {
         Object.entries(evaluation.scores).forEach(([key, val]) => {

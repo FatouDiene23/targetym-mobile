@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   Star, Users, ChevronRight, ChevronLeft, Plus, MessageSquare, Target, CheckCircle,
   Send, ThumbsUp, Eye, Edit, X, Loader2, AlertCircle, RotateCcw, Search, Calendar,
-  Clock, MapPin, Filter
+  Clock, MapPin
 } from 'lucide-react';
 import { 
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer

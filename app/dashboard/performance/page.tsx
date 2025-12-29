@@ -2,13 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  TrendingUp, Star, Users, Calendar, ChevronRight, Plus, MessageSquare, Award, Target, CheckCircle,
-  Send, ThumbsUp, Eye, Edit, User, X, Loader2, ExternalLink, AlertCircle, RotateCcw
+  Star, Users, ChevronRight, Plus, MessageSquare, Target, CheckCircle,
+  Send, ThumbsUp, Eye, Edit, X, Loader2, AlertCircle, RotateCcw
 } from 'lucide-react';
 import Link from 'next/link';
 import { 
-  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, 
-  BarChart, Bar, XAxis, YAxis, Tooltip, LineChart, Line, Cell 
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer
 } from 'recharts';
 
 // =============================================
@@ -110,6 +109,14 @@ interface CurrentUser {
   role: string;
   employee_id?: number;
 }
+
+interface ValidationError {
+  msg?: string;
+  message?: string;
+}
+
+type FeedbackType = 'recognition' | 'improvement' | 'general';
+type TabType = 'feedback' | 'evaluations' | 'objectives';
 
 // =============================================
 // API CONFIG
@@ -306,7 +313,7 @@ async function submitEvaluation(evaluationId: number, data: {
       if (typeof errorData.detail === 'string') {
         errorMsg = errorData.detail;
       } else if (Array.isArray(errorData.detail)) {
-        errorMsg = errorData.detail.map((e: any) => e.msg || e.message || JSON.stringify(e)).join(', ');
+        errorMsg = errorData.detail.map((e: ValidationError) => e.msg || e.message || JSON.stringify(e)).join(', ');
       }
       return { success: false, error: errorMsg };
     }
@@ -406,7 +413,6 @@ function getTypeLabel(type: string) {
 }
 
 function canUserEditEvaluation(evaluation: Evaluation, userRole: UserRole, currentEmployeeId?: number): boolean {
-  // Seul l'employé peut éditer son auto-évaluation si status = pending ou in_progress
   if (evaluation.status === 'pending' || evaluation.status === 'in_progress') {
     if (evaluation.type === 'self' && evaluation.employee_id === currentEmployeeId) {
       return true;
@@ -416,7 +422,6 @@ function canUserEditEvaluation(evaluation: Evaluation, userRole: UserRole, curre
 }
 
 function canUserValidateEvaluation(evaluation: Evaluation, userRole: UserRole): boolean {
-  // Manager ou RH peuvent valider si status = submitted
   if (evaluation.status === 'submitted') {
     if (userRole === 'manager' || userRole === 'rh' || userRole === 'admin' || userRole === 'dg') {
       return true;
@@ -524,7 +529,7 @@ function CreateFeedbackModal({ isOpen, onClose, employees, onSuccess }: {
   onSuccess: () => void;
 }) {
   const [toEmployee, setToEmployee] = useState('');
-  const [feedbackType, setFeedbackType] = useState<'recognition' | 'improvement' | 'general'>('recognition');
+  const [feedbackType, setFeedbackType] = useState<FeedbackType>('recognition');
   const [message, setMessage] = useState('');
   const [isPublic, setIsPublic] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -566,6 +571,12 @@ function CreateFeedbackModal({ isOpen, onClose, employees, onSuccess }: {
 
   if (!isOpen) return null;
 
+  const feedbackTypes: { value: FeedbackType; label: string; color: string }[] = [
+    { value: 'recognition', label: '🎉 Reconnaissance', color: 'bg-green-100 text-green-700 border-green-300' },
+    { value: 'improvement', label: '💡 Amélioration', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
+    { value: 'general', label: '💬 Général', color: 'bg-gray-100 text-gray-700 border-gray-300' },
+  ];
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
@@ -597,12 +608,12 @@ function CreateFeedbackModal({ isOpen, onClose, employees, onSuccess }: {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Type de feedback</label>
             <div className="flex gap-2">
-              {[
-                { value: 'recognition', label: '🎉 Reconnaissance', color: 'bg-green-100 text-green-700 border-green-300' },
-                { value: 'improvement', label: '💡 Amélioration', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
-                { value: 'general', label: '💬 Général', color: 'bg-gray-100 text-gray-700 border-gray-300' },
-              ].map(type => (
-                <button key={type.value} onClick={() => setFeedbackType(type.value as any)} className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${feedbackType === type.value ? type.color : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+              {feedbackTypes.map(type => (
+                <button 
+                  key={type.value} 
+                  onClick={() => setFeedbackType(type.value)} 
+                  className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${feedbackType === type.value ? type.color : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                >
                   {type.label}
                 </button>
               ))}
@@ -981,14 +992,12 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
             </div>
           )}
 
-          {/* Info si en lecture seule */}
           {isReadOnly && (
             <div className="p-3 bg-gray-50 border border-gray-200 text-gray-600 text-sm rounded-lg">
               Cette évaluation est en lecture seule. Status: <strong>{getStatusLabel(evaluation.status)}</strong>
             </div>
           )}
 
-          {/* Info si en attente de validation */}
           {evaluation.status === 'submitted' && !canValidate && (
             <div className="p-3 bg-blue-50 border border-blue-200 text-blue-700 text-sm rounded-lg">
               Cette évaluation a été soumise et est en attente de validation par un Manager ou RH.
@@ -1030,7 +1039,6 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
             </div>
           </div>
 
-          {/* Champs pour l'employé */}
           {canEdit && (
             <>
               <div>
@@ -1066,7 +1074,6 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
             </>
           )}
 
-          {/* Affichage lecture seule des champs soumis */}
           {!canEdit && evaluation.strengths && (
             <div>
               <h4 className="font-semibold text-gray-900 mb-2">Points Forts</h4>
@@ -1086,7 +1093,6 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
             </div>
           )}
 
-          {/* Commentaires Manager (pour validation) */}
           {canValidate && (
             <div>
               <h4 className="font-semibold text-gray-900 mb-2">Commentaires du Manager/RH</h4>
@@ -1100,7 +1106,6 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
             </div>
           )}
 
-          {/* Affichage commentaires manager existants */}
           {!canValidate && evaluation.manager_comments && (
             <div>
               <h4 className="font-semibold text-gray-900 mb-2">Commentaires du Manager</h4>
@@ -1114,7 +1119,6 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
             {isReadOnly ? 'Fermer' : 'Annuler'}
           </button>
           
-          {/* Bouton Soumettre - uniquement si l'employé peut éditer */}
           {canEdit && (
             <button onClick={handleSubmit} disabled={saving} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg flex items-center disabled:opacity-50 hover:bg-primary-600">
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
@@ -1122,7 +1126,6 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
             </button>
           )}
           
-          {/* Boutons Renvoyer/Valider - uniquement pour Manager/RH si status = submitted */}
           {canValidate && (
             <>
               <button onClick={() => handleValidate(false)} disabled={saving} className="px-4 py-2 border border-orange-500 text-orange-600 text-sm rounded-lg hover:bg-orange-50 flex items-center">
@@ -1146,7 +1149,7 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
 // =============================================
 
 export default function PerformancePage() {
-  const [activeTab, setActiveTab] = useState<'feedback' | 'evaluations' | 'objectives'>('feedback');
+  const [activeTab, setActiveTab] = useState<TabType>('feedback');
   const [userRole, setUserRole] = useState<UserRole>('employee');
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [stats, setStats] = useState<MyStats | null>(null);
@@ -1157,7 +1160,6 @@ export default function PerformancePage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Modals
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showCampaignModal, setShowCampaignModal] = useState(false);
   const [showEvalViewModal, setShowEvalViewModal] = useState(false);
@@ -1167,14 +1169,12 @@ export default function PerformancePage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     
-    // Charger l'utilisateur courant
     const user = await fetchCurrentUser();
     if (user) {
       setCurrentUser(user);
       setUserRole(normalizeRole(user.role));
     }
     
-    // Charger toutes les données en parallèle
     const [statsData, feedbacksData, campaignsData, evaluationsData, oneOnOnesData, employeesData] = await Promise.all([
       fetchMyStats(),
       fetchFeedbacks(),
@@ -1207,15 +1207,19 @@ export default function PerformancePage() {
     setShowEvalEditModal(true);
   };
 
-  // Déterminer quels boutons afficher pour une évaluation
   const getEvaluationActions = (evaluation: Evaluation) => {
     const canEdit = canUserEditEvaluation(evaluation, userRole, currentUser?.employee_id);
     const canValidate = canUserValidateEvaluation(evaluation, userRole);
-    
     return { canEdit, canValidate };
   };
 
   const canManageCampaigns = ['admin', 'rh', 'dg'].includes(userRole);
+
+  const tabs: { id: TabType; label: string; icon: typeof Star }[] = [
+    { id: 'feedback', label: 'Feedback Continu', icon: MessageSquare },
+    { id: 'evaluations', label: 'Évaluations', icon: Star },
+    { id: 'objectives', label: 'Objectifs', icon: Target },
+  ];
 
   if (loading) {
     return (
@@ -1228,7 +1232,6 @@ export default function PerformancePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Performance & Feedback</h1>
           <p className="text-gray-500">Évaluations, feedback continu, objectifs et entretiens</p>
@@ -1239,7 +1242,6 @@ export default function PerformancePage() {
           )}
         </div>
 
-        {/* Stats Cards */}
         {stats && (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
             <StatCard 
@@ -1278,17 +1280,12 @@ export default function PerformancePage() {
           </div>
         )}
 
-        {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm mb-6">
           <div className="flex border-b">
-            {[
-              { id: 'feedback', label: 'Feedback Continu', icon: MessageSquare },
-              { id: 'evaluations', label: 'Évaluations', icon: Star },
-              { id: 'objectives', label: 'Objectifs', icon: Target },
-            ].map(tab => (
+            {tabs.map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 text-sm font-medium transition-colors ${
                   activeTab === tab.id 
                     ? 'text-primary-600 border-b-2 border-primary-500' 
@@ -1302,11 +1299,9 @@ export default function PerformancePage() {
           </div>
         </div>
 
-        {/* Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             
-            {/* Feedback Tab */}
             {activeTab === 'feedback' && (
               <div className="bg-white rounded-xl p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
@@ -1327,10 +1322,8 @@ export default function PerformancePage() {
               </div>
             )}
 
-            {/* Evaluations Tab */}
             {activeTab === 'evaluations' && (
               <>
-                {/* Campaigns Section (RH/Admin only) */}
                 {canManageCampaigns && (
                   <div className="bg-white rounded-xl p-5 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
@@ -1367,7 +1360,6 @@ export default function PerformancePage() {
                   </div>
                 )}
 
-                {/* My Evaluations */}
                 <div className="bg-white rounded-xl p-5 shadow-sm">
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">
                     {userRole === 'employee' ? 'Mes Évaluations' : 'Évaluations'}
@@ -1402,14 +1394,12 @@ export default function PerformancePage() {
                             </div>
                           </div>
                           
-                          {/* Action Buttons */}
                           <div className="flex gap-2 mt-3 pt-3 border-t">
                             <button onClick={() => handleViewEvaluation(evaluation)} className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
                               <Eye className="w-4 h-4" />
                               Voir
                             </button>
                             
-                            {/* Bouton Éditer - seulement si l'employé peut éditer */}
                             {canEdit && (
                               <button onClick={() => handleEditEvaluation(evaluation)} className="flex items-center gap-1 px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg">
                                 <Edit className="w-4 h-4" />
@@ -1417,7 +1407,6 @@ export default function PerformancePage() {
                               </button>
                             )}
                             
-                            {/* Boutons Valider/Renvoyer - seulement pour Manager/RH si soumis */}
                             {canValidate && (
                               <button onClick={() => handleEditEvaluation(evaluation)} className="flex items-center gap-1 px-3 py-1.5 text-sm text-green-600 hover:bg-green-50 rounded-lg">
                                 <CheckCircle className="w-4 h-4" />
@@ -1435,7 +1424,6 @@ export default function PerformancePage() {
               </>
             )}
 
-            {/* Objectives Tab */}
             {activeTab === 'objectives' && (
               <div className="bg-white rounded-xl p-5 shadow-sm">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Objectifs & 1-on-1</h2>
@@ -1481,9 +1469,7 @@ export default function PerformancePage() {
             )}
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Profile Card */}
             {currentUser && (
               <div className="bg-white rounded-xl p-5 shadow-sm text-center">
                 <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-xl mx-auto mb-3">
@@ -1497,7 +1483,7 @@ export default function PerformancePage() {
                     <Eye className="w-4 h-4" />
                     Voir
                   </button>
-                  <button onClick={() => {}} className="flex-1 flex items-center justify-center gap-2 px-3 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-50">
+                  <button className="flex-1 flex items-center justify-center gap-2 px-3 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-50">
                     <Edit className="w-4 h-4" />
                     Éditer
                   </button>
@@ -1505,7 +1491,6 @@ export default function PerformancePage() {
               </div>
             )}
 
-            {/* Quick Stats */}
             {stats && stats.scope === 'team' && stats.team_size > 0 && (
               <div className="bg-white rounded-xl p-5 shadow-sm">
                 <h3 className="font-semibold text-gray-900 mb-4">Mon Équipe</h3>
@@ -1521,7 +1506,6 @@ export default function PerformancePage() {
         </div>
       </div>
 
-      {/* Modals */}
       <CreateFeedbackModal 
         isOpen={showFeedbackModal} 
         onClose={() => setShowFeedbackModal(false)} 

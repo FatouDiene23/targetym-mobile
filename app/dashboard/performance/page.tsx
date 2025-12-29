@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   Star, Users, ChevronRight, ChevronLeft, Plus, MessageSquare, Target, CheckCircle,
   Send, ThumbsUp, Eye, Edit, X, Loader2, AlertCircle, RotateCcw, Search, Calendar,
-  Clock, MapPin
+  Clock, MapPin, TrendingUp, BarChart3
 } from 'lucide-react';
 import { 
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer
@@ -83,7 +83,6 @@ interface OneOnOne {
   notes?: string;
   action_items?: string[];
   topics?: string[];
-  mood?: string;
 }
 
 interface Employee {
@@ -113,8 +112,6 @@ interface CurrentUser {
   email: string;
   role: string;
   employee_id?: number;
-  first_name?: string;
-  last_name?: string;
 }
 
 interface ValidationError {
@@ -399,37 +396,20 @@ function getTypeLabel(type: string) {
 }
 
 function canUserEditEvaluation(evaluation: Evaluation, userRole: UserRole, currentEmployeeId?: number): boolean {
-  // Employé peut éditer son auto-éval si pending/in_progress
   if (evaluation.status === 'pending' || evaluation.status === 'in_progress') {
-    if (evaluation.type === 'self' && evaluation.employee_id === currentEmployeeId) {
-      return true;
-    }
+    if (evaluation.type === 'self' && evaluation.employee_id === currentEmployeeId) return true;
   }
-  // RH/Admin/Manager peut éditer les évaluations soumises (pour noter)
   if (evaluation.status === 'submitted') {
-    if (userRole === 'rh' || userRole === 'admin' || userRole === 'manager' || userRole === 'dg') {
-      return true;
-    }
+    if (userRole === 'rh' || userRole === 'admin' || userRole === 'manager' || userRole === 'dg') return true;
   }
   return false;
 }
 
 function canUserValidateEvaluation(evaluation: Evaluation, userRole: UserRole): boolean {
   if (evaluation.status === 'submitted') {
-    if (userRole === 'manager' || userRole === 'rh' || userRole === 'admin' || userRole === 'dg') {
-      return true;
-    }
+    if (userRole === 'manager' || userRole === 'rh' || userRole === 'admin' || userRole === 'dg') return true;
   }
   return false;
-}
-
-function getScopeLabel(scope: string): string {
-  switch (scope) {
-    case 'personal': return 'Mes statistiques';
-    case 'team': return 'Mon équipe';
-    case 'global': return 'Entreprise';
-    default: return '';
-  }
 }
 
 // =============================================
@@ -437,62 +417,33 @@ function getScopeLabel(scope: string): string {
 // =============================================
 
 function Pagination({ currentPage, totalPages, onPageChange }: {
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
+  currentPage: number; totalPages: number; onPageChange: (page: number) => void;
 }) {
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t">
-      <button
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-        className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
+    <div className="flex items-center justify-center gap-2 mt-6 pt-4 border-t">
+      <button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
         <ChevronLeft className="w-4 h-4" />
       </button>
-      
       <div className="flex items-center gap-1">
         {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
           let pageNum: number;
-          if (totalPages <= 5) {
-            pageNum = i + 1;
-          } else if (currentPage <= 3) {
-            pageNum = i + 1;
-          } else if (currentPage >= totalPages - 2) {
-            pageNum = totalPages - 4 + i;
-          } else {
-            pageNum = currentPage - 2 + i;
-          }
-          
+          if (totalPages <= 5) pageNum = i + 1;
+          else if (currentPage <= 3) pageNum = i + 1;
+          else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+          else pageNum = currentPage - 2 + i;
           return (
-            <button
-              key={pageNum}
-              onClick={() => onPageChange(pageNum)}
-              className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
-                currentPage === pageNum
-                  ? 'bg-primary-500 text-white'
-                  : 'hover:bg-gray-100 text-gray-600'
-              }`}
-            >
+            <button key={pageNum} onClick={() => onPageChange(pageNum)} className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? 'bg-primary-500 text-white' : 'hover:bg-gray-100 text-gray-600'}`}>
               {pageNum}
             </button>
           );
         })}
       </div>
-      
-      <button
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-        className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
+      <button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages} className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
         <ChevronRight className="w-4 h-4" />
       </button>
-      
-      <span className="text-sm text-gray-500 ml-2">
-        Page {currentPage} sur {totalPages}
-      </span>
+      <span className="text-sm text-gray-500 ml-2">Page {currentPage}/{totalPages}</span>
     </div>
   );
 }
@@ -501,44 +452,11 @@ function Pagination({ currentPage, totalPages, onPageChange }: {
 // SEARCH BAR COMPONENT
 // =============================================
 
-function SearchBar({ value, onChange, placeholder }: {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-}) {
+function SearchBar({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder?: string; }) {
   return (
     <div className="relative">
       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder || 'Rechercher...'}
-        className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-      />
-    </div>
-  );
-}
-
-// =============================================
-// STAT CARD COMPONENT
-// =============================================
-
-function StatCard({ title, value, subValue, icon, color }: { 
-  title: string; value: string | number; subValue?: string; icon: React.ReactNode; color: string;
-}) {
-  return (
-    <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-500">{title}</p>
-          <p className={`text-2xl font-bold ${color}`}>{value}</p>
-          {subValue && <p className="text-xs text-gray-400 mt-1">{subValue}</p>}
-        </div>
-        <div className={`p-3 rounded-xl ${color.replace('text-', 'bg-').replace('-600', '-100').replace('-700', '-100')}`}>
-          {icon}
-        </div>
-      </div>
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder || 'Rechercher...'} className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
     </div>
   );
 }
@@ -553,11 +471,7 @@ function FeedbackCard({ feedback, onLike }: { feedback: FeedbackItem; onLike: (i
 
   const handleLike = async () => {
     const newCount = await likeFeedback(feedback.id);
-    if (newCount >= 0) {
-      setLikes(newCount);
-      setLiked(!liked);
-      onLike(feedback.id);
-    }
+    if (newCount >= 0) { setLikes(newCount); setLiked(!liked); onLike(feedback.id); }
   };
 
   const timeAgo = (date: string) => {
@@ -569,7 +483,7 @@ function FeedbackCard({ feedback, onLike }: { feedback: FeedbackItem; onLike: (i
   };
 
   return (
-    <div className="bg-white rounded-xl p-4 border border-gray-100 hover:shadow-md transition-all">
+    <div className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-all">
       <div className="flex gap-3">
         <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-medium text-sm flex-shrink-0">
           {feedback.from_employee_initials || getInitials(feedback.from_employee_name)}
@@ -584,8 +498,7 @@ function FeedbackCard({ feedback, onLike }: { feedback: FeedbackItem; onLike: (i
           <p className="text-gray-700 text-sm mt-2 leading-relaxed">{feedback.message}</p>
           <div className="flex items-center gap-4 mt-3">
             <button onClick={handleLike} className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? 'text-primary-600' : 'text-gray-400 hover:text-primary-500'}`}>
-              <ThumbsUp className={`w-4 h-4 ${liked ? 'fill-current' : ''}`} />
-              <span>{likes}</span>
+              <ThumbsUp className={`w-4 h-4 ${liked ? 'fill-current' : ''}`} /><span>{likes}</span>
             </button>
             <span className="text-xs text-gray-400">{timeAgo(feedback.created_at)}</span>
           </div>
@@ -612,17 +525,11 @@ function CreateFeedbackModal({ isOpen, onClose, employees, onSuccess }: {
   const handleSubmit = async () => {
     if (!toEmployee || !message.trim()) { setError('Veuillez remplir tous les champs obligatoires'); return; }
     if (message.length < 10) { setError('Le message doit contenir au moins 10 caractères'); return; }
-
     setError(''); setSaving(true);
     const result = await createFeedback({ to_employee_id: parseInt(toEmployee), type: feedbackType, message: message.trim(), is_public: isPublic });
     setSaving(false);
-    
-    if (result.success) {
-      setToEmployee(''); setMessage(''); setFeedbackType('recognition'); setIsPublic(true);
-      onSuccess(); onClose();
-    } else {
-      setError(result.error || 'Erreur lors de la création');
-    }
+    if (result.success) { setToEmployee(''); setMessage(''); setFeedbackType('recognition'); setIsPublic(true); onSuccess(); onClose(); }
+    else setError(result.error || 'Erreur lors de la création');
   };
 
   if (!isOpen) return null;
@@ -640,10 +547,8 @@ function CreateFeedbackModal({ isOpen, onClose, employees, onSuccess }: {
           <h2 className="text-lg font-bold text-gray-900">Nouveau Feedback</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
-        
         <div className="p-5 space-y-4">
           {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
-          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Destinataire *</label>
             <select value={toEmployee} onChange={(e) => setToEmployee(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm">
@@ -651,7 +556,6 @@ function CreateFeedbackModal({ isOpen, onClose, employees, onSuccess }: {
               {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}
             </select>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Type de feedback</label>
             <div className="flex gap-2">
@@ -662,19 +566,16 @@ function CreateFeedbackModal({ isOpen, onClose, employees, onSuccess }: {
               ))}
             </div>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Message *</label>
             <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4} placeholder="Partagez votre feedback..." className="w-full px-3 py-2.5 border rounded-lg text-sm resize-none" />
             <p className="text-xs text-gray-400 mt-1">{message.length}/2000 caractères (min. 10)</p>
           </div>
-
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="w-4 h-4 text-primary-600 rounded" />
             <span className="text-sm text-gray-700">Feedback public (visible par tous)</span>
           </label>
         </div>
-
         <div className="p-5 border-t bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
           <button onClick={onClose} className="px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-100">Annuler</button>
           <button onClick={handleSubmit} disabled={saving} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg flex items-center disabled:opacity-50">
@@ -705,20 +606,10 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
   const handleSubmit = async () => {
     if (!name || !startDate || !endDate) { setError('Veuillez remplir tous les champs obligatoires'); return; }
     setError(''); setSaving(true);
-    
-    const result = await createCampaign({
-      name, description: description || undefined, type: campaignType,
-      start_date: startDate, end_date: endDate,
-      employee_ids: selectedEmployees.length > 0 ? selectedEmployees : undefined
-    });
+    const result = await createCampaign({ name, description: description || undefined, type: campaignType, start_date: startDate, end_date: endDate, employee_ids: selectedEmployees.length > 0 ? selectedEmployees : undefined });
     setSaving(false);
-    
-    if (result.success) {
-      setName(''); setDescription(''); setCampaignType('annual'); setStartDate(''); setEndDate(''); setSelectedEmployees([]);
-      onSuccess(); onClose();
-    } else {
-      setError(result.error || 'Erreur lors de la création');
-    }
+    if (result.success) { setName(''); setDescription(''); setCampaignType('annual'); setStartDate(''); setEndDate(''); setSelectedEmployees([]); onSuccess(); onClose(); }
+    else setError(result.error || 'Erreur lors de la création');
   };
 
   if (!isOpen) return null;
@@ -730,20 +621,16 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
           <h2 className="text-lg font-bold text-gray-900">Nouvelle Campagne</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
-        
         <div className="p-5 space-y-4">
           {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
-          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Nom de la campagne *</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Évaluation Annuelle 2025" className="w-full px-3 py-2.5 border rounded-lg text-sm" />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Description optionnelle..." className="w-full px-3 py-2.5 border rounded-lg text-sm" />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
             <select value={campaignType} onChange={(e) => setCampaignType(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm">
@@ -753,7 +640,6 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
               <option value="probation">Fin de Période d&apos;Essai</option>
             </select>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Date de début *</label>
@@ -764,7 +650,6 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
               <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
             </div>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Employés concernés</label>
             <p className="text-xs text-gray-500 mb-2">Laissez vide pour inclure tous les employés actifs</p>
@@ -773,7 +658,6 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
             </select>
           </div>
         </div>
-
         <div className="p-5 border-t bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
           <button onClick={onClose} className="px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-100">Annuler</button>
           <button onClick={handleSubmit} disabled={saving} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg flex items-center disabled:opacity-50">
@@ -804,25 +688,12 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
   const handleSubmit = async () => {
     if (!employeeId || !scheduledDate) { setError('Veuillez sélectionner un employé et une date'); return; }
     setError(''); setSaving(true);
-    
     const dateTime = `${scheduledDate}T${scheduledTime}:00`;
     const topicsList = topics.split('\n').map(t => t.trim()).filter(t => t.length > 0);
-    
-    const result = await createOneOnOne({
-      employee_id: parseInt(employeeId),
-      scheduled_date: dateTime,
-      duration_minutes: duration,
-      location: location || undefined,
-      topics: topicsList.length > 0 ? topicsList : undefined
-    });
+    const result = await createOneOnOne({ employee_id: parseInt(employeeId), scheduled_date: dateTime, duration_minutes: duration, location: location || undefined, topics: topicsList.length > 0 ? topicsList : undefined });
     setSaving(false);
-    
-    if (result.success) {
-      setEmployeeId(''); setScheduledDate(''); setScheduledTime('09:00'); setDuration(30); setLocation(''); setTopics('');
-      onSuccess(); onClose();
-    } else {
-      setError(result.error || 'Erreur lors de la création');
-    }
+    if (result.success) { setEmployeeId(''); setScheduledDate(''); setScheduledTime('09:00'); setDuration(30); setLocation(''); setTopics(''); onSuccess(); onClose(); }
+    else setError(result.error || 'Erreur lors de la création');
   };
 
   if (!isOpen) return null;
@@ -834,10 +705,8 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
           <h2 className="text-lg font-bold text-gray-900">Planifier un 1-on-1</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
-        
         <div className="p-5 space-y-4">
           {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
-          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Collaborateur *</label>
             <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm">
@@ -845,7 +714,6 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
               {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}
             </select>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Date *</label>
@@ -856,10 +724,9 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
               <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Durée (minutes)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Durée</label>
               <select value={duration} onChange={(e) => setDuration(parseInt(e.target.value))} className="w-full px-3 py-2.5 border rounded-lg text-sm">
                 <option value={15}>15 min</option>
                 <option value={30}>30 min</option>
@@ -873,13 +740,11 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
               <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Bureau, Visio..." className="w-full px-3 py-2.5 border rounded-lg text-sm" />
             </div>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Sujets à aborder</label>
             <textarea value={topics} onChange={(e) => setTopics(e.target.value)} rows={3} placeholder="Un sujet par ligne..." className="w-full px-3 py-2.5 border rounded-lg text-sm resize-none" />
           </div>
         </div>
-
         <div className="p-5 border-t bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
           <button onClick={onClose} className="px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-100">Annuler</button>
           <button onClick={handleSubmit} disabled={saving} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg flex items-center disabled:opacity-50">
@@ -914,7 +779,6 @@ function EvaluationViewModal({ isOpen, onClose, evaluation }: {
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
-        
         <div className="p-5 space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-gray-50 rounded-lg">
@@ -923,9 +787,7 @@ function EvaluationViewModal({ isOpen, onClose, evaluation }: {
             </div>
             <div className="p-4 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-500">Status</p>
-              <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(evaluation.status)}`}>
-                {getStatusLabel(evaluation.status)}
-              </span>
+              <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(evaluation.status)}`}>{getStatusLabel(evaluation.status)}</span>
             </div>
             {evaluation.due_date && (
               <div className="p-4 bg-gray-50 rounded-lg">
@@ -940,7 +802,6 @@ function EvaluationViewModal({ isOpen, onClose, evaluation }: {
               </div>
             )}
           </div>
-
           {radarData.length > 0 && (
             <div>
               <h4 className="font-semibold text-gray-900 mb-4">Scores par Compétence</h4>
@@ -956,7 +817,6 @@ function EvaluationViewModal({ isOpen, onClose, evaluation }: {
               </div>
             </div>
           )}
-
           {evaluation.strengths && (
             <div>
               <h4 className="font-semibold text-gray-900 mb-2">Points Forts</h4>
@@ -976,7 +836,6 @@ function EvaluationViewModal({ isOpen, onClose, evaluation }: {
             </div>
           )}
         </div>
-
         <div className="p-5 border-t bg-gray-50 flex justify-end rounded-b-2xl">
           <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300">Fermer</button>
         </div>
@@ -1005,9 +864,7 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
       const defaultCompetencies = ['Compétences techniques', 'Communication', 'Leadership', 'Travail d\'équipe', 'Innovation'];
       const initialScores: Record<string, { score: number; comment: string }> = {};
       if (evaluation.scores && Object.keys(evaluation.scores).length > 0) {
-        Object.entries(evaluation.scores).forEach(([key, val]) => {
-          initialScores[key] = { score: val.score, comment: val.comment || '' };
-        });
+        Object.entries(evaluation.scores).forEach(([key, val]) => { initialScores[key] = { score: val.score, comment: val.comment || '' }; });
       } else {
         defaultCompetencies.forEach(comp => { initialScores[comp] = { score: 75, comment: '' }; });
       }
@@ -1057,22 +914,15 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
               {isManagerReviewing ? 'Évaluer / Valider' : isEmployeeEditing ? 'Mon Auto-Évaluation' : 'Voir l\'Évaluation'}
             </h2>
             <p className="text-sm text-gray-500">{evaluation.employee_name} - {evaluation.employee_job_title}</p>
-            <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(evaluation.status)}`}>
-              {getStatusLabel(evaluation.status)}
-            </span>
+            <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(evaluation.status)}`}>{getStatusLabel(evaluation.status)}</span>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
-        
         <div className="p-5 space-y-6">
           {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
-
           {evaluation.status === 'submitted' && !canValidate && !canEdit && (
-            <div className="p-3 bg-blue-50 border border-blue-200 text-blue-700 text-sm rounded-lg">
-              Cette évaluation a été soumise et est en attente de validation.
-            </div>
+            <div className="p-3 bg-blue-50 border border-blue-200 text-blue-700 text-sm rounded-lg">Cette évaluation est en attente de validation.</div>
           )}
-
           <div>
             <h4 className="font-semibold text-gray-900 mb-4">Évaluation des Compétences</h4>
             <div className="space-y-4">
@@ -1092,7 +942,6 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
               <span className="text-2xl font-bold text-primary-600 ml-2">{calculateOverall()}/5</span>
             </div>
           </div>
-
           {isEmployeeEditing && (
             <>
               <div>
@@ -1109,7 +958,6 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
               </div>
             </>
           )}
-
           {!isEmployeeEditing && evaluation.strengths && (
             <div>
               <h4 className="font-semibold text-gray-900 mb-2">Points Forts</h4>
@@ -1122,14 +970,12 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
               <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded-lg">{evaluation.improvements}</p>
             </div>
           )}
-
           {isManagerReviewing && (
             <div>
               <h4 className="font-semibold text-gray-900 mb-2">Commentaires du Manager/RH</h4>
               <textarea value={managerComments} onChange={(e) => setManagerComments(e.target.value)} rows={3} placeholder="Vos commentaires pour l'employé..." className="w-full px-3 py-2 text-sm border rounded-lg" />
             </div>
           )}
-
           {!isManagerReviewing && evaluation.manager_comments && (
             <div>
               <h4 className="font-semibold text-gray-900 mb-2">Commentaires du Manager</h4>
@@ -1137,18 +983,13 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
             </div>
           )}
         </div>
-
         <div className="p-5 border-t bg-gray-50 flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-100">
-            {!canEdit && !canValidate ? 'Fermer' : 'Annuler'}
-          </button>
-          
+          <button onClick={onClose} className="px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-100">{!canEdit && !canValidate ? 'Fermer' : 'Annuler'}</button>
           {isEmployeeEditing && (
             <button onClick={handleSubmit} disabled={saving} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg flex items-center disabled:opacity-50">
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}Soumettre
             </button>
           )}
-          
           {canValidate && (
             <>
               <button onClick={() => handleValidate(false)} disabled={saving} className="px-4 py-2 border border-orange-500 text-orange-600 text-sm rounded-lg hover:bg-orange-50 flex items-center">
@@ -1162,6 +1003,28 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
         </div>
       </div>
     </div>
+  );
+}
+
+// =============================================
+// SECONDARY MENU ITEM (Style Mon Espace - Dark)
+// =============================================
+
+function SecondaryMenuItem({ icon: Icon, label, isActive, onClick }: {
+  icon: React.ElementType; label: string; isActive: boolean; onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-all text-sm ${
+        isActive
+          ? 'bg-primary-500 text-white'
+          : 'text-gray-300 hover:bg-white/10'
+      }`}
+    >
+      <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-gray-400'}`} />
+      <span className="font-medium">{label}</span>
+    </button>
   );
 }
 
@@ -1207,11 +1070,9 @@ export default function PerformancePage() {
     setLoading(true);
     const user = await fetchCurrentUser();
     if (user) { setCurrentUser(user); setUserRole(normalizeRole(user.role)); }
-    
     const [statsData, feedbacksData, campaignsData, evaluationsData, oneOnOnesData, employeesData] = await Promise.all([
       fetchMyStats(), fetchFeedbacks(), fetchCampaigns(), fetchEvaluations(), fetchOneOnOnes(), fetchEmployees()
     ]);
-    
     setStats(statsData); setFeedbacks(feedbacksData); setCampaigns(campaignsData);
     setEvaluations(evaluationsData); setOneOnOnes(oneOnOnesData); setEmployees(employeesData);
     setLoading(false);
@@ -1253,14 +1114,6 @@ export default function PerformancePage() {
   const canManageCampaigns = ['admin', 'rh', 'dg'].includes(userRole);
   const canScheduleOneOnOne = ['admin', 'rh', 'dg', 'manager'].includes(userRole);
 
-  const tabs: { id: ActiveTab; label: string; icon: typeof Star }[] = [
-    { id: 'feedback', label: 'Feedback Continu', icon: MessageSquare },
-    { id: 'campaigns', label: 'Campagnes', icon: Target },
-    { id: 'evaluations', label: 'Évaluations', icon: Star },
-    { id: 'objectives', label: 'Objectifs', icon: Target },
-    { id: 'one-on-one', label: '1-on-1', icon: Users },
-  ];
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -1271,296 +1124,335 @@ export default function PerformancePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Performance & Feedback</h1>
-          <p className="text-gray-500">Évaluations, feedback continu, objectifs et entretiens</p>
+      <div className="flex">
+        {/* Secondary Sidebar Menu - Style Mon Espace (Dark) */}
+        <div className="w-56 bg-[#1e2a3b] min-h-screen sticky top-0">
+          {/* Header */}
+          <div className="p-4 border-b border-white/10">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-white" />
+              <span className="font-semibold text-white">Performance</span>
+            </div>
+          </div>
+          
+          {/* Menu Items */}
+          <div className="p-3 space-y-1">
+            <SecondaryMenuItem
+              icon={MessageSquare}
+              label="Feedback Continu"
+              isActive={activeTab === 'feedback'}
+              onClick={() => setActiveTab('feedback')}
+            />
+            <SecondaryMenuItem
+              icon={Target}
+              label="Campagnes"
+              isActive={activeTab === 'campaigns'}
+              onClick={() => setActiveTab('campaigns')}
+            />
+            <SecondaryMenuItem
+              icon={Star}
+              label="Évaluations"
+              isActive={activeTab === 'evaluations'}
+              onClick={() => setActiveTab('evaluations')}
+            />
+            <SecondaryMenuItem
+              icon={TrendingUp}
+              label="Objectifs"
+              isActive={activeTab === 'objectives'}
+              onClick={() => setActiveTab('objectives')}
+            />
+            <SecondaryMenuItem
+              icon={Users}
+              label="1-on-1"
+              isActive={activeTab === 'one-on-one'}
+              onClick={() => setActiveTab('one-on-one')}
+            />
+          </div>
+          
+          {/* Retour au menu */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
+            <a href="/dashboard" className="flex items-center gap-2 text-gray-400 hover:text-white text-sm transition-colors">
+              <ChevronLeft className="w-4 h-4" />
+              <span>Retour au menu</span>
+            </a>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 p-8">
+          {/* Stats Cards */}
           {stats && (
-            <span className="inline-block mt-2 px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-              {getScopeLabel(stats.scope)}
-            </span>
-          )}
-        </div>
-
-        {/* Stats Cards - Toujours visibles */}
-        {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-            <StatCard title="Score Moyen" value={stats.avg_score > 0 ? `${stats.avg_score}/5` : '-'} icon={<Star className="w-5 h-5 text-yellow-600" />} color="text-gray-900" />
-            <StatCard title="Évaluations" value={`${stats.evaluations_completed}/${stats.evaluations_total}`} subValue={stats.evaluations_total > 0 ? `${Math.round(stats.completion_rate)}% complétées` : undefined} icon={<CheckCircle className="w-5 h-5 text-green-600" />} color="text-green-600" />
-            <StatCard title="Feedbacks" value={stats.feedbacks_received} subValue={`${stats.feedbacks_given} donnés`} icon={<MessageSquare className="w-5 h-5 text-purple-600" />} color="text-purple-600" />
-            <StatCard title="OKRs Atteints" value={`${stats.okr_achievement}%`} icon={<Target className="w-5 h-5 text-orange-600" />} color="text-orange-600" />
-            <StatCard title="1-on-1" value={stats.one_on_ones_scheduled} subValue={`${stats.one_on_ones_completed} complétés`} icon={<Users className="w-5 h-5 text-blue-600" />} color="text-blue-600" />
-          </div>
-        )}
-
-        {/* Secondary Navigation Menu */}
-        <div className="bg-white rounded-xl shadow-sm mb-6">
-          <div className="flex border-b overflow-x-auto">
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
-                  activeTab === tab.id 
-                    ? 'text-primary-600 border-primary-500 bg-primary-50/50' 
-                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <tab.icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* TAB: Feedback Continu */}
-        {activeTab === 'feedback' && (
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">Feedback Continu</h2>
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <div className="flex-1 sm:w-64">
-                  <SearchBar value={searchFeedback} onChange={(v) => { setSearchFeedback(v); setPageFeedback(1); }} placeholder="Rechercher un feedback..." />
-                </div>
-                <button onClick={() => setShowFeedbackModal(true)} className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 whitespace-nowrap">
-                  <Plus className="w-4 h-4" />Nouveau
-                </button>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+              <div className="bg-white rounded-xl p-4 border border-gray-200">
+                <p className="text-sm text-gray-500">Score Moyen</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.avg_score > 0 ? `${stats.avg_score}/5` : '-'}</p>
+              </div>
+              <div className="bg-white rounded-xl p-4 border border-gray-200">
+                <p className="text-sm text-gray-500">Évaluations</p>
+                <p className="text-2xl font-bold text-green-600">{stats.evaluations_completed}/{stats.evaluations_total}</p>
+              </div>
+              <div className="bg-white rounded-xl p-4 border border-gray-200">
+                <p className="text-sm text-gray-500">Feedbacks</p>
+                <p className="text-2xl font-bold text-purple-600">{stats.feedbacks_received}</p>
+                <p className="text-xs text-gray-400">{stats.feedbacks_given} donnés</p>
+              </div>
+              <div className="bg-white rounded-xl p-4 border border-gray-200">
+                <p className="text-sm text-gray-500">OKRs</p>
+                <p className="text-2xl font-bold text-orange-600">{stats.okr_achievement}%</p>
+              </div>
+              <div className="bg-white rounded-xl p-4 border border-gray-200">
+                <p className="text-sm text-gray-500">1-on-1</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.one_on_ones_scheduled}</p>
+                <p className="text-xs text-gray-400">{stats.one_on_ones_completed} complétés</p>
               </div>
             </div>
-            
-            <div className="space-y-4">
-              {paginatedFeedbacks.length > 0 ? paginatedFeedbacks.map(fb => (
-                <FeedbackCard key={fb.id} feedback={fb} onLike={() => {}} />
-              )) : (
-                <p className="text-gray-500 text-center py-8">Aucun feedback trouvé</p>
-              )}
-            </div>
-            
-            <Pagination currentPage={pageFeedback} totalPages={totalPagesFeedback} onPageChange={setPageFeedback} />
-          </div>
-        )}
+          )}
 
-        {/* TAB: Campagnes d'Évaluation */}
-        {activeTab === 'campaigns' && (
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">Campagnes d&apos;Évaluation</h2>
-              <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
-                <div className="flex-1 sm:w-48">
-                  <SearchBar value={searchCampaign} onChange={(v) => { setSearchCampaign(v); setPageCampaign(1); }} placeholder="Rechercher..." />
+          {/* TAB: Feedback Continu */}
+          {activeTab === 'feedback' && (
+            <>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Feedback Continu</h1>
+                  <p className="text-gray-500 mt-1">Partagez et recevez des feedbacks</p>
                 </div>
-                <select value={filterCampaignStatus} onChange={(e) => { setFilterCampaignStatus(e.target.value); setPageCampaign(1); }} className="px-3 py-2 border rounded-lg text-sm">
-                  <option value="all">Tous les statuts</option>
-                  <option value="draft">Brouillon</option>
-                  <option value="active">Actif</option>
-                  <option value="completed">Terminé</option>
-                </select>
+                <button onClick={() => setShowFeedbackModal(true)} className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600">
+                  <Plus className="w-4 h-4" />Nouveau Feedback
+                </button>
+              </div>
+              
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="mb-6">
+                  <SearchBar value={searchFeedback} onChange={(v) => { setSearchFeedback(v); setPageFeedback(1); }} placeholder="Rechercher un feedback..." />
+                </div>
+                <div className="space-y-4">
+                  {paginatedFeedbacks.length > 0 ? paginatedFeedbacks.map(fb => (
+                    <FeedbackCard key={fb.id} feedback={fb} onLike={() => {}} />
+                  )) : (
+                    <p className="text-gray-500 text-center py-8">Aucun feedback trouvé</p>
+                  )}
+                </div>
+                <Pagination currentPage={pageFeedback} totalPages={totalPagesFeedback} onPageChange={setPageFeedback} />
+              </div>
+            </>
+          )}
+
+          {/* TAB: Campagnes */}
+          {activeTab === 'campaigns' && (
+            <>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Campagnes d&apos;Évaluation</h1>
+                  <p className="text-gray-500 mt-1">Gérez les campagnes d&apos;évaluation</p>
+                </div>
                 {canManageCampaigns && (
-                  <button onClick={() => setShowCampaignModal(true)} className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 whitespace-nowrap">
+                  <button onClick={() => setShowCampaignModal(true)} className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600">
                     <Plus className="w-4 h-4" />Nouvelle Campagne
                   </button>
                 )}
               </div>
-            </div>
-            
-            <div className="space-y-4">
-              {paginatedCampaigns.length > 0 ? paginatedCampaigns.map(campaign => (
-                <div key={campaign.id} className="p-4 border rounded-lg hover:shadow-sm transition-shadow">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{campaign.name}</h3>
-                      <p className="text-sm text-gray-500">{getTypeLabel(campaign.type)} • {formatDate(campaign.start_date)} - {formatDate(campaign.end_date)}</p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(campaign.status)}`}>
-                      {getStatusLabel(campaign.status)}
-                    </span>
+              
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="flex gap-4 mb-6">
+                  <div className="flex-1">
+                    <SearchBar value={searchCampaign} onChange={(v) => { setSearchCampaign(v); setPageCampaign(1); }} placeholder="Rechercher une campagne..." />
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div className="h-full bg-primary-500 rounded-full transition-all" style={{ width: `${campaign.progress_percentage}%` }} />
-                    </div>
-                    <span className="text-sm font-medium text-gray-600">{campaign.completed_evaluations}/{campaign.total_evaluations}</span>
-                    <span className="text-sm text-gray-400">({Math.round(campaign.progress_percentage)}%)</span>
-                  </div>
+                  <select value={filterCampaignStatus} onChange={(e) => { setFilterCampaignStatus(e.target.value); setPageCampaign(1); }} className="px-3 py-2 border rounded-lg text-sm">
+                    <option value="all">Tous les statuts</option>
+                    <option value="draft">Brouillon</option>
+                    <option value="active">Actif</option>
+                    <option value="completed">Terminé</option>
+                  </select>
                 </div>
-              )) : (
-                <p className="text-gray-500 text-center py-8">Aucune campagne trouvée</p>
-              )}
-            </div>
-            
-            <Pagination currentPage={pageCampaign} totalPages={totalPagesCampaign} onPageChange={setPageCampaign} />
-          </div>
-        )}
-
-        {/* TAB: Évaluations */}
-        {activeTab === 'evaluations' && (
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {userRole === 'employee' ? 'Mes Évaluations' : 'Toutes les Évaluations'}
-              </h2>
-              <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
-                <div className="flex-1 sm:w-48">
-                  <SearchBar value={searchEvaluation} onChange={(v) => { setSearchEvaluation(v); setPageEvaluation(1); }} placeholder="Rechercher..." />
-                </div>
-                <select value={filterEvalStatus} onChange={(e) => { setFilterEvalStatus(e.target.value); setPageEvaluation(1); }} className="px-3 py-2 border rounded-lg text-sm">
-                  <option value="all">Tous les statuts</option>
-                  <option value="pending">En attente</option>
-                  <option value="in_progress">En cours</option>
-                  <option value="submitted">Soumis</option>
-                  <option value="validated">Validé</option>
-                </select>
-              </div>
-            </div>
-            
-            <div className="space-y-3">
-              {paginatedEvaluations.length > 0 ? paginatedEvaluations.map(evaluation => {
-                const canEdit = canUserEditEvaluation(evaluation, userRole, currentUser?.employee_id);
-                const canValidate = canUserValidateEvaluation(evaluation, userRole);
-                
-                return (
-                  <div key={evaluation.id} className="p-4 border rounded-lg hover:shadow-sm transition-shadow">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-medium text-sm">
-                        {evaluation.employee_initials || getInitials(evaluation.employee_name)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-900">{evaluation.employee_name}</h3>
-                        <p className="text-sm text-gray-500">{evaluation.employee_job_title} • {evaluation.employee_department}</p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {getTypeLabel(evaluation.type)} {evaluation.campaign_name && `• ${evaluation.campaign_name}`}
-                          {evaluation.due_date && ` • Deadline: ${formatDate(evaluation.due_date)}`}
-                        </p>
+                <div className="space-y-4">
+                  {paginatedCampaigns.length > 0 ? paginatedCampaigns.map(campaign => (
+                    <div key={campaign.id} className="p-4 border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{campaign.name}</h3>
+                          <p className="text-sm text-gray-500">{getTypeLabel(campaign.type)} • {formatDate(campaign.start_date)} - {formatDate(campaign.end_date)}</p>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(campaign.status)}`}>{getStatusLabel(campaign.status)}</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(evaluation.status)}`}>
-                          {getStatusLabel(evaluation.status)}
-                        </span>
-                        {evaluation.overall_score && (
-                          <span className="font-bold text-primary-600">{evaluation.overall_score}/5</span>
-                        )}
+                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-primary-500 rounded-full" style={{ width: `${campaign.progress_percentage}%` }} />
+                        </div>
+                        <span className="text-sm font-medium text-gray-600">{campaign.completed_evaluations}/{campaign.total_evaluations}</span>
                       </div>
                     </div>
-                    
-                    <div className="flex gap-2 mt-3 pt-3 border-t">
-                      <button onClick={() => { setSelectedEvaluation(evaluation); setShowEvalViewModal(true); }} className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
-                        <Eye className="w-4 h-4" />Voir
-                      </button>
-                      {canEdit && (
-                        <button onClick={() => { setSelectedEvaluation(evaluation); setShowEvalEditModal(true); }} className="flex items-center gap-1 px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg">
-                          <Edit className="w-4 h-4" />Éditer
-                        </button>
-                      )}
-                      {canValidate && (
-                        <button onClick={() => { setSelectedEvaluation(evaluation); setShowEvalEditModal(true); }} className="flex items-center gap-1 px-3 py-1.5 text-sm text-green-600 hover:bg-green-50 rounded-lg">
-                          <CheckCircle className="w-4 h-4" />Valider
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              }) : (
-                <p className="text-gray-500 text-center py-8">Aucune évaluation trouvée</p>
-              )}
-            </div>
-            
-            <Pagination currentPage={pageEvaluation} totalPages={totalPagesEvaluation} onPageChange={setPageEvaluation} />
-          </div>
-        )}
-
-        {/* TAB: Objectifs */}
-        {activeTab === 'objectives' && (
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">Objectifs & OKRs</h2>
-            
-            <div className="grid gap-4">
-              <a href="/dashboard/okr" className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md hover:border-primary-300 transition-all group">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-primary-100 rounded-xl group-hover:bg-primary-200 transition-colors">
-                    <Target className="w-6 h-6 text-primary-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">OKR & Objectifs</h3>
-                    <p className="text-sm text-gray-500">Gérer vos objectifs et résultats clés</p>
-                  </div>
+                  )) : (
+                    <p className="text-gray-500 text-center py-8">Aucune campagne trouvée</p>
+                  )}
                 </div>
-                <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-primary-500 transition-colors" />
-              </a>
+                <Pagination currentPage={pageCampaign} totalPages={totalPagesCampaign} onPageChange={setPageCampaign} />
+              </div>
+            </>
+          )}
+
+          {/* TAB: Évaluations */}
+          {activeTab === 'evaluations' && (
+            <>
+              <div className="mb-6">
+                <h1 className="text-2xl font-bold text-gray-900">{userRole === 'employee' ? 'Mes Évaluations' : 'Évaluations'}</h1>
+                <p className="text-gray-500 mt-1">Consultez et gérez les évaluations</p>
+              </div>
               
-              {stats && (
-                <div className="p-4 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-lg border border-orange-100">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Taux d&apos;atteinte des OKRs</p>
-                      <p className="text-3xl font-bold text-orange-600">{stats.okr_achievement}%</p>
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="flex gap-4 mb-6">
+                  <div className="flex-1">
+                    <SearchBar value={searchEvaluation} onChange={(v) => { setSearchEvaluation(v); setPageEvaluation(1); }} placeholder="Rechercher une évaluation..." />
+                  </div>
+                  <select value={filterEvalStatus} onChange={(e) => { setFilterEvalStatus(e.target.value); setPageEvaluation(1); }} className="px-3 py-2 border rounded-lg text-sm">
+                    <option value="all">Tous les statuts</option>
+                    <option value="pending">En attente</option>
+                    <option value="in_progress">En cours</option>
+                    <option value="submitted">Soumis</option>
+                    <option value="validated">Validé</option>
+                  </select>
+                </div>
+                <div className="space-y-3">
+                  {paginatedEvaluations.length > 0 ? paginatedEvaluations.map(evaluation => {
+                    const canEdit = canUserEditEvaluation(evaluation, userRole, currentUser?.employee_id);
+                    const canValidate = canUserValidateEvaluation(evaluation, userRole);
+                    return (
+                      <div key={evaluation.id} className="p-4 border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-medium text-sm">
+                            {evaluation.employee_initials || getInitials(evaluation.employee_name)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-gray-900">{evaluation.employee_name}</h3>
+                            <p className="text-sm text-gray-500">{evaluation.employee_job_title} • {evaluation.employee_department}</p>
+                            <p className="text-xs text-gray-400 mt-1">{getTypeLabel(evaluation.type)} {evaluation.due_date && `• Deadline: ${formatDate(evaluation.due_date)}`}</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(evaluation.status)}`}>{getStatusLabel(evaluation.status)}</span>
+                            {evaluation.overall_score && <span className="font-bold text-primary-600">{evaluation.overall_score}/5</span>}
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-3 pt-3 border-t">
+                          <button onClick={() => { setSelectedEvaluation(evaluation); setShowEvalViewModal(true); }} className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
+                            <Eye className="w-4 h-4" />Voir
+                          </button>
+                          {canEdit && (
+                            <button onClick={() => { setSelectedEvaluation(evaluation); setShowEvalEditModal(true); }} className="flex items-center gap-1 px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg">
+                              <Edit className="w-4 h-4" />Éditer
+                            </button>
+                          )}
+                          {canValidate && (
+                            <button onClick={() => { setSelectedEvaluation(evaluation); setShowEvalEditModal(true); }} className="flex items-center gap-1 px-3 py-1.5 text-sm text-green-600 hover:bg-green-50 rounded-lg">
+                              <CheckCircle className="w-4 h-4" />Valider
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }) : (
+                    <p className="text-gray-500 text-center py-8">Aucune évaluation trouvée</p>
+                  )}
+                </div>
+                <Pagination currentPage={pageEvaluation} totalPages={totalPagesEvaluation} onPageChange={setPageEvaluation} />
+              </div>
+            </>
+          )}
+
+          {/* TAB: Objectifs */}
+          {activeTab === 'objectives' && (
+            <>
+              <div className="mb-6">
+                <h1 className="text-2xl font-bold text-gray-900">Objectifs & OKRs</h1>
+                <p className="text-gray-500 mt-1">Gérez vos objectifs et résultats clés</p>
+              </div>
+              
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <a href="/dashboard/okr" className="flex items-center justify-between p-4 border rounded-xl hover:shadow-md hover:border-primary-300 transition-all group">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-primary-100 rounded-xl group-hover:bg-primary-200 transition-colors">
+                      <Target className="w-6 h-6 text-primary-600" />
                     </div>
-                    <div className="w-16 h-16 rounded-full border-4 border-orange-200 flex items-center justify-center">
-                      <span className="text-lg font-bold text-orange-600">{stats.okr_achievement}%</span>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">OKR & Objectifs</h3>
+                      <p className="text-sm text-gray-500">Gérer vos objectifs et résultats clés</p>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-primary-500" />
+                </a>
+                
+                {stats && (
+                  <div className="mt-6 p-6 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl border border-orange-100">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Taux d&apos;atteinte des OKRs</p>
+                        <p className="text-4xl font-bold text-orange-600 mt-1">{stats.okr_achievement}%</p>
+                      </div>
+                      <div className="w-20 h-20 rounded-full border-4 border-orange-200 flex items-center justify-center bg-white">
+                        <span className="text-xl font-bold text-orange-600">{stats.okr_achievement}%</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
-        {/* TAB: 1-on-1 */}
-        {activeTab === 'one-on-one' && (
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">Entretiens 1-on-1</h2>
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <div className="flex-1 sm:w-64">
-                  <SearchBar value={searchOneOnOne} onChange={(v) => { setSearchOneOnOne(v); setPageOneOnOne(1); }} placeholder="Rechercher..." />
+          {/* TAB: 1-on-1 */}
+          {activeTab === 'one-on-one' && (
+            <>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Entretiens 1-on-1</h1>
+                  <p className="text-gray-500 mt-1">Planifiez et gérez vos entretiens individuels</p>
                 </div>
                 {canScheduleOneOnOne && (
-                  <button onClick={() => setShowOneOnOneModal(true)} className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 whitespace-nowrap">
-                    <Plus className="w-4 h-4" />Planifier
+                  <button onClick={() => setShowOneOnOneModal(true)} className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600">
+                    <Plus className="w-4 h-4" />Planifier un 1-on-1
                   </button>
                 )}
               </div>
-            </div>
-            
-            <div className="space-y-3">
-              {paginatedOneOnOnes.length > 0 ? paginatedOneOnOnes.map(meeting => (
-                <div key={meeting.id} className="p-4 border rounded-lg hover:shadow-sm transition-shadow">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm">
-                      {meeting.employee_initials || getInitials(meeting.employee_name)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-gray-900">{meeting.employee_name}</h3>
-                      <p className="text-sm text-gray-500">avec {meeting.manager_name}</p>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                        <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatDateTime(meeting.scheduled_date)}</span>
-                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{meeting.duration_minutes} min</span>
-                        {meeting.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{meeting.location}</span>}
+              
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="mb-6">
+                  <SearchBar value={searchOneOnOne} onChange={(v) => { setSearchOneOnOne(v); setPageOneOnOne(1); }} placeholder="Rechercher un entretien..." />
+                </div>
+                <div className="space-y-3">
+                  {paginatedOneOnOnes.length > 0 ? paginatedOneOnOnes.map(meeting => (
+                    <div key={meeting.id} className="p-4 border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm">
+                          {meeting.employee_initials || getInitials(meeting.employee_name)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-gray-900">{meeting.employee_name}</h3>
+                          <p className="text-sm text-gray-500">avec {meeting.manager_name}</p>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                            <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatDateTime(meeting.scheduled_date)}</span>
+                            <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{meeting.duration_minutes} min</span>
+                            {meeting.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{meeting.location}</span>}
+                          </div>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(meeting.status)}`}>{getStatusLabel(meeting.status)}</span>
                       </div>
+                      {meeting.topics && meeting.topics.length > 0 && (
+                        <div className="mt-3 pt-3 border-t">
+                          <p className="text-xs text-gray-500 mb-1">Sujets:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {meeting.topics.map((topic, i) => (
+                              <span key={i} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">{topic}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(meeting.status)}`}>
-                      {getStatusLabel(meeting.status)}
-                    </span>
-                  </div>
-                  {meeting.topics && meeting.topics.length > 0 && (
-                    <div className="mt-3 pt-3 border-t">
-                      <p className="text-xs text-gray-500 mb-1">Sujets:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {meeting.topics.map((topic, i) => (
-                          <span key={i} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">{topic}</span>
-                        ))}
-                      </div>
-                    </div>
+                  )) : (
+                    <p className="text-gray-500 text-center py-8">Aucun 1-on-1 trouvé</p>
                   )}
                 </div>
-              )) : (
-                <p className="text-gray-500 text-center py-8">Aucun 1-on-1 trouvé</p>
-              )}
-            </div>
-            
-            <Pagination currentPage={pageOneOnOne} totalPages={totalPagesOneOnOne} onPageChange={setPageOneOnOne} />
-          </div>
-        )}
+                <Pagination currentPage={pageOneOnOne} totalPages={totalPagesOneOnOne} onPageChange={setPageOneOnOne} />
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Modals */}

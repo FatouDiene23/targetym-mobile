@@ -266,11 +266,11 @@ export default function Sidebar() {
   // ========================================
   if (inMySpace) {
     return (
-      <div className="flex">
+      <div className="flex h-screen sticky top-0">
         {/* Mini sidebar principale (icônes) */}
-        <aside className="w-20 bg-dark min-h-screen flex flex-col border-r border-gray-700">
+        <aside className="w-20 bg-dark h-screen flex flex-col border-r border-gray-700 overflow-hidden">
           {/* Logo */}
-          <div className="h-16 flex items-center justify-center border-b border-gray-700">
+          <div className="h-16 flex items-center justify-center border-b border-gray-700 flex-shrink-0">
             <Link href="/dashboard">
               <div className="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold">T</span>
@@ -278,8 +278,8 @@ export default function Sidebar() {
             </Link>
           </div>
 
-          {/* Navigation icônes */}
-          <nav className="flex-1 py-6 px-2 space-y-2">
+          {/* Navigation icônes - scrollable */}
+          <nav className="flex-1 py-6 px-2 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
             {filteredNavigation.map((item) => {
               const isActive = pathname === item.href || 
                 (item.href !== '/dashboard' && pathname.startsWith(item.href));
@@ -316,8 +316,8 @@ export default function Sidebar() {
             </div>
           </nav>
 
-          {/* User mini */}
-          <div className="p-4 border-t border-gray-700">
+          {/* User mini - fixed at bottom */}
+          <div className="p-4 border-t border-gray-700 flex-shrink-0">
             <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium mx-auto">
               {initials}
             </div>
@@ -332,15 +332,15 @@ export default function Sidebar() {
         </aside>
 
         {/* Sous-menu Mon Espace */}
-        <aside className="w-56 bg-gray-900 min-h-screen flex flex-col">
+        <aside className="w-56 bg-gray-900 h-screen flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="h-16 flex items-center px-4 border-b border-gray-700">
+          <div className="h-16 flex items-center px-4 border-b border-gray-700 flex-shrink-0">
             <User className="w-5 h-5 text-primary-400 mr-3" />
             <span className="font-semibold text-white">Mon Espace</span>
           </div>
 
-          {/* Navigation Mon Espace */}
-          <nav className="flex-1 py-6 px-3 space-y-1">
+          {/* Navigation Mon Espace - scrollable */}
+          <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
             {filteredMySpaceNav.map((item) => {
               const isActive = pathname === item.href;
               
@@ -361,8 +361,8 @@ export default function Sidebar() {
             })}
           </nav>
 
-          {/* Retour */}
-          <div className="p-4 border-t border-gray-700">
+          {/* Retour - fixed at bottom */}
+          <div className="p-4 border-t border-gray-700 flex-shrink-0">
             <Link
               href="/dashboard"
               className="flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
@@ -381,11 +381,11 @@ export default function Sidebar() {
   // ========================================
   if (inPerformance) {
     return (
-      <div className="flex">
+      <div className="flex h-screen sticky top-0">
         {/* Mini sidebar principale (icônes) */}
-        <aside className="w-20 bg-dark min-h-screen flex flex-col border-r border-gray-700">
+        <aside className="w-20 bg-dark h-screen flex flex-col border-r border-gray-700 overflow-hidden">
           {/* Logo */}
-          <div className="h-16 flex items-center justify-center border-b border-gray-700">
+          <div className="h-16 flex items-center justify-center border-b border-gray-700 flex-shrink-0">
             <Link href="/dashboard">
               <div className="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold">T</span>
@@ -393,8 +393,8 @@ export default function Sidebar() {
             </Link>
           </div>
 
-          {/* Navigation icônes */}
-          <nav className="flex-1 py-6 px-2 space-y-2">
+          {/* Navigation icônes - scrollable */}
+          <nav className="flex-1 py-6 px-2 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
             {filteredNavigation.map((item) => {
               // Performance est actif via le sous-menu
               const isPerformanceItem = item.href === '/dashboard/performance';
@@ -438,8 +438,8 @@ export default function Sidebar() {
             </Link>
           </nav>
 
-          {/* User mini */}
-          <div className="p-4 border-t border-gray-700">
+          {/* User mini - fixed at bottom */}
+          <div className="p-4 border-t border-gray-700 flex-shrink-0">
             <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium mx-auto">
               {initials}
             </div>
@@ -454,15 +454,15 @@ export default function Sidebar() {
         </aside>
 
         {/* Sous-menu Performance */}
-        <aside className="w-56 bg-gray-900 min-h-screen flex flex-col">
+        <aside className="w-56 bg-gray-900 h-screen flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="h-16 flex items-center px-4 border-b border-gray-700">
+          <div className="h-16 flex items-center px-4 border-b border-gray-700 flex-shrink-0">
             <TrendingUp className="w-5 h-5 text-primary-400 mr-3" />
             <span className="font-semibold text-white">Performance</span>
           </div>
 
-          {/* Navigation Performance */}
-          <nav className="flex-1 py-6 px-3 space-y-1">
+          {/* Navigation Performance - scrollable */}
+          <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
             {filteredPerformanceNav.map((item) => {
               const isActive = pathname === item.href;
               
@@ -483,8 +483,8 @@ export default function Sidebar() {
             })}
           </nav>
 
-          {/* Retour */}
-          <div className="p-4 border-t border-gray-700">
+          {/* Retour - fixed at bottom */}
+          <div className="p-4 border-t border-gray-700 flex-shrink-0">
             <Link
               href="/dashboard"
               className="flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
@@ -502,9 +502,9 @@ export default function Sidebar() {
   // Mode normal
   // ========================================
   return (
-    <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-dark min-h-screen flex flex-col transition-all duration-300`}>
+    <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-dark h-screen flex flex-col transition-all duration-300 sticky top-0 overflow-hidden`}>
       {/* Logo */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-gray-700">
+      <div className="h-16 flex items-center justify-between px-4 border-b border-gray-700 flex-shrink-0">
         {!collapsed && (
           <Link href="/dashboard" className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
@@ -526,8 +526,8 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 py-6 px-3 space-y-1">
+      {/* Navigation - scrollable */}
+      <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
         {filteredNavigation.map((item) => {
           const isActive = pathname === item.href || 
             (item.href !== '/dashboard' && pathname.startsWith(item.href));
@@ -567,8 +567,8 @@ export default function Sidebar() {
         </Link>
       </nav>
 
-      {/* User Section */}
-      <div className="p-4 border-t border-gray-700">
+      {/* User Section - fixed at bottom */}
+      <div className="p-4 border-t border-gray-700 flex-shrink-0">
         <div className={`flex items-center ${collapsed ? 'justify-center' : ''}`}>
           <div className="w-9 h-9 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
             {initials}

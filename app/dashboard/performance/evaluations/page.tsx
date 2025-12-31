@@ -77,7 +77,7 @@ async function fetchCurrentUser(): Promise<CurrentUser | null> {
 
 async function fetchEvaluations(): Promise<Evaluation[]> {
   try {
-    const response = await fetch(`${API_URL}/api/performance/evaluations?page_size=200`, { headers: getAuthHeaders() });
+    const response = await fetch(`${API_URL}/api/performance/evaluations?page_size=100`, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error('API error');
     const data = await response.json();
     return data.items || [];

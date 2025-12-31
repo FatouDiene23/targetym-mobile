@@ -20,7 +20,10 @@ import {
   UserCircle,
   UsersRound,
   ClipboardList,
-  LucideIcon
+  LucideIcon,
+  MessageSquare,
+  Star,
+  UserCheck
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -34,8 +37,8 @@ interface NavItem {
   name: string;
   href: string;
   icon: LucideIcon;
-  roles: UserRole[]; // Rôles autorisés
-  children?: NavItem[]; // Sous-menu
+  roles: UserRole[];
+  children?: NavItem[];
 }
 
 interface UserData {
@@ -51,7 +54,6 @@ interface UserData {
 // NAVIGATION CONFIG
 // ============================================
 
-// Modules principaux avec permissions par rôle
 const navigation: NavItem[] = [
   { 
     name: 'Tableau de Bord', 
@@ -63,7 +65,7 @@ const navigation: NavItem[] = [
     name: 'OKR & Objectifs', 
     href: '/dashboard/okr', 
     icon: Target,
-    roles: ['manager', 'rh', 'admin', 'dg'] // Employés verront leurs objectifs dans Mon Espace
+    roles: ['manager', 'rh', 'admin', 'dg']
   },
   { 
     name: 'Recrutement', 
@@ -87,7 +89,7 @@ const navigation: NavItem[] = [
     name: 'Performance & Feedback', 
     href: '/dashboard/performance', 
     icon: TrendingUp,
-    roles: ['employee', 'manager', 'rh', 'admin', 'dg'] // ✅ Tous les employés peuvent accéder
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg']
   },
   { 
     name: 'People Analytics', 
@@ -139,12 +141,46 @@ const mySpaceNavigation: NavItem[] = [
     name: 'Mon Équipe',
     href: '/dashboard/my-space/team',
     icon: UsersRound,
-    roles: ['manager', 'rh', 'admin', 'dg'] // Visible seulement pour les managers
+    roles: ['manager', 'rh', 'admin', 'dg']
   },
   {
     name: 'Mes Tâches',
     href: '/dashboard/my-space/tasks',
     icon: ClipboardList,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg']
+  },
+];
+
+// Sous-menu Performance
+const performanceNavigation: NavItem[] = [
+  {
+    name: 'Feedback Continu',
+    href: '/dashboard/performance',
+    icon: MessageSquare,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg']
+  },
+  {
+    name: 'Campagnes',
+    href: '/dashboard/performance/campaigns',
+    icon: Target,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg']
+  },
+  {
+    name: 'Évaluations',
+    href: '/dashboard/performance/evaluations',
+    icon: Star,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg']
+  },
+  {
+    name: 'Objectifs',
+    href: '/dashboard/performance/objectives',
+    icon: TrendingUp,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg']
+  },
+  {
+    name: '1-on-1',
+    href: '/dashboard/performance/one-on-one',
+    icon: UserCheck,
     roles: ['employee', 'manager', 'rh', 'admin', 'dg']
   },
 ];
@@ -164,7 +200,6 @@ function normalizeRole(role: string | undefined): UserRole {
 }
 
 function hasAccess(item: NavItem, userRole: UserRole, isManager?: boolean): boolean {
-  // Si l'item est pour managers et l'utilisateur est manager (même si rôle employee)
   if (item.roles.includes('manager') && isManager) return true;
   return item.roles.includes(userRole);
 }
@@ -178,11 +213,13 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [user, setUser] = useState<UserData | null>(null);
   const [inMySpace, setInMySpace] = useState(false);
+  const [inPerformance, setInPerformance] = useState(false);
   const [isManager, setIsManager] = useState(false);
 
-  // Détecter si on est dans Mon Espace
+  // Détecter si on est dans Mon Espace ou Performance
   useEffect(() => {
     setInMySpace(pathname.startsWith('/dashboard/my-space'));
+    setInPerformance(pathname.startsWith('/dashboard/performance'));
   }, [pathname]);
 
   // Charger les données utilisateur
@@ -192,7 +229,6 @@ export default function Sidebar() {
       try {
         const userData = JSON.parse(userStr);
         setUser(userData);
-        // Vérifier si manager via le rôle ou le flag is_manager
         setIsManager(
           userData.role?.toLowerCase() === 'manager' || 
           userData.is_manager === true
@@ -223,8 +259,11 @@ export default function Sidebar() {
   // Filtrer les items selon le rôle
   const filteredNavigation = navigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredMySpaceNav = mySpaceNavigation.filter(item => hasAccess(item, userRole, isManager));
+  const filteredPerformanceNav = performanceNavigation.filter(item => hasAccess(item, userRole, isManager));
 
+  // ========================================
   // Mode Mon Espace : sidebar rétractée avec sous-menu
+  // ========================================
   if (inMySpace) {
     return (
       <div className="flex">
@@ -337,7 +376,131 @@ export default function Sidebar() {
     );
   }
 
+  // ========================================
+  // Mode Performance : sidebar rétractée avec sous-menu
+  // ========================================
+  if (inPerformance) {
+    return (
+      <div className="flex">
+        {/* Mini sidebar principale (icônes) */}
+        <aside className="w-20 bg-dark min-h-screen flex flex-col border-r border-gray-700">
+          {/* Logo */}
+          <div className="h-16 flex items-center justify-center border-b border-gray-700">
+            <Link href="/dashboard">
+              <div className="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold">T</span>
+              </div>
+            </Link>
+          </div>
+
+          {/* Navigation icônes */}
+          <nav className="flex-1 py-6 px-2 space-y-2">
+            {filteredNavigation.map((item) => {
+              // Performance est actif via le sous-menu
+              const isPerformanceItem = item.href === '/dashboard/performance';
+              const isActive = isPerformanceItem 
+                ? true 
+                : (pathname === item.href || (item.href !== '/dashboard' && !item.href.includes('performance') && pathname.startsWith(item.href)));
+              
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center justify-center p-3 rounded-lg transition-colors group relative ${
+                    isActive 
+                      ? 'bg-primary-500 text-white' 
+                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  }`}
+                  title={item.name}
+                >
+                  <item.icon className="w-5 h-5" />
+                  {/* Tooltip */}
+                  <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+                    {item.name}
+                  </div>
+                </Link>
+              );
+            })}
+
+            {/* Séparateur */}
+            <div className="border-t border-gray-700 my-4" />
+
+            {/* Mon Espace */}
+            <Link
+              href="/dashboard/my-space"
+              className="flex items-center justify-center p-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors group relative"
+              title="Mon Espace"
+            >
+              <User className="w-5 h-5" />
+              <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+                Mon Espace
+              </div>
+            </Link>
+          </nav>
+
+          {/* User mini */}
+          <div className="p-4 border-t border-gray-700">
+            <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium mx-auto">
+              {initials}
+            </div>
+            <button 
+              onClick={handleLogout}
+              className="mt-4 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+              title="Déconnexion"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
+        </aside>
+
+        {/* Sous-menu Performance */}
+        <aside className="w-56 bg-gray-900 min-h-screen flex flex-col">
+          {/* Header */}
+          <div className="h-16 flex items-center px-4 border-b border-gray-700">
+            <TrendingUp className="w-5 h-5 text-primary-400 mr-3" />
+            <span className="font-semibold text-white">Performance</span>
+          </div>
+
+          {/* Navigation Performance */}
+          <nav className="flex-1 py-6 px-3 space-y-1">
+            {filteredPerformanceNav.map((item) => {
+              const isActive = pathname === item.href;
+              
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+                    isActive 
+                      ? 'bg-primary-500/20 text-primary-400 border-l-2 border-primary-500' 
+                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5 mr-3" />
+                  <span className="text-sm font-medium">{item.name}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Retour */}
+          <div className="p-4 border-t border-gray-700">
+            <Link
+              href="/dashboard"
+              className="flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Retour au menu
+            </Link>
+          </div>
+        </aside>
+      </div>
+    );
+  }
+
+  // ========================================
   // Mode normal
+  // ========================================
   return (
     <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-dark min-h-screen flex flex-col transition-all duration-300`}>
       {/* Logo */}

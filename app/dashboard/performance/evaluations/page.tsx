@@ -8,6 +8,7 @@ import {
 import { 
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer
 } from 'recharts';
+import PerformanceStats from '../components/PerformanceStats';
 
 // =============================================
 // TYPES
@@ -525,6 +526,9 @@ export default function EvaluationsPage() {
 
   return (
     <div className="p-8">
+      {/* Stats KPIs */}
+      <PerformanceStats />
+      
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">{userRole === 'employee' ? 'Mes Évaluations' : 'Évaluations'}</h1>

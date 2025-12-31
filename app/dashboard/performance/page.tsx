@@ -271,12 +271,76 @@ function CreateFeedbackModal({ isOpen, onClose, employees, onSuccess }: {
 }
 
 // =============================================
+// STATS TYPES & API
+// =============================================
+
+interface MyStats {
+  scope: string;
+  avg_score: number;
+  evaluations_total: number;
+  evaluations_completed: number;
+  completion_rate: number;
+  feedbacks_received: number;
+  feedbacks_given: number;
+  one_on_ones_scheduled: number;
+  one_on_ones_completed: number;
+  okr_achievement: number;
+}
+
+async function fetchMyStats(): Promise<MyStats | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/performance/my-stats`, { headers: getAuthHeaders() });
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
+}
+
+// =============================================
+// STATS COMPONENT
+// =============================================
+
+function StatsCards({ stats }: { stats: MyStats | null }) {
+  if (!stats) return null;
+  
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+        <p className="text-sm text-gray-500">Score Moyen</p>
+        <p className="text-2xl font-bold text-gray-900">{stats.avg_score > 0 ? `${stats.avg_score}/5` : '-'}</p>
+      </div>
+      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+        <p className="text-sm text-gray-500">Évaluations</p>
+        <p className="text-2xl font-bold text-green-600">{stats.evaluations_completed}/{stats.evaluations_total}</p>
+        <p className="text-xs text-gray-400">{stats.evaluations_total > 0 ? `${Math.round(stats.completion_rate)}%` : ''}</p>
+      </div>
+      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+        <p className="text-sm text-gray-500">Feedbacks Reçus</p>
+        <p className="text-2xl font-bold text-purple-600">{stats.feedbacks_received}</p>
+        <p className="text-xs text-gray-400">{stats.feedbacks_given} donnés</p>
+      </div>
+      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+        <p className="text-sm text-gray-500">OKRs</p>
+        <p className="text-2xl font-bold text-orange-600">{stats.okr_achievement}%</p>
+      </div>
+      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+        <p className="text-sm text-gray-500">1-on-1</p>
+        <p className="text-2xl font-bold text-blue-600">{stats.one_on_ones_scheduled}</p>
+        <p className="text-xs text-gray-400">{stats.one_on_ones_completed} complétés</p>
+      </div>
+    </div>
+  );
+}
+
+// =============================================
 // MAIN PAGE
 // =============================================
 
 export default function FeedbackPage() {
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [stats, setStats] = useState<MyStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -284,9 +348,14 @@ export default function FeedbackPage() {
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [feedbacksData, employeesData] = await Promise.all([fetchFeedbacks(), fetchEmployees()]);
+    const [feedbacksData, employeesData, statsData] = await Promise.all([
+      fetchFeedbacks(), 
+      fetchEmployees(),
+      fetchMyStats()
+    ]);
     setFeedbacks(feedbacksData);
     setEmployees(employeesData);
+    setStats(statsData);
     setLoading(false);
   }, []);
 
@@ -313,6 +382,9 @@ export default function FeedbackPage() {
 
   return (
     <div className="p-8">
+      {/* Stats KPIs */}
+      <StatsCards stats={stats} />
+      
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

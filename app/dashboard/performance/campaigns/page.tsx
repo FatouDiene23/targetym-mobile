@@ -104,51 +104,75 @@ async function createCampaign(data: {
 
 async function cancelCampaign(campaignId: number, reason?: string): Promise<{ success: boolean; error?: string; data?: { evaluations_cancelled: number } }> {
   try {
-    const response = await fetch(`${API_URL}/api/performance/campaigns/${campaignId}/cancel`, {
+    const url = `${API_URL}/api/performance/campaigns/${campaignId}/cancel`;
+    console.log('Calling cancel API:', url);
+    
+    const response = await fetch(url, {
       method: 'POST', 
       headers: getAuthHeaders(), 
-      body: JSON.stringify({ reason }),
+      body: reason ? JSON.stringify({ reason }) : undefined,
     });
+    
+    console.log('Cancel response status:', response.status);
+    
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      return { success: false, error: errorData.detail || 'Erreur lors de l\'annulation' };
+      console.log('Cancel error:', errorData);
+      return { success: false, error: errorData.detail || `Erreur ${response.status}` };
     }
     const data = await response.json();
     return { success: true, data };
-  } catch {
-    return { success: false, error: 'Erreur de connexion' };
+  } catch (err) {
+    console.error('Cancel exception:', err);
+    return { success: false, error: 'Erreur de connexion: ' + (err instanceof Error ? err.message : String(err)) };
   }
 }
 
 async function archiveCampaign(campaignId: number): Promise<{ success: boolean; error?: string }> {
   try {
-    const response = await fetch(`${API_URL}/api/performance/campaigns/${campaignId}/archive`, {
+    const url = `${API_URL}/api/performance/campaigns/${campaignId}/archive`;
+    console.log('Calling archive API:', url);
+    
+    const response = await fetch(url, {
       method: 'POST', 
       headers: getAuthHeaders(),
     });
+    
+    console.log('Archive response status:', response.status);
+    
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      return { success: false, error: errorData.detail || 'Erreur lors de l\'archivage' };
+      console.log('Archive error:', errorData);
+      return { success: false, error: errorData.detail || `Erreur ${response.status}` };
     }
     return { success: true };
-  } catch {
-    return { success: false, error: 'Erreur de connexion' };
+  } catch (err) {
+    console.error('Archive exception:', err);
+    return { success: false, error: 'Erreur de connexion: ' + (err instanceof Error ? err.message : String(err)) };
   }
 }
 
 async function restoreCampaign(campaignId: number): Promise<{ success: boolean; error?: string }> {
   try {
-    const response = await fetch(`${API_URL}/api/performance/campaigns/${campaignId}/restore`, {
+    const url = `${API_URL}/api/performance/campaigns/${campaignId}/restore`;
+    console.log('Calling restore API:', url);
+    
+    const response = await fetch(url, {
       method: 'POST', 
       headers: getAuthHeaders(),
     });
+    
+    console.log('Restore response status:', response.status);
+    
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      return { success: false, error: errorData.detail || 'Erreur lors de la restauration' };
+      console.log('Restore error:', errorData);
+      return { success: false, error: errorData.detail || `Erreur ${response.status}` };
     }
     return { success: true };
-  } catch {
-    return { success: false, error: 'Erreur de connexion' };
+  } catch (err) {
+    console.error('Restore exception:', err);
+    return { success: false, error: 'Erreur de connexion: ' + (err instanceof Error ? err.message : String(err)) };
   }
 }
 

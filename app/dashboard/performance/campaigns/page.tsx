@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  Plus, X, Loader2, AlertCircle, Search, ChevronLeft, ChevronRight
+  Plus, X, Loader2, AlertCircle, Search, ChevronLeft, ChevronRight,
+  XCircle, Archive, RotateCcw, MoreVertical
 } from 'lucide-react';
 import PerformanceStats from '../components/PerformanceStats';
 
@@ -59,9 +60,12 @@ async function fetchCurrentUser(): Promise<CurrentUser | null> {
   }
 }
 
-async function fetchCampaigns(): Promise<EvaluationCampaign[]> {
+async function fetchCampaigns(includeArchived: boolean = false): Promise<EvaluationCampaign[]> {
   try {
-    const response = await fetch(`${API_URL}/api/performance/campaigns?page_size=100`, { headers: getAuthHeaders() });
+    const url = includeArchived 
+      ? `${API_URL}/api/performance/campaigns?page_size=100`
+      : `${API_URL}/api/performance/campaigns?page_size=100`;
+    const response = await fetch(url, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error('API error');
     const data = await response.json();
     return data.items || [];
@@ -98,15 +102,67 @@ async function createCampaign(data: {
   }
 }
 
+async function cancelCampaign(campaignId: number, reason?: string): Promise<{ success: boolean; error?: string; data?: { evaluations_cancelled: number } }> {
+  try {
+    const response = await fetch(`${API_URL}/api/performance/campaigns/${campaignId}/cancel`, {
+      method: 'POST', 
+      headers: getAuthHeaders(), 
+      body: JSON.stringify({ reason }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { success: false, error: errorData.detail || 'Erreur lors de l\'annulation' };
+    }
+    const data = await response.json();
+    return { success: true, data };
+  } catch {
+    return { success: false, error: 'Erreur de connexion' };
+  }
+}
+
+async function archiveCampaign(campaignId: number): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${API_URL}/api/performance/campaigns/${campaignId}/archive`, {
+      method: 'POST', 
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { success: false, error: errorData.detail || 'Erreur lors de l\'archivage' };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: 'Erreur de connexion' };
+  }
+}
+
+async function restoreCampaign(campaignId: number): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${API_URL}/api/performance/campaigns/${campaignId}/restore`, {
+      method: 'POST', 
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { success: false, error: errorData.detail || 'Erreur lors de la restauration' };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: 'Erreur de connexion' };
+  }
+}
+
 // =============================================
 // HELPERS
 // =============================================
 
 function getStatusColor(status: string) {
   switch (status) {
-    case 'completed': return 'bg-green-100 text-green-700';
+    case 'completed': return 'bg-blue-100 text-blue-700';
     case 'active': return 'bg-green-100 text-green-700';
     case 'draft': return 'bg-orange-100 text-orange-700';
+    case 'cancelled': return 'bg-red-100 text-red-700';
+    case 'archived': return 'bg-gray-100 text-gray-500';
     default: return 'bg-gray-100 text-gray-600';
   }
 }
@@ -117,6 +173,7 @@ function getStatusLabel(status: string) {
     case 'active': return 'Actif';
     case 'draft': return 'Brouillon';
     case 'cancelled': return 'Annulé';
+    case 'archived': return 'Archivé';
     default: return status;
   }
 }
@@ -260,27 +317,85 @@ export default function CampaignsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [showArchived, setShowArchived] = useState(false);
   const [page, setPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [openMenu, setOpenMenu] = useState<number | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     const user = await fetchCurrentUser();
     if (user) setUserRole(user.role?.toLowerCase() || 'employee');
-    const [campaignsData, employeesData] = await Promise.all([fetchCampaigns(), fetchEmployees()]);
+    const [campaignsData, employeesData] = await Promise.all([fetchCampaigns(showArchived), fetchEmployees()]);
     setCampaigns(campaignsData);
     setEmployees(employeesData);
     setLoading(false);
-  }, []);
+  }, [showArchived]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
   const canManageCampaigns = ['admin', 'super_admin', 'rh', 'dg'].includes(userRole);
 
-  const filteredCampaigns = campaigns.filter(c => 
+  const handleCancel = async (campaignId: number, campaignName: string) => {
+    if (!confirm(`Êtes-vous sûr de vouloir annuler la campagne "${campaignName}" ?\n\nLes évaluations en attente seront également annulées.`)) return;
+    
+    setActionLoading(campaignId);
+    setOpenMenu(null);
+    const result = await cancelCampaign(campaignId);
+    setActionLoading(null);
+    
+    if (result.success) {
+      alert(`Campagne annulée. ${result.data?.evaluations_cancelled || 0} évaluation(s) annulée(s).`);
+      loadData();
+    } else {
+      alert(result.error || 'Erreur lors de l\'annulation');
+    }
+  };
+
+  const handleArchive = async (campaignId: number, campaignName: string) => {
+    if (!confirm(`Êtes-vous sûr de vouloir archiver la campagne "${campaignName}" ?`)) return;
+    
+    setActionLoading(campaignId);
+    setOpenMenu(null);
+    const result = await archiveCampaign(campaignId);
+    setActionLoading(null);
+    
+    if (result.success) {
+      alert('Campagne archivée avec succès');
+      loadData();
+    } else {
+      alert(result.error || 'Erreur lors de l\'archivage');
+    }
+  };
+
+  const handleRestore = async (campaignId: number, campaignName: string) => {
+    if (!confirm(`Êtes-vous sûr de vouloir restaurer la campagne "${campaignName}" ?`)) return;
+    
+    setActionLoading(campaignId);
+    setOpenMenu(null);
+    const result = await restoreCampaign(campaignId);
+    setActionLoading(null);
+    
+    if (result.success) {
+      alert('Campagne restaurée avec succès');
+      loadData();
+    } else {
+      alert(result.error || 'Erreur lors de la restauration');
+    }
+  };
+
+  // Filtrer les campagnes
+  let filteredCampaigns = campaigns.filter(c => 
     c.name.toLowerCase().includes(search.toLowerCase()) &&
     (filterStatus === 'all' || c.status === filterStatus)
   );
+  
+  // Cacher les archivées par défaut
+  if (!showArchived) {
+    filteredCampaigns = filteredCampaigns.filter(c => c.status !== 'archived');
+  }
+  
   const paginatedCampaigns = filteredCampaigns.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
   const totalPages = Math.ceil(filteredCampaigns.length / ITEMS_PER_PAGE);
 
@@ -316,8 +431,8 @@ export default function CampaignsPage() {
       {/* Content */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         {/* Filters */}
-        <div className="flex gap-4 mb-6">
-          <div className="flex-1 relative">
+        <div className="flex gap-4 mb-6 flex-wrap">
+          <div className="flex-1 min-w-[200px] relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input 
               type="text" 
@@ -332,23 +447,95 @@ export default function CampaignsPage() {
             <option value="draft">Brouillon</option>
             <option value="active">Actif</option>
             <option value="completed">Terminé</option>
+            <option value="cancelled">Annulé</option>
+            {showArchived && <option value="archived">Archivé</option>}
           </select>
+          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={showArchived} 
+              onChange={(e) => setShowArchived(e.target.checked)}
+              className="rounded border-gray-300"
+            />
+            Afficher archivées
+          </label>
         </div>
 
         {/* Campaigns List */}
         <div className="space-y-4">
           {paginatedCampaigns.length > 0 ? paginatedCampaigns.map(campaign => (
-            <div key={campaign.id} className="p-4 border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
+            <div key={campaign.id} className={`p-4 border rounded-xl transition-shadow ${campaign.status === 'archived' ? 'bg-gray-50 border-gray-200' : 'border-gray-200 hover:shadow-md'}`}>
               <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h3 className="font-semibold text-gray-900">{campaign.name}</h3>
+                <div className="flex-1">
+                  <h3 className={`font-semibold ${campaign.status === 'archived' ? 'text-gray-500' : 'text-gray-900'}`}>{campaign.name}</h3>
                   <p className="text-sm text-gray-500">{getTypeLabel(campaign.type)} • {formatDate(campaign.start_date)} - {formatDate(campaign.end_date)}</p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(campaign.status)}`}>{getStatusLabel(campaign.status)}</span>
+                <div className="flex items-center gap-2">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(campaign.status)}`}>
+                    {getStatusLabel(campaign.status)}
+                  </span>
+                  
+                  {/* Menu d'actions pour RH/Admin */}
+                  {canManageCampaigns && (
+                    <div className="relative">
+                      <button 
+                        onClick={() => setOpenMenu(openMenu === campaign.id ? null : campaign.id)}
+                        className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                        disabled={actionLoading === campaign.id}
+                      >
+                        {actionLoading === campaign.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                        ) : (
+                          <MoreVertical className="w-4 h-4 text-gray-400" />
+                        )}
+                      </button>
+                      
+                      {openMenu === campaign.id && (
+                        <div className="absolute right-0 top-full mt-1 bg-white border rounded-lg shadow-lg py-1 z-10 min-w-[160px]">
+                          {/* Annuler - seulement pour active/draft */}
+                          {['active', 'draft'].includes(campaign.status) && (
+                            <button 
+                              onClick={() => handleCancel(campaign.id, campaign.name)}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                            >
+                              <XCircle className="w-4 h-4" />
+                              Annuler
+                            </button>
+                          )}
+                          
+                          {/* Archiver - seulement pour completed/cancelled */}
+                          {['completed', 'cancelled'].includes(campaign.status) && (
+                            <button 
+                              onClick={() => handleArchive(campaign.id, campaign.name)}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                            >
+                              <Archive className="w-4 h-4" />
+                              Archiver
+                            </button>
+                          )}
+                          
+                          {/* Restaurer - seulement pour archived */}
+                          {campaign.status === 'archived' && (
+                            <button 
+                              onClick={() => handleRestore(campaign.id, campaign.name)}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50"
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                              Restaurer
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-primary-500 rounded-full" style={{ width: `${campaign.progress_percentage}%` }} />
+                  <div 
+                    className={`h-full rounded-full ${campaign.status === 'cancelled' ? 'bg-red-400' : 'bg-primary-500'}`} 
+                    style={{ width: `${campaign.progress_percentage}%` }} 
+                  />
                 </div>
                 <span className="text-sm font-medium text-gray-600">{campaign.completed_evaluations}/{campaign.total_evaluations}</span>
                 <span className="text-sm text-gray-400">({Math.round(campaign.progress_percentage)}%)</span>
@@ -365,6 +552,11 @@ export default function CampaignsPage() {
 
       {/* Modal */}
       <CreateCampaignModal isOpen={showModal} onClose={() => setShowModal(false)} employees={employees} onSuccess={loadData} />
+      
+      {/* Fermer le menu si on clique ailleurs */}
+      {openMenu && (
+        <div className="fixed inset-0 z-0" onClick={() => setOpenMenu(null)} />
+      )}
     </div>
   );
 }

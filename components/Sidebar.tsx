@@ -279,7 +279,7 @@ export default function Sidebar() {
           </div>
 
           {/* Navigation icônes - scrollable */}
-          <nav className="flex-1 py-6 px-2 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+          <nav className="flex-1 py-6 px-2 space-y-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
             {filteredNavigation.map((item) => {
               const isActive = pathname === item.href || 
                 (item.href !== '/dashboard' && pathname.startsWith(item.href));
@@ -340,7 +340,7 @@ export default function Sidebar() {
           </div>
 
           {/* Navigation Mon Espace - scrollable */}
-          <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+          <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
             {filteredMySpaceNav.map((item) => {
               const isActive = pathname === item.href;
               
@@ -394,7 +394,7 @@ export default function Sidebar() {
           </div>
 
           {/* Navigation icônes - scrollable */}
-          <nav className="flex-1 py-6 px-2 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+          <nav className="flex-1 py-6 px-2 space-y-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
             {filteredNavigation.map((item) => {
               // Performance est actif via le sous-menu
               const isPerformanceItem = item.href === '/dashboard/performance';
@@ -462,7 +462,7 @@ export default function Sidebar() {
           </div>
 
           {/* Navigation Performance - scrollable */}
-          <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+          <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
             {filteredPerformanceNav.map((item) => {
               const isActive = pathname === item.href;
               
@@ -527,7 +527,7 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation - scrollable */}
-      <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+      <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
         {filteredNavigation.map((item) => {
           const isActive = pathname === item.href || 
             (item.href !== '/dashboard' && pathname.startsWith(item.href));

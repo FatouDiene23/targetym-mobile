@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   Eye, Edit, CheckCircle, X, Loader2, AlertCircle, Search, 
-  ChevronLeft, ChevronRight, Send, RotateCcw
+  ChevronLeft, ChevronRight, Send, RotateCcw, XCircle
 } from 'lucide-react';
 import { 
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer
@@ -24,7 +24,7 @@ interface Evaluation {
   evaluator_id?: number;
   evaluator_name?: string;
   type: 'self' | 'manager' | 'peer' | '360';
-  status: 'pending' | 'in_progress' | 'submitted' | 'validated';
+  status: 'pending' | 'in_progress' | 'submitted' | 'validated' | 'cancelled';
   scores?: Record<string, { score: number; comment?: string }>;
   overall_score?: number;
   strengths?: string;
@@ -144,6 +144,7 @@ function getStatusColor(status: string) {
     case 'submitted': return 'bg-blue-100 text-blue-700';
     case 'in_progress': return 'bg-yellow-100 text-yellow-700';
     case 'pending': return 'bg-gray-100 text-gray-600';
+    case 'cancelled': return 'bg-red-100 text-red-700';
     default: return 'bg-gray-100 text-gray-600';
   }
 }
@@ -154,6 +155,7 @@ function getStatusLabel(status: string) {
     case 'submitted': return 'Soumis';
     case 'in_progress': return 'En cours';
     case 'pending': return 'En attente';
+    case 'cancelled': return 'Annulé';
     default: return status;
   }
 }
@@ -178,6 +180,9 @@ function getInitials(name: string | undefined): string {
 }
 
 function canUserEditEvaluation(evaluation: Evaluation, userRole: UserRole, currentEmployeeId?: number): boolean {
+  // Les évaluations annulées ne peuvent pas être modifiées
+  if (evaluation.status === 'cancelled') return false;
+  
   if (evaluation.status === 'pending' || evaluation.status === 'in_progress') {
     if (evaluation.type === 'self' && evaluation.employee_id === currentEmployeeId) return true;
   }
@@ -188,6 +193,9 @@ function canUserEditEvaluation(evaluation: Evaluation, userRole: UserRole, curre
 }
 
 function canUserValidateEvaluation(evaluation: Evaluation, userRole: UserRole): boolean {
+  // Les évaluations annulées ne peuvent pas être validées
+  if (evaluation.status === 'cancelled') return false;
+  
   if (evaluation.status === 'submitted') {
     if (userRole === 'manager' || userRole === 'rh' || userRole === 'admin' || userRole === 'dg') return true;
   }
@@ -272,6 +280,15 @@ function EvaluationViewModal({ isOpen, onClose, evaluation }: {
               </div>
             )}
           </div>
+          
+          {/* Message si annulé */}
+          {evaluation.status === 'cancelled' && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+              <XCircle className="w-5 h-5 text-red-500" />
+              <p className="text-sm text-red-700">Cette évaluation a été annulée et ne peut plus être modifiée.</p>
+            </div>
+          )}
+          
           {radarData.length > 0 && (
             <div>
               <h4 className="font-semibold text-gray-900 mb-4">Scores par Compétence</h4>
@@ -365,6 +382,22 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
   };
 
   if (!isOpen || !evaluation) return null;
+
+  // Si annulé, afficher juste un message
+  if (evaluation.status === 'cancelled') {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+        <div className="bg-white rounded-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center gap-3 mb-4">
+            <XCircle className="w-8 h-8 text-red-500" />
+            <h2 className="text-lg font-bold text-gray-900">Évaluation Annulée</h2>
+          </div>
+          <p className="text-gray-600 mb-6">Cette évaluation a été annulée et ne peut plus être modifiée.</p>
+          <button onClick={onClose} className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Fermer</button>
+        </div>
+      </div>
+    );
+  }
 
   const canEdit = canUserEditEvaluation(evaluation, userRole, currentEmployeeId);
   const canValidate = canUserValidateEvaluation(evaluation, userRole);
@@ -486,6 +519,7 @@ export default function EvaluationsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [showCancelled, setShowCancelled] = useState(false); // ← NOUVEAU
   const [page, setPage] = useState(1);
   const [selectedEvaluation, setSelectedEvaluation] = useState<Evaluation | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -505,13 +539,26 @@ export default function EvaluationsPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const filteredEvaluations = evaluations.filter(e => 
-    (e.employee_name?.toLowerCase().includes(search.toLowerCase()) ||
-     e.employee_department?.toLowerCase().includes(search.toLowerCase())) &&
-    (filterStatus === 'all' || e.status === filterStatus)
-  );
+  // ✅ FILTRER LES ÉVALUATIONS - EXCLURE CANCELLED PAR DÉFAUT
+  const filteredEvaluations = evaluations.filter(e => {
+    // Exclure les annulées si checkbox non cochée
+    if (!showCancelled && e.status === 'cancelled') return false;
+    
+    // Filtre de recherche
+    const matchesSearch = (e.employee_name?.toLowerCase().includes(search.toLowerCase()) ||
+                          e.employee_department?.toLowerCase().includes(search.toLowerCase()));
+    
+    // Filtre de statut
+    const matchesStatus = filterStatus === 'all' || e.status === filterStatus;
+    
+    return matchesSearch && matchesStatus;
+  });
+  
   const paginatedEvaluations = filteredEvaluations.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
   const totalPages = Math.ceil(filteredEvaluations.length / ITEMS_PER_PAGE);
+  
+  // Compteur d'annulées
+  const cancelledCount = evaluations.filter(e => e.status === 'cancelled').length;
 
   if (loading) {
     return (
@@ -538,8 +585,8 @@ export default function EvaluationsPage() {
       {/* Content */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         {/* Filters */}
-        <div className="flex gap-4 mb-6">
-          <div className="flex-1 relative">
+        <div className="flex flex-wrap gap-4 mb-6">
+          <div className="flex-1 min-w-[200px] relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input 
               type="text" 
@@ -555,7 +602,21 @@ export default function EvaluationsPage() {
             <option value="in_progress">En cours</option>
             <option value="submitted">Soumis</option>
             <option value="validated">Validé</option>
+            {showCancelled && <option value="cancelled">Annulé</option>}
           </select>
+          
+          {/* ✅ CHECKBOX AFFICHER LES ANNULÉES */}
+          {cancelledCount > 0 && (
+            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={showCancelled} 
+                onChange={(e) => { setShowCancelled(e.target.checked); setPage(1); }} 
+                className="w-4 h-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500"
+              />
+              <span>Afficher annulées ({cancelledCount})</span>
+            </label>
+          )}
         </div>
 
         {/* Evaluations List */}
@@ -563,32 +624,51 @@ export default function EvaluationsPage() {
           {paginatedEvaluations.length > 0 ? paginatedEvaluations.map(evaluation => {
             const canEdit = canUserEditEvaluation(evaluation, userRole, currentUser?.employee_id);
             const canValidate = canUserValidateEvaluation(evaluation, userRole);
+            const isCancelled = evaluation.status === 'cancelled';
+            
             return (
-              <div key={evaluation.id} className="p-4 border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
+              <div 
+                key={evaluation.id} 
+                className={`p-4 border rounded-xl transition-shadow ${
+                  isCancelled 
+                    ? 'border-red-200 bg-red-50/30 opacity-75' 
+                    : 'border-gray-200 hover:shadow-md'
+                }`}
+              >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-medium text-sm">
-                    {evaluation.employee_initials || getInitials(evaluation.employee_name)}
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm ${
+                    isCancelled 
+                      ? 'bg-red-100 text-red-600' 
+                      : 'bg-primary-100 text-primary-600'
+                  }`}>
+                    {isCancelled ? <XCircle className="w-5 h-5" /> : (evaluation.employee_initials || getInitials(evaluation.employee_name))}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-gray-900">{evaluation.employee_name}</h3>
+                    <h3 className={`font-medium ${isCancelled ? 'text-gray-500' : 'text-gray-900'}`}>
+                      {evaluation.employee_name}
+                    </h3>
                     <p className="text-sm text-gray-500">{evaluation.employee_job_title} • {evaluation.employee_department}</p>
                     <p className="text-xs text-gray-400 mt-1">{getTypeLabel(evaluation.type)} {evaluation.due_date && `• Deadline: ${formatDate(evaluation.due_date)}`}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(evaluation.status)}`}>{getStatusLabel(evaluation.status)}</span>
-                    {evaluation.overall_score && <span className="font-bold text-primary-600">{evaluation.overall_score}/5</span>}
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(evaluation.status)}`}>
+                      {getStatusLabel(evaluation.status)}
+                    </span>
+                    {evaluation.overall_score && !isCancelled && (
+                      <span className="font-bold text-primary-600">{evaluation.overall_score}/5</span>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2 mt-3 pt-3 border-t">
                   <button onClick={() => { setSelectedEvaluation(evaluation); setShowViewModal(true); }} className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
                     <Eye className="w-4 h-4" />Voir
                   </button>
-                  {canEdit && (
+                  {canEdit && !isCancelled && (
                     <button onClick={() => { setSelectedEvaluation(evaluation); setShowEditModal(true); }} className="flex items-center gap-1 px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg">
                       <Edit className="w-4 h-4" />Éditer
                     </button>
                   )}
-                  {canValidate && (
+                  {canValidate && !isCancelled && (
                     <button onClick={() => { setSelectedEvaluation(evaluation); setShowEditModal(true); }} className="flex items-center gap-1 px-3 py-1.5 text-sm text-green-600 hover:bg-green-50 rounded-lg">
                       <CheckCircle className="w-4 h-4" />Valider
                     </button>

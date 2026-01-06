@@ -75,12 +75,7 @@ async function getMyLeaveBalances(employeeId: number): Promise<LeaveBalanceSumma
   } catch { return null; }
 }
 
-async function getMyPendingRequests(employeeId: number): Promise<LeaveRequest[]> {
-  try {
-    const data = await getLeaveRequests({ employee_id: employeeId, status: 'pending' });
-    return data.items || [];
-  } catch { return []; }
-}
+// getMyPendingRequests supprimée car non utilisée
 
 async function getTeamMembers(managerId: number): Promise<TeamMember[]> {
   try {

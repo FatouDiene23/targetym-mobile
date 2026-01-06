@@ -807,7 +807,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<{ name: string; role: UserRole; isManager: boolean; employeeId: number | null }>({ name: '', role: 'employee', isManager: false, employeeId: null });
   const [leaveBalances, setLeaveBalances] = useState<LeaveBalanceSummary | null>(null);
-  const [myPendingRequests, setMyPendingRequests] = useState<LeaveRequest[]>([]);
+  // myPendingRequests supprimé car non utilisé dans cette version
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [teamPendingRequests, setTeamPendingRequests] = useState<LeaveRequest[]>([]);
   const [hrStats, setHRStats] = useState<HRStats | null>(null);
@@ -841,7 +841,6 @@ export default function DashboardPage() {
       if (employeeId) {
         promises.push(
           getMyLeaveBalances(employeeId).then(setLeaveBalances),
-          getMyPendingRequests(employeeId).then(setMyPendingRequests),
           getMyObjectives(employeeId).then(setMyObjectives),
           getMyPerformanceStats().then(setMyPerformance),
           getRecentFeedbacks(employeeId).then(setRecentFeedbacks)

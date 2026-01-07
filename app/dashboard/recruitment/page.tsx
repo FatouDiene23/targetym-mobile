@@ -3,9 +3,9 @@
 import Header from '@/components/Header';
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  UserPlus, Briefcase, Users, Clock, Mail, Phone, MapPin, Filter, Plus, XCircle,
-  FileText, Linkedin, GraduationCap, Building2, TrendingUp, Eye, Edit, MoreVertical,
-  ArrowRight, MessageSquare, Video, Search, X, Calendar, Check, Loader2
+  UserPlus, Briefcase, Users, Clock, Mail, Phone, MapPin, Plus, XCircle,
+  FileText, Linkedin, GraduationCap, Building2, TrendingUp, Edit,
+  ArrowRight, MessageSquare, Video, Search, X, Check, Loader2
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 

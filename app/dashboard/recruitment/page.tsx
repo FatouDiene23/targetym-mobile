@@ -1,140 +1,467 @@
 'use client';
 
 import Header from '@/components/Header';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   UserPlus, Briefcase, Users, Clock, Mail, Phone, MapPin, Filter, Plus, XCircle,
   FileText, Linkedin, GraduationCap, Building2, TrendingUp, Eye, Edit, MoreVertical,
-  ArrowRight, MessageSquare, Video, Search, X
+  ArrowRight, MessageSquare, Video, Search, X, Calendar, Check, Loader2
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 
-// Types
-interface Candidate {
-  id: number;
-  name: string;
-  position: string;
-  email: string;
-  phone: string;
-  location: string;
-  linkedin?: string;
-  portfolio?: string;
-  aiScore: number;
-  aiScoreDetails: { category: string; score: number }[];
-  stage: string;
-  applied: string;
-  skills: string[];
-  experience: string;
-  education: string;
-  currentCompany?: string;
-  expectedSalary?: string;
-  noticePeriod?: string;
-  source: string;
-  timeline: { date: string; event: string; type: string }[];
-}
+// ============================================
+// TYPES
+// ============================================
 
 interface Job {
   id: number;
   title: string;
-  department: string;
+  department_id: number | null;
+  department_name: string | null;
   location: string;
-  type: string;
-  applicants: number;
+  remote_policy: string;
+  contract_type: string;
+  description: string | null;
+  requirements: string[] | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string;
+  show_salary: boolean;
   status: string;
-  posted: string;
-  salary?: string;
-  description?: string;
-  requirements?: string[];
-  urgency: 'high' | 'medium' | 'low';
-  hiringManager: string;
-  deadline?: string;
+  urgency: string;
+  hiring_manager_id: number | null;
+  hiring_manager_name: string | null;
+  posted_at: string | null;
+  deadline: string | null;
+  created_at: string;
+  applicants_count: number;
 }
 
-// Data
-const jobs: Job[] = [
-  { id: 1, title: 'Développeur Full Stack Senior', department: 'Technologie', location: 'Dakar', type: 'CDI', applicants: 45, status: 'active', posted: '15 Nov 2024', salary: '1.5M - 2M XOF', urgency: 'high', hiringManager: 'Moussa Sow', deadline: '31 Dec 2024', requirements: ['5+ ans expérience', 'React/Node.js', 'PostgreSQL'] },
-  { id: 2, title: 'Chef de Projet Digital', department: 'Marketing', location: 'Abidjan', type: 'CDI', applicants: 28, status: 'active', posted: '20 Nov 2024', salary: '1.2M - 1.5M XOF', urgency: 'medium', hiringManager: 'Awa Diop', deadline: '15 Jan 2025', requirements: ['3+ ans expérience', 'Agile/Scrum', 'Marketing Digital'] },
-  { id: 3, title: 'Data Analyst', department: 'Technologie', location: 'Remote', type: 'CDI', applicants: 62, status: 'active', posted: '10 Nov 2024', salary: '1M - 1.3M XOF', urgency: 'high', hiringManager: 'Moussa Sow', deadline: '20 Dec 2024', requirements: ['Python/SQL', 'Tableau/Power BI', 'Machine Learning'] },
-  { id: 4, title: 'Responsable Commercial', department: 'Commercial', location: 'Dakar', type: 'CDI', applicants: 18, status: 'active', posted: '25 Nov 2024', salary: '1.8M - 2.5M XOF', urgency: 'medium', hiringManager: 'Ibrahima Fall', requirements: ['5+ ans B2B', 'SaaS', 'Management équipe'] },
-  { id: 5, title: 'UX/UI Designer', department: 'Produit', location: 'Remote', type: 'CDI', applicants: 35, status: 'draft', posted: '-', salary: '800K - 1.2M XOF', urgency: 'low', hiringManager: 'Fatou Ndiaye', requirements: ['Figma', 'Design System', 'User Research'] },
-];
+interface AIScoreDetail {
+  category: string;
+  score: number;
+}
 
-const candidates: Candidate[] = [
-  { 
-    id: 1, name: 'Amadou Diallo', position: 'Développeur Full Stack Senior', email: 'amadou.diallo@email.com', phone: '+221 77 123 45 67', location: 'Dakar, Sénégal', linkedin: 'linkedin.com/in/amadoudiallo',
-    aiScore: 94, aiScoreDetails: [{ category: 'Compétences techniques', score: 96 }, { category: 'Expérience', score: 92 }, { category: 'Formation', score: 90 }, { category: 'Culture fit', score: 95 }],
-    stage: 'Entretien technique', applied: '25 Nov 2024', skills: ['React', 'Node.js', 'TypeScript', 'PostgreSQL', 'AWS', 'Docker'], experience: '6 ans', education: 'Master Informatique - ESP Dakar', currentCompany: 'Orange Digital Center', expectedSalary: '1.8M XOF', noticePeriod: '1 mois', source: 'LinkedIn',
-    timeline: [{ date: '25 Nov', event: 'Candidature reçue', type: 'applied' }, { date: '26 Nov', event: 'CV présélectionné par IA', type: 'screened' }, { date: '28 Nov', event: 'Entretien RH - Fatou Ndiaye', type: 'interview' }, { date: '02 Dec', event: 'Entretien technique planifié', type: 'scheduled' }]
-  },
-  { 
-    id: 2, name: 'Fatima Keita', position: 'Développeur Full Stack Senior', email: 'fatima.keita@email.com', phone: '+225 07 89 12 34 56', location: 'Abidjan, Côte d\'Ivoire',
-    aiScore: 88, aiScoreDetails: [{ category: 'Compétences techniques', score: 90 }, { category: 'Expérience', score: 85 }, { category: 'Formation', score: 88 }, { category: 'Culture fit', score: 89 }],
-    stage: 'Screening CV', applied: '28 Nov 2024', skills: ['Vue.js', 'Python', 'Django', 'MongoDB', 'GCP'], experience: '4 ans', education: 'Ingénieur - INP-HB', source: 'Site Carrière',
-    timeline: [{ date: '28 Nov', event: 'Candidature reçue', type: 'applied' }, { date: '29 Nov', event: 'En cours d\'analyse IA', type: 'screening' }]
-  },
-  { 
-    id: 3, name: 'Ousmane Ba', position: 'Data Analyst', email: 'ousmane.ba@email.com', phone: '+221 78 456 78 90', location: 'Remote',
-    aiScore: 96, aiScoreDetails: [{ category: 'Compétences techniques', score: 98 }, { category: 'Expérience', score: 94 }, { category: 'Formation', score: 95 }, { category: 'Culture fit', score: 96 }],
-    stage: 'Offre envoyée', applied: '18 Nov 2024', skills: ['Python', 'SQL', 'Tableau', 'Machine Learning', 'Power BI', 'Spark'], experience: '5 ans', education: 'Master Data Science - Paris Saclay', currentCompany: 'Jumia', expectedSalary: '1.3M XOF', noticePeriod: '2 semaines', source: 'Référence interne',
-    timeline: [{ date: '18 Nov', event: 'Candidature reçue', type: 'applied' }, { date: '19 Nov', event: 'CV présélectionné par IA', type: 'screened' }, { date: '21 Nov', event: 'Entretien RH', type: 'interview' }, { date: '25 Nov', event: 'Test technique - 95%', type: 'test' }, { date: '28 Nov', event: 'Entretien final - DG', type: 'interview' }, { date: '01 Dec', event: 'Offre envoyée - 1.25M XOF', type: 'offer' }]
-  },
-  { 
-    id: 4, name: 'Aissatou Sow', position: 'Chef de Projet Digital', email: 'aissatou.sow@email.com', phone: '+221 76 234 56 78', location: 'Dakar, Sénégal',
-    aiScore: 82, aiScoreDetails: [{ category: 'Compétences techniques', score: 78 }, { category: 'Expérience', score: 85 }, { category: 'Formation', score: 80 }, { category: 'Culture fit', score: 88 }],
-    stage: 'Entretien RH', applied: '22 Nov 2024', skills: ['Agile', 'Jira', 'Marketing Digital', 'SEO', 'Google Analytics'], experience: '4 ans', education: 'Master Marketing - ISM', source: 'Indeed',
-    timeline: [{ date: '22 Nov', event: 'Candidature reçue', type: 'applied' }, { date: '24 Nov', event: 'CV présélectionné', type: 'screened' }, { date: '30 Nov', event: 'Entretien RH planifié', type: 'scheduled' }]
-  },
-  { 
-    id: 5, name: 'Mamadou Diop', position: 'Développeur Full Stack Senior', email: 'mamadou.diop@email.com', phone: '+221 77 987 65 43', location: 'Thiès, Sénégal',
-    aiScore: 75, aiScoreDetails: [{ category: 'Compétences techniques', score: 72 }, { category: 'Expérience', score: 70 }, { category: 'Formation', score: 80 }, { category: 'Culture fit', score: 78 }],
-    stage: 'Candidatures', applied: '30 Nov 2024', skills: ['PHP', 'Laravel', 'MySQL', 'JavaScript'], experience: '3 ans', education: 'Licence Informatique - UCAD', source: 'LinkedIn',
-    timeline: [{ date: '30 Nov', event: 'Candidature reçue', type: 'applied' }]
-  },
-];
+interface TimelineEvent {
+  id: number;
+  event_type: string;
+  event_title: string;
+  event_description: string | null;
+  performed_by_name: string | null;
+  created_at: string;
+}
+
+interface Application {
+  id: number;
+  candidate_id: number;
+  job_posting_id: number;
+  stage: string;
+  applied_at: string;
+  candidate_name: string;
+  candidate_email: string;
+  candidate_phone: string | null;
+  candidate_location: string | null;
+  candidate_skills: string[] | null;
+  candidate_experience: string | null;
+  candidate_education: string | null;
+  candidate_ai_score: number | null;
+  candidate_ai_score_details: AIScoreDetail[] | null;
+  candidate_source: string | null;
+  candidate_current_company: string | null;
+  candidate_expected_salary: number | null;
+  candidate_notice_period: string | null;
+  candidate_linkedin_url: string | null;
+  job_title: string | null;
+  timeline: TimelineEvent[] | null;
+}
+
+interface RecruitmentStats {
+  open_positions: number;
+  total_candidates: number;
+  in_interview: number;
+  avg_time_to_hire: number;
+  hires_this_month: number;
+}
+
+interface PipelineStats {
+  stage: string;
+  stage_label: string;
+  count: number;
+  color: string;
+}
+
+interface SourceStats {
+  source: string;
+  count: number;
+  percentage: number;
+  color: string;
+}
+
+interface HiringTrend {
+  month: string;
+  applications: number;
+  hires: number;
+}
+
+interface DepartmentStats {
+  department: string;
+  count: number;
+}
+
+interface TopCandidate {
+  id: number;
+  name: string;
+  position: string;
+  ai_score: number;
+  stage: string;
+}
+
+interface Analytics {
+  stats: RecruitmentStats;
+  pipeline: PipelineStats[];
+  sources: SourceStats[];
+  hiring_trend: HiringTrend[];
+  by_department: DepartmentStats[];
+  top_candidates: TopCandidate[];
+}
+
+interface Department {
+  id: number;
+  name: string;
+}
+
+interface Employee {
+  id: number;
+  first_name: string;
+  last_name: string;
+}
+
+// ============================================
+// API CONFIG
+// ============================================
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://targetym-hr-api.up.railway.app';
+
+function getAuthHeaders(): HeadersInit {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+}
+
+// ============================================
+// API FUNCTIONS
+// ============================================
+
+async function fetchJobs(): Promise<Job[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/recruitment/jobs?page_size=100`, { headers: getAuthHeaders() });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.items || [];
+  } catch {
+    return [];
+  }
+}
+
+async function fetchApplications(jobId?: number): Promise<Application[]> {
+  try {
+    const params = new URLSearchParams({ page_size: '100' });
+    if (jobId) params.append('job_posting_id', jobId.toString());
+    const response = await fetch(`${API_URL}/api/recruitment/applications?${params}`, { headers: getAuthHeaders() });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.items || [];
+  } catch {
+    return [];
+  }
+}
+
+async function fetchStats(): Promise<RecruitmentStats | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/recruitment/stats`, { headers: getAuthHeaders() });
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchAnalytics(): Promise<Analytics | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/recruitment/analytics`, { headers: getAuthHeaders() });
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchDepartments(): Promise<Department[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/departments`, { headers: getAuthHeaders() });
+    if (!response.ok) return [];
+    return response.json();
+  } catch {
+    return [];
+  }
+}
+
+async function fetchEmployees(): Promise<Employee[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/employees?page_size=200`, { headers: getAuthHeaders() });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.items || [];
+  } catch {
+    return [];
+  }
+}
+
+async function createJob(data: Partial<Job>): Promise<Job | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/recruitment/jobs`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function updateJob(id: number, data: Partial<Job>): Promise<Job | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/recruitment/jobs/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function publishJob(id: number): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_URL}/api/recruitment/jobs/${id}/publish`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function closeJob(id: number): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_URL}/api/recruitment/jobs/${id}/close`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function createCandidate(data: {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  location?: string;
+  linkedin_url?: string;
+  current_company?: string;
+  experience_years?: number;
+  education?: string;
+  skills?: string[];
+  expected_salary?: number;
+  notice_period?: string;
+  source?: string;
+  job_posting_id?: number;
+}): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_URL}/api/recruitment/candidates`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function updateApplicationStage(applicationId: number, stage: string, notes?: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_URL}/api/recruitment/applications/${applicationId}/stage`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ stage, notes })
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function rejectApplication(applicationId: number, reason?: string): Promise<boolean> {
+  try {
+    const url = reason 
+      ? `${API_URL}/api/recruitment/applications/${applicationId}/reject?reason=${encodeURIComponent(reason)}`
+      : `${API_URL}/api/recruitment/applications/${applicationId}/reject`;
+    const response = await fetch(url, { method: 'POST', headers: getAuthHeaders() });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function sendOffer(applicationId: number, salary: number): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_URL}/api/recruitment/applications/${applicationId}/offer`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ salary, currency: 'XOF' })
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function createInterview(data: {
+  application_id: number;
+  interview_type: string;
+  scheduled_at: string;
+  duration_minutes: number;
+  location?: string;
+  meeting_link?: string;
+  interviewer_ids?: number[];
+}): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_URL}/api/recruitment/interviews`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+// ============================================
+// PIPELINE CONFIG
+// ============================================
 
 const pipelineStages = [
-  { id: 'candidatures', name: 'Candidatures', color: 'bg-gray-500' },
+  { id: 'new', name: 'Candidatures', color: 'bg-gray-500' },
   { id: 'screening', name: 'Screening CV', color: 'bg-blue-500' },
-  { id: 'entretien-rh', name: 'Entretien RH', color: 'bg-purple-500' },
-  { id: 'entretien-tech', name: 'Entretien Technique', color: 'bg-orange-500' },
-  { id: 'offre', name: 'Offre', color: 'bg-green-500' },
-  { id: 'embauche', name: 'Embauché', color: 'bg-emerald-600' },
+  { id: 'hr_interview', name: 'Entretien RH', color: 'bg-purple-500' },
+  { id: 'technical', name: 'Entretien Tech', color: 'bg-orange-500' },
+  { id: 'final', name: 'Entretien Final', color: 'bg-yellow-500' },
+  { id: 'offer', name: 'Offre', color: 'bg-green-500' },
+  { id: 'hired', name: 'Embauché', color: 'bg-emerald-600' },
 ];
 
-const stageMapping: Record<string, string> = {
-  'Candidatures': 'candidatures',
-  'Screening CV': 'screening',
-  'Entretien RH': 'entretien-rh',
-  'Entretien technique': 'entretien-tech',
-  'Offre envoyée': 'offre',
-  'Embauché': 'embauche',
+const stageLabels: Record<string, string> = {
+  new: 'Candidatures',
+  screening: 'Screening CV',
+  phone_screen: 'Entretien Tél.',
+  hr_interview: 'Entretien RH',
+  technical: 'Entretien Tech',
+  final: 'Entretien Final',
+  offer: 'Offre',
+  hired: 'Embauché',
+  rejected: 'Refusé',
+  withdrawn: 'Désisté'
 };
 
-const hiringTrend = [
-  { month: 'Juil', candidatures: 45, embauches: 3 },
-  { month: 'Août', candidatures: 52, embauches: 4 },
-  { month: 'Sep', candidatures: 68, embauches: 5 },
-  { month: 'Oct', candidatures: 85, embauches: 6 },
-  { month: 'Nov', candidatures: 120, embauches: 5 },
-  { month: 'Déc', candidatures: 153, embauches: 3 },
-];
-
-const sourceData = [
-  { name: 'LinkedIn', value: 45, color: '#0A66C2' },
-  { name: 'Site Carrière', value: 25, color: '#6366F1' },
-  { name: 'Indeed', value: 15, color: '#F59E0B' },
-  { name: 'Référence', value: 10, color: '#10B981' },
-  { name: 'Autres', value: 5, color: '#6B7280' },
-];
+// ============================================
+// MAIN COMPONENT
+// ============================================
 
 export default function RecruitmentPage() {
   const [activeTab, setActiveTab] = useState<'kanban' | 'jobs' | 'analytics'>('kanban');
-  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showCandidateModal, setShowCandidateModal] = useState(false);
+  const [selectedJobFilter, setSelectedJobFilter] = useState<number | null>(null);
 
-  const getCandidatesByStage = (stageId: string) => {
-    return candidates.filter(c => stageMapping[c.stage] === stageId);
+  // Data
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [stats, setStats] = useState<RecruitmentStats | null>(null);
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+
+  // Modals
+  const [showCandidateModal, setShowCandidateModal] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [showJobModal, setShowJobModal] = useState(false);
+  const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [showAddCandidateModal, setShowAddCandidateModal] = useState(false);
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
+
+  // ============================================
+  // LOAD DATA
+  // ============================================
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    const [jobsData, appsData, statsData, depts, emps] = await Promise.all([
+      fetchJobs(),
+      fetchApplications(selectedJobFilter || undefined),
+      fetchStats(),
+      fetchDepartments(),
+      fetchEmployees()
+    ]);
+    setJobs(jobsData);
+    setApplications(appsData);
+    setStats(statsData);
+    setDepartments(depts);
+    setEmployees(emps);
+    setLoading(false);
+  }, [selectedJobFilter]);
+
+  const loadAnalytics = useCallback(async () => {
+    const data = await fetchAnalytics();
+    setAnalytics(data);
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    if (activeTab === 'analytics') {
+      loadAnalytics();
+    }
+  }, [activeTab, loadAnalytics]);
+
+  // ============================================
+  // HELPERS
+  // ============================================
+
+  const getApplicationsByStage = (stageId: string) => {
+    return applications.filter(app => {
+      if (app.stage !== stageId) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        return app.candidate_name.toLowerCase().includes(q) ||
+               app.candidate_email.toLowerCase().includes(q) ||
+               (app.candidate_skills || []).some(s => s.toLowerCase().includes(q));
+      }
+      return true;
+    });
   };
 
   const getScoreColor = (score: number) => {
@@ -150,40 +477,129 @@ export default function RecruitmentPage() {
     return 'bg-gray-100 text-gray-700';
   };
 
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const formatSalary = (min: number | null, max: number | null, currency: string) => {
+    if (!min && !max) return null;
+    const fmt = (n: number) => `${(n / 1000000).toFixed(1)}M`;
+    if (min && max) return `${fmt(min)} - ${fmt(max)} ${currency}`;
+    if (min) return `À partir de ${fmt(min)} ${currency}`;
+    return `Jusqu'à ${fmt(max!)} ${currency}`;
+  };
+
+  // ============================================
+  // HANDLERS
+  // ============================================
+
+  const handleReject = async (application: Application) => {
+    const reason = prompt('Raison du refus (optionnel):');
+    const success = await rejectApplication(application.id, reason || undefined);
+    if (success) {
+      setShowCandidateModal(false);
+      loadData();
+    } else {
+      alert('Erreur lors du refus');
+    }
+  };
+
+  const handleSendOffer = async (application: Application) => {
+    const salaryStr = prompt('Salaire proposé (XOF):', application.candidate_expected_salary?.toString() || '');
+    if (!salaryStr) return;
+    const salary = parseFloat(salaryStr);
+    if (isNaN(salary)) {
+      alert('Salaire invalide');
+      return;
+    }
+    const success = await sendOffer(application.id, salary);
+    if (success) {
+      setShowCandidateModal(false);
+      loadData();
+    } else {
+      alert('Erreur lors de l\'envoi de l\'offre');
+    }
+  };
+
+  const handleNextStage = async (application: Application) => {
+    const currentIndex = pipelineStages.findIndex(s => s.id === application.stage);
+    if (currentIndex < pipelineStages.length - 1) {
+      const nextStage = pipelineStages[currentIndex + 1].id;
+      const success = await updateApplicationStage(application.id, nextStage);
+      if (success) {
+        setShowCandidateModal(false);
+        loadData();
+      } else {
+        alert('Erreur lors du changement d\'étape');
+      }
+    }
+  };
+
+  const handlePublishJob = async (jobId: number) => {
+    const success = await publishJob(jobId);
+    if (success) loadData();
+    else alert('Erreur lors de la publication');
+  };
+
+  const handleCloseJob = async (jobId: number) => {
+    const success = await closeJob(jobId);
+    if (success) loadData();
+    else alert('Erreur lors de la fermeture');
+  };
+
+  // ============================================
+  // RENDER
+  // ============================================
+
+  if (loading) {
+    return (
+      <>
+        <Header title="Recrutement" subtitle="Pipeline candidats, offres d'emploi et analytics" />
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <Loader2 className="w-10 h-10 animate-spin text-primary-500 mx-auto mb-3" />
+            <p className="text-gray-500">Chargement...</p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
-      <Header title="Recrutement" subtitle="Pipeline candidats, offres d'emploi et analytics recrutement" />
+      <Header title="Recrutement" subtitle="Pipeline candidats, offres d'emploi et analytics" />
       
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">Postes Ouverts</p><p className="text-2xl font-bold text-gray-900">{jobs.filter(j => j.status === 'active').length}</p></div>
+              <div><p className="text-xs text-gray-500">Postes Ouverts</p><p className="text-2xl font-bold text-gray-900">{stats?.open_positions || 0}</p></div>
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><Briefcase className="w-5 h-5 text-blue-600" /></div>
             </div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">Total Candidats</p><p className="text-2xl font-bold text-purple-600">153</p></div>
+              <div><p className="text-xs text-gray-500">Total Candidats</p><p className="text-2xl font-bold text-purple-600">{stats?.total_candidates || 0}</p></div>
               <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center"><Users className="w-5 h-5 text-purple-600" /></div>
             </div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">En Entretien</p><p className="text-2xl font-bold text-orange-600">23</p></div>
+              <div><p className="text-xs text-gray-500">En Entretien</p><p className="text-2xl font-bold text-orange-600">{stats?.in_interview || 0}</p></div>
               <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center"><MessageSquare className="w-5 h-5 text-orange-600" /></div>
             </div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">Délai Moyen</p><p className="text-2xl font-bold text-gray-900">28j</p></div>
+              <div><p className="text-xs text-gray-500">Délai Moyen</p><p className="text-2xl font-bold text-gray-900">{stats?.avg_time_to_hire || 0}j</p></div>
               <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center"><Clock className="w-5 h-5 text-gray-600" /></div>
             </div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">Embauches (Mois)</p><p className="text-2xl font-bold text-green-600">5</p></div>
+              <div><p className="text-xs text-gray-500">Embauches (Mois)</p><p className="text-2xl font-bold text-green-600">{stats?.hires_this_month || 0}</p></div>
               <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center"><UserPlus className="w-5 h-5 text-green-600" /></div>
             </div>
           </div>
@@ -205,14 +621,36 @@ export default function RecruitmentPage() {
         </div>
 
         {/* Search & Actions */}
-        <div className="flex justify-between items-center gap-4 mb-6">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="text" placeholder="Rechercher candidat, poste, compétence..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3 flex-1">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input type="text" placeholder="Rechercher candidat, compétence..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
+            </div>
+            {activeTab === 'kanban' && (
+              <select 
+                value={selectedJobFilter || ''} 
+                onChange={(e) => setSelectedJobFilter(e.target.value ? parseInt(e.target.value) : null)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+              >
+                <option value="">Tous les postes</option>
+                {jobs.filter(j => j.status === 'active').map(job => (
+                  <option key={job.id} value={job.id}>{job.title}</option>
+                ))}
+              </select>
+            )}
           </div>
           <div className="flex gap-3">
-            <button className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"><Filter className="w-4 h-4 mr-2" />Filtres</button>
-            <button className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"><Plus className="w-4 h-4 mr-2" />Nouvelle Offre</button>
+            {activeTab === 'kanban' && (
+              <button onClick={() => setShowAddCandidateModal(true)} className="flex items-center px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600">
+                <UserPlus className="w-4 h-4 mr-2" />Ajouter Candidat
+              </button>
+            )}
+            {activeTab === 'jobs' && (
+              <button onClick={() => { setEditingJob(null); setShowJobModal(true); }} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
+                <Plus className="w-4 h-4 mr-2" />Nouvelle Offre
+              </button>
+            )}
           </div>
         </div>
 
@@ -220,44 +658,46 @@ export default function RecruitmentPage() {
         {activeTab === 'kanban' && (
           <div className="flex gap-4 overflow-x-auto pb-4">
             {pipelineStages.map((stage) => {
-              const stageCandidates = getCandidatesByStage(stage.id);
+              const stageApps = getApplicationsByStage(stage.id);
               return (
                 <div key={stage.id} className="flex-shrink-0 w-72">
                   <div className={`${stage.color} text-white px-4 py-3 rounded-t-xl flex items-center justify-between`}>
                     <span className="font-medium text-sm">{stage.name}</span>
-                    <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">{stageCandidates.length}</span>
+                    <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">{stageApps.length}</span>
                   </div>
                   <div className="bg-gray-100 rounded-b-xl p-3 min-h-96 space-y-3">
-                    {stageCandidates.map((candidate) => (
-                      <div key={candidate.id} onClick={() => { setSelectedCandidate(candidate); setShowCandidateModal(true); }} className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition-shadow">
+                    {stageApps.map((app) => (
+                      <div key={app.id} onClick={() => { setSelectedApplication(app); setShowCandidateModal(true); }} className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition-shadow">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center">
                             <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium text-sm">
-                              {candidate.name.split(' ').map(n => n[0]).join('')}
+                              {app.candidate_name.split(' ').map(n => n[0]).join('')}
                             </div>
                             <div className="ml-3">
-                              <h4 className="font-medium text-gray-900 text-sm">{candidate.name}</h4>
-                              <p className="text-xs text-gray-500">{candidate.location}</p>
+                              <h4 className="font-medium text-gray-900 text-sm">{app.candidate_name}</h4>
+                              <p className="text-xs text-gray-500">{app.candidate_location || 'Non spécifié'}</p>
                             </div>
                           </div>
-                          <div className={`px-2 py-1 rounded text-xs font-bold ${getScoreColor(candidate.aiScore)}`}>
-                            {candidate.aiScore}
-                          </div>
+                          {app.candidate_ai_score && (
+                            <div className={`px-2 py-1 rounded text-xs font-bold ${getScoreColor(app.candidate_ai_score)}`}>
+                              {app.candidate_ai_score}
+                            </div>
+                          )}
                         </div>
-                        <p className="text-xs text-gray-600 mb-2 truncate">{candidate.position}</p>
+                        <p className="text-xs text-gray-600 mb-2 truncate">{app.job_title}</p>
                         <div className="flex flex-wrap gap-1">
-                          {candidate.skills.slice(0, 3).map((skill) => (
+                          {(app.candidate_skills || []).slice(0, 3).map((skill) => (
                             <span key={skill} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">{skill}</span>
                           ))}
-                          {candidate.skills.length > 3 && <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded">+{candidate.skills.length - 3}</span>}
+                          {(app.candidate_skills || []).length > 3 && <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded">+{(app.candidate_skills || []).length - 3}</span>}
                         </div>
                         <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                          <span className="text-xs text-gray-400">{candidate.applied}</span>
-                          <span className="text-xs text-gray-500">{candidate.source}</span>
+                          <span className="text-xs text-gray-400">{formatDate(app.applied_at)}</span>
+                          <span className="text-xs text-gray-500">{app.candidate_source || 'Direct'}</span>
                         </div>
                       </div>
                     ))}
-                    {stageCandidates.length === 0 && <div className="text-center text-gray-400 text-sm py-8">Aucun candidat</div>}
+                    {stageApps.length === 0 && <div className="text-center text-gray-400 text-sm py-8">Aucun candidat</div>}
                   </div>
                 </div>
               );
@@ -268,47 +708,61 @@ export default function RecruitmentPage() {
         {/* TAB: Jobs */}
         {activeTab === 'jobs' && (
           <div className="space-y-4">
-            {jobs.map((job) => (
+            {jobs.length === 0 ? (
+              <div className="bg-white rounded-xl p-12 text-center">
+                <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">Aucune offre d&apos;emploi</p>
+                <button onClick={() => { setEditingJob(null); setShowJobModal(true); }} className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm">
+                  Créer une offre
+                </button>
+              </div>
+            ) : jobs.map((job) => (
               <div key={job.id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center flex-1">
                     <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center"><Briefcase className="w-6 h-6 text-blue-600" /></div>
                     <div className="ml-4 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h4 className="font-semibold text-gray-900">{job.title}</h4>
                         <span className={`px-2 py-0.5 rounded text-xs font-medium ${getUrgencyColor(job.urgency)}`}>
                           {job.urgency === 'high' ? 'Urgent' : job.urgency === 'medium' ? 'Modéré' : 'Normal'}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
-                        <span className="flex items-center"><Building2 className="w-3.5 h-3.5 mr-1" />{job.department}</span>
+                      <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 flex-wrap">
+                        {job.department_name && <span className="flex items-center"><Building2 className="w-3.5 h-3.5 mr-1" />{job.department_name}</span>}
                         <span className="flex items-center"><MapPin className="w-3.5 h-3.5 mr-1" />{job.location}</span>
-                        <span>{job.type}</span>
-                        {job.salary && <span className="text-primary-600 font-medium">{job.salary}</span>}
+                        <span>{job.contract_type}</span>
+                        {job.show_salary && formatSalary(job.salary_min, job.salary_max, job.salary_currency) && (
+                          <span className="text-primary-600 font-medium">{formatSalary(job.salary_min, job.salary_max, job.salary_currency)}</span>
+                        )}
                       </div>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                        <span>Publié: {job.posted}</span>
-                        {job.deadline && <span>Deadline: {job.deadline}</span>}
-                        <span>Manager: {job.hiringManager}</span>
+                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-400 flex-wrap">
+                        <span>Publié: {job.posted_at ? formatDate(job.posted_at) : 'Non publié'}</span>
+                        {job.deadline && <span>Deadline: {formatDate(job.deadline)}</span>}
+                        {job.hiring_manager_name && <span>Manager: {job.hiring_manager_name}</span>}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-6">
                     <div className="text-center">
-                      <p className="text-2xl font-bold text-gray-900">{job.applicants}</p>
+                      <p className="text-2xl font-bold text-gray-900">{job.applicants_count}</p>
                       <p className="text-xs text-gray-500">Candidats</p>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${job.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                      {job.status === 'active' ? 'Active' : 'Brouillon'}
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${job.status === 'active' ? 'bg-green-100 text-green-700' : job.status === 'closed' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                      {job.status === 'active' ? 'Active' : job.status === 'closed' ? 'Fermée' : 'Brouillon'}
                     </span>
                     <div className="flex gap-2">
-                      <button className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg"><Eye className="w-4 h-4" /></button>
-                      <button className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg"><Edit className="w-4 h-4" /></button>
-                      <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"><MoreVertical className="w-4 h-4" /></button>
+                      <button onClick={() => { setEditingJob(job); setShowJobModal(true); }} className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg"><Edit className="w-4 h-4" /></button>
+                      {job.status === 'draft' && (
+                        <button onClick={() => handlePublishJob(job.id)} className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg" title="Publier"><Check className="w-4 h-4" /></button>
+                      )}
+                      {job.status === 'active' && (
+                        <button onClick={() => handleCloseJob(job.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Fermer"><XCircle className="w-4 h-4" /></button>
+                      )}
                     </div>
                   </div>
                 </div>
-                {job.requirements && (
+                {job.requirements && job.requirements.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-gray-100">
                     <div className="flex flex-wrap gap-2">
                       {job.requirements.map((req, i) => (
@@ -323,16 +777,16 @@ export default function RecruitmentPage() {
         )}
 
         {/* TAB: Analytics */}
-        {activeTab === 'analytics' && (
+        {activeTab === 'analytics' && analytics && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h3 className="font-semibold text-gray-900 mb-4">Tendance Recrutement</h3>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={hiringTrend}>
+                  <LineChart data={analytics.hiring_trend}>
                     <XAxis dataKey="month" /><YAxis /><Tooltip />
-                    <Line type="monotone" dataKey="candidatures" stroke="#6366F1" strokeWidth={2} name="Candidatures" />
-                    <Line type="monotone" dataKey="embauches" stroke="#10B981" strokeWidth={2} name="Embauches" />
+                    <Line type="monotone" dataKey="applications" stroke="#6366F1" strokeWidth={2} name="Candidatures" />
+                    <Line type="monotone" dataKey="hires" stroke="#10B981" strokeWidth={2} name="Embauches" />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -341,9 +795,20 @@ export default function RecruitmentPage() {
               <h3 className="font-semibold text-gray-900 mb-4">Sources de Candidatures</h3>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart><Pie data={sourceData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} dataKey="value" label={({ name, value }) => `${name}: ${value}%`}>
-                    {sourceData.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}
-                  </Pie><Tooltip /></PieChart>
+                  <PieChart>
+                    <Pie 
+                      data={analytics.sources.map(s => ({ name: s.source, value: s.count, color: s.color }))} 
+                      cx="50%" 
+                      cy="50%" 
+                      innerRadius={60} 
+                      outerRadius={100} 
+                      dataKey="value" 
+                      label={({ name, value }) => `${name}: ${value}`}
+                    >
+                      {analytics.sources.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
                 </ResponsiveContainer>
               </div>
             </div>
@@ -351,8 +816,8 @@ export default function RecruitmentPage() {
               <h3 className="font-semibold text-gray-900 mb-4">Candidats par Département</h3>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={[{ name: 'Tech', count: 107 }, { name: 'Commercial', count: 18 }, { name: 'Marketing', count: 28 }]} layout="vertical">
-                    <XAxis type="number" /><YAxis type="category" dataKey="name" width={80} /><Tooltip /><Bar dataKey="count" fill="#6366F1" radius={[0, 4, 4, 0]} />
+                  <BarChart data={analytics.by_department} layout="vertical">
+                    <XAxis type="number" /><YAxis type="category" dataKey="department" width={100} /><Tooltip /><Bar dataKey="count" fill="#6366F1" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -360,11 +825,13 @@ export default function RecruitmentPage() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h3 className="font-semibold text-gray-900 mb-4">🏆 Top Candidats (Score IA)</h3>
               <div className="space-y-3">
-                {candidates.sort((a, b) => b.aiScore - a.aiScore).slice(0, 5).map((c, i) => (
+                {analytics.top_candidates.length === 0 ? (
+                  <p className="text-gray-400 text-sm text-center py-8">Aucun candidat avec score IA</p>
+                ) : analytics.top_candidates.map((c, i) => (
                   <div key={c.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                     <span className="w-6 h-6 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center text-xs font-bold">{i + 1}</span>
                     <div className="flex-1"><p className="text-sm font-medium text-gray-900">{c.name}</p><p className="text-xs text-gray-500">{c.position}</p></div>
-                    <div className={`px-3 py-1 rounded-full text-sm font-bold ${getScoreColor(c.aiScore)}`}>{c.aiScore}%</div>
+                    <div className={`px-3 py-1 rounded-full text-sm font-bold ${getScoreColor(c.ai_score)}`}>{c.ai_score}%</div>
                   </div>
                 ))}
               </div>
@@ -372,77 +839,653 @@ export default function RecruitmentPage() {
           </div>
         )}
 
-        {/* Candidate Modal */}
-        {showCandidateModal && selectedCandidate && (
+        {activeTab === 'analytics' && !analytics && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+          </div>
+        )}
+
+        {/* Candidate Detail Modal */}
+        {showCandidateModal && selectedApplication && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
               <div className="p-6 border-b border-gray-200 flex items-start justify-between">
                 <div className="flex items-center">
                   <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 text-xl font-bold">
-                    {selectedCandidate.name.split(' ').map(n => n[0]).join('')}
+                    {selectedApplication.candidate_name.split(' ').map(n => n[0]).join('')}
                   </div>
                   <div className="ml-4">
-                    <h2 className="text-xl font-bold text-gray-900">{selectedCandidate.name}</h2>
-                    <p className="text-gray-500">{selectedCandidate.position}</p>
+                    <h2 className="text-xl font-bold text-gray-900">{selectedApplication.candidate_name}</h2>
+                    <p className="text-gray-500">{selectedApplication.job_title}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${getScoreColor(selectedCandidate.aiScore)}`}>Score IA: {selectedCandidate.aiScore}%</span>
-                      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">{selectedCandidate.stage}</span>
+                      {selectedApplication.candidate_ai_score && (
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${getScoreColor(selectedApplication.candidate_ai_score)}`}>
+                          Score IA: {selectedApplication.candidate_ai_score}%
+                        </span>
+                      )}
+                      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
+                        {stageLabels[selectedApplication.stage] || selectedApplication.stage}
+                      </span>
                     </div>
                   </div>
                 </div>
                 <button onClick={() => setShowCandidateModal(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
               </div>
-              <div className="p-6 grid grid-cols-2 gap-6">
+              
+              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3">Informations</h3>
                   <div className="space-y-3">
-                    <div className="flex items-center text-sm"><Mail className="w-4 h-4 mr-3 text-gray-400" />{selectedCandidate.email}</div>
-                    <div className="flex items-center text-sm"><Phone className="w-4 h-4 mr-3 text-gray-400" />{selectedCandidate.phone}</div>
-                    <div className="flex items-center text-sm"><MapPin className="w-4 h-4 mr-3 text-gray-400" />{selectedCandidate.location}</div>
-                    {selectedCandidate.linkedin && <div className="flex items-center text-sm"><Linkedin className="w-4 h-4 mr-3 text-gray-400" />{selectedCandidate.linkedin}</div>}
-                    <div className="flex items-center text-sm"><GraduationCap className="w-4 h-4 mr-3 text-gray-400" />{selectedCandidate.education}</div>
-                    <div className="flex items-center text-sm"><Briefcase className="w-4 h-4 mr-3 text-gray-400" />{selectedCandidate.experience} d&apos;expérience</div>
-                    {selectedCandidate.currentCompany && <div className="flex items-center text-sm"><Building2 className="w-4 h-4 mr-3 text-gray-400" />{selectedCandidate.currentCompany}</div>}
+                    <div className="flex items-center text-sm"><Mail className="w-4 h-4 mr-3 text-gray-400" />{selectedApplication.candidate_email}</div>
+                    {selectedApplication.candidate_phone && <div className="flex items-center text-sm"><Phone className="w-4 h-4 mr-3 text-gray-400" />{selectedApplication.candidate_phone}</div>}
+                    {selectedApplication.candidate_location && <div className="flex items-center text-sm"><MapPin className="w-4 h-4 mr-3 text-gray-400" />{selectedApplication.candidate_location}</div>}
+                    {selectedApplication.candidate_linkedin_url && <div className="flex items-center text-sm"><Linkedin className="w-4 h-4 mr-3 text-gray-400" /><a href={selectedApplication.candidate_linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">Voir profil</a></div>}
+                    {selectedApplication.candidate_education && <div className="flex items-center text-sm"><GraduationCap className="w-4 h-4 mr-3 text-gray-400" />{selectedApplication.candidate_education}</div>}
+                    {selectedApplication.candidate_experience && <div className="flex items-center text-sm"><Briefcase className="w-4 h-4 mr-3 text-gray-400" />{selectedApplication.candidate_experience} d&apos;expérience</div>}
+                    {selectedApplication.candidate_current_company && <div className="flex items-center text-sm"><Building2 className="w-4 h-4 mr-3 text-gray-400" />{selectedApplication.candidate_current_company}</div>}
+                    {selectedApplication.candidate_expected_salary && <div className="flex items-center text-sm"><span className="w-4 h-4 mr-3 text-gray-400">💰</span>{selectedApplication.candidate_expected_salary.toLocaleString()} XOF</div>}
+                    {selectedApplication.candidate_notice_period && <div className="flex items-center text-sm"><Clock className="w-4 h-4 mr-3 text-gray-400" />Préavis: {selectedApplication.candidate_notice_period}</div>}
                   </div>
-                  <h3 className="font-semibold text-gray-900 mt-6 mb-3">Compétences</h3>
-                  <div className="flex flex-wrap gap-2">{selectedCandidate.skills.map((skill) => (<span key={skill} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">{skill}</span>))}</div>
+                  
+                  {selectedApplication.candidate_skills && selectedApplication.candidate_skills.length > 0 && (
+                    <>
+                      <h3 className="font-semibold text-gray-900 mt-6 mb-3">Compétences</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedApplication.candidate_skills.map((skill) => (
+                          <span key={skill} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">{skill}</span>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
+                
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">Score IA Détaillé</h3>
-                  <div className="space-y-3">
-                    {selectedCandidate.aiScoreDetails.map((detail) => (
-                      <div key={detail.category}>
-                        <div className="flex justify-between text-sm mb-1"><span className="text-gray-600">{detail.category}</span><span className="font-medium">{detail.score}%</span></div>
-                        <div className="h-2 bg-gray-200 rounded-full"><div className={`h-full rounded-full ${detail.score >= 90 ? 'bg-green-500' : detail.score >= 75 ? 'bg-blue-500' : 'bg-yellow-500'}`} style={{ width: `${detail.score}%` }} /></div>
+                  {selectedApplication.candidate_ai_score_details && selectedApplication.candidate_ai_score_details.length > 0 && (
+                    <>
+                      <h3 className="font-semibold text-gray-900 mb-3">Score IA Détaillé</h3>
+                      <div className="space-y-3">
+                        {selectedApplication.candidate_ai_score_details.map((detail) => (
+                          <div key={detail.category}>
+                            <div className="flex justify-between text-sm mb-1">
+                              <span className="text-gray-600">{detail.category}</span>
+                              <span className="font-medium">{detail.score}%</span>
+                            </div>
+                            <div className="h-2 bg-gray-200 rounded-full">
+                              <div className={`h-full rounded-full ${detail.score >= 90 ? 'bg-green-500' : detail.score >= 75 ? 'bg-blue-500' : 'bg-yellow-500'}`} style={{ width: `${detail.score}%` }} />
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mt-6 mb-3">Timeline</h3>
-                  <div className="space-y-3">
-                    {selectedCandidate.timeline.map((event, i) => (
-                      <div key={i} className="flex items-start">
-                        <div className="w-2 h-2 bg-primary-500 rounded-full mt-2 mr-3" />
-                        <div><p className="text-sm font-medium text-gray-900">{event.event}</p><p className="text-xs text-gray-500">{event.date}</p></div>
+                    </>
+                  )}
+                  
+                  {selectedApplication.timeline && selectedApplication.timeline.length > 0 && (
+                    <>
+                      <h3 className="font-semibold text-gray-900 mt-6 mb-3">Timeline</h3>
+                      <div className="space-y-3 max-h-48 overflow-y-auto">
+                        {selectedApplication.timeline.map((event) => (
+                          <div key={event.id} className="flex items-start">
+                            <div className="w-2 h-2 bg-primary-500 rounded-full mt-2 mr-3 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{event.event_title}</p>
+                              {event.event_description && <p className="text-xs text-gray-500">{event.event_description}</p>}
+                              <p className="text-xs text-gray-400">{formatDate(event.created_at)}</p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </>
+                  )}
                 </div>
               </div>
-              <div className="p-6 border-t border-gray-200 flex justify-between">
-                <div className="flex gap-2">
-                  <button className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"><FileText className="w-4 h-4 mr-2" />CV</button>
-                  <button className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"><Video className="w-4 h-4 mr-2" />Planifier Entretien</button>
-                  <button className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"><Mail className="w-4 h-4 mr-2" />Envoyer Email</button>
+              
+              <div className="p-6 border-t border-gray-200 flex flex-col sm:flex-row justify-between gap-3">
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => setShowInterviewModal(true)} className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50">
+                    <Video className="w-4 h-4 mr-2" />Planifier Entretien
+                  </button>
+                  <button className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50">
+                    <Mail className="w-4 h-4 mr-2" />Envoyer Email
+                  </button>
                 </div>
-                <div className="flex gap-2">
-                  <button className="flex items-center px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600"><XCircle className="w-4 h-4 mr-2" />Refuser</button>
-                  <button className="flex items-center px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600"><ArrowRight className="w-4 h-4 mr-2" />Étape Suivante</button>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => handleReject(selectedApplication)} className="flex items-center px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600">
+                    <XCircle className="w-4 h-4 mr-2" />Refuser
+                  </button>
+                  {selectedApplication.stage === 'final' ? (
+                    <button onClick={() => handleSendOffer(selectedApplication)} className="flex items-center px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600">
+                      <FileText className="w-4 h-4 mr-2" />Envoyer Offre
+                    </button>
+                  ) : selectedApplication.stage !== 'offer' && selectedApplication.stage !== 'hired' && (
+                    <button onClick={() => handleNextStage(selectedApplication)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600">
+                      <ArrowRight className="w-4 h-4 mr-2" />Étape Suivante
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         )}
+
+        {/* Job Modal */}
+        {showJobModal && (
+          <JobModal
+            job={editingJob}
+            departments={departments}
+            employees={employees}
+            onClose={() => setShowJobModal(false)}
+            onSave={async (data) => {
+              let success;
+              if (editingJob) {
+                success = await updateJob(editingJob.id, data);
+              } else {
+                success = await createJob(data);
+              }
+              if (success) {
+                setShowJobModal(false);
+                loadData();
+              } else {
+                alert('Erreur lors de la sauvegarde');
+              }
+            }}
+          />
+        )}
+
+        {/* Add Candidate Modal */}
+        {showAddCandidateModal && (
+          <AddCandidateModal
+            jobs={jobs.filter(j => j.status === 'active')}
+            onClose={() => setShowAddCandidateModal(false)}
+            onSave={async (data) => {
+              const success = await createCandidate(data);
+              if (success) {
+                setShowAddCandidateModal(false);
+                loadData();
+              } else {
+                alert('Erreur lors de la création');
+              }
+            }}
+          />
+        )}
+
+        {/* Interview Modal */}
+        {showInterviewModal && selectedApplication && (
+          <InterviewModal
+            application={selectedApplication}
+            employees={employees}
+            onClose={() => setShowInterviewModal(false)}
+            onSave={async (data) => {
+              const success = await createInterview(data);
+              if (success) {
+                setShowInterviewModal(false);
+                setShowCandidateModal(false);
+                loadData();
+              } else {
+                alert('Erreur lors de la planification');
+              }
+            }}
+          />
+        )}
       </main>
     </>
+  );
+}
+
+// ============================================
+// JOB MODAL COMPONENT
+// ============================================
+
+function JobModal({
+  job,
+  departments,
+  employees,
+  onClose,
+  onSave
+}: {
+  job: Job | null;
+  departments: Department[];
+  employees: Employee[];
+  onClose: () => void;
+  onSave: (data: Partial<Job>) => Promise<void>;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    title: job?.title || '',
+    department_id: job?.department_id?.toString() || '',
+    location: job?.location || '',
+    remote_policy: job?.remote_policy || 'onsite',
+    contract_type: job?.contract_type || 'CDI',
+    description: job?.description || '',
+    requirements: job?.requirements?.join('\n') || '',
+    salary_min: job?.salary_min?.toString() || '',
+    salary_max: job?.salary_max?.toString() || '',
+    show_salary: job?.show_salary || false,
+    urgency: job?.urgency || 'medium',
+    hiring_manager_id: job?.hiring_manager_id?.toString() || '',
+    deadline: job?.deadline || ''
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    await onSave({
+      title: formData.title,
+      department_id: formData.department_id ? parseInt(formData.department_id) : null,
+      location: formData.location,
+      remote_policy: formData.remote_policy,
+      contract_type: formData.contract_type,
+      description: formData.description || null,
+      requirements: formData.requirements ? formData.requirements.split('\n').filter(r => r.trim()) : null,
+      salary_min: formData.salary_min ? parseFloat(formData.salary_min) : null,
+      salary_max: formData.salary_max ? parseFloat(formData.salary_max) : null,
+      show_salary: formData.show_salary,
+      urgency: formData.urgency,
+      hiring_manager_id: formData.hiring_manager_id ? parseInt(formData.hiring_manager_id) : null,
+      deadline: formData.deadline || null
+    });
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-900">{job ? 'Modifier l\'offre' : 'Nouvelle offre d\'emploi'}</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Titre du poste *</label>
+              <input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: Développeur Full Stack Senior" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Département</label>
+              <select value={formData.department_id} onChange={(e) => setFormData({...formData, department_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+                <option value="">Sélectionner...</option>
+                {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Localisation *</label>
+              <input type="text" required value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: Dakar, Sénégal" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Type de contrat</label>
+              <select value={formData.contract_type} onChange={(e) => setFormData({...formData, contract_type: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+                <option value="CDI">CDI</option>
+                <option value="CDD">CDD</option>
+                <option value="Stage">Stage</option>
+                <option value="Alternance">Alternance</option>
+                <option value="Freelance">Freelance</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Politique Remote</label>
+              <select value={formData.remote_policy} onChange={(e) => setFormData({...formData, remote_policy: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+                <option value="onsite">Sur site</option>
+                <option value="hybrid">Hybride</option>
+                <option value="remote">Full Remote</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Salaire Min (XOF)</label>
+              <input type="number" value={formData.salary_min} onChange={(e) => setFormData({...formData, salary_min: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: 1500000" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Salaire Max (XOF)</label>
+              <input type="number" value={formData.salary_max} onChange={(e) => setFormData({...formData, salary_max: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: 2000000" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Urgence</label>
+              <select value={formData.urgency} onChange={(e) => setFormData({...formData, urgency: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+                <option value="low">Normal</option>
+                <option value="medium">Modéré</option>
+                <option value="high">Urgent</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Hiring Manager</label>
+              <select value={formData.hiring_manager_id} onChange={(e) => setFormData({...formData, hiring_manager_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+                <option value="">Sélectionner...</option>
+                {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Date limite</label>
+              <input type="date" value={formData.deadline} onChange={(e) => setFormData({...formData, deadline: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
+            </div>
+            <div className="flex items-center">
+              <input type="checkbox" id="show_salary" checked={formData.show_salary} onChange={(e) => setFormData({...formData, show_salary: e.target.checked})} className="mr-2" />
+              <label htmlFor="show_salary" className="text-sm text-gray-700">Afficher le salaire</label>
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <textarea rows={4} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Description du poste..." />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Prérequis (un par ligne)</label>
+              <textarea rows={4} value={formData.requirements} onChange={(e) => setFormData({...formData, requirements: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="5+ ans d'expérience&#10;React/Node.js&#10;PostgreSQL" />
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-3 pt-4">
+            <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+            <button type="submit" disabled={saving} className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
+              {saving ? 'Enregistrement...' : (job ? 'Modifier' : 'Créer')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// ADD CANDIDATE MODAL COMPONENT
+// ============================================
+
+function AddCandidateModal({
+  jobs,
+  onClose,
+  onSave
+}: {
+  jobs: Job[];
+  onClose: () => void;
+  onSave: (data: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone?: string;
+    location?: string;
+    linkedin_url?: string;
+    current_company?: string;
+    experience_years?: number;
+    education?: string;
+    skills?: string[];
+    expected_salary?: number;
+    notice_period?: string;
+    source?: string;
+    job_posting_id?: number;
+  }) => Promise<void>;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    location: '',
+    linkedin_url: '',
+    current_company: '',
+    experience_years: '',
+    education: '',
+    skills: '',
+    expected_salary: '',
+    notice_period: '',
+    source: 'Autre',
+    job_posting_id: ''
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    await onSave({
+      first_name: formData.first_name,
+      last_name: formData.last_name,
+      email: formData.email,
+      phone: formData.phone || undefined,
+      location: formData.location || undefined,
+      linkedin_url: formData.linkedin_url || undefined,
+      current_company: formData.current_company || undefined,
+      experience_years: formData.experience_years ? parseInt(formData.experience_years) : undefined,
+      education: formData.education || undefined,
+      skills: formData.skills ? formData.skills.split(',').map(s => s.trim()).filter(s => s) : undefined,
+      expected_salary: formData.expected_salary ? parseFloat(formData.expected_salary) : undefined,
+      notice_period: formData.notice_period || undefined,
+      source: formData.source,
+      job_posting_id: formData.job_posting_id ? parseInt(formData.job_posting_id) : undefined
+    });
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-900">Ajouter un candidat</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
+              <input type="text" required value={formData.first_name} onChange={(e) => setFormData({...formData, first_name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+              <input type="text" required value={formData.last_name} onChange={(e) => setFormData({...formData, last_name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+              <input type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+              <input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="+221 77 123 45 67" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Localisation</label>
+              <input type="text" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Dakar, Sénégal" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn URL</label>
+              <input type="url" value={formData.linkedin_url} onChange={(e) => setFormData({...formData, linkedin_url: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="https://linkedin.com/in/..." />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Entreprise actuelle</label>
+              <input type="text" value={formData.current_company} onChange={(e) => setFormData({...formData, current_company: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Années d&apos;expérience</label>
+              <input type="number" min="0" value={formData.experience_years} onChange={(e) => setFormData({...formData, experience_years: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Formation</label>
+              <input type="text" value={formData.education} onChange={(e) => setFormData({...formData, education: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Master Informatique - Université XYZ" />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Compétences (séparées par virgule)</label>
+              <input type="text" value={formData.skills} onChange={(e) => setFormData({...formData, skills: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="React, Node.js, TypeScript, PostgreSQL" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Salaire attendu (XOF)</label>
+              <input type="number" value={formData.expected_salary} onChange={(e) => setFormData({...formData, expected_salary: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="1500000" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Préavis</label>
+              <input type="text" value={formData.notice_period} onChange={(e) => setFormData({...formData, notice_period: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="1 mois" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
+              <select value={formData.source} onChange={(e) => setFormData({...formData, source: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+                <option value="LinkedIn">LinkedIn</option>
+                <option value="Indeed">Indeed</option>
+                <option value="Site Carrière">Site Carrière</option>
+                <option value="Référence interne">Référence interne</option>
+                <option value="Cabinet">Cabinet</option>
+                <option value="Autre">Autre</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Poste visé</label>
+              <select value={formData.job_posting_id} onChange={(e) => setFormData({...formData, job_posting_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+                <option value="">Sélectionner un poste...</option>
+                {jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
+              </select>
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-3 pt-4">
+            <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+            <button type="submit" disabled={saving} className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
+              {saving ? 'Création...' : 'Ajouter'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// INTERVIEW MODAL COMPONENT
+// ============================================
+
+function InterviewModal({
+  application,
+  employees,
+  onClose,
+  onSave
+}: {
+  application: Application;
+  employees: Employee[];
+  onClose: () => void;
+  onSave: (data: {
+    application_id: number;
+    interview_type: string;
+    scheduled_at: string;
+    duration_minutes: number;
+    location?: string;
+    meeting_link?: string;
+    interviewer_ids?: number[];
+  }) => Promise<void>;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    interview_type: 'video',
+    date: '',
+    time: '10:00',
+    duration_minutes: '60',
+    location: '',
+    meeting_link: '',
+    interviewer_ids: [] as number[]
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.date || !formData.time) {
+      alert('Veuillez sélectionner une date et une heure');
+      return;
+    }
+    
+    setSaving(true);
+    const scheduled_at = new Date(`${formData.date}T${formData.time}:00`).toISOString();
+    await onSave({
+      application_id: application.id,
+      interview_type: formData.interview_type,
+      scheduled_at,
+      duration_minutes: parseInt(formData.duration_minutes),
+      location: formData.location || undefined,
+      meeting_link: formData.meeting_link || undefined,
+      interviewer_ids: formData.interviewer_ids.length > 0 ? formData.interviewer_ids : undefined
+    });
+    setSaving(false);
+  };
+
+  const toggleInterviewer = (id: number) => {
+    setFormData(prev => ({
+      ...prev,
+      interviewer_ids: prev.interviewer_ids.includes(id)
+        ? prev.interviewer_ids.filter(i => i !== id)
+        : [...prev.interviewer_ids, id]
+    }));
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-lg">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Planifier un entretien</h2>
+            <p className="text-sm text-gray-500">{application.candidate_name} - {application.job_title}</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Type d&apos;entretien</label>
+            <select value={formData.interview_type} onChange={(e) => setFormData({...formData, interview_type: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+              <option value="phone">Téléphonique</option>
+              <option value="video">Vidéoconférence</option>
+              <option value="onsite">Sur site</option>
+            </select>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+              <input type="date" required value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Heure *</label>
+              <input type="time" required value={formData.time} onChange={(e) => setFormData({...formData, time: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Durée</label>
+            <select value={formData.duration_minutes} onChange={(e) => setFormData({...formData, duration_minutes: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+              <option value="30">30 minutes</option>
+              <option value="45">45 minutes</option>
+              <option value="60">1 heure</option>
+              <option value="90">1h30</option>
+              <option value="120">2 heures</option>
+            </select>
+          </div>
+          
+          {formData.interview_type === 'video' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Lien de la réunion</label>
+              <input type="url" value={formData.meeting_link} onChange={(e) => setFormData({...formData, meeting_link: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="https://meet.google.com/..." />
+            </div>
+          )}
+          
+          {formData.interview_type === 'onsite' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Lieu</label>
+              <input type="text" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Salle de réunion A, 3ème étage" />
+            </div>
+          )}
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Interviewers</label>
+            <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1">
+              {employees.slice(0, 20).map(emp => (
+                <label key={emp.id} className="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.interviewer_ids.includes(emp.id)}
+                    onChange={() => toggleInterviewer(emp.id)}
+                    className="mr-3"
+                  />
+                  <span className="text-sm">{emp.first_name} {emp.last_name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-3 pt-4">
+            <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+            <button type="submit" disabled={saving} className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
+              {saving ? 'Planification...' : 'Planifier'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

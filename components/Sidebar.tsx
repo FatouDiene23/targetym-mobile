@@ -23,7 +23,8 @@ import {
   LucideIcon,
   MessageSquare,
   Star,
-  UserCheck
+  UserCheck,
+  Lock
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -39,6 +40,8 @@ interface NavItem {
   icon: LucideIcon;
   roles: UserRole[];
   children?: NavItem[];
+  disabled?: boolean;
+  disabledReason?: string;
 }
 
 interface UserData {
@@ -77,13 +80,17 @@ const navigation: NavItem[] = [
     name: 'Talents & Carrière', 
     href: '/dashboard/talents', 
     icon: Sparkles,
-    roles: ['rh', 'admin', 'dg']
+    roles: ['rh', 'admin', 'dg'],
+    disabled: true,
+    disabledReason: 'Bientôt disponible'
   },
   { 
     name: 'Formation & Développement', 
     href: '/dashboard/learning', 
     icon: GraduationCap,
-    roles: ['manager', 'rh', 'admin', 'dg']
+    roles: ['manager', 'rh', 'admin', 'dg'],
+    disabled: true,
+    disabledReason: 'Bientôt disponible'
   },
   { 
     name: 'Performance & Feedback', 
@@ -95,7 +102,9 @@ const navigation: NavItem[] = [
     name: 'People Analytics', 
     href: '/dashboard/analytics', 
     icon: BarChart3,
-    roles: ['manager', 'rh', 'admin', 'dg']
+    roles: ['manager', 'rh', 'admin', 'dg'],
+    disabled: true,
+    disabledReason: 'Bientôt disponible'
   },
   { 
     name: 'Gestion du Personnel', 
@@ -262,6 +271,59 @@ export default function Sidebar() {
   const filteredPerformanceNav = performanceNavigation.filter(item => hasAccess(item, userRole, isManager));
 
   // ========================================
+  // Composant pour un item de navigation (réutilisable)
+  // ========================================
+  const NavItemComponent = ({ item, isCollapsed, showTooltip = false }: { item: NavItem; isCollapsed: boolean; showTooltip?: boolean }) => {
+    const isActive = pathname === item.href || 
+      (item.href !== '/dashboard' && pathname.startsWith(item.href));
+    
+    // Si l'item est désactivé
+    if (item.disabled) {
+      return (
+        <div
+          className={`flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'} rounded-lg cursor-not-allowed opacity-50 group relative`}
+          title={item.disabledReason || 'Non disponible'}
+        >
+          <item.icon className={`w-5 h-5 text-gray-500 ${isCollapsed ? '' : 'mr-3'}`} />
+          {!isCollapsed && (
+            <>
+              <span className="text-sm font-medium text-gray-500 flex-1">{item.name}</span>
+              <Lock className="w-3.5 h-3.5 text-gray-600" />
+            </>
+          )}
+          {/* Tooltip pour mode collapsed */}
+          {showTooltip && (
+            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-gray-400 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+              {item.name} - {item.disabledReason}
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    return (
+      <Link
+        href={item.href}
+        className={`flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'} rounded-lg transition-colors group relative ${
+          isActive 
+            ? 'bg-primary-500 text-white' 
+            : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+        }`}
+        title={isCollapsed ? item.name : undefined}
+      >
+        <item.icon className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+        {!isCollapsed && <span className="text-sm font-medium">{item.name}</span>}
+        {/* Tooltip pour mode collapsed */}
+        {showTooltip && (
+          <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+            {item.name}
+          </div>
+        )}
+      </Link>
+    );
+  };
+
+  // ========================================
   // Mode Mon Espace : sidebar rétractée avec sous-menu
   // ========================================
   if (inMySpace) {
@@ -280,29 +342,9 @@ export default function Sidebar() {
 
           {/* Navigation icônes - scrollable */}
           <nav className="flex-1 py-6 px-2 space-y-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-            {filteredNavigation.map((item) => {
-              const isActive = pathname === item.href || 
-                (item.href !== '/dashboard' && pathname.startsWith(item.href));
-              
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center justify-center p-3 rounded-lg transition-colors group relative ${
-                    isActive 
-                      ? 'bg-primary-500 text-white' 
-                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                  }`}
-                  title={item.name}
-                >
-                  <item.icon className="w-5 h-5" />
-                  {/* Tooltip */}
-                  <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
-                    {item.name}
-                  </div>
-                </Link>
-              );
-            })}
+            {filteredNavigation.map((item) => (
+              <NavItemComponent key={item.name} item={item} isCollapsed={true} showTooltip={true} />
+            ))}
 
             {/* Séparateur */}
             <div className="border-t border-gray-700 my-4" />
@@ -398,6 +440,23 @@ export default function Sidebar() {
             {filteredNavigation.map((item) => {
               // Performance est actif via le sous-menu
               const isPerformanceItem = item.href === '/dashboard/performance';
+              
+              // Pour les items désactivés
+              if (item.disabled) {
+                return (
+                  <div
+                    key={item.name}
+                    className="flex items-center justify-center p-3 rounded-lg cursor-not-allowed opacity-50 group relative"
+                    title={item.disabledReason || 'Non disponible'}
+                  >
+                    <item.icon className="w-5 h-5 text-gray-500" />
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-gray-400 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+                      {item.name} - {item.disabledReason}
+                    </div>
+                  </div>
+                );
+              }
+              
               const isActive = isPerformanceItem 
                 ? true 
                 : (pathname === item.href || (item.href !== '/dashboard' && !item.href.includes('performance') && pathname.startsWith(item.href)));
@@ -528,26 +587,9 @@ export default function Sidebar() {
 
       {/* Navigation - scrollable */}
       <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-        {filteredNavigation.map((item) => {
-          const isActive = pathname === item.href || 
-            (item.href !== '/dashboard' && pathname.startsWith(item.href));
-          
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
-                isActive 
-                  ? 'bg-primary-500 text-white' 
-                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-              }`}
-              title={collapsed ? item.name : undefined}
-            >
-              <item.icon className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
-              {!collapsed && <span className="text-sm font-medium">{item.name}</span>}
-            </Link>
-          );
-        })}
+        {filteredNavigation.map((item) => (
+          <NavItemComponent key={item.name} item={item} isCollapsed={collapsed} showTooltip={collapsed} />
+        ))}
 
         {/* Séparateur avant Mon Espace */}
         <div className="border-t border-gray-700 my-4" />

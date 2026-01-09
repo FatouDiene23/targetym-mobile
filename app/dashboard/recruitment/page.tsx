@@ -200,7 +200,7 @@ async function fetchAnalytics(): Promise<Analytics | null> {
 
 async function fetchDepartments(): Promise<Department[]> {
   try {
-    const response = await fetch(`${API_URL}/api/departments`, { headers: getAuthHeaders() });
+    const response = await fetch(`${API_URL}/api/departments/`, { headers: getAuthHeaders() });
     if (!response.ok) return [];
     return response.json();
   } catch {
@@ -210,7 +210,7 @@ async function fetchDepartments(): Promise<Department[]> {
 
 async function fetchEmployees(): Promise<Employee[]> {
   try {
-    const response = await fetch(`${API_URL}/api/employees?page_size=200`, { headers: getAuthHeaders() });
+    const response = await fetch(`${API_URL}/api/employees/?page_size=200`, { headers: getAuthHeaders() });
     if (!response.ok) return [];
     const data = await response.json();
     return data.items || [];

@@ -53,7 +53,7 @@ export default function EmployeesPage() {
   const fetchEmployees = async (depts: Department[]) => {
     try {
       const deptId = selectedDepartment !== 'Tous' ? depts.find(d => d.name === selectedDepartment)?.id : undefined;
-      const response = await getEmployees({ page: currentPage, page_size: 50, search: searchTerm || undefined, department_id: deptId });
+      const response = await getEmployees({ page: currentPage, page_size: 10, search: searchTerm || undefined, department_id: deptId });
       setEmployees(response.items || []);
       setAllEmployees(response.items || []);
       setTotalPages(response.total_pages || 1);

@@ -134,6 +134,8 @@ interface Employee {
   id: number;
   first_name: string;
   last_name: string;
+  department_name?: string;
+  is_manager?: boolean;
 }
 
 // ============================================
@@ -1364,6 +1366,7 @@ function InterviewModal({
   }) => Promise<void>;
 }) {
   const [saving, setSaving] = useState(false);
+  const [interviewerSearch, setInterviewerSearch] = useState('');
   const [formData, setFormData] = useState({
     interview_type: 'video',
     date: '',
@@ -1373,6 +1376,48 @@ function InterviewModal({
     meeting_link: '',
     interviewer_ids: [] as number[]
   });
+
+  // Grouper et trier les employés par département
+  const getGroupedEmployees = () => {
+    // Filtrer par recherche
+    const filtered = employees.filter(emp => {
+      if (!interviewerSearch) return true;
+      const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
+      const dept = (emp.department_name || '').toLowerCase();
+      const search = interviewerSearch.toLowerCase();
+      return fullName.includes(search) || dept.includes(search);
+    });
+
+    // Grouper par département
+    const grouped: Record<string, Employee[]> = {};
+    filtered.forEach(emp => {
+      const dept = emp.department_name || 'Autre';
+      if (!grouped[dept]) grouped[dept] = [];
+      grouped[dept].push(emp);
+    });
+
+    // Trier les employés dans chaque groupe (managers en premier)
+    Object.keys(grouped).forEach(dept => {
+      grouped[dept].sort((a, b) => {
+        // Managers en premier
+        if (a.is_manager && !b.is_manager) return -1;
+        if (!a.is_manager && b.is_manager) return 1;
+        // Puis par nom
+        return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
+      });
+    });
+
+    // Trier les départements alphabétiquement
+    const sortedDepts = Object.keys(grouped).sort((a, b) => {
+      if (a === 'Autre') return 1;
+      if (b === 'Autre') return -1;
+      return a.localeCompare(b);
+    });
+
+    return { grouped, sortedDepts };
+  };
+
+  const { grouped, sortedDepts } = getGroupedEmployees();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1404,9 +1449,11 @@ function InterviewModal({
     }));
   };
 
+  const selectedEmployees = employees.filter(emp => formData.interviewer_ids.includes(emp.id));
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg">
+      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-gray-900">Planifier un entretien</h2>
@@ -1463,19 +1510,97 @@ function InterviewModal({
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Interviewers</label>
-            <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1">
-              {employees.slice(0, 20).map(emp => (
-                <label key={emp.id} className="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.interviewer_ids.includes(emp.id)}
-                    onChange={() => toggleInterviewer(emp.id)}
-                    className="mr-3"
-                  />
-                  <span className="text-sm">{emp.first_name} {emp.last_name}</span>
-                </label>
-              ))}
+            
+            {/* Interviewers sélectionnés */}
+            {selectedEmployees.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {selectedEmployees.map(emp => (
+                  <span 
+                    key={emp.id} 
+                    className="inline-flex items-center px-3 py-1 bg-primary-100 text-primary-700 text-sm rounded-full"
+                  >
+                    {emp.first_name} {emp.last_name}
+                    {emp.is_manager && <span className="ml-1 text-xs bg-primary-200 px-1 rounded">Mgr</span>}
+                    <button 
+                      type="button" 
+                      onClick={() => toggleInterviewer(emp.id)}
+                      className="ml-2 text-primary-500 hover:text-primary-700"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            
+            {/* Barre de recherche */}
+            <div className="relative mb-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Rechercher par nom ou département..."
+                value={interviewerSearch}
+                onChange={(e) => setInterviewerSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+              />
+              {interviewerSearch && (
+                <button
+                  type="button"
+                  onClick={() => setInterviewerSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
+            
+            {/* Liste groupée par département */}
+            <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
+              {sortedDepts.length === 0 ? (
+                <div className="p-4 text-center text-gray-500 text-sm">
+                  Aucun employé trouvé
+                </div>
+              ) : (
+                sortedDepts.map(dept => (
+                  <div key={dept}>
+                    {/* Header département */}
+                    <div className="sticky top-0 bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-600 border-b border-gray-200">
+                      {dept} ({grouped[dept].length})
+                    </div>
+                    {/* Employés du département */}
+                    {grouped[dept].map(emp => (
+                      <label 
+                        key={emp.id} 
+                        className={`flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${
+                          formData.interviewer_ids.includes(emp.id) ? 'bg-primary-50' : ''
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.interviewer_ids.includes(emp.id)}
+                          onChange={() => toggleInterviewer(emp.id)}
+                          className="mr-3 rounded border-gray-300 text-primary-500 focus:ring-primary-500"
+                        />
+                        <span className="flex-1 text-sm text-gray-700">
+                          {emp.first_name} {emp.last_name}
+                        </span>
+                        {emp.is_manager && (
+                          <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs rounded font-medium">
+                            Mgr
+                          </span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                ))
+              )}
+            </div>
+            
+            {formData.interviewer_ids.length > 0 && (
+              <p className="text-xs text-gray-500 mt-2">
+                {formData.interviewer_ids.length} interviewer{formData.interviewer_ids.length > 1 ? 's' : ''} sélectionné{formData.interviewer_ids.length > 1 ? 's' : ''}
+              </p>
+            )}
           </div>
           
           <div className="flex justify-end gap-3 pt-4">

@@ -138,26 +138,26 @@ export default function EmployeesPage() {
 
   // Stats dynamiques basées sur les employés filtrés
   const dynamicStats = {
-    total: selectedDepartment === 'Tous' && selectedLocation === 'Tous' ? (stats?.total || totalEmployees) : filteredEmployees.length,
-    active: selectedDepartment === 'Tous' && selectedLocation === 'Tous' 
+    total: selectedDepartment === 'Tous' && selectedLocation === 'Tous' && !searchTerm ? (stats?.total || totalEmployees) : filteredEmployees.length,
+    active: selectedDepartment === 'Tous' && selectedLocation === 'Tous' && !searchTerm
       ? (stats?.active || 0) 
       : filteredEmployees.filter(e => !['terminated', 'suspended', 'inactive'].includes(e.status?.toLowerCase() || '')).length,
-    inactive: selectedDepartment === 'Tous' && selectedLocation === 'Tous' 
+    inactive: selectedDepartment === 'Tous' && selectedLocation === 'Tous' && !searchTerm
       ? (stats?.inactive || 0) 
       : filteredEmployees.filter(e => ['terminated', 'suspended', 'inactive'].includes(e.status?.toLowerCase() || '')).length,
-    on_leave: selectedDepartment === 'Tous' && selectedLocation === 'Tous' 
+    on_leave: selectedDepartment === 'Tous' && selectedLocation === 'Tous' && !searchTerm
       ? (stats?.on_leave || 0) 
       : filteredEmployees.filter(e => e.status?.toLowerCase() === 'on_leave').length,
-    managers: selectedDepartment === 'Tous' && selectedLocation === 'Tous' 
+    managers: selectedDepartment === 'Tous' && selectedLocation === 'Tous' && !searchTerm
       ? (stats?.managers || filteredEmployees.filter(e => e.is_manager).length) 
       : filteredEmployees.filter(e => e.is_manager).length,
-    female: selectedDepartment === 'Tous' && selectedLocation === 'Tous' 
+    female: selectedDepartment === 'Tous' && selectedLocation === 'Tous' && !searchTerm
       ? (stats?.female || 0) 
       : filteredEmployees.filter(e => {
           const gender = e.gender?.toLowerCase();
           return gender === 'female' || gender === 'f';
         }).length,
-    new_this_month: selectedDepartment === 'Tous' && selectedLocation === 'Tous' 
+    new_this_month: selectedDepartment === 'Tous' && selectedLocation === 'Tous' && !searchTerm
       ? (stats?.new_this_month || 0) 
       : filteredEmployees.filter(e => {
           if (!e.hire_date) return false;
@@ -205,11 +205,9 @@ export default function EmployeesPage() {
   const handleApproveLeave = async (id: number) => {
     try {
       await approveLeaveRequest(id);
-      // Mise à jour locale immédiate
       setLeaveRequests(prev => 
         prev.map(req => req.id === id ? { ...req, status: 'approved' as const } : req)
       );
-      // Fermer le modal si ouvert
       if (showLeaveModal && selectedLeaveRequest?.id === id) {
         setShowLeaveModal(false);
         setSelectedLeaveRequest(null);
@@ -223,11 +221,9 @@ export default function EmployeesPage() {
   const handleRejectLeave = async (id: number, reason: string) => {
     try {
       await rejectLeaveRequest(id, reason);
-      // Mise à jour locale immédiate
       setLeaveRequests(prev => 
         prev.map(req => req.id === id ? { ...req, status: 'rejected' as const, rejection_reason: reason } : req)
       );
-      // Fermer le modal
       setShowLeaveModal(false);
       setSelectedLeaveRequest(null);
     } catch (err) {
@@ -277,7 +273,7 @@ export default function EmployeesPage() {
               Filtres actifs : 
               {selectedDepartment !== 'Tous' && <span className="ml-2 px-2 py-0.5 bg-blue-100 rounded">{selectedDepartment}</span>}
               {selectedLocation !== 'Tous' && <span className="ml-2 px-2 py-0.5 bg-blue-100 rounded">{selectedLocation}</span>}
-              {searchTerm && <span className="ml-2 px-2 py-0.5 bg-blue-100 rounded">"{searchTerm}"</span>}
+              {searchTerm && <span className="ml-2 px-2 py-0.5 bg-blue-100 rounded">&quot;{searchTerm}&quot;</span>}
             </span>
             <button 
               onClick={() => {
@@ -528,7 +524,6 @@ export default function EmployeesPage() {
                         <ChevronDown className="w-4 h-4 ml-1" />
                       </button>
                       
-                      {/* Menu déroulant filtre */}
                       {showLeaveFilter && (
                         <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
                           <button
@@ -690,7 +685,6 @@ export default function EmployeesPage() {
         )}
       </main>
 
-      {/* Fermer le menu filtre si on clique ailleurs */}
       {showLeaveFilter && (
         <div 
           className="fixed inset-0 z-0" 
@@ -708,7 +702,6 @@ export default function EmployeesPage() {
       {showAddModal && <AddModal onClose={() => setShowAddModal(false)} onSuccess={handleSuccess} />}
       {showEditModal && selectedEmployee && <EditEmployeeModal employee={selectedEmployee} onClose={() => setShowEditModal(false)} onSuccess={handleSuccess} />}
       
-      {/* Modal Demande de Congé */}
       {showLeaveModal && selectedLeaveRequest && (
         <LeaveRequestModal
           request={{

@@ -22,7 +22,6 @@ const locations = ['Tous', 'Abidjan', 'Dakar', 'Bamako', 'Ouagadougou', 'Conakry
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [stats, setStats] = useState<EmployeeStats | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,6 +36,7 @@ export default function EmployeesPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalEmployees, setTotalEmployees] = useState(0);
   const isInitialized = useRef(false);
   const departmentsRef = useRef<Department[]>([]);
 
@@ -55,8 +55,8 @@ export default function EmployeesPage() {
       const deptId = selectedDepartment !== 'Tous' ? depts.find(d => d.name === selectedDepartment)?.id : undefined;
       const response = await getEmployees({ page: currentPage, page_size: 10, search: searchTerm || undefined, department_id: deptId });
       setEmployees(response.items || []);
-      setAllEmployees(response.items || []);
       setTotalPages(response.total_pages || 1);
+      setTotalEmployees(response.total || 0);
     } catch (err) {
       console.error('Error loading employees:', err);
       setEmployees([]);
@@ -131,9 +131,41 @@ export default function EmployeesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, selectedDepartment, currentPage]);
 
+  // Filtrer par localisation (filtre local)
   const filteredEmployees = employees.filter(emp => {
     return selectedLocation === 'Tous' || emp.location === selectedLocation || emp.site === selectedLocation;
   });
+
+  // Stats dynamiques basées sur les employés filtrés
+  const dynamicStats = {
+    total: selectedDepartment === 'Tous' && selectedLocation === 'Tous' ? (stats?.total || totalEmployees) : filteredEmployees.length,
+    active: selectedDepartment === 'Tous' && selectedLocation === 'Tous' 
+      ? (stats?.active || 0) 
+      : filteredEmployees.filter(e => !['terminated', 'suspended', 'inactive'].includes(e.status?.toLowerCase() || '')).length,
+    inactive: selectedDepartment === 'Tous' && selectedLocation === 'Tous' 
+      ? (stats?.inactive || 0) 
+      : filteredEmployees.filter(e => ['terminated', 'suspended', 'inactive'].includes(e.status?.toLowerCase() || '')).length,
+    on_leave: selectedDepartment === 'Tous' && selectedLocation === 'Tous' 
+      ? (stats?.on_leave || 0) 
+      : filteredEmployees.filter(e => e.status?.toLowerCase() === 'on_leave').length,
+    managers: selectedDepartment === 'Tous' && selectedLocation === 'Tous' 
+      ? (stats?.managers || filteredEmployees.filter(e => e.is_manager).length) 
+      : filteredEmployees.filter(e => e.is_manager).length,
+    female: selectedDepartment === 'Tous' && selectedLocation === 'Tous' 
+      ? (stats?.female || 0) 
+      : filteredEmployees.filter(e => {
+          const gender = e.gender?.toLowerCase();
+          return gender === 'female' || gender === 'f';
+        }).length,
+    new_this_month: selectedDepartment === 'Tous' && selectedLocation === 'Tous' 
+      ? (stats?.new_this_month || 0) 
+      : filteredEmployees.filter(e => {
+          if (!e.hire_date) return false;
+          const hireDate = new Date(e.hire_date);
+          const now = new Date();
+          return hireDate.getMonth() === now.getMonth() && hireDate.getFullYear() === now.getFullYear();
+        }).length
+  };
 
   // Filtrer les demandes de congés
   const filteredLeaveRequests = leaveRequests.filter(leave => {
@@ -147,24 +179,6 @@ export default function EmployeesPage() {
     approved: leaveRequests.filter(l => l.status === 'approved').length,
     rejected: leaveRequests.filter(l => l.status === 'rejected').length,
     total: leaveRequests.length
-  };
-
-  const getFemaleCount = (): number => {
-    if (stats?.female !== undefined) return stats.female;
-    if (stats?.by_gender) {
-      const keys = Object.keys(stats.by_gender);
-      for (const key of keys) {
-        if (key.toLowerCase() === 'female') {
-          return stats.by_gender[key];
-        }
-      }
-    }
-    return allEmployees.filter(e => e.gender?.toLowerCase() === 'female').length;
-  };
-
-  const getManagerCount = (): number => {
-    if (stats?.managers !== undefined) return stats.managers;
-    return allEmployees.filter(e => e.is_manager).length;
   };
 
   const getInitials = (firstName: string, lastName: string) => `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
@@ -225,6 +239,9 @@ export default function EmployeesPage() {
   const handleExport = () => exportEmployeesToCSV(filteredEmployees);
   const handleSuccess = () => { loadAllData(); setSelectedEmployee(null); };
 
+  // Indicateur de filtre actif
+  const hasActiveFilter = selectedDepartment !== 'Tous' || selectedLocation !== 'Tous' || searchTerm !== '';
+
   if (isLoading) {
     return (
       <>
@@ -252,28 +269,52 @@ export default function EmployeesPage() {
           </div>
         )}
 
+        {/* Indicateur de filtre actif */}
+        {hasActiveFilter && (
+          <div className="mb-4 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+            <span className="text-sm text-blue-700">
+              <Filter className="w-4 h-4 inline mr-2" />
+              Filtres actifs : 
+              {selectedDepartment !== 'Tous' && <span className="ml-2 px-2 py-0.5 bg-blue-100 rounded">{selectedDepartment}</span>}
+              {selectedLocation !== 'Tous' && <span className="ml-2 px-2 py-0.5 bg-blue-100 rounded">{selectedLocation}</span>}
+              {searchTerm && <span className="ml-2 px-2 py-0.5 bg-blue-100 rounded">"{searchTerm}"</span>}
+            </span>
+            <button 
+              onClick={() => {
+                setSelectedDepartment('Tous');
+                setSelectedLocation('Tous');
+                setSearchTerm('');
+                setCurrentPage(1);
+              }}
+              className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+            >
+              <X className="w-4 h-4 mr-1" />Effacer les filtres
+            </button>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <Users className="w-5 h-5 text-blue-500 mb-2" />
-            <p className="text-2xl font-bold text-gray-900">{stats?.total || 0}</p>
+            <p className="text-2xl font-bold text-gray-900">{dynamicStats.total}</p>
             <p className="text-xs text-gray-500">Total Employés</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <UserCheck className="w-5 h-5 text-green-500 mb-2" />
-            <p className="text-2xl font-bold text-green-600">{stats?.active || 0}</p>
+            <p className="text-2xl font-bold text-green-600">{dynamicStats.active}</p>
             <p className="text-xs text-gray-500">Actifs</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <UserPlus className="w-5 h-5 text-blue-500" />
-              <span className="text-xs text-green-600 flex items-center"><TrendingUp className="w-3 h-3 mr-0.5" />+8%</span>
+              {dynamicStats.new_this_month > 0 && <span className="text-xs text-green-600 flex items-center"><TrendingUp className="w-3 h-3 mr-0.5" />Nouveau</span>}
             </div>
-            <p className="text-2xl font-bold text-blue-600">{stats?.new_this_month || 0}</p>
+            <p className="text-2xl font-bold text-blue-600">{dynamicStats.new_this_month}</p>
             <p className="text-xs text-gray-500">Nouveaux</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <TrendingDown className="w-5 h-5 text-red-500 mb-2" />
-            <p className="text-2xl font-bold text-red-600">{stats?.inactive || 0}</p>
+            <p className="text-2xl font-bold text-red-600">{dynamicStats.inactive}</p>
             <p className="text-xs text-gray-500">Inactifs</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
@@ -283,17 +324,17 @@ export default function EmployeesPage() {
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <Briefcase className="w-5 h-5 text-indigo-500 mb-2" />
-            <p className="text-2xl font-bold text-indigo-600">{getManagerCount()}</p>
+            <p className="text-2xl font-bold text-indigo-600">{dynamicStats.managers}</p>
             <p className="text-xs text-gray-500">Managers</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <Palmtree className="w-5 h-5 text-green-500 mb-2" />
-            <p className="text-2xl font-bold text-green-600">{stats?.on_leave || 0}</p>
+            <p className="text-2xl font-bold text-green-600">{dynamicStats.on_leave}</p>
             <p className="text-xs text-gray-500">En congés</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <span className="text-sm font-bold text-pink-500 block mb-2">♀</span>
-            <p className="text-2xl font-bold text-pink-600">{getFemaleCount()}</p>
+            <p className="text-2xl font-bold text-pink-600">{dynamicStats.female}</p>
             <p className="text-xs text-gray-500">Femmes</p>
           </div>
         </div>
@@ -318,10 +359,10 @@ export default function EmployeesPage() {
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input type="text" placeholder="Rechercher par nom, email ou poste..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
+                  <input type="text" placeholder="Rechercher par nom, email ou poste..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
                 </div>
                 <div className="flex gap-3 flex-wrap">
-                  <select value={selectedDepartment} onChange={(e) => setSelectedDepartment(e.target.value)} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                  <select value={selectedDepartment} onChange={(e) => { setSelectedDepartment(e.target.value); setCurrentPage(1); }} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
                     <option value="Tous">Tous les départements</option>
                     {departments.map(dept => (
                       <option key={dept.id} value={dept.name}>
@@ -329,7 +370,7 @@ export default function EmployeesPage() {
                       </option>
                     ))}
                   </select>
-                  <select value={selectedLocation} onChange={(e) => setSelectedLocation(e.target.value)} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
+                  <select value={selectedLocation} onChange={(e) => { setSelectedLocation(e.target.value); setCurrentPage(1); }} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm">
                     {locations.map(loc => <option key={loc} value={loc}>{loc === 'Tous' ? 'Toutes les localisations' : loc}</option>)}
                   </select>
                   <button onClick={() => setShowAddModal(true)} className="flex items-center px-4 py-2.5 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
@@ -398,10 +439,12 @@ export default function EmployeesPage() {
                   )}
                   {totalPages > 1 && (
                     <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
-                      <p className="text-sm text-gray-500">Page {currentPage} sur {totalPages}</p>
+                      <p className="text-sm text-gray-500">
+                        Page {currentPage} sur {totalPages} • {totalEmployees} employé{totalEmployees > 1 ? 's' : ''} au total
+                      </p>
                       <div className="flex gap-2">
-                        <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50">Précédent</button>
-                        <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50">Suivant</button>
+                        <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 hover:bg-gray-50">Précédent</button>
+                        <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 hover:bg-gray-50">Suivant</button>
                       </div>
                     </div>
                   )}

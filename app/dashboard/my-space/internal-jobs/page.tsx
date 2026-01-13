@@ -185,8 +185,8 @@ export default function CareersPage() {
   useEffect(() => { loadData(); }, [loadData]);
 
   // Get unique departments for filter
-  const departments = [...new Set(jobs.map(j => j.department_name).filter(Boolean))] as string[];
-  const contractTypes = [...new Set(jobs.map(j => j.contract_type).filter(Boolean))];
+  const departments = Array.from(new Set(jobs.map(j => j.department_name).filter(Boolean))) as string[];
+  const contractTypes = Array.from(new Set(jobs.map(j => j.contract_type).filter(Boolean)));
 
   // Filter jobs
   const filteredJobs = jobs.filter(job => {

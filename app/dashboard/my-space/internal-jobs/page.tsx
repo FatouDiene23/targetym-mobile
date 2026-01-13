@@ -3,9 +3,9 @@
 import Header from '@/components/Header';
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  Briefcase, MapPin, Clock, Building2, Users, Search, Filter,
+  Briefcase, MapPin, Clock, Building2, Users, Search,
   ChevronRight, Check, Send, FileText, Calendar, DollarSign,
-  Bookmark, BookmarkCheck, ExternalLink, X, Loader2, CheckCircle,
+  ExternalLink, X, Loader2, CheckCircle,
   AlertCircle, Eye, TrendingUp
 } from 'lucide-react';
 

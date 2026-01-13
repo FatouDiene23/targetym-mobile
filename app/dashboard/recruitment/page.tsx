@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   UserPlus, Briefcase, Users, Clock, Mail, Phone, MapPin, Plus, XCircle,
   FileText, Linkedin, GraduationCap, Building2, TrendingUp, Edit,
-  ArrowRight, MessageSquare, Video, Search, X, Check, Loader2
+  ArrowRight, MessageSquare, Video, Search, X, Check, Loader2, Calendar, Trash2
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 
@@ -75,6 +75,24 @@ interface Application {
   timeline: TimelineEvent[] | null;
 }
 
+interface Interview {
+  id: number;
+  application_id: number;
+  interview_type: string;
+  status: string;
+  scheduled_at: string;
+  duration_minutes: number;
+  location: string | null;
+  meeting_link: string | null;
+  interviewer_ids: number[] | null;
+  interviewer_names: string[] | null;
+  candidate_name: string;
+  job_title: string | null;
+  feedback: string | null;
+  rating: number | null;
+  recommendation: string | null;
+}
+
 interface RecruitmentStats {
   open_positions: number;
   total_candidates: number;
@@ -83,38 +101,11 @@ interface RecruitmentStats {
   hires_this_month: number;
 }
 
-interface PipelineStats {
-  stage: string;
-  stage_label: string;
-  count: number;
-  color: string;
-}
-
-interface SourceStats {
-  source: string;
-  count: number;
-  percentage: number;
-  color: string;
-}
-
-interface HiringTrend {
-  month: string;
-  applications: number;
-  hires: number;
-}
-
-interface DepartmentStats {
-  department: string;
-  count: number;
-}
-
-interface TopCandidate {
-  id: number;
-  name: string;
-  position: string;
-  ai_score: number;
-  stage: string;
-}
+interface PipelineStats { stage: string; stage_label: string; count: number; color: string; }
+interface SourceStats { source: string; count: number; percentage: number; color: string; }
+interface HiringTrend { month: string; applications: number; hires: number; }
+interface DepartmentStats { department: string; count: number; }
+interface TopCandidate { id: number; name: string; position: string; ai_score: number; stage: string; }
 
 interface Analytics {
   stats: RecruitmentStats;
@@ -125,18 +116,8 @@ interface Analytics {
   top_candidates: TopCandidate[];
 }
 
-interface Department {
-  id: number;
-  name: string;
-}
-
-interface Employee {
-  id: number;
-  first_name: string;
-  last_name: string;
-  department_name?: string;
-  is_manager?: boolean;
-}
+interface Department { id: number; name: string; }
+interface Employee { id: number; first_name: string; last_name: string; department_name?: string; is_manager?: boolean; }
 
 // ============================================
 // API CONFIG
@@ -146,10 +127,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.
 
 function getAuthHeaders(): HeadersInit {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-  };
+  return { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) };
 }
 
 // ============================================
@@ -158,206 +136,137 @@ function getAuthHeaders(): HeadersInit {
 
 async function fetchJobs(): Promise<Job[]> {
   try {
-    const response = await fetch(`${API_URL}/api/recruitment/jobs?page_size=100`, { headers: getAuthHeaders() });
-    if (!response.ok) return [];
-    const data = await response.json();
+    const res = await fetch(`${API_URL}/api/recruitment/jobs?page_size=100`, { headers: getAuthHeaders() });
+    if (!res.ok) return [];
+    const data = await res.json();
     return data.items || [];
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 async function fetchApplications(jobId?: number): Promise<Application[]> {
   try {
     const params = new URLSearchParams({ page_size: '100' });
     if (jobId) params.append('job_posting_id', jobId.toString());
-    const response = await fetch(`${API_URL}/api/recruitment/applications?${params}`, { headers: getAuthHeaders() });
-    if (!response.ok) return [];
-    const data = await response.json();
+    const res = await fetch(`${API_URL}/api/recruitment/applications?${params}`, { headers: getAuthHeaders() });
+    if (!res.ok) return [];
+    const data = await res.json();
     return data.items || [];
-  } catch {
-    return [];
-  }
+  } catch { return []; }
+}
+
+async function fetchInterviews(): Promise<Interview[]> {
+  try {
+    const res = await fetch(`${API_URL}/api/recruitment/interviews?page_size=100`, { headers: getAuthHeaders() });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.items || [];
+  } catch { return []; }
 }
 
 async function fetchStats(): Promise<RecruitmentStats | null> {
   try {
-    const response = await fetch(`${API_URL}/api/recruitment/stats`, { headers: getAuthHeaders() });
-    if (!response.ok) return null;
-    return response.json();
-  } catch {
-    return null;
-  }
+    const res = await fetch(`${API_URL}/api/recruitment/stats`, { headers: getAuthHeaders() });
+    if (!res.ok) return null;
+    return res.json();
+  } catch { return null; }
 }
 
 async function fetchAnalytics(): Promise<Analytics | null> {
   try {
-    const response = await fetch(`${API_URL}/api/recruitment/analytics`, { headers: getAuthHeaders() });
-    if (!response.ok) return null;
-    return response.json();
-  } catch {
-    return null;
-  }
+    const res = await fetch(`${API_URL}/api/recruitment/analytics`, { headers: getAuthHeaders() });
+    if (!res.ok) return null;
+    return res.json();
+  } catch { return null; }
 }
 
 async function fetchDepartments(): Promise<Department[]> {
   try {
-    const response = await fetch(`${API_URL}/api/departments/`, { headers: getAuthHeaders() });
-    if (!response.ok) return [];
-    return response.json();
-  } catch {
-    return [];
-  }
+    const res = await fetch(`${API_URL}/api/departments/`, { headers: getAuthHeaders() });
+    if (!res.ok) return [];
+    return res.json();
+  } catch { return []; }
 }
 
 async function fetchEmployees(): Promise<Employee[]> {
   try {
-    const response = await fetch(`${API_URL}/api/employees/?page_size=200`, { headers: getAuthHeaders() });
-    if (!response.ok) return [];
-    const data = await response.json();
+    const res = await fetch(`${API_URL}/api/employees/?page_size=200`, { headers: getAuthHeaders() });
+    if (!res.ok) return [];
+    const data = await res.json();
     return data.items || [];
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 async function createJob(data: Partial<Job>): Promise<Job | null> {
   try {
-    const response = await fetch(`${API_URL}/api/recruitment/jobs`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data)
-    });
-    if (!response.ok) return null;
-    return response.json();
-  } catch {
-    return null;
-  }
+    const res = await fetch(`${API_URL}/api/recruitment/jobs`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    if (!res.ok) return null;
+    return res.json();
+  } catch { return null; }
 }
 
 async function updateJob(id: number, data: Partial<Job>): Promise<Job | null> {
   try {
-    const response = await fetch(`${API_URL}/api/recruitment/jobs/${id}`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data)
-    });
-    if (!response.ok) return null;
-    return response.json();
-  } catch {
-    return null;
-  }
+    const res = await fetch(`${API_URL}/api/recruitment/jobs/${id}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    if (!res.ok) return null;
+    return res.json();
+  } catch { return null; }
 }
 
 async function publishJob(id: number): Promise<boolean> {
   try {
-    const response = await fetch(`${API_URL}/api/recruitment/jobs/${id}/publish`, {
-      method: 'POST',
-      headers: getAuthHeaders()
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
+    const res = await fetch(`${API_URL}/api/recruitment/jobs/${id}/publish`, { method: 'POST', headers: getAuthHeaders() });
+    return res.ok;
+  } catch { return false; }
 }
 
 async function closeJob(id: number): Promise<boolean> {
   try {
-    const response = await fetch(`${API_URL}/api/recruitment/jobs/${id}/close`, {
-      method: 'POST',
-      headers: getAuthHeaders()
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
+    const res = await fetch(`${API_URL}/api/recruitment/jobs/${id}/close`, { method: 'POST', headers: getAuthHeaders() });
+    return res.ok;
+  } catch { return false; }
 }
 
-async function createCandidate(data: {
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone?: string;
-  location?: string;
-  linkedin_url?: string;
-  current_company?: string;
-  experience_years?: number;
-  education?: string;
-  skills?: string[];
-  expected_salary?: number;
-  notice_period?: string;
-  source?: string;
-  job_posting_id?: number;
-}): Promise<boolean> {
+async function createCandidate(data: { first_name: string; last_name: string; email: string; phone?: string; location?: string; linkedin_url?: string; current_company?: string; experience_years?: number; education?: string; skills?: string[]; expected_salary?: number; notice_period?: string; source?: string; job_posting_id?: number; }): Promise<boolean> {
   try {
-    const response = await fetch(`${API_URL}/api/recruitment/candidates`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data)
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
+    const res = await fetch(`${API_URL}/api/recruitment/candidates`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    return res.ok;
+  } catch { return false; }
 }
 
 async function updateApplicationStage(applicationId: number, stage: string, notes?: string): Promise<boolean> {
   try {
-    const response = await fetch(`${API_URL}/api/recruitment/applications/${applicationId}/stage`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ stage, notes })
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
+    const res = await fetch(`${API_URL}/api/recruitment/applications/${applicationId}/stage`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ stage, notes }) });
+    return res.ok;
+  } catch { return false; }
 }
 
 async function rejectApplication(applicationId: number, reason?: string): Promise<boolean> {
   try {
-    const url = reason 
-      ? `${API_URL}/api/recruitment/applications/${applicationId}/reject?reason=${encodeURIComponent(reason)}`
-      : `${API_URL}/api/recruitment/applications/${applicationId}/reject`;
-    const response = await fetch(url, { method: 'POST', headers: getAuthHeaders() });
-    return response.ok;
-  } catch {
-    return false;
-  }
+    const url = reason ? `${API_URL}/api/recruitment/applications/${applicationId}/reject?reason=${encodeURIComponent(reason)}` : `${API_URL}/api/recruitment/applications/${applicationId}/reject`;
+    const res = await fetch(url, { method: 'POST', headers: getAuthHeaders() });
+    return res.ok;
+  } catch { return false; }
 }
 
 async function sendOffer(applicationId: number, salary: number): Promise<boolean> {
   try {
-    const response = await fetch(`${API_URL}/api/recruitment/applications/${applicationId}/offer`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ salary, currency: 'XOF' })
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
+    const res = await fetch(`${API_URL}/api/recruitment/applications/${applicationId}/offer`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ salary, currency: 'XOF' }) });
+    return res.ok;
+  } catch { return false; }
 }
 
-async function createInterview(data: {
-  application_id: number;
-  interview_type: string;
-  scheduled_at: string;
-  duration_minutes: number;
-  location?: string;
-  meeting_link?: string;
-  interviewer_ids?: number[];
-}): Promise<boolean> {
+async function createInterview(data: { application_id: number; interview_type: string; scheduled_at: string; duration_minutes: number; location?: string; meeting_link?: string; interviewer_ids?: number[]; }): Promise<boolean> {
   try {
-    const response = await fetch(`${API_URL}/api/recruitment/interviews`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data)
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
+    const res = await fetch(`${API_URL}/api/recruitment/interviews`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    return res.ok;
+  } catch { return false; }
+}
+
+async function deleteInterview(interviewId: number): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/api/recruitment/interviews/${interviewId}`, { method: 'DELETE', headers: getAuthHeaders() });
+    return res.ok;
+  } catch { return false; }
 }
 
 // ============================================
@@ -374,38 +283,28 @@ const pipelineStages = [
   { id: 'hired', name: 'Embauché', color: 'bg-emerald-600' },
 ];
 
-const stageLabels: Record<string, string> = {
-  new: 'Candidatures',
-  screening: 'Screening CV',
-  phone_screen: 'Entretien Tél.',
-  hr_interview: 'Entretien RH',
-  technical: 'Entretien Tech',
-  final: 'Entretien Final',
-  offer: 'Offre',
-  hired: 'Embauché',
-  rejected: 'Refusé',
-  withdrawn: 'Désisté'
-};
+const stageLabels: Record<string, string> = { new: 'Candidatures', screening: 'Screening CV', phone_screen: 'Entretien Tél.', hr_interview: 'Entretien RH', technical: 'Entretien Tech', final: 'Entretien Final', offer: 'Offre', hired: 'Embauché', rejected: 'Refusé', withdrawn: 'Désisté' };
+const interviewTypeLabels: Record<string, string> = { phone: 'Téléphonique', video: 'Vidéoconférence', onsite: 'Sur site' };
+const interviewStatusLabels: Record<string, string> = { scheduled: 'Planifié', completed: 'Terminé', cancelled: 'Annulé', no_show: 'Absent' };
 
 // ============================================
 // MAIN COMPONENT
 // ============================================
 
 export default function RecruitmentPage() {
-  const [activeTab, setActiveTab] = useState<'kanban' | 'jobs' | 'analytics'>('kanban');
+  const [activeTab, setActiveTab] = useState<'kanban' | 'jobs' | 'interviews' | 'analytics'>('kanban');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedJobFilter, setSelectedJobFilter] = useState<number | null>(null);
 
-  // Data
   const [jobs, setJobs] = useState<Job[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [interviews, setInterviews] = useState<Interview[]>([]);
   const [stats, setStats] = useState<RecruitmentStats | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
 
-  // Modals
   const [showCandidateModal, setShowCandidateModal] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [showJobModal, setShowJobModal] = useState(false);
@@ -413,58 +312,32 @@ export default function RecruitmentPage() {
   const [showAddCandidateModal, setShowAddCandidateModal] = useState(false);
   const [showInterviewModal, setShowInterviewModal] = useState(false);
 
-  // ============================================
-  // LOAD DATA
-  // ============================================
-
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [jobsData, appsData, statsData, depts, emps] = await Promise.all([
-      fetchJobs(),
-      fetchApplications(selectedJobFilter || undefined),
-      fetchStats(),
-      fetchDepartments(),
-      fetchEmployees()
+    const [jobsData, appsData, interviewsData, statsData, depts, emps] = await Promise.all([
+      fetchJobs(), fetchApplications(selectedJobFilter || undefined), fetchInterviews(), fetchStats(), fetchDepartments(), fetchEmployees()
     ]);
-    setJobs(jobsData);
-    setApplications(appsData);
-    setStats(statsData);
-    setDepartments(depts);
-    setEmployees(emps);
+    setJobs(jobsData); setApplications(appsData); setInterviews(interviewsData); setStats(statsData); setDepartments(depts); setEmployees(emps);
     setLoading(false);
   }, [selectedJobFilter]);
 
-  const loadAnalytics = useCallback(async () => {
-    const data = await fetchAnalytics();
-    setAnalytics(data);
-  }, []);
+  const loadAnalytics = useCallback(async () => { const data = await fetchAnalytics(); setAnalytics(data); }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  useEffect(() => {
-    if (activeTab === 'analytics') {
-      loadAnalytics();
-    }
-  }, [activeTab, loadAnalytics]);
-
-  // ============================================
-  // HELPERS
-  // ============================================
+  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { if (activeTab === 'analytics') loadAnalytics(); }, [activeTab, loadAnalytics]);
 
   const getApplicationsByStage = (stageId: string) => {
     return applications.filter(app => {
       if (app.stage !== stageId) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        return app.candidate_name.toLowerCase().includes(q) ||
-               app.candidate_email.toLowerCase().includes(q) ||
-               (app.candidate_skills || []).some(s => s.toLowerCase().includes(q));
+        return app.candidate_name.toLowerCase().includes(q) || app.candidate_email.toLowerCase().includes(q) || (app.candidate_skills || []).some(s => s.toLowerCase().includes(q));
       }
       return true;
     });
   };
+
+  const getInterviewsForApplication = (applicationId: number) => interviews.filter(i => i.application_id === applicationId);
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return 'text-green-600 bg-green-100';
@@ -479,9 +352,21 @@ export default function RecruitmentPage() {
     return 'bg-gray-100 text-gray-700';
   };
 
+  const getInterviewStatusColor = (status: string) => {
+    if (status === 'scheduled') return 'bg-blue-100 text-blue-700';
+    if (status === 'completed') return 'bg-green-100 text-green-700';
+    if (status === 'cancelled') return 'bg-red-100 text-red-700';
+    return 'bg-gray-100 text-gray-700';
+  };
+
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const formatDateTime = (dateStr: string | null) => {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
   const formatSalary = (min: number | null, max: number | null, currency: string) => {
@@ -492,36 +377,25 @@ export default function RecruitmentPage() {
     return `Jusqu'à ${fmt(max!)} ${currency}`;
   };
 
-  // ============================================
-  // HANDLERS
-  // ============================================
+  const handleSendEmail = (application: Application) => {
+    const subject = encodeURIComponent(`Candidature - ${application.job_title || 'Poste'}`);
+    const body = encodeURIComponent(`Bonjour ${application.candidate_name.split(' ')[0]},\n\nNous avons bien reçu votre candidature pour le poste de ${application.job_title || 'notre offre'}.\n\n[Votre message ici]\n\nCordialement,\nL'équipe RH`);
+    window.open(`mailto:${application.candidate_email}?subject=${subject}&body=${body}`, '_blank');
+  };
 
   const handleReject = async (application: Application) => {
     const reason = prompt('Raison du refus (optionnel):');
     const success = await rejectApplication(application.id, reason || undefined);
-    if (success) {
-      setShowCandidateModal(false);
-      loadData();
-    } else {
-      alert('Erreur lors du refus');
-    }
+    if (success) { setShowCandidateModal(false); loadData(); } else { alert('Erreur lors du refus'); }
   };
 
   const handleSendOffer = async (application: Application) => {
     const salaryStr = prompt('Salaire proposé (XOF):', application.candidate_expected_salary?.toString() || '');
     if (!salaryStr) return;
     const salary = parseFloat(salaryStr);
-    if (isNaN(salary)) {
-      alert('Salaire invalide');
-      return;
-    }
+    if (isNaN(salary)) { alert('Salaire invalide'); return; }
     const success = await sendOffer(application.id, salary);
-    if (success) {
-      setShowCandidateModal(false);
-      loadData();
-    } else {
-      alert('Erreur lors de l\'envoi de l\'offre');
-    }
+    if (success) { setShowCandidateModal(false); loadData(); } else { alert('Erreur lors de l\'envoi de l\'offre'); }
   };
 
   const handleNextStage = async (application: Application) => {
@@ -529,30 +403,18 @@ export default function RecruitmentPage() {
     if (currentIndex < pipelineStages.length - 1) {
       const nextStage = pipelineStages[currentIndex + 1].id;
       const success = await updateApplicationStage(application.id, nextStage);
-      if (success) {
-        setShowCandidateModal(false);
-        loadData();
-      } else {
-        alert('Erreur lors du changement d\'étape');
-      }
+      if (success) { setShowCandidateModal(false); loadData(); } else { alert('Erreur lors du changement d\'étape'); }
     }
   };
 
-  const handlePublishJob = async (jobId: number) => {
-    const success = await publishJob(jobId);
-    if (success) loadData();
-    else alert('Erreur lors de la publication');
-  };
+  const handlePublishJob = async (jobId: number) => { const success = await publishJob(jobId); if (success) loadData(); else alert('Erreur lors de la publication'); };
+  const handleCloseJob = async (jobId: number) => { const success = await closeJob(jobId); if (success) loadData(); else alert('Erreur lors de la fermeture'); };
 
-  const handleCloseJob = async (jobId: number) => {
-    const success = await closeJob(jobId);
-    if (success) loadData();
-    else alert('Erreur lors de la fermeture');
+  const handleDeleteInterview = async (interviewId: number) => {
+    if (!confirm('Supprimer cet entretien ?')) return;
+    const success = await deleteInterview(interviewId);
+    if (success) loadData(); else alert('Erreur lors de la suppression');
   };
-
-  // ============================================
-  // RENDER
-  // ============================================
 
   if (loading) {
     return (
@@ -616,6 +478,9 @@ export default function RecruitmentPage() {
             <button onClick={() => setActiveTab('jobs')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'jobs' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
               <Briefcase className="w-4 h-4 inline mr-2" />Offres d&apos;Emploi
             </button>
+            <button onClick={() => setActiveTab('interviews')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'interviews' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
+              <Calendar className="w-4 h-4 inline mr-2" />Entretiens
+            </button>
             <button onClick={() => setActiveTab('analytics')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'analytics' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
               <TrendingUp className="w-4 h-4 inline mr-2" />Analytics
             </button>
@@ -630,15 +495,9 @@ export default function RecruitmentPage() {
               <input type="text" placeholder="Rechercher candidat, compétence..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
             </div>
             {activeTab === 'kanban' && (
-              <select 
-                value={selectedJobFilter || ''} 
-                onChange={(e) => setSelectedJobFilter(e.target.value ? parseInt(e.target.value) : null)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-              >
+              <select value={selectedJobFilter || ''} onChange={(e) => setSelectedJobFilter(e.target.value ? parseInt(e.target.value) : null)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                 <option value="">Tous les postes</option>
-                {jobs.filter(j => j.status === 'active').map(job => (
-                  <option key={job.id} value={job.id}>{job.title}</option>
-                ))}
+                {jobs.filter(j => j.status === 'active').map(job => (<option key={job.id} value={job.id}>{job.title}</option>))}
               </select>
             )}
           </div>
@@ -680,17 +539,11 @@ export default function RecruitmentPage() {
                               <p className="text-xs text-gray-500">{app.candidate_location || 'Non spécifié'}</p>
                             </div>
                           </div>
-                          {app.candidate_ai_score && (
-                            <div className={`px-2 py-1 rounded text-xs font-bold ${getScoreColor(app.candidate_ai_score)}`}>
-                              {app.candidate_ai_score}
-                            </div>
-                          )}
+                          {app.candidate_ai_score && (<div className={`px-2 py-1 rounded text-xs font-bold ${getScoreColor(app.candidate_ai_score)}`}>{app.candidate_ai_score}</div>)}
                         </div>
                         <p className="text-xs text-gray-600 mb-2 truncate">{app.job_title}</p>
                         <div className="flex flex-wrap gap-1">
-                          {(app.candidate_skills || []).slice(0, 3).map((skill) => (
-                            <span key={skill} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">{skill}</span>
-                          ))}
+                          {(app.candidate_skills || []).slice(0, 3).map((skill) => (<span key={skill} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">{skill}</span>))}
                           {(app.candidate_skills || []).length > 3 && <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded">+{(app.candidate_skills || []).length - 3}</span>}
                         </div>
                         <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
@@ -714,9 +567,7 @@ export default function RecruitmentPage() {
               <div className="bg-white rounded-xl p-12 text-center">
                 <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500">Aucune offre d&apos;emploi</p>
-                <button onClick={() => { setEditingJob(null); setShowJobModal(true); }} className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm">
-                  Créer une offre
-                </button>
+                <button onClick={() => { setEditingJob(null); setShowJobModal(true); }} className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm">Créer une offre</button>
               </div>
             ) : jobs.map((job) => (
               <div key={job.id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
@@ -726,17 +577,13 @@ export default function RecruitmentPage() {
                     <div className="ml-4 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h4 className="font-semibold text-gray-900">{job.title}</h4>
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${getUrgencyColor(job.urgency)}`}>
-                          {job.urgency === 'high' ? 'Urgent' : job.urgency === 'medium' ? 'Modéré' : 'Normal'}
-                        </span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${getUrgencyColor(job.urgency)}`}>{job.urgency === 'high' ? 'Urgent' : job.urgency === 'medium' ? 'Modéré' : 'Normal'}</span>
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 flex-wrap">
                         {job.department_name && <span className="flex items-center"><Building2 className="w-3.5 h-3.5 mr-1" />{job.department_name}</span>}
                         <span className="flex items-center"><MapPin className="w-3.5 h-3.5 mr-1" />{job.location}</span>
                         <span>{job.contract_type}</span>
-                        {job.show_salary && formatSalary(job.salary_min, job.salary_max, job.salary_currency) && (
-                          <span className="text-primary-600 font-medium">{formatSalary(job.salary_min, job.salary_max, job.salary_currency)}</span>
-                        )}
+                        {job.show_salary && formatSalary(job.salary_min, job.salary_max, job.salary_currency) && (<span className="text-primary-600 font-medium">{formatSalary(job.salary_min, job.salary_max, job.salary_currency)}</span>)}
                       </div>
                       <div className="flex items-center gap-4 mt-2 text-xs text-gray-400 flex-wrap">
                         <span>Publié: {job.posted_at ? formatDate(job.posted_at) : 'Non publié'}</span>
@@ -746,35 +593,81 @@ export default function RecruitmentPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-6">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-gray-900">{job.applicants_count}</p>
-                      <p className="text-xs text-gray-500">Candidats</p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${job.status === 'active' ? 'bg-green-100 text-green-700' : job.status === 'closed' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
-                      {job.status === 'active' ? 'Active' : job.status === 'closed' ? 'Fermée' : 'Brouillon'}
-                    </span>
+                    <div className="text-center"><p className="text-2xl font-bold text-gray-900">{job.applicants_count}</p><p className="text-xs text-gray-500">Candidats</p></div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${job.status === 'active' ? 'bg-green-100 text-green-700' : job.status === 'closed' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>{job.status === 'active' ? 'Active' : job.status === 'closed' ? 'Fermée' : 'Brouillon'}</span>
                     <div className="flex gap-2">
                       <button onClick={() => { setEditingJob(job); setShowJobModal(true); }} className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg"><Edit className="w-4 h-4" /></button>
-                      {job.status === 'draft' && (
-                        <button onClick={() => handlePublishJob(job.id)} className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg" title="Publier"><Check className="w-4 h-4" /></button>
-                      )}
-                      {job.status === 'active' && (
-                        <button onClick={() => handleCloseJob(job.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Fermer"><XCircle className="w-4 h-4" /></button>
-                      )}
+                      {job.status === 'draft' && (<button onClick={() => handlePublishJob(job.id)} className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg" title="Publier"><Check className="w-4 h-4" /></button>)}
+                      {job.status === 'active' && (<button onClick={() => handleCloseJob(job.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Fermer"><XCircle className="w-4 h-4" /></button>)}
                     </div>
                   </div>
                 </div>
                 {job.requirements && job.requirements.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-gray-100">
-                    <div className="flex flex-wrap gap-2">
-                      {job.requirements.map((req, i) => (
-                        <span key={i} className="px-3 py-1 bg-gray-50 text-gray-600 text-xs rounded-full">{req}</span>
-                      ))}
-                    </div>
+                    <div className="flex flex-wrap gap-2">{job.requirements.map((req, i) => (<span key={i} className="px-3 py-1 bg-gray-50 text-gray-600 text-xs rounded-full">{req}</span>))}</div>
                   </div>
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* TAB: Interviews */}
+        {activeTab === 'interviews' && (
+          <div className="space-y-6">
+            {interviews.length === 0 ? (
+              <div className="bg-white rounded-xl p-12 text-center">
+                <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">Aucun entretien planifié</p>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">📅 Entretiens à venir</h3>
+                  <div className="space-y-3">
+                    {interviews.filter(i => i.status === 'scheduled' && new Date(i.scheduled_at) >= new Date()).sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()).map(interview => (
+                      <div key={interview.id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center flex-1">
+                            <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium">{interview.candidate_name.split(' ').map(n => n[0]).join('')}</div>
+                            <div className="ml-4"><h4 className="font-semibold text-gray-900">{interview.candidate_name}</h4><p className="text-sm text-gray-500">{interview.job_title}</p></div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right"><p className="text-sm font-medium text-gray-900">{formatDateTime(interview.scheduled_at)}</p><p className="text-xs text-gray-500">{interview.duration_minutes} min • {interviewTypeLabels[interview.interview_type] || interview.interview_type}</p></div>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getInterviewStatusColor(interview.status)}`}>{interviewStatusLabels[interview.status] || interview.status}</span>
+                            <button onClick={() => handleDeleteInterview(interview.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Supprimer"><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                        </div>
+                        {interview.interviewer_names && interview.interviewer_names.length > 0 && (<div className="mt-3 pt-3 border-t border-gray-100"><p className="text-xs text-gray-500"><span className="font-medium">Interviewers:</span> {interview.interviewer_names.join(', ')}</p></div>)}
+                        {interview.meeting_link && (<div className="mt-2"><a href={interview.meeting_link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:underline flex items-center"><Video className="w-3 h-3 mr-1" />Rejoindre la réunion</a></div>)}
+                      </div>
+                    ))}
+                    {interviews.filter(i => i.status === 'scheduled' && new Date(i.scheduled_at) >= new Date()).length === 0 && (<p className="text-gray-400 text-sm text-center py-8 bg-white rounded-xl">Aucun entretien à venir</p>)}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">📋 Entretiens passés</h3>
+                  <div className="space-y-3">
+                    {interviews.filter(i => i.status !== 'scheduled' || new Date(i.scheduled_at) < new Date()).sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime()).slice(0, 10).map(interview => (
+                      <div key={interview.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 opacity-80">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center flex-1">
+                            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-medium text-sm">{interview.candidate_name.split(' ').map(n => n[0]).join('')}</div>
+                            <div className="ml-4"><h4 className="font-medium text-gray-700">{interview.candidate_name}</h4><p className="text-sm text-gray-400">{interview.job_title}</p></div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right"><p className="text-sm text-gray-600">{formatDateTime(interview.scheduled_at)}</p><p className="text-xs text-gray-400">{interviewTypeLabels[interview.interview_type] || interview.interview_type}</p></div>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getInterviewStatusColor(interview.status)}`}>{interviewStatusLabels[interview.status] || interview.status}</span>
+                            <button onClick={() => handleDeleteInterview(interview.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Supprimer"><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {interviews.filter(i => i.status !== 'scheduled' || new Date(i.scheduled_at) < new Date()).length === 0 && (<p className="text-gray-400 text-sm text-center py-8 bg-white rounded-xl">Aucun entretien passé</p>)}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -785,11 +678,7 @@ export default function RecruitmentPage() {
               <h3 className="font-semibold text-gray-900 mb-4">Tendance Recrutement</h3>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={analytics.hiring_trend}>
-                    <XAxis dataKey="month" /><YAxis /><Tooltip />
-                    <Line type="monotone" dataKey="applications" stroke="#6366F1" strokeWidth={2} name="Candidatures" />
-                    <Line type="monotone" dataKey="hires" stroke="#10B981" strokeWidth={2} name="Embauches" />
-                  </LineChart>
+                  <LineChart data={analytics.hiring_trend}><XAxis dataKey="month" /><YAxis /><Tooltip /><Line type="monotone" dataKey="applications" stroke="#6366F1" strokeWidth={2} name="Candidatures" /><Line type="monotone" dataKey="hires" stroke="#10B981" strokeWidth={2} name="Embauches" /></LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
@@ -797,20 +686,7 @@ export default function RecruitmentPage() {
               <h3 className="font-semibold text-gray-900 mb-4">Sources de Candidatures</h3>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie 
-                      data={analytics.sources.map(s => ({ name: s.source, value: s.count, color: s.color }))} 
-                      cx="50%" 
-                      cy="50%" 
-                      innerRadius={60} 
-                      outerRadius={100} 
-                      dataKey="value" 
-                      label={({ name, value }) => `${name}: ${value}`}
-                    >
-                      {analytics.sources.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
+                  <PieChart><Pie data={analytics.sources.map(s => ({ name: s.source, value: s.count, color: s.color }))} cx="50%" cy="50%" innerRadius={60} outerRadius={100} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>{analytics.sources.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}</Pie><Tooltip /></PieChart>
                 </ResponsiveContainer>
               </div>
             </div>
@@ -818,18 +694,14 @@ export default function RecruitmentPage() {
               <h3 className="font-semibold text-gray-900 mb-4">Candidats par Département</h3>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={analytics.by_department} layout="vertical">
-                    <XAxis type="number" /><YAxis type="category" dataKey="department" width={100} /><Tooltip /><Bar dataKey="count" fill="#6366F1" radius={[0, 4, 4, 0]} />
-                  </BarChart>
+                  <BarChart data={analytics.by_department} layout="vertical"><XAxis type="number" /><YAxis type="category" dataKey="department" width={100} /><Tooltip /><Bar dataKey="count" fill="#6366F1" radius={[0, 4, 4, 0]} /></BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h3 className="font-semibold text-gray-900 mb-4">🏆 Top Candidats (Score IA)</h3>
               <div className="space-y-3">
-                {analytics.top_candidates.length === 0 ? (
-                  <p className="text-gray-400 text-sm text-center py-8">Aucun candidat avec score IA</p>
-                ) : analytics.top_candidates.map((c, i) => (
+                {analytics.top_candidates.length === 0 ? (<p className="text-gray-400 text-sm text-center py-8">Aucun candidat avec score IA</p>) : analytics.top_candidates.map((c, i) => (
                   <div key={c.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                     <span className="w-6 h-6 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center text-xs font-bold">{i + 1}</span>
                     <div className="flex-1"><p className="text-sm font-medium text-gray-900">{c.name}</p><p className="text-xs text-gray-500">{c.position}</p></div>
@@ -840,12 +712,7 @@ export default function RecruitmentPage() {
             </div>
           </div>
         )}
-
-        {activeTab === 'analytics' && !analytics && (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
-          </div>
-        )}
+        {activeTab === 'analytics' && !analytics && (<div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary-500" /></div>)}
 
         {/* Candidate Detail Modal */}
         {showCandidateModal && selectedApplication && (
@@ -853,21 +720,13 @@ export default function RecruitmentPage() {
             <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
               <div className="p-6 border-b border-gray-200 flex items-start justify-between">
                 <div className="flex items-center">
-                  <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 text-xl font-bold">
-                    {selectedApplication.candidate_name.split(' ').map(n => n[0]).join('')}
-                  </div>
+                  <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 text-xl font-bold">{selectedApplication.candidate_name.split(' ').map(n => n[0]).join('')}</div>
                   <div className="ml-4">
                     <h2 className="text-xl font-bold text-gray-900">{selectedApplication.candidate_name}</h2>
                     <p className="text-gray-500">{selectedApplication.job_title}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      {selectedApplication.candidate_ai_score && (
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${getScoreColor(selectedApplication.candidate_ai_score)}`}>
-                          Score IA: {selectedApplication.candidate_ai_score}%
-                        </span>
-                      )}
-                      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
-                        {stageLabels[selectedApplication.stage] || selectedApplication.stage}
-                      </span>
+                      {selectedApplication.candidate_ai_score && (<span className={`px-2 py-0.5 rounded text-xs font-medium ${getScoreColor(selectedApplication.candidate_ai_score)}`}>Score IA: {selectedApplication.candidate_ai_score}%</span>)}
+                      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">{stageLabels[selectedApplication.stage] || selectedApplication.stage}</span>
                     </div>
                   </div>
                 </div>
@@ -890,31 +749,42 @@ export default function RecruitmentPage() {
                   </div>
                   
                   {selectedApplication.candidate_skills && selectedApplication.candidate_skills.length > 0 && (
-                    <>
-                      <h3 className="font-semibold text-gray-900 mt-6 mb-3">Compétences</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedApplication.candidate_skills.map((skill) => (
-                          <span key={skill} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">{skill}</span>
-                        ))}
-                      </div>
-                    </>
+                    <><h3 className="font-semibold text-gray-900 mt-6 mb-3">Compétences</h3><div className="flex flex-wrap gap-2">{selectedApplication.candidate_skills.map((skill) => (<span key={skill} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">{skill}</span>))}</div></>
                   )}
+
+                  {(() => {
+                    const appInterviews = getInterviewsForApplication(selectedApplication.id);
+                    if (appInterviews.length === 0) return null;
+                    return (
+                      <><h3 className="font-semibold text-gray-900 mt-6 mb-3">Entretiens ({appInterviews.length})</h3>
+                        <div className="space-y-2">
+                          {appInterviews.map(interview => (
+                            <div key={interview.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{interviewTypeLabels[interview.interview_type] || interview.interview_type}</p>
+                                <p className="text-xs text-gray-500">{formatDateTime(interview.scheduled_at)}</p>
+                                {interview.interviewer_names && interview.interviewer_names.length > 0 && (<p className="text-xs text-gray-400 mt-1">{interview.interviewer_names.join(', ')}</p>)}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${getInterviewStatusColor(interview.status)}`}>{interviewStatusLabels[interview.status] || interview.status}</span>
+                                <button onClick={(e) => { e.stopPropagation(); handleDeleteInterview(interview.id); }} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded" title="Supprimer"><Trash2 className="w-3.5 h-3.5" /></button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
                 
                 <div>
                   {selectedApplication.candidate_ai_score_details && selectedApplication.candidate_ai_score_details.length > 0 && (
-                    <>
-                      <h3 className="font-semibold text-gray-900 mb-3">Score IA Détaillé</h3>
+                    <><h3 className="font-semibold text-gray-900 mb-3">Score IA Détaillé</h3>
                       <div className="space-y-3">
                         {selectedApplication.candidate_ai_score_details.map((detail) => (
                           <div key={detail.category}>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="text-gray-600">{detail.category}</span>
-                              <span className="font-medium">{detail.score}%</span>
-                            </div>
-                            <div className="h-2 bg-gray-200 rounded-full">
-                              <div className={`h-full rounded-full ${detail.score >= 90 ? 'bg-green-500' : detail.score >= 75 ? 'bg-blue-500' : 'bg-yellow-500'}`} style={{ width: `${detail.score}%` }} />
-                            </div>
+                            <div className="flex justify-between text-sm mb-1"><span className="text-gray-600">{detail.category}</span><span className="font-medium">{detail.score}%</span></div>
+                            <div className="h-2 bg-gray-200 rounded-full"><div className={`h-full rounded-full ${detail.score >= 90 ? 'bg-green-500' : detail.score >= 75 ? 'bg-blue-500' : 'bg-yellow-500'}`} style={{ width: `${detail.score}%` }} /></div>
                           </div>
                         ))}
                       </div>
@@ -922,17 +792,12 @@ export default function RecruitmentPage() {
                   )}
                   
                   {selectedApplication.timeline && selectedApplication.timeline.length > 0 && (
-                    <>
-                      <h3 className="font-semibold text-gray-900 mt-6 mb-3">Timeline</h3>
+                    <><h3 className="font-semibold text-gray-900 mt-6 mb-3">Timeline</h3>
                       <div className="space-y-3 max-h-48 overflow-y-auto">
                         {selectedApplication.timeline.map((event) => (
                           <div key={event.id} className="flex items-start">
                             <div className="w-2 h-2 bg-primary-500 rounded-full mt-2 mr-3 flex-shrink-0" />
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">{event.event_title}</p>
-                              {event.event_description && <p className="text-xs text-gray-500">{event.event_description}</p>}
-                              <p className="text-xs text-gray-400">{formatDate(event.created_at)}</p>
-                            </div>
+                            <div><p className="text-sm font-medium text-gray-900">{event.event_title}</p>{event.event_description && <p className="text-xs text-gray-500">{event.event_description}</p>}<p className="text-xs text-gray-400">{formatDate(event.created_at)}</p></div>
                           </div>
                         ))}
                       </div>
@@ -943,25 +808,15 @@ export default function RecruitmentPage() {
               
               <div className="p-6 border-t border-gray-200 flex flex-col sm:flex-row justify-between gap-3">
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => setShowInterviewModal(true)} className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50">
-                    <Video className="w-4 h-4 mr-2" />Planifier Entretien
-                  </button>
-                  <button className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50">
-                    <Mail className="w-4 h-4 mr-2" />Envoyer Email
-                  </button>
+                  <button onClick={() => setShowInterviewModal(true)} className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"><Video className="w-4 h-4 mr-2" />Planifier Entretien</button>
+                  <button onClick={() => handleSendEmail(selectedApplication)} className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"><Mail className="w-4 h-4 mr-2" />Envoyer Email</button>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => handleReject(selectedApplication)} className="flex items-center px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600">
-                    <XCircle className="w-4 h-4 mr-2" />Refuser
-                  </button>
+                  <button onClick={() => handleReject(selectedApplication)} className="flex items-center px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600"><XCircle className="w-4 h-4 mr-2" />Refuser</button>
                   {selectedApplication.stage === 'final' ? (
-                    <button onClick={() => handleSendOffer(selectedApplication)} className="flex items-center px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600">
-                      <FileText className="w-4 h-4 mr-2" />Envoyer Offre
-                    </button>
+                    <button onClick={() => handleSendOffer(selectedApplication)} className="flex items-center px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600"><FileText className="w-4 h-4 mr-2" />Envoyer Offre</button>
                   ) : selectedApplication.stage !== 'offer' && selectedApplication.stage !== 'hired' && (
-                    <button onClick={() => handleNextStage(selectedApplication)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600">
-                      <ArrowRight className="w-4 h-4 mr-2" />Étape Suivante
-                    </button>
+                    <button onClick={() => handleNextStage(selectedApplication)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600"><ArrowRight className="w-4 h-4 mr-2" />Étape Suivante</button>
                   )}
                 </div>
               </div>
@@ -969,65 +824,10 @@ export default function RecruitmentPage() {
           </div>
         )}
 
-        {/* Job Modal */}
-        {showJobModal && (
-          <JobModal
-            job={editingJob}
-            departments={departments}
-            employees={employees}
-            onClose={() => setShowJobModal(false)}
-            onSave={async (data) => {
-              let success;
-              if (editingJob) {
-                success = await updateJob(editingJob.id, data);
-              } else {
-                success = await createJob(data);
-              }
-              if (success) {
-                setShowJobModal(false);
-                loadData();
-              } else {
-                alert('Erreur lors de la sauvegarde');
-              }
-            }}
-          />
-        )}
-
-        {/* Add Candidate Modal */}
-        {showAddCandidateModal && (
-          <AddCandidateModal
-            jobs={jobs.filter(j => j.status === 'active')}
-            onClose={() => setShowAddCandidateModal(false)}
-            onSave={async (data) => {
-              const success = await createCandidate(data);
-              if (success) {
-                setShowAddCandidateModal(false);
-                loadData();
-              } else {
-                alert('Erreur lors de la création');
-              }
-            }}
-          />
-        )}
-
-        {/* Interview Modal */}
-        {showInterviewModal && selectedApplication && (
-          <InterviewModal
-            application={selectedApplication}
-            employees={employees}
-            onClose={() => setShowInterviewModal(false)}
-            onSave={async (data) => {
-              const success = await createInterview(data);
-              if (success) {
-                setShowInterviewModal(false);
-                setShowCandidateModal(false);
-                loadData();
-              } else {
-                alert('Erreur lors de la planification');
-              }
-            }}
-          />
-        )}
+        {/* Modals */}
+        {showJobModal && <JobModal job={editingJob} departments={departments} employees={employees} onClose={() => setShowJobModal(false)} onSave={async (data) => { const success = editingJob ? await updateJob(editingJob.id, data) : await createJob(data); if (success) { setShowJobModal(false); loadData(); } else { alert('Erreur lors de la sauvegarde'); } }} />}
+        {showAddCandidateModal && <AddCandidateModal jobs={jobs.filter(j => j.status === 'active')} onClose={() => setShowAddCandidateModal(false)} onSave={async (data) => { const success = await createCandidate(data); if (success) { setShowAddCandidateModal(false); loadData(); } else { alert('Erreur lors de la création'); } }} />}
+        {showInterviewModal && selectedApplication && <InterviewModal application={selectedApplication} employees={employees} onClose={() => setShowInterviewModal(false)} onSave={async (data) => { const success = await createInterview(data); if (success) { setShowInterviewModal(false); setShowCandidateModal(false); loadData(); } else { alert('Erreur lors de la planification'); } }} />}
       </main>
     </>
   );
@@ -1037,54 +837,15 @@ export default function RecruitmentPage() {
 // JOB MODAL COMPONENT
 // ============================================
 
-function JobModal({
-  job,
-  departments,
-  employees,
-  onClose,
-  onSave
-}: {
-  job: Job | null;
-  departments: Department[];
-  employees: Employee[];
-  onClose: () => void;
-  onSave: (data: Partial<Job>) => Promise<void>;
-}) {
+function JobModal({ job, departments, employees, onClose, onSave }: { job: Job | null; departments: Department[]; employees: Employee[]; onClose: () => void; onSave: (data: Partial<Job>) => Promise<void>; }) {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    title: job?.title || '',
-    department_id: job?.department_id?.toString() || '',
-    location: job?.location || '',
-    remote_policy: job?.remote_policy || 'onsite',
-    contract_type: job?.contract_type || 'CDI',
-    description: job?.description || '',
-    requirements: job?.requirements?.join('\n') || '',
-    salary_min: job?.salary_min?.toString() || '',
-    salary_max: job?.salary_max?.toString() || '',
-    show_salary: job?.show_salary || false,
-    urgency: job?.urgency || 'medium',
-    hiring_manager_id: job?.hiring_manager_id?.toString() || '',
-    deadline: job?.deadline || ''
+    title: job?.title || '', department_id: job?.department_id?.toString() || '', location: job?.location || '', remote_policy: job?.remote_policy || 'onsite', contract_type: job?.contract_type || 'CDI', description: job?.description || '', requirements: job?.requirements?.join('\n') || '', salary_min: job?.salary_min?.toString() || '', salary_max: job?.salary_max?.toString() || '', show_salary: job?.show_salary || false, urgency: job?.urgency || 'medium', hiring_manager_id: job?.hiring_manager_id?.toString() || '', deadline: job?.deadline || ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    await onSave({
-      title: formData.title,
-      department_id: formData.department_id ? parseInt(formData.department_id) : null,
-      location: formData.location,
-      remote_policy: formData.remote_policy,
-      contract_type: formData.contract_type,
-      description: formData.description || null,
-      requirements: formData.requirements ? formData.requirements.split('\n').filter(r => r.trim()) : null,
-      salary_min: formData.salary_min ? parseFloat(formData.salary_min) : null,
-      salary_max: formData.salary_max ? parseFloat(formData.salary_max) : null,
-      show_salary: formData.show_salary,
-      urgency: formData.urgency,
-      hiring_manager_id: formData.hiring_manager_id ? parseInt(formData.hiring_manager_id) : null,
-      deadline: formData.deadline || null
-    });
+    e.preventDefault(); setSaving(true);
+    await onSave({ title: formData.title, department_id: formData.department_id ? parseInt(formData.department_id) : null, location: formData.location, remote_policy: formData.remote_policy, contract_type: formData.contract_type, description: formData.description || null, requirements: formData.requirements ? formData.requirements.split('\n').filter(r => r.trim()) : null, salary_min: formData.salary_min ? parseFloat(formData.salary_min) : null, salary_max: formData.salary_max ? parseFloat(formData.salary_max) : null, show_salary: formData.show_salary, urgency: formData.urgency, hiring_manager_id: formData.hiring_manager_id ? parseInt(formData.hiring_manager_id) : null, deadline: formData.deadline || null });
     setSaving(false);
   };
 
@@ -1095,88 +856,25 @@ function JobModal({
           <h2 className="text-xl font-bold text-gray-900">{job ? 'Modifier l\'offre' : 'Nouvelle offre d\'emploi'}</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
         </div>
-        
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Titre du poste *</label>
-              <input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: Développeur Full Stack Senior" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Département</label>
-              <select value={formData.department_id} onChange={(e) => setFormData({...formData, department_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-                <option value="">Sélectionner...</option>
-                {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Localisation *</label>
-              <input type="text" required value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: Dakar, Sénégal" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Type de contrat</label>
-              <select value={formData.contract_type} onChange={(e) => setFormData({...formData, contract_type: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-                <option value="CDI">CDI</option>
-                <option value="CDD">CDD</option>
-                <option value="Stage">Stage</option>
-                <option value="Alternance">Alternance</option>
-                <option value="Freelance">Freelance</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Politique Remote</label>
-              <select value={formData.remote_policy} onChange={(e) => setFormData({...formData, remote_policy: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-                <option value="onsite">Sur site</option>
-                <option value="hybrid">Hybride</option>
-                <option value="remote">Full Remote</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Salaire Min (XOF)</label>
-              <input type="number" value={formData.salary_min} onChange={(e) => setFormData({...formData, salary_min: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: 1500000" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Salaire Max (XOF)</label>
-              <input type="number" value={formData.salary_max} onChange={(e) => setFormData({...formData, salary_max: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: 2000000" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Urgence</label>
-              <select value={formData.urgency} onChange={(e) => setFormData({...formData, urgency: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-                <option value="low">Normal</option>
-                <option value="medium">Modéré</option>
-                <option value="high">Urgent</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Hiring Manager</label>
-              <select value={formData.hiring_manager_id} onChange={(e) => setFormData({...formData, hiring_manager_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-                <option value="">Sélectionner...</option>
-                {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date limite</label>
-              <input type="date" value={formData.deadline} onChange={(e) => setFormData({...formData, deadline: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
-            </div>
-            <div className="flex items-center">
-              <input type="checkbox" id="show_salary" checked={formData.show_salary} onChange={(e) => setFormData({...formData, show_salary: e.target.checked})} className="mr-2" />
-              <label htmlFor="show_salary" className="text-sm text-gray-700">Afficher le salaire</label>
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea rows={4} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Description du poste..." />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Prérequis (un par ligne)</label>
-              <textarea rows={4} value={formData.requirements} onChange={(e) => setFormData({...formData, requirements: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="5+ ans d'expérience&#10;React/Node.js&#10;PostgreSQL" />
-            </div>
+            <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Titre du poste *</label><input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: Développeur Full Stack Senior" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Département</label><select value={formData.department_id} onChange={(e) => setFormData({...formData, department_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"><option value="">Sélectionner...</option>{departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Localisation *</label><input type="text" required value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: Dakar, Sénégal" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Type de contrat</label><select value={formData.contract_type} onChange={(e) => setFormData({...formData, contract_type: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"><option value="CDI">CDI</option><option value="CDD">CDD</option><option value="Stage">Stage</option><option value="Alternance">Alternance</option><option value="Freelance">Freelance</option></select></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Politique Remote</label><select value={formData.remote_policy} onChange={(e) => setFormData({...formData, remote_policy: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"><option value="onsite">Sur site</option><option value="hybrid">Hybride</option><option value="remote">Full Remote</option></select></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Salaire Min (XOF)</label><input type="number" value={formData.salary_min} onChange={(e) => setFormData({...formData, salary_min: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: 1500000" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Salaire Max (XOF)</label><input type="number" value={formData.salary_max} onChange={(e) => setFormData({...formData, salary_max: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: 2000000" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Urgence</label><select value={formData.urgency} onChange={(e) => setFormData({...formData, urgency: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"><option value="low">Normal</option><option value="medium">Modéré</option><option value="high">Urgent</option></select></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Hiring Manager</label><select value={formData.hiring_manager_id} onChange={(e) => setFormData({...formData, hiring_manager_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"><option value="">Sélectionner...</option>{employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}</select></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Date limite</label><input type="date" value={formData.deadline} onChange={(e) => setFormData({...formData, deadline: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
+            <div className="flex items-center"><input type="checkbox" id="show_salary" checked={formData.show_salary} onChange={(e) => setFormData({...formData, show_salary: e.target.checked})} className="mr-2" /><label htmlFor="show_salary" className="text-sm text-gray-700">Afficher le salaire</label></div>
+            <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea rows={4} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Description du poste..." /></div>
+            <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Prérequis (un par ligne)</label><textarea rows={4} value={formData.requirements} onChange={(e) => setFormData({...formData, requirements: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="5+ ans d'expérience&#10;React/Node.js&#10;PostgreSQL" /></div>
           </div>
-          
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
-            <button type="submit" disabled={saving} className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
-              {saving ? 'Enregistrement...' : (job ? 'Modifier' : 'Créer')}
-            </button>
+            <button type="submit" disabled={saving} className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{saving ? 'Enregistrement...' : (job ? 'Modifier' : 'Créer')}</button>
           </div>
         </form>
       </div>
@@ -1188,67 +886,13 @@ function JobModal({
 // ADD CANDIDATE MODAL COMPONENT
 // ============================================
 
-function AddCandidateModal({
-  jobs,
-  onClose,
-  onSave
-}: {
-  jobs: Job[];
-  onClose: () => void;
-  onSave: (data: {
-    first_name: string;
-    last_name: string;
-    email: string;
-    phone?: string;
-    location?: string;
-    linkedin_url?: string;
-    current_company?: string;
-    experience_years?: number;
-    education?: string;
-    skills?: string[];
-    expected_salary?: number;
-    notice_period?: string;
-    source?: string;
-    job_posting_id?: number;
-  }) => Promise<void>;
-}) {
+function AddCandidateModal({ jobs, onClose, onSave }: { jobs: Job[]; onClose: () => void; onSave: (data: { first_name: string; last_name: string; email: string; phone?: string; location?: string; linkedin_url?: string; current_company?: string; experience_years?: number; education?: string; skills?: string[]; expected_salary?: number; notice_period?: string; source?: string; job_posting_id?: number; }) => Promise<void>; }) {
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    phone: '',
-    location: '',
-    linkedin_url: '',
-    current_company: '',
-    experience_years: '',
-    education: '',
-    skills: '',
-    expected_salary: '',
-    notice_period: '',
-    source: 'Autre',
-    job_posting_id: ''
-  });
+  const [formData, setFormData] = useState({ first_name: '', last_name: '', email: '', phone: '', location: '', linkedin_url: '', current_company: '', experience_years: '', education: '', skills: '', expected_salary: '', notice_period: '', source: 'Autre', job_posting_id: '' });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    await onSave({
-      first_name: formData.first_name,
-      last_name: formData.last_name,
-      email: formData.email,
-      phone: formData.phone || undefined,
-      location: formData.location || undefined,
-      linkedin_url: formData.linkedin_url || undefined,
-      current_company: formData.current_company || undefined,
-      experience_years: formData.experience_years ? parseInt(formData.experience_years) : undefined,
-      education: formData.education || undefined,
-      skills: formData.skills ? formData.skills.split(',').map(s => s.trim()).filter(s => s) : undefined,
-      expected_salary: formData.expected_salary ? parseFloat(formData.expected_salary) : undefined,
-      notice_period: formData.notice_period || undefined,
-      source: formData.source,
-      job_posting_id: formData.job_posting_id ? parseInt(formData.job_posting_id) : undefined
-    });
+    e.preventDefault(); setSaving(true);
+    await onSave({ first_name: formData.first_name, last_name: formData.last_name, email: formData.email, phone: formData.phone || undefined, location: formData.location || undefined, linkedin_url: formData.linkedin_url || undefined, current_company: formData.current_company || undefined, experience_years: formData.experience_years ? parseInt(formData.experience_years) : undefined, education: formData.education || undefined, skills: formData.skills ? formData.skills.split(',').map(s => s.trim()).filter(s => s) : undefined, expected_salary: formData.expected_salary ? parseFloat(formData.expected_salary) : undefined, notice_period: formData.notice_period || undefined, source: formData.source, job_posting_id: formData.job_posting_id ? parseInt(formData.job_posting_id) : undefined });
     setSaving(false);
   };
 
@@ -1259,82 +903,26 @@ function AddCandidateModal({
           <h2 className="text-xl font-bold text-gray-900">Ajouter un candidat</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
         </div>
-        
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
-              <input type="text" required value={formData.first_name} onChange={(e) => setFormData({...formData, first_name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
-              <input type="text" required value={formData.last_name} onChange={(e) => setFormData({...formData, last_name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-              <input type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
-              <input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="+221 77 123 45 67" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Localisation</label>
-              <input type="text" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Dakar, Sénégal" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn URL</label>
-              <input type="url" value={formData.linkedin_url} onChange={(e) => setFormData({...formData, linkedin_url: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="https://linkedin.com/in/..." />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Entreprise actuelle</label>
-              <input type="text" value={formData.current_company} onChange={(e) => setFormData({...formData, current_company: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Années d&apos;expérience</label>
-              <input type="number" min="0" value={formData.experience_years} onChange={(e) => setFormData({...formData, experience_years: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Formation</label>
-              <input type="text" value={formData.education} onChange={(e) => setFormData({...formData, education: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Master Informatique - Université XYZ" />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Compétences (séparées par virgule)</label>
-              <input type="text" value={formData.skills} onChange={(e) => setFormData({...formData, skills: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="React, Node.js, TypeScript, PostgreSQL" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Salaire attendu (XOF)</label>
-              <input type="number" value={formData.expected_salary} onChange={(e) => setFormData({...formData, expected_salary: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="1500000" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Préavis</label>
-              <input type="text" value={formData.notice_period} onChange={(e) => setFormData({...formData, notice_period: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="1 mois" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
-              <select value={formData.source} onChange={(e) => setFormData({...formData, source: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-                <option value="LinkedIn">LinkedIn</option>
-                <option value="Indeed">Indeed</option>
-                <option value="Site Carrière">Site Carrière</option>
-                <option value="Référence interne">Référence interne</option>
-                <option value="Cabinet">Cabinet</option>
-                <option value="Autre">Autre</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Poste visé</label>
-              <select value={formData.job_posting_id} onChange={(e) => setFormData({...formData, job_posting_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-                <option value="">Sélectionner un poste...</option>
-                {jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
-              </select>
-            </div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label><input type="text" required value={formData.first_name} onChange={(e) => setFormData({...formData, first_name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label><input type="text" required value={formData.last_name} onChange={(e) => setFormData({...formData, last_name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Email *</label><input type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label><input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="+221 77 123 45 67" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Localisation</label><input type="text" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Dakar, Sénégal" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn URL</label><input type="url" value={formData.linkedin_url} onChange={(e) => setFormData({...formData, linkedin_url: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="https://linkedin.com/in/..." /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Entreprise actuelle</label><input type="text" value={formData.current_company} onChange={(e) => setFormData({...formData, current_company: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Années d&apos;expérience</label><input type="number" min="0" value={formData.experience_years} onChange={(e) => setFormData({...formData, experience_years: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
+            <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Formation</label><input type="text" value={formData.education} onChange={(e) => setFormData({...formData, education: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Master Informatique - Université XYZ" /></div>
+            <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Compétences (séparées par virgule)</label><input type="text" value={formData.skills} onChange={(e) => setFormData({...formData, skills: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="React, Node.js, TypeScript, PostgreSQL" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Salaire attendu (XOF)</label><input type="number" value={formData.expected_salary} onChange={(e) => setFormData({...formData, expected_salary: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="1500000" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Préavis</label><input type="text" value={formData.notice_period} onChange={(e) => setFormData({...formData, notice_period: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="1 mois" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Source</label><select value={formData.source} onChange={(e) => setFormData({...formData, source: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"><option value="LinkedIn">LinkedIn</option><option value="Indeed">Indeed</option><option value="Site Carrière">Site Carrière</option><option value="Référence interne">Référence interne</option><option value="Cabinet">Cabinet</option><option value="Autre">Autre</option></select></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Poste visé</label><select value={formData.job_posting_id} onChange={(e) => setFormData({...formData, job_posting_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"><option value="">Sélectionner un poste...</option>{jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}</select></div>
           </div>
-          
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
-            <button type="submit" disabled={saving} className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
-              {saving ? 'Création...' : 'Ajouter'}
-            </button>
+            <button type="submit" disabled={saving} className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{saving ? 'Création...' : 'Ajouter'}</button>
           </div>
         </form>
       </div>
@@ -1346,40 +934,12 @@ function AddCandidateModal({
 // INTERVIEW MODAL COMPONENT
 // ============================================
 
-function InterviewModal({
-  application,
-  employees,
-  onClose,
-  onSave
-}: {
-  application: Application;
-  employees: Employee[];
-  onClose: () => void;
-  onSave: (data: {
-    application_id: number;
-    interview_type: string;
-    scheduled_at: string;
-    duration_minutes: number;
-    location?: string;
-    meeting_link?: string;
-    interviewer_ids?: number[];
-  }) => Promise<void>;
-}) {
+function InterviewModal({ application, employees, onClose, onSave }: { application: Application; employees: Employee[]; onClose: () => void; onSave: (data: { application_id: number; interview_type: string; scheduled_at: string; duration_minutes: number; location?: string; meeting_link?: string; interviewer_ids?: number[]; }) => Promise<void>; }) {
   const [saving, setSaving] = useState(false);
   const [interviewerSearch, setInterviewerSearch] = useState('');
-  const [formData, setFormData] = useState({
-    interview_type: 'video',
-    date: '',
-    time: '10:00',
-    duration_minutes: '60',
-    location: '',
-    meeting_link: '',
-    interviewer_ids: [] as number[]
-  });
+  const [formData, setFormData] = useState({ interview_type: 'video', date: '', time: '10:00', duration_minutes: '60', location: '', meeting_link: '', interviewer_ids: [] as number[] });
 
-  // Grouper et trier les employés par département
   const getGroupedEmployees = () => {
-    // Filtrer par recherche
     const filtered = employees.filter(emp => {
       if (!interviewerSearch) return true;
       const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
@@ -1387,33 +947,10 @@ function InterviewModal({
       const search = interviewerSearch.toLowerCase();
       return fullName.includes(search) || dept.includes(search);
     });
-
-    // Grouper par département
     const grouped: Record<string, Employee[]> = {};
-    filtered.forEach(emp => {
-      const dept = emp.department_name || 'Autre';
-      if (!grouped[dept]) grouped[dept] = [];
-      grouped[dept].push(emp);
-    });
-
-    // Trier les employés dans chaque groupe (managers en premier)
-    Object.keys(grouped).forEach(dept => {
-      grouped[dept].sort((a, b) => {
-        // Managers en premier
-        if (a.is_manager && !b.is_manager) return -1;
-        if (!a.is_manager && b.is_manager) return 1;
-        // Puis par nom
-        return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
-      });
-    });
-
-    // Trier les départements alphabétiquement
-    const sortedDepts = Object.keys(grouped).sort((a, b) => {
-      if (a === 'Autre') return 1;
-      if (b === 'Autre') return -1;
-      return a.localeCompare(b);
-    });
-
+    filtered.forEach(emp => { const dept = emp.department_name || 'Autre'; if (!grouped[dept]) grouped[dept] = []; grouped[dept].push(emp); });
+    Object.keys(grouped).forEach(dept => { grouped[dept].sort((a, b) => { if (a.is_manager && !b.is_manager) return -1; if (!a.is_manager && b.is_manager) return 1; return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`); }); });
+    const sortedDepts = Object.keys(grouped).sort((a, b) => { if (a === 'Autre') return 1; if (b === 'Autre') return -1; return a.localeCompare(b); });
     return { grouped, sortedDepts };
   };
 
@@ -1421,193 +958,56 @@ function InterviewModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.date || !formData.time) {
-      alert('Veuillez sélectionner une date et une heure');
-      return;
-    }
-    
+    if (!formData.date || !formData.time) { alert('Veuillez sélectionner une date et une heure'); return; }
     setSaving(true);
     const scheduled_at = new Date(`${formData.date}T${formData.time}:00`).toISOString();
-    await onSave({
-      application_id: application.id,
-      interview_type: formData.interview_type,
-      scheduled_at,
-      duration_minutes: parseInt(formData.duration_minutes),
-      location: formData.location || undefined,
-      meeting_link: formData.meeting_link || undefined,
-      interviewer_ids: formData.interviewer_ids.length > 0 ? formData.interviewer_ids : undefined
-    });
+    await onSave({ application_id: application.id, interview_type: formData.interview_type, scheduled_at, duration_minutes: parseInt(formData.duration_minutes), location: formData.location || undefined, meeting_link: formData.meeting_link || undefined, interviewer_ids: formData.interviewer_ids.length > 0 ? formData.interviewer_ids : undefined });
     setSaving(false);
   };
 
-  const toggleInterviewer = (id: number) => {
-    setFormData(prev => ({
-      ...prev,
-      interviewer_ids: prev.interviewer_ids.includes(id)
-        ? prev.interviewer_ids.filter(i => i !== id)
-        : [...prev.interviewer_ids, id]
-    }));
-  };
-
+  const toggleInterviewer = (id: number) => { setFormData(prev => ({ ...prev, interviewer_ids: prev.interviewer_ids.includes(id) ? prev.interviewer_ids.filter(i => i !== id) : [...prev.interviewer_ids, id] })); };
   const selectedEmployees = employees.filter(emp => formData.interviewer_ids.includes(emp.id));
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Planifier un entretien</h2>
-            <p className="text-sm text-gray-500">{application.candidate_name} - {application.job_title}</p>
-          </div>
+          <div><h2 className="text-xl font-bold text-gray-900">Planifier un entretien</h2><p className="text-sm text-gray-500">{application.candidate_name} - {application.job_title}</p></div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
         </div>
-        
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Type d&apos;entretien</label>
-            <select value={formData.interview_type} onChange={(e) => setFormData({...formData, interview_type: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-              <option value="phone">Téléphonique</option>
-              <option value="video">Vidéoconférence</option>
-              <option value="onsite">Sur site</option>
-            </select>
+            <select value={formData.interview_type} onChange={(e) => setFormData({...formData, interview_type: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"><option value="phone">Téléphonique</option><option value="video">Vidéoconférence</option><option value="onsite">Sur site</option></select>
           </div>
-          
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
-              <input type="date" required value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Heure *</label>
-              <input type="time" required value={formData.time} onChange={(e) => setFormData({...formData, time: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
-            </div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Date *</label><input type="date" required value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Heure *</label><input type="time" required value={formData.time} onChange={(e) => setFormData({...formData, time: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
           </div>
-          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Durée</label>
-            <select value={formData.duration_minutes} onChange={(e) => setFormData({...formData, duration_minutes: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-              <option value="30">30 minutes</option>
-              <option value="45">45 minutes</option>
-              <option value="60">1 heure</option>
-              <option value="90">1h30</option>
-              <option value="120">2 heures</option>
-            </select>
+            <select value={formData.duration_minutes} onChange={(e) => setFormData({...formData, duration_minutes: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60">1 heure</option><option value="90">1h30</option><option value="120">2 heures</option></select>
           </div>
-          
-          {formData.interview_type === 'video' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Lien de la réunion</label>
-              <input type="url" value={formData.meeting_link} onChange={(e) => setFormData({...formData, meeting_link: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="https://meet.google.com/..." />
-            </div>
-          )}
-          
-          {formData.interview_type === 'onsite' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Lieu</label>
-              <input type="text" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Salle de réunion A, 3ème étage" />
-            </div>
-          )}
-          
+          {formData.interview_type === 'video' && (<div><label className="block text-sm font-medium text-gray-700 mb-1">Lien de la réunion</label><input type="url" value={formData.meeting_link} onChange={(e) => setFormData({...formData, meeting_link: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="https://meet.google.com/..." /></div>)}
+          {formData.interview_type === 'onsite' && (<div><label className="block text-sm font-medium text-gray-700 mb-1">Lieu</label><input type="text" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Salle de réunion A, 3ème étage" /></div>)}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Interviewers</label>
-            
-            {/* Interviewers sélectionnés */}
-            {selectedEmployees.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-3">
-                {selectedEmployees.map(emp => (
-                  <span 
-                    key={emp.id} 
-                    className="inline-flex items-center px-3 py-1 bg-primary-100 text-primary-700 text-sm rounded-full"
-                  >
-                    {emp.first_name} {emp.last_name}
-                    {emp.is_manager && <span className="ml-1 text-xs bg-primary-200 px-1 rounded">Mgr</span>}
-                    <button 
-                      type="button" 
-                      onClick={() => toggleInterviewer(emp.id)}
-                      className="ml-2 text-primary-500 hover:text-primary-700"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-            
-            {/* Barre de recherche */}
+            {selectedEmployees.length > 0 && (<div className="flex flex-wrap gap-2 mb-3">{selectedEmployees.map(emp => (<span key={emp.id} className="inline-flex items-center px-3 py-1 bg-primary-100 text-primary-700 text-sm rounded-full">{emp.first_name} {emp.last_name}{emp.is_manager && <span className="ml-1 text-xs bg-primary-200 px-1 rounded">Mgr</span>}<button type="button" onClick={() => toggleInterviewer(emp.id)} className="ml-2 text-primary-500 hover:text-primary-700"><X className="w-3 h-3" /></button></span>))}</div>)}
             <div className="relative mb-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Rechercher par nom ou département..."
-                value={interviewerSearch}
-                onChange={(e) => setInterviewerSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm"
-              />
-              {interviewerSearch && (
-                <button
-                  type="button"
-                  onClick={() => setInterviewerSearch('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
+              <input type="text" placeholder="Rechercher par nom ou département..." value={interviewerSearch} onChange={(e) => setInterviewerSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm" />
+              {interviewerSearch && (<button type="button" onClick={() => setInterviewerSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>)}
             </div>
-            
-            {/* Liste groupée par département */}
             <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
-              {sortedDepts.length === 0 ? (
-                <div className="p-4 text-center text-gray-500 text-sm">
-                  Aucun employé trouvé
-                </div>
-              ) : (
-                sortedDepts.map(dept => (
-                  <div key={dept}>
-                    {/* Header département */}
-                    <div className="sticky top-0 bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-600 border-b border-gray-200">
-                      {dept} ({grouped[dept].length})
-                    </div>
-                    {/* Employés du département */}
-                    {grouped[dept].map(emp => (
-                      <label 
-                        key={emp.id} 
-                        className={`flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${
-                          formData.interviewer_ids.includes(emp.id) ? 'bg-primary-50' : ''
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.interviewer_ids.includes(emp.id)}
-                          onChange={() => toggleInterviewer(emp.id)}
-                          className="mr-3 rounded border-gray-300 text-primary-500 focus:ring-primary-500"
-                        />
-                        <span className="flex-1 text-sm text-gray-700">
-                          {emp.first_name} {emp.last_name}
-                        </span>
-                        {emp.is_manager && (
-                          <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs rounded font-medium">
-                            Mgr
-                          </span>
-                        )}
-                      </label>
-                    ))}
-                  </div>
-                ))
+              {sortedDepts.length === 0 ? (<div className="p-4 text-center text-gray-500 text-sm">Aucun employé trouvé</div>) : (
+                sortedDepts.map(dept => (<div key={dept}><div className="sticky top-0 bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-600 border-b border-gray-200">{dept} ({grouped[dept].length})</div>{grouped[dept].map(emp => (<label key={emp.id} className={`flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${formData.interviewer_ids.includes(emp.id) ? 'bg-primary-50' : ''}`}><input type="checkbox" checked={formData.interviewer_ids.includes(emp.id)} onChange={() => toggleInterviewer(emp.id)} className="mr-3 rounded border-gray-300 text-primary-500 focus:ring-primary-500" /><span className="flex-1 text-sm text-gray-700">{emp.first_name} {emp.last_name}</span>{emp.is_manager && (<span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs rounded font-medium">Mgr</span>)}</label>))}</div>))
               )}
             </div>
-            
-            {formData.interviewer_ids.length > 0 && (
-              <p className="text-xs text-gray-500 mt-2">
-                {formData.interviewer_ids.length} interviewer{formData.interviewer_ids.length > 1 ? 's' : ''} sélectionné{formData.interviewer_ids.length > 1 ? 's' : ''}
-              </p>
-            )}
+            {formData.interviewer_ids.length > 0 && (<p className="text-xs text-gray-500 mt-2">{formData.interviewer_ids.length} interviewer{formData.interviewer_ids.length > 1 ? 's' : ''} sélectionné{formData.interviewer_ids.length > 1 ? 's' : ''}</p>)}
           </div>
-          
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
-            <button type="submit" disabled={saving} className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
-              {saving ? 'Planification...' : 'Planifier'}
-            </button>
+            <button type="submit" disabled={saving} className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{saving ? 'Planification...' : 'Planifier'}</button>
           </div>
         </form>
       </div>

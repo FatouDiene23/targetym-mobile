@@ -703,7 +703,7 @@ export default function OKRPage() {
   const [objectives, setObjectives] = useState<Objective[]>([]);
   const [stats, setStats] = useState<OKRStats | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   
   // User context for role-based filtering
   const [userRole, setUserRole] = useState<UserRole>('employee');
@@ -868,7 +868,7 @@ export default function OKRPage() {
       setObjectives(filteredObjectives.map(o => ({ ...o, expanded: false })));
       setStats(statsData);
       setDepartments(deptData);
-      setEmployees(empData);
+      setAllEmployees(empData);
       
       // Charger les employés assignables selon le rôle
       if (canSeeAll) {
@@ -883,7 +883,7 @@ export default function OKRPage() {
           if (directReportsRes.ok) {
             const directReports = await directReportsRes.json();
             // Ajouter le manager lui-même à la liste (il peut s'assigner des objectifs)
-            const currentEmployee = empData.find(e => e.id === userEmployeeId);
+            const currentEmployee = empData.find((e: Employee) => e.id === userEmployeeId);
             if (currentEmployee) {
               setAssignableEmployees([currentEmployee, ...directReports]);
             } else {
@@ -892,12 +892,12 @@ export default function OKRPage() {
             console.log('Direct reports loaded:', directReports.length);
           } else {
             // Fallback: seulement lui-même
-            const currentEmployee = empData.find(e => e.id === userEmployeeId);
+            const currentEmployee = empData.find((e: Employee) => e.id === userEmployeeId);
             setAssignableEmployees(currentEmployee ? [currentEmployee] : []);
           }
         } catch (e) {
           console.error('Error fetching direct reports:', e);
-          const currentEmployee = empData.find(e => e.id === userEmployeeId);
+          const currentEmployee = empData.find((e: Employee) => e.id === userEmployeeId);
           setAssignableEmployees(currentEmployee ? [currentEmployee] : []);
         }
       }

@@ -24,7 +24,8 @@ import {
   MessageSquare,
   Star,
   UserCheck,
-  Lock
+  Lock,
+  Briefcase
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -158,6 +159,12 @@ const mySpaceNavigation: NavItem[] = [
     icon: ClipboardList,
     roles: ['employee', 'manager', 'rh', 'admin', 'dg']
   },
+  {
+    name: 'Offres Internes',
+    href: '/dashboard/my-space/internal-jobs',
+    icon: Briefcase,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg']
+  },
 ];
 
 // Sous-menu Performance
@@ -225,23 +232,18 @@ export default function Sidebar() {
   const [inPerformance, setInPerformance] = useState(false);
   const [isManager, setIsManager] = useState(false);
 
-  // Détecter si on est dans Mon Espace ou Performance
   useEffect(() => {
     setInMySpace(pathname.startsWith('/dashboard/my-space'));
     setInPerformance(pathname.startsWith('/dashboard/performance'));
   }, [pathname]);
 
-  // Charger les données utilisateur
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
         const userData = JSON.parse(userStr);
         setUser(userData);
-        setIsManager(
-          userData.role?.toLowerCase() === 'manager' || 
-          userData.is_manager === true
-        );
+        setIsManager(userData.role?.toLowerCase() === 'manager' || userData.is_manager === true);
       } catch (e) {
         console.error('Error parsing user data:', e);
       }
@@ -249,14 +251,8 @@ export default function Sidebar() {
   }, []);
 
   const userRole = normalizeRole(user?.role);
-
-  const initials = user 
-    ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'
-    : '?';
-  
-  const displayName = user 
-    ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || 'Utilisateur'
-    : 'Utilisateur';
+  const initials = user ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() || user.email?.[0]?.toUpperCase() || '?' : '?';
+  const displayName = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || 'Utilisateur' : 'Utilisateur';
 
   const handleLogout = () => {
     localStorage.removeItem('access_token');
@@ -265,381 +261,123 @@ export default function Sidebar() {
     window.location.href = 'https://targetym-website.vercel.app/login';
   };
 
-  // Filtrer les items selon le rôle
   const filteredNavigation = navigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredMySpaceNav = mySpaceNavigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredPerformanceNav = performanceNavigation.filter(item => hasAccess(item, userRole, isManager));
 
-  // ========================================
-  // Composant pour un item de navigation (réutilisable)
-  // ========================================
   const NavItemComponent = ({ item, isCollapsed, showTooltip = false }: { item: NavItem; isCollapsed: boolean; showTooltip?: boolean }) => {
-    const isActive = pathname === item.href || 
-      (item.href !== '/dashboard' && pathname.startsWith(item.href));
+    const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
     
-    // Si l'item est désactivé
     if (item.disabled) {
       return (
-        <div
-          className={`flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'} rounded-lg cursor-not-allowed opacity-50 group relative`}
-          title={item.disabledReason || 'Non disponible'}
-        >
+        <div className={`flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'} rounded-lg cursor-not-allowed opacity-50 group relative`} title={item.disabledReason || 'Non disponible'}>
           <item.icon className={`w-5 h-5 text-gray-500 ${isCollapsed ? '' : 'mr-3'}`} />
-          {!isCollapsed && (
-            <>
-              <span className="text-sm font-medium text-gray-500 flex-1">{item.name}</span>
-              <Lock className="w-3.5 h-3.5 text-gray-600" />
-            </>
-          )}
-          {/* Tooltip pour mode collapsed */}
-          {showTooltip && (
-            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-gray-400 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
-              {item.name} - {item.disabledReason}
-            </div>
-          )}
+          {!isCollapsed && (<><span className="text-sm font-medium text-gray-500 flex-1">{item.name}</span><Lock className="w-3.5 h-3.5 text-gray-600" /></>)}
+          {showTooltip && (<div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-gray-400 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">{item.name} - {item.disabledReason}</div>)}
         </div>
       );
     }
     
     return (
-      <Link
-        href={item.href}
-        className={`flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'} rounded-lg transition-colors group relative ${
-          isActive 
-            ? 'bg-primary-500 text-white' 
-            : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-        }`}
-        title={isCollapsed ? item.name : undefined}
-      >
+      <Link href={item.href} className={`flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'} rounded-lg transition-colors group relative ${isActive ? 'bg-primary-500 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`} title={isCollapsed ? item.name : undefined}>
         <item.icon className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
         {!isCollapsed && <span className="text-sm font-medium">{item.name}</span>}
-        {/* Tooltip pour mode collapsed */}
-        {showTooltip && (
-          <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
-            {item.name}
-          </div>
-        )}
+        {showTooltip && (<div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">{item.name}</div>)}
       </Link>
     );
   };
 
-  // ========================================
-  // Mode Mon Espace : sidebar rétractée avec sous-menu
-  // ========================================
+  // Mode Mon Espace
   if (inMySpace) {
     return (
       <div className="flex h-screen sticky top-0">
-        {/* Mini sidebar principale (icônes) */}
         <aside className="w-20 bg-dark h-screen flex flex-col border-r border-gray-700 overflow-hidden">
-          {/* Logo */}
           <div className="h-16 flex items-center justify-center border-b border-gray-700 flex-shrink-0">
-            <Link href="/dashboard">
-              <div className="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">T</span>
-              </div>
-            </Link>
+            <Link href="/dashboard"><div className="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center"><span className="text-white font-bold">T</span></div></Link>
           </div>
-
-          {/* Navigation icônes - scrollable */}
           <nav className="flex-1 py-6 px-2 space-y-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-            {filteredNavigation.map((item) => (
-              <NavItemComponent key={item.name} item={item} isCollapsed={true} showTooltip={true} />
-            ))}
-
-            {/* Séparateur */}
+            {filteredNavigation.map((item) => (<NavItemComponent key={item.name} item={item} isCollapsed={true} showTooltip={true} />))}
             <div className="border-t border-gray-700 my-4" />
-
-            {/* Mon Espace (actif) */}
-            <div
-              className="flex items-center justify-center p-3 rounded-lg bg-primary-500 text-white relative group"
-              title="Mon Espace"
-            >
-              <User className="w-5 h-5" />
-            </div>
+            <div className="flex items-center justify-center p-3 rounded-lg bg-primary-500 text-white relative group" title="Mon Espace"><User className="w-5 h-5" /></div>
           </nav>
-
-          {/* User mini - fixed at bottom */}
           <div className="p-4 border-t border-gray-700 flex-shrink-0">
-            <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium mx-auto">
-              {initials}
-            </div>
-            <button 
-              onClick={handleLogout}
-              className="mt-4 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-              title="Déconnexion"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
+            <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium mx-auto">{initials}</div>
+            <button onClick={handleLogout} className="mt-4 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" title="Déconnexion"><LogOut className="w-5 h-5" /></button>
           </div>
         </aside>
-
-        {/* Sous-menu Mon Espace */}
         <aside className="w-56 bg-gray-900 h-screen flex flex-col overflow-hidden">
-          {/* Header */}
-          <div className="h-16 flex items-center px-4 border-b border-gray-700 flex-shrink-0">
-            <User className="w-5 h-5 text-primary-400 mr-3" />
-            <span className="font-semibold text-white">Mon Espace</span>
-          </div>
-
-          {/* Navigation Mon Espace - scrollable */}
+          <div className="h-16 flex items-center px-4 border-b border-gray-700 flex-shrink-0"><User className="w-5 h-5 text-primary-400 mr-3" /><span className="font-semibold text-white">Mon Espace</span></div>
           <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
             {filteredMySpaceNav.map((item) => {
               const isActive = pathname === item.href;
-              
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
-                    isActive 
-                      ? 'bg-primary-500/20 text-primary-400 border-l-2 border-primary-500' 
-                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                  }`}
-                >
-                  <item.icon className="w-5 h-5 mr-3" />
-                  <span className="text-sm font-medium">{item.name}</span>
-                </Link>
-              );
+              return (<Link key={item.name} href={item.href} className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${isActive ? 'bg-primary-500/20 text-primary-400 border-l-2 border-primary-500' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}><item.icon className="w-5 h-5 mr-3" /><span className="text-sm font-medium">{item.name}</span></Link>);
             })}
           </nav>
-
-          {/* Retour - fixed at bottom */}
-          <div className="p-4 border-t border-gray-700 flex-shrink-0">
-            <Link
-              href="/dashboard"
-              className="flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4 mr-2" />
-              Retour au menu
-            </Link>
-          </div>
+          <div className="p-4 border-t border-gray-700 flex-shrink-0"><Link href="/dashboard" className="flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"><ChevronLeft className="w-4 h-4 mr-2" />Retour au menu</Link></div>
         </aside>
       </div>
     );
   }
 
-  // ========================================
-  // Mode Performance : sidebar rétractée avec sous-menu
-  // ========================================
+  // Mode Performance
   if (inPerformance) {
     return (
       <div className="flex h-screen sticky top-0">
-        {/* Mini sidebar principale (icônes) */}
         <aside className="w-20 bg-dark h-screen flex flex-col border-r border-gray-700 overflow-hidden">
-          {/* Logo */}
           <div className="h-16 flex items-center justify-center border-b border-gray-700 flex-shrink-0">
-            <Link href="/dashboard">
-              <div className="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">T</span>
-              </div>
-            </Link>
+            <Link href="/dashboard"><div className="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center"><span className="text-white font-bold">T</span></div></Link>
           </div>
-
-          {/* Navigation icônes - scrollable */}
           <nav className="flex-1 py-6 px-2 space-y-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
             {filteredNavigation.map((item) => {
-              // Performance est actif via le sous-menu
               const isPerformanceItem = item.href === '/dashboard/performance';
-              
-              // Pour les items désactivés
               if (item.disabled) {
-                return (
-                  <div
-                    key={item.name}
-                    className="flex items-center justify-center p-3 rounded-lg cursor-not-allowed opacity-50 group relative"
-                    title={item.disabledReason || 'Non disponible'}
-                  >
-                    <item.icon className="w-5 h-5 text-gray-500" />
-                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-gray-400 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
-                      {item.name} - {item.disabledReason}
-                    </div>
-                  </div>
-                );
+                return (<div key={item.name} className="flex items-center justify-center p-3 rounded-lg cursor-not-allowed opacity-50 group relative" title={item.disabledReason || 'Non disponible'}><item.icon className="w-5 h-5 text-gray-500" /><div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-gray-400 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">{item.name} - {item.disabledReason}</div></div>);
               }
-              
-              const isActive = isPerformanceItem 
-                ? true 
-                : (pathname === item.href || (item.href !== '/dashboard' && !item.href.includes('performance') && pathname.startsWith(item.href)));
-              
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center justify-center p-3 rounded-lg transition-colors group relative ${
-                    isActive 
-                      ? 'bg-primary-500 text-white' 
-                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                  }`}
-                  title={item.name}
-                >
-                  <item.icon className="w-5 h-5" />
-                  {/* Tooltip */}
-                  <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
-                    {item.name}
-                  </div>
-                </Link>
-              );
+              const isActive = isPerformanceItem ? true : (pathname === item.href || (item.href !== '/dashboard' && !item.href.includes('performance') && pathname.startsWith(item.href)));
+              return (<Link key={item.name} href={item.href} className={`flex items-center justify-center p-3 rounded-lg transition-colors group relative ${isActive ? 'bg-primary-500 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`} title={item.name}><item.icon className="w-5 h-5" /><div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">{item.name}</div></Link>);
             })}
-
-            {/* Séparateur */}
             <div className="border-t border-gray-700 my-4" />
-
-            {/* Mon Espace */}
-            <Link
-              href="/dashboard/my-space"
-              className="flex items-center justify-center p-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors group relative"
-              title="Mon Espace"
-            >
-              <User className="w-5 h-5" />
-              <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
-                Mon Espace
-              </div>
-            </Link>
+            <Link href="/dashboard/my-space" className="flex items-center justify-center p-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors group relative" title="Mon Espace"><User className="w-5 h-5" /><div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">Mon Espace</div></Link>
           </nav>
-
-          {/* User mini - fixed at bottom */}
           <div className="p-4 border-t border-gray-700 flex-shrink-0">
-            <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium mx-auto">
-              {initials}
-            </div>
-            <button 
-              onClick={handleLogout}
-              className="mt-4 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-              title="Déconnexion"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
+            <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium mx-auto">{initials}</div>
+            <button onClick={handleLogout} className="mt-4 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" title="Déconnexion"><LogOut className="w-5 h-5" /></button>
           </div>
         </aside>
-
-        {/* Sous-menu Performance */}
         <aside className="w-56 bg-gray-900 h-screen flex flex-col overflow-hidden">
-          {/* Header */}
-          <div className="h-16 flex items-center px-4 border-b border-gray-700 flex-shrink-0">
-            <TrendingUp className="w-5 h-5 text-primary-400 mr-3" />
-            <span className="font-semibold text-white">Performance</span>
-          </div>
-
-          {/* Navigation Performance - scrollable */}
+          <div className="h-16 flex items-center px-4 border-b border-gray-700 flex-shrink-0"><TrendingUp className="w-5 h-5 text-primary-400 mr-3" /><span className="font-semibold text-white">Performance</span></div>
           <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
             {filteredPerformanceNav.map((item) => {
               const isActive = pathname === item.href;
-              
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
-                    isActive 
-                      ? 'bg-primary-500/20 text-primary-400 border-l-2 border-primary-500' 
-                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                  }`}
-                >
-                  <item.icon className="w-5 h-5 mr-3" />
-                  <span className="text-sm font-medium">{item.name}</span>
-                </Link>
-              );
+              return (<Link key={item.name} href={item.href} className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${isActive ? 'bg-primary-500/20 text-primary-400 border-l-2 border-primary-500' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}><item.icon className="w-5 h-5 mr-3" /><span className="text-sm font-medium">{item.name}</span></Link>);
             })}
           </nav>
-
-          {/* Retour - fixed at bottom */}
-          <div className="p-4 border-t border-gray-700 flex-shrink-0">
-            <Link
-              href="/dashboard"
-              className="flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4 mr-2" />
-              Retour au menu
-            </Link>
-          </div>
+          <div className="p-4 border-t border-gray-700 flex-shrink-0"><Link href="/dashboard" className="flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"><ChevronLeft className="w-4 h-4 mr-2" />Retour au menu</Link></div>
         </aside>
       </div>
     );
   }
 
-  // ========================================
   // Mode normal
-  // ========================================
   return (
     <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-dark h-screen flex flex-col transition-all duration-300 sticky top-0 overflow-hidden`}>
-      {/* Logo */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-gray-700 flex-shrink-0">
-        {!collapsed && (
-          <Link href="/dashboard" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">T</span>
-            </div>
-            <span className="font-bold text-white">Targetym AI</span>
-          </Link>
-        )}
-        {collapsed && (
-          <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center mx-auto">
-            <span className="text-white font-bold text-sm">T</span>
-          </div>
-        )}
-        <button 
-          onClick={() => setCollapsed(!collapsed)}
-          className="text-gray-400 hover:text-white p-1"
-        >
-          {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
-        </button>
+        {!collapsed && (<Link href="/dashboard" className="flex items-center space-x-2"><div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center"><span className="text-white font-bold text-sm">T</span></div><span className="font-bold text-white">Targetym AI</span></Link>)}
+        {collapsed && (<div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center mx-auto"><span className="text-white font-bold text-sm">T</span></div>)}
+        <button onClick={() => setCollapsed(!collapsed)} className="text-gray-400 hover:text-white p-1">{collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}</button>
       </div>
-
-      {/* Navigation - scrollable */}
       <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-        {filteredNavigation.map((item) => (
-          <NavItemComponent key={item.name} item={item} isCollapsed={collapsed} showTooltip={collapsed} />
-        ))}
-
-        {/* Séparateur avant Mon Espace */}
+        {filteredNavigation.map((item) => (<NavItemComponent key={item.name} item={item} isCollapsed={collapsed} showTooltip={collapsed} />))}
         <div className="border-t border-gray-700 my-4" />
-
-        {/* Mon Espace - Toujours visible */}
-        <Link
-          href="/dashboard/my-space"
-          className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
-            pathname.startsWith('/dashboard/my-space')
-              ? 'bg-primary-500 text-white' 
-              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-          }`}
-          title={collapsed ? 'Mon Espace' : undefined}
-        >
-          <User className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
-          {!collapsed && <span className="text-sm font-medium">Mon Espace</span>}
-        </Link>
+        <Link href="/dashboard/my-space" className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${pathname.startsWith('/dashboard/my-space') ? 'bg-primary-500 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`} title={collapsed ? 'Mon Espace' : undefined}><User className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />{!collapsed && <span className="text-sm font-medium">Mon Espace</span>}</Link>
       </nav>
-
-      {/* User Section - fixed at bottom */}
       <div className="p-4 border-t border-gray-700 flex-shrink-0">
         <div className={`flex items-center ${collapsed ? 'justify-center' : ''}`}>
-          <div className="w-9 h-9 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
-            {initials}
-          </div>
-          {!collapsed && (
-            <div className="ml-3 flex-1">
-              <div className="text-sm font-medium text-white truncate">{displayName}</div>
-              <div className="text-xs text-gray-400 capitalize">{userRole}</div>
-            </div>
-          )}
+          <div className="w-9 h-9 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">{initials}</div>
+          {!collapsed && (<div className="ml-3 flex-1"><div className="text-sm font-medium text-white truncate">{displayName}</div><div className="text-xs text-gray-400 capitalize">{userRole}</div></div>)}
         </div>
-        {!collapsed && (
-          <button 
-            onClick={handleLogout}
-            className="mt-4 w-full flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Déconnexion
-          </button>
-        )}
-        {collapsed && (
-          <button 
-            onClick={handleLogout}
-            className="mt-4 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-            title="Déconnexion"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
-        )}
+        {!collapsed && (<button onClick={handleLogout} className="mt-4 w-full flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"><LogOut className="w-4 h-4 mr-2" />Déconnexion</button>)}
+        {collapsed && (<button onClick={handleLogout} className="mt-4 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" title="Déconnexion"><LogOut className="w-5 h-5" /></button>)}
       </div>
     </aside>
   );

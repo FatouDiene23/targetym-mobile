@@ -81,6 +81,7 @@ interface Employee {
   id: number;
   first_name: string;
   last_name: string;
+  department_id?: number;
 }
 
 // ============================================
@@ -304,6 +305,8 @@ function ObjectiveModal({
   employees,
   parentObjectives,
   canCreateEnterprise = true,
+  userDepartmentId,
+  canSeeAll,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -313,6 +316,8 @@ function ObjectiveModal({
   employees: Employee[];
   parentObjectives: Objective[];
   canCreateEnterprise?: boolean;
+  userDepartmentId?: number | null;
+  canSeeAll?: boolean;
 }) {
   const [formData, setFormData] = useState({
     title: '',
@@ -344,13 +349,13 @@ function ObjectiveModal({
         description: '',
         level: canCreateEnterprise ? 'individual' : 'department',
         owner_id: undefined,
-        department_id: undefined,
+        department_id: userDepartmentId || undefined,
         parent_id: undefined,
         period: '2026',
         status: 'draft',
       });
     }
-  }, [objective, isOpen, canCreateEnterprise]);
+  }, [objective, isOpen, canCreateEnterprise, userDepartmentId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -450,6 +455,11 @@ function ObjectiveModal({
                   <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
               </select>
+              {!canSeeAll && departments.length === 1 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 Votre département est pré-sélectionné
+                </p>
+              )}
             </div>
             
             <div>
@@ -464,6 +474,11 @@ function ObjectiveModal({
                   <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
                 ))}
               </select>
+              {!canSeeAll && employees.length > 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 Vous-même et vos collaborateurs directs
+                </p>
+              )}
             </div>
           </div>
           
@@ -720,6 +735,9 @@ export default function OKRPage() {
     setCollapsedSections(prev => ({ ...prev, [level]: !prev[level] }));
   };
 
+  // Employees for assignment (filtered based on role)
+  const [assignableEmployees, setAssignableEmployees] = useState<Employee[]>([]);
+
   // Load user data on mount
   useEffect(() => {
     const loadUserData = async () => {
@@ -851,6 +869,38 @@ export default function OKRPage() {
       setStats(statsData);
       setDepartments(deptData);
       setEmployees(empData);
+      
+      // Charger les employés assignables selon le rôle
+      if (canSeeAll) {
+        // RH/Admin/DG voient tous les employés
+        setAssignableEmployees(empData);
+      } else if (userEmployeeId) {
+        // Manager: charger ses direct-reports
+        try {
+          const directReportsRes = await fetch(`${API_URL}/api/employees/${userEmployeeId}/direct-reports`, {
+            headers: getAuthHeaders(),
+          });
+          if (directReportsRes.ok) {
+            const directReports = await directReportsRes.json();
+            // Ajouter le manager lui-même à la liste (il peut s'assigner des objectifs)
+            const currentEmployee = empData.find(e => e.id === userEmployeeId);
+            if (currentEmployee) {
+              setAssignableEmployees([currentEmployee, ...directReports]);
+            } else {
+              setAssignableEmployees(directReports);
+            }
+            console.log('Direct reports loaded:', directReports.length);
+          } else {
+            // Fallback: seulement lui-même
+            const currentEmployee = empData.find(e => e.id === userEmployeeId);
+            setAssignableEmployees(currentEmployee ? [currentEmployee] : []);
+          }
+        } catch (e) {
+          console.error('Error fetching direct reports:', e);
+          const currentEmployee = empData.find(e => e.id === userEmployeeId);
+          setAssignableEmployees(currentEmployee ? [currentEmployee] : []);
+        }
+      }
     } catch (error) {
       console.error('Erreur chargement:', error);
     } finally {
@@ -1430,10 +1480,12 @@ export default function OKRPage() {
         onClose={() => { setShowObjectiveModal(false); setEditingObjective(null); }}
         onSave={handleSaveObjective}
         objective={editingObjective}
-        departments={departments}
-        employees={employees}
+        departments={canSeeAll ? departments : departments.filter(d => d.id === userDepartmentId)}
+        employees={assignableEmployees}
         parentObjectives={objectives}
         canCreateEnterprise={canSeeAll}
+        userDepartmentId={userDepartmentId}
+        canSeeAll={canSeeAll}
       />
       
       <KeyResultModal

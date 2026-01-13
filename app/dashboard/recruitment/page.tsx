@@ -500,6 +500,12 @@ export default function RecruitmentPage() {
                 {jobs.filter(j => j.status === 'active').map(job => (<option key={job.id} value={job.id}>{job.title}</option>))}
               </select>
             )}
+            {activeTab === 'interviews' && (
+              <select value={selectedJobFilter || ''} onChange={(e) => setSelectedJobFilter(e.target.value ? parseInt(e.target.value) : null)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                <option value="">Tous les postes</option>
+                {jobs.map(job => (<option key={job.id} value={job.id}>{job.title}</option>))}
+              </select>
+            )}
           </div>
           <div className="flex gap-3">
             {activeTab === 'kanban' && (
@@ -615,17 +621,38 @@ export default function RecruitmentPage() {
         {/* TAB: Interviews */}
         {activeTab === 'interviews' && (
           <div className="space-y-6">
-            {interviews.length === 0 ? (
-              <div className="bg-white rounded-xl p-12 text-center">
-                <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">Aucun entretien planifié</p>
-              </div>
-            ) : (
-              <>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">📅 Entretiens à venir</h3>
-                  <div className="space-y-3">
-                    {interviews.filter(i => i.status === 'scheduled' && new Date(i.scheduled_at) >= new Date()).sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()).map(interview => (
+            {(() => {
+              // Filtrer les entretiens par recherche et par poste
+              const filteredInterviews = interviews.filter(i => {
+                if (selectedJobFilter) {
+                  const app = applications.find(a => a.id === i.application_id);
+                  if (!app || app.job_posting_id !== selectedJobFilter) return false;
+                }
+                if (searchQuery) {
+                  const q = searchQuery.toLowerCase();
+                  return i.candidate_name.toLowerCase().includes(q) || (i.job_title || '').toLowerCase().includes(q);
+                }
+                return true;
+              });
+              
+              const upcomingInterviews = filteredInterviews.filter(i => i.status === 'scheduled' && new Date(i.scheduled_at) >= new Date()).sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+              const pastInterviews = filteredInterviews.filter(i => i.status !== 'scheduled' || new Date(i.scheduled_at) < new Date()).sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime()).slice(0, 10);
+              
+              if (interviews.length === 0) {
+                return (
+                  <div className="bg-white rounded-xl p-12 text-center">
+                    <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">Aucun entretien planifié</p>
+                  </div>
+                );
+              }
+              
+              return (
+                <>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">📅 Entretiens à venir ({upcomingInterviews.length})</h3>
+                    <div className="space-y-3">
+                      {upcomingInterviews.map(interview => (
                       <div key={interview.id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center flex-1">
@@ -642,13 +669,13 @@ export default function RecruitmentPage() {
                         {interview.meeting_link && (<div className="mt-2"><a href={interview.meeting_link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:underline flex items-center"><Video className="w-3 h-3 mr-1" />Rejoindre la réunion</a></div>)}
                       </div>
                     ))}
-                    {interviews.filter(i => i.status === 'scheduled' && new Date(i.scheduled_at) >= new Date()).length === 0 && (<p className="text-gray-400 text-sm text-center py-8 bg-white rounded-xl">Aucun entretien à venir</p>)}
+                      {upcomingInterviews.length === 0 && (<p className="text-gray-400 text-sm text-center py-8 bg-white rounded-xl">Aucun entretien à venir</p>)}
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">📋 Entretiens passés</h3>
-                  <div className="space-y-3">
-                    {interviews.filter(i => i.status !== 'scheduled' || new Date(i.scheduled_at) < new Date()).sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime()).slice(0, 10).map(interview => (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">📋 Entretiens passés ({pastInterviews.length})</h3>
+                    <div className="space-y-3">
+                      {pastInterviews.map(interview => (
                       <div key={interview.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 opacity-80">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center flex-1">
@@ -663,11 +690,12 @@ export default function RecruitmentPage() {
                         </div>
                       </div>
                     ))}
-                    {interviews.filter(i => i.status !== 'scheduled' || new Date(i.scheduled_at) < new Date()).length === 0 && (<p className="text-gray-400 text-sm text-center py-8 bg-white rounded-xl">Aucun entretien passé</p>)}
+                      {pastInterviews.length === 0 && (<p className="text-gray-400 text-sm text-center py-8 bg-white rounded-xl">Aucun entretien passé</p>)}
+                    </div>
                   </div>
-                </div>
-              </>
-            )}
+                </>
+              );
+            })()}
           </div>
         )}
 

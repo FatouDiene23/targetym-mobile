@@ -1,17 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { X, User, Building2, Layers } from 'lucide-react';
+import { X, User, Building2 } from 'lucide-react';
 import AddEmployeeModal from './AddEmployeeModal';
-import AddDepartmentModal from './AddDepartmentModal';
-import AddServiceModal from './AddServiceModal';
+import AddOrganizationalUnitModal from './AddOrganizationalUnitModal';
 
 interface AddModalProps {
   onClose: () => void;
   onSuccess: () => void;
 }
 
-type ModalType = 'choice' | 'employee' | 'department' | 'service';
+type ModalType = 'choice' | 'employee' | 'organizational_unit';
 
 export default function AddModal({ onClose, onSuccess }: AddModalProps) {
   const [activeModal, setActiveModal] = useState<ModalType>('choice');
@@ -20,12 +19,8 @@ export default function AddModal({ onClose, onSuccess }: AddModalProps) {
     return <AddEmployeeModal onClose={onClose} onSuccess={onSuccess} />;
   }
 
-  if (activeModal === 'department') {
-    return <AddDepartmentModal onClose={onClose} onSuccess={onSuccess} />;
-  }
-
-  if (activeModal === 'service') {
-    return <AddServiceModal onClose={onClose} onSuccess={onSuccess} />;
+  if (activeModal === 'organizational_unit') {
+    return <AddOrganizationalUnitModal onClose={onClose} onSuccess={onSuccess} />;
   }
 
   return (
@@ -55,31 +50,17 @@ export default function AddModal({ onClose, onSuccess }: AddModalProps) {
             </div>
           </button>
 
-          {/* Département */}
+          {/* Unité Organisationnelle */}
           <button
-            onClick={() => setActiveModal('department')}
+            onClick={() => setActiveModal('organizational_unit')}
             className="w-full flex items-center p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition-all group"
           >
             <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center group-hover:bg-purple-200 transition-colors">
               <Building2 className="w-6 h-6 text-purple-600" />
             </div>
             <div className="ml-4 text-left">
-              <p className="font-semibold text-gray-900">Département</p>
-              <p className="text-sm text-gray-500">Créer un département principal</p>
-            </div>
-          </button>
-
-          {/* Service */}
-          <button
-            onClick={() => setActiveModal('service')}
-            className="w-full flex items-center p-4 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition-all group"
-          >
-            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-200 transition-colors">
-              <Layers className="w-6 h-6 text-green-600" />
-            </div>
-            <div className="ml-4 text-left">
-              <p className="font-semibold text-gray-900">Service</p>
-              <p className="text-sm text-gray-500">Ajouter un service à un département</p>
+              <p className="font-semibold text-gray-900">Unité Organisationnelle</p>
+              <p className="text-sm text-gray-500">DG, Direction, Département, Service...</p>
             </div>
           </button>
         </div>

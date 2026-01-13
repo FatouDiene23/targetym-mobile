@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Loader2, ChevronLeft, Building2, Users, Briefcase, Layers, Network, GitBranch } from 'lucide-react';
-import { createDepartment, getDepartments, getEmployees, type Department, type Employee } from '@/lib/api';
+import { createDepartment, getDepartments, getEmployees, type Department, type Employee, type OrganizationalLevel } from '@/lib/api';
 
 interface AddOrganizationalUnitModalProps {
   onClose: () => void;
@@ -87,7 +87,15 @@ export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOr
   const [departments, setDepartments] = useState<Department[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    code: string;
+    description: string;
+    color: string;
+    level: OrganizationalLevel | '';
+    parent_id: string;
+    head_id: string;
+  }>({
     name: '',
     code: '',
     description: '',
@@ -171,7 +179,7 @@ export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOr
         code: formData.code || formData.name.substring(0, 4).toUpperCase(),
         description: formData.description || undefined,
         color: formData.color,
-        level: formData.level,
+        level: formData.level as OrganizationalLevel,
         parent_id: formData.parent_id ? parseInt(formData.parent_id) : undefined,
         head_id: formData.head_id ? parseInt(formData.head_id) : undefined,
       });
@@ -194,7 +202,11 @@ export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOr
     
     // Si on change le niveau, réinitialiser le parent
     if (name === 'level') {
-      setFormData(prev => ({ ...prev, [name]: value, parent_id: '' }));
+      setFormData(prev => ({ 
+        ...prev, 
+        level: value as OrganizationalLevel | '', 
+        parent_id: '' 
+      }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }

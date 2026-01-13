@@ -701,12 +701,24 @@ export default function OKRPage() {
   const [filterLevel, setFilterLevel] = useState('all');
   const [filterPeriod, setFilterPeriod] = useState('all');
   
+  // Section collapse state (pour replier par niveau)
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
+    enterprise: false,
+    department: false,
+    individual: false,
+  });
+  
   // Modals
   const [showObjectiveModal, setShowObjectiveModal] = useState(false);
   const [editingObjective, setEditingObjective] = useState<Objective | null>(null);
   const [showKRModal, setShowKRModal] = useState(false);
   const [krObjectiveId, setKrObjectiveId] = useState<number>(0);
   const [editingKR, setEditingKR] = useState<KeyResult | null>(null);
+
+  // Toggle section collapse
+  const toggleSection = (level: string) => {
+    setCollapsedSections(prev => ({ ...prev, [level]: !prev[level] }));
+  };
 
   // Load user data on mount
   useEffect(() => {
@@ -1014,160 +1026,183 @@ export default function OKRPage() {
         {activeTab === 'list' && (
           <div className="space-y-6">
             {[
-              { title: 'OKRs Entreprise', data: enterpriseOKRs, icon: Building2, color: 'purple' },
-              { title: 'OKRs Département', data: departmentOKRs, icon: Users, color: 'blue' },
-              { title: 'OKRs Individuels', data: individualOKRs, icon: User, color: 'teal' },
+              { level: 'enterprise', title: 'OKRs Entreprise', data: enterpriseOKRs, icon: Building2, color: 'purple', bgColor: 'bg-purple-600', bgLight: 'bg-purple-100', textColor: 'text-purple-700' },
+              { level: 'department', title: 'OKRs Département', data: departmentOKRs, icon: Users, color: 'blue', bgColor: 'bg-blue-600', bgLight: 'bg-blue-100', textColor: 'text-blue-700' },
+              { level: 'individual', title: 'OKRs Individuels', data: individualOKRs, icon: User, color: 'teal', bgColor: 'bg-teal-600', bgLight: 'bg-teal-100', textColor: 'text-teal-700' },
             ].map(section => section.data.length > 0 && (
               <div key={section.title}>
-                <div className="flex items-center gap-2 mb-4">
-                  <section.icon className={`w-5 h-5 text-${section.color}-600`} />
+                {/* Section Header avec flèche de repli */}
+                <button 
+                  onClick={() => toggleSection(section.level)}
+                  className="w-full flex items-center gap-3 mb-4 group"
+                >
+                  <div className={`w-8 h-8 ${section.bgColor} rounded-lg flex items-center justify-center transition-transform ${collapsedSections[section.level] ? '' : ''}`}>
+                    {collapsedSections[section.level] 
+                      ? <ChevronRight className="w-5 h-5 text-white" />
+                      : <ChevronDown className="w-5 h-5 text-white" />
+                    }
+                  </div>
+                  <section.icon className={`w-5 h-5 ${section.textColor}`} />
                   <h2 className="text-lg font-semibold text-gray-900">{section.title}</h2>
-                  <span className={`px-2 py-0.5 bg-${section.color}-100 text-${section.color}-700 text-xs font-medium rounded-full`}>{section.data.length}</span>
-                </div>
-                <div className="space-y-3">
-                  {section.data.map((obj) => (
-                    <div key={obj.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                      <div className="p-4 cursor-pointer hover:bg-gray-50" onClick={() => toggleExpand(obj.id)}>
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start flex-1">
-                            <button className="mt-1 mr-3 text-gray-400">
-                              {obj.expanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-                            </button>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${getLevelColor(obj.level)}`}>
-                                  {getLevelIcon(obj.level)}{getLevelLabel(obj.level)}
-                                </span>
-                                {obj.department_name && <span className="text-xs text-gray-500">• {obj.department_name}</span>}
-                              </div>
-                              <h3 className="text-base font-semibold text-gray-900">{obj.title}</h3>
-                              <div className="flex items-center gap-3 mt-2">
-                                {obj.owner_name && (
-                                  <div className="flex items-center">
-                                    <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center text-xs font-medium text-primary-700">
-                                      {obj.owner_initials}
+                  <span className={`px-2.5 py-1 ${section.bgLight} ${section.textColor} text-xs font-medium rounded-full`}>
+                    {section.data.length}
+                  </span>
+                  <span className="text-xs text-gray-400 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {collapsedSections[section.level] ? 'Cliquer pour déplier' : 'Cliquer pour replier'}
+                  </span>
+                </button>
+                
+                {/* Section Content */}
+                {!collapsedSections[section.level] && (
+                  <div className="space-y-3">
+                    {section.data.map((obj) => (
+                      <div key={obj.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="p-4 cursor-pointer hover:bg-gray-50" onClick={() => toggleExpand(obj.id)}>
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start flex-1">
+                              {/* Flèche de repli OKR individuel - PLUS VISIBLE */}
+                              <button className={`mt-0.5 mr-3 w-8 h-8 rounded-lg flex items-center justify-center transition-all ${obj.expanded ? `${section.bgLight} ${section.textColor}` : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+                                {obj.expanded 
+                                  ? <ChevronDown className="w-5 h-5" /> 
+                                  : <ChevronRight className="w-5 h-5" />
+                                }
+                              </button>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${getLevelColor(obj.level)}`}>
+                                    {getLevelIcon(obj.level)}{getLevelLabel(obj.level)}
+                                  </span>
+                                  {obj.department_name && <span className="text-xs text-gray-500">• {obj.department_name}</span>}
+                                </div>
+                                <h3 className="text-base font-semibold text-gray-900">{obj.title}</h3>
+                                <div className="flex items-center gap-3 mt-2">
+                                  {obj.owner_name && (
+                                    <div className="flex items-center">
+                                      <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center text-xs font-medium text-primary-700">
+                                        {obj.owner_initials}
+                                      </div>
+                                      <span className="ml-2 text-sm text-gray-600">{obj.owner_name}</span>
                                     </div>
-                                    <span className="ml-2 text-sm text-gray-600">{obj.owner_name}</span>
-                                  </div>
-                                )}
-                                <span className="text-sm text-gray-500">{obj.period}</span>
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(obj.status)}`}>
-                                  {getStatusLabel(obj.status)}
-                                </span>
+                                  )}
+                                  <span className="text-sm text-gray-500">{obj.period}</span>
+                                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(obj.status)}`}>
+                                    {getStatusLabel(obj.status)}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <div className="text-right">
-                              <span className="text-2xl font-bold text-gray-900">{Math.round(obj.progress)}%</span>
-                              <div className="w-28 h-2 bg-gray-200 rounded-full mt-1">
-                                <div className={`h-full rounded-full ${getProgressColor(obj.progress)}`} style={{ width: `${Math.min(obj.progress, 100)}%` }} />
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <span className="text-2xl font-bold text-gray-900">{Math.round(obj.progress)}%</span>
+                                <div className="w-28 h-2 bg-gray-200 rounded-full mt-1">
+                                  <div className={`h-full rounded-full ${getProgressColor(obj.progress)}`} style={{ width: `${Math.min(obj.progress, 100)}%` }} />
+                                </div>
                               </div>
+                              {canEditObjective(obj) && (
+                                <div className="relative">
+                                  <button 
+                                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingObjective(obj);
+                                      setShowObjectiveModal(true);
+                                    }}
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                  <button 
+                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteObjective(obj.id);
+                                    }}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              )}
                             </div>
-                            {canEditObjective(obj) && (
-                              <div className="relative">
-                                <button 
-                                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingObjective(obj);
-                                    setShowObjectiveModal(true);
-                                  }}
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </button>
-                                <button 
-                                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteObjective(obj.id);
-                                  }}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            )}
                           </div>
                         </div>
-                      </div>
-                      
-                      {obj.expanded && (
-                        <div className="border-t border-gray-100 bg-gray-50 p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <h4 className="text-sm font-semibold text-gray-700">Résultats Clés ({obj.key_results.length})</h4>
-                            {canEditObjective(obj) && (
-                              <button 
-                                onClick={() => { setKrObjectiveId(obj.id); setEditingKR(null); setShowKRModal(true); }}
-                                className="flex items-center text-sm text-primary-600 hover:text-primary-700 font-medium"
-                              >
-                                <Plus className="w-4 h-4 mr-1" />Ajouter un KR
-                              </button>
-                            )}
-                          </div>
-                          
-                          {obj.key_results.length === 0 ? (
-                            <p className="text-sm text-gray-500 text-center py-4">Aucun Key Result défini</p>
-                          ) : (
-                            <div className="space-y-3">
-                              {obj.key_results.map((kr) => (
-                                <div key={kr.id} className="bg-white rounded-lg p-3 border border-gray-200">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="text-sm font-medium text-gray-900">{kr.title}</span>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-xs text-gray-500">Poids: {kr.weight}%</span>
-                                      <span className="text-sm font-medium text-gray-700">{kr.current} / {kr.target} {kr.unit}</span>
-                                      {canEditObjective(obj) && (
-                                        <>
-                                          <button 
-                                            onClick={() => { setKrObjectiveId(obj.id); setEditingKR(kr); setShowKRModal(true); }}
-                                            className="p-1 text-gray-400 hover:text-gray-600"
-                                          >
-                                            <Edit className="w-3 h-3" />
-                                          </button>
-                                          <button 
-                                            onClick={() => handleDeleteKR(kr.id)}
-                                            className="p-1 text-gray-400 hover:text-red-600"
-                                          >
-                                            <Trash2 className="w-3 h-3" />
-                                          </button>
-                                        </>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="w-full h-2 bg-gray-200 rounded-full">
-                                    <div className={`h-full rounded-full ${getProgressColor(kr.progress)}`} style={{ width: `${Math.min(kr.progress, 100)}%` }} />
-                                  </div>
-                                </div>
-                              ))}
+                        
+                        {obj.expanded && (
+                          <div className="border-t border-gray-100 bg-gray-50 p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="text-sm font-semibold text-gray-700">Résultats Clés ({obj.key_results.length})</h4>
+                              {canEditObjective(obj) && (
+                                <button 
+                                  onClick={() => { setKrObjectiveId(obj.id); setEditingKR(null); setShowKRModal(true); }}
+                                  className="flex items-center text-sm text-primary-600 hover:text-primary-700 font-medium"
+                                >
+                                  <Plus className="w-4 h-4 mr-1" />Ajouter un KR
+                                </button>
+                              )}
                             </div>
-                          )}
-                          
-                          {obj.initiatives && obj.initiatives.length > 0 && (
-                            <>
-                              <h4 className="text-sm font-semibold text-gray-700 mt-4 mb-3">Initiatives & Projets liés</h4>
-                              <div className="space-y-2">
-                                {obj.initiatives.map((init) => (
-                                  <div key={init.id} className="bg-white rounded-lg p-3 border border-gray-200 flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-indigo-100 rounded flex items-center justify-center">
-                                      <Link2 className="w-4 h-4 text-indigo-600" />
+                            
+                            {obj.key_results.length === 0 ? (
+                              <p className="text-sm text-gray-500 text-center py-4">Aucun Key Result défini</p>
+                            ) : (
+                              <div className="space-y-3">
+                                {obj.key_results.map((kr) => (
+                                  <div key={kr.id} className="bg-white rounded-lg p-3 border border-gray-200">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-sm font-medium text-gray-900">{kr.title}</span>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs text-gray-500">Poids: {kr.weight}%</span>
+                                        <span className="text-sm font-medium text-gray-700">{kr.current} / {kr.target} {kr.unit}</span>
+                                        {canEditObjective(obj) && (
+                                          <>
+                                            <button 
+                                              onClick={() => { setKrObjectiveId(obj.id); setEditingKR(kr); setShowKRModal(true); }}
+                                              className="p-1 text-gray-400 hover:text-gray-600"
+                                            >
+                                              <Edit className="w-3 h-3" />
+                                            </button>
+                                            <button 
+                                              onClick={() => handleDeleteKR(kr.id)}
+                                              className="p-1 text-gray-400 hover:text-red-600"
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </button>
+                                          </>
+                                        )}
+                                      </div>
                                     </div>
-                                    <div className="flex-1">
-                                      <p className="text-sm font-medium text-gray-900">{init.title}</p>
-                                      <p className="text-xs text-gray-500">{init.source} • {init.due_date}</p>
+                                    <div className="w-full h-2 bg-gray-200 rounded-full">
+                                      <div className={`h-full rounded-full ${getProgressColor(kr.progress)}`} style={{ width: `${Math.min(kr.progress, 100)}%` }} />
                                     </div>
-                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(init.status)}`}>
-                                      {init.progress}%
-                                    </span>
                                   </div>
                                 ))}
                               </div>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                            )}
+                            
+                            {obj.initiatives && obj.initiatives.length > 0 && (
+                              <>
+                                <h4 className="text-sm font-semibold text-gray-700 mt-4 mb-3">Initiatives & Projets liés</h4>
+                                <div className="space-y-2">
+                                  {obj.initiatives.map((init) => (
+                                    <div key={init.id} className="bg-white rounded-lg p-3 border border-gray-200 flex items-center gap-3">
+                                      <div className="w-8 h-8 bg-indigo-100 rounded flex items-center justify-center">
+                                        <Link2 className="w-4 h-4 text-indigo-600" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <p className="text-sm font-medium text-gray-900">{init.title}</p>
+                                        <p className="text-xs text-gray-500">{init.source} • {init.due_date}</p>
+                                      </div>
+                                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(init.status)}`}>
+                                        {init.progress}%
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             

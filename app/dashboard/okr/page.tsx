@@ -703,7 +703,6 @@ export default function OKRPage() {
   const [objectives, setObjectives] = useState<Objective[]>([]);
   const [stats, setStats] = useState<OKRStats | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   
   // User context for role-based filtering
   const [userRole, setUserRole] = useState<UserRole>('employee');
@@ -868,7 +867,6 @@ export default function OKRPage() {
       setObjectives(filteredObjectives.map(o => ({ ...o, expanded: false })));
       setStats(statsData);
       setDepartments(deptData);
-      setAllEmployees(empData);
       
       // Charger les employés assignables selon le rôle
       if (canSeeAll) {

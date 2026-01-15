@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { 
   getMyTasksToday, getMyTaskStats, completeTask, startTask, createTask,
-  getMyDailyValidationStatus, submitDailyValidation, getTeamTasks,
+  getMyDailyValidationStatus, submitDailyValidation,
   getPendingValidations, validateDaily, deleteTask,
   type Task, type TaskStats, type TaskPriority, type PendingValidation
 } from '@/lib/api';

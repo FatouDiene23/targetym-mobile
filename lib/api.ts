@@ -58,6 +58,11 @@ export type EmployeeRole = 'employee' | 'manager' | 'rh' | 'admin' | 'dg';
 // Types pour les niveaux hiérarchiques organisationnels
 export type OrganizationalLevel = 'dg' | 'dga' | 'direction_centrale' | 'direction' | 'departement' | 'service';
 
+// Types pour les tâches
+export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type DailyValidationStatusType = 'pending' | 'approved' | 'rejected';
+
 export interface Employee {
   id: number;
   employee_id: string;
@@ -132,7 +137,7 @@ export interface Department {
   code?: string;
   description?: string;
   color?: string;
-  level?: OrganizationalLevel;  // Nouveau champ pour la hiérarchie
+  level?: OrganizationalLevel;
   parent_id?: number;
   head_id?: number;
   employee_count?: number;
@@ -145,7 +150,7 @@ export interface DepartmentCreate {
   code?: string;
   description?: string;
   color?: string;
-  level?: OrganizationalLevel;  // Nouveau champ pour la hiérarchie
+  level?: OrganizationalLevel;
   parent_id?: number;
   head_id?: number;
 }
@@ -158,9 +163,91 @@ export interface PaginatedResponse<T> {
   total_pages: number;
 }
 
-// API Functions
+// ============================================
+// TASK TYPES
+// ============================================
 
-// Employees
+export interface Task {
+  id: number;
+  tenant_id: number;
+  title: string;
+  description?: string;
+  assigned_to_id: number;
+  assigned_to_name?: string;
+  created_by_id: number;
+  created_by_name?: string;
+  due_date: string;
+  completed_at?: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  completion_note?: string;
+  incomplete_reason?: string;
+  is_overdue: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface TaskCreate {
+  title: string;
+  description?: string;
+  assigned_to_id: number;
+  due_date: string;
+  priority?: TaskPriority;
+}
+
+export interface TasksPageResponse {
+  items: Task[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface TaskStats {
+  total: number;
+  pending: number;
+  in_progress: number;
+  completed: number;
+  overdue: number;
+  due_today: number;
+}
+
+export interface DailyValidation {
+  id: number;
+  tenant_id: number;
+  employee_id: number;
+  employee_name?: string;
+  validation_date: string;
+  status: DailyValidationStatusType;
+  submitted_at?: string;
+  submission_note?: string;
+  validated_by_id?: number;
+  validated_by_name?: string;
+  validated_at?: string;
+  validation_comment?: string;
+  total_tasks: number;
+  completed_tasks: number;
+  completion_rate: number;
+  created_at: string;
+}
+
+export interface DailyValidationStatus {
+  validation: DailyValidation | null;
+  can_submit: boolean;
+  tasks_total: number;
+  tasks_completed: number;
+  all_completed: boolean;
+}
+
+export interface PendingValidation {
+  validation: DailyValidation;
+  tasks: Task[];
+}
+
+// ============================================
+// EMPLOYEES API
+// ============================================
+
 export async function getEmployees(params?: {
   page?: number;
   page_size?: number;
@@ -201,7 +288,6 @@ export async function getEmployee(id: number): Promise<Employee> {
 }
 
 export async function createEmployee(data: EmployeeCreate): Promise<Employee> {
-  // Nettoyer les données - ne pas envoyer les champs vides
   const cleanData: Record<string, unknown> = {};
   Object.entries(data).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') {
@@ -274,7 +360,10 @@ export async function getEmployeeStats(): Promise<EmployeeStats> {
   return response.json();
 }
 
-// Departments
+// ============================================
+// DEPARTMENTS API
+// ============================================
+
 export async function getDepartments(level?: OrganizationalLevel): Promise<Department[]> {
   console.log('Fetching departments from:', `${API_URL}/api/departments/`);
   
@@ -300,7 +389,6 @@ export async function getDepartments(level?: OrganizationalLevel): Promise<Depar
   const data = await response.json();
   console.log('Departments raw response:', data);
   
-  // Gérer différents formats de réponse
   if (Array.isArray(data)) {
     console.log('Departments is array:', data.length, 'items');
     return data;
@@ -411,7 +499,10 @@ export async function deleteDepartment(id: number): Promise<void> {
   }
 }
 
-// Export employees to CSV
+// ============================================
+// EXPORT CSV
+// ============================================
+
 export function exportEmployeesToCSV(employees: Employee[]): void {
   const headers = [
     'Matricule', 'Prénom', 'Nom', 'Email', 'Téléphone', 'Poste',
@@ -438,7 +529,6 @@ export function exportEmployeesToCSV(employees: Employee[]): void {
     ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
   ].join('\n');
 
-
   const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
@@ -456,7 +546,6 @@ export function exportEmployeesToCSV(employees: Employee[]): void {
 // LEAVE MANAGEMENT (Congés)
 // ============================================
 
-// Types pour les congés
 export interface LeaveType {
   id: number;
   tenant_id: number;
@@ -490,7 +579,6 @@ export interface LeaveRequest {
   rejection_reason?: string;
   created_at: string;
   updated_at?: string;
-  // Infos enrichies
   department?: string;
   job_title?: string;
   manager_name?: string;
@@ -514,9 +602,6 @@ export interface LeaveStats {
   by_type: Record<string, number>;
 }
 
-// Fonctions API Congés
-
-// Types de congés
 export async function getLeaveTypes(activeOnly: boolean = true): Promise<LeaveType[]> {
   const response = await fetch(`${API_URL}/api/leaves/types?active_only=${activeOnly}`, {
     headers: getAuthHeaders(),
@@ -529,7 +614,6 @@ export async function getLeaveTypes(activeOnly: boolean = true): Promise<LeaveTy
   return response.json();
 }
 
-// Demandes de congés
 export async function getLeaveRequests(params?: {
   page?: number;
   page_size?: number;
@@ -559,7 +643,6 @@ export async function getLeaveRequests(params?: {
   return response.json();
 }
 
-// Demandes en attente
 export async function getPendingLeaveRequests(): Promise<LeaveRequest[]> {
   const response = await fetch(`${API_URL}/api/leaves/requests/pending`, {
     headers: getAuthHeaders(),
@@ -572,7 +655,6 @@ export async function getPendingLeaveRequests(): Promise<LeaveRequest[]> {
   return response.json();
 }
 
-// Approuver une demande
 export async function approveLeaveRequest(id: number): Promise<LeaveRequest> {
   const response = await fetch(`${API_URL}/api/leaves/requests/${id}/approve`, {
     method: 'POST',
@@ -588,7 +670,6 @@ export async function approveLeaveRequest(id: number): Promise<LeaveRequest> {
   return response.json();
 }
 
-// Refuser une demande
 export async function rejectLeaveRequest(id: number, reason: string): Promise<LeaveRequest> {
   const response = await fetch(`${API_URL}/api/leaves/requests/${id}/approve`, {
     method: 'POST',
@@ -604,7 +685,6 @@ export async function rejectLeaveRequest(id: number, reason: string): Promise<Le
   return response.json();
 }
 
-// Stats congés
 export async function getLeaveStats(year?: number): Promise<LeaveStats> {
   const queryParams = year ? `?year=${year}` : '';
   const response = await fetch(`${API_URL}/api/leaves/stats${queryParams}`, {
@@ -639,7 +719,6 @@ export interface ActivateAccessResponse {
   role: string;
 }
 
-// Vérifier si un employé a un compte d'accès
 export async function getEmployeeAccessStatus(employeeId: number): Promise<AccessStatus> {
   const response = await fetch(`${API_URL}/api/employees/${employeeId}/access-status`, {
     headers: getAuthHeaders(),
@@ -652,7 +731,6 @@ export async function getEmployeeAccessStatus(employeeId: number): Promise<Acces
   return response.json();
 }
 
-// Activer l'accès pour un employé (créer son compte)
 export async function activateEmployeeAccess(
   employeeId: number, 
   sendEmail: boolean = true
@@ -673,7 +751,6 @@ export async function activateEmployeeAccess(
   return response.json();
 }
 
-// Désactiver l'accès d'un employé
 export async function deactivateEmployeeAccess(employeeId: number): Promise<void> {
   const response = await fetch(`${API_URL}/api/employees/${employeeId}/deactivate-access`, {
     method: 'DELETE',
@@ -686,7 +763,6 @@ export async function deactivateEmployeeAccess(employeeId: number): Promise<void
   }
 }
 
-// Labels pour les rôles (affichage)
 export const ROLE_LABELS: Record<EmployeeRole, string> = {
   employee: 'Employé',
   manager: 'Manager',
@@ -694,3 +770,249 @@ export const ROLE_LABELS: Record<EmployeeRole, string> = {
   admin: 'Administrateur',
   dg: 'Direction Générale',
 };
+
+// ============================================
+// TASKS API
+// ============================================
+
+export async function getMyTasks(params?: {
+  page?: number;
+  page_size?: number;
+  status?: TaskStatus;
+  due_date?: string;
+}): Promise<TasksPageResponse> {
+  const queryParams = new URLSearchParams();
+  if (params?.page) queryParams.set('page', params.page.toString());
+  if (params?.page_size) queryParams.set('page_size', params.page_size.toString());
+  if (params?.status) queryParams.set('status', params.status);
+  if (params?.due_date) queryParams.set('due_date', params.due_date);
+
+  const response = await fetch(`${API_URL}/api/tasks/my-tasks?${queryParams}`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+export async function getMyTasksToday(): Promise<Task[]> {
+  const response = await fetch(`${API_URL}/api/tasks/my-tasks/today`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+export async function getMyTaskStats(): Promise<TaskStats> {
+  const response = await fetch(`${API_URL}/api/tasks/my-stats`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+export async function getTeamTasks(params?: {
+  page?: number;
+  page_size?: number;
+  employee_id?: number;
+  status?: TaskStatus;
+}): Promise<TasksPageResponse> {
+  const queryParams = new URLSearchParams();
+  if (params?.page) queryParams.set('page', params.page.toString());
+  if (params?.page_size) queryParams.set('page_size', params.page_size.toString());
+  if (params?.employee_id) queryParams.set('employee_id', params.employee_id.toString());
+  if (params?.status) queryParams.set('status', params.status);
+
+  const response = await fetch(`${API_URL}/api/tasks/team-tasks?${queryParams}`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+export async function createTask(data: TaskCreate): Promise<Task> {
+  const response = await fetch(`${API_URL}/api/tasks/`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+export async function updateTask(id: number, data: Partial<TaskCreate>): Promise<Task> {
+  const response = await fetch(`${API_URL}/api/tasks/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+export async function startTask(id: number): Promise<Task> {
+  const response = await fetch(`${API_URL}/api/tasks/${id}/start`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+export async function completeTask(id: number, note?: string): Promise<Task> {
+  const response = await fetch(`${API_URL}/api/tasks/${id}/complete`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ completion_note: note }),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+export async function deleteTask(id: number): Promise<void> {
+  const response = await fetch(`${API_URL}/api/tasks/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+}
+
+// ============================================
+// DAILY VALIDATION API
+// ============================================
+
+export async function getMyDailyValidationStatus(): Promise<DailyValidationStatus> {
+  const response = await fetch(`${API_URL}/api/tasks/daily-validation/my-status`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+export async function submitDailyValidation(data: {
+  submission_note?: string;
+  incomplete_tasks?: { task_id: number; reason: string }[];
+}): Promise<DailyValidation> {
+  const response = await fetch(`${API_URL}/api/tasks/daily-validation/submit`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+export async function getPendingValidations(): Promise<PendingValidation[]> {
+  const response = await fetch(`${API_URL}/api/tasks/daily-validation/pending`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+export async function validateDaily(
+  validationId: number,
+  approved: boolean,
+  comment?: string
+): Promise<DailyValidation> {
+  const response = await fetch(`${API_URL}/api/tasks/daily-validation/${validationId}/validate`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ approved, comment }),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+export async function getValidationHistory(params?: {
+  page?: number;
+  page_size?: number;
+  employee_id?: number;
+  status?: string;
+}): Promise<{
+  items: DailyValidation[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}> {
+  const queryParams = new URLSearchParams();
+  if (params?.page) queryParams.set('page', params.page.toString());
+  if (params?.page_size) queryParams.set('page_size', params.page_size.toString());
+  if (params?.employee_id) queryParams.set('employee_id', params.employee_id.toString());
+  if (params?.status) queryParams.set('status', params.status);
+
+  const response = await fetch(`${API_URL}/api/tasks/daily-validation/history?${queryParams}`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}

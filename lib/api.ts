@@ -244,6 +244,13 @@ export interface PendingValidation {
   tasks: Task[];
 }
 
+export type TeamMember = {
+  id: number;
+  name: string;
+  job_title?: string;
+  email?: string;
+};
+
 // ============================================
 // EMPLOYEES API
 // ============================================
@@ -844,6 +851,19 @@ export async function getTeamTasks(params?: {
   if (!response.ok) {
     const error = await parseApiError(response);
     throw new Error(error);
+  }
+
+  return response.json();
+}
+
+export async function getTeamMembers(): Promise<TeamMember[]> {
+  const response = await fetch(`${API_URL}/api/tasks/team-members`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    // Retourner un tableau vide si l'utilisateur n'a pas d'équipe
+    return [];
   }
 
   return response.json();

@@ -9,8 +9,8 @@ import {
 import { 
   getMyTasksToday, getMyTaskStats, completeTask, startTask, createTask,
   getMyDailyValidationStatus, submitDailyValidation,
-  getPendingValidations, validateDaily, deleteTask,
-  type Task, type TaskStats, type TaskPriority, type PendingValidation
+  getPendingValidations, validateDaily, deleteTask, getTeamMembers,
+  type Task, type TaskStats, type TaskPriority, type PendingValidation, type TeamMember
 } from '@/lib/api';
 
 // Couleurs par priorité
@@ -165,7 +165,7 @@ function CreateTaskModal({
   onClose: () => void;
   onSuccess: () => void;
   currentEmployeeId: number;
-  teamMembers?: { id: number; name: string }[];
+  teamMembers?: TeamMember[];
 }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -176,6 +176,13 @@ function CreateTaskModal({
     due_date: new Date().toISOString().split('T')[0],
     priority: 'medium' as TaskPriority,
   });
+
+  // Reset assigned_to_id quand currentEmployeeId change
+  useEffect(() => {
+    if (currentEmployeeId) {
+      setFormData(prev => ({ ...prev, assigned_to_id: currentEmployeeId.toString() }));
+    }
+  }, [currentEmployeeId]);
 
   if (!isOpen) return null;
 
@@ -250,25 +257,29 @@ function CreateTaskModal({
                 />
               </div>
 
-              {teamMembers.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Assigner à
-                  </label>
-                  <select
-                    value={formData.assigned_to_id}
-                    onChange={(e) => setFormData({ ...formData, assigned_to_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  >
-                    <option value={currentEmployeeId}>Moi-même</option>
-                    {teamMembers.map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              {/* Champ d'assignation - toujours visible mais avec des options différentes selon le rôle */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Assigner à
+                </label>
+                <select
+                  value={formData.assigned_to_id}
+                  onChange={(e) => setFormData({ ...formData, assigned_to_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value={currentEmployeeId}>Moi-même</option>
+                  {teamMembers.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.name} {member.job_title ? `(${member.job_title})` : ''}
+                    </option>
+                  ))}
+                </select>
+                {teamMembers.length === 0 && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Vous pouvez uniquement créer des tâches pour vous-même
+                  </p>
+                )}
+              </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -600,6 +611,7 @@ export default function MyTasksPage() {
     all_completed: boolean;
   } | null>(null);
   const [pendingValidations, setPendingValidations] = useState<PendingValidation[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -608,19 +620,20 @@ export default function MyTasksPage() {
   const [isManager, setIsManager] = useState(false);
 
   useEffect(() => {
-    loadData();
-    
     // Récupérer les infos utilisateur depuis localStorage
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
         setCurrentEmployeeId(user.employee_id || 0);
-        setIsManager(['ADMIN', 'MANAGER', 'RH'].includes(user.role));
+        const userIsManager = ['ADMIN', 'MANAGER', 'RH', 'DG'].includes(user.role);
+        setIsManager(userIsManager);
       } catch {
         console.error('Error parsing user');
       }
     }
+    
+    loadData();
   }, []);
 
   async function loadData() {
@@ -636,16 +649,23 @@ export default function MyTasksPage() {
       setStats(statsData);
       setValidationStatus(validationData);
 
-      // Si manager, charger les validations en attente
+      // Récupérer les infos utilisateur
       const userStr = localStorage.getItem('user');
       if (userStr) {
         const user = JSON.parse(userStr);
-        if (['ADMIN', 'MANAGER', 'RH'].includes(user.role)) {
+        
+        // Si manager, charger les membres de l'équipe et les validations en attente
+        if (['ADMIN', 'MANAGER', 'RH', 'DG'].includes(user.role)) {
           try {
-            const pending = await getPendingValidations();
+            const [pending, team] = await Promise.all([
+              getPendingValidations(),
+              getTeamMembers()
+            ]);
             setPendingValidations(pending);
-          } catch {
-            // Pas de problème si ça échoue
+            setTeamMembers(team);
+          } catch (err) {
+            console.error('Error loading manager data:', err);
+            // Pas de problème si ça échoue - l'utilisateur n'a peut-être pas d'équipe
           }
         }
       }
@@ -888,6 +908,7 @@ export default function MyTasksPage() {
           onClose={() => setShowCreateModal(false)}
           onSuccess={loadData}
           currentEmployeeId={currentEmployeeId}
+          teamMembers={teamMembers}
         />
 
         <SubmitDayModal

@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react';
 import { 
   ClipboardList, Clock, Plus, CheckCircle2, Circle, AlertTriangle,
   Play, Check, X, Send, Calendar, Flag, MoreVertical, Loader2,
-  ChevronDown, ChevronUp, User, MessageSquare
+  ChevronDown, ChevronUp, User, MessageSquare, Users, Filter
 } from 'lucide-react';
 import { 
   getMyTasksToday, getMyTaskStats, completeTask, startTask, createTask,
   getMyDailyValidationStatus, submitDailyValidation,
-  getPendingValidations, validateDaily, deleteTask, getTeamMembers,
+  getPendingValidations, validateDaily, deleteTask, getTeamMembers, getTeamTasks,
   type Task, type TaskStats, type TaskPriority, type PendingValidation, type TeamMember
 } from '@/lib/api';
 
@@ -27,19 +27,22 @@ function TaskCard({
   onComplete, 
   onStart,
   onDelete,
-  isLoading 
+  isLoading,
+  showAssignee = false
 }: { 
   task: Task; 
-  onComplete: (id: number) => void;
-  onStart: (id: number) => void;
-  onDelete: (id: number) => void;
+  onComplete?: (id: number) => void;
+  onStart?: (id: number) => void;
+  onDelete?: (id: number) => void;
   isLoading: boolean;
+  showAssignee?: boolean;
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const priority = PRIORITY_COLORS[task.priority];
   const isOverdue = task.is_overdue;
   const isCompleted = task.status === 'completed';
   const isInProgress = task.status === 'in_progress';
+  const canInteract = onComplete && onStart && onDelete;
 
   return (
     <div className={`bg-white rounded-lg border p-4 transition-all ${
@@ -49,17 +52,27 @@ function TaskCard({
     }`}>
       <div className="flex items-start gap-3">
         {/* Checkbox */}
-        <button
-          onClick={() => !isCompleted && onComplete(task.id)}
-          disabled={isLoading || isCompleted}
-          className={`mt-0.5 flex-shrink-0 ${isCompleted ? 'text-green-500' : 'text-gray-300 hover:text-green-500'}`}
-        >
-          {isCompleted ? (
-            <CheckCircle2 className="w-5 h-5" />
-          ) : (
-            <Circle className="w-5 h-5" />
-          )}
-        </button>
+        {canInteract ? (
+          <button
+            onClick={() => !isCompleted && onComplete(task.id)}
+            disabled={isLoading || isCompleted}
+            className={`mt-0.5 flex-shrink-0 ${isCompleted ? 'text-green-500' : 'text-gray-300 hover:text-green-500'}`}
+          >
+            {isCompleted ? (
+              <CheckCircle2 className="w-5 h-5" />
+            ) : (
+              <Circle className="w-5 h-5" />
+            )}
+          </button>
+        ) : (
+          <div className={`mt-0.5 flex-shrink-0 ${isCompleted ? 'text-green-500' : 'text-gray-300'}`}>
+            {isCompleted ? (
+              <CheckCircle2 className="w-5 h-5" />
+            ) : (
+              <Circle className="w-5 h-5" />
+            )}
+          </div>
+        )}
 
         {/* Contenu */}
         <div className="flex-1 min-w-0">
@@ -69,38 +82,40 @@ function TaskCard({
             </h3>
             
             {/* Menu */}
-            <div className="relative">
-              <button
-                onClick={() => setShowMenu(!showMenu)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded"
-              >
-                <MoreVertical className="w-4 h-4" />
-              </button>
-              
-              {showMenu && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-                  <div className="absolute right-0 mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                    {!isCompleted && task.status === 'pending' && (
+            {canInteract && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowMenu(!showMenu)}
+                  className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+                
+                {showMenu && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+                    <div className="absolute right-0 mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                      {!isCompleted && task.status === 'pending' && (
+                        <button
+                          onClick={() => { onStart(task.id); setShowMenu(false); }}
+                          className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                        >
+                          <Play className="w-4 h-4" />
+                          Démarrer
+                        </button>
+                      )}
                       <button
-                        onClick={() => { onStart(task.id); setShowMenu(false); }}
-                        className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                        onClick={() => { onDelete(task.id); setShowMenu(false); }}
+                        className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                       >
-                        <Play className="w-4 h-4" />
-                        Démarrer
+                        <X className="w-4 h-4" />
+                        Annuler
                       </button>
-                    )}
-                    <button
-                      onClick={() => { onDelete(task.id); setShowMenu(false); }}
-                      className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                    >
-                      <X className="w-4 h-4" />
-                      Annuler
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {task.description && (
@@ -111,6 +126,14 @@ function TaskCard({
 
           {/* Badges */}
           <div className="flex flex-wrap items-center gap-2 mt-2">
+            {/* Assigné à (pour vue équipe) */}
+            {showAssignee && task.assigned_to_name && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">
+                <User className="w-3 h-3" />
+                {task.assigned_to_name}
+              </span>
+            )}
+
             {/* Priorité */}
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${priority.bg} ${priority.text}`}>
               <Flag className="w-3 h-3" />
@@ -140,7 +163,7 @@ function TaskCard({
             </span>
 
             {/* Assigné par */}
-            {task.created_by_id !== task.assigned_to_id && task.created_by_name && (
+            {!showAssignee && task.created_by_id !== task.assigned_to_id && task.created_by_name && (
               <span className="inline-flex items-center gap-1 text-xs text-gray-400">
                 <User className="w-3 h-3" />
                 Par {task.created_by_name}
@@ -257,7 +280,7 @@ function CreateTaskModal({
                 />
               </div>
 
-              {/* Champ d'assignation - toujours visible mais avec des options différentes selon le rôle */}
+              {/* Champ d'assignation */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Assigner à
@@ -360,7 +383,6 @@ function SubmitDayModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Vérifier que toutes les tâches incomplètes ont une raison
     const missingReasons = incompleteTasks.filter(t => !reasons[t.id]?.trim());
     if (missingReasons.length > 0) {
       setError('Veuillez justifier toutes les tâches non terminées');
@@ -519,7 +541,6 @@ function PendingValidationsSection({
 
             {expandedId === validation.id && (
               <div className="px-3 pb-3 border-t border-gray-100">
-                {/* Liste des tâches */}
                 <div className="mt-3 space-y-2">
                   {tasks.map((task) => (
                     <div key={task.id} className={`flex items-center gap-2 text-sm p-2 rounded ${
@@ -542,7 +563,6 @@ function PendingValidationsSection({
                   ))}
                 </div>
 
-                {/* Note de l'employé */}
                 {validation.submission_note && (
                   <div className="mt-3 p-2 bg-gray-50 rounded text-sm">
                     <p className="text-gray-500 flex items-center gap-1">
@@ -553,7 +573,6 @@ function PendingValidationsSection({
                   </div>
                 )}
 
-                {/* Actions */}
                 <div className="mt-3 space-y-2">
                   <textarea
                     value={comment}
@@ -596,8 +615,161 @@ function PendingValidationsSection({
   );
 }
 
+// Section Tâches de l'équipe (Manager)
+function TeamTasksSection({
+  teamMembers,
+  isLoading: parentLoading,
+}: {
+  teamMembers: TeamMember[];
+  isLoading: boolean;
+}) {
+  const [teamTasks, setTeamTasks] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+
+  useEffect(() => {
+    loadTeamTasks();
+  }, []);
+
+  async function loadTeamTasks() {
+    setIsLoading(true);
+    try {
+      const data = await getTeamTasks();
+      setTeamTasks(data.items || []);
+    } catch (err) {
+      console.error('Error loading team tasks:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const filteredTasks = teamTasks.filter(task => {
+    const matchEmployee = selectedEmployee === 'all' || task.assigned_to_id.toString() === selectedEmployee;
+    const matchStatus = selectedStatus === 'all' || task.status === selectedStatus;
+    return matchEmployee && matchStatus;
+  });
+
+  const tasksByStatus = {
+    pending: filteredTasks.filter(t => t.status === 'pending').length,
+    in_progress: filteredTasks.filter(t => t.status === 'in_progress').length,
+    completed: filteredTasks.filter(t => t.status === 'completed').length,
+    overdue: filteredTasks.filter(t => t.is_overdue && t.status !== 'completed').length,
+  };
+
+  if (isLoading || parentLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Stats de l'équipe */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <p className="text-sm text-gray-500">À faire</p>
+          <p className="text-2xl font-bold text-gray-900">{tasksByStatus.pending}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <p className="text-sm text-gray-500">En cours</p>
+          <p className="text-2xl font-bold text-blue-600">{tasksByStatus.in_progress}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <p className="text-sm text-gray-500">Terminées</p>
+          <p className="text-2xl font-bold text-green-600">{tasksByStatus.completed}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <p className="text-sm text-gray-500">En retard</p>
+          <p className="text-2xl font-bold text-red-600">{tasksByStatus.overdue}</p>
+        </div>
+      </div>
+
+      {/* Filtres */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-gray-400" />
+            <span className="text-sm font-medium text-gray-700">Filtres :</span>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-500">Employé :</label>
+            <select
+              value={selectedEmployee}
+              onChange={(e) => setSelectedEmployee(e.target.value)}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="all">Tous ({teamMembers.length})</option>
+              {teamMembers.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-500">Statut :</label>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="all">Tous</option>
+              <option value="pending">À faire</option>
+              <option value="in_progress">En cours</option>
+              <option value="completed">Terminées</option>
+            </select>
+          </div>
+
+          <button
+            onClick={loadTeamTasks}
+            className="ml-auto px-3 py-1.5 text-sm text-primary-600 hover:text-primary-700 font-medium"
+          >
+            Actualiser
+          </button>
+        </div>
+      </div>
+
+      {/* Liste des tâches */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="p-4 border-b border-gray-200">
+          <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-gray-400" />
+            Tâches de l&apos;équipe ({filteredTasks.length})
+          </h2>
+        </div>
+
+        {filteredTasks.length === 0 ? (
+          <div className="p-8 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Users className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-gray-500">Aucune tâche trouvée</p>
+          </div>
+        ) : (
+          <div className="p-4 space-y-3">
+            {filteredTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                isLoading={false}
+                showAssignee={true}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Page principale
 export default function MyTasksPage() {
+  const [activeTab, setActiveTab] = useState<'my-tasks' | 'team-tasks'>('my-tasks');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [stats, setStats] = useState<TaskStats | null>(null);
   const [validationStatus, setValidationStatus] = useState<{
@@ -620,13 +792,11 @@ export default function MyTasksPage() {
   const [isManager, setIsManager] = useState(false);
 
   useEffect(() => {
-    // Récupérer les infos utilisateur depuis localStorage
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
         setCurrentEmployeeId(user.employee_id || 0);
-        // FIX: Vérification insensible à la casse
         const userIsManager = ['ADMIN', 'MANAGER', 'RH', 'DG'].includes(user.role?.toUpperCase());
         setIsManager(userIsManager);
       } catch {
@@ -650,12 +820,10 @@ export default function MyTasksPage() {
       setStats(statsData);
       setValidationStatus(validationData);
 
-      // Récupérer les infos utilisateur
       const userStr = localStorage.getItem('user');
       if (userStr) {
         const user = JSON.parse(userStr);
         
-        // FIX: Vérification insensible à la casse
         if (['ADMIN', 'MANAGER', 'RH', 'DG'].includes(user.role?.toUpperCase())) {
           try {
             const [pending, team] = await Promise.all([
@@ -666,7 +834,6 @@ export default function MyTasksPage() {
             setTeamMembers(team);
           } catch (err) {
             console.error('Error loading manager data:', err);
-            // Pas de problème si ça échoue - l'utilisateur n'a peut-être pas d'équipe
           }
         }
       }
@@ -744,7 +911,7 @@ export default function MyTasksPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Mes Tâches</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Gestion des Tâches</h1>
             <p className="text-gray-500 mt-1">
               {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
@@ -758,150 +925,191 @@ export default function MyTasksPage() {
           </button>
         </div>
 
-        {/* Stats */}
-        {stats && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-sm text-gray-500">À faire</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.pending + stats.in_progress}</p>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-sm text-gray-500">Terminées</p>
-              <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-sm text-gray-500">En retard</p>
-              <p className="text-2xl font-bold text-red-600">{stats.overdue}</p>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-sm text-gray-500">Aujourd&apos;hui</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.due_today}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Validations en attente (Manager) */}
+        {/* Onglets (visible seulement pour les managers) */}
         {isManager && (
-          <PendingValidationsSection
-            validations={pendingValidations}
-            onValidate={handleValidateDay}
-            isLoading={actionLoading}
-          />
-        )}
-
-        {/* Statut de validation */}
-        {validationStatus?.validation && (
-          <div className={`rounded-xl p-4 mb-6 ${
-            validationStatus.validation.status === 'approved' 
-              ? 'bg-green-50 border border-green-200' 
-              : validationStatus.validation.status === 'rejected'
-              ? 'bg-red-50 border border-red-200'
-              : 'bg-yellow-50 border border-yellow-200'
-          }`}>
-            <div className="flex items-center gap-3">
-              {validationStatus.validation.status === 'approved' ? (
-                <CheckCircle2 className="w-6 h-6 text-green-600" />
-              ) : validationStatus.validation.status === 'rejected' ? (
-                <X className="w-6 h-6 text-red-600" />
-              ) : (
-                <Clock className="w-6 h-6 text-yellow-600" />
+          <div className="flex border-b border-gray-200 mb-6">
+            <button
+              onClick={() => setActiveTab('my-tasks')}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === 'my-tasks'
+                  ? 'border-primary-600 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <ClipboardList className="w-4 h-4" />
+              Mes Tâches
+            </button>
+            <button
+              onClick={() => setActiveTab('team-tasks')}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === 'team-tasks'
+                  ? 'border-primary-600 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Tâches Équipe
+              {teamMembers.length > 0 && (
+                <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">
+                  {teamMembers.length}
+                </span>
               )}
-              <div>
-                <p className={`font-medium ${
-                  validationStatus.validation.status === 'approved' 
-                    ? 'text-green-800' 
-                    : validationStatus.validation.status === 'rejected'
-                    ? 'text-red-800'
-                    : 'text-yellow-800'
-                }`}>
-                  {validationStatus.validation.status === 'approved' 
-                    ? 'Journée validée ✓' 
-                    : validationStatus.validation.status === 'rejected'
-                    ? 'Journée rejetée'
-                    : 'En attente de validation'}
-                </p>
-                {validationStatus.validation.validation_comment && (
-                  <p className="text-sm opacity-75">
-                    Commentaire : {validationStatus.validation.validation_comment}
-                  </p>
-                )}
-              </div>
-            </div>
+            </button>
           </div>
         )}
 
-        {/* Liste des tâches */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-              <ClipboardList className="w-5 h-5 text-gray-400" />
-              Tâches du jour
-            </h2>
-            {canSubmitDay && (
-              <button
-                onClick={() => setShowSubmitModal(true)}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm"
-              >
-                <Send className="w-4 h-4" />
-                Soumettre ma journée
-              </button>
-            )}
-          </div>
-
-          {tasks.length === 0 ? (
-            <div className="p-8 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle2 className="w-8 h-8 text-gray-400" />
-              </div>
-              <p className="text-gray-500">Aucune tâche pour aujourd&apos;hui</p>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="mt-4 text-primary-600 hover:text-primary-700 font-medium"
-              >
-                + Ajouter une tâche
-              </button>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {/* Tâches incomplètes */}
-              {incompleteTasks.length > 0 && (
-                <div className="p-4 space-y-3">
-                  {incompleteTasks.map((task) => (
-                    <TaskCard
-                      key={task.id}
-                      task={task}
-                      onComplete={handleCompleteTask}
-                      onStart={handleStartTask}
-                      onDelete={handleDeleteTask}
-                      isLoading={actionLoading}
-                    />
-                  ))}
+        {/* Contenu selon l'onglet */}
+        {activeTab === 'my-tasks' ? (
+          <>
+            {/* Stats */}
+            {stats && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <p className="text-sm text-gray-500">À faire</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.pending + stats.in_progress}</p>
                 </div>
-              )}
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <p className="text-sm text-gray-500">Terminées</p>
+                  <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <p className="text-sm text-gray-500">En retard</p>
+                  <p className="text-2xl font-bold text-red-600">{stats.overdue}</p>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <p className="text-sm text-gray-500">Aujourd&apos;hui</p>
+                  <p className="text-2xl font-bold text-blue-600">{stats.due_today}</p>
+                </div>
+              </div>
+            )}
 
-              {/* Tâches terminées */}
-              {completedTasks.length > 0 && (
-                <div className="p-4 bg-gray-50">
-                  <p className="text-sm font-medium text-gray-500 mb-3">
-                    Terminées ({completedTasks.length})
-                  </p>
-                  <div className="space-y-3">
-                    {completedTasks.map((task) => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        onComplete={handleCompleteTask}
-                        onStart={handleStartTask}
-                        onDelete={handleDeleteTask}
-                        isLoading={actionLoading}
-                      />
-                    ))}
+            {/* Validations en attente (Manager) */}
+            {isManager && (
+              <PendingValidationsSection
+                validations={pendingValidations}
+                onValidate={handleValidateDay}
+                isLoading={actionLoading}
+              />
+            )}
+
+            {/* Statut de validation */}
+            {validationStatus?.validation && (
+              <div className={`rounded-xl p-4 mb-6 ${
+                validationStatus.validation.status === 'approved' 
+                  ? 'bg-green-50 border border-green-200' 
+                  : validationStatus.validation.status === 'rejected'
+                  ? 'bg-red-50 border border-red-200'
+                  : 'bg-yellow-50 border border-yellow-200'
+              }`}>
+                <div className="flex items-center gap-3">
+                  {validationStatus.validation.status === 'approved' ? (
+                    <CheckCircle2 className="w-6 h-6 text-green-600" />
+                  ) : validationStatus.validation.status === 'rejected' ? (
+                    <X className="w-6 h-6 text-red-600" />
+                  ) : (
+                    <Clock className="w-6 h-6 text-yellow-600" />
+                  )}
+                  <div>
+                    <p className={`font-medium ${
+                      validationStatus.validation.status === 'approved' 
+                        ? 'text-green-800' 
+                        : validationStatus.validation.status === 'rejected'
+                        ? 'text-red-800'
+                        : 'text-yellow-800'
+                    }`}>
+                      {validationStatus.validation.status === 'approved' 
+                        ? 'Journée validée ✓' 
+                        : validationStatus.validation.status === 'rejected'
+                        ? 'Journée rejetée'
+                        : 'En attente de validation'}
+                    </p>
+                    {validationStatus.validation.validation_comment && (
+                      <p className="text-sm opacity-75">
+                        Commentaire : {validationStatus.validation.validation_comment}
+                      </p>
+                    )}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Liste des tâches */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <ClipboardList className="w-5 h-5 text-gray-400" />
+                  Tâches du jour
+                </h2>
+                {canSubmitDay && (
+                  <button
+                    onClick={() => setShowSubmitModal(true)}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm"
+                  >
+                    <Send className="w-4 h-4" />
+                    Soumettre ma journée
+                  </button>
+                )}
+              </div>
+
+              {tasks.length === 0 ? (
+                <div className="p-8 text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-500">Aucune tâche pour aujourd&apos;hui</p>
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="mt-4 text-primary-600 hover:text-primary-700 font-medium"
+                  >
+                    + Ajouter une tâche
+                  </button>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {incompleteTasks.length > 0 && (
+                    <div className="p-4 space-y-3">
+                      {incompleteTasks.map((task) => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          onComplete={handleCompleteTask}
+                          onStart={handleStartTask}
+                          onDelete={handleDeleteTask}
+                          isLoading={actionLoading}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {completedTasks.length > 0 && (
+                    <div className="p-4 bg-gray-50">
+                      <p className="text-sm font-medium text-gray-500 mb-3">
+                        Terminées ({completedTasks.length})
+                      </p>
+                      <div className="space-y-3">
+                        {completedTasks.map((task) => (
+                          <TaskCard
+                            key={task.id}
+                            task={task}
+                            onComplete={handleCompleteTask}
+                            onStart={handleStartTask}
+                            onDelete={handleDeleteTask}
+                            isLoading={actionLoading}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
-          )}
-        </div>
+          </>
+        ) : (
+          <TeamTasksSection
+            teamMembers={teamMembers}
+            isLoading={isLoading}
+          />
+        )}
 
         {/* Modals */}
         <CreateTaskModal

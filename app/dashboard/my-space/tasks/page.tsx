@@ -637,44 +637,49 @@ export default function MyTasksPage() {
   }, []);
 
   async function loadData() {
-    setIsLoading(true);
-    try {
-      const [tasksData, statsData, validationData] = await Promise.all([
-        getMyTasksToday(),
-        getMyTaskStats(),
-        getMyDailyValidationStatus(),
-      ]);
-      
-      setTasks(tasksData);
-      setStats(statsData);
-      setValidationStatus(validationData);
+  setIsLoading(true);
+  try {
+    const [tasksData, statsData, validationData] = await Promise.all([
+      getMyTasksToday(),
+      getMyTaskStats(),
+      getMyDailyValidationStatus(),
+    ]);
+    
+    setTasks(tasksData);
+    setStats(statsData);
+    setValidationStatus(validationData);
 
-      // Récupérer les infos utilisateur
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        
-        // Si manager, charger les membres de l'équipe et les validations en attente
-        if (['ADMIN', 'MANAGER', 'RH', 'DG'].includes(user.role)) {
-          try {
-            const [pending, team] = await Promise.all([
-              getPendingValidations(),
-              getTeamMembers()
-            ]);
-            setPendingValidations(pending);
-            setTeamMembers(team);
-          } catch (err) {
-            console.error('Error loading manager data:', err);
-            // Pas de problème si ça échoue - l'utilisateur n'a peut-être pas d'équipe
-          }
+    // Récupérer les infos utilisateur
+    const userStr = localStorage.getItem('user');
+    console.log('=== DEBUG USER ===', userStr); // 👈 DEBUG
+    
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      console.log('User role:', user.role); // 👈 DEBUG
+      console.log('Is manager check:', ['ADMIN', 'MANAGER', 'RH', 'DG'].includes(user.role)); // 👈 DEBUG
+      
+      // Si manager, charger les membres de l'équipe
+      if (['ADMIN', 'MANAGER', 'RH', 'DG'].includes(user.role)) {
+        try {
+          console.log('Calling getTeamMembers...'); // 👈 DEBUG
+          const [pending, team] = await Promise.all([
+            getPendingValidations(),
+            getTeamMembers()
+          ]);
+          console.log('Team members received:', team); // 👈 DEBUG
+          setPendingValidations(pending);
+          setTeamMembers(team);
+        } catch (err) {
+          console.error('Error loading manager data:', err);
         }
       }
-    } catch (err) {
-      console.error('Error loading tasks:', err);
-    } finally {
-      setIsLoading(false);
     }
+  } catch (err) {
+    console.error('Error loading tasks:', err);
+  } finally {
+    setIsLoading(false);
   }
+}
 
   async function handleCompleteTask(taskId: number) {
     setActionLoading(true);

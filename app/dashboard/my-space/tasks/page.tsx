@@ -4,13 +4,16 @@ import { useState, useEffect } from 'react';
 import { 
   ClipboardList, Clock, Plus, CheckCircle2, Circle, AlertTriangle,
   Play, Check, X, Send, Calendar, Flag, MoreVertical, Loader2,
-  ChevronDown, ChevronUp, User, MessageSquare, Users, Filter
+  ChevronDown, ChevronUp, User, MessageSquare, Users, Filter,
+  TrendingUp, TrendingDown, Award, Target, Lightbulb, BarChart3, History
 } from 'lucide-react';
 import { 
   getMyTasksToday, getMyTaskStats, completeTask, startTask, createTask,
   getMyDailyValidationStatus, submitDailyValidation,
   getPendingValidations, validateDaily, deleteTask, getTeamMembers, getTeamTasks,
-  type Task, type TaskStats, type TaskPriority, type PendingValidation, type TeamMember
+  getValidationHistory, getMyTasks,
+  type Task, type TaskStats, type TaskPriority, type PendingValidation, type TeamMember,
+  type DailyValidation
 } from '@/lib/api';
 
 // Couleurs par priorité
@@ -767,9 +770,405 @@ function TeamTasksSection({
   );
 }
 
+// Fonction pour générer les suggestions intelligentes
+function generateSuggestions(
+  stats: TaskStats | null,
+  validationHistory: DailyValidation[],
+  isManager: boolean,
+  teamMembers: TeamMember[],
+  teamTasks?: Task[]
+): { type: 'success' | 'warning' | 'info' | 'error'; icon: React.ReactNode; message: string }[] {
+  const suggestions: { type: 'success' | 'warning' | 'info' | 'error'; icon: React.ReactNode; message: string }[] = [];
+
+  if (!stats) return suggestions;
+
+  // Calcul du taux de complétion
+  const totalActive = stats.pending + stats.in_progress + stats.completed;
+  const completionRate = totalActive > 0 ? (stats.completed / totalActive) * 100 : 0;
+
+  // Suggestions pour l'employé
+  if (completionRate < 50 && totalActive > 0) {
+    suggestions.push({
+      type: 'warning',
+      icon: <AlertTriangle className="w-5 h-5" />,
+      message: "Votre taux de complétion est bas. Priorisez les tâches urgentes et n'hésitez pas à en discuter avec votre manager si vous êtes surchargé."
+    });
+  } else if (completionRate >= 50 && completionRate < 80) {
+    suggestions.push({
+      type: 'info',
+      icon: <TrendingUp className="w-5 h-5" />,
+      message: "Bon travail ! Essayez de terminer les tâches restantes avant la fin de journée pour améliorer votre score."
+    });
+  } else if (completionRate >= 80 && totalActive > 0) {
+    suggestions.push({
+      type: 'success',
+      icon: <Award className="w-5 h-5" />,
+      message: "Excellent travail ! Vous maintenez un très bon taux de complétion. Continuez ainsi !"
+    });
+  }
+
+  // Tâches en retard
+  if (stats.overdue > 0) {
+    suggestions.push({
+      type: 'error',
+      icon: <Clock className="w-5 h-5" />,
+      message: `Vous avez ${stats.overdue} tâche${stats.overdue > 1 ? 's' : ''} en retard. Traitez-les en priorité.`
+    });
+  }
+
+  // Tâches urgentes aujourd'hui
+  if (stats.due_today > 2) {
+    suggestions.push({
+      type: 'warning',
+      icon: <Target className="w-5 h-5" />,
+      message: `${stats.due_today} tâches sont dues aujourd'hui. Concentrez-vous pour toutes les terminer.`
+    });
+  }
+
+  // Analyse de l'historique des validations
+  const recentValidations = validationHistory.slice(0, 5);
+  const rejectedCount = recentValidations.filter(v => v.status === 'rejected').length;
+  
+  if (rejectedCount >= 2) {
+    suggestions.push({
+      type: 'warning',
+      icon: <MessageSquare className="w-5 h-5" />,
+      message: "Plusieurs de vos journées récentes ont été rejetées. Consultez les commentaires de votre manager pour vous améliorer."
+    });
+  }
+
+  // Suggestions spécifiques au manager
+  if (isManager && teamMembers.length > 0) {
+    // Vérifier les membres en difficulté
+    if (teamTasks && teamTasks.length > 0) {
+      const memberStats = new Map<number, { total: number; completed: number; overdue: number }>();
+      
+      teamTasks.forEach(task => {
+        const current = memberStats.get(task.assigned_to_id) || { total: 0, completed: 0, overdue: 0 };
+        current.total++;
+        if (task.status === 'completed') current.completed++;
+        if (task.is_overdue && task.status !== 'completed') current.overdue++;
+        memberStats.set(task.assigned_to_id, current);
+      });
+
+      memberStats.forEach((mStats, memberId) => {
+        const member = teamMembers.find(m => m.id === memberId);
+        if (!member) return;
+
+        const memberRate = mStats.total > 0 ? (mStats.completed / mStats.total) * 100 : 0;
+        
+        if (memberRate < 50 && mStats.total >= 3) {
+          suggestions.push({
+            type: 'warning',
+            icon: <User className="w-5 h-5" />,
+            message: `${member.name} a un taux de complétion de ${memberRate.toFixed(0)}%. Un point avec lui/elle pourrait être utile.`
+          });
+        }
+
+        if (mStats.overdue >= 3) {
+          suggestions.push({
+            type: 'error',
+            icon: <AlertTriangle className="w-5 h-5" />,
+            message: `${member.name} a ${mStats.overdue} tâches en retard. Envisagez de redistribuer la charge.`
+          });
+        }
+      });
+    }
+  }
+
+  return suggestions.slice(0, 4); // Limiter à 4 suggestions max
+}
+
+// Section Historique & Stats
+function HistoryStatsSection({
+  stats,
+  isManager,
+  teamMembers,
+}: {
+  stats: TaskStats | null;
+  isManager: boolean;
+  teamMembers: TeamMember[];
+}) {
+  const [validationHistory, setValidationHistory] = useState<DailyValidation[]>([]);
+  const [taskHistory, setTaskHistory] = useState<Task[]>([]);
+  const [teamTasks, setTeamTasks] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'approved' | 'rejected' | 'pending'>('all');
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
+  async function loadHistory() {
+    setIsLoading(true);
+    try {
+      const [validations, tasks] = await Promise.all([
+        getValidationHistory({ page_size: 20 }),
+        getMyTasks({ page_size: 50 }),
+      ]);
+      setValidationHistory(validations.items || []);
+      setTaskHistory(tasks.items || []);
+
+      if (isManager) {
+        const team = await getTeamTasks({ page_size: 100 });
+        setTeamTasks(team.items || []);
+      }
+    } catch (err) {
+      console.error('Error loading history:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // Calcul des stats
+  const totalTasks = taskHistory.length;
+  const completedTasks = taskHistory.filter(t => t.status === 'completed').length;
+  const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+  const validatedDays = validationHistory.filter(v => v.status === 'approved').length;
+  const rejectedDays = validationHistory.filter(v => v.status === 'rejected').length;
+  const pendingDays = validationHistory.filter(v => v.status === 'pending').length;
+
+  // Filtrer l'historique des validations
+  const filteredValidations = validationHistory.filter(v => {
+    if (historyFilter === 'all') return true;
+    return v.status === historyFilter;
+  });
+
+  // Générer les suggestions
+  const suggestions = generateSuggestions(stats, validationHistory, isManager, teamMembers, teamTasks);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Suggestions intelligentes */}
+      {suggestions.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+            <Lightbulb className="w-5 h-5 text-yellow-500" />
+            Suggestions personnalisées
+          </h3>
+          <div className="grid gap-3">
+            {suggestions.map((suggestion, index) => (
+              <div
+                key={index}
+                className={`p-4 rounded-xl border flex items-start gap-3 ${
+                  suggestion.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
+                  suggestion.type === 'warning' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
+                  suggestion.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' :
+                  'bg-blue-50 border-blue-200 text-blue-800'
+                }`}
+              >
+                <div className={`flex-shrink-0 ${
+                  suggestion.type === 'success' ? 'text-green-600' :
+                  suggestion.type === 'warning' ? 'text-yellow-600' :
+                  suggestion.type === 'error' ? 'text-red-600' :
+                  'text-blue-600'
+                }`}>
+                  {suggestion.icon}
+                </div>
+                <p className="text-sm">{suggestion.message}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Stats personnelles */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-gray-400" />
+          Mes statistiques
+        </h3>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="text-center p-4 bg-gray-50 rounded-xl">
+            <p className="text-3xl font-bold text-primary-600">{completionRate.toFixed(0)}%</p>
+            <p className="text-sm text-gray-500 mt-1">Taux de complétion</p>
+          </div>
+          <div className="text-center p-4 bg-green-50 rounded-xl">
+            <p className="text-3xl font-bold text-green-600">{validatedDays}</p>
+            <p className="text-sm text-gray-500 mt-1">Journées validées</p>
+          </div>
+          <div className="text-center p-4 bg-red-50 rounded-xl">
+            <p className="text-3xl font-bold text-red-600">{rejectedDays}</p>
+            <p className="text-sm text-gray-500 mt-1">Journées rejetées</p>
+          </div>
+          <div className="text-center p-4 bg-yellow-50 rounded-xl">
+            <p className="text-3xl font-bold text-yellow-600">{pendingDays}</p>
+            <p className="text-sm text-gray-500 mt-1">En attente</p>
+          </div>
+        </div>
+
+        {/* Barre de progression */}
+        <div className="mt-6">
+          <div className="flex justify-between text-sm text-gray-600 mb-2">
+            <span>Performance globale</span>
+            <span>{completedTasks}/{totalTasks} tâches</span>
+          </div>
+          <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+            <div 
+              className={`h-full rounded-full transition-all ${
+                completionRate >= 80 ? 'bg-green-500' :
+                completionRate >= 50 ? 'bg-yellow-500' :
+                'bg-red-500'
+              }`}
+              style={{ width: `${completionRate}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Historique des journées */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+            <History className="w-5 h-5 text-gray-400" />
+            Historique des journées
+          </h3>
+          <select
+            value={historyFilter}
+            onChange={(e) => setHistoryFilter(e.target.value as typeof historyFilter)}
+            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+          >
+            <option value="all">Toutes ({validationHistory.length})</option>
+            <option value="approved">Validées ({validatedDays})</option>
+            <option value="rejected">Rejetées ({rejectedDays})</option>
+            <option value="pending">En attente ({pendingDays})</option>
+          </select>
+        </div>
+
+        {filteredValidations.length === 0 ? (
+          <div className="p-8 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Calendar className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-gray-500">Aucune journée dans l&apos;historique</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {filteredValidations.slice(0, 10).map((validation) => (
+              <div key={validation.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    validation.status === 'approved' ? 'bg-green-100' :
+                    validation.status === 'rejected' ? 'bg-red-100' :
+                    'bg-yellow-100'
+                  }`}>
+                    {validation.status === 'approved' ? (
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    ) : validation.status === 'rejected' ? (
+                      <X className="w-5 h-5 text-red-600" />
+                    ) : (
+                      <Clock className="w-5 h-5 text-yellow-600" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {new Date(validation.validation_date).toLocaleDateString('fr-FR', {
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'long'
+                      })}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {validation.completed_tasks}/{validation.total_tasks} tâches • {validation.completion_rate.toFixed(0)}%
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    validation.status === 'approved' ? 'bg-green-100 text-green-800' :
+                    validation.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                    'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {validation.status === 'approved' ? 'Validée' :
+                     validation.status === 'rejected' ? 'Rejetée' : 'En attente'}
+                  </span>
+                  {validation.validation_comment && (
+                    <p className="text-xs text-gray-500 mt-1 max-w-[200px] truncate">
+                      {validation.validation_comment}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Stats équipe (Manager uniquement) */}
+      {isManager && teamMembers.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Users className="w-5 h-5 text-gray-400" />
+            Performance de l&apos;équipe
+          </h3>
+          
+          <div className="space-y-4">
+            {teamMembers.map((member) => {
+              const memberTasks = teamTasks.filter(t => t.assigned_to_id === member.id);
+              const memberCompleted = memberTasks.filter(t => t.status === 'completed').length;
+              const memberRate = memberTasks.length > 0 ? (memberCompleted / memberTasks.length) * 100 : 0;
+              const memberOverdue = memberTasks.filter(t => t.is_overdue && t.status !== 'completed').length;
+
+              return (
+                <div key={member.id} className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                    <User className="w-5 h-5 text-primary-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-medium text-gray-900">{member.name}</p>
+                      <div className="flex items-center gap-2">
+                        {memberOverdue > 0 && (
+                          <span className="text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded">
+                            {memberOverdue} en retard
+                          </span>
+                        )}
+                        <span className="text-sm text-gray-500">
+                          {memberCompleted}/{memberTasks.length} tâches
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all ${
+                          memberRate >= 80 ? 'bg-green-500' :
+                          memberRate >= 50 ? 'bg-yellow-500' :
+                          'bg-red-500'
+                        }`}
+                        style={{ width: `${memberRate}%` }}
+                      />
+                    </div>
+                  </div>
+                  <span className={`text-sm font-medium ${
+                    memberRate >= 80 ? 'text-green-600' :
+                    memberRate >= 50 ? 'text-yellow-600' :
+                    'text-red-600'
+                  }`}>
+                    {memberRate.toFixed(0)}%
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Page principale
 export default function MyTasksPage() {
-  const [activeTab, setActiveTab] = useState<'my-tasks' | 'team-tasks'>('my-tasks');
+  const [activeTab, setActiveTab] = useState<'my-tasks' | 'team-tasks' | 'history-stats'>('my-tasks');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [stats, setStats] = useState<TaskStats | null>(null);
   const [validationStatus, setValidationStatus] = useState<{
@@ -925,20 +1324,20 @@ export default function MyTasksPage() {
           </button>
         </div>
 
-        {/* Onglets (visible seulement pour les managers) */}
-        {isManager && (
-          <div className="flex border-b border-gray-200 mb-6">
-            <button
-              onClick={() => setActiveTab('my-tasks')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-                activeTab === 'my-tasks'
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <ClipboardList className="w-4 h-4" />
-              Mes Tâches
-            </button>
+        {/* Onglets */}
+        <div className="flex border-b border-gray-200 mb-6">
+          <button
+            onClick={() => setActiveTab('my-tasks')}
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+              activeTab === 'my-tasks'
+                ? 'border-primary-600 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <ClipboardList className="w-4 h-4" />
+            Mes Tâches
+          </button>
+          {isManager && (
             <button
               onClick={() => setActiveTab('team-tasks')}
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
@@ -955,8 +1354,19 @@ export default function MyTasksPage() {
                 </span>
               )}
             </button>
-          </div>
-        )}
+          )}
+          <button
+            onClick={() => setActiveTab('history-stats')}
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+              activeTab === 'history-stats'
+                ? 'border-primary-600 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4" />
+            Historique & Stats
+          </button>
+        </div>
 
         {/* Contenu selon l'onglet */}
         {activeTab === 'my-tasks' ? (
@@ -1104,10 +1514,16 @@ export default function MyTasksPage() {
               )}
             </div>
           </>
-        ) : (
+        ) : activeTab === 'team-tasks' ? (
           <TeamTasksSection
             teamMembers={teamMembers}
             isLoading={isLoading}
+          />
+        ) : (
+          <HistoryStatsSection
+            stats={stats}
+            isManager={isManager}
+            teamMembers={teamMembers}
           />
         )}
 

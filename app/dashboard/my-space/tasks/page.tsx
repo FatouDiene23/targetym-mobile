@@ -5,7 +5,7 @@ import {
   ClipboardList, Clock, Plus, CheckCircle2, Circle, AlertTriangle,
   Play, Check, X, Send, Calendar, Flag, MoreVertical, Loader2,
   ChevronDown, ChevronUp, User, MessageSquare, Users, Filter,
-  TrendingUp, TrendingDown, Award, Target, Lightbulb, BarChart3, History
+  TrendingUp, Award, Target, Lightbulb, BarChart3, History
 } from 'lucide-react';
 import { 
   getMyTasksToday, getMyTaskStats, completeTask, startTask, createTask,
@@ -896,29 +896,29 @@ function HistoryStatsSection({
   const [historyFilter, setHistoryFilter] = useState<'all' | 'approved' | 'rejected' | 'pending'>('all');
 
   useEffect(() => {
-    loadHistory();
-  }, []);
+    async function loadHistoryData() {
+      setIsLoading(true);
+      try {
+        const [validations, tasks] = await Promise.all([
+          getValidationHistory({ page_size: 20 }),
+          getMyTasks({ page_size: 50 }),
+        ]);
+        setValidationHistory(validations.items || []);
+        setTaskHistory(tasks.items || []);
 
-  async function loadHistory() {
-    setIsLoading(true);
-    try {
-      const [validations, tasks] = await Promise.all([
-        getValidationHistory({ page_size: 20 }),
-        getMyTasks({ page_size: 50 }),
-      ]);
-      setValidationHistory(validations.items || []);
-      setTaskHistory(tasks.items || []);
-
-      if (isManager) {
-        const team = await getTeamTasks({ page_size: 100 });
-        setTeamTasks(team.items || []);
+        if (isManager) {
+          const team = await getTeamTasks({ page_size: 100 });
+          setTeamTasks(team.items || []);
+        }
+      } catch (err) {
+        console.error('Error loading history:', err);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      console.error('Error loading history:', err);
-    } finally {
-      setIsLoading(false);
     }
-  }
+    
+    loadHistoryData();
+  }, [isManager]);
 
   // Calcul des stats
   const totalTasks = taskHistory.length;

@@ -870,7 +870,7 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
 }
 
 export async function createTask(data: TaskCreate): Promise<Task> {
-  const response = await fetch(`${API_URL}/api/tasks/`, {
+  const response = await fetch(`${API_URL}/api/tasks`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(data),

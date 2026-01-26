@@ -1,5 +1,5 @@
 // Configuration API
-const API_URL = 'https://targetym-hr-backend-production.up.railway.app';
+const API_URL = 'https://targetym-api.railway.app';
 
 // Helper pour obtenir le token
 function getToken(): string | null {

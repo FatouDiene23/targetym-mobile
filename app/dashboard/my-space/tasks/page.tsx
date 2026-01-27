@@ -5,7 +5,7 @@ import {
   ClipboardList, Clock, Plus, CheckCircle2, Circle, AlertTriangle,
   Play, Check, X, Send, Calendar, Flag, MoreVertical, Loader2,
   ChevronDown, ChevronUp, User, MessageSquare, Users, Filter,
-  TrendingUp, Award, Target, Lightbulb, BarChart3, History,
+  Award, Target, Lightbulb, BarChart3, History,
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { 
@@ -1137,11 +1137,7 @@ function HistoryTab() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
-  useEffect(() => {
-    loadHistory();
-  }, [periodFilter]);
-
-  async function loadHistory() {
+  const loadHistory = useCallback(async () => {
     setIsLoading(true);
     try {
       // Calculer la date de début selon le filtre
@@ -1183,7 +1179,11 @@ function HistoryTab() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [periodFilter]);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
 
   // Filtrer les validations par statut
   const filteredValidations = validationHistory.filter(v => {
@@ -1391,11 +1391,7 @@ function StatsTab({
   const [isLoading, setIsLoading] = useState(true);
   const [periodFilter, setPeriodFilter] = useState<string>('30');
 
-  useEffect(() => {
-    loadStats();
-  }, [periodFilter, isManager]);
-
-  async function loadStats() {
+  const loadStats = useCallback(async () => {
     setIsLoading(true);
     try {
       const [statsData, validations, tasks] = await Promise.all([
@@ -1417,7 +1413,11 @@ function StatsTab({
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [periodFilter, isManager]);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
 
   // Calculs stats
   const totalTasks = taskHistory.length;

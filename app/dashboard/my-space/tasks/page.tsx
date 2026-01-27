@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   ClipboardList, Clock, Plus, CheckCircle2, Circle, AlertTriangle,
   Play, Check, X, Send, Calendar, Flag, MoreVertical, Loader2,
   ChevronDown, ChevronUp, User, MessageSquare, Users, Filter,
-  TrendingUp, Award, Target, Lightbulb, BarChart3, History
+  TrendingUp, Award, Target, Lightbulb, BarChart3, History,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { 
   getMyTasksToday, getMyTaskStats, completeTask, startTask, createTask,
@@ -23,6 +24,68 @@ const PRIORITY_COLORS: Record<TaskPriority, { bg: string; text: string; label: s
   high: { bg: 'bg-orange-100', text: 'text-orange-600', label: 'Haute' },
   urgent: { bg: 'bg-red-100', text: 'text-red-600', label: 'Urgente' },
 };
+
+// Composant Pagination
+function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t border-gray-100">
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage <= 1}
+        className="p-2 rounded-lg border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+      
+      <div className="flex items-center gap-1">
+        {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+          let pageNum: number;
+          if (totalPages <= 5) {
+            pageNum = i + 1;
+          } else if (currentPage <= 3) {
+            pageNum = i + 1;
+          } else if (currentPage >= totalPages - 2) {
+            pageNum = totalPages - 4 + i;
+          } else {
+            pageNum = currentPage - 2 + i;
+          }
+          
+          return (
+            <button
+              key={pageNum}
+              onClick={() => onPageChange(pageNum)}
+              className={`w-8 h-8 rounded-lg text-sm font-medium ${
+                currentPage === pageNum
+                  ? 'bg-primary-600 text-white'
+                  : 'border border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              {pageNum}
+            </button>
+          );
+        })}
+      </div>
+
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage >= totalPages}
+        className="p-2 rounded-lg border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
 
 // Composant carte de tâche
 function TaskCard({ 
@@ -203,7 +266,6 @@ function CreateTaskModal({
     priority: 'medium' as TaskPriority,
   });
 
-  // Reset assigned_to_id quand currentEmployeeId change
   useEffect(() => {
     if (currentEmployeeId) {
       setFormData(prev => ({ ...prev, assigned_to_id: currentEmployeeId.toString() }));
@@ -283,7 +345,6 @@ function CreateTaskModal({
                 />
               </div>
 
-              {/* Champ d'assignation */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Assigner à
@@ -618,49 +679,138 @@ function PendingValidationsSection({
   );
 }
 
-// Section Tâches de l'équipe (Manager)
-function TeamTasksSection({
-  teamMembers,
-  isLoading: parentLoading,
+// ============================================
+// ONGLET 1: MES TÂCHES
+// ============================================
+function MyTasksTab({
+  onRefresh,
 }: {
-  teamMembers: TeamMember[];
-  isLoading: boolean;
+  onRefresh: () => void;
 }) {
-  const [teamTasks, setTeamTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [stats, setStats] = useState<TaskStats | null>(null);
+  const [validationStatus, setValidationStatus] = useState<{
+    validation: { status: string; validation_comment?: string } | null;
+    can_submit: boolean;
+    tasks_total: number;
+    tasks_completed: number;
+    all_completed: boolean;
+  } | null>(null);
+  const [pendingValidations, setPendingValidations] = useState<PendingValidation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [actionLoading, setActionLoading] = useState(false);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isManager, setIsManager] = useState(false);
+  const pageSize = 10;
 
-  useEffect(() => {
-    loadTeamTasks();
-  }, []);
-
-  async function loadTeamTasks() {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await getTeamTasks();
-      setTeamTasks(data.items || []);
+      const [tasksData, statsData, validationData] = await Promise.all([
+        getMyTasksToday(),
+        getMyTaskStats(),
+        getMyDailyValidationStatus(),
+      ]);
+      
+      setTasks(tasksData);
+      setStats(statsData);
+      setValidationStatus(validationData);
+
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        const userIsManager = ['ADMIN', 'MANAGER', 'RH', 'DG'].includes(user.role?.toUpperCase());
+        setIsManager(userIsManager);
+        
+        if (userIsManager) {
+          try {
+            const pending = await getPendingValidations();
+            setPendingValidations(pending);
+          } catch (err) {
+            console.error('Error loading pending validations:', err);
+          }
+        }
+      }
     } catch (err) {
-      console.error('Error loading team tasks:', err);
+      console.error('Error loading tasks:', err);
     } finally {
       setIsLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  async function handleCompleteTask(taskId: number) {
+    setActionLoading(true);
+    try {
+      await completeTask(taskId);
+      await loadData();
+      onRefresh();
+    } catch (err) {
+      console.error('Error completing task:', err);
+    } finally {
+      setActionLoading(false);
+    }
   }
 
-  const filteredTasks = teamTasks.filter(task => {
-    const matchEmployee = selectedEmployee === 'all' || task.assigned_to_id.toString() === selectedEmployee;
-    const matchStatus = selectedStatus === 'all' || task.status === selectedStatus;
-    return matchEmployee && matchStatus;
+  async function handleStartTask(taskId: number) {
+    setActionLoading(true);
+    try {
+      await startTask(taskId);
+      await loadData();
+    } catch (err) {
+      console.error('Error starting task:', err);
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleDeleteTask(taskId: number) {
+    if (!confirm('Annuler cette tâche ?')) return;
+    setActionLoading(true);
+    try {
+      await deleteTask(taskId);
+      await loadData();
+      onRefresh();
+    } catch (err) {
+      console.error('Error deleting task:', err);
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleValidateDay(validationId: number, approved: boolean, comment?: string) {
+    setActionLoading(true);
+    try {
+      await validateDaily(validationId, approved, comment);
+      await loadData();
+      onRefresh();
+    } catch (err) {
+      console.error('Error validating day:', err);
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  // Filtrer les tâches
+  const filteredTasks = tasks.filter(task => {
+    if (statusFilter === 'all') return true;
+    if (statusFilter === 'todo') return task.status === 'pending' || task.status === 'in_progress';
+    return task.status === statusFilter;
   });
 
-  const tasksByStatus = {
-    pending: filteredTasks.filter(t => t.status === 'pending').length,
-    in_progress: filteredTasks.filter(t => t.status === 'in_progress').length,
-    completed: filteredTasks.filter(t => t.status === 'completed').length,
-    overdue: filteredTasks.filter(t => t.is_overdue && t.status !== 'completed').length,
-  };
+  // Pagination
+  const totalPages = Math.ceil(filteredTasks.length / pageSize);
+  const paginatedTasks = filteredTasks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  if (isLoading || parentLoading) {
+  const incompleteTasks = tasks.filter(t => t.status !== 'completed' && t.status !== 'cancelled');
+  const canSubmitDay = validationStatus?.can_submit && tasks.length > 0;
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
@@ -670,7 +820,211 @@ function TeamTasksSection({
 
   return (
     <div className="space-y-6">
-      {/* Stats de l'équipe */}
+      {/* Stats */}
+      {stats && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <p className="text-sm text-gray-500">À faire</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.pending + stats.in_progress}</p>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <p className="text-sm text-gray-500">Terminées</p>
+            <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <p className="text-sm text-gray-500">En retard</p>
+            <p className="text-2xl font-bold text-red-600">{stats.overdue}</p>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <p className="text-sm text-gray-500">Aujourd&apos;hui</p>
+            <p className="text-2xl font-bold text-blue-600">{stats.due_today}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Validations en attente (Manager) */}
+      {isManager && (
+        <PendingValidationsSection
+          validations={pendingValidations}
+          onValidate={handleValidateDay}
+          isLoading={actionLoading}
+        />
+      )}
+
+      {/* Statut de validation */}
+      {validationStatus?.validation && (
+        <div className={`rounded-xl p-4 ${
+          validationStatus.validation.status === 'approved' 
+            ? 'bg-green-50 border border-green-200' 
+            : validationStatus.validation.status === 'rejected'
+            ? 'bg-red-50 border border-red-200'
+            : 'bg-yellow-50 border border-yellow-200'
+        }`}>
+          <div className="flex items-center gap-3">
+            {validationStatus.validation.status === 'approved' ? (
+              <CheckCircle2 className="w-6 h-6 text-green-600" />
+            ) : validationStatus.validation.status === 'rejected' ? (
+              <X className="w-6 h-6 text-red-600" />
+            ) : (
+              <Clock className="w-6 h-6 text-yellow-600" />
+            )}
+            <div>
+              <p className={`font-medium ${
+                validationStatus.validation.status === 'approved' 
+                  ? 'text-green-800' 
+                  : validationStatus.validation.status === 'rejected'
+                  ? 'text-red-800'
+                  : 'text-yellow-800'
+              }`}>
+                {validationStatus.validation.status === 'approved' 
+                  ? 'Journée validée ✓' 
+                  : validationStatus.validation.status === 'rejected'
+                  ? 'Journée rejetée'
+                  : 'En attente de validation'}
+              </p>
+              {validationStatus.validation.validation_comment && (
+                <p className="text-sm opacity-75">
+                  Commentaire : {validationStatus.validation.validation_comment}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Liste des tâches */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-gray-400" />
+            Tâches du jour ({filteredTasks.length})
+          </h2>
+          
+          <div className="flex items-center gap-3">
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+            >
+              <option value="all">Tous les statuts</option>
+              <option value="todo">À faire</option>
+              <option value="in_progress">En cours</option>
+              <option value="completed">Terminées</option>
+            </select>
+            
+            {canSubmitDay && (
+              <button
+                onClick={() => setShowSubmitModal(true)}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm"
+              >
+                <Send className="w-4 h-4" />
+                Soumettre ma journée
+              </button>
+            )}
+          </div>
+        </div>
+
+        {paginatedTasks.length === 0 ? (
+          <div className="p-8 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-gray-500">Aucune tâche à afficher</p>
+          </div>
+        ) : (
+          <div className="p-4 space-y-3">
+            {paginatedTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onComplete={handleCompleteTask}
+                onStart={handleStartTask}
+                onDelete={handleDeleteTask}
+                isLoading={actionLoading}
+              />
+            ))}
+            
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Modal de soumission */}
+      <SubmitDayModal
+        isOpen={showSubmitModal}
+        onClose={() => setShowSubmitModal(false)}
+        onSuccess={() => { loadData(); onRefresh(); }}
+        incompleteTasks={incompleteTasks}
+      />
+    </div>
+  );
+}
+
+// ============================================
+// ONGLET 2: TÂCHES ÉQUIPE (Managers)
+// ============================================
+function TeamTasksTab({
+  teamMembers,
+}: {
+  teamMembers: TeamMember[];
+}) {
+  const [teamTasks, setTeamTasks] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  useEffect(() => {
+    loadTeamTasks();
+  }, []);
+
+  async function loadTeamTasks() {
+    setIsLoading(true);
+    try {
+      const data = await getTeamTasks({ page_size: 100 });
+      setTeamTasks(data.items || []);
+    } catch (err) {
+      console.error('Error loading team tasks:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // Filtrer
+  const filteredTasks = teamTasks.filter(task => {
+    const matchEmployee = selectedEmployee === 'all' || task.assigned_to_id.toString() === selectedEmployee;
+    const matchStatus = selectedStatus === 'all' || task.status === selectedStatus;
+    return matchEmployee && matchStatus;
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredTasks.length / pageSize);
+  const paginatedTasks = filteredTasks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // Stats
+  const tasksByStatus = {
+    pending: filteredTasks.filter(t => t.status === 'pending').length,
+    in_progress: filteredTasks.filter(t => t.status === 'in_progress').length,
+    completed: filteredTasks.filter(t => t.status === 'completed').length,
+    overdue: filteredTasks.filter(t => t.is_overdue && t.status !== 'completed').length,
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <p className="text-sm text-gray-500">À faire</p>
@@ -698,35 +1052,29 @@ function TeamTasksSection({
             <span className="text-sm font-medium text-gray-700">Filtres :</span>
           </div>
           
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-500">Employé :</label>
-            <select
-              value={selectedEmployee}
-              onChange={(e) => setSelectedEmployee(e.target.value)}
-              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="all">Tous ({teamMembers.length})</option>
-              {teamMembers.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={selectedEmployee}
+            onChange={(e) => { setSelectedEmployee(e.target.value); setCurrentPage(1); }}
+            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+          >
+            <option value="all">Tous les employés ({teamMembers.length})</option>
+            {teamMembers.map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.name}
+              </option>
+            ))}
+          </select>
 
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-500">Statut :</label>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="all">Tous</option>
-              <option value="pending">À faire</option>
-              <option value="in_progress">En cours</option>
-              <option value="completed">Terminées</option>
-            </select>
-          </div>
+          <select
+            value={selectedStatus}
+            onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
+            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+          >
+            <option value="all">Tous les statuts</option>
+            <option value="pending">À faire</option>
+            <option value="in_progress">En cours</option>
+            <option value="completed">Terminées</option>
+          </select>
 
           <button
             onClick={loadTeamTasks}
@@ -737,7 +1085,7 @@ function TeamTasksSection({
         </div>
       </div>
 
-      {/* Liste des tâches */}
+      {/* Liste */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-4 border-b border-gray-200">
           <h2 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -746,7 +1094,7 @@ function TeamTasksSection({
           </h2>
         </div>
 
-        {filteredTasks.length === 0 ? (
+        {paginatedTasks.length === 0 ? (
           <div className="p-8 text-center">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Users className="w-8 h-8 text-gray-400" />
@@ -755,7 +1103,7 @@ function TeamTasksSection({
           </div>
         ) : (
           <div className="p-4 space-y-3">
-            {filteredTasks.map((task) => (
+            {paginatedTasks.map((task) => (
               <TaskCard
                 key={task.id}
                 task={task}
@@ -763,6 +1111,12 @@ function TeamTasksSection({
                 showAssignee={true}
               />
             ))}
+            
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           </div>
         )}
       </div>
@@ -770,173 +1124,82 @@ function TeamTasksSection({
   );
 }
 
-// Fonction pour générer les suggestions intelligentes
-function generateSuggestions(
-  stats: TaskStats | null,
-  validationHistory: DailyValidation[],
-  isManager: boolean,
-  teamMembers: TeamMember[],
-  teamTasks?: Task[]
-): { type: 'success' | 'warning' | 'info' | 'error'; icon: React.ReactNode; message: string }[] {
-  const suggestions: { type: 'success' | 'warning' | 'info' | 'error'; icon: React.ReactNode; message: string }[] = [];
-
-  if (!stats) return suggestions;
-
-  // Calcul du taux de complétion
-  const totalActive = stats.pending + stats.in_progress + stats.completed;
-  const completionRate = totalActive > 0 ? (stats.completed / totalActive) * 100 : 0;
-
-  // Suggestions pour l'employé
-  if (completionRate < 50 && totalActive > 0) {
-    suggestions.push({
-      type: 'warning',
-      icon: <AlertTriangle className="w-5 h-5" />,
-      message: "Votre taux de complétion est bas. Priorisez les tâches urgentes et n'hésitez pas à en discuter avec votre manager si vous êtes surchargé."
-    });
-  } else if (completionRate >= 50 && completionRate < 80) {
-    suggestions.push({
-      type: 'info',
-      icon: <TrendingUp className="w-5 h-5" />,
-      message: "Bon travail ! Essayez de terminer les tâches restantes avant la fin de journée pour améliorer votre score."
-    });
-  } else if (completionRate >= 80 && totalActive > 0) {
-    suggestions.push({
-      type: 'success',
-      icon: <Award className="w-5 h-5" />,
-      message: "Excellent travail ! Vous maintenez un très bon taux de complétion. Continuez ainsi !"
-    });
-  }
-
-  // Tâches en retard
-  if (stats.overdue > 0) {
-    suggestions.push({
-      type: 'error',
-      icon: <Clock className="w-5 h-5" />,
-      message: `Vous avez ${stats.overdue} tâche${stats.overdue > 1 ? 's' : ''} en retard. Traitez-les en priorité.`
-    });
-  }
-
-  // Tâches urgentes aujourd'hui
-  if (stats.due_today > 2) {
-    suggestions.push({
-      type: 'warning',
-      icon: <Target className="w-5 h-5" />,
-      message: `${stats.due_today} tâches sont dues aujourd'hui. Concentrez-vous pour toutes les terminer.`
-    });
-  }
-
-  // Analyse de l'historique des validations
-  const recentValidations = validationHistory.slice(0, 5);
-  const rejectedCount = recentValidations.filter(v => v.status === 'rejected').length;
-  
-  if (rejectedCount >= 2) {
-    suggestions.push({
-      type: 'warning',
-      icon: <MessageSquare className="w-5 h-5" />,
-      message: "Plusieurs de vos journées récentes ont été rejetées. Consultez les commentaires de votre manager pour vous améliorer."
-    });
-  }
-
-  // Suggestions spécifiques au manager
-  if (isManager && teamMembers.length > 0) {
-    // Vérifier les membres en difficulté
-    if (teamTasks && teamTasks.length > 0) {
-      const memberStats = new Map<number, { total: number; completed: number; overdue: number }>();
-      
-      teamTasks.forEach(task => {
-        const current = memberStats.get(task.assigned_to_id) || { total: 0, completed: 0, overdue: 0 };
-        current.total++;
-        if (task.status === 'completed') current.completed++;
-        if (task.is_overdue && task.status !== 'completed') current.overdue++;
-        memberStats.set(task.assigned_to_id, current);
-      });
-
-      memberStats.forEach((mStats, memberId) => {
-        const member = teamMembers.find(m => m.id === memberId);
-        if (!member) return;
-
-        const memberRate = mStats.total > 0 ? (mStats.completed / mStats.total) * 100 : 0;
-        
-        if (memberRate < 50 && mStats.total >= 3) {
-          suggestions.push({
-            type: 'warning',
-            icon: <User className="w-5 h-5" />,
-            message: `${member.name} a un taux de complétion de ${memberRate.toFixed(0)}%. Un point avec lui/elle pourrait être utile.`
-          });
-        }
-
-        if (mStats.overdue >= 3) {
-          suggestions.push({
-            type: 'error',
-            icon: <AlertTriangle className="w-5 h-5" />,
-            message: `${member.name} a ${mStats.overdue} tâches en retard. Envisagez de redistribuer la charge.`
-          });
-        }
-      });
-    }
-  }
-
-  return suggestions.slice(0, 4); // Limiter à 4 suggestions max
-}
-
-// Section Historique & Stats
-function HistoryStatsSection({
-  stats,
-  isManager,
-  teamMembers,
-}: {
-  stats: TaskStats | null;
-  isManager: boolean;
-  teamMembers: TeamMember[];
-}) {
-  const [validationHistory, setValidationHistory] = useState<DailyValidation[]>([]);
+// ============================================
+// ONGLET 3: HISTORIQUE
+// ============================================
+function HistoryTab() {
+  const [subTab, setSubTab] = useState<'tasks' | 'validations'>('tasks');
   const [taskHistory, setTaskHistory] = useState<Task[]>([]);
-  const [teamTasks, setTeamTasks] = useState<Task[]>([]);
+  const [validationHistory, setValidationHistory] = useState<DailyValidation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [historyFilter, setHistoryFilter] = useState<'all' | 'approved' | 'rejected' | 'pending'>('all');
+  const [periodFilter, setPeriodFilter] = useState<string>('7');
+  const [validationStatusFilter, setValidationStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
-    async function loadHistoryData() {
-      setIsLoading(true);
-      try {
-        const [validations, tasks] = await Promise.all([
-          getValidationHistory({ page_size: 20 }),
-          getMyTasks({ page_size: 50 }),
-        ]);
-        setValidationHistory(validations.items || []);
-        setTaskHistory(tasks.items || []);
+    loadHistory();
+  }, [periodFilter]);
 
-        if (isManager) {
-          const team = await getTeamTasks({ page_size: 100 });
-          setTeamTasks(team.items || []);
-        }
-      } catch (err) {
-        console.error('Error loading history:', err);
-      } finally {
-        setIsLoading(false);
+  async function loadHistory() {
+    setIsLoading(true);
+    try {
+      // Calculer la date de début selon le filtre
+      const now = new Date();
+      let startDate: string | undefined;
+      
+      if (periodFilter === '1') {
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        startDate = yesterday.toISOString().split('T')[0];
+      } else if (periodFilter !== 'all') {
+        const daysAgo = new Date(now);
+        daysAgo.setDate(daysAgo.getDate() - parseInt(periodFilter));
+        startDate = daysAgo.toISOString().split('T')[0];
       }
+
+      const [tasks, validations] = await Promise.all([
+        getMyTasks({ page_size: 100, status: 'completed' }),
+        getValidationHistory({ page_size: 100 }),
+      ]);
+
+      // Filtrer par période
+      let filteredTasks = tasks.items || [];
+      let filteredValidations = validations.items || [];
+
+      if (startDate) {
+        filteredTasks = filteredTasks.filter(t => 
+          t.completed_at && new Date(t.completed_at) >= new Date(startDate!)
+        );
+        filteredValidations = filteredValidations.filter(v => 
+          new Date(v.validation_date) >= new Date(startDate!)
+        );
+      }
+
+      setTaskHistory(filteredTasks);
+      setValidationHistory(filteredValidations);
+    } catch (err) {
+      console.error('Error loading history:', err);
+    } finally {
+      setIsLoading(false);
     }
-    
-    loadHistoryData();
-  }, [isManager]);
+  }
 
-  // Calcul des stats
-  const totalTasks = taskHistory.length;
-  const completedTasks = taskHistory.filter(t => t.status === 'completed').length;
-  const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-
-  const validatedDays = validationHistory.filter(v => v.status === 'approved').length;
-  const rejectedDays = validationHistory.filter(v => v.status === 'rejected').length;
-  const pendingDays = validationHistory.filter(v => v.status === 'pending').length;
-
-  // Filtrer l'historique des validations
+  // Filtrer les validations par statut
   const filteredValidations = validationHistory.filter(v => {
-    if (historyFilter === 'all') return true;
-    return v.status === historyFilter;
+    if (validationStatusFilter === 'all') return true;
+    return v.status === validationStatusFilter;
   });
 
-  // Générer les suggestions
-  const suggestions = generateSuggestions(stats, validationHistory, isManager, teamMembers, teamTasks);
+  // Pagination
+  const currentData = subTab === 'tasks' ? taskHistory : filteredValidations;
+  const totalPages = Math.ceil(currentData.length / pageSize);
+  const paginatedData = currentData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // Reset page on filter change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [subTab, periodFilter, validationStatusFilter]);
 
   if (isLoading) {
     return (
@@ -948,7 +1211,313 @@ function HistoryStatsSection({
 
   return (
     <div className="space-y-6">
-      {/* Suggestions intelligentes */}
+      {/* Sous-onglets */}
+      <div className="bg-white rounded-xl border border-gray-200 p-1 inline-flex">
+        <button
+          onClick={() => setSubTab('tasks')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            subTab === 'tasks'
+              ? 'bg-primary-100 text-primary-700'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <CheckCircle2 className="w-4 h-4 inline mr-2" />
+          Tâches terminées ({taskHistory.length})
+        </button>
+        <button
+          onClick={() => setSubTab('validations')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            subTab === 'validations'
+              ? 'bg-primary-100 text-primary-700'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <Calendar className="w-4 h-4 inline mr-2" />
+          Journées soumises ({validationHistory.length})
+        </button>
+      </div>
+
+      {/* Filtres */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-gray-400" />
+            <span className="text-sm font-medium text-gray-700">Période :</span>
+          </div>
+          
+          <select
+            value={periodFilter}
+            onChange={(e) => setPeriodFilter(e.target.value)}
+            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+          >
+            <option value="1">Hier</option>
+            <option value="7">7 derniers jours</option>
+            <option value="30">30 derniers jours</option>
+            <option value="90">3 derniers mois</option>
+            <option value="all">Tout</option>
+          </select>
+
+          {subTab === 'validations' && (
+            <>
+              <span className="text-sm font-medium text-gray-700">Statut :</span>
+              <select
+                value={validationStatusFilter}
+                onChange={(e) => setValidationStatusFilter(e.target.value)}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+              >
+                <option value="all">Tous</option>
+                <option value="approved">Validées</option>
+                <option value="rejected">Rejetées</option>
+                <option value="pending">En attente</option>
+              </select>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Contenu */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="p-4 border-b border-gray-200">
+          <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+            <History className="w-5 h-5 text-gray-400" />
+            {subTab === 'tasks' ? 'Tâches terminées' : 'Journées soumises'} ({currentData.length})
+          </h2>
+        </div>
+
+        {paginatedData.length === 0 ? (
+          <div className="p-8 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              {subTab === 'tasks' ? (
+                <CheckCircle2 className="w-8 h-8 text-gray-400" />
+              ) : (
+                <Calendar className="w-8 h-8 text-gray-400" />
+              )}
+            </div>
+            <p className="text-gray-500">Aucun élément trouvé</p>
+          </div>
+        ) : subTab === 'tasks' ? (
+          <div className="p-4 space-y-3">
+            {(paginatedData as Task[]).map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                isLoading={false}
+              />
+            ))}
+            
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {(paginatedData as DailyValidation[]).map((validation) => (
+              <div key={validation.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    validation.status === 'approved' ? 'bg-green-100' :
+                    validation.status === 'rejected' ? 'bg-red-100' :
+                    'bg-yellow-100'
+                  }`}>
+                    {validation.status === 'approved' ? (
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    ) : validation.status === 'rejected' ? (
+                      <X className="w-5 h-5 text-red-600" />
+                    ) : (
+                      <Clock className="w-5 h-5 text-yellow-600" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {new Date(validation.validation_date).toLocaleDateString('fr-FR', {
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'long'
+                      })}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {validation.completed_tasks}/{validation.total_tasks} tâches • {validation.completion_rate.toFixed(0)}%
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    validation.status === 'approved' ? 'bg-green-100 text-green-800' :
+                    validation.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                    'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {validation.status === 'approved' ? 'Validée' :
+                     validation.status === 'rejected' ? 'Rejetée' : 'En attente'}
+                  </span>
+                  {validation.validation_comment && (
+                    <p className="text-xs text-gray-500 mt-1 max-w-[200px] truncate">
+                      {validation.validation_comment}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+            
+            <div className="p-4">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// ONGLET 4: STATS
+// ============================================
+function StatsTab({
+  isManager,
+  teamMembers,
+}: {
+  isManager: boolean;
+  teamMembers: TeamMember[];
+}) {
+  const [stats, setStats] = useState<TaskStats | null>(null);
+  const [validationHistory, setValidationHistory] = useState<DailyValidation[]>([]);
+  const [taskHistory, setTaskHistory] = useState<Task[]>([]);
+  const [teamTasks, setTeamTasks] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [periodFilter, setPeriodFilter] = useState<string>('30');
+
+  useEffect(() => {
+    loadStats();
+  }, [periodFilter, isManager]);
+
+  async function loadStats() {
+    setIsLoading(true);
+    try {
+      const [statsData, validations, tasks] = await Promise.all([
+        getMyTaskStats(),
+        getValidationHistory({ page_size: 50 }),
+        getMyTasks({ page_size: 100 }),
+      ]);
+
+      setStats(statsData);
+      setValidationHistory(validations.items || []);
+      setTaskHistory(tasks.items || []);
+
+      if (isManager) {
+        const team = await getTeamTasks({ page_size: 100 });
+        setTeamTasks(team.items || []);
+      }
+    } catch (err) {
+      console.error('Error loading stats:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // Calculs stats
+  const totalTasks = taskHistory.length;
+  const completedTasks = taskHistory.filter(t => t.status === 'completed').length;
+  const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+  const validatedDays = validationHistory.filter(v => v.status === 'approved').length;
+  const rejectedDays = validationHistory.filter(v => v.status === 'rejected').length;
+  const pendingDays = validationHistory.filter(v => v.status === 'pending').length;
+
+  // Suggestions intelligentes
+  const suggestions: { type: 'success' | 'warning' | 'info' | 'error'; icon: React.ReactNode; message: string }[] = [];
+
+  if (stats) {
+    const totalActive = stats.pending + stats.in_progress + stats.completed;
+    const currentRate = totalActive > 0 ? (stats.completed / totalActive) * 100 : 0;
+
+    if (currentRate < 50 && totalActive > 0) {
+      suggestions.push({
+        type: 'warning',
+        icon: <AlertTriangle className="w-5 h-5" />,
+        message: "Votre taux de complétion est bas. Priorisez les tâches urgentes."
+      });
+    } else if (currentRate >= 80 && totalActive > 0) {
+      suggestions.push({
+        type: 'success',
+        icon: <Award className="w-5 h-5" />,
+        message: "Excellent travail ! Vous maintenez un très bon taux de complétion."
+      });
+    }
+
+    if (stats.overdue > 0) {
+      suggestions.push({
+        type: 'error',
+        icon: <Clock className="w-5 h-5" />,
+        message: `${stats.overdue} tâche${stats.overdue > 1 ? 's' : ''} en retard à traiter en priorité.`
+      });
+    }
+
+    if (stats.due_today > 3) {
+      suggestions.push({
+        type: 'info',
+        icon: <Target className="w-5 h-5" />,
+        message: `${stats.due_today} tâches dues aujourd'hui. Restez concentré !`
+      });
+    }
+  }
+
+  if (rejectedDays >= 2) {
+    suggestions.push({
+      type: 'warning',
+      icon: <MessageSquare className="w-5 h-5" />,
+      message: "Plusieurs journées rejetées récemment. Consultez les commentaires."
+    });
+  }
+
+  // Suggestions manager
+  if (isManager && teamTasks.length > 0) {
+    teamMembers.forEach(member => {
+      const memberTasks = teamTasks.filter(t => t.assigned_to_id === member.id);
+      const memberOverdue = memberTasks.filter(t => t.is_overdue && t.status !== 'completed').length;
+      
+      if (memberOverdue >= 3) {
+        suggestions.push({
+          type: 'warning',
+          icon: <User className="w-5 h-5" />,
+          message: `${member.name} a ${memberOverdue} tâches en retard.`
+        });
+      }
+    });
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Filtre période */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="flex items-center gap-4">
+          <Filter className="w-4 h-4 text-gray-400" />
+          <span className="text-sm font-medium text-gray-700">Période :</span>
+          <select
+            value={periodFilter}
+            onChange={(e) => setPeriodFilter(e.target.value)}
+            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+          >
+            <option value="7">Cette semaine</option>
+            <option value="30">Ce mois</option>
+            <option value="90">Ce trimestre</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Suggestions */}
       {suggestions.length > 0 && (
         <div className="space-y-3">
           <h3 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -956,7 +1525,7 @@ function HistoryStatsSection({
             Suggestions personnalisées
           </h3>
           <div className="grid gap-3">
-            {suggestions.map((suggestion, index) => (
+            {suggestions.slice(0, 4).map((suggestion, index) => (
               <div
                 key={index}
                 className={`p-4 rounded-xl border flex items-start gap-3 ${
@@ -1026,85 +1595,7 @@ function HistoryStatsSection({
         </div>
       </div>
 
-      {/* Historique des journées */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-            <History className="w-5 h-5 text-gray-400" />
-            Historique des journées
-          </h3>
-          <select
-            value={historyFilter}
-            onChange={(e) => setHistoryFilter(e.target.value as typeof historyFilter)}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-          >
-            <option value="all">Toutes ({validationHistory.length})</option>
-            <option value="approved">Validées ({validatedDays})</option>
-            <option value="rejected">Rejetées ({rejectedDays})</option>
-            <option value="pending">En attente ({pendingDays})</option>
-          </select>
-        </div>
-
-        {filteredValidations.length === 0 ? (
-          <div className="p-8 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Calendar className="w-8 h-8 text-gray-400" />
-            </div>
-            <p className="text-gray-500">Aucune journée dans l&apos;historique</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-100">
-            {filteredValidations.slice(0, 10).map((validation) => (
-              <div key={validation.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    validation.status === 'approved' ? 'bg-green-100' :
-                    validation.status === 'rejected' ? 'bg-red-100' :
-                    'bg-yellow-100'
-                  }`}>
-                    {validation.status === 'approved' ? (
-                      <CheckCircle2 className="w-5 h-5 text-green-600" />
-                    ) : validation.status === 'rejected' ? (
-                      <X className="w-5 h-5 text-red-600" />
-                    ) : (
-                      <Clock className="w-5 h-5 text-yellow-600" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {new Date(validation.validation_date).toLocaleDateString('fr-FR', {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'long'
-                      })}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {validation.completed_tasks}/{validation.total_tasks} tâches • {validation.completion_rate.toFixed(0)}%
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    validation.status === 'approved' ? 'bg-green-100 text-green-800' :
-                    validation.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {validation.status === 'approved' ? 'Validée' :
-                     validation.status === 'rejected' ? 'Rejetée' : 'En attente'}
-                  </span>
-                  {validation.validation_comment && (
-                    <p className="text-xs text-gray-500 mt-1 max-w-[200px] truncate">
-                      {validation.validation_comment}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Stats équipe (Manager uniquement) */}
+      {/* Stats équipe (Manager) */}
       {isManager && teamMembers.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -1134,7 +1625,7 @@ function HistoryStatsSection({
                           </span>
                         )}
                         <span className="text-sm text-gray-500">
-                          {memberCompleted}/{memberTasks.length} tâches
+                          {memberCompleted}/{memberTasks.length}
                         </span>
                       </div>
                     </div>
@@ -1149,7 +1640,7 @@ function HistoryStatsSection({
                       />
                     </div>
                   </div>
-                  <span className={`text-sm font-medium ${
+                  <span className={`text-sm font-medium w-12 text-right ${
                     memberRate >= 80 ? 'text-green-600' :
                     memberRate >= 50 ? 'text-yellow-600' :
                     'text-red-600'
@@ -1166,29 +1657,17 @@ function HistoryStatsSection({
   );
 }
 
-// Page principale
+// ============================================
+// PAGE PRINCIPALE
+// ============================================
 export default function MyTasksPage() {
-  const [activeTab, setActiveTab] = useState<'my-tasks' | 'team-tasks' | 'history-stats'>('my-tasks');
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [stats, setStats] = useState<TaskStats | null>(null);
-  const [validationStatus, setValidationStatus] = useState<{
-    validation: {
-      status: string;
-      validation_comment?: string;
-    } | null;
-    can_submit: boolean;
-    tasks_total: number;
-    tasks_completed: number;
-    all_completed: boolean;
-  } | null>(null);
-  const [pendingValidations, setPendingValidations] = useState<PendingValidation[]>([]);
+  const [activeTab, setActiveTab] = useState<'my-tasks' | 'team-tasks' | 'history' | 'stats'>('my-tasks');
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [currentEmployeeId, setCurrentEmployeeId] = useState<number>(0);
   const [isManager, setIsManager] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -1198,103 +1677,20 @@ export default function MyTasksPage() {
         setCurrentEmployeeId(user.employee_id || 0);
         const userIsManager = ['ADMIN', 'MANAGER', 'RH', 'DG'].includes(user.role?.toUpperCase());
         setIsManager(userIsManager);
+
+        if (userIsManager) {
+          getTeamMembers().then(setTeamMembers).catch(console.error);
+        }
       } catch {
         console.error('Error parsing user');
       }
     }
-    
-    loadData();
+    setIsLoading(false);
   }, []);
 
-  async function loadData() {
-    setIsLoading(true);
-    try {
-      const [tasksData, statsData, validationData] = await Promise.all([
-        getMyTasksToday(),
-        getMyTaskStats(),
-        getMyDailyValidationStatus(),
-      ]);
-      
-      setTasks(tasksData);
-      setStats(statsData);
-      setValidationStatus(validationData);
-
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        
-        if (['ADMIN', 'MANAGER', 'RH', 'DG'].includes(user.role?.toUpperCase())) {
-          try {
-            const [pending, team] = await Promise.all([
-              getPendingValidations(),
-              getTeamMembers()
-            ]);
-            setPendingValidations(pending);
-            setTeamMembers(team);
-          } catch (err) {
-            console.error('Error loading manager data:', err);
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Error loading tasks:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function handleCompleteTask(taskId: number) {
-    setActionLoading(true);
-    try {
-      await completeTask(taskId);
-      await loadData();
-    } catch (err) {
-      console.error('Error completing task:', err);
-    } finally {
-      setActionLoading(false);
-    }
-  }
-
-  async function handleStartTask(taskId: number) {
-    setActionLoading(true);
-    try {
-      await startTask(taskId);
-      await loadData();
-    } catch (err) {
-      console.error('Error starting task:', err);
-    } finally {
-      setActionLoading(false);
-    }
-  }
-
-  async function handleDeleteTask(taskId: number) {
-    if (!confirm('Annuler cette tâche ?')) return;
-    setActionLoading(true);
-    try {
-      await deleteTask(taskId);
-      await loadData();
-    } catch (err) {
-      console.error('Error deleting task:', err);
-    } finally {
-      setActionLoading(false);
-    }
-  }
-
-  async function handleValidateDay(validationId: number, approved: boolean, comment?: string) {
-    setActionLoading(true);
-    try {
-      await validateDaily(validationId, approved, comment);
-      await loadData();
-    } catch (err) {
-      console.error('Error validating day:', err);
-    } finally {
-      setActionLoading(false);
-    }
-  }
-
-  const incompleteTasks = tasks.filter(t => t.status !== 'completed' && t.status !== 'cancelled');
-  const completedTasks = tasks.filter(t => t.status === 'completed');
-  const canSubmitDay = validationStatus?.can_submit && tasks.length > 0;
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
 
   if (isLoading) {
     return (
@@ -1325,10 +1721,10 @@ export default function MyTasksPage() {
         </div>
 
         {/* Onglets */}
-        <div className="flex border-b border-gray-200 mb-6">
+        <div className="flex border-b border-gray-200 mb-6 overflow-x-auto">
           <button
             onClick={() => setActiveTab('my-tasks')}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'my-tasks'
                 ? 'border-primary-600 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -1337,10 +1733,11 @@ export default function MyTasksPage() {
             <ClipboardList className="w-4 h-4" />
             Mes Tâches
           </button>
+          
           {isManager && (
             <button
               onClick={() => setActiveTab('team-tasks')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
                 activeTab === 'team-tasks'
                   ? 'border-primary-600 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -1355,192 +1752,56 @@ export default function MyTasksPage() {
               )}
             </button>
           )}
+          
           <button
-            onClick={() => setActiveTab('history-stats')}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-              activeTab === 'history-stats'
+            onClick={() => setActiveTab('history')}
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'history'
+                ? 'border-primary-600 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <History className="w-4 h-4" />
+            Historique
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('stats')}
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'stats'
                 ? 'border-primary-600 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
             <BarChart3 className="w-4 h-4" />
-            Historique & Stats
+            Stats
           </button>
         </div>
 
-        {/* Contenu selon l'onglet */}
-        {activeTab === 'my-tasks' ? (
-          <>
-            {/* Stats */}
-            {stats && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <p className="text-sm text-gray-500">À faire</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.pending + stats.in_progress}</p>
-                </div>
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <p className="text-sm text-gray-500">Terminées</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
-                </div>
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <p className="text-sm text-gray-500">En retard</p>
-                  <p className="text-2xl font-bold text-red-600">{stats.overdue}</p>
-                </div>
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <p className="text-sm text-gray-500">Aujourd&apos;hui</p>
-                  <p className="text-2xl font-bold text-blue-600">{stats.due_today}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Validations en attente (Manager) */}
-            {isManager && (
-              <PendingValidationsSection
-                validations={pendingValidations}
-                onValidate={handleValidateDay}
-                isLoading={actionLoading}
-              />
-            )}
-
-            {/* Statut de validation */}
-            {validationStatus?.validation && (
-              <div className={`rounded-xl p-4 mb-6 ${
-                validationStatus.validation.status === 'approved' 
-                  ? 'bg-green-50 border border-green-200' 
-                  : validationStatus.validation.status === 'rejected'
-                  ? 'bg-red-50 border border-red-200'
-                  : 'bg-yellow-50 border border-yellow-200'
-              }`}>
-                <div className="flex items-center gap-3">
-                  {validationStatus.validation.status === 'approved' ? (
-                    <CheckCircle2 className="w-6 h-6 text-green-600" />
-                  ) : validationStatus.validation.status === 'rejected' ? (
-                    <X className="w-6 h-6 text-red-600" />
-                  ) : (
-                    <Clock className="w-6 h-6 text-yellow-600" />
-                  )}
-                  <div>
-                    <p className={`font-medium ${
-                      validationStatus.validation.status === 'approved' 
-                        ? 'text-green-800' 
-                        : validationStatus.validation.status === 'rejected'
-                        ? 'text-red-800'
-                        : 'text-yellow-800'
-                    }`}>
-                      {validationStatus.validation.status === 'approved' 
-                        ? 'Journée validée ✓' 
-                        : validationStatus.validation.status === 'rejected'
-                        ? 'Journée rejetée'
-                        : 'En attente de validation'}
-                    </p>
-                    {validationStatus.validation.validation_comment && (
-                      <p className="text-sm opacity-75">
-                        Commentaire : {validationStatus.validation.validation_comment}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Liste des tâches */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <ClipboardList className="w-5 h-5 text-gray-400" />
-                  Tâches du jour
-                </h2>
-                {canSubmitDay && (
-                  <button
-                    onClick={() => setShowSubmitModal(true)}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm"
-                  >
-                    <Send className="w-4 h-4" />
-                    Soumettre ma journée
-                  </button>
-                )}
-              </div>
-
-              {tasks.length === 0 ? (
-                <div className="p-8 text-center">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle2 className="w-8 h-8 text-gray-400" />
-                  </div>
-                  <p className="text-gray-500">Aucune tâche pour aujourd&apos;hui</p>
-                  <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="mt-4 text-primary-600 hover:text-primary-700 font-medium"
-                  >
-                    + Ajouter une tâche
-                  </button>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100">
-                  {incompleteTasks.length > 0 && (
-                    <div className="p-4 space-y-3">
-                      {incompleteTasks.map((task) => (
-                        <TaskCard
-                          key={task.id}
-                          task={task}
-                          onComplete={handleCompleteTask}
-                          onStart={handleStartTask}
-                          onDelete={handleDeleteTask}
-                          isLoading={actionLoading}
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  {completedTasks.length > 0 && (
-                    <div className="p-4 bg-gray-50">
-                      <p className="text-sm font-medium text-gray-500 mb-3">
-                        Terminées ({completedTasks.length})
-                      </p>
-                      <div className="space-y-3">
-                        {completedTasks.map((task) => (
-                          <TaskCard
-                            key={task.id}
-                            task={task}
-                            onComplete={handleCompleteTask}
-                            onStart={handleStartTask}
-                            onDelete={handleDeleteTask}
-                            isLoading={actionLoading}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </>
-        ) : activeTab === 'team-tasks' ? (
-          <TeamTasksSection
-            teamMembers={teamMembers}
-            isLoading={isLoading}
-          />
-        ) : (
-          <HistoryStatsSection
-            stats={stats}
-            isManager={isManager}
-            teamMembers={teamMembers}
-          />
+        {/* Contenu des onglets */}
+        {activeTab === 'my-tasks' && (
+          <MyTasksTab key={refreshKey} onRefresh={handleRefresh} />
+        )}
+        
+        {activeTab === 'team-tasks' && isManager && (
+          <TeamTasksTab teamMembers={teamMembers} />
+        )}
+        
+        {activeTab === 'history' && (
+          <HistoryTab />
+        )}
+        
+        {activeTab === 'stats' && (
+          <StatsTab isManager={isManager} teamMembers={teamMembers} />
         )}
 
-        {/* Modals */}
+        {/* Modal création */}
         <CreateTaskModal
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
-          onSuccess={loadData}
+          onSuccess={handleRefresh}
           currentEmployeeId={currentEmployeeId}
           teamMembers={teamMembers}
-        />
-
-        <SubmitDayModal
-          isOpen={showSubmitModal}
-          onClose={() => setShowSubmitModal(false)}
-          onSuccess={loadData}
-          incompleteTasks={incompleteTasks}
         />
       </div>
     </div>

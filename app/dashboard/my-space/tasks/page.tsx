@@ -1005,21 +1005,26 @@ function TeamTasksTab({
     }
   }
 
-  // Calculer la date de début selon le filtre période
-  const getStartDate = () => {
+  // Calculer la date de début et fin selon le filtre période
+  const getPeriodDates = () => {
     const now = new Date();
     if (selectedPeriod === '0') {
-      return now.toISOString().split('T')[0];
+      // Aujourd'hui seulement
+      const today = now.toISOString().split('T')[0];
+      return { startDate: today, endDate: today };
     } else if (selectedPeriod === '1') {
+      // Hier seulement
       const yesterday = new Date(now);
       yesterday.setDate(yesterday.getDate() - 1);
-      return yesterday.toISOString().split('T')[0];
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      return { startDate: yesterdayStr, endDate: yesterdayStr };
     } else if (selectedPeriod !== 'all') {
+      // X derniers jours
       const daysAgo = new Date(now);
       daysAgo.setDate(daysAgo.getDate() - parseInt(selectedPeriod));
-      return daysAgo.toISOString().split('T')[0];
+      return { startDate: daysAgo.toISOString().split('T')[0], endDate: null };
     }
-    return null;
+    return { startDate: null, endDate: null };
   };
 
   // Filtrer
@@ -1028,8 +1033,16 @@ function TeamTasksTab({
     const matchStatus = selectedStatus === 'all' || task.status === selectedStatus;
     
     // Filtre par période (basé sur due_date)
-    const startDate = getStartDate();
-    const matchPeriod = !startDate || new Date(task.due_date) >= new Date(startDate);
+    const { startDate, endDate } = getPeriodDates();
+    let matchPeriod = true;
+    if (startDate) {
+      const taskDate = new Date(task.due_date).toISOString().split('T')[0];
+      if (endDate) {
+        matchPeriod = taskDate >= startDate && taskDate <= endDate;
+      } else {
+        matchPeriod = taskDate >= startDate;
+      }
+    }
     
     return matchEmployee && matchStatus && matchPeriod;
   });
@@ -1185,22 +1198,27 @@ function HistoryTab() {
   const loadHistory = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Calculer la date de début selon le filtre
+      // Calculer la date de début et fin selon le filtre
       const now = new Date();
       let startDate: string | undefined;
+      let endDate: string | undefined;
       
       if (periodFilter === '0') {
-        // Aujourd'hui
+        // Aujourd'hui seulement
         startDate = now.toISOString().split('T')[0];
+        endDate = now.toISOString().split('T')[0];
       } else if (periodFilter === '1') {
-        // Hier
+        // Hier seulement
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
         startDate = yesterday.toISOString().split('T')[0];
+        endDate = yesterday.toISOString().split('T')[0];
       } else if (periodFilter !== 'all') {
+        // X derniers jours (du jour -X jusqu'à aujourd'hui)
         const daysAgo = new Date(now);
         daysAgo.setDate(daysAgo.getDate() - parseInt(periodFilter));
         startDate = daysAgo.toISOString().split('T')[0];
+        // Pas de endDate = jusqu'à aujourd'hui
       }
 
       const [tasks, validations] = await Promise.all([
@@ -1213,12 +1231,21 @@ function HistoryTab() {
       let filteredValidations = validations.items || [];
 
       if (startDate) {
-        filteredTasks = filteredTasks.filter(t => 
-          t.completed_at && new Date(t.completed_at) >= new Date(startDate!)
-        );
-        filteredValidations = filteredValidations.filter(v => 
-          new Date(v.validation_date) >= new Date(startDate!)
-        );
+        filteredTasks = filteredTasks.filter(t => {
+          if (!t.completed_at) return false;
+          const taskDate = new Date(t.completed_at).toISOString().split('T')[0];
+          if (endDate) {
+            return taskDate >= startDate && taskDate <= endDate;
+          }
+          return taskDate >= startDate;
+        });
+        filteredValidations = filteredValidations.filter(v => {
+          const valDate = new Date(v.validation_date).toISOString().split('T')[0];
+          if (endDate) {
+            return valDate >= startDate && valDate <= endDate;
+          }
+          return valDate >= startDate;
+        });
       }
 
       setTaskHistory(filteredTasks);

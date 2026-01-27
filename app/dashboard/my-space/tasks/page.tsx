@@ -692,6 +692,8 @@ function MyTasksTab({
   const [validationStatus, setValidationStatus] = useState<{
     validation: { status: string; validation_comment?: string } | null;
     can_submit: boolean;
+    can_submit_time?: boolean;
+    min_submit_time?: string;
     tasks_total: number;
     tasks_completed: number;
     all_completed: boolean;
@@ -808,7 +810,6 @@ function MyTasksTab({
   const paginatedTasks = filteredTasks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const incompleteTasks = tasks.filter(t => t.status !== 'completed' && t.status !== 'cancelled');
-  const canSubmitDay = validationStatus?.can_submit && tasks.length > 0;
 
   if (isLoading) {
     return (
@@ -912,14 +913,22 @@ function MyTasksTab({
               <option value="completed">Terminées</option>
             </select>
             
-            {canSubmitDay && (
-              <button
-                onClick={() => setShowSubmitModal(true)}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm"
-              >
-                <Send className="w-4 h-4" />
-                Soumettre ma journée
-              </button>
+            {/* Bouton soumettre ou message horaire */}
+            {tasks.length > 0 && !validationStatus?.validation && (
+              validationStatus?.can_submit ? (
+                <button
+                  onClick={() => setShowSubmitModal(true)}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm"
+                >
+                  <Send className="w-4 h-4" />
+                  Soumettre ma journée
+                </button>
+              ) : !validationStatus?.can_submit_time ? (
+                <span className="px-4 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Soumission à partir de 16h30
+                </span>
+              ) : null
             )}
           </div>
         </div>
@@ -976,6 +985,7 @@ function TeamTasksTab({
   const [isLoading, setIsLoading] = useState(true);
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('0');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
@@ -995,11 +1005,33 @@ function TeamTasksTab({
     }
   }
 
+  // Calculer la date de début selon le filtre période
+  const getStartDate = () => {
+    const now = new Date();
+    if (selectedPeriod === '0') {
+      return now.toISOString().split('T')[0];
+    } else if (selectedPeriod === '1') {
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return yesterday.toISOString().split('T')[0];
+    } else if (selectedPeriod !== 'all') {
+      const daysAgo = new Date(now);
+      daysAgo.setDate(daysAgo.getDate() - parseInt(selectedPeriod));
+      return daysAgo.toISOString().split('T')[0];
+    }
+    return null;
+  };
+
   // Filtrer
   const filteredTasks = teamTasks.filter(task => {
     const matchEmployee = selectedEmployee === 'all' || task.assigned_to_id.toString() === selectedEmployee;
     const matchStatus = selectedStatus === 'all' || task.status === selectedStatus;
-    return matchEmployee && matchStatus;
+    
+    // Filtre par période (basé sur due_date)
+    const startDate = getStartDate();
+    const matchPeriod = !startDate || new Date(task.due_date) >= new Date(startDate);
+    
+    return matchEmployee && matchStatus && matchPeriod;
   });
 
   // Pagination
@@ -1076,6 +1108,19 @@ function TeamTasksTab({
             <option value="completed">Terminées</option>
           </select>
 
+          <select
+            value={selectedPeriod}
+            onChange={(e) => { setSelectedPeriod(e.target.value); setCurrentPage(1); }}
+            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+          >
+            <option value="0">Aujourd&apos;hui</option>
+            <option value="1">Hier</option>
+            <option value="7">7 derniers jours</option>
+            <option value="30">30 derniers jours</option>
+            <option value="90">3 derniers mois</option>
+            <option value="all">Toutes les périodes</option>
+          </select>
+
           <button
             onClick={loadTeamTasks}
             className="ml-auto px-3 py-1.5 text-sm text-primary-600 hover:text-primary-700 font-medium"
@@ -1132,7 +1177,7 @@ function HistoryTab() {
   const [taskHistory, setTaskHistory] = useState<Task[]>([]);
   const [validationHistory, setValidationHistory] = useState<DailyValidation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [periodFilter, setPeriodFilter] = useState<string>('7');
+  const [periodFilter, setPeriodFilter] = useState<string>('0');
   const [validationStatusFilter, setValidationStatusFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
@@ -1144,7 +1189,11 @@ function HistoryTab() {
       const now = new Date();
       let startDate: string | undefined;
       
-      if (periodFilter === '1') {
+      if (periodFilter === '0') {
+        // Aujourd'hui
+        startDate = now.toISOString().split('T')[0];
+      } else if (periodFilter === '1') {
+        // Hier
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
         startDate = yesterday.toISOString().split('T')[0];
@@ -1250,6 +1299,7 @@ function HistoryTab() {
             onChange={(e) => setPeriodFilter(e.target.value)}
             className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
           >
+            <option value="0">Aujourd&apos;hui</option>
             <option value="1">Hier</option>
             <option value="7">7 derniers jours</option>
             <option value="30">30 derniers jours</option>
@@ -1435,6 +1485,7 @@ function StatsTab({
     const totalActive = stats.pending + stats.in_progress + stats.completed;
     const currentRate = totalActive > 0 ? (stats.completed / totalActive) * 100 : 0;
 
+    // Suggestions basées sur le taux de complétion
     if (currentRate < 50 && totalActive > 0) {
       suggestions.push({
         type: 'warning',
@@ -1447,8 +1498,15 @@ function StatsTab({
         icon: <Award className="w-5 h-5" />,
         message: "Excellent travail ! Vous maintenez un très bon taux de complétion."
       });
+    } else if (currentRate >= 50 && currentRate < 80 && totalActive > 0) {
+      suggestions.push({
+        type: 'info',
+        icon: <Target className="w-5 h-5" />,
+        message: `Bon travail ! Encore ${Math.ceil((0.8 * totalActive) - stats.completed)} tâche(s) pour atteindre 80%.`
+      });
     }
 
+    // Tâches en retard
     if (stats.overdue > 0) {
       suggestions.push({
         type: 'error',
@@ -1457,13 +1515,38 @@ function StatsTab({
       });
     }
 
+    // Tâches du jour
     if (stats.due_today > 3) {
       suggestions.push({
         type: 'info',
         icon: <Target className="w-5 h-5" />,
         message: `${stats.due_today} tâches dues aujourd'hui. Restez concentré !`
       });
+    } else if (stats.due_today > 0 && stats.due_today <= 3) {
+      suggestions.push({
+        type: 'success',
+        icon: <CheckCircle2 className="w-5 h-5" />,
+        message: `${stats.due_today} tâche${stats.due_today > 1 ? 's' : ''} à terminer aujourd'hui. C'est gérable !`
+      });
     }
+
+    // Aucune tâche en attente
+    if (stats.pending === 0 && stats.in_progress === 0 && totalActive > 0) {
+      suggestions.push({
+        type: 'success',
+        icon: <Award className="w-5 h-5" />,
+        message: "Toutes vos tâches sont terminées. Bravo !"
+      });
+    }
+  }
+
+  // Journées validées
+  if (validatedDays > 0 && rejectedDays === 0) {
+    suggestions.push({
+      type: 'success',
+      icon: <CheckCircle2 className="w-5 h-5" />,
+      message: `${validatedDays} journée${validatedDays > 1 ? 's' : ''} validée${validatedDays > 1 ? 's' : ''} sans rejet. Continuez ainsi !`
+    });
   }
 
   if (rejectedDays >= 2) {
@@ -1471,6 +1554,21 @@ function StatsTab({
       type: 'warning',
       icon: <MessageSquare className="w-5 h-5" />,
       message: "Plusieurs journées rejetées récemment. Consultez les commentaires."
+    });
+  } else if (rejectedDays === 1) {
+    suggestions.push({
+      type: 'info',
+      icon: <MessageSquare className="w-5 h-5" />,
+      message: "Une journée rejetée récemment. Vérifiez le commentaire de votre manager."
+    });
+  }
+
+  // Journées en attente
+  if (pendingDays > 0) {
+    suggestions.push({
+      type: 'info',
+      icon: <Clock className="w-5 h-5" />,
+      message: `${pendingDays} journée${pendingDays > 1 ? 's' : ''} en attente de validation.`
     });
   }
 

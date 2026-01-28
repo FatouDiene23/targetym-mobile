@@ -6,15 +6,15 @@ import {
   Play, Check, X, Send, Calendar, Flag, MoreVertical, Loader2,
   ChevronDown, ChevronUp, User, MessageSquare, Users, Filter,
   Award, Target, Lightbulb, BarChart3, History,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Link as LinkIcon
 } from 'lucide-react';
 import { 
   getMyTasksToday, getMyTaskStats, completeTask, startTask, createTask,
   getMyDailyValidationStatus, submitDailyValidation,
   getPendingValidations, validateDaily, deleteTask, getTeamMembers, getTeamTasks,
-  getValidationHistory, getMyTasks,
+  getValidationHistory, getMyTasks, getObjectivesForLinking,
   type Task, type TaskStats, type TaskPriority, type PendingValidation, type TeamMember,
-  type DailyValidation
+  type DailyValidation, type ObjectiveForLinking
 } from '@/lib/api';
 
 // Couleurs par priorité
@@ -23,6 +23,14 @@ const PRIORITY_COLORS: Record<TaskPriority, { bg: string; text: string; label: s
   medium: { bg: 'bg-blue-100', text: 'text-blue-600', label: 'Moyenne' },
   high: { bg: 'bg-orange-100', text: 'text-orange-600', label: 'Haute' },
   urgent: { bg: 'bg-red-100', text: 'text-red-600', label: 'Urgente' },
+};
+
+// Labels pour les niveaux OKR
+const OKR_LEVEL_LABELS: Record<string, string> = {
+  enterprise: 'Entreprise',
+  department: 'Département',
+  team: 'Équipe',
+  individual: 'Individuel',
 };
 
 // Composant Pagination
@@ -222,6 +230,14 @@ function TaskCard({
               </span>
             )}
 
+            {/* 🆕 Lien OKR */}
+            {task.objective_title && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">
+                <Target className="w-3 h-3" />
+                {task.objective_title}
+              </span>
+            )}
+
             {/* Date */}
             <span className={`inline-flex items-center gap-1 text-xs ${isOverdue && !isCompleted ? 'text-red-500' : 'text-gray-400'}`}>
               <Calendar className="w-3 h-3" />
@@ -242,7 +258,7 @@ function TaskCard({
   );
 }
 
-// Modal de création de tâche
+// Modal de création de tâche (🆕 avec dropdown OKR)
 function CreateTaskModal({ 
   isOpen, 
   onClose, 
@@ -258,19 +274,44 @@ function CreateTaskModal({
 }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [objectives, setObjectives] = useState<ObjectiveForLinking[]>([]);
+  const [loadingObjectives, setLoadingObjectives] = useState(false);
+  const [showOkrSection, setShowOkrSection] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     assigned_to_id: currentEmployeeId.toString(),
     due_date: new Date().toISOString().split('T')[0],
     priority: 'medium' as TaskPriority,
+    objective_id: '',
+    key_result_id: '',
   });
+
+  // Charger les objectifs à l'ouverture du modal
+  useEffect(() => {
+    if (isOpen) {
+      setLoadingObjectives(true);
+      getObjectivesForLinking()
+        .then(setObjectives)
+        .catch(console.error)
+        .finally(() => setLoadingObjectives(false));
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (currentEmployeeId) {
       setFormData(prev => ({ ...prev, assigned_to_id: currentEmployeeId.toString() }));
     }
   }, [currentEmployeeId]);
+
+  // Obtenir les key results de l'objectif sélectionné
+  const selectedObjective = objectives.find(o => o.id.toString() === formData.objective_id);
+  const availableKeyResults = selectedObjective?.key_results || [];
+
+  // Reset key_result_id si l'objectif change
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, key_result_id: '' }));
+  }, [formData.objective_id]);
 
   if (!isOpen) return null;
 
@@ -286,6 +327,8 @@ function CreateTaskModal({
         assigned_to_id: parseInt(formData.assigned_to_id),
         due_date: formData.due_date,
         priority: formData.priority,
+        objective_id: formData.objective_id ? parseInt(formData.objective_id) : undefined,
+        key_result_id: formData.key_result_id ? parseInt(formData.key_result_id) : undefined,
       });
       onSuccess();
       onClose();
@@ -295,7 +338,10 @@ function CreateTaskModal({
         assigned_to_id: currentEmployeeId.toString(),
         due_date: new Date().toISOString().split('T')[0],
         priority: 'medium',
+        objective_id: '',
+        key_result_id: '',
       });
+      setShowOkrSection(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la création');
     } finally {
@@ -307,8 +353,8 @@ function CreateTaskModal({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md">
-          <div className="p-6">
+        <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden">
+          <div className="p-6 overflow-y-auto max-h-[calc(90vh-2rem)]">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Nouvelle tâche</h2>
 
             {error && (
@@ -398,6 +444,86 @@ function CreateTaskModal({
                     <option value="urgent">Urgente</option>
                   </select>
                 </div>
+              </div>
+
+              {/* 🆕 Section OKR (optionnel) */}
+              <div className="border-t border-gray-200 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowOkrSection(!showOkrSection)}
+                  className="flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+                >
+                  <LinkIcon className="w-4 h-4" />
+                  Lier à un OKR (optionnel)
+                  {showOkrSection ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </button>
+
+                {showOkrSection && (
+                  <div className="mt-3 space-y-3 p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                    {loadingObjectives ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+                        <span className="ml-2 text-sm text-indigo-600">Chargement des objectifs...</span>
+                      </div>
+                    ) : objectives.length === 0 ? (
+                      <p className="text-sm text-gray-500 text-center py-2">
+                        Aucun objectif disponible
+                      </p>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <Target className="w-4 h-4 inline mr-1" />
+                            Objectif
+                          </label>
+                          <select
+                            value={formData.objective_id}
+                            onChange={(e) => setFormData({ ...formData, objective_id: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                          >
+                            <option value="">-- Sélectionner un objectif --</option>
+                            {objectives.map((obj) => (
+                              <option key={obj.id} value={obj.id}>
+                                [{OKR_LEVEL_LABELS[obj.level] || obj.level}] {obj.title} ({obj.progress}%)
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {formData.objective_id && availableKeyResults.length > 0 && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Key Result (optionnel)
+                            </label>
+                            <select
+                              value={formData.key_result_id}
+                              onChange={(e) => setFormData({ ...formData, key_result_id: e.target.value })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                            >
+                              <option value="">-- Tous les KRs --</option>
+                              {availableKeyResults.map((kr) => (
+                                <option key={kr.id} value={kr.id}>
+                                  {kr.title} ({kr.current}/{kr.target} {kr.unit || ''})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {formData.objective_id && (
+                          <p className="text-xs text-indigo-600 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Cette tâche contribuera à l&apos;objectif sélectionné
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 pt-4">

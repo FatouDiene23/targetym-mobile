@@ -61,6 +61,7 @@ export type OrganizationalLevel = 'dg' | 'dga' | 'direction_centrale' | 'directi
 // Types pour les tâches
 export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type TaskSource = 'manual' | 'asana' | 'jira' | 'notion' | 'trello' | 'monday' | 'other';
 export type DailyValidationStatusType = 'pending' | 'approved' | 'rejected';
 
 export interface Employee {
@@ -183,6 +184,16 @@ export interface Task {
   completion_note?: string;
   incomplete_reason?: string;
   is_overdue: boolean;
+  // 🆕 Source externe
+  source?: TaskSource;
+  external_id?: string;
+  external_url?: string;
+  // 🆕 Lien OKR
+  objective_id?: number;
+  objective_title?: string;
+  key_result_id?: number;
+  key_result_title?: string;
+  // Timestamps
   created_at: string;
   updated_at?: string;
 }
@@ -193,6 +204,9 @@ export interface TaskCreate {
   assigned_to_id: number;
   due_date: string;
   priority?: TaskPriority;
+  // 🆕 Lien OKR (optionnel)
+  objective_id?: number;
+  key_result_id?: number;
 }
 
 export interface TasksPageResponse {
@@ -250,6 +264,26 @@ export type TeamMember = {
   job_title?: string;
   email?: string;
 };
+
+// ============================================
+// 🆕 OKR TYPES (pour lier aux tâches)
+// ============================================
+
+export interface KeyResultForLinking {
+  id: number;
+  title: string;
+  current: number;
+  target: number;
+  unit?: string;
+}
+
+export interface ObjectiveForLinking {
+  id: number;
+  title: string;
+  level: 'enterprise' | 'department' | 'team' | 'individual';
+  progress: number;
+  key_results: KeyResultForLinking[];
+}
 
 // ============================================
 // EMPLOYEES API
@@ -863,6 +897,21 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
 
   if (!response.ok) {
     // Retourner un tableau vide si l'utilisateur n'a pas d'équipe
+    return [];
+  }
+
+  return response.json();
+}
+
+// 🆕 Récupérer les objectifs pour le dropdown de liaison
+export async function getObjectivesForLinking(): Promise<ObjectiveForLinking[]> {
+  const response = await fetch(`${API_URL}/api/tasks/objectives-for-linking`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    // Retourner un tableau vide si pas d'objectifs disponibles
+    console.warn('Could not fetch objectives for linking');
     return [];
   }
 

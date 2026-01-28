@@ -263,7 +263,7 @@ function TaskCard({
   );
 }
 
-// Modal de création de tâche (avec liaison OKR obligatoire)
+// Modal de création de tâche (avec liaison OKR obligatoire et dynamique)
 function CreateTaskModal({ 
   isOpen, 
   onClose, 
@@ -291,16 +291,36 @@ function CreateTaskModal({
     key_result_id: '',
   });
 
+  // Fonction pour charger les objectifs d'un employé spécifique
+  const loadObjectivesForEmployee = useCallback(async (employeeId: number) => {
+    setLoadingObjectives(true);
+    setFormData(prev => ({ ...prev, objective_id: '', key_result_id: '' })); // Reset OKR selection
+    try {
+      const data = await getObjectivesForLinking(employeeId);
+      setObjectives(data);
+    } catch (err) {
+      console.error('Error loading objectives:', err);
+      setObjectives([]);
+    } finally {
+      setLoadingObjectives(false);
+    }
+  }, []);
+
   // Charger les objectifs à l'ouverture du modal
   useEffect(() => {
-    if (isOpen) {
-      setLoadingObjectives(true);
-      getObjectivesForLinking()
-        .then(setObjectives)
-        .catch(console.error)
-        .finally(() => setLoadingObjectives(false));
+    if (isOpen && currentEmployeeId) {
+      loadObjectivesForEmployee(currentEmployeeId);
     }
-  }, [isOpen]);
+  }, [isOpen, currentEmployeeId, loadObjectivesForEmployee]);
+
+  // Recharger les objectifs quand l'assignation change
+  const handleAssignedToChange = (newAssignedToId: string) => {
+    setFormData(prev => ({ ...prev, assigned_to_id: newAssignedToId }));
+    const employeeId = parseInt(newAssignedToId);
+    if (employeeId) {
+      loadObjectivesForEmployee(employeeId);
+    }
+  };
 
   useEffect(() => {
     if (currentEmployeeId) {
@@ -422,7 +442,7 @@ function CreateTaskModal({
                 </label>
                 <select
                   value={formData.assigned_to_id}
-                  onChange={(e) => setFormData({ ...formData, assigned_to_id: e.target.value })}
+                  onChange={(e) => handleAssignedToChange(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value={currentEmployeeId}>Moi-même</option>
@@ -435,6 +455,12 @@ function CreateTaskModal({
                 {teamMembers.length === 0 && (
                   <p className="mt-1 text-xs text-gray-500">
                     Vous pouvez uniquement créer des tâches pour vous-même
+                  </p>
+                )}
+                {parseInt(formData.assigned_to_id) !== currentEmployeeId && (
+                  <p className="mt-1 text-xs text-indigo-600 flex items-center gap-1">
+                    <Target className="w-3 h-3" />
+                    Les objectifs affichés sont ceux de {teamMembers.find(m => m.id.toString() === formData.assigned_to_id)?.name || 'cet employé'}
                   </p>
                 )}
               </div>

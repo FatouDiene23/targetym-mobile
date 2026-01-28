@@ -184,11 +184,11 @@ export interface Task {
   completion_note?: string;
   incomplete_reason?: string;
   is_overdue: boolean;
-  // 🆕 Source externe
+  // Source externe
   source?: TaskSource;
   external_id?: string;
   external_url?: string;
-  // 🆕 Lien OKR
+  // Lien OKR
   objective_id?: number;
   objective_title?: string;
   key_result_id?: number;
@@ -204,7 +204,7 @@ export interface TaskCreate {
   assigned_to_id: number;
   due_date: string;
   priority?: TaskPriority;
-  // 🆕 Lien OKR (optionnel)
+  // Lien OKR (optionnel)
   objective_id?: number;
   key_result_id?: number;
 }
@@ -266,7 +266,7 @@ export type TeamMember = {
 };
 
 // ============================================
-// 🆕 OKR TYPES (pour lier aux tâches)
+// OKR TYPES (pour lier aux tâches)
 // ============================================
 
 export interface KeyResultForLinking {
@@ -903,9 +903,22 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
   return response.json();
 }
 
-// 🆕 Récupérer les objectifs pour le dropdown de liaison
-export async function getObjectivesForLinking(): Promise<ObjectiveForLinking[]> {
-  const response = await fetch(`${API_URL}/api/tasks/objectives-for-linking`, {
+/**
+ * Récupérer les objectifs disponibles pour la liaison aux tâches
+ * @param forEmployeeId - ID de l'employé pour lequel récupérer les objectifs (optionnel)
+ *                        Si non fourni, retourne les objectifs de l'utilisateur courant
+ */
+export async function getObjectivesForLinking(forEmployeeId?: number): Promise<ObjectiveForLinking[]> {
+  const queryParams = new URLSearchParams();
+  if (forEmployeeId) {
+    queryParams.set('for_employee_id', forEmployeeId.toString());
+  }
+
+  const url = forEmployeeId 
+    ? `${API_URL}/api/tasks/objectives-for-linking?${queryParams}`
+    : `${API_URL}/api/tasks/objectives-for-linking`;
+
+  const response = await fetch(url, {
     headers: getAuthHeaders(),
   });
 

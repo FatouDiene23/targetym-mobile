@@ -6,7 +6,7 @@ import {
   Play, Check, X, Send, Calendar, Flag, MoreVertical, Loader2,
   ChevronDown, ChevronUp, User, MessageSquare, Users, Filter,
   Award, Target, Lightbulb, BarChart3, History,
-  ChevronLeft, ChevronRight, Briefcase
+  ChevronLeft, ChevronRight, Link as LinkIcon
 } from 'lucide-react';
 import { 
   getMyTasksToday, getMyTaskStats, completeTask, startTask, createTask,
@@ -26,11 +26,11 @@ const PRIORITY_COLORS: Record<TaskPriority, { bg: string; text: string; label: s
 };
 
 // Labels pour les niveaux OKR
-const OKR_LEVEL_LABELS: Record<string, { label: string; icon: string }> = {
-  enterprise: { label: 'Entreprise', icon: '🏢' },
-  department: { label: 'Département', icon: '🏬' },
-  team: { label: 'Équipe', icon: '👥' },
-  individual: { label: 'Individuel', icon: '👤' },
+const OKR_LEVEL_LABELS: Record<string, string> = {
+  enterprise: 'Entreprise',
+  department: 'Département',
+  team: 'Équipe',
+  individual: 'Individuel',
 };
 
 // Composant Pagination
@@ -230,16 +230,11 @@ function TaskCard({
               </span>
             )}
 
-            {/* Lien OKR ou Tâche administrative */}
-            {task.objective_title ? (
+            {/* 🆕 Lien OKR */}
+            {task.objective_title && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">
                 <Target className="w-3 h-3" />
                 {task.objective_title}
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
-                <Briefcase className="w-3 h-3" />
-                Admin
               </span>
             )}
 
@@ -263,7 +258,7 @@ function TaskCard({
   );
 }
 
-// Modal de création de tâche (avec liaison OKR obligatoire et dynamique)
+// Modal de création de tâche (🆕 avec dropdown OKR)
 function CreateTaskModal({ 
   isOpen, 
   onClose, 
@@ -281,46 +276,27 @@ function CreateTaskModal({
   const [error, setError] = useState('');
   const [objectives, setObjectives] = useState<ObjectiveForLinking[]>([]);
   const [loadingObjectives, setLoadingObjectives] = useState(false);
+  const [showOkrSection, setShowOkrSection] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     assigned_to_id: currentEmployeeId.toString(),
     due_date: new Date().toISOString().split('T')[0],
     priority: 'medium' as TaskPriority,
-    objective_id: '', // '' = non sélectionné, 'admin' = tâche administrative, ou un ID
+    objective_id: '',
     key_result_id: '',
   });
 
-  // Fonction pour charger les objectifs d'un employé spécifique
-  const loadObjectivesForEmployee = useCallback(async (employeeId: number) => {
-    setLoadingObjectives(true);
-    setFormData(prev => ({ ...prev, objective_id: '', key_result_id: '' })); // Reset OKR selection
-    try {
-      const data = await getObjectivesForLinking(employeeId);
-      setObjectives(data);
-    } catch (err) {
-      console.error('Error loading objectives:', err);
-      setObjectives([]);
-    } finally {
-      setLoadingObjectives(false);
-    }
-  }, []);
-
   // Charger les objectifs à l'ouverture du modal
   useEffect(() => {
-    if (isOpen && currentEmployeeId) {
-      loadObjectivesForEmployee(currentEmployeeId);
+    if (isOpen) {
+      setLoadingObjectives(true);
+      getObjectivesForLinking()
+        .then(setObjectives)
+        .catch(console.error)
+        .finally(() => setLoadingObjectives(false));
     }
-  }, [isOpen, currentEmployeeId, loadObjectivesForEmployee]);
-
-  // Recharger les objectifs quand l'assignation change
-  const handleAssignedToChange = (newAssignedToId: string) => {
-    setFormData(prev => ({ ...prev, assigned_to_id: newAssignedToId }));
-    const employeeId = parseInt(newAssignedToId);
-    if (employeeId) {
-      loadObjectivesForEmployee(employeeId);
-    }
-  };
+  }, [isOpen]);
 
   useEffect(() => {
     if (currentEmployeeId) {
@@ -334,36 +310,24 @@ function CreateTaskModal({
 
   // Reset key_result_id si l'objectif change
   useEffect(() => {
-    if (formData.objective_id !== selectedObjective?.id.toString()) {
-      setFormData(prev => ({ ...prev, key_result_id: '' }));
-    }
-  }, [formData.objective_id, selectedObjective?.id]);
+    setFormData(prev => ({ ...prev, key_result_id: '' }));
+  }, [formData.objective_id]);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validation: l'objectif doit être sélectionné
-    if (!formData.objective_id) {
-      setError('Veuillez sélectionner un objectif ou "Tâche administrative"');
-      return;
-    }
-    
     setIsLoading(true);
     setError('');
 
     try {
-      // Si "admin" est sélectionné, on envoie null pour objective_id
-      const objectiveId = formData.objective_id === 'admin' ? undefined : parseInt(formData.objective_id);
-      
       await createTask({
         title: formData.title,
         description: formData.description || undefined,
         assigned_to_id: parseInt(formData.assigned_to_id),
         due_date: formData.due_date,
         priority: formData.priority,
-        objective_id: objectiveId,
+        objective_id: formData.objective_id ? parseInt(formData.objective_id) : undefined,
         key_result_id: formData.key_result_id ? parseInt(formData.key_result_id) : undefined,
       });
       onSuccess();
@@ -377,22 +341,13 @@ function CreateTaskModal({
         objective_id: '',
         key_result_id: '',
       });
+      setShowOkrSection(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la création');
     } finally {
       setIsLoading(false);
     }
   };
-
-  // Grouper les objectifs par niveau
-  const groupedObjectives = objectives.reduce((acc, obj) => {
-    const level = obj.level || 'individual';
-    if (!acc[level]) acc[level] = [];
-    acc[level].push(obj);
-    return acc;
-  }, {} as Record<string, ObjectiveForLinking[]>);
-
-  const levelOrder = ['enterprise', 'department', 'team', 'individual'];
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -442,7 +397,7 @@ function CreateTaskModal({
                 </label>
                 <select
                   value={formData.assigned_to_id}
-                  onChange={(e) => handleAssignedToChange(e.target.value)}
+                  onChange={(e) => setFormData({ ...formData, assigned_to_id: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value={currentEmployeeId}>Moi-même</option>
@@ -455,12 +410,6 @@ function CreateTaskModal({
                 {teamMembers.length === 0 && (
                   <p className="mt-1 text-xs text-gray-500">
                     Vous pouvez uniquement créer des tâches pour vous-même
-                  </p>
-                )}
-                {parseInt(formData.assigned_to_id) !== currentEmployeeId && (
-                  <p className="mt-1 text-xs text-indigo-600 flex items-center gap-1">
-                    <Target className="w-3 h-3" />
-                    Les objectifs affichés sont ceux de {teamMembers.find(m => m.id.toString() === formData.assigned_to_id)?.name || 'cet employé'}
                   </p>
                 )}
               </div>
@@ -497,84 +446,63 @@ function CreateTaskModal({
                 </div>
               </div>
 
-              {/* Section OKR (obligatoire) */}
+              {/* 🆕 Section OKR (optionnel) */}
               <div className="border-t border-gray-200 pt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <Target className="w-4 h-4 text-indigo-600" />
-                  Lier à un objectif *
-                </label>
-                
-                {loadingObjectives ? (
-                  <div className="flex items-center justify-center py-4 bg-gray-50 rounded-lg">
-                    <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
-                    <span className="ml-2 text-sm text-gray-500">Chargement des objectifs...</span>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <select
-                      value={formData.objective_id}
-                      onChange={(e) => setFormData({ ...formData, objective_id: e.target.value, key_result_id: '' })}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-                        !formData.objective_id ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                      }`}
-                      required
-                    >
-                      <option value="">-- Sélectionner un objectif --</option>
-                      
-                      {/* Option Tâche administrative */}
-                      <option value="admin" className="font-medium">
-                        ⚪ Tâche administrative (réunion, email, formation...)
-                      </option>
-                      
-                      {/* Objectifs groupés par niveau */}
-                      {levelOrder.map(level => {
-                        const levelObjectives = groupedObjectives[level];
-                        if (!levelObjectives || levelObjectives.length === 0) return null;
-                        
-                        const levelInfo = OKR_LEVEL_LABELS[level] || { label: level, icon: '📌' };
-                        
-                        return (
-                          <optgroup key={level} label={`${levelInfo.icon} ${levelInfo.label}`}>
-                            {levelObjectives.map(obj => (
+                <button
+                  type="button"
+                  onClick={() => setShowOkrSection(!showOkrSection)}
+                  className="flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+                >
+                  <LinkIcon className="w-4 h-4" />
+                  Lier à un OKR (optionnel)
+                  {showOkrSection ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </button>
+
+                {showOkrSection && (
+                  <div className="mt-3 space-y-3 p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                    {loadingObjectives ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+                        <span className="ml-2 text-sm text-indigo-600">Chargement des objectifs...</span>
+                      </div>
+                    ) : objectives.length === 0 ? (
+                      <p className="text-sm text-gray-500 text-center py-2">
+                        Aucun objectif disponible
+                      </p>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <Target className="w-4 h-4 inline mr-1" />
+                            Objectif
+                          </label>
+                          <select
+                            value={formData.objective_id}
+                            onChange={(e) => setFormData({ ...formData, objective_id: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                          >
+                            <option value="">-- Sélectionner un objectif --</option>
+                            {objectives.map((obj) => (
                               <option key={obj.id} value={obj.id}>
-                                {obj.title} ({obj.progress}%)
+                                [{OKR_LEVEL_LABELS[obj.level] || obj.level}] {obj.title} ({obj.progress}%)
                               </option>
                             ))}
-                          </optgroup>
-                        );
-                      })}
-                    </select>
+                          </select>
+                        </div>
 
-                    {/* Message selon la sélection */}
-                    {formData.objective_id === 'admin' && (
-                      <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                        <p className="text-sm text-gray-600 flex items-center gap-2">
-                          <Briefcase className="w-4 h-4 text-gray-500" />
-                          Cette tâche ne sera pas liée à un objectif stratégique
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Exemples : réunions, emails, formation, support, imprévus...
-                        </p>
-                      </div>
-                    )}
-
-                    {formData.objective_id && formData.objective_id !== 'admin' && (
-                      <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-200">
-                        <p className="text-sm text-indigo-700 flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4" />
-                          Cette tâche contribuera à l&apos;objectif sélectionné
-                        </p>
-                        
-                        {/* Dropdown Key Results si disponible */}
-                        {availableKeyResults.length > 0 && (
-                          <div className="mt-3">
-                            <label className="block text-xs font-medium text-indigo-700 mb-1">
-                              Key Result spécifique (optionnel)
+                        {formData.objective_id && availableKeyResults.length > 0 && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Key Result (optionnel)
                             </label>
                             <select
                               value={formData.key_result_id}
                               onChange={(e) => setFormData({ ...formData, key_result_id: e.target.value })}
-                              className="w-full px-3 py-2 text-sm border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
                             >
                               <option value="">-- Tous les KRs --</option>
                               {availableKeyResults.map((kr) => (
@@ -585,14 +513,14 @@ function CreateTaskModal({
                             </select>
                           </div>
                         )}
-                      </div>
-                    )}
 
-                    {!formData.objective_id && (
-                      <p className="text-xs text-red-500 flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3" />
-                        Veuillez sélectionner un objectif ou &quot;Tâche administrative&quot;
-                      </p>
+                        {formData.objective_id && (
+                          <p className="text-xs text-indigo-600 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Cette tâche contribuera à l&apos;objectif sélectionné
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
@@ -608,7 +536,7 @@ function CreateTaskModal({
                 </button>
                 <button
                   type="submit"
-                  disabled={isLoading || !formData.objective_id}
+                  disabled={isLoading}
                   className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -1703,10 +1631,6 @@ function StatsTab({
   const rejectedDays = validationHistory.filter(v => v.status === 'rejected').length;
   const pendingDays = validationHistory.filter(v => v.status === 'pending').length;
 
-  // Stats OKR alignment
-  const tasksWithOkr = taskHistory.filter(t => t.objective_id).length;
-  const okrAlignmentRate = totalTasks > 0 ? (tasksWithOkr / totalTasks) * 100 : 0;
-
   // Suggestions intelligentes
   const suggestions: { type: 'success' | 'warning' | 'info' | 'error'; icon: React.ReactNode; message: string }[] = [];
 
@@ -1767,21 +1691,6 @@ function StatsTab({
         message: "Toutes vos tâches sont terminées. Bravo !"
       });
     }
-  }
-
-  // Alignement OKR
-  if (okrAlignmentRate >= 80) {
-    suggestions.push({
-      type: 'success',
-      icon: <Target className="w-5 h-5" />,
-      message: `${okrAlignmentRate.toFixed(0)}% de vos tâches sont alignées sur des objectifs. Excellent !`
-    });
-  } else if (okrAlignmentRate < 50 && totalTasks > 5) {
-    suggestions.push({
-      type: 'warning',
-      icon: <Target className="w-5 h-5" />,
-      message: `Seulement ${okrAlignmentRate.toFixed(0)}% de tâches alignées sur des OKRs. Pensez à lier vos tâches à des objectifs.`
-    });
   }
 
   // Journées validées
@@ -1899,22 +1808,18 @@ function StatsTab({
           Mes statistiques
         </h3>
         
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="text-center p-4 bg-gray-50 rounded-xl">
             <p className="text-3xl font-bold text-primary-600">{completionRate.toFixed(0)}%</p>
-            <p className="text-sm text-gray-500 mt-1">Complétion</p>
-          </div>
-          <div className="text-center p-4 bg-indigo-50 rounded-xl">
-            <p className="text-3xl font-bold text-indigo-600">{okrAlignmentRate.toFixed(0)}%</p>
-            <p className="text-sm text-gray-500 mt-1">Aligné OKR</p>
+            <p className="text-sm text-gray-500 mt-1">Taux de complétion</p>
           </div>
           <div className="text-center p-4 bg-green-50 rounded-xl">
             <p className="text-3xl font-bold text-green-600">{validatedDays}</p>
-            <p className="text-sm text-gray-500 mt-1">Validées</p>
+            <p className="text-sm text-gray-500 mt-1">Journées validées</p>
           </div>
           <div className="text-center p-4 bg-red-50 rounded-xl">
             <p className="text-3xl font-bold text-red-600">{rejectedDays}</p>
-            <p className="text-sm text-gray-500 mt-1">Rejetées</p>
+            <p className="text-sm text-gray-500 mt-1">Journées rejetées</p>
           </div>
           <div className="text-center p-4 bg-yellow-50 rounded-xl">
             <p className="text-3xl font-bold text-yellow-600">{pendingDays}</p>

@@ -90,8 +90,6 @@ const navigation: NavItem[] = [
     href: '/dashboard/learning', 
     icon: GraduationCap,
     roles: ['manager', 'rh', 'admin', 'dg'],
-    disabled: true,
-    disabledReason: 'Bientôt disponible'
   },
   { 
     name: 'Performance & Feedback', 

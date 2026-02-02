@@ -6,7 +6,7 @@ import {
   Play, Check, X, Send, Calendar, Flag, MoreVertical, Loader2,
   ChevronDown, ChevronUp, User, MessageSquare, Users, Filter,
   Award, Target, Lightbulb, BarChart3, History,
-  ChevronLeft, ChevronRight, Link as LinkIcon
+  ChevronLeft, ChevronRight, Link as LinkIcon, Mail
 } from 'lucide-react';
 import { 
   getMyTasksToday, getMyTaskStats, completeTask, startTask, createTask,
@@ -23,14 +23,6 @@ const PRIORITY_COLORS: Record<TaskPriority, { bg: string; text: string; label: s
   medium: { bg: 'bg-blue-100', text: 'text-blue-600', label: 'Moyenne' },
   high: { bg: 'bg-orange-100', text: 'text-orange-600', label: 'Haute' },
   urgent: { bg: 'bg-red-100', text: 'text-red-600', label: 'Urgente' },
-};
-
-// Labels pour les niveaux OKR
-const OKR_LEVEL_LABELS: Record<string, string> = {
-  enterprise: 'Entreprise',
-  department: 'Département',
-  team: 'Équipe',
-  individual: 'Individuel',
 };
 
 // Composant Pagination
@@ -258,7 +250,24 @@ function TaskCard({
   );
 }
 
-// Modal de création de tâche (🆕 avec dropdown OKR)
+// ============================================
+// CreateTaskModal - Version avec OKR obligatoire et tâche administrative
+// ============================================
+// À REMPLACER dans app/dashboard/my-space/tasks/page.tsx
+// 
+// IMPORTS À AJOUTER en haut du fichier (si pas déjà présents):
+// import { Mail } from 'lucide-react';
+// ============================================
+
+// Labels pour les niveaux OKR
+const OKR_LEVEL_LABELS: Record<string, string> = {
+  enterprise: '🏢 Entreprise',
+  department: '🏛️ Département',
+  team: '👥 Équipe',
+  individual: '👤 Individuel',
+};
+
+// Modal de création de tâche (avec OKR obligatoire et tâche administrative)
 function CreateTaskModal({ 
   isOpen, 
   onClose, 
@@ -276,7 +285,6 @@ function CreateTaskModal({
   const [error, setError] = useState('');
   const [objectives, setObjectives] = useState<ObjectiveForLinking[]>([]);
   const [loadingObjectives, setLoadingObjectives] = useState(false);
-  const [showOkrSection, setShowOkrSection] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -285,24 +293,49 @@ function CreateTaskModal({
     priority: 'medium' as TaskPriority,
     objective_id: '',
     key_result_id: '',
+    is_administrative: false,
   });
 
-  // Charger les objectifs à l'ouverture du modal
+  // Charger les objectifs quand le modal s'ouvre ou quand l'employé change
   useEffect(() => {
     if (isOpen) {
-      setLoadingObjectives(true);
-      getObjectivesForLinking()
-        .then(setObjectives)
-        .catch(console.error)
-        .finally(() => setLoadingObjectives(false));
+      loadObjectivesForEmployee(parseInt(formData.assigned_to_id));
     }
-  }, [isOpen]);
+  }, [isOpen, formData.assigned_to_id]);
 
-  useEffect(() => {
-    if (currentEmployeeId) {
-      setFormData(prev => ({ ...prev, assigned_to_id: currentEmployeeId.toString() }));
+  // Fonction pour charger les objectifs d'un employé
+  const loadObjectivesForEmployee = async (employeeId: number) => {
+    setLoadingObjectives(true);
+    setObjectives([]);
+    setFormData(prev => ({ ...prev, objective_id: '', key_result_id: '' }));
+    
+    try {
+      const data = await getObjectivesForLinking(employeeId);
+      setObjectives(data);
+    } catch (err) {
+      console.error('Error loading objectives:', err);
+    } finally {
+      setLoadingObjectives(false);
     }
-  }, [currentEmployeeId]);
+  };
+
+  // Reset le formulaire quand le modal s'ouvre
+  useEffect(() => {
+    if (isOpen && currentEmployeeId) {
+      setFormData(prev => ({ 
+        ...prev, 
+        assigned_to_id: currentEmployeeId.toString(),
+        title: '',
+        description: '',
+        due_date: new Date().toISOString().split('T')[0],
+        priority: 'medium',
+        objective_id: '',
+        key_result_id: '',
+        is_administrative: false,
+      }));
+      setError('');
+    }
+  }, [isOpen, currentEmployeeId]);
 
   // Obtenir les key results de l'objectif sélectionné
   const selectedObjective = objectives.find(o => o.id.toString() === formData.objective_id);
@@ -313,10 +346,51 @@ function CreateTaskModal({
     setFormData(prev => ({ ...prev, key_result_id: '' }));
   }, [formData.objective_id]);
 
+  // Grouper les objectifs par niveau
+  const groupedObjectives = objectives.reduce((acc, obj) => {
+    const level = obj.level;
+    if (!acc[level]) acc[level] = [];
+    acc[level].push(obj);
+    return acc;
+  }, {} as Record<string, ObjectiveForLinking[]>);
+
+  // Vérifier si le formulaire est valide
+  const isFormValid = () => {
+    if (!formData.title.trim()) return false;
+    if (!formData.due_date) return false;
+    
+    // Si pas tâche administrative, objectif obligatoire
+    if (!formData.is_administrative && !formData.objective_id) {
+      return false;
+    }
+    
+    return true;
+  };
+
+  // Message d'erreur pour objectifs manquants
+  const getObjectiveError = () => {
+    if (formData.is_administrative) return null;
+    if (loadingObjectives) return null;
+    if (objectives.length === 0) {
+      return "Aucun objectif disponible pour cet employé. Créez d'abord un objectif ou cochez 'Tâche administrative'.";
+    }
+    if (!formData.objective_id) {
+      return "Sélectionnez un objectif ou cochez 'Tâche administrative'.";
+    }
+    return null;
+  };
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    if (!formData.is_administrative && !formData.objective_id) {
+      setError("Veuillez sélectionner un objectif ou cocher 'Tâche administrative'.");
+      return;
+    }
+    
     setIsLoading(true);
     setError('');
 
@@ -327,21 +401,12 @@ function CreateTaskModal({
         assigned_to_id: parseInt(formData.assigned_to_id),
         due_date: formData.due_date,
         priority: formData.priority,
-        objective_id: formData.objective_id ? parseInt(formData.objective_id) : undefined,
-        key_result_id: formData.key_result_id ? parseInt(formData.key_result_id) : undefined,
+        objective_id: formData.is_administrative ? undefined : (formData.objective_id ? parseInt(formData.objective_id) : undefined),
+        key_result_id: formData.is_administrative ? undefined : (formData.key_result_id ? parseInt(formData.key_result_id) : undefined),
+        is_administrative: formData.is_administrative,
       });
       onSuccess();
       onClose();
-      setFormData({
-        title: '',
-        description: '',
-        assigned_to_id: currentEmployeeId.toString(),
-        due_date: new Date().toISOString().split('T')[0],
-        priority: 'medium',
-        objective_id: '',
-        key_result_id: '',
-      });
-      setShowOkrSection(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la création');
     } finally {
@@ -364,6 +429,7 @@ function CreateTaskModal({
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Titre */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Titre *
@@ -378,6 +444,7 @@ function CreateTaskModal({
                 />
               </div>
 
+              {/* Description */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Description
@@ -386,14 +453,15 @@ function CreateTaskModal({
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Détails de la tâche..."
-                  rows={3}
+                  rows={2}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
 
+              {/* Assigner à */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Assigner à
+                  Assigner à *
                 </label>
                 <select
                   value={formData.assigned_to_id}
@@ -407,13 +475,9 @@ function CreateTaskModal({
                     </option>
                   ))}
                 </select>
-                {teamMembers.length === 0 && (
-                  <p className="mt-1 text-xs text-gray-500">
-                    Vous pouvez uniquement créer des tâches pour vous-même
-                  </p>
-                )}
               </div>
 
+              {/* Date et Priorité */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -446,54 +510,86 @@ function CreateTaskModal({
                 </div>
               </div>
 
-              {/* 🆕 Section OKR (optionnel) */}
+              {/* Séparateur */}
               <div className="border-t border-gray-200 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowOkrSection(!showOkrSection)}
-                  className="flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-700"
-                >
-                  <LinkIcon className="w-4 h-4" />
-                  Lier à un OKR (optionnel)
-                  {showOkrSection ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
-                  )}
-                </button>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <Target className="w-4 h-4 text-indigo-600" />
+                  Liaison Objectif
+                </h3>
 
-                {showOkrSection && (
-                  <div className="mt-3 space-y-3 p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                {/* Checkbox Tâche Administrative */}
+                <label className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors mb-3">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_administrative}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      is_administrative: e.target.checked,
+                      objective_id: e.target.checked ? '' : formData.objective_id,
+                      key_result_id: e.target.checked ? '' : formData.key_result_id,
+                    })}
+                    className="mt-0.5 w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-gray-500" />
+                      Tâche administrative
+                    </span>
+                    <span className="text-xs text-gray-500 block mt-0.5">
+                      Emails, réunions, tâches courantes sans lien direct avec un objectif
+                    </span>
+                  </div>
+                </label>
+
+                {/* Section Objectif (masquée si tâche administrative) */}
+                {!formData.is_administrative && (
+                  <div className="space-y-3">
                     {loadingObjectives ? (
                       <div className="flex items-center justify-center py-4">
                         <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
                         <span className="ml-2 text-sm text-indigo-600">Chargement des objectifs...</span>
                       </div>
                     ) : objectives.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center py-2">
-                        Aucun objectif disponible
-                      </p>
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-sm text-yellow-800 flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4" />
+                          Aucun objectif disponible pour cet employé.
+                        </p>
+                        <p className="text-xs text-yellow-600 mt-1">
+                          Créez d&apos;abord un objectif ou cochez &quot;Tâche administrative&quot;.
+                        </p>
+                      </div>
                     ) : (
                       <>
+                        {/* Dropdown Objectif */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            <Target className="w-4 h-4 inline mr-1" />
-                            Objectif
+                            Objectif *
                           </label>
                           <select
                             value={formData.objective_id}
                             onChange={(e) => setFormData({ ...formData, objective_id: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm ${
+                              !formData.objective_id && !formData.is_administrative 
+                                ? 'border-red-300 bg-red-50' 
+                                : 'border-gray-300'
+                            }`}
+                            required={!formData.is_administrative}
                           >
                             <option value="">-- Sélectionner un objectif --</option>
-                            {objectives.map((obj) => (
-                              <option key={obj.id} value={obj.id}>
-                                [{OKR_LEVEL_LABELS[obj.level] || obj.level}] {obj.title} ({obj.progress}%)
-                              </option>
+                            {Object.entries(groupedObjectives).map(([level, objs]) => (
+                              <optgroup key={level} label={OKR_LEVEL_LABELS[level] || level}>
+                                {objs.map((obj) => (
+                                  <option key={obj.id} value={obj.id}>
+                                    {obj.title} ({obj.progress.toFixed(0)}%)
+                                  </option>
+                                ))}
+                              </optgroup>
                             ))}
                           </select>
                         </div>
 
+                        {/* Dropdown Key Result (si objectif sélectionné) */}
                         {formData.objective_id && availableKeyResults.length > 0 && (
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -514,18 +610,36 @@ function CreateTaskModal({
                           </div>
                         )}
 
+                        {/* Message de confirmation */}
                         {formData.objective_id && (
-                          <p className="text-xs text-indigo-600 flex items-center gap-1">
+                          <p className="text-xs text-indigo-600 flex items-center gap-1 bg-indigo-50 p-2 rounded">
                             <CheckCircle2 className="w-3 h-3" />
                             Cette tâche contribuera à l&apos;objectif sélectionné
+                          </p>
+                        )}
+
+                        {/* Message d'erreur */}
+                        {getObjectiveError() && (
+                          <p className="text-xs text-red-600 flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3" />
+                            {getObjectiveError()}
                           </p>
                         )}
                       </>
                     )}
                   </div>
                 )}
+
+                {/* Message si tâche administrative */}
+                {formData.is_administrative && (
+                  <p className="text-xs text-gray-500 flex items-center gap-1 bg-gray-100 p-2 rounded">
+                    <Mail className="w-3 h-3" />
+                    Cette tâche ne sera pas comptabilisée dans le score OKR
+                  </p>
+                )}
               </div>
 
+              {/* Boutons */}
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
@@ -536,8 +650,8 @@ function CreateTaskModal({
                 </button>
                 <button
                   type="submit"
-                  disabled={isLoading}
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                  disabled={isLoading || !isFormValid()}
+                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                   Créer

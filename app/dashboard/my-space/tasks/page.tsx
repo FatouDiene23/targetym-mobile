@@ -6,7 +6,7 @@ import {
   Play, Check, X, Send, Calendar, Flag, MoreVertical, Loader2,
   ChevronDown, ChevronUp, User, MessageSquare, Users, Filter,
   Award, Target, Lightbulb, BarChart3, History,
-  ChevronLeft, ChevronRight, Link as LinkIcon, Mail
+  ChevronLeft, ChevronRight, Mail
 } from 'lucide-react';
 import { 
   getMyTasksToday, getMyTaskStats, completeTask, startTask, createTask,

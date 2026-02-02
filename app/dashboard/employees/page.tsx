@@ -58,7 +58,7 @@ async function getInvitations(statusFilter?: string, search?: string): Promise<{
   if (statusFilter && statusFilter !== 'all') params.append('status_filter', statusFilter);
   if (search) params.append('search', search);
   
-  const response = await fetch(`${API_URL}/api/invitations?${params}`, {
+  const response = await fetch(`${API_URL}/api/invitations/?${params}`, {
     headers: await getAuthHeaders(),
   });
   if (!response.ok) throw new Error('Erreur lors du chargement des invitations');

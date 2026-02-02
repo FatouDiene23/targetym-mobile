@@ -12,7 +12,7 @@ import {
   getMyTasksToday, getMyTaskStats, completeTask, startTask, createTask,
   getMyDailyValidationStatus, submitDailyValidation,
   getPendingValidations, validateDaily, deleteTask, getTeamMembers, getTeamTasks,
-  getValidationHistory, getMyTasks, getObjectivesForLinking,
+  getValidationHistory, getMyTasks, getObjectivesForLinking, getEmployee,
   type Task, type TaskStats, type TaskPriority, type PendingValidation, type TeamMember,
   type DailyValidation, type ObjectiveForLinking
 } from '@/lib/api';
@@ -222,7 +222,7 @@ function TaskCard({
               </span>
             )}
 
-            {/* 🆕 Lien OKR */}
+            {/* Lien OKR */}
             {task.objective_title && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">
                 <Target className="w-3 h-3" />
@@ -249,15 +249,6 @@ function TaskCard({
     </div>
   );
 }
-
-// ============================================
-// CreateTaskModal - Version avec OKR obligatoire et tâche administrative
-// ============================================
-// À REMPLACER dans app/dashboard/my-space/tasks/page.tsx
-// 
-// IMPORTS À AJOUTER en haut du fichier (si pas déjà présents):
-// import { Mail } from 'lucide-react';
-// ============================================
 
 // Labels pour les niveaux OKR
 const OKR_LEVEL_LABELS: Record<string, string> = {
@@ -924,8 +915,10 @@ function PendingValidationsSection({
 // ============================================
 function MyTasksTab({
   onRefresh,
+  hasManager,
 }: {
   onRefresh: () => void;
+  hasManager: boolean;
 }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [stats, setStats] = useState<TaskStats | null>(null);
@@ -1092,8 +1085,8 @@ function MyTasksTab({
         />
       )}
 
-      {/* Statut de validation */}
-      {validationStatus?.validation && (
+      {/* Statut de validation - UNIQUEMENT SI L'EMPLOYÉ A UN MANAGER */}
+      {hasManager && validationStatus?.validation && (
         <div className={`rounded-xl p-4 ${
           validationStatus.validation.status === 'approved' 
             ? 'bg-green-50 border border-green-200' 
@@ -1153,8 +1146,8 @@ function MyTasksTab({
               <option value="completed">Terminées</option>
             </select>
             
-            {/* Bouton soumettre ou message horaire */}
-            {tasks.length > 0 && !validationStatus?.validation && (
+            {/* Bouton soumettre ou message horaire - UNIQUEMENT SI L'EMPLOYÉ A UN MANAGER */}
+            {hasManager && tasks.length > 0 && !validationStatus?.validation && (
               validationStatus?.can_submit ? (
                 <button
                   onClick={() => setShowSubmitModal(true)}
@@ -2032,25 +2025,42 @@ export default function MyTasksPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [currentEmployeeId, setCurrentEmployeeId] = useState<number>(0);
   const [isManager, setIsManager] = useState(false);
+  const [hasManager, setHasManager] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        setCurrentEmployeeId(user.employee_id || 0);
-        const userIsManager = ['ADMIN', 'MANAGER', 'RH', 'DG'].includes(user.role?.toUpperCase());
-        setIsManager(userIsManager);
+    async function loadInitialData() {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          const employeeId = user.employee_id || 0;
+          setCurrentEmployeeId(employeeId);
+          const userIsManager = ['ADMIN', 'MANAGER', 'RH', 'DG'].includes(user.role?.toUpperCase());
+          setIsManager(userIsManager);
 
-        if (userIsManager) {
-          getTeamMembers().then(setTeamMembers).catch(console.error);
+          // Charger les infos employé pour vérifier s'il a un manager
+          if (employeeId) {
+            try {
+              const employeeData = await getEmployee(employeeId);
+              setHasManager(!!employeeData?.manager_id);
+            } catch (err) {
+              console.error('Error fetching employee:', err);
+              setHasManager(false);
+            }
+          }
+
+          if (userIsManager) {
+            getTeamMembers().then(setTeamMembers).catch(console.error);
+          }
+        } catch {
+          console.error('Error parsing user');
         }
-      } catch {
-        console.error('Error parsing user');
       }
+      setIsLoading(false);
     }
-    setIsLoading(false);
+
+    loadInitialData();
   }, []);
 
   const handleRefresh = () => {
@@ -2145,7 +2155,7 @@ export default function MyTasksPage() {
 
         {/* Contenu des onglets */}
         {activeTab === 'my-tasks' && (
-          <MyTasksTab key={refreshKey} onRefresh={handleRefresh} />
+          <MyTasksTab key={refreshKey} onRefresh={handleRefresh} hasManager={hasManager} />
         )}
         
         {activeTab === 'team-tasks' && isManager && (

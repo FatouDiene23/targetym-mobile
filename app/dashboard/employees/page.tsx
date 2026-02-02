@@ -8,7 +8,7 @@ import LeaveRequestModal from '@/components/LeaveRequestModal';
 import { useState, useEffect, useRef } from 'react';
 import { 
   Search, Plus, Mail, Phone, MapPin, Calendar, Building2, Download,
-  Edit2, Eye, Users, UserCheck, UserPlus, TrendingUp, TrendingDown,
+  Edit2, Eye, Users, UserCheck, UserPlus, TrendingDown,
   Palmtree, CheckCircle, XCircle, Filter, ChevronDown, Briefcase,
   User, Loader2, RefreshCw, X, Send, Clock, MailCheck, AlertCircle,
   Copy, Check
@@ -89,18 +89,6 @@ async function resendInvitation(employeeId: number): Promise<{ success: boolean;
   return response.json();
 }
 
-async function cancelInvitation(employeeId: number): Promise<{ message: string }> {
-  const response = await fetch(`${API_URL}/api/invitations/${employeeId}/cancel`, {
-    method: 'DELETE',
-    headers: await getAuthHeaders(),
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Erreur lors de l\'annulation');
-  }
-  return response.json();
-}
-
 // Composant Modal pour afficher le mot de passe temporaire
 function TempPasswordModal({ 
   isOpen, 
@@ -147,7 +135,7 @@ function TempPasswordModal({
               <p className="text-sm text-gray-500 mt-1">
                 {emailSent 
                   ? `Un email a été envoyé à ${employeeName}`
-                  : `L'email n'a pas pu être envoyé. Transmettez les identifiants manuellement.`
+                  : `L&apos;email n&apos;a pas pu être envoyé. Transmettez les identifiants manuellement.`
                 }
               </p>
             </div>
@@ -179,7 +167,7 @@ function TempPasswordModal({
             {!emailSent && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
                 <p className="text-sm text-yellow-800">
-                  <strong>Note :</strong> L'email n'a pas été envoyé. Veuillez transmettre ces identifiants à {employeeName} de manière sécurisée.
+                  <strong>Note :</strong> L&apos;email n&apos;a pas été envoyé. Veuillez transmettre ces identifiants à {employeeName} de manière sécurisée.
                 </p>
               </div>
             )}

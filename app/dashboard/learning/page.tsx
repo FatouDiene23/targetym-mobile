@@ -370,7 +370,8 @@ export default function LearningPage() {
 
   const fetchEmployees = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/employees/?page_size=500`, { headers: getAuthHeaders() });
+      // Utiliser /my-team/ pour avoir la bonne liste selon le rôle
+      const response = await fetch(`${API_URL}/api/employees/my-team/`, { headers: getAuthHeaders() });
       const data = await response.json();
       setEmployees(data.items || []);
     } catch (error) {

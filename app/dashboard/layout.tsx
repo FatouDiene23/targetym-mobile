@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 
 function LoadingScreen() {
@@ -15,36 +14,59 @@ function LoadingScreen() {
   );
 }
 
-function DashboardContent({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const searchParams = useSearchParams();
 
   useEffect(() => {
-    const tokenFromUrl = searchParams.get('token');
-    const refreshFromUrl = searchParams.get('refresh');
-    const userFromUrl = searchParams.get('user');
+    // Utiliser window.location.search directement (plus fiable)
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    const tokenFromUrl = urlParams.get('token');
+    const refreshFromUrl = urlParams.get('refresh');
+    const userFromUrl = urlParams.get('user');
 
-    if (tokenFromUrl && refreshFromUrl && userFromUrl) {
+    console.log('Layout: Token from URL:', tokenFromUrl ? 'EXISTS' : 'NULL');
+
+    if (tokenFromUrl && userFromUrl) {
+      // Stocker les tokens
       localStorage.setItem('access_token', tokenFromUrl);
-      localStorage.setItem('refresh_token', refreshFromUrl);
-      localStorage.setItem('user', decodeURIComponent(userFromUrl));
-      window.history.replaceState({}, '', '/dashboard');
+      if (refreshFromUrl) {
+        localStorage.setItem('refresh_token', refreshFromUrl);
+      }
+      try {
+        const decodedUser = decodeURIComponent(userFromUrl);
+        localStorage.setItem('user', decodedUser);
+        console.log('Layout: Tokens stored successfully');
+      } catch (e) {
+        console.error('Layout: Error decoding user:', e);
+      }
+      
+      // Nettoyer l'URL
+      window.history.replaceState({}, '', window.location.pathname);
+      
       setIsAuthenticated(true);
       setIsLoading(false);
       return;
     }
 
+    // Vérifier localStorage
     const token = localStorage.getItem('access_token');
+    console.log('Layout: Token from localStorage:', token ? 'EXISTS' : 'NULL');
     
     if (!token) {
+      console.log('Layout: No token, redirecting to login...');
       window.location.href = 'https://targetym-website.vercel.app/login';
       return;
     }
 
     setIsAuthenticated(true);
     setIsLoading(false);
-  }, [searchParams]);
+  }, []);
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -61,17 +83,5 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         {children}
       </main>
     </div>
-  );
-}
-
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <Suspense fallback={<LoadingScreen />}>
-      <DashboardContent>{children}</DashboardContent>
-    </Suspense>
   );
 }

@@ -949,70 +949,32 @@ export default function DashboardPage() {
   const [myAssignments, setMyAssignments] = useState<MyAssignment[]>([]);
   const [taskStats, setTaskStats] = useState<TaskStats | null>(null);
 
-  // Récupérer les tokens depuis l'URL et les stocker dans localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get('token');
-      const refresh = urlParams.get('refresh');
-      const userParam = urlParams.get('user');
-
-      if (token && userParam) {
-        // Stocker les tokens
-        localStorage.setItem('access_token', token);
-        if (refresh) {
-          localStorage.setItem('refresh_token', refresh);
-        }
-        
-        // Stocker les infos utilisateur
-        try {
-          const userDecoded = decodeURIComponent(userParam);
-          localStorage.setItem('user', userDecoded);
-        } catch (e) {
-          console.error('Error decoding user:', e);
-        }
-
-        // Nettoyer l'URL (enlever les paramètres)
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-    }
-  }, []);
-
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      // Debug: Vérifier le token et les données localStorage
-      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-      const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
-      
-      console.log('DEBUG Dashboard - Token exists:', !!token);
-      console.log('DEBUG Dashboard - User in localStorage:', userStr);
-      
-      // Essayer d'abord l'API, sinon fallback sur localStorage
+      // Essayer d'abord l'API
       let user = await getCurrentUser();
-      console.log('DEBUG Dashboard - User from API:', user);
       
       // Fallback sur localStorage si l'API échoue
-      if (!user && userStr) {
-        try {
-          const localUser = JSON.parse(userStr);
-          console.log('DEBUG Dashboard - Parsed localStorage user:', localUser);
-          user = {
-            id: localUser.id,
-            email: localUser.email,
-            first_name: localUser.first_name,
-            last_name: localUser.last_name,
-            role: localUser.role,
-            employee_id: localUser.employee_id,
-          };
-        } catch (e) { 
-          console.error('DEBUG Dashboard - Error parsing localStorage:', e);
+      if (!user) {
+        const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+        if (userStr) {
+          try {
+            const localUser = JSON.parse(userStr);
+            user = {
+              id: localUser.id,
+              email: localUser.email,
+              first_name: localUser.first_name,
+              last_name: localUser.last_name,
+              role: localUser.role,
+              employee_id: localUser.employee_id,
+            };
+          } catch { /* ignore */ }
         }
       }
 
       if (!user) {
         console.error('Impossible de récupérer les informations utilisateur');
-        console.log('DEBUG Dashboard - All localStorage keys:', Object.keys(localStorage));
         setLoading(false);
         return;
       }
@@ -1074,13 +1036,7 @@ export default function DashboardPage() {
     }
   }, []);
 
-  useEffect(() => { 
-    // Attendre un court délai pour s'assurer que les tokens sont stockés
-    const timer = setTimeout(() => {
-      loadData(); 
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   if (loading) {
     return (

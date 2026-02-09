@@ -703,7 +703,7 @@ export default function LearningPage() {
       
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
         {/* Stats - Dynamiques selon le rôle */}
-        <div className={`grid grid-cols-2 md:grid-cols-4 ${hasPermission(userRole, 'view_analytics') ? 'lg:grid-cols-7' : 'lg:grid-cols-4'} gap-4 mb-6`}>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
               <div><p className="text-xs text-gray-500">Formations</p><p className="text-2xl font-bold text-gray-900">{stats?.total_courses || 0}</p></div>
@@ -728,29 +728,7 @@ export default function LearningPage() {
               <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center"><Award className="w-5 h-5 text-orange-600" /></div>
             </div>
           </div>
-          {hasPermission(userRole, 'view_analytics') && (
-            <>
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div><p className="text-xs text-gray-500">Taux Complétion</p><p className="text-2xl font-bold text-teal-600">{stats?.completion_rate || 0}%</p></div>
-                  <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center"><TrendingUp className="w-5 h-5 text-teal-600" /></div>
-                </div>
-              </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div><p className="text-xs text-gray-500">À Valider</p><p className="text-2xl font-bold text-amber-600">{stats?.pending_validation || 0}</p></div>
-                  <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center"><Clock className="w-5 h-5 text-amber-600" /></div>
-                </div>
-              </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div><p className="text-xs text-gray-500">Cert. Expirent</p><p className="text-2xl font-bold text-red-600">{stats?.expiring_certifications || 0}</p></div>
-                  <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
-                </div>
-              </div>
-            </>
-          )}
-          {hasPermission(userRole, 'validate_completion') && !hasPermission(userRole, 'view_analytics') && (
+          {hasPermission(userRole, 'validate_completion') && (
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
               <div className="flex items-center justify-between">
                 <div><p className="text-xs text-gray-500">À Valider</p><p className="text-2xl font-bold text-amber-600">{stats?.pending_validation || 0}</p></div>
@@ -762,14 +740,14 @@ export default function LearningPage() {
 
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
-          <div className="flex border-b border-gray-200 overflow-x-auto">
+          <div className="flex border-b border-gray-200 overflow-x-auto overflow-y-visible pt-2">
             <button onClick={() => setActiveTab('catalog')} className={`flex-shrink-0 px-6 py-4 text-sm font-medium ${activeTab === 'catalog' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
               <BookOpen className="w-4 h-4 inline mr-2" />Catalogue
             </button>
             <button onClick={() => setActiveTab('my-learning')} className={`flex-shrink-0 px-6 py-4 text-sm font-medium relative ${activeTab === 'my-learning' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
               <User className="w-4 h-4 inline mr-2" />Mes Formations
               {myAssignments.filter(a => a.status === 'assigned' || a.status === 'in_progress').length > 0 && (
-                <span className="absolute -top-1 right-2 w-5 h-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center">
+                <span className="absolute top-2 -right-1 min-w-5 h-5 px-1 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center">
                   {myAssignments.filter(a => a.status === 'assigned' || a.status === 'in_progress').length}
                 </span>
               )}

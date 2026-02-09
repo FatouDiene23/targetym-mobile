@@ -6,7 +6,7 @@ import {
   ArrowRight, UserPlus, BarChart3,
   CalendarDays, ClipboardList, Bell, ChevronRight, TrendingUp, PieChart,
   Star, MessageSquare, Zap, ThumbsUp,
-  Briefcase, UserCheck, Activity, Sparkles
+  Briefcase, UserCheck, Activity, Sparkles, GraduationCap, BookOpen
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -43,6 +43,7 @@ interface OKRObjective { id: number; title: string; level: string; progress: num
 interface MyObjectiveData { id: number; title: string; progress: number; status: string; }
 interface MyPerformanceStats { avg_score: number; evaluations_total: number; evaluations_completed: number; feedbacks_received: number; feedbacks_given: number; }
 interface FeedbackItem { id: number; from_employee_name?: string; type: string; message: string; created_at: string; }
+interface MyAssignment { id: number; course_title: string; course_image?: string; course_duration?: number; status: string; progress?: number; deadline?: string; completed_at?: string; }
 
 // ============================================
 // API
@@ -74,8 +75,6 @@ async function getMyLeaveBalances(employeeId: number): Promise<LeaveBalanceSumma
     return response.json();
   } catch { return null; }
 }
-
-// getMyPendingRequests supprimée car non utilisée
 
 async function getTeamMembers(managerId: number): Promise<TeamMember[]> {
   try {
@@ -157,6 +156,15 @@ async function getMyPerformanceStats(): Promise<MyPerformanceStats | null> {
 async function getRecentFeedbacks(employeeId: number): Promise<FeedbackItem[]> {
   try {
     const response = await fetch(`${API_URL}/api/performance/feedbacks?to_employee_id=${employeeId}&page_size=5`, { headers: getAuthHeaders() });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.items || [];
+  } catch { return []; }
+}
+
+async function getMyAssignments(): Promise<MyAssignment[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/learning/assignments/?my_assignments=true`, { headers: getAuthHeaders() });
     if (!response.ok) return [];
     const data = await response.json();
     return data.items || [];
@@ -342,6 +350,72 @@ function MyLeaveBalanceWidget({ balances }: { balances: LeaveBalanceSummary | nu
       <Link href="/dashboard/my-space/leaves" className="flex items-center justify-center gap-1 text-primary-600 text-sm font-medium hover:underline py-2 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors">
         Voir tous mes congés <ArrowRight className="w-4 h-4" />
       </Link>
+    </div>
+  );
+}
+
+// My Learning Widget - NEW
+function MyLearningWidget({ assignments }: { assignments: MyAssignment[] }) {
+  const inProgress = assignments.filter(a => a.status === 'in_progress' || a.status === 'assigned');
+  const completed = assignments.filter(a => a.status === 'completed');
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-teal-400 to-teal-600 rounded-lg flex items-center justify-center">
+            <GraduationCap className="w-4 h-4 text-white" />
+          </div>
+          Mes Formations
+        </h2>
+        <Link href="/dashboard/learning" className="text-primary-600 text-xs hover:underline flex items-center gap-1">Voir <ChevronRight className="w-3 h-3" /></Link>
+      </div>
+      
+      {assignments.length === 0 ? (
+        <div className="text-center py-6">
+          <BookOpen className="w-10 h-10 mx-auto mb-2 text-gray-200" />
+          <p className="text-gray-400 text-sm">Aucune formation assignée</p>
+          <Link href="/dashboard/learning" className="text-primary-600 text-xs hover:underline mt-2 inline-block">Voir le catalogue →</Link>
+        </div>
+      ) : (
+        <>
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
+              <p className="text-2xl font-bold text-blue-600">{inProgress.length}</p>
+              <p className="text-xs text-blue-700">En cours</p>
+            </div>
+            <div className="text-center p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
+              <p className="text-2xl font-bold text-green-600">{completed.length}</p>
+              <p className="text-xs text-green-700">Complétées</p>
+            </div>
+          </div>
+
+          {/* Formations en cours */}
+          {inProgress.length > 0 && (
+            <div className="space-y-2">
+              {inProgress.slice(0, 3).map((assignment) => (
+                <div key={assignment.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                  <span className="text-2xl">{assignment.course_image || '📚'}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{assignment.course_title}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-teal-400 to-teal-600 rounded-full" style={{ width: `${assignment.progress || 0}%` }} />
+                      </div>
+                      <span className="text-xs text-gray-500">{assignment.progress || 0}%</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {inProgress.length > 3 && (
+            <p className="text-center text-xs text-gray-400 mt-2">+{inProgress.length - 3} autre(s)</p>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -736,7 +810,7 @@ function TasksWidget() {
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-teal-400 to-teal-600 rounded-lg flex items-center justify-center"><ClipboardList className="w-4 h-4 text-white" /></div>
+          <div className="w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-600 rounded-lg flex items-center justify-center"><ClipboardList className="w-4 h-4 text-white" /></div>
           <h2 className="text-base font-semibold text-gray-900">Mes Tâches</h2>
         </div>
         <Link href="/dashboard/my-space/tasks" className="text-primary-600 text-xs hover:underline flex items-center gap-1">Voir <ChevronRight className="w-3 h-3" /></Link>
@@ -802,7 +876,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<{ name: string; role: UserRole; isManager: boolean; employeeId: number | null }>({ name: '', role: 'employee', isManager: false, employeeId: null });
   const [leaveBalances, setLeaveBalances] = useState<LeaveBalanceSummary | null>(null);
-  // myPendingRequests supprimé car non utilisé dans cette version
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [teamPendingRequests, setTeamPendingRequests] = useState<LeaveRequest[]>([]);
   const [hrStats, setHRStats] = useState<HRStats | null>(null);
@@ -815,6 +888,7 @@ export default function DashboardPage() {
   const [myObjectives, setMyObjectives] = useState<MyObjectiveData[]>([]);
   const [myPerformance, setMyPerformance] = useState<MyPerformanceStats | null>(null);
   const [recentFeedbacks, setRecentFeedbacks] = useState<FeedbackItem[]>([]);
+  const [myAssignments, setMyAssignments] = useState<MyAssignment[]>([]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -838,7 +912,8 @@ export default function DashboardPage() {
           getMyLeaveBalances(employeeId).then(setLeaveBalances),
           getMyObjectives(employeeId).then(setMyObjectives),
           getMyPerformanceStats().then(setMyPerformance),
-          getRecentFeedbacks(employeeId).then(setRecentFeedbacks)
+          getRecentFeedbacks(employeeId).then(setRecentFeedbacks),
+          getMyAssignments().then(setMyAssignments)
         );
       }
 
@@ -886,7 +961,41 @@ export default function DashboardPage() {
 
   const { name, role, isManager, employeeId } = userData;
   const isHROrAdmin = ['rh', 'admin', 'dg'].includes(role);
+  const isSimpleEmployee = role === 'employee' && !isManager;
 
+  // ============================================
+  // LAYOUT EMPLOYÉ SIMPLE - 2 colonnes équilibrées
+  // ============================================
+  if (isSimpleEmployee) {
+    return (
+      <div className="py-6 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <WelcomeCard userName={name} role={role} />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Colonne gauche */}
+            <div className="space-y-6">
+              {employeeId && <MyLeaveBalanceWidget balances={leaveBalances} />}
+              {employeeId && <MyLearningWidget assignments={myAssignments} />}
+              {recentFeedbacks.length > 0 && <RecentFeedbacksWidget feedbacks={recentFeedbacks} />}
+            </div>
+
+            {/* Colonne droite */}
+            <div className="space-y-6">
+              <QuickActions role={role} isManager={isManager} />
+              {employeeId && <MyPerformanceWidget stats={myPerformance} />}
+              {employeeId && <MyObjectivesProgressWidget objectives={myObjectives} />}
+              <TasksWidget />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================
+  // LAYOUT HR/ADMIN/DG/MANAGER - 3 colonnes
+  // ============================================
   return (
     <div className="py-6 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -905,6 +1014,7 @@ export default function DashboardPage() {
               </div>
             )}
             {employeeId && <MyLeaveBalanceWidget balances={leaveBalances} />}
+            {employeeId && <MyLearningWidget assignments={myAssignments} />}
             {isHROrAdmin && <PendingRequestsWidget requests={allPendingRequests} />}
           </div>
 

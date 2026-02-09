@@ -1,16 +1,16 @@
 'use client';
 
 import Header from '@/components/Header';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   BookOpen, Award, Clock, Users, CheckCircle, Plus, Search,
   TrendingUp, Target, ChevronRight, AlertTriangle,
   GraduationCap, BarChart3, X, User, ArrowRight, Upload, ExternalLink,
-  Check, XCircle, RefreshCw, Eye
+  Check, XCircle, RefreshCw, Eye, Edit, MessageSquarePlus, Send
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
-const API_URL = 'https://web-production-06c3.up.railway.app';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app';
 
 // Types
 interface Course {
@@ -92,6 +92,7 @@ interface Skill {
 interface DevelopmentPlan {
   id: number;
   employee: string;
+  employee_id: number;
   initials: string;
   role: string;
   targetRole: string;
@@ -102,6 +103,21 @@ interface DevelopmentPlan {
   target_date: string;
 }
 
+interface CourseRequest {
+  id: number;
+  title: string;
+  description: string;
+  reason: string;
+  external_url: string;
+  provider: string;
+  status: string;
+  requested_by_name: string;
+  requested_by_initials: string;
+  for_employee_name: string;
+  requested_at: string;
+  review_comment: string;
+}
+
 interface Stats {
   total_courses: number;
   completed_this_month: number;
@@ -110,6 +126,7 @@ interface Stats {
   completion_rate: number;
   pending_validation: number;
   expiring_certifications: number;
+  pending_requests?: number;
 }
 
 interface MonthlyStats {
@@ -138,12 +155,41 @@ interface Employee {
   job_title: string;
 }
 
+interface CurrentUser {
+  id: number;
+  role: string;
+  employee_id: number;
+}
+
+// Helper pour vérifier les permissions
+const hasPermission = (userRole: string, action: string): boolean => {
+  const permissions: Record<string, string[]> = {
+    'create_course': ['admin', 'dg', 'dga', 'rh'],
+    'assign_course': ['admin', 'dg', 'dga', 'rh', 'manager'],
+    'validate_completion': ['admin', 'dg', 'dga', 'rh', 'manager'],
+    'create_path': ['admin', 'dg', 'dga', 'rh'],
+    'create_certification': ['admin', 'dg', 'dga', 'rh'],
+    'create_plan': ['admin', 'dg', 'dga', 'rh', 'manager'],
+    'view_all_plans': ['admin', 'dg', 'dga', 'rh'],
+    'view_analytics': ['admin', 'dg', 'dga', 'rh'],
+    'view_requests': ['admin', 'dg', 'dga', 'rh'],
+    'request_course': ['admin', 'dg', 'dga', 'rh', 'manager', 'employee'],
+  };
+  
+  const allowedRoles = permissions[action] || [];
+  return allowedRoles.includes(userRole.toLowerCase());
+};
+
 export default function LearningPage() {
   // États
-  const [activeTab, setActiveTab] = useState<'catalog' | 'paths' | 'certifications' | 'development' | 'analytics'>('catalog');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'paths' | 'certifications' | 'development' | 'requests' | 'analytics'>('catalog');
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  
+  // User & Role
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const userRole = currentUser?.role?.toLowerCase() || 'employee';
   
   // Data states
   const [courses, setCourses] = useState<Course[]>([]);
@@ -151,6 +197,7 @@ export default function LearningPage() {
   const [certifications, setCertifications] = useState<Certification[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [developmentPlans, setDevelopmentPlans] = useState<DevelopmentPlan[]>([]);
+  const [courseRequests, setCourseRequests] = useState<CourseRequest[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [monthlyStats, setMonthlyStats] = useState<MonthlyStats[]>([]);
   const [categoryStats, setCategoryStats] = useState<CategoryStats[]>([]);
@@ -166,8 +213,13 @@ export default function LearningPage() {
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [showCreateCertification, setShowCreateCertification] = useState(false);
   const [showCreatePlan, setShowCreatePlan] = useState(false);
+  const [showEditPlan, setShowEditPlan] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<DevelopmentPlan | null>(null);
   const [showCertHolders, setShowCertHolders] = useState<Certification | null>(null);
   const [certHolders, setCertHolders] = useState<CertificationHolder[]>([]);
+  const [showCreatePath, setShowCreatePath] = useState(false);
+  const [showRequestCourse, setShowRequestCourse] = useState(false);
+  const [showCreateSkill, setShowCreateSkill] = useState(false);
 
   // Form states
   const [newCourse, setNewCourse] = useState({
@@ -177,79 +229,89 @@ export default function LearningPage() {
   const [assignData, setAssignData] = useState({ employee_id: '', course_id: '', deadline: '' });
   const [validationData, setValidationData] = useState({ approved: true, rejection_reason: '' });
   const [newCertification, setNewCertification] = useState({ name: '', provider: '', description: '', validity_months: '' });
+  const [newPath, setNewPath] = useState({ title: '', description: '', category: 'Technique', course_ids: [] as number[] });
   const [newPlan, setNewPlan] = useState({
     employee_id: '', current_role: '', target_role: '', target_date: '',
     skill_ids: [] as number[], course_ids: [] as number[]
   });
+  const [newRequest, setNewRequest] = useState({
+    title: '', description: '', reason: '', external_url: '', provider: '', for_employee_id: ''
+  });
+  const [newSkill, setNewSkill] = useState({ name: '', category: 'Technique', description: '' });
 
   const categories = ['Tous', 'Soft Skills', 'Technique', 'Management', 'Commercial', 'Innovation', 'Juridique'];
+  const skillCategories = ['Technique', 'Soft Skills', 'Management', 'Métier'];
 
-  // Fetch functions
-  const getAuthHeaders = () => {
+  // Auth headers
+  const getAuthHeaders = useCallback(() => {
     const token = localStorage.getItem('access_token');
     return {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     };
-  };
+  }, []);
 
-  const fetchCourses = async () => {
+  // Fetch current user
+  const fetchCurrentUser = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/users/me/`, { headers: getAuthHeaders() });
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentUser(data);
+      }
+    } catch (error) {
+      console.error('Error fetching user:', error);
+    }
+  }, [getAuthHeaders]);
+
+  // Fetch functions
+  const fetchCourses = useCallback(async () => {
     try {
       const params = new URLSearchParams();
       if (selectedCategory !== 'Tous') params.append('category', selectedCategory);
       if (searchQuery) params.append('search', searchQuery);
       
-      const response = await fetch(`${API_URL}/api/learning/courses/?${params}`, {
-        headers: getAuthHeaders()
-      });
+      const response = await fetch(`${API_URL}/api/learning/courses/?${params}`, { headers: getAuthHeaders() });
       const data = await response.json();
       setCourses(data.items || []);
     } catch (error) {
       console.error('Error fetching courses:', error);
     }
-  };
+  }, [selectedCategory, searchQuery, getAuthHeaders]);
 
-  const fetchLearningPaths = async () => {
+  const fetchLearningPaths = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/learning/paths/`, {
-        headers: getAuthHeaders()
-      });
+      const response = await fetch(`${API_URL}/api/learning/paths/`, { headers: getAuthHeaders() });
       const data = await response.json();
       setLearningPaths(data || []);
     } catch (error) {
       console.error('Error fetching paths:', error);
     }
-  };
+  }, [getAuthHeaders]);
 
-  const fetchPendingValidations = async () => {
+  const fetchPendingValidations = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/learning/assignments/?pending_validation=true`, {
-        headers: getAuthHeaders()
-      });
+      const response = await fetch(`${API_URL}/api/learning/assignments/?pending_validation=true`, { headers: getAuthHeaders() });
       const data = await response.json();
       setPendingValidations(data.items || []);
     } catch (error) {
       console.error('Error fetching assignments:', error);
     }
-  };
+  }, [getAuthHeaders]);
 
-  const fetchCertifications = async () => {
+  const fetchCertifications = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/learning/certifications/`, {
-        headers: getAuthHeaders()
-      });
+      const response = await fetch(`${API_URL}/api/learning/certifications/`, { headers: getAuthHeaders() });
       const data = await response.json();
       setCertifications(data || []);
     } catch (error) {
       console.error('Error fetching certifications:', error);
     }
-  };
+  }, [getAuthHeaders]);
 
   const fetchCertificationHolders = async (certId: number) => {
     try {
-      const response = await fetch(`${API_URL}/api/learning/certifications/${certId}/holders`, {
-        headers: getAuthHeaders()
-      });
+      const response = await fetch(`${API_URL}/api/learning/certifications/${certId}/holders`, { headers: getAuthHeaders() });
       const data = await response.json();
       setCertHolders(data || []);
     } catch (error) {
@@ -257,31 +319,39 @@ export default function LearningPage() {
     }
   };
 
-  const fetchSkills = async () => {
+  const fetchSkills = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/learning/skills/`, {
-        headers: getAuthHeaders()
-      });
+      const response = await fetch(`${API_URL}/api/learning/skills/`, { headers: getAuthHeaders() });
       const data = await response.json();
       setSkills(data || []);
     } catch (error) {
       console.error('Error fetching skills:', error);
     }
-  };
+  }, [getAuthHeaders]);
 
-  const fetchDevelopmentPlans = async () => {
+  const fetchDevelopmentPlans = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/learning/development-plans/`, {
-        headers: getAuthHeaders()
-      });
+      const response = await fetch(`${API_URL}/api/learning/development-plans/`, { headers: getAuthHeaders() });
       const data = await response.json();
       setDevelopmentPlans(data || []);
     } catch (error) {
       console.error('Error fetching plans:', error);
     }
-  };
+  }, [getAuthHeaders]);
 
-  const fetchStats = async () => {
+  const fetchCourseRequests = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/learning/requests/`, { headers: getAuthHeaders() });
+      if (response.ok) {
+        const data = await response.json();
+        setCourseRequests(data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching requests:', error);
+    }
+  }, [getAuthHeaders]);
+
+  const fetchStats = useCallback(async () => {
     try {
       const [statsRes, monthlyRes, categoryRes, learnersRes] = await Promise.all([
         fetch(`${API_URL}/api/learning/stats/`, { headers: getAuthHeaders() }),
@@ -297,24 +367,23 @@ export default function LearningPage() {
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
-  };
+  }, [getAuthHeaders]);
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/employees/?page_size=500`, {
-        headers: getAuthHeaders()
-      });
+      const response = await fetch(`${API_URL}/api/employees/?page_size=500`, { headers: getAuthHeaders() });
       const data = await response.json();
       setEmployees(data.items || []);
     } catch (error) {
       console.error('Error fetching employees:', error);
     }
-  };
+  }, [getAuthHeaders]);
 
   // Load data on mount
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
+      await fetchCurrentUser();
       await Promise.all([
         fetchCourses(),
         fetchLearningPaths(),
@@ -322,20 +391,21 @@ export default function LearningPage() {
         fetchCertifications(),
         fetchSkills(),
         fetchDevelopmentPlans(),
+        fetchCourseRequests(),
         fetchStats(),
         fetchEmployees()
       ]);
       setIsLoading(false);
     };
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchCurrentUser, fetchCourses, fetchLearningPaths, fetchPendingValidations, fetchCertifications, fetchSkills, fetchDevelopmentPlans, fetchCourseRequests, fetchStats, fetchEmployees]);
 
   // Reload courses when filters change
   useEffect(() => {
-    fetchCourses();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategory, searchQuery]);
+    if (!isLoading) {
+      fetchCourses();
+    }
+  }, [selectedCategory, searchQuery, fetchCourses, isLoading]);
 
   // Action functions
   const createCourse = async () => {
@@ -356,6 +426,24 @@ export default function LearningPage() {
       }
     } catch (error) {
       console.error('Error creating course:', error);
+    }
+  };
+
+  const createPath = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/learning/paths/`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(newPath)
+      });
+      
+      if (response.ok) {
+        setShowCreatePath(false);
+        setNewPath({ title: '', description: '', category: 'Technique', course_ids: [] });
+        fetchLearningPaths();
+      }
+    } catch (error) {
+      console.error('Error creating path:', error);
     }
   };
 
@@ -425,6 +513,24 @@ export default function LearningPage() {
     }
   };
 
+  const createSkill = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/learning/skills/`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(newSkill)
+      });
+      
+      if (response.ok) {
+        setShowCreateSkill(false);
+        setNewSkill({ name: '', category: 'Technique', description: '' });
+        fetchSkills();
+      }
+    } catch (error) {
+      console.error('Error creating skill:', error);
+    }
+  };
+
   const createDevelopmentPlan = async () => {
     try {
       const response = await fetch(`${API_URL}/api/learning/development-plans/`, {
@@ -446,6 +552,67 @@ export default function LearningPage() {
     }
   };
 
+  const updateDevelopmentPlan = async () => {
+    if (!selectedPlan) return;
+    
+    try {
+      const response = await fetch(`${API_URL}/api/learning/development-plans/${selectedPlan.id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          target_role: newPlan.target_role,
+          target_date: newPlan.target_date,
+          progress: selectedPlan.progress
+        })
+      });
+      
+      if (response.ok) {
+        setShowEditPlan(false);
+        setSelectedPlan(null);
+        fetchDevelopmentPlans();
+      }
+    } catch (error) {
+      console.error('Error updating plan:', error);
+    }
+  };
+
+  const submitCourseRequest = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/learning/requests/`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          ...newRequest,
+          for_employee_id: newRequest.for_employee_id ? parseInt(newRequest.for_employee_id) : null
+        })
+      });
+      
+      if (response.ok) {
+        setShowRequestCourse(false);
+        setNewRequest({ title: '', description: '', reason: '', external_url: '', provider: '', for_employee_id: '' });
+        fetchCourseRequests();
+      }
+    } catch (error) {
+      console.error('Error submitting request:', error);
+    }
+  };
+
+  const reviewCourseRequest = async (requestId: number, approved: boolean, comment: string) => {
+    try {
+      const response = await fetch(`${API_URL}/api/learning/requests/${requestId}/review`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ approved, comment })
+      });
+      
+      if (response.ok) {
+        fetchCourseRequests();
+      }
+    } catch (error) {
+      console.error('Error reviewing request:', error);
+    }
+  };
+
   // Helper functions
   const getLevelColor = (level: string) => {
     if (level === 'beginner') return 'bg-green-100 text-green-700';
@@ -462,15 +629,39 @@ export default function LearningPage() {
   const getStatusColor = (status: string) => {
     if (status === 'completed') return 'bg-green-100 text-green-700';
     if (status === 'in-progress' || status === 'in_progress') return 'bg-blue-100 text-blue-700';
-    if (status === 'pending_validation') return 'bg-orange-100 text-orange-700';
+    if (status === 'pending_validation' || status === 'pending') return 'bg-orange-100 text-orange-700';
     if (status === 'rejected') return 'bg-red-100 text-red-700';
+    if (status === 'approved') return 'bg-green-100 text-green-700';
     return 'bg-gray-100 text-gray-700';
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      'assigned': 'Assigné',
+      'in_progress': 'En cours',
+      'pending_validation': 'En attente',
+      'pending': 'En attente',
+      'completed': 'Terminé',
+      'rejected': 'Rejeté',
+      'approved': 'Approuvé'
+    };
+    return labels[status] || status;
   };
 
   const getCertStatusColor = (status: string) => {
     if (status === 'valid') return 'text-green-600';
     if (status === 'expiring') return 'text-orange-600';
     return 'text-red-600';
+  };
+
+  // Filter plans based on role
+  const getVisiblePlans = () => {
+    if (hasPermission(userRole, 'view_all_plans')) {
+      return developmentPlans;
+    }
+    // Manager sees only their team's plans
+    // Employee sees only their own plan
+    return developmentPlans.filter(p => p.employee_id === currentUser?.employee_id);
   };
 
   if (isLoading) {
@@ -483,6 +674,8 @@ export default function LearningPage() {
       </>
     );
   }
+
+  const pendingRequestsCount = courseRequests.filter(r => r.status === 'pending').length;
 
   return (
     <>
@@ -550,14 +743,26 @@ export default function LearningPage() {
             <button onClick={() => setActiveTab('development')} className={`flex-shrink-0 px-6 py-4 text-sm font-medium ${activeTab === 'development' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
               <GraduationCap className="w-4 h-4 inline mr-2" />Plans Développement
             </button>
-            <button onClick={() => setActiveTab('analytics')} className={`flex-shrink-0 px-6 py-4 text-sm font-medium ${activeTab === 'analytics' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
-              <BarChart3 className="w-4 h-4 inline mr-2" />Analytics
-            </button>
+            {hasPermission(userRole, 'view_requests') && (
+              <button onClick={() => setActiveTab('requests')} className={`flex-shrink-0 px-6 py-4 text-sm font-medium relative ${activeTab === 'requests' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
+                <MessageSquarePlus className="w-4 h-4 inline mr-2" />Demandes
+                {pendingRequestsCount > 0 && (
+                  <span className="absolute -top-1 right-2 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {pendingRequestsCount}
+                  </span>
+                )}
+              </button>
+            )}
+            {hasPermission(userRole, 'view_analytics') && (
+              <button onClick={() => setActiveTab('analytics')} className={`flex-shrink-0 px-6 py-4 text-sm font-medium ${activeTab === 'analytics' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
+                <BarChart3 className="w-4 h-4 inline mr-2" />Analytics
+              </button>
+            )}
           </div>
         </div>
 
         {/* Pending Validations Alert */}
-        {pendingValidations.length > 0 && (
+        {pendingValidations.length > 0 && hasPermission(userRole, 'validate_completion') && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-center gap-3">
             <Clock className="w-5 h-5 text-amber-600" />
             <div className="flex-1">
@@ -602,18 +807,30 @@ export default function LearningPage() {
                   </button>
                 ))}
               </div>
-              <button 
-                onClick={() => setShowCreateCourse(true)}
-                className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"
-              >
-                <Plus className="w-4 h-4 mr-2" />Ajouter
-              </button>
-              <button 
-                onClick={() => setShowAssignModal(true)}
-                className="flex items-center px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600"
-              >
-                <User className="w-4 h-4 mr-2" />Assigner
-              </button>
+              {hasPermission(userRole, 'create_course') && (
+                <button 
+                  onClick={() => setShowCreateCourse(true)}
+                  className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"
+                >
+                  <Plus className="w-4 h-4 mr-2" />Ajouter
+                </button>
+              )}
+              {hasPermission(userRole, 'assign_course') && (
+                <button 
+                  onClick={() => setShowAssignModal(true)}
+                  className="flex items-center px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600"
+                >
+                  <User className="w-4 h-4 mr-2" />Assigner
+                </button>
+              )}
+              {hasPermission(userRole, 'request_course') && (
+                <button 
+                  onClick={() => setShowRequestCourse(true)}
+                  className="flex items-center px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600"
+                >
+                  <MessageSquarePlus className="w-4 h-4 mr-2" />Demander
+                </button>
+              )}
             </div>
 
             {/* Course Grid */}
@@ -621,12 +838,14 @@ export default function LearningPage() {
               <div className="bg-white rounded-xl p-12 text-center">
                 <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500">Aucune formation trouvée</p>
-                <button 
-                  onClick={() => setShowCreateCourse(true)}
-                  className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
-                >
-                  Créer une formation
-                </button>
+                {hasPermission(userRole, 'create_course') && (
+                  <button 
+                    onClick={() => setShowCreateCourse(true)}
+                    className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+                  >
+                    Créer une formation
+                  </button>
+                )}
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -664,10 +883,7 @@ export default function LearningPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-gray-500">{course.completion_rate}%</span>
                           <div className="w-16 h-1.5 bg-gray-200 rounded-full">
-                            <div 
-                              className="h-full bg-green-500 rounded-full" 
-                              style={{ width: `${course.completion_rate}%` }} 
-                            />
+                            <div className="h-full bg-green-500 rounded-full" style={{ width: `${course.completion_rate}%` }} />
                           </div>
                         </div>
                       </div>
@@ -684,9 +900,14 @@ export default function LearningPage() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-gray-900">Parcours de Formation</h3>
-              <button className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
-                <Plus className="w-4 h-4 mr-2" />Créer un Parcours
-              </button>
+              {hasPermission(userRole, 'create_path') && (
+                <button 
+                  onClick={() => setShowCreatePath(true)}
+                  className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"
+                >
+                  <Plus className="w-4 h-4 mr-2" />Créer un Parcours
+                </button>
+              )}
             </div>
             
             {learningPaths.length === 0 ? (
@@ -718,10 +939,7 @@ export default function LearningPage() {
                           <span className="font-medium">{path.progress}%</span>
                         </div>
                         <div className="h-2 bg-gray-200 rounded-full">
-                          <div 
-                            className={`h-full rounded-full ${path.progress === 100 ? 'bg-green-500' : 'bg-primary-500'}`} 
-                            style={{ width: `${path.progress}%` }} 
-                          />
+                          <div className={`h-full rounded-full ${path.progress === 100 ? 'bg-green-500' : 'bg-primary-500'}`} style={{ width: `${path.progress}%` }} />
                         </div>
                       </div>
                       <button className="text-primary-600 hover:text-primary-700">
@@ -740,12 +958,14 @@ export default function LearningPage() {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-gray-900">Gestion des Certifications</h3>
-              <button 
-                onClick={() => setShowCreateCertification(true)}
-                className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"
-              >
-                <Plus className="w-4 h-4 mr-2" />Ajouter Certification
-              </button>
+              {hasPermission(userRole, 'create_certification') && (
+                <button 
+                  onClick={() => setShowCreateCertification(true)}
+                  className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"
+                >
+                  <Plus className="w-4 h-4 mr-2" />Ajouter Certification
+                </button>
+              )}
             </div>
 
             {stats?.expiring_certifications && stats.expiring_certifications > 0 && (
@@ -816,21 +1036,23 @@ export default function LearningPage() {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-gray-900">Plans de Développement Individuels</h3>
-              <button 
-                onClick={() => setShowCreatePlan(true)}
-                className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"
-              >
-                <Plus className="w-4 h-4 mr-2" />Créer un Plan
-              </button>
+              {hasPermission(userRole, 'create_plan') && (
+                <button 
+                  onClick={() => setShowCreatePlan(true)}
+                  className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"
+                >
+                  <Plus className="w-4 h-4 mr-2" />Créer un Plan
+                </button>
+              )}
             </div>
             
-            {developmentPlans.length === 0 ? (
+            {getVisiblePlans().length === 0 ? (
               <div className="bg-white rounded-xl p-12 text-center">
                 <GraduationCap className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500">Aucun plan de développement</p>
               </div>
             ) : (
-              developmentPlans.map((plan) => (
+              getVisiblePlans().map((plan) => (
                 <div key={plan.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                   <div className="p-5 border-b border-gray-100">
                     <div className="flex items-center justify-between">
@@ -847,42 +1069,69 @@ export default function LearningPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-3xl font-bold text-primary-600">{plan.progress}%</p>
-                        <p className="text-xs text-gray-500">progression</p>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="text-3xl font-bold text-primary-600">{plan.progress}%</p>
+                          <p className="text-xs text-gray-500">progression</p>
+                        </div>
+                        {hasPermission(userRole, 'create_plan') && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedPlan(plan);
+                              setNewPlan({
+                                ...newPlan,
+                                target_role: plan.targetRole,
+                                target_date: plan.target_date || ''
+                              });
+                              setShowEditPlan(true);
+                            }}
+                            className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
+                          >
+                            <Edit className="w-5 h-5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
                   <div className="p-5 grid md:grid-cols-2 gap-6">
                     <div>
                       <h5 className="text-sm font-semibold text-gray-700 mb-3">Compétences à développer</h5>
-                      <div className="space-y-3">
-                        {plan.skills.map((skill, i) => (
-                          <div key={i}>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="text-gray-600">{skill.name}</span>
-                              <span className="font-medium">{skill.current}% → {skill.target}%</span>
+                      {plan.skills.length === 0 ? (
+                        <p className="text-sm text-gray-400">Aucune compétence définie</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {plan.skills.map((skill, i) => (
+                            <div key={i}>
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="text-gray-600">{skill.name}</span>
+                                <span className="font-medium">{skill.current}% → {skill.target}%</span>
+                              </div>
+                              <div className="h-2 bg-gray-200 rounded-full relative">
+                                <div className="absolute h-full bg-gray-400 rounded-full" style={{ width: `${skill.target}%` }} />
+                                <div className="absolute h-full bg-primary-500 rounded-full" style={{ width: `${skill.current}%` }} />
+                              </div>
                             </div>
-                            <div className="h-2 bg-gray-200 rounded-full relative">
-                              <div className="absolute h-full bg-gray-400 rounded-full" style={{ width: `${skill.target}%` }} />
-                              <div className="absolute h-full bg-primary-500 rounded-full" style={{ width: `${skill.current}%` }} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <h5 className="text-sm font-semibold text-gray-700 mb-3">Formations assignées</h5>
-                      <div className="space-y-2">
-                        {plan.courses.map((course, i) => (
-                          <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                            <span className="text-sm text-gray-900">{course.title}</span>
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(course.status)}`}>
-                              {course.status === 'completed' ? 'Terminé' : course.status === 'in-progress' ? 'En cours' : 'Planifié'}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+                      {plan.courses.length === 0 ? (
+                        <p className="text-sm text-gray-400">Aucune formation assignée</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {plan.courses.map((course, i) => (
+                            <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                              <span className="text-sm text-gray-900">{course.title}</span>
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(course.status)}`}>
+                                {course.status === 'completed' ? 'Terminé' : course.status === 'in-progress' ? 'En cours' : 'Planifié'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -891,8 +1140,77 @@ export default function LearningPage() {
           </div>
         )}
 
+        {/* TAB: Demandes */}
+        {activeTab === 'requests' && hasPermission(userRole, 'view_requests') && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900">Demandes de Formation</h3>
+            </div>
+            
+            {courseRequests.length === 0 ? (
+              <div className="bg-white rounded-xl p-12 text-center">
+                <MessageSquarePlus className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">Aucune demande de formation</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {courseRequests.map((request) => (
+                  <div key={request.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-orange-700 font-bold">
+                          {request.requested_by_initials}
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900">{request.title}</h4>
+                          <p className="text-sm text-gray-500 mb-2">
+                            Demandé par {request.requested_by_name}
+                            {request.for_employee_name && ` pour ${request.for_employee_name}`}
+                          </p>
+                          {request.description && <p className="text-sm text-gray-600 mb-2">{request.description}</p>}
+                          {request.reason && (
+                            <p className="text-sm text-gray-500 italic">&quot;{request.reason}&quot;</p>
+                          )}
+                          {request.external_url && (
+                            <a href={request.external_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:underline flex items-center gap-1 mt-2">
+                              <ExternalLink className="w-3 h-3" />Lien suggéré
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(request.status)}`}>
+                          {getStatusLabel(request.status)}
+                        </span>
+                        {request.status === 'pending' && (
+                          <div className="flex gap-2 ml-4">
+                            <button 
+                              onClick={() => reviewCourseRequest(request.id, true, '')}
+                              className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
+                              title="Approuver"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => reviewCourseRequest(request.id, false, 'Formation non disponible')}
+                              className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+                              title="Rejeter"
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* TAB: Analytics */}
-        {activeTab === 'analytics' && (
+        {activeTab === 'analytics' && hasPermission(userRole, 'view_analytics') && (
           <div className="grid lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <h3 className="font-semibold text-gray-900 mb-4">Formations Complétées par Mois</h3>
@@ -972,7 +1290,9 @@ export default function LearningPage() {
           </div>
         )}
 
-        {/* MODALS */}
+        {/* ========================================
+            MODALS
+        ======================================== */}
 
         {/* Course Detail Modal */}
         {selectedCourse && (
@@ -984,16 +1304,12 @@ export default function LearningPage() {
                   <X className="w-5 h-5 text-white" />
                 </button>
                 {selectedCourse.is_mandatory && (
-                  <span className="absolute top-4 left-4 px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-lg">
-                    Obligatoire
-                  </span>
+                  <span className="absolute top-4 left-4 px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-lg">Obligatoire</span>
                 )}
               </div>
               <div className="p-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${getLevelColor(selectedCourse.level)}`}>
-                    {getLevelLabel(selectedCourse.level)}
-                  </span>
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${getLevelColor(selectedCourse.level)}`}>{getLevelLabel(selectedCourse.level)}</span>
                   <span className="text-sm text-gray-500">{selectedCourse.category}</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedCourse.title}</h2>
@@ -1004,27 +1320,23 @@ export default function LearningPage() {
                   <span className="flex items-center"><Users className="w-4 h-4 mr-1" />{selectedCourse.enrolled} inscrits</span>
                 </div>
                 {selectedCourse.external_url && (
-                  <a 
-                    href={selectedCourse.external_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-primary-600 hover:text-primary-700 mb-6"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Accéder à la formation externe
+                  <a href={selectedCourse.external_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary-600 hover:text-primary-700 mb-6">
+                    <ExternalLink className="w-4 h-4" />Accéder à la formation externe
                   </a>
                 )}
                 <div className="flex gap-3">
-                  <button 
-                    onClick={() => {
-                      setAssignData({ ...assignData, course_id: selectedCourse.id.toString() });
-                      setSelectedCourse(null);
-                      setShowAssignModal(true);
-                    }}
-                    className="flex-1 flex items-center justify-center px-4 py-3 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600"
-                  >
-                    <User className="w-5 h-5 mr-2" />Assigner à un employé
-                  </button>
+                  {hasPermission(userRole, 'assign_course') && (
+                    <button 
+                      onClick={() => {
+                        setAssignData({ ...assignData, course_id: selectedCourse.id.toString() });
+                        setSelectedCourse(null);
+                        setShowAssignModal(true);
+                      }}
+                      className="flex-1 flex items-center justify-center px-4 py-3 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600"
+                    >
+                      <User className="w-5 h-5 mr-2" />Assigner à un employé
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -1046,31 +1358,16 @@ export default function LearningPage() {
               <div className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
-                  <input 
-                    type="text" 
-                    value={newCourse.title}
-                    onChange={(e) => setNewCourse({ ...newCourse, title: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    placeholder="Ex: Leadership & Management"
-                  />
+                  <input type="text" value={newCourse.title} onChange={(e) => setNewCourse({ ...newCourse, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: Leadership & Management" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea 
-                    value={newCourse.description}
-                    onChange={(e) => setNewCourse({ ...newCourse, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    rows={3}
-                  />
+                  <textarea value={newCourse.description} onChange={(e) => setNewCourse({ ...newCourse, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={3} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
-                    <select 
-                      value={newCourse.category}
-                      onChange={(e) => setNewCourse({ ...newCourse, category: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    >
+                    <select value={newCourse.category} onChange={(e) => setNewCourse({ ...newCourse, category: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
                       <option value="Soft Skills">Soft Skills</option>
                       <option value="Technique">Technique</option>
                       <option value="Management">Management</option>
@@ -1081,11 +1378,7 @@ export default function LearningPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Niveau</label>
-                    <select 
-                      value={newCourse.level}
-                      onChange={(e) => setNewCourse({ ...newCourse, level: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    >
+                    <select value={newCourse.level} onChange={(e) => setNewCourse({ ...newCourse, level: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
                       <option value="beginner">Débutant</option>
                       <option value="intermediate">Intermédiaire</option>
                       <option value="advanced">Avancé</option>
@@ -1095,69 +1388,92 @@ export default function LearningPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Durée (heures)</label>
-                    <input 
-                      type="number" 
-                      value={newCourse.duration_hours}
-                      onChange={(e) => setNewCourse({ ...newCourse, duration_hours: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      placeholder="Ex: 8"
-                    />
+                    <input type="number" value={newCourse.duration_hours} onChange={(e) => setNewCourse({ ...newCourse, duration_hours: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: 8" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Emoji</label>
-                    <input 
-                      type="text" 
-                      value={newCourse.image_emoji}
-                      onChange={(e) => setNewCourse({ ...newCourse, image_emoji: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      placeholder="📚"
-                    />
+                    <input type="text" value={newCourse.image_emoji} onChange={(e) => setNewCourse({ ...newCourse, image_emoji: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="📚" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur (ex: Coursera)</label>
-                  <input 
-                    type="text" 
-                    value={newCourse.provider}
-                    onChange={(e) => setNewCourse({ ...newCourse, provider: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  />
+                  <input type="text" value={newCourse.provider} onChange={(e) => setNewCourse({ ...newCourse, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">URL externe</label>
-                  <input 
-                    type="url" 
-                    value={newCourse.external_url}
-                    onChange={(e) => setNewCourse({ ...newCourse, external_url: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    placeholder="https://..."
-                  />
+                  <input type="url" value={newCourse.external_url} onChange={(e) => setNewCourse({ ...newCourse, external_url: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="https://..." />
                 </div>
                 <div className="flex items-center gap-2">
-                  <input 
-                    type="checkbox" 
-                    id="mandatory"
-                    checked={newCourse.is_mandatory}
-                    onChange={(e) => setNewCourse({ ...newCourse, is_mandatory: e.target.checked })}
-                    className="rounded"
-                  />
+                  <input type="checkbox" id="mandatory" checked={newCourse.is_mandatory} onChange={(e) => setNewCourse({ ...newCourse, is_mandatory: e.target.checked })} className="rounded" />
                   <label htmlFor="mandatory" className="text-sm text-gray-700">Formation obligatoire</label>
                 </div>
               </div>
               <div className="p-6 border-t border-gray-200 flex gap-3">
-                <button 
-                  onClick={() => setShowCreateCourse(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  Annuler
-                </button>
-                <button 
-                  onClick={createCourse}
-                  disabled={!newCourse.title}
-                  className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
-                >
-                  Créer
-                </button>
+                <button onClick={() => setShowCreateCourse(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+                <button onClick={createCourse} disabled={!newCourse.title} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">Créer</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Create Path Modal */}
+        {showCreatePath && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900">Nouveau Parcours</h2>
+                  <button onClick={() => setShowCreatePath(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
+                  <input type="text" value={newPath.title} onChange={(e) => setNewPath({ ...newPath, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: Onboarding Développeur" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea value={newPath.description} onChange={(e) => setNewPath({ ...newPath, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+                  <select value={newPath.category} onChange={(e) => setNewPath({ ...newPath, category: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="Technique">Technique</option>
+                    <option value="Management">Management</option>
+                    <option value="Onboarding">Onboarding</option>
+                    <option value="Commercial">Commercial</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Formations du parcours</label>
+                  <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2">
+                    {courses.map((course) => (
+                      <label key={course.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
+                        <input 
+                          type="checkbox"
+                          checked={newPath.course_ids.includes(course.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setNewPath({ ...newPath, course_ids: [...newPath.course_ids, course.id] });
+                            } else {
+                              setNewPath({ ...newPath, course_ids: newPath.course_ids.filter(id => id !== course.id) });
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        <span className="text-sm text-gray-700">{course.image_emoji} {course.title}</span>
+                        <span className="text-xs text-gray-400 ml-auto">{course.duration_hours}h</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">{newPath.course_ids.length} formation(s) sélectionnée(s)</p>
+                </div>
+              </div>
+              <div className="p-6 border-t border-gray-200 flex gap-3">
+                <button onClick={() => setShowCreatePath(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+                <button onClick={createPath} disabled={!newPath.title} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">Créer</button>
               </div>
             </div>
           </div>
@@ -1178,58 +1494,30 @@ export default function LearningPage() {
               <div className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Employé *</label>
-                  <select 
-                    value={assignData.employee_id}
-                    onChange={(e) => setAssignData({ ...assignData, employee_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  >
+                  <select value={assignData.employee_id} onChange={(e) => setAssignData({ ...assignData, employee_id: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
                     <option value="">Sélectionner...</option>
                     {employees.map((emp) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.first_name} {emp.last_name} - {emp.job_title}
-                      </option>
+                      <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name} - {emp.job_title}</option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Formation *</label>
-                  <select 
-                    value={assignData.course_id}
-                    onChange={(e) => setAssignData({ ...assignData, course_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  >
+                  <select value={assignData.course_id} onChange={(e) => setAssignData({ ...assignData, course_id: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
                     <option value="">Sélectionner...</option>
                     {courses.map((course) => (
-                      <option key={course.id} value={course.id}>
-                        {course.title}
-                      </option>
+                      <option key={course.id} value={course.id}>{course.title}</option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date limite (optionnel)</label>
-                  <input 
-                    type="date" 
-                    value={assignData.deadline}
-                    onChange={(e) => setAssignData({ ...assignData, deadline: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  />
+                  <input type="date" value={assignData.deadline} onChange={(e) => setAssignData({ ...assignData, deadline: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
                 </div>
               </div>
               <div className="p-6 border-t border-gray-200 flex gap-3">
-                <button 
-                  onClick={() => setShowAssignModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  Annuler
-                </button>
-                <button 
-                  onClick={assignCourse}
-                  disabled={!assignData.employee_id || !assignData.course_id}
-                  className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
-                >
-                  Assigner
-                </button>
+                <button onClick={() => setShowAssignModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+                <button onClick={assignCourse} disabled={!assignData.employee_id || !assignData.course_id} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">Assigner</button>
               </div>
             </div>
           </div>
@@ -1249,9 +1537,7 @@ export default function LearningPage() {
               </div>
               <div className="p-6">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold">
-                    {selectedAssignment.employee_initials}
-                  </div>
+                  <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold">{selectedAssignment.employee_initials}</div>
                   <div>
                     <p className="font-semibold text-gray-900">{selectedAssignment.employee_name}</p>
                     <p className="text-sm text-gray-500">{selectedAssignment.course_title}</p>
@@ -1269,70 +1555,29 @@ export default function LearningPage() {
                   <div className="mb-4 p-3 bg-blue-50 rounded-lg flex items-center gap-2">
                     <Upload className="w-4 h-4 text-blue-600" />
                     <span className="text-sm text-blue-700">{selectedAssignment.certificate_filename}</span>
-                    <a 
-                      href={`${API_URL}${selectedAssignment.certificate_file}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="ml-auto text-blue-600 hover:underline text-sm"
-                    >
-                      Voir
-                    </a>
+                    <a href={`${API_URL}${selectedAssignment.certificate_file}`} target="_blank" rel="noopener noreferrer" className="ml-auto text-blue-600 hover:underline text-sm">Voir</a>
                   </div>
                 )}
 
                 <div className="flex gap-3 mb-4">
-                  <button
-                    onClick={() => setValidationData({ ...validationData, approved: true })}
-                    className={`flex-1 p-3 rounded-lg border-2 flex items-center justify-center gap-2 ${
-                      validationData.approved 
-                        ? 'border-green-500 bg-green-50 text-green-700' 
-                        : 'border-gray-200 text-gray-500'
-                    }`}
-                  >
-                    <Check className="w-5 h-5" />
-                    Approuver
+                  <button onClick={() => setValidationData({ ...validationData, approved: true })} className={`flex-1 p-3 rounded-lg border-2 flex items-center justify-center gap-2 ${validationData.approved ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-500'}`}>
+                    <Check className="w-5 h-5" />Approuver
                   </button>
-                  <button
-                    onClick={() => setValidationData({ ...validationData, approved: false })}
-                    className={`flex-1 p-3 rounded-lg border-2 flex items-center justify-center gap-2 ${
-                      !validationData.approved 
-                        ? 'border-red-500 bg-red-50 text-red-700' 
-                        : 'border-gray-200 text-gray-500'
-                    }`}
-                  >
-                    <XCircle className="w-5 h-5" />
-                    Rejeter
+                  <button onClick={() => setValidationData({ ...validationData, approved: false })} className={`flex-1 p-3 rounded-lg border-2 flex items-center justify-center gap-2 ${!validationData.approved ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 text-gray-500'}`}>
+                    <XCircle className="w-5 h-5" />Rejeter
                   </button>
                 </div>
 
                 {!validationData.approved && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Raison du rejet</label>
-                    <textarea 
-                      value={validationData.rejection_reason}
-                      onChange={(e) => setValidationData({ ...validationData, rejection_reason: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      rows={2}
-                      placeholder="Expliquez pourquoi..."
-                    />
+                    <textarea value={validationData.rejection_reason} onChange={(e) => setValidationData({ ...validationData, rejection_reason: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} placeholder="Expliquez pourquoi..." />
                   </div>
                 )}
               </div>
               <div className="p-6 border-t border-gray-200 flex gap-3">
-                <button 
-                  onClick={() => setShowValidationModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  Annuler
-                </button>
-                <button 
-                  onClick={validateAssignment}
-                  className={`flex-1 px-4 py-2 text-white rounded-lg ${
-                    validationData.approved 
-                      ? 'bg-green-500 hover:bg-green-600' 
-                      : 'bg-red-500 hover:bg-red-600'
-                  }`}
-                >
+                <button onClick={() => setShowValidationModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+                <button onClick={validateAssignment} className={`flex-1 px-4 py-2 text-white rounded-lg ${validationData.approved ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}>
                   {validationData.approved ? 'Approuver' : 'Rejeter'}
                 </button>
               </div>
@@ -1355,58 +1600,24 @@ export default function LearningPage() {
               <div className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
-                  <input 
-                    type="text" 
-                    value={newCertification.name}
-                    onChange={(e) => setNewCertification({ ...newCertification, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    placeholder="Ex: AWS Solutions Architect"
-                  />
+                  <input type="text" value={newCertification.name} onChange={(e) => setNewCertification({ ...newCertification, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: AWS Solutions Architect" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label>
-                  <input 
-                    type="text" 
-                    value={newCertification.provider}
-                    onChange={(e) => setNewCertification({ ...newCertification, provider: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    placeholder="Ex: Amazon"
-                  />
+                  <input type="text" value={newCertification.provider} onChange={(e) => setNewCertification({ ...newCertification, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: Amazon" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea 
-                    value={newCertification.description}
-                    onChange={(e) => setNewCertification({ ...newCertification, description: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    rows={2}
-                  />
+                  <textarea value={newCertification.description} onChange={(e) => setNewCertification({ ...newCertification, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Validité (mois)</label>
-                  <input 
-                    type="number" 
-                    value={newCertification.validity_months}
-                    onChange={(e) => setNewCertification({ ...newCertification, validity_months: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    placeholder="Laisser vide si permanent"
-                  />
+                  <input type="number" value={newCertification.validity_months} onChange={(e) => setNewCertification({ ...newCertification, validity_months: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Laisser vide si permanent" />
                 </div>
               </div>
               <div className="p-6 border-t border-gray-200 flex gap-3">
-                <button 
-                  onClick={() => setShowCreateCertification(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  Annuler
-                </button>
-                <button 
-                  onClick={createCertificationType}
-                  disabled={!newCertification.name}
-                  className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
-                >
-                  Créer
-                </button>
+                <button onClick={() => setShowCreateCertification(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+                <button onClick={createCertificationType} disabled={!newCertification.name} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">Créer</button>
               </div>
             </div>
           </div>
@@ -1436,9 +1647,7 @@ export default function LearningPage() {
                     {certHolders.map((holder) => (
                       <div key={holder.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium">
-                            {holder.employee_initials}
-                          </div>
+                          <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium">{holder.employee_initials}</div>
                           <div>
                             <p className="font-medium text-gray-900">{holder.employee_name}</p>
                             <p className="text-xs text-gray-500">Obtenue le {holder.obtained_date}</p>
@@ -1474,76 +1683,67 @@ export default function LearningPage() {
               <div className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Employé *</label>
-                  <select 
-                    value={newPlan.employee_id}
-                    onChange={(e) => setNewPlan({ ...newPlan, employee_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  >
+                  <select value={newPlan.employee_id} onChange={(e) => setNewPlan({ ...newPlan, employee_id: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
                     <option value="">Sélectionner...</option>
                     {employees.map((emp) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.first_name} {emp.last_name}
-                      </option>
+                      <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
                     ))}
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Poste actuel</label>
-                    <input 
-                      type="text" 
-                      value={newPlan.current_role}
-                      onChange={(e) => setNewPlan({ ...newPlan, current_role: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    />
+                    <input type="text" value={newPlan.current_role} onChange={(e) => setNewPlan({ ...newPlan, current_role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Poste cible</label>
-                    <input 
-                      type="text" 
-                      value={newPlan.target_role}
-                      onChange={(e) => setNewPlan({ ...newPlan, target_role: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    />
+                    <input type="text" value={newPlan.target_role} onChange={(e) => setNewPlan({ ...newPlan, target_role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date cible</label>
-                  <input 
-                    type="date" 
-                    value={newPlan.target_date}
-                    onChange={(e) => setNewPlan({ ...newPlan, target_date: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  />
+                  <input type="date" value={newPlan.target_date} onChange={(e) => setNewPlan({ ...newPlan, target_date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Compétences à développer</label>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {skills.map((skill) => (
-                      <label key={skill.id} className="flex items-center gap-2">
-                        <input 
-                          type="checkbox"
-                          checked={newPlan.skill_ids.includes(skill.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setNewPlan({ ...newPlan, skill_ids: [...newPlan.skill_ids, skill.id] });
-                            } else {
-                              setNewPlan({ ...newPlan, skill_ids: newPlan.skill_ids.filter(id => id !== skill.id) });
-                            }
-                          }}
-                          className="rounded"
-                        />
-                        <span className="text-sm text-gray-700">{skill.name}</span>
-                        <span className="text-xs text-gray-400">({skill.category})</span>
-                      </label>
-                    ))}
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">Compétences à développer</label>
+                    <button onClick={() => setShowCreateSkill(true)} className="text-xs text-primary-600 hover:text-primary-700 flex items-center">
+                      <Plus className="w-3 h-3 mr-1" />Ajouter
+                    </button>
                   </div>
+                  {skills.length === 0 ? (
+                    <div className="text-center py-4 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500 mb-2">Aucune compétence dans le référentiel</p>
+                      <button onClick={() => setShowCreateSkill(true)} className="text-sm text-primary-600 hover:underline">Créer une compétence</button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2">
+                      {skills.map((skill) => (
+                        <label key={skill.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
+                          <input 
+                            type="checkbox"
+                            checked={newPlan.skill_ids.includes(skill.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setNewPlan({ ...newPlan, skill_ids: [...newPlan.skill_ids, skill.id] });
+                              } else {
+                                setNewPlan({ ...newPlan, skill_ids: newPlan.skill_ids.filter(id => id !== skill.id) });
+                              }
+                            }}
+                            className="rounded"
+                          />
+                          <span className="text-sm text-gray-700">{skill.name}</span>
+                          <span className="text-xs text-gray-400">({skill.category})</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Formations à assigner</label>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                  <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2">
                     {courses.map((course) => (
-                      <label key={course.id} className="flex items-center gap-2">
+                      <label key={course.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
                         <input 
                           type="checkbox"
                           checked={newPlan.course_ids.includes(course.id)}
@@ -1563,19 +1763,143 @@ export default function LearningPage() {
                 </div>
               </div>
               <div className="p-6 border-t border-gray-200 flex gap-3">
-                <button 
-                  onClick={() => setShowCreatePlan(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  Annuler
+                <button onClick={() => setShowCreatePlan(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+                <button onClick={createDevelopmentPlan} disabled={!newPlan.employee_id} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">Créer</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Plan Modal */}
+        {showEditPlan && selectedPlan && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900">Modifier le Plan</h2>
+                  <button onClick={() => setShowEditPlan(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold">{selectedPlan.initials}</div>
+                  <div>
+                    <p className="font-medium text-gray-900">{selectedPlan.employee}</p>
+                    <p className="text-sm text-gray-500">{selectedPlan.role}</p>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Poste cible</label>
+                  <input type="text" value={newPlan.target_role} onChange={(e) => setNewPlan({ ...newPlan, target_role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date cible</label>
+                  <input type="date" value={newPlan.target_date} onChange={(e) => setNewPlan({ ...newPlan, target_date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Progression (%)</label>
+                  <input type="range" min="0" max="100" value={selectedPlan.progress} onChange={(e) => setSelectedPlan({ ...selectedPlan, progress: parseInt(e.target.value) })} className="w-full" />
+                  <p className="text-center text-lg font-bold text-primary-600">{selectedPlan.progress}%</p>
+                </div>
+              </div>
+              <div className="p-6 border-t border-gray-200 flex gap-3">
+                <button onClick={() => setShowEditPlan(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+                <button onClick={updateDevelopmentPlan} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600">Enregistrer</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Request Course Modal */}
+        {showRequestCourse && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900">Demander une Formation</h2>
+                  <button onClick={() => setShowRequestCourse(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Titre de la formation *</label>
+                  <input type="text" value={newRequest.title} onChange={(e) => setNewRequest({ ...newRequest, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: Formation React Avancé" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea value={newRequest.description} onChange={(e) => setNewRequest({ ...newRequest, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} placeholder="De quoi parle cette formation ?" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Pourquoi cette formation ? *</label>
+                  <textarea value={newRequest.reason} onChange={(e) => setNewRequest({ ...newRequest, reason: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} placeholder="Expliquez en quoi cette formation serait utile..." />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Lien (si connu)</label>
+                  <input type="url" value={newRequest.external_url} onChange={(e) => setNewRequest({ ...newRequest, external_url: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="https://..." />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur suggéré</label>
+                  <input type="text" value={newRequest.provider} onChange={(e) => setNewRequest({ ...newRequest, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: Coursera, LinkedIn Learning..." />
+                </div>
+                {hasPermission(userRole, 'assign_course') && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Pour qui ? (optionnel)</label>
+                    <select value={newRequest.for_employee_id} onChange={(e) => setNewRequest({ ...newRequest, for_employee_id: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                      <option value="">Pour moi-même</option>
+                      {employees.map((emp) => (
+                        <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+              <div className="p-6 border-t border-gray-200 flex gap-3">
+                <button onClick={() => setShowRequestCourse(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+                <button onClick={submitCourseRequest} disabled={!newRequest.title || !newRequest.reason} className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 flex items-center justify-center">
+                  <Send className="w-4 h-4 mr-2" />Envoyer
                 </button>
-                <button 
-                  onClick={createDevelopmentPlan}
-                  disabled={!newPlan.employee_id}
-                  className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
-                >
-                  Créer
-                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Create Skill Modal */}
+        {showCreateSkill && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900">Nouvelle Compétence</h2>
+                  <button onClick={() => setShowCreateSkill(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+                  <input type="text" value={newSkill.name} onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: Leadership, Python, Gestion de projet..." />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+                  <select value={newSkill.category} onChange={(e) => setNewSkill({ ...newSkill, category: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    {skillCategories.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea value={newSkill.description} onChange={(e) => setNewSkill({ ...newSkill, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} />
+                </div>
+              </div>
+              <div className="p-6 border-t border-gray-200 flex gap-3">
+                <button onClick={() => setShowCreateSkill(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+                <button onClick={createSkill} disabled={!newSkill.name} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">Créer</button>
               </div>
             </div>
           </div>

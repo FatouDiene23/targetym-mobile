@@ -89,7 +89,7 @@ const navigation: NavItem[] = [
     name: 'Formation & Développement', 
     href: '/dashboard/learning', 
     icon: GraduationCap,
-    roles: ['manager', 'rh', 'admin', 'dg'],
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],  // ✅ Ajout de 'employee'
   },
   { 
     name: 'Performance & Feedback', 

@@ -44,6 +44,7 @@ interface MyObjectiveData { id: number; title: string; progress: number; status:
 interface MyPerformanceStats { avg_score: number; evaluations_total: number; evaluations_completed: number; feedbacks_received: number; feedbacks_given: number; }
 interface FeedbackItem { id: number; from_employee_name?: string; type: string; message: string; created_at: string; }
 interface MyAssignment { id: number; course_title: string; course_image?: string; course_duration?: number; status: string; progress?: number; deadline?: string; completed_at?: string; }
+interface TaskStats { pending: number; in_progress: number; completed: number; overdue: number; due_today: number; }
 
 // ============================================
 // API
@@ -169,6 +170,14 @@ async function getMyAssignments(): Promise<MyAssignment[]> {
     const data = await response.json();
     return data.items || [];
   } catch { return []; }
+}
+
+async function getMyTaskStats(): Promise<TaskStats | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/tasks/stats`, { headers: getAuthHeaders() });
+    if (!response.ok) return null;
+    return response.json();
+  } catch { return null; }
 }
 
 // ============================================
@@ -804,18 +813,63 @@ function AlertsWidget({ pendingCount, onLeaveCount }: { pendingCount: number; on
   );
 }
 
-// Tasks Widget
-function TasksWidget() {
+// Tasks Widget - Version dynamique
+function TasksWidget({ stats }: { stats: TaskStats | null }) {
+  const hasTasks = stats && (stats.pending + stats.in_progress + stats.completed + stats.overdue > 0);
+
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-600 rounded-lg flex items-center justify-center"><ClipboardList className="w-4 h-4 text-white" /></div>
+          <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-600 rounded-lg flex items-center justify-center"><ClipboardList className="w-4 h-4 text-white" /></div>
           <h2 className="text-base font-semibold text-gray-900">Mes Tâches</h2>
         </div>
         <Link href="/dashboard/my-space/tasks" className="text-primary-600 text-xs hover:underline flex items-center gap-1">Voir <ChevronRight className="w-3 h-3" /></Link>
       </div>
-      <div className="text-center py-6"><ClipboardList className="w-10 h-10 mx-auto mb-2 text-gray-200" /><p className="text-gray-400 text-sm">Module bientôt disponible</p></div>
+      
+      {!hasTasks ? (
+        <div className="text-center py-6">
+          <CheckCircle className="w-10 h-10 mx-auto mb-2 text-green-200" />
+          <p className="text-gray-400 text-sm">Aucune tâche en cours</p>
+          <Link href="/dashboard/my-space/tasks" className="text-primary-600 text-xs hover:underline mt-2 inline-block">Créer une tâche →</Link>
+        </div>
+      ) : (
+        <>
+          {/* Stats rapides */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
+              <p className="text-2xl font-bold text-blue-600">{(stats?.pending || 0) + (stats?.in_progress || 0)}</p>
+              <p className="text-xs text-blue-700">À faire</p>
+            </div>
+            <div className="text-center p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
+              <p className="text-2xl font-bold text-green-600">{stats?.completed || 0}</p>
+              <p className="text-xs text-green-700">Terminées</p>
+            </div>
+          </div>
+
+          {/* Alertes */}
+          <div className="space-y-2">
+            {(stats?.overdue || 0) > 0 && (
+              <div className="flex items-center gap-2 p-2 bg-red-50 rounded-lg">
+                <Clock className="w-4 h-4 text-red-500" />
+                <span className="text-xs text-red-700 font-medium">{stats?.overdue} en retard</span>
+              </div>
+            )}
+            {(stats?.due_today || 0) > 0 && (
+              <div className="flex items-center gap-2 p-2 bg-orange-50 rounded-lg">
+                <Calendar className="w-4 h-4 text-orange-500" />
+                <span className="text-xs text-orange-700 font-medium">{stats?.due_today} pour aujourd&apos;hui</span>
+              </div>
+            )}
+            {(stats?.overdue || 0) === 0 && (stats?.due_today || 0) === 0 && (
+              <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span className="text-xs text-green-700 font-medium">Tout est à jour !</span>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -889,6 +943,7 @@ export default function DashboardPage() {
   const [myPerformance, setMyPerformance] = useState<MyPerformanceStats | null>(null);
   const [recentFeedbacks, setRecentFeedbacks] = useState<FeedbackItem[]>([]);
   const [myAssignments, setMyAssignments] = useState<MyAssignment[]>([]);
+  const [taskStats, setTaskStats] = useState<TaskStats | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -913,7 +968,8 @@ export default function DashboardPage() {
           getMyObjectives(employeeId).then(setMyObjectives),
           getMyPerformanceStats().then(setMyPerformance),
           getRecentFeedbacks(employeeId).then(setRecentFeedbacks),
-          getMyAssignments().then(setMyAssignments)
+          getMyAssignments().then(setMyAssignments),
+          getMyTaskStats().then(setTaskStats)
         );
       }
 
@@ -977,16 +1033,20 @@ export default function DashboardPage() {
             <div className="space-y-6">
               {employeeId && <MyLeaveBalanceWidget balances={leaveBalances} />}
               {employeeId && <MyLearningWidget assignments={myAssignments} />}
-              {recentFeedbacks.length > 0 && <RecentFeedbacksWidget feedbacks={recentFeedbacks} />}
             </div>
 
             {/* Colonne droite */}
             <div className="space-y-6">
               <QuickActions role={role} isManager={isManager} />
               {employeeId && <MyPerformanceWidget stats={myPerformance} />}
-              {employeeId && <MyObjectivesProgressWidget objectives={myObjectives} />}
-              <TasksWidget />
+              {recentFeedbacks.length > 0 && <RecentFeedbacksWidget feedbacks={recentFeedbacks} />}
             </div>
+          </div>
+
+          {/* Mes Objectifs et Mes Tâches sur la même ligne */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {employeeId && <MyObjectivesProgressWidget objectives={myObjectives} />}
+            <TasksWidget stats={taskStats} />
           </div>
         </div>
       </div>
@@ -1024,7 +1084,7 @@ export default function DashboardPage() {
             {employeeId && <MyPerformanceWidget stats={myPerformance} />}
             {recentFeedbacks.length > 0 && <RecentFeedbacksWidget feedbacks={recentFeedbacks} />}
             {employeeId && <MyObjectivesProgressWidget objectives={myObjectives} />}
-            <TasksWidget />
+            <TasksWidget stats={taskStats} />
           </div>
         </div>
       </div>

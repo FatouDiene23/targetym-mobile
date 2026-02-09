@@ -176,7 +176,7 @@ const hasPermission = (userRole: string, action: string): boolean => {
 
 export default function LearningPage() {
   // États
-  const [activeTab, setActiveTab] = useState<'catalog' | 'paths' | 'certifications' | 'development' | 'requests' | 'analytics'>('catalog');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'my-learning' | 'paths' | 'certifications' | 'development' | 'requests' | 'analytics'>('catalog');
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -216,6 +216,7 @@ export default function LearningPage() {
   const [topLearners, setTopLearners] = useState<TopLearner[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [pendingValidations, setPendingValidations] = useState<Assignment[]>([]);
+  const [myAssignments, setMyAssignments] = useState<Assignment[]>([]);
   
   // Modal states
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -379,6 +380,18 @@ export default function LearningPage() {
     }
   }, [getAuthHeaders]);
 
+  const fetchMyAssignments = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/learning/assignments/?my_assignments=true`, { headers: getAuthHeaders() });
+      if (response.ok) {
+        const data = await response.json();
+        setMyAssignments(data.items || []);
+      }
+    } catch (error) {
+      console.error('Error fetching my assignments:', error);
+    }
+  }, [getAuthHeaders]);
+
   // Load data on mount
   useEffect(() => {
     const loadData = async () => {
@@ -387,6 +400,7 @@ export default function LearningPage() {
         fetchCourses(),
         fetchLearningPaths(),
         fetchPendingValidations(),
+        fetchMyAssignments(),
         fetchCertifications(),
         fetchSkills(),
         fetchDevelopmentPlans(),
@@ -397,7 +411,7 @@ export default function LearningPage() {
       setIsLoading(false);
     };
     loadData();
-  }, [fetchCourses, fetchLearningPaths, fetchPendingValidations, fetchCertifications, fetchSkills, fetchDevelopmentPlans, fetchCourseRequests, fetchStats, fetchEmployees]);
+  }, [fetchCourses, fetchLearningPaths, fetchPendingValidations, fetchMyAssignments, fetchCertifications, fetchSkills, fetchDevelopmentPlans, fetchCourseRequests, fetchStats, fetchEmployees]);
 
   // Reload courses when filters change
   useEffect(() => {
@@ -688,8 +702,8 @@ export default function LearningPage() {
       <Header title="Formation & Développement" subtitle="Catalogue, parcours, certifications et plans de développement" />
       
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
+        {/* Stats - Dynamiques selon le rôle */}
+        <div className={`grid grid-cols-2 md:grid-cols-4 ${hasPermission(userRole, 'view_analytics') ? 'lg:grid-cols-7' : 'lg:grid-cols-4'} gap-4 mb-6`}>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
               <div><p className="text-xs text-gray-500">Formations</p><p className="text-2xl font-bold text-gray-900">{stats?.total_courses || 0}</p></div>
@@ -698,13 +712,13 @@ export default function LearningPage() {
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">Complétées (Mois)</p><p className="text-2xl font-bold text-green-600">{stats?.completed_this_month || 0}</p></div>
+              <div><p className="text-xs text-gray-500">{hasPermission(userRole, 'view_analytics') ? 'Complétées (Mois)' : 'Mes complétées'}</p><p className="text-2xl font-bold text-green-600">{stats?.completed_this_month || 0}</p></div>
               <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center"><CheckCircle className="w-5 h-5 text-green-600" /></div>
             </div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">Heures (Mois)</p><p className="text-2xl font-bold text-purple-600">{stats?.hours_this_month || 0}h</p></div>
+              <div><p className="text-xs text-gray-500">{hasPermission(userRole, 'view_analytics') ? 'Heures (Mois)' : 'Mes heures'}</p><p className="text-2xl font-bold text-purple-600">{stats?.hours_this_month || 0}h</p></div>
               <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center"><Clock className="w-5 h-5 text-purple-600" /></div>
             </div>
           </div>
@@ -714,24 +728,36 @@ export default function LearningPage() {
               <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center"><Award className="w-5 h-5 text-orange-600" /></div>
             </div>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">Taux Complétion</p><p className="text-2xl font-bold text-teal-600">{stats?.completion_rate || 0}%</p></div>
-              <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center"><TrendingUp className="w-5 h-5 text-teal-600" /></div>
+          {hasPermission(userRole, 'view_analytics') && (
+            <>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div><p className="text-xs text-gray-500">Taux Complétion</p><p className="text-2xl font-bold text-teal-600">{stats?.completion_rate || 0}%</p></div>
+                  <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center"><TrendingUp className="w-5 h-5 text-teal-600" /></div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div><p className="text-xs text-gray-500">À Valider</p><p className="text-2xl font-bold text-amber-600">{stats?.pending_validation || 0}</p></div>
+                  <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center"><Clock className="w-5 h-5 text-amber-600" /></div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div><p className="text-xs text-gray-500">Cert. Expirent</p><p className="text-2xl font-bold text-red-600">{stats?.expiring_certifications || 0}</p></div>
+                  <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
+                </div>
+              </div>
+            </>
+          )}
+          {hasPermission(userRole, 'validate_completion') && !hasPermission(userRole, 'view_analytics') && (
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <div className="flex items-center justify-between">
+                <div><p className="text-xs text-gray-500">À Valider</p><p className="text-2xl font-bold text-amber-600">{stats?.pending_validation || 0}</p></div>
+                <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center"><Clock className="w-5 h-5 text-amber-600" /></div>
+              </div>
             </div>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">À Valider</p><p className="text-2xl font-bold text-amber-600">{stats?.pending_validation || 0}</p></div>
-              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center"><Clock className="w-5 h-5 text-amber-600" /></div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">Cert. Expirent</p><p className="text-2xl font-bold text-red-600">{stats?.expiring_certifications || 0}</p></div>
-              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Tabs */}
@@ -739,6 +765,14 @@ export default function LearningPage() {
           <div className="flex border-b border-gray-200 overflow-x-auto">
             <button onClick={() => setActiveTab('catalog')} className={`flex-shrink-0 px-6 py-4 text-sm font-medium ${activeTab === 'catalog' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
               <BookOpen className="w-4 h-4 inline mr-2" />Catalogue
+            </button>
+            <button onClick={() => setActiveTab('my-learning')} className={`flex-shrink-0 px-6 py-4 text-sm font-medium relative ${activeTab === 'my-learning' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
+              <User className="w-4 h-4 inline mr-2" />Mes Formations
+              {myAssignments.filter(a => a.status === 'assigned' || a.status === 'in_progress').length > 0 && (
+                <span className="absolute -top-1 right-2 w-5 h-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center">
+                  {myAssignments.filter(a => a.status === 'assigned' || a.status === 'in_progress').length}
+                </span>
+              )}
             </button>
             <button onClick={() => setActiveTab('paths')} className={`flex-shrink-0 px-6 py-4 text-sm font-medium ${activeTab === 'paths' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
               <Target className="w-4 h-4 inline mr-2" />Parcours
@@ -896,6 +930,121 @@ export default function LearningPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB: Mes Formations */}
+        {activeTab === 'my-learning' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900">Mes Formations Assignées</h3>
+            </div>
+            
+            {myAssignments.length === 0 ? (
+              <div className="bg-white rounded-xl p-12 text-center">
+                <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">Aucune formation assignée</p>
+                <p className="text-sm text-gray-400 mt-2">Consultez le catalogue pour découvrir les formations disponibles</p>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {/* En cours */}
+                {myAssignments.filter(a => a.status === 'in_progress').length > 0 && (
+                  <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                      En cours ({myAssignments.filter(a => a.status === 'in_progress').length})
+                    </h4>
+                    <div className="space-y-3">
+                      {myAssignments.filter(a => a.status === 'in_progress').map((assignment) => (
+                        <div key={assignment.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{assignment.course_image || '📚'}</span>
+                            <div>
+                              <p className="font-medium text-gray-900">{assignment.course_title}</p>
+                              <p className="text-sm text-gray-500">{assignment.course_duration}h • Deadline: {assignment.deadline || 'Non définie'}</p>
+                            </div>
+                          </div>
+                          <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">En cours</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Assignées (à commencer) */}
+                {myAssignments.filter(a => a.status === 'assigned').length > 0 && (
+                  <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                      <div className="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
+                      À commencer ({myAssignments.filter(a => a.status === 'assigned').length})
+                    </h4>
+                    <div className="space-y-3">
+                      {myAssignments.filter(a => a.status === 'assigned').map((assignment) => (
+                        <div key={assignment.id} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{assignment.course_image || '📚'}</span>
+                            <div>
+                              <p className="font-medium text-gray-900">{assignment.course_title}</p>
+                              <p className="text-sm text-gray-500">{assignment.course_duration}h • Deadline: {assignment.deadline || 'Non définie'}</p>
+                            </div>
+                          </div>
+                          <span className="px-3 py-1 bg-orange-100 text-orange-700 text-sm font-medium rounded-full">À commencer</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* En attente de validation */}
+                {myAssignments.filter(a => a.status === 'pending_validation').length > 0 && (
+                  <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                      <div className="w-3 h-3 bg-amber-500 rounded-full mr-2"></div>
+                      En attente de validation ({myAssignments.filter(a => a.status === 'pending_validation').length})
+                    </h4>
+                    <div className="space-y-3">
+                      {myAssignments.filter(a => a.status === 'pending_validation').map((assignment) => (
+                        <div key={assignment.id} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{assignment.course_image || '📚'}</span>
+                            <div>
+                              <p className="font-medium text-gray-900">{assignment.course_title}</p>
+                              <p className="text-sm text-gray-500">Soumis le {assignment.completed_at}</p>
+                            </div>
+                          </div>
+                          <span className="px-3 py-1 bg-amber-100 text-amber-700 text-sm font-medium rounded-full">En attente</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Complétées */}
+                {myAssignments.filter(a => a.status === 'completed').length > 0 && (
+                  <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                      <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                      Complétées ({myAssignments.filter(a => a.status === 'completed').length})
+                    </h4>
+                    <div className="space-y-3">
+                      {myAssignments.filter(a => a.status === 'completed').map((assignment) => (
+                        <div key={assignment.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{assignment.course_image || '📚'}</span>
+                            <div>
+                              <p className="font-medium text-gray-900">{assignment.course_title}</p>
+                              <p className="text-sm text-gray-500">Complété le {assignment.completed_at}</p>
+                            </div>
+                          </div>
+                          <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">✓ Validé</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

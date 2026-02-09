@@ -155,12 +155,6 @@ interface Employee {
   job_title: string;
 }
 
-interface CurrentUser {
-  id: number;
-  role: string;
-  employee_id: number;
-}
-
 // Helper pour vérifier les permissions
 const hasPermission = (userRole: string, action: string): boolean => {
   const permissions: Record<string, string[]> = {
@@ -187,9 +181,27 @@ export default function LearningPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   
-  // User & Role
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
-  const userRole = currentUser?.role?.toLowerCase() || 'employee';
+  // User & Role - Récupérer depuis localStorage
+  const [userRole, setUserRole] = useState<string>('employee');
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  
+  // Charger le rôle depuis localStorage au montage
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setUserRole(user.role?.toLowerCase() || 'employee');
+        setCurrentUserId(user.employee_id || null);
+        
+        // Debug - à supprimer plus tard
+        console.log('User Role:', user.role);
+        console.log('Employee ID:', user.employee_id);
+      } catch (e) {
+        console.error('Error parsing user:', e);
+      }
+    }
+  }, []);
   
   // Data states
   const [courses, setCourses] = useState<Course[]>([]);
@@ -250,19 +262,6 @@ export default function LearningPage() {
       'Content-Type': 'application/json'
     };
   }, []);
-
-  // Fetch current user
-  const fetchCurrentUser = useCallback(async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/users/me/`, { headers: getAuthHeaders() });
-      if (response.ok) {
-        const data = await response.json();
-        setCurrentUser(data);
-      }
-    } catch (error) {
-      console.error('Error fetching user:', error);
-    }
-  }, [getAuthHeaders]);
 
   // Fetch functions
   const fetchCourses = useCallback(async () => {
@@ -383,7 +382,6 @@ export default function LearningPage() {
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      await fetchCurrentUser();
       await Promise.all([
         fetchCourses(),
         fetchLearningPaths(),
@@ -398,7 +396,7 @@ export default function LearningPage() {
       setIsLoading(false);
     };
     loadData();
-  }, [fetchCurrentUser, fetchCourses, fetchLearningPaths, fetchPendingValidations, fetchCertifications, fetchSkills, fetchDevelopmentPlans, fetchCourseRequests, fetchStats, fetchEmployees]);
+  }, [fetchCourses, fetchLearningPaths, fetchPendingValidations, fetchCertifications, fetchSkills, fetchDevelopmentPlans, fetchCourseRequests, fetchStats, fetchEmployees]);
 
   // Reload courses when filters change
   useEffect(() => {
@@ -661,7 +659,7 @@ export default function LearningPage() {
     }
     // Manager sees only their team's plans
     // Employee sees only their own plan
-    return developmentPlans.filter(p => p.employee_id === currentUser?.employee_id);
+    return developmentPlans.filter(p => p.employee_id === currentUserId);
   };
 
   if (isLoading) {

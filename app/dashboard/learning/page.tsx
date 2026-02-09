@@ -656,11 +656,18 @@ export default function LearningPage() {
   // Filter plans based on role
   const getVisiblePlans = () => {
     if (hasPermission(userRole, 'view_all_plans')) {
+      // Admin/RH/DG/DGA : voir tous les plans
       return developmentPlans;
     }
-    // Manager sees only their team's plans
-    // Employee sees only their own plan
-    return developmentPlans.filter(p => p.employee_id === currentUserId);
+    
+    // Manager : voir son plan + les plans de son équipe
+    // employees vient de /my-team/ donc contient déjà son équipe
+    const teamEmployeeIds = employees.map(e => e.id);
+    
+    return developmentPlans.filter(p => 
+      p.employee_id === currentUserId ||  // Son propre plan
+      teamEmployeeIds.includes(p.employee_id)  // Plans de son équipe
+    );
   };
 
   if (isLoading) {

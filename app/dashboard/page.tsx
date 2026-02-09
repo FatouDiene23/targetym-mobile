@@ -57,16 +57,20 @@ function getAuthHeaders(): HeadersInit {
   return { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) };
 }
 
-async function getCurrentUser(): Promise<UserData> {
-  const response = await fetch(`${API_URL}/api/auth/me`, { headers: getAuthHeaders() });
-  if (!response.ok) throw new Error('Erreur');
-  return response.json();
+async function getCurrentUser(): Promise<UserData | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/auth/me`, { headers: getAuthHeaders() });
+    if (!response.ok) return null;
+    return response.json();
+  } catch { return null; }
 }
 
-async function getEmployeeById(id: number): Promise<Employee> {
-  const response = await fetch(`${API_URL}/api/employees/${id}`, { headers: getAuthHeaders() });
-  if (!response.ok) throw new Error('Erreur');
-  return response.json();
+async function getEmployeeById(id: number): Promise<Employee | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/employees/${id}`, { headers: getAuthHeaders() });
+    if (!response.ok) return null;
+    return response.json();
+  } catch { return null; }
 }
 
 async function getMyLeaveBalances(employeeId: number): Promise<LeaveBalanceSummary | null> {
@@ -174,7 +178,7 @@ async function getMyAssignments(): Promise<MyAssignment[]> {
 
 async function getMyTaskStats(): Promise<TaskStats | null> {
   try {
-    const response = await fetch(`${API_URL}/api/tasks/stats`, { headers: getAuthHeaders() });
+    const response = await fetch(`${API_URL}/api/tasks/my-stats`, { headers: getAuthHeaders() });
     if (!response.ok) return null;
     return response.json();
   } catch { return null; }
@@ -945,17 +949,85 @@ export default function DashboardPage() {
   const [myAssignments, setMyAssignments] = useState<MyAssignment[]>([]);
   const [taskStats, setTaskStats] = useState<TaskStats | null>(null);
 
+  // Récupérer les tokens depuis l'URL et les stocker dans localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+      const refresh = urlParams.get('refresh');
+      const userParam = urlParams.get('user');
+
+      if (token && userParam) {
+        // Stocker les tokens
+        localStorage.setItem('access_token', token);
+        if (refresh) {
+          localStorage.setItem('refresh_token', refresh);
+        }
+        
+        // Stocker les infos utilisateur
+        try {
+          const userDecoded = decodeURIComponent(userParam);
+          localStorage.setItem('user', userDecoded);
+        } catch (e) {
+          console.error('Error decoding user:', e);
+        }
+
+        // Nettoyer l'URL (enlever les paramètres)
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, []);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const user = await getCurrentUser();
+      // Debug: Vérifier le token et les données localStorage
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+      const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+      
+      console.log('DEBUG Dashboard - Token exists:', !!token);
+      console.log('DEBUG Dashboard - User in localStorage:', userStr);
+      
+      // Essayer d'abord l'API, sinon fallback sur localStorage
+      let user = await getCurrentUser();
+      console.log('DEBUG Dashboard - User from API:', user);
+      
+      // Fallback sur localStorage si l'API échoue
+      if (!user && userStr) {
+        try {
+          const localUser = JSON.parse(userStr);
+          console.log('DEBUG Dashboard - Parsed localStorage user:', localUser);
+          user = {
+            id: localUser.id,
+            email: localUser.email,
+            first_name: localUser.first_name,
+            last_name: localUser.last_name,
+            role: localUser.role,
+            employee_id: localUser.employee_id,
+          };
+        } catch (e) { 
+          console.error('DEBUG Dashboard - Error parsing localStorage:', e);
+        }
+      }
+
+      if (!user) {
+        console.error('Impossible de récupérer les informations utilisateur');
+        console.log('DEBUG Dashboard - All localStorage keys:', Object.keys(localStorage));
+        setLoading(false);
+        return;
+      }
+
       const role = normalizeRole(user.role);
       let isManager = role === 'manager';
       const employeeId = user.employee_id || null;
 
       if (employeeId) {
-        const employee = await getEmployeeById(employeeId);
-        isManager = isManager || (employee.is_manager === true);
+        try {
+          const employee = await getEmployeeById(employeeId);
+          if (employee) {
+            isManager = isManager || (employee.is_manager === true);
+          }
+        } catch { /* ignore */ }
       }
 
       setUserData({ name: user.first_name || user.email?.split('@')[0] || 'Utilisateur', role, isManager, employeeId });
@@ -964,12 +1036,12 @@ export default function DashboardPage() {
 
       if (employeeId) {
         promises.push(
-          getMyLeaveBalances(employeeId).then(setLeaveBalances),
-          getMyObjectives(employeeId).then(setMyObjectives),
-          getMyPerformanceStats().then(setMyPerformance),
-          getRecentFeedbacks(employeeId).then(setRecentFeedbacks),
-          getMyAssignments().then(setMyAssignments),
-          getMyTaskStats().then(setTaskStats)
+          getMyLeaveBalances(employeeId).then(setLeaveBalances).catch(() => {}),
+          getMyObjectives(employeeId).then(setMyObjectives).catch(() => {}),
+          getMyPerformanceStats().then(setMyPerformance).catch(() => {}),
+          getRecentFeedbacks(employeeId).then(setRecentFeedbacks).catch(() => {}),
+          getMyAssignments().then(setMyAssignments).catch(() => {}),
+          getMyTaskStats().then(setTaskStats).catch(() => {})
         );
       }
 
@@ -979,7 +1051,7 @@ export default function DashboardPage() {
             setTeamMembers(members);
             const teamRequests = await getTeamPendingRequests(members);
             setTeamPendingRequests(teamRequests);
-          })
+          }).catch(() => {})
         );
       }
 
@@ -1002,7 +1074,13 @@ export default function DashboardPage() {
     }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { 
+    // Attendre un court délai pour s'assurer que les tokens sont stockés
+    const timer = setTimeout(() => {
+      loadData(); 
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [loadData]);
 
   if (loading) {
     return (

@@ -3,7 +3,7 @@
 import Header from '@/components/Header';
 import { useState, useEffect } from 'react';
 import { 
-  BookOpen, Award, Clock, Users, CheckCircle, Star, Plus, Play, Search,
+  BookOpen, Award, Clock, Users, CheckCircle, Plus, Search,
   TrendingUp, Target, ChevronRight, AlertTriangle,
   GraduationCap, BarChart3, X, User, ArrowRight, Upload, ExternalLink,
   Check, XCircle, RefreshCw, Eye
@@ -112,6 +112,25 @@ interface Stats {
   expiring_certifications: number;
 }
 
+interface MonthlyStats {
+  month: string;
+  completions: number;
+  hours: number;
+}
+
+interface CategoryStats {
+  name: string;
+  value: number;
+  color: string;
+  [key: string]: string | number;
+}
+
+interface TopLearner {
+  name: string;
+  hours: number;
+  courses: number;
+}
+
 interface Employee {
   id: number;
   first_name: string;
@@ -129,14 +148,13 @@ export default function LearningPage() {
   // Data states
   const [courses, setCourses] = useState<Course[]>([]);
   const [learningPaths, setLearningPaths] = useState<LearningPath[]>([]);
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [certifications, setCertifications] = useState<Certification[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [developmentPlans, setDevelopmentPlans] = useState<DevelopmentPlan[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
-  const [monthlyStats, setMonthlyStats] = useState<any[]>([]);
-  const [categoryStats, setCategoryStats] = useState<any[]>([]);
-  const [topLearners, setTopLearners] = useState<any[]>([]);
+  const [monthlyStats, setMonthlyStats] = useState<MonthlyStats[]>([]);
+  const [categoryStats, setCategoryStats] = useState<CategoryStats[]>([]);
+  const [topLearners, setTopLearners] = useState<TopLearner[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [pendingValidations, setPendingValidations] = useState<Assignment[]>([]);
   
@@ -147,7 +165,6 @@ export default function LearningPage() {
   const [showValidationModal, setShowValidationModal] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [showCreateCertification, setShowCreateCertification] = useState(false);
-  const [showCreateSkill, setShowCreateSkill] = useState(false);
   const [showCreatePlan, setShowCreatePlan] = useState(false);
   const [showCertHolders, setShowCertHolders] = useState<Certification | null>(null);
   const [certHolders, setCertHolders] = useState<CertificationHolder[]>([]);
@@ -160,7 +177,6 @@ export default function LearningPage() {
   const [assignData, setAssignData] = useState({ employee_id: '', course_id: '', deadline: '' });
   const [validationData, setValidationData] = useState({ approved: true, rejection_reason: '' });
   const [newCertification, setNewCertification] = useState({ name: '', provider: '', description: '', validity_months: '' });
-  const [newSkill, setNewSkill] = useState({ name: '', category: 'Technique', description: '' });
   const [newPlan, setNewPlan] = useState({
     employee_id: '', current_role: '', target_role: '', target_date: '',
     skill_ids: [] as number[], course_ids: [] as number[]
@@ -205,20 +221,13 @@ export default function LearningPage() {
     }
   };
 
-  const fetchAssignments = async (pendingOnly = false) => {
+  const fetchPendingValidations = async () => {
     try {
-      const params = new URLSearchParams();
-      if (pendingOnly) params.append('pending_validation', 'true');
-      
-      const response = await fetch(`${API_URL}/api/learning/assignments/?${params}`, {
+      const response = await fetch(`${API_URL}/api/learning/assignments/?pending_validation=true`, {
         headers: getAuthHeaders()
       });
       const data = await response.json();
-      if (pendingOnly) {
-        setPendingValidations(data.items || []);
-      } else {
-        setAssignments(data.items || []);
-      }
+      setPendingValidations(data.items || []);
     } catch (error) {
       console.error('Error fetching assignments:', error);
     }
@@ -309,8 +318,7 @@ export default function LearningPage() {
       await Promise.all([
         fetchCourses(),
         fetchLearningPaths(),
-        fetchAssignments(),
-        fetchAssignments(true),
+        fetchPendingValidations(),
         fetchCertifications(),
         fetchSkills(),
         fetchDevelopmentPlans(),
@@ -320,11 +328,13 @@ export default function LearningPage() {
       setIsLoading(false);
     };
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Reload courses when filters change
   useEffect(() => {
     fetchCourses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory, searchQuery]);
 
   // Action functions
@@ -364,7 +374,7 @@ export default function LearningPage() {
       if (response.ok) {
         setShowAssignModal(false);
         setAssignData({ employee_id: '', course_id: '', deadline: '' });
-        fetchAssignments();
+        fetchPendingValidations();
         fetchCourses();
       }
     } catch (error) {
@@ -386,8 +396,7 @@ export default function LearningPage() {
         setShowValidationModal(false);
         setSelectedAssignment(null);
         setValidationData({ approved: true, rejection_reason: '' });
-        fetchAssignments();
-        fetchAssignments(true);
+        fetchPendingValidations();
         fetchStats();
       }
     } catch (error) {
@@ -413,24 +422,6 @@ export default function LearningPage() {
       }
     } catch (error) {
       console.error('Error creating certification:', error);
-    }
-  };
-
-  const createSkill = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/learning/skills/`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(newSkill)
-      });
-      
-      if (response.ok) {
-        setShowCreateSkill(false);
-        setNewSkill({ name: '', category: 'Technique', description: '' });
-        fetchSkills();
-      }
-    } catch (error) {
-      console.error('Error creating skill:', error);
     }
   };
 
@@ -474,17 +465,6 @@ export default function LearningPage() {
     if (status === 'pending_validation') return 'bg-orange-100 text-orange-700';
     if (status === 'rejected') return 'bg-red-100 text-red-700';
     return 'bg-gray-100 text-gray-700';
-  };
-
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      'assigned': 'Assigné',
-      'in_progress': 'En cours',
-      'pending_validation': 'En attente',
-      'completed': 'Terminé',
-      'rejected': 'Rejeté'
-    };
-    return labels[status] || status;
   };
 
   const getCertStatusColor = (status: string) => {

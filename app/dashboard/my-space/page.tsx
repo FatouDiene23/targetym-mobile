@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   User, Edit2, Save, X, AlertCircle,
-  Briefcase, MapPin, Phone, Mail, Building, CalendarDays
+  Briefcase, MapPin, Phone, Mail, Building, CalendarDays,
+  FileText, Download, Loader2
 } from 'lucide-react';
 
 // ============================================
@@ -96,6 +97,9 @@ export default function MyProfilePage() {
     phone: '',
     address: '',
   });
+  
+  // État pour le certificat de travail
+  const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -139,6 +143,43 @@ export default function MyProfilePage() {
       console.error('Erreur:', err);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Fonction pour générer le certificat de travail
+  const generateWorkCertificate = async () => {
+    setIsGeneratingCertificate(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${API_URL}/api/certificates/me/work-certificate`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.detail || 'Erreur lors de la génération du certificat');
+        return;
+      }
+      
+      // Télécharger le PDF
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `certificat_travail_${employee?.last_name || 'employe'}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+    } catch (error) {
+      console.error('Error generating certificate:', error);
+      alert('Erreur de connexion');
+    } finally {
+      setIsGeneratingCertificate(false);
     }
   };
 
@@ -329,6 +370,37 @@ export default function MyProfilePage() {
             )}
           </div>
         </div>
+
+        {/* Section Certificat de Travail - Visible seulement si employé actif */}
+        {employee.status === 'active' && (
+          <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary-600" />
+              Certificat de Travail
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Générez votre certificat de travail attestant de votre emploi actuel dans l&apos;entreprise.
+              Ce document officiel peut être utilisé pour vos démarches administratives.
+            </p>
+            <button
+              onClick={generateWorkCertificate}
+              disabled={isGeneratingCertificate}
+              className="flex items-center gap-2 px-4 py-2.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+            >
+              {isGeneratingCertificate ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Génération en cours...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  Télécharger mon certificat
+                </>
+              )}
+            </button>
+          </div>
+        )}
 
         {/* Info notice */}
         <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">

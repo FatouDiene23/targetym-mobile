@@ -6,7 +6,8 @@ import {
   BookOpen, Award, Clock, Users, CheckCircle, Plus, Search,
   TrendingUp, Target, ChevronRight, AlertTriangle,
   GraduationCap, BarChart3, X, User, ArrowRight, Upload, ExternalLink,
-  Check, XCircle, RefreshCw, Eye, Edit, MessageSquarePlus, Send
+  Check, XCircle, RefreshCw, Eye, Edit, MessageSquarePlus, Send,
+  Archive, Ban, Trash2
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
@@ -98,8 +99,9 @@ interface DevelopmentPlan {
   targetRole: string;
   progress: number;
   status: string;
-  skills: { name: string; current: number; target: number }[];
-  courses: { title: string; status: string }[];
+  cancellation_reason?: string;
+  skills: { id?: number; name: string; current: number; target: number }[];
+  courses: { id?: number; title: string; status: string }[];
   target_date: string;
 }
 
@@ -233,6 +235,11 @@ export default function LearningPage() {
   const [showCreatePath, setShowCreatePath] = useState(false);
   const [showRequestCourse, setShowRequestCourse] = useState(false);
   const [showCreateSkill, setShowCreateSkill] = useState(false);
+  
+  // Nouveaux états pour Annuler/Archiver
+  const [showCancelPlan, setShowCancelPlan] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [planToCancel, setPlanToCancel] = useState<DevelopmentPlan | null>(null);
 
   // Form states
   const [newCourse, setNewCourse] = useState({
@@ -246,6 +253,9 @@ export default function LearningPage() {
   const [newPlan, setNewPlan] = useState({
     employee_id: '', current_role: '', target_role: '', target_date: '',
     skill_ids: [] as number[], course_ids: [] as number[]
+  });
+  const [editPlanData, setEditPlanData] = useState({
+    target_role: '', target_date: '', skill_ids: [] as number[], course_ids: [] as number[]
   });
   const [newRequest, setNewRequest] = useState({
     title: '', description: '', reason: '', external_url: '', provider: '', for_employee_id: ''
@@ -573,19 +583,74 @@ export default function LearningPage() {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          target_role: newPlan.target_role,
-          target_date: newPlan.target_date,
-          progress: selectedPlan.progress
+          target_role: editPlanData.target_role,
+          target_date: editPlanData.target_date || null,
+          skill_ids: editPlanData.skill_ids,
+          course_ids: editPlanData.course_ids
         })
       });
       
       if (response.ok) {
         setShowEditPlan(false);
         setSelectedPlan(null);
+        setEditPlanData({ target_role: '', target_date: '', skill_ids: [], course_ids: [] });
         fetchDevelopmentPlans();
+      } else {
+        const errorData = await response.json();
+        console.error('Error updating plan:', errorData);
+        alert('Erreur lors de la mise à jour: ' + (errorData.detail || 'Erreur inconnue'));
       }
     } catch (error) {
       console.error('Error updating plan:', error);
+      alert('Erreur de connexion');
+    }
+  };
+
+  // Nouvelle fonction: Annuler un plan
+  const cancelDevelopmentPlan = async () => {
+    if (!planToCancel || !cancelReason.trim()) return;
+    
+    try {
+      const response = await fetch(`${API_URL}/api/learning/development-plans/${planToCancel.id}/cancel`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ reason: cancelReason })
+      });
+      
+      if (response.ok) {
+        setShowCancelPlan(false);
+        setPlanToCancel(null);
+        setCancelReason('');
+        fetchDevelopmentPlans();
+      } else {
+        const errorData = await response.json();
+        alert('Erreur: ' + (errorData.detail || 'Impossible d\'annuler le plan'));
+      }
+    } catch (error) {
+      console.error('Error cancelling plan:', error);
+      alert('Erreur de connexion');
+    }
+  };
+
+  // Nouvelle fonction: Archiver un plan
+  const archiveDevelopmentPlan = async (planId: number) => {
+    if (!confirm('Voulez-vous archiver ce plan de développement ?')) return;
+    
+    try {
+      const response = await fetch(`${API_URL}/api/learning/development-plans/${planId}/archive`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        fetchDevelopmentPlans();
+      } else {
+        const errorData = await response.json();
+        alert('Erreur: ' + (errorData.detail || 'Impossible d\'archiver le plan'));
+      }
+    } catch (error) {
+      console.error('Error archiving plan:', error);
+      alert('Erreur de connexion');
     }
   };
 
@@ -645,6 +710,8 @@ export default function LearningPage() {
     if (status === 'pending_validation' || status === 'pending') return 'bg-orange-100 text-orange-700';
     if (status === 'rejected') return 'bg-red-100 text-red-700';
     if (status === 'approved') return 'bg-green-100 text-green-700';
+    if (status === 'cancelled') return 'bg-red-100 text-red-700';
+    if (status === 'archived') return 'bg-gray-100 text-gray-700';
     return 'bg-gray-100 text-gray-700';
   };
 
@@ -656,7 +723,10 @@ export default function LearningPage() {
       'pending': 'En attente',
       'completed': 'Terminé',
       'rejected': 'Rejeté',
-      'approved': 'Approuvé'
+      'approved': 'Approuvé',
+      'active': 'Actif',
+      'cancelled': 'Annulé',
+      'archived': 'Archivé'
     };
     return labels[status] || status;
   };
@@ -665,6 +735,14 @@ export default function LearningPage() {
     if (status === 'valid') return 'text-green-600';
     if (status === 'expiring') return 'text-orange-600';
     return 'text-red-600';
+  };
+
+  const getPlanStatusColor = (status: string) => {
+    if (status === 'active') return 'bg-green-100 text-green-700';
+    if (status === 'completed') return 'bg-blue-100 text-blue-700';
+    if (status === 'cancelled') return 'bg-red-100 text-red-700';
+    if (status === 'archived') return 'bg-gray-100 text-gray-600';
+    return 'bg-gray-100 text-gray-700';
   };
 
   // Filter plans based on role
@@ -682,6 +760,24 @@ export default function LearningPage() {
       p.employee_id === currentUserId ||  // Son propre plan
       teamEmployeeIds.includes(p.employee_id)  // Plans de son équipe
     );
+  };
+
+  // Helper pour ouvrir le modal d'édition avec les données actuelles
+  const openEditPlanModal = (plan: DevelopmentPlan) => {
+    setSelectedPlan(plan);
+    
+    // Extraire les IDs des compétences et formations actuelles du plan
+    const currentSkillIds = plan.skills.map(s => s.id).filter(Boolean) as number[];
+    const currentCourseIds = plan.courses.map(c => c.id).filter(Boolean) as number[];
+    
+    setEditPlanData({
+      target_role: plan.targetRole || '',
+      target_date: plan.target_date || '',
+      skill_ids: currentSkillIds,
+      course_ids: currentCourseIds
+    });
+    
+    setShowEditPlan(true);
   };
 
   if (isLoading) {
@@ -1164,7 +1260,7 @@ export default function LearningPage() {
           </div>
         )}
 
-        {/* TAB: Plans Développement */}
+        {/* TAB: Plans Développement - MODIFIÉ */}
         {activeTab === 'development' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -1186,48 +1282,80 @@ export default function LearningPage() {
               </div>
             ) : (
               getVisiblePlans().map((plan) => (
-                <div key={plan.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div key={plan.id} className={`bg-white rounded-xl shadow-sm border overflow-hidden ${plan.status === 'cancelled' ? 'border-red-200 bg-red-50/30' : plan.status === 'archived' ? 'border-gray-200 bg-gray-50/50' : 'border-gray-100'}`}>
                   <div className="p-5 border-b border-gray-100">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold text-lg">
+                        <div className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg ${plan.status === 'cancelled' ? 'bg-red-100 text-red-700' : plan.status === 'archived' ? 'bg-gray-100 text-gray-600' : 'bg-primary-100 text-primary-700'}`}>
                           {plan.initials}
                         </div>
                         <div>
-                          <h4 className="font-semibold text-gray-900">{plan.employee}</h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-gray-900">{plan.employee}</h4>
+                            {plan.status && plan.status !== 'active' && (
+                              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getPlanStatusColor(plan.status)}`}>
+                                {getStatusLabel(plan.status)}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2 text-sm text-gray-500">
                             <span>{plan.role}</span>
                             <ArrowRight className="w-4 h-4" />
                             <span className="text-primary-600 font-medium">{plan.targetRole}</span>
                           </div>
+                          {plan.status === 'cancelled' && plan.cancellation_reason && (
+                            <p className="text-xs text-red-600 mt-1">Motif: {plan.cancellation_reason}</p>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-right">
-                          <p className="text-3xl font-bold text-primary-600">{plan.progress}%</p>
+                          <p className={`text-3xl font-bold ${plan.status === 'cancelled' ? 'text-red-400' : plan.status === 'archived' ? 'text-gray-400' : 'text-primary-600'}`}>{plan.progress}%</p>
                           <p className="text-xs text-gray-500">progression</p>
                         </div>
-                        {hasPermission(userRole, 'create_plan') && (
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedPlan(plan);
-                              setNewPlan({
-                                ...newPlan,
-                                target_role: plan.targetRole,
-                                target_date: plan.target_date || ''
-                              });
-                              setShowEditPlan(true);
-                            }}
-                            className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
-                          >
-                            <Edit className="w-5 h-5" />
-                          </button>
+                        {hasPermission(userRole, 'create_plan') && plan.status !== 'cancelled' && plan.status !== 'archived' && (
+                          <div className="flex items-center gap-1">
+                            {/* Bouton Modifier */}
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditPlanModal(plan);
+                              }}
+                              className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
+                              title="Modifier le plan"
+                            >
+                              <Edit className="w-5 h-5" />
+                            </button>
+                            {/* Bouton Archiver */}
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                archiveDevelopmentPlan(plan.id);
+                              }}
+                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                              title="Archiver le plan"
+                            >
+                              <Archive className="w-5 h-5" />
+                            </button>
+                            {/* Bouton Annuler */}
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPlanToCancel(plan);
+                                setCancelReason('');
+                                setShowCancelPlan(true);
+                              }}
+                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                              title="Annuler le plan"
+                            >
+                              <Ban className="w-5 h-5" />
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
                   </div>
-                  <div className="p-5 grid md:grid-cols-2 gap-6">
+                  <div className={`p-5 grid md:grid-cols-2 gap-6 ${plan.status === 'cancelled' || plan.status === 'archived' ? 'opacity-60' : ''}`}>
                     <div>
                       <h5 className="text-sm font-semibold text-gray-700 mb-3">Compétences à développer</h5>
                       {plan.skills.length === 0 ? (
@@ -1903,19 +2031,20 @@ export default function LearningPage() {
           </div>
         )}
 
-        {/* Edit Plan Modal */}
+        {/* Edit Plan Modal - AMÉLIORÉ */}
         {showEditPlan && selectedPlan && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md">
+            <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-900">Modifier le Plan</h2>
-                  <button onClick={() => setShowEditPlan(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                  <button onClick={() => { setShowEditPlan(false); setSelectedPlan(null); }} className="p-2 hover:bg-gray-100 rounded-lg">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
               </div>
               <div className="p-6 space-y-4">
+                {/* Info employé */}
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                   <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold">{selectedPlan.initials}</div>
                   <div>
@@ -1923,23 +2052,169 @@ export default function LearningPage() {
                     <p className="text-sm text-gray-500">{selectedPlan.role}</p>
                   </div>
                 </div>
+                
+                {/* Poste cible */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Poste cible</label>
-                  <input type="text" value={newPlan.target_role} onChange={(e) => setNewPlan({ ...newPlan, target_role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <input 
+                    type="text" 
+                    value={editPlanData.target_role} 
+                    onChange={(e) => setEditPlanData({ ...editPlanData, target_role: e.target.value })} 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg" 
+                  />
                 </div>
+                
+                {/* Date cible */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date cible</label>
-                  <input type="date" value={newPlan.target_date} onChange={(e) => setNewPlan({ ...newPlan, target_date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <input 
+                    type="date" 
+                    value={editPlanData.target_date} 
+                    onChange={(e) => setEditPlanData({ ...editPlanData, target_date: e.target.value })} 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg" 
+                  />
                 </div>
+                
+                {/* Compétences */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Progression (%)</label>
-                  <input type="range" min="0" max="100" value={selectedPlan.progress} onChange={(e) => setSelectedPlan({ ...selectedPlan, progress: parseInt(e.target.value) })} className="w-full" />
-                  <p className="text-center text-lg font-bold text-primary-600">{selectedPlan.progress}%</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">Compétences à développer</label>
+                    <span className="text-xs text-gray-500">{editPlanData.skill_ids.length} sélectionnée(s)</span>
+                  </div>
+                  {skills.length === 0 ? (
+                    <div className="text-center py-4 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-500">Aucune compétence disponible</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2">
+                      {skills.map((skill) => (
+                        <label key={skill.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                          <input 
+                            type="checkbox"
+                            checked={editPlanData.skill_ids.includes(skill.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setEditPlanData({ ...editPlanData, skill_ids: [...editPlanData.skill_ids, skill.id] });
+                              } else {
+                                setEditPlanData({ ...editPlanData, skill_ids: editPlanData.skill_ids.filter(id => id !== skill.id) });
+                              }
+                            }}
+                            className="rounded text-primary-600"
+                          />
+                          <span className="text-sm text-gray-700">{skill.name}</span>
+                          <span className="text-xs text-gray-400 ml-auto">({skill.category})</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Formations */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">Formations à assigner</label>
+                    <span className="text-xs text-gray-500">{editPlanData.course_ids.length} sélectionnée(s)</span>
+                  </div>
+                  <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2">
+                    {courses.map((course) => (
+                      <label key={course.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                        <input 
+                          type="checkbox"
+                          checked={editPlanData.course_ids.includes(course.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setEditPlanData({ ...editPlanData, course_ids: [...editPlanData.course_ids, course.id] });
+                            } else {
+                              setEditPlanData({ ...editPlanData, course_ids: editPlanData.course_ids.filter(id => id !== course.id) });
+                            }
+                          }}
+                          className="rounded text-primary-600"
+                        />
+                        <span className="text-2xl">{course.image_emoji || '📚'}</span>
+                        <span className="text-sm text-gray-700 flex-1">{course.title}</span>
+                        <span className="text-xs text-gray-400">{course.duration_hours}h</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
               <div className="p-6 border-t border-gray-200 flex gap-3">
-                <button onClick={() => setShowEditPlan(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
-                <button onClick={updateDevelopmentPlan} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600">Enregistrer</button>
+                <button 
+                  onClick={() => { setShowEditPlan(false); setSelectedPlan(null); }} 
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Annuler
+                </button>
+                <button 
+                  onClick={updateDevelopmentPlan} 
+                  className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+                >
+                  Enregistrer
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cancel Plan Modal - NOUVEAU */}
+        {showCancelPlan && planToCancel && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900">Annuler le Plan</h2>
+                  <button onClick={() => { setShowCancelPlan(false); setPlanToCancel(null); setCancelReason(''); }} className="p-2 hover:bg-gray-100 rounded-lg">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              <div className="p-6 space-y-4">
+                {/* Info employé */}
+                <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-700 font-bold">{planToCancel.initials}</div>
+                  <div>
+                    <p className="font-medium text-gray-900">{planToCancel.employee}</p>
+                    <p className="text-sm text-gray-500">{planToCancel.role} → {planToCancel.targetRole}</p>
+                  </div>
+                </div>
+                
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-800">Attention</p>
+                      <p className="text-xs text-amber-700">Cette action est irréversible. Le plan sera marqué comme annulé et conservé dans l&apos;historique.</p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Motif d'annulation */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Motif d&apos;annulation *</label>
+                  <textarea 
+                    value={cancelReason} 
+                    onChange={(e) => setCancelReason(e.target.value)} 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg" 
+                    rows={3} 
+                    placeholder="Ex: Départ de l'employé, réorientation carrière, plan inadapté..."
+                  />
+                </div>
+              </div>
+              <div className="p-6 border-t border-gray-200 flex gap-3">
+                <button 
+                  onClick={() => { setShowCancelPlan(false); setPlanToCancel(null); setCancelReason(''); }} 
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Retour
+                </button>
+                <button 
+                  onClick={cancelDevelopmentPlan} 
+                  disabled={!cancelReason.trim()}
+                  className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <Ban className="w-4 h-4" />
+                  Annuler le plan
+                </button>
               </div>
             </div>
           </div>

@@ -970,8 +970,9 @@ export default function DashboardPage() {
           } catch (e) {
             console.error('Dashboard: Error decoding user:', e);
           }
-          // Nettoyer l'URL
-          window.history.replaceState({}, '', window.location.pathname);
+          // Nettoyer l'URL et recharger la page pour que le layout se réinitialise
+          window.location.href = window.location.pathname;
+          return; // Stop execution, page will reload
         }
       }
 

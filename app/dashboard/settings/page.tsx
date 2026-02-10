@@ -1,7 +1,7 @@
 'use client';
 
 import Header from '@/components/Header';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   User, 
   Building2, 
@@ -11,8 +11,25 @@ import {
   Users,
   CreditCard,
   Save,
-  Check
+  Check,
+  FileText,
+  Upload,
+  X,
+  Loader2,
+  Image as ImageIcon,
+  Stamp,
+  PenTool
 } from 'lucide-react';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app';
+
+function getAuthHeaders(): HeadersInit {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+}
 
 const integrations = [
   { id: 'slack', name: 'Slack', description: 'Notifications et alertes', connected: true, icon: '💬' },
@@ -30,18 +47,233 @@ const teamMembers = [
   { id: 4, name: 'Pierre Leroy', email: 'pierre@targetym.ai', role: 'Recruteur', status: 'pending' },
 ];
 
+// Types pour les paramètres de certificat
+interface CertificateSettings {
+  certificate_logo: string | null;
+  certificate_signature: string | null;
+  certificate_stamp: string | null;
+  certificate_company_name: string | null;
+  certificate_company_address: string | null;
+  certificate_company_city: string | null;
+  certificate_signatory_name: string | null;
+  certificate_signatory_title: string | null;
+}
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('general');
   const [saved, setSaved] = useState(false);
+  
+  // États pour les paramètres de certificat
+  const [certificateSettings, setCertificateSettings] = useState<CertificateSettings>({
+    certificate_logo: null,
+    certificate_signature: null,
+    certificate_stamp: null,
+    certificate_company_name: null,
+    certificate_company_address: null,
+    certificate_company_city: null,
+    certificate_signatory_name: null,
+    certificate_signatory_title: null,
+  });
+  const [loadingCertSettings, setLoadingCertSettings] = useState(false);
+  const [savingCertSettings, setSavingCertSettings] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState<string | null>(null);
+
+  // Charger les paramètres de certificat
+  const loadCertificateSettings = useCallback(async () => {
+    setLoadingCertSettings(true);
+    try {
+      const response = await fetch(`${API_URL}/api/settings/certificate`, {
+        headers: getAuthHeaders(),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCertificateSettings(data);
+      }
+    } catch (error) {
+      console.error('Erreur chargement paramètres certificat:', error);
+    } finally {
+      setLoadingCertSettings(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'certificates') {
+      loadCertificateSettings();
+    }
+  }, [activeTab, loadCertificateSettings]);
 
   const handleSave = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
+  // Sauvegarder les paramètres de certificat (texte)
+  const saveCertificateSettings = async () => {
+    setSavingCertSettings(true);
+    try {
+      const response = await fetch(`${API_URL}/api/settings/certificate`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          certificate_company_name: certificateSettings.certificate_company_name,
+          certificate_company_address: certificateSettings.certificate_company_address,
+          certificate_company_city: certificateSettings.certificate_company_city,
+          certificate_signatory_name: certificateSettings.certificate_signatory_name,
+          certificate_signatory_title: certificateSettings.certificate_signatory_title,
+        }),
+      });
+      
+      if (response.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      } else {
+        alert('Erreur lors de la sauvegarde');
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Erreur de connexion');
+    } finally {
+      setSavingCertSettings(false);
+    }
+  };
+
+  // Upload d'un fichier (logo, signature, cachet)
+  const handleFileUpload = async (fileType: 'logo' | 'signature' | 'stamp', file: File) => {
+    setUploadingFile(fileType);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${API_URL}/api/settings/certificate/upload/${fileType}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCertificateSettings(prev => ({
+          ...prev,
+          [`certificate_${fileType}`]: data.url,
+        }));
+      } else {
+        const error = await response.json();
+        alert(error.detail || 'Erreur lors de l\'upload');
+      }
+    } catch (error) {
+      console.error('Erreur upload:', error);
+      alert('Erreur de connexion');
+    } finally {
+      setUploadingFile(null);
+    }
+  };
+
+  // Supprimer un fichier
+  const handleFileDelete = async (fileType: 'logo' | 'signature' | 'stamp') => {
+    if (!confirm(`Supprimer ${fileType === 'logo' ? 'le logo' : fileType === 'signature' ? 'la signature' : 'le cachet'} ?`)) {
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${API_URL}/api/settings/certificate/upload/${fileType}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        setCertificateSettings(prev => ({
+          ...prev,
+          [`certificate_${fileType}`]: null,
+        }));
+      }
+    } catch (error) {
+      console.error('Erreur suppression:', error);
+    }
+  };
+
+  // Composant pour upload de fichier
+  const FileUploadBox = ({ 
+    fileType, 
+    label, 
+    icon: Icon,
+    currentUrl 
+  }: { 
+    fileType: 'logo' | 'signature' | 'stamp';
+    label: string;
+    icon: React.ElementType;
+    currentUrl: string | null;
+  }) => {
+    const isUploading = uploadingFile === fileType;
+    
+    return (
+      <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-primary-300 transition-colors">
+        <div className="flex flex-col items-center">
+          {currentUrl ? (
+            <div className="relative w-full">
+              <img 
+                src={`${API_URL}${currentUrl}`} 
+                alt={label}
+                className="max-h-24 mx-auto object-contain rounded-lg"
+              />
+              <button
+                onClick={() => handleFileDelete(fileType)}
+                className="absolute -top-2 -right-2 p-1 bg-red-100 text-red-600 rounded-full hover:bg-red-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                <Icon className="w-6 h-6 text-gray-400" />
+              </div>
+              <p className="text-sm font-medium text-gray-700 mb-1">{label}</p>
+              <p className="text-xs text-gray-500 mb-3">PNG, JPG (max 2MB)</p>
+            </>
+          )}
+          
+          <label className={`cursor-pointer px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            isUploading 
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+              : 'bg-primary-50 text-primary-600 hover:bg-primary-100'
+          }`}>
+            {isUploading ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Upload...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Upload className="w-4 h-4" />
+                {currentUrl ? 'Changer' : 'Uploader'}
+              </span>
+            )}
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+              className="hidden"
+              disabled={isUploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFileUpload(fileType, file);
+              }}
+            />
+          </label>
+        </div>
+      </div>
+    );
+  };
+
   const tabs = [
     { id: 'general', name: 'Général', icon: Building2 },
     { id: 'profile', name: 'Mon Profil', icon: User },
+    { id: 'certificates', name: 'Certificats', icon: FileText },
     { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'security', name: 'Sécurité', icon: Shield },
     { id: 'integrations', name: 'Intégrations', icon: Link2 },
@@ -217,6 +449,179 @@ export default function SettingsPage() {
                     {saved ? <Check className="w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                     {saved ? 'Enregistré !' : 'Enregistrer'}
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* NOUVEL ONGLET: Certificats */}
+            {activeTab === 'certificates' && (
+              <div className="space-y-6">
+                {/* Section Documents visuels */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Documents Visuels</h3>
+                  <p className="text-sm text-gray-500 mb-6">
+                    Ces éléments apparaîtront sur vos certificats de travail et autres documents officiels.
+                  </p>
+                  
+                  {loadingCertSettings ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
+                    </div>
+                  ) : (
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <FileUploadBox 
+                        fileType="logo" 
+                        label="Logo de l'entreprise" 
+                        icon={ImageIcon}
+                        currentUrl={certificateSettings.certificate_logo}
+                      />
+                      <FileUploadBox 
+                        fileType="signature" 
+                        label="Signature du signataire" 
+                        icon={PenTool}
+                        currentUrl={certificateSettings.certificate_signature}
+                      />
+                      <FileUploadBox 
+                        fileType="stamp" 
+                        label="Cachet de l'entreprise" 
+                        icon={Stamp}
+                        currentUrl={certificateSettings.certificate_stamp}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Section Informations entreprise */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Informations de l&apos;Entreprise</h3>
+                  <p className="text-sm text-gray-500 mb-6">
+                    Ces informations apparaîtront dans l&apos;en-tête des certificats.
+                  </p>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nom officiel de l&apos;entreprise
+                      </label>
+                      <input
+                        type="text"
+                        value={certificateSettings.certificate_company_name || ''}
+                        onChange={(e) => setCertificateSettings(prev => ({
+                          ...prev,
+                          certificate_company_name: e.target.value
+                        }))}
+                        placeholder="Ex: TARGETYM SARL"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Adresse complète
+                      </label>
+                      <textarea
+                        value={certificateSettings.certificate_company_address || ''}
+                        onChange={(e) => setCertificateSettings(prev => ({
+                          ...prev,
+                          certificate_company_address: e.target.value
+                        }))}
+                        placeholder="Ex: 123 Avenue de la République, Immeuble XYZ, 3ème étage"
+                        rows={2}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Ville
+                      </label>
+                      <input
+                        type="text"
+                        value={certificateSettings.certificate_company_city || ''}
+                        onChange={(e) => setCertificateSettings(prev => ({
+                          ...prev,
+                          certificate_company_city: e.target.value
+                        }))}
+                        placeholder="Ex: Dakar"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section Signataire habilité */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Signataire Habilité</h3>
+                  <p className="text-sm text-gray-500 mb-6">
+                    Personne autorisée à signer les certificats de travail.
+                  </p>
+                  
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nom complet
+                      </label>
+                      <input
+                        type="text"
+                        value={certificateSettings.certificate_signatory_name || ''}
+                        onChange={(e) => setCertificateSettings(prev => ({
+                          ...prev,
+                          certificate_signatory_name: e.target.value
+                        }))}
+                        placeholder="Ex: Jean-Pierre DUPONT"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Fonction
+                      </label>
+                      <input
+                        type="text"
+                        value={certificateSettings.certificate_signatory_title || ''}
+                        onChange={(e) => setCertificateSettings(prev => ({
+                          ...prev,
+                          certificate_signatory_title: e.target.value
+                        }))}
+                        placeholder="Ex: Directeur des Ressources Humaines"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end">
+                    <button 
+                      onClick={saveCertificateSettings}
+                      disabled={savingCertSettings}
+                      className="flex items-center px-6 py-2.5 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50"
+                    >
+                      {savingCertSettings ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Enregistrement...
+                        </>
+                      ) : saved ? (
+                        <>
+                          <Check className="w-4 h-4 mr-2" />
+                          Enregistré !
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Enregistrer
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Note informative */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>💡 Conseil :</strong> Pour un rendu optimal, utilisez un logo avec fond transparent (PNG) 
+                    et une signature scannée sur fond blanc. Le cachet doit être au format carré ou rond.
+                  </p>
                 </div>
               </div>
             )}

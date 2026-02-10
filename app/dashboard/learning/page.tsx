@@ -7,13 +7,16 @@ import {
   TrendingUp, Target, ChevronRight, AlertTriangle,
   GraduationCap, BarChart3, X, User, ArrowRight, Upload, ExternalLink,
   Check, XCircle, RefreshCw, Eye, Edit, MessageSquarePlus, Send,
-  Archive, Ban, Play, FileCheck, Link
+  Archive, Ban, Play, FileCheck, Link, UsersRound, FileWarning
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app';
 
-// Types
+// ============================================
+// TYPES
+// ============================================
+
 interface Course {
   id: number;
   title: string;
@@ -26,6 +29,7 @@ interface Course {
   image_emoji: string;
   is_mandatory: boolean;
   is_active: boolean;
+  requires_certificate: boolean;
   enrolled: number;
   completed: number;
   completion_rate: number;
@@ -48,11 +52,13 @@ interface Assignment {
   employee_id: number;
   employee_name: string;
   employee_initials: string;
+  employee_job_title?: string;
   course_id: number;
   course_title: string;
   course_image: string;
   course_duration: number;
   course_external_url?: string;
+  requires_certificate: boolean;
   status: string;
   deadline: string;
   assigned_at: string;
@@ -129,7 +135,6 @@ interface Stats {
   completion_rate: number;
   pending_validation: number;
   expiring_certifications: number;
-  pending_requests?: number;
 }
 
 interface MonthlyStats {
@@ -158,7 +163,10 @@ interface Employee {
   job_title: string;
 }
 
-// Helper pour vérifier les permissions
+// ============================================
+// PERMISSIONS HELPER
+// ============================================
+
 const hasPermission = (userRole: string, action: string): boolean => {
   const permissions: Record<string, string[]> = {
     'create_course': ['admin', 'dg', 'dga', 'rh'],
@@ -170,16 +178,87 @@ const hasPermission = (userRole: string, action: string): boolean => {
     'view_all_plans': ['admin', 'dg', 'dga', 'rh'],
     'view_analytics': ['admin', 'dg', 'dga', 'rh'],
     'view_requests': ['admin', 'dg', 'dga', 'rh'],
-    'request_course': ['manager', 'employee'],  // MODIFIÉ: RH n'a pas besoin de demander
+    'request_course': ['manager', 'employee'],
+    'view_team': ['manager'],
   };
   
   const allowedRoles = permissions[action] || [];
   return allowedRoles.includes(userRole.toLowerCase());
 };
 
+// ============================================
+// STATUS HELPERS
+// ============================================
+
+const getLevelColor = (level: string) => {
+  if (level === 'beginner') return 'bg-green-100 text-green-700';
+  if (level === 'intermediate') return 'bg-blue-100 text-blue-700';
+  return 'bg-purple-100 text-purple-700';
+};
+
+const getLevelLabel = (level: string) => {
+  if (level === 'beginner') return 'Débutant';
+  if (level === 'intermediate') return 'Intermédiaire';
+  return 'Avancé';
+};
+
+const getStatusColor = (status: string) => {
+  const colors: Record<string, string> = {
+    'completed': 'bg-green-100 text-green-700',
+    'in-progress': 'bg-blue-100 text-blue-700',
+    'in_progress': 'bg-blue-100 text-blue-700',
+    'pending_validation': 'bg-orange-100 text-orange-700',
+    'pending': 'bg-orange-100 text-orange-700',
+    'rejected': 'bg-red-100 text-red-700',
+    'approved': 'bg-green-100 text-green-700',
+    'cancelled': 'bg-red-100 text-red-700',
+    'archived': 'bg-gray-100 text-gray-700',
+    'assigned': 'bg-orange-100 text-orange-700',
+    'active': 'bg-green-100 text-green-700',
+    'planned': 'bg-gray-100 text-gray-700',
+  };
+  return colors[status] || 'bg-gray-100 text-gray-700';
+};
+
+const getStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
+    'assigned': 'À commencer',
+    'in_progress': 'En cours',
+    'in-progress': 'En cours',
+    'pending_validation': 'En attente',
+    'pending': 'En attente',
+    'completed': 'Terminé',
+    'rejected': 'Rejeté',
+    'approved': 'Approuvé',
+    'active': 'Actif',
+    'cancelled': 'Annulé',
+    'archived': 'Archivé',
+    'planned': 'Planifié',
+  };
+  return labels[status] || status;
+};
+
+const getPlanStatusColor = (status: string) => {
+  if (status === 'active') return 'bg-green-100 text-green-700';
+  if (status === 'completed') return 'bg-blue-100 text-blue-700';
+  if (status === 'cancelled') return 'bg-red-100 text-red-700';
+  if (status === 'archived') return 'bg-gray-100 text-gray-600';
+  return 'bg-gray-100 text-gray-700';
+};
+
+const getCertStatusColor = (status: string) => {
+  if (status === 'valid') return 'text-green-600';
+  if (status === 'expiring') return 'text-orange-600';
+  return 'text-red-600';
+};
+
+// ============================================
+// MAIN COMPONENT - ÉTATS
+// ============================================
+
 export default function LearningPage() {
-  // États
-  const [activeTab, setActiveTab] = useState<'catalog' | 'my-learning' | 'paths' | 'certifications' | 'development' | 'requests' | 'analytics'>('catalog');
+  // Navigation & Filters
+  const [activeTab, setActiveTab] = useState<'catalog' | 'my-learning' | 'team' | 'paths' | 'certifications' | 'development' | 'requests' | 'analytics'>('catalog');
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -187,19 +266,6 @@ export default function LearningPage() {
   // User & Role
   const [userRole, setUserRole] = useState<string>('employee');
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  
-  useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        setUserRole(user.role?.toLowerCase() || 'employee');
-        setCurrentUserId(user.employee_id || null);
-      } catch (e) {
-        console.error('Error parsing user:', e);
-      }
-    }
-  }, []);
   
   // Data states
   const [courses, setCourses] = useState<Course[]>([]);
@@ -215,6 +281,8 @@ export default function LearningPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [pendingValidations, setPendingValidations] = useState<Assignment[]>([]);
   const [myAssignments, setMyAssignments] = useState<Assignment[]>([]);
+  const [teamAssignments, setTeamAssignments] = useState<Assignment[]>([]);
+  const [certHolders, setCertHolders] = useState<CertificationHolder[]>([]);
   
   // Modal states
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -227,15 +295,12 @@ export default function LearningPage() {
   const [showEditPlan, setShowEditPlan] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<DevelopmentPlan | null>(null);
   const [showCertHolders, setShowCertHolders] = useState<Certification | null>(null);
-  const [certHolders, setCertHolders] = useState<CertificationHolder[]>([]);
   const [showCreatePath, setShowCreatePath] = useState(false);
   const [showRequestCourse, setShowRequestCourse] = useState(false);
   const [showCreateSkill, setShowCreateSkill] = useState(false);
   const [showCancelPlan, setShowCancelPlan] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [planToCancel, setPlanToCancel] = useState<DevelopmentPlan | null>(null);
-  
-  // NOUVEAU: Modal pour actions employé sur ses formations
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [assignmentToComplete, setAssignmentToComplete] = useState<Assignment | null>(null);
   const [completionNote, setCompletionNote] = useState('');
@@ -245,7 +310,8 @@ export default function LearningPage() {
   // Form states
   const [newCourse, setNewCourse] = useState({
     title: '', description: '', category: 'Technique', provider: '',
-    external_url: '', duration_hours: '', level: 'beginner', image_emoji: '📚', is_mandatory: false
+    external_url: '', duration_hours: '', level: 'beginner', image_emoji: '📚', 
+    is_mandatory: false, requires_certificate: false
   });
   const [assignData, setAssignData] = useState({ employee_id: '', course_id: '', deadline: '' });
   const [validationData, setValidationData] = useState({ approved: true, rejection_reason: '' });
@@ -266,7 +332,21 @@ export default function LearningPage() {
   const categories = ['Tous', 'Soft Skills', 'Technique', 'Management', 'Commercial', 'Innovation', 'Juridique'];
   const skillCategories = ['Technique', 'Soft Skills', 'Management', 'Métier'];
 
-  // Auth headers
+  // Init user
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setUserRole(user.role?.toLowerCase() || 'employee');
+        setCurrentUserId(user.employee_id || null);
+      } catch (e) {
+        console.error('Error parsing user:', e);
+      }
+    }
+  }, []);
+
+  // Auth headers helper
   const getAuthHeaders = useCallback(() => {
     const token = localStorage.getItem('access_token');
     return {
@@ -275,7 +355,18 @@ export default function LearningPage() {
     };
   }, []);
 
-  // Fetch functions
+  // Helper pour les plans visibles selon le rôle
+  const getVisiblePlans = useCallback(() => {
+    if (hasPermission(userRole, 'view_all_plans')) {
+      return developmentPlans;
+    }
+    const teamEmployeeIds = employees.map(e => e.id);
+    return developmentPlans.filter(p => 
+      p.employee_id === currentUserId || teamEmployeeIds.includes(p.employee_id)
+    );
+  }, [userRole, developmentPlans, employees, currentUserId]);
+
+
   const fetchCourses = useCallback(async () => {
     try {
       const params = new URLSearchParams();
@@ -306,7 +397,7 @@ export default function LearningPage() {
       const data = await response.json();
       setPendingValidations(data.items || []);
     } catch (error) {
-      console.error('Error fetching assignments:', error);
+      console.error('Error fetching pending validations:', error);
     }
   }, [getAuthHeaders]);
 
@@ -402,29 +493,41 @@ export default function LearningPage() {
     }
   }, [getAuthHeaders]);
 
-  // Load data
+  const fetchTeamAssignments = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/learning/assignments/?team_assignments=true`, { headers: getAuthHeaders() });
+      if (response.ok) {
+        const data = await response.json();
+        setTeamAssignments(data.items || []);
+      }
+    } catch (error) {
+      console.error('Error fetching team assignments:', error);
+    }
+  }, [getAuthHeaders]);
+
+  // Load all data
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       await Promise.all([
         fetchCourses(), fetchLearningPaths(), fetchPendingValidations(), fetchMyAssignments(),
         fetchCertifications(), fetchSkills(), fetchDevelopmentPlans(), fetchCourseRequests(),
-        fetchStats(), fetchEmployees()
+        fetchStats(), fetchEmployees(), fetchTeamAssignments()
       ]);
       setIsLoading(false);
     };
     loadData();
-  }, [fetchCourses, fetchLearningPaths, fetchPendingValidations, fetchMyAssignments, fetchCertifications, fetchSkills, fetchDevelopmentPlans, fetchCourseRequests, fetchStats, fetchEmployees]);
+  }, [fetchCourses, fetchLearningPaths, fetchPendingValidations, fetchMyAssignments, fetchCertifications, fetchSkills, fetchDevelopmentPlans, fetchCourseRequests, fetchStats, fetchEmployees, fetchTeamAssignments]);
 
+  // Refresh courses on filter change
   useEffect(() => {
     if (!isLoading) fetchCourses();
   }, [selectedCategory, searchQuery, fetchCourses, isLoading]);
 
   // ============================================
-  // ACTIONS EMPLOYÉ SUR SES FORMATIONS
+  // ACTIONS - EMPLOYÉ
   // ============================================
 
-  // Commencer une formation
   const startAssignment = async (assignmentId: number) => {
     try {
       const response = await fetch(`${API_URL}/api/learning/assignments/${assignmentId}/start`, {
@@ -434,6 +537,7 @@ export default function LearningPage() {
       
       if (response.ok) {
         fetchMyAssignments();
+        fetchTeamAssignments();
       } else {
         const error = await response.json();
         alert('Erreur: ' + (error.detail || 'Impossible de commencer'));
@@ -443,25 +547,44 @@ export default function LearningPage() {
     }
   };
 
-  // Marquer comme terminée
+  const uploadCertificateFile = async (assignmentId: number, file: File): Promise<boolean> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch(`${API_URL}/api/learning/assignments/${assignmentId}/upload-certificate`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+        body: formData
+      });
+      
+      return response.ok;
+    } catch (error) {
+      console.error('Error uploading certificate:', error);
+      return false;
+    }
+  };
+
   const completeAssignment = async () => {
     if (!assignmentToComplete) return;
     
     setIsSubmitting(true);
     try {
-      // 1. Upload du certificat si fourni
       if (completionFile) {
-        const formData = new FormData();
-        formData.append('file', completionFile);
-        
-        await fetch(`${API_URL}/api/learning/assignments/${assignmentToComplete.id}/upload-certificate`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
-          body: formData
-        });
+        const uploaded = await uploadCertificateFile(assignmentToComplete.id, completionFile);
+        if (!uploaded) {
+          alert('Erreur lors de l\'upload du certificat');
+          setIsSubmitting(false);
+          return;
+        }
       }
       
-      // 2. Marquer comme terminée
+      if (assignmentToComplete.requires_certificate && !completionFile && !assignmentToComplete.certificate_file) {
+        alert('Un certificat est requis pour cette formation');
+        setIsSubmitting(false);
+        return;
+      }
+      
       const response = await fetch(`${API_URL}/api/learning/assignments/${assignmentToComplete.id}/complete`, {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -474,6 +597,8 @@ export default function LearningPage() {
         setCompletionNote('');
         setCompletionFile(null);
         fetchMyAssignments();
+        fetchTeamAssignments();
+        fetchPendingValidations();
       } else {
         const error = await response.json();
         alert('Erreur: ' + (error.detail || 'Impossible de soumettre'));
@@ -486,8 +611,15 @@ export default function LearningPage() {
     }
   };
 
+  const openCompleteModal = (assignment: Assignment) => {
+    setAssignmentToComplete(assignment);
+    setCompletionNote(assignment.completion_note || '');
+    setCompletionFile(null);
+    setShowCompleteModal(true);
+  };
+
   // ============================================
-  // AUTRES ACTIONS
+  // ACTIONS - ADMIN/RH
   // ============================================
 
   const createCourse = async () => {
@@ -503,7 +635,7 @@ export default function LearningPage() {
       
       if (response.ok) {
         setShowCreateCourse(false);
-        setNewCourse({ title: '', description: '', category: 'Technique', provider: '', external_url: '', duration_hours: '', level: 'beginner', image_emoji: '📚', is_mandatory: false });
+        setNewCourse({ title: '', description: '', category: 'Technique', provider: '', external_url: '', duration_hours: '', level: 'beginner', image_emoji: '📚', is_mandatory: false, requires_certificate: false });
         fetchCourses();
       }
     } catch (error) {
@@ -546,6 +678,10 @@ export default function LearningPage() {
         setAssignData({ employee_id: '', course_id: '', deadline: '' });
         fetchPendingValidations();
         fetchCourses();
+        fetchTeamAssignments();
+      } else {
+        const error = await response.json();
+        alert('Erreur: ' + (error.detail || 'Erreur'));
       }
     } catch (error) {
       console.error('Error assigning course:', error);
@@ -568,6 +704,8 @@ export default function LearningPage() {
         setValidationData({ approved: true, rejection_reason: '' });
         fetchPendingValidations();
         fetchStats();
+        fetchTeamAssignments();
+        fetchMyAssignments();
       }
     } catch (error) {
       console.error('Error validating:', error);
@@ -628,10 +766,28 @@ export default function LearningPage() {
         setShowCreatePlan(false);
         setNewPlan({ employee_id: '', current_role: '', target_role: '', target_date: '', skill_ids: [], course_ids: [] });
         fetchDevelopmentPlans();
+        fetchTeamAssignments();
+        fetchCourses();
+      } else {
+        const error = await response.json();
+        alert('Erreur: ' + (error.detail || 'Erreur'));
       }
     } catch (error) {
       console.error('Error creating plan:', error);
     }
+  };
+
+  const openEditPlanModal = (plan: DevelopmentPlan) => {
+    setSelectedPlan(plan);
+    const currentSkillIds = plan.skills.map(s => s.id).filter(Boolean) as number[];
+    const currentCourseIds = plan.courses.map(c => c.id).filter(Boolean) as number[];
+    setEditPlanData({
+      target_role: plan.targetRole || '',
+      target_date: plan.target_date || '',
+      skill_ids: currentSkillIds,
+      course_ids: currentCourseIds
+    });
+    setShowEditPlan(true);
   };
 
   const updateDevelopmentPlan = async () => {
@@ -654,6 +810,8 @@ export default function LearningPage() {
         setSelectedPlan(null);
         setEditPlanData({ target_role: '', target_date: '', skill_ids: [], course_ids: [] });
         fetchDevelopmentPlans();
+        fetchTeamAssignments();
+        fetchCourses();
       } else {
         const errorData = await response.json();
         alert('Erreur: ' + (errorData.detail || 'Erreur inconnue'));
@@ -744,82 +902,8 @@ export default function LearningPage() {
     }
   };
 
-  // Helper functions
-  const getLevelColor = (level: string) => {
-    if (level === 'beginner') return 'bg-green-100 text-green-700';
-    if (level === 'intermediate') return 'bg-blue-100 text-blue-700';
-    return 'bg-purple-100 text-purple-700';
-  };
 
-  const getLevelLabel = (level: string) => {
-    if (level === 'beginner') return 'Débutant';
-    if (level === 'intermediate') return 'Intermédiaire';
-    return 'Avancé';
-  };
-
-  const getStatusColor = (status: string) => {
-    if (status === 'completed') return 'bg-green-100 text-green-700';
-    if (status === 'in-progress' || status === 'in_progress') return 'bg-blue-100 text-blue-700';
-    if (status === 'pending_validation' || status === 'pending') return 'bg-orange-100 text-orange-700';
-    if (status === 'rejected') return 'bg-red-100 text-red-700';
-    if (status === 'approved') return 'bg-green-100 text-green-700';
-    if (status === 'cancelled') return 'bg-red-100 text-red-700';
-    if (status === 'archived') return 'bg-gray-100 text-gray-700';
-    return 'bg-gray-100 text-gray-700';
-  };
-
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      'assigned': 'Assigné', 'in_progress': 'En cours', 'pending_validation': 'En attente',
-      'pending': 'En attente', 'completed': 'Terminé', 'rejected': 'Rejeté',
-      'approved': 'Approuvé', 'active': 'Actif', 'cancelled': 'Annulé', 'archived': 'Archivé'
-    };
-    return labels[status] || status;
-  };
-
-  const getCertStatusColor = (status: string) => {
-    if (status === 'valid') return 'text-green-600';
-    if (status === 'expiring') return 'text-orange-600';
-    return 'text-red-600';
-  };
-
-  const getPlanStatusColor = (status: string) => {
-    if (status === 'active') return 'bg-green-100 text-green-700';
-    if (status === 'completed') return 'bg-blue-100 text-blue-700';
-    if (status === 'cancelled') return 'bg-red-100 text-red-700';
-    if (status === 'archived') return 'bg-gray-100 text-gray-600';
-    return 'bg-gray-100 text-gray-700';
-  };
-
-  const getVisiblePlans = () => {
-    if (hasPermission(userRole, 'view_all_plans')) {
-      return developmentPlans;
-    }
-    const teamEmployeeIds = employees.map(e => e.id);
-    return developmentPlans.filter(p => 
-      p.employee_id === currentUserId || teamEmployeeIds.includes(p.employee_id)
-    );
-  };
-
-  const openEditPlanModal = (plan: DevelopmentPlan) => {
-    setSelectedPlan(plan);
-    const currentSkillIds = plan.skills.map(s => s.id).filter(Boolean) as number[];
-    const currentCourseIds = plan.courses.map(c => c.id).filter(Boolean) as number[];
-    setEditPlanData({
-      target_role: plan.targetRole || '',
-      target_date: plan.target_date || '',
-      skill_ids: currentSkillIds,
-      course_ids: currentCourseIds
-    });
-    setShowEditPlan(true);
-  };
-
-  // Trouver l'URL externe d'un cours
-  const getCourseExternalUrl = (courseId: number): string | null => {
-    const course = courses.find(c => c.id === courseId);
-    return course?.external_url || null;
-  };
-
+  // Loading state
   if (isLoading) {
     return (
       <>
@@ -832,13 +916,14 @@ export default function LearningPage() {
   }
 
   const pendingRequestsCount = courseRequests.filter(r => r.status === 'pending').length;
+  const teamInProgressCount = teamAssignments.filter(a => a.status === 'in_progress' || a.status === 'assigned').length;
 
   return (
     <>
       <Header title="Formation & Développement" subtitle="Catalogue, parcours, certifications et plans de développement" />
       
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
-        {/* Stats */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
@@ -874,7 +959,7 @@ export default function LearningPage() {
           )}
         </div>
 
-        {/* Tabs */}
+        {/* Navigation Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
           <div className="flex border-b border-gray-200 overflow-x-auto overflow-y-visible pt-2">
             <button onClick={() => setActiveTab('catalog')} className={`flex-shrink-0 px-6 py-4 text-sm font-medium ${activeTab === 'catalog' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
@@ -888,6 +973,16 @@ export default function LearningPage() {
                 </span>
               )}
             </button>
+            {hasPermission(userRole, 'view_team') && (
+              <button onClick={() => setActiveTab('team')} className={`flex-shrink-0 px-6 py-4 text-sm font-medium relative ${activeTab === 'team' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
+                <UsersRound className="w-4 h-4 inline mr-2" />Mon Équipe
+                {teamInProgressCount > 0 && (
+                  <span className="absolute top-2 -right-1 min-w-5 h-5 px-1 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {teamInProgressCount}
+                  </span>
+                )}
+              </button>
+            )}
             <button onClick={() => setActiveTab('paths')} className={`flex-shrink-0 px-6 py-4 text-sm font-medium ${activeTab === 'paths' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
               <Target className="w-4 h-4 inline mr-2" />Parcours
             </button>
@@ -924,10 +1019,7 @@ export default function LearningPage() {
               <p className="text-xs text-amber-600">Des employés ont terminé leurs formations</p>
             </div>
             <button 
-              onClick={() => {
-                setSelectedAssignment(pendingValidations[0]);
-                setShowValidationModal(true);
-              }}
+              onClick={() => { setSelectedAssignment(pendingValidations[0]); setShowValidationModal(true); }}
               className="px-3 py-1.5 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700"
             >
               Valider
@@ -958,7 +1050,6 @@ export default function LearningPage() {
                   <User className="w-4 h-4 mr-2" />Assigner
                 </button>
               )}
-              {/* MODIFIÉ: Bouton Demander visible seulement pour employee/manager */}
               {hasPermission(userRole, 'request_course') && (
                 <button onClick={() => setShowRequestCourse(true)} className="flex items-center px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600">
                   <MessageSquarePlus className="w-4 h-4 mr-2" />Demander
@@ -978,6 +1069,7 @@ export default function LearningPage() {
                     <div className="h-32 bg-gradient-to-br from-primary-100 to-primary-50 flex items-center justify-center text-5xl relative">
                       {course.image_emoji || '📚'}
                       {course.is_mandatory && <span className="absolute top-2 right-2 px-2 py-0.5 bg-red-500 text-white text-xs font-medium rounded">Obligatoire</span>}
+                      {course.requires_certificate && <span className="absolute top-2 left-2 px-2 py-0.5 bg-purple-500 text-white text-xs font-medium rounded flex items-center gap-1"><FileWarning className="w-3 h-3" />Certif.</span>}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
                         <Eye className="w-12 h-12 text-white drop-shadow-lg" />
                       </div>
@@ -1009,7 +1101,7 @@ export default function LearningPage() {
           </div>
         )}
 
-        {/* TAB: Mes Formations - AMÉLIORÉ avec actions */}
+        {/* TAB: Mes Formations */}
         {activeTab === 'my-learning' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -1037,31 +1129,25 @@ export default function LearningPage() {
                           <div className="flex items-center gap-3">
                             <span className="text-2xl">{assignment.course_image || '📚'}</span>
                             <div>
-                              <p className="font-medium text-gray-900">{assignment.course_title}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-gray-900">{assignment.course_title}</p>
+                                {assignment.requires_certificate && (
+                                  <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs rounded flex items-center gap-1">
+                                    <FileWarning className="w-3 h-3" />Certif. requis
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-sm text-gray-500">{assignment.course_duration}h • Deadline: {assignment.deadline || 'Non définie'}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            {/* Lien vers formation externe */}
                             {assignment.course_external_url && (
-                              <a
-                                href={assignment.course_external_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="p-2 bg-white text-primary-600 rounded-lg hover:bg-primary-50 border border-primary-200"
-                                title="Accéder à la formation"
-                              >
+                              <a href={assignment.course_external_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-2 bg-white text-primary-600 rounded-lg hover:bg-primary-50 border border-primary-200" title="Accéder à la formation">
                                 <ExternalLink className="w-4 h-4" />
                               </a>
                             )}
-                            {/* Bouton Commencer */}
-                            <button
-                              onClick={() => startAssignment(assignment.id)}
-                              className="px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 flex items-center gap-2"
-                            >
-                              <Play className="w-4 h-4" />
-                              Commencer
+                            <button onClick={() => startAssignment(assignment.id)} className="px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 flex items-center gap-2">
+                              <Play className="w-4 h-4" />Commencer
                             </button>
                           </div>
                         </div>
@@ -1083,36 +1169,25 @@ export default function LearningPage() {
                           <div className="flex items-center gap-3">
                             <span className="text-2xl">{assignment.course_image || '📚'}</span>
                             <div>
-                              <p className="font-medium text-gray-900">{assignment.course_title}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-gray-900">{assignment.course_title}</p>
+                                {assignment.requires_certificate && (
+                                  <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs rounded flex items-center gap-1">
+                                    <FileWarning className="w-3 h-3" />Certif. requis
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-sm text-gray-500">{assignment.course_duration}h • Deadline: {assignment.deadline || 'Non définie'}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            {/* Lien vers formation externe */}
                             {assignment.course_external_url && (
-                              <a
-                                href={assignment.course_external_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="p-2 bg-white text-primary-600 rounded-lg hover:bg-primary-50 border border-primary-200"
-                                title="Continuer la formation"
-                              >
+                              <a href={assignment.course_external_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-2 bg-white text-primary-600 rounded-lg hover:bg-primary-50 border border-primary-200" title="Continuer la formation">
                                 <ExternalLink className="w-4 h-4" />
                               </a>
                             )}
-                            {/* Bouton Marquer terminée */}
-                            <button
-                              onClick={() => {
-                                setAssignmentToComplete(assignment);
-                                setCompletionNote('');
-                                setCompletionFile(null);
-                                setShowCompleteModal(true);
-                              }}
-                              className="px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 flex items-center gap-2"
-                            >
-                              <FileCheck className="w-4 h-4" />
-                              Terminer
+                            <button onClick={() => openCompleteModal(assignment)} className="px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 flex items-center gap-2">
+                              <FileCheck className="w-4 h-4" />Terminer
                             </button>
                           </div>
                         </div>
@@ -1136,12 +1211,21 @@ export default function LearningPage() {
                             <div>
                               <p className="font-medium text-gray-900">{assignment.course_title}</p>
                               <p className="text-sm text-gray-500">Soumis le {assignment.completed_at}</p>
+                              {assignment.certificate_file && (
+                                <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+                                  <FileCheck className="w-3 h-3" />Certificat uploadé
+                                </p>
+                              )}
                             </div>
                           </div>
-                          <span className="px-3 py-1 bg-amber-100 text-amber-700 text-sm font-medium rounded-full flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            En attente
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => openCompleteModal(assignment)} className="px-3 py-1.5 bg-white text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 border border-gray-300 flex items-center gap-1">
+                              <Edit className="w-4 h-4" />Modifier
+                            </button>
+                            <span className="px-3 py-1 bg-amber-100 text-amber-700 text-sm font-medium rounded-full flex items-center gap-1">
+                              <Clock className="w-4 h-4" />En attente
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1168,15 +1252,7 @@ export default function LearningPage() {
                                 )}
                               </div>
                             </div>
-                            <button
-                              onClick={() => {
-                                setAssignmentToComplete(assignment);
-                                setCompletionNote('');
-                                setCompletionFile(null);
-                                setShowCompleteModal(true);
-                              }}
-                              className="px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"
-                            >
+                            <button onClick={() => openCompleteModal(assignment)} className="px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
                               Resoumettre
                             </button>
                           </div>
@@ -1204,14 +1280,92 @@ export default function LearningPage() {
                             </div>
                           </div>
                           <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full flex items-center gap-1">
-                            <CheckCircle className="w-4 h-4" />
-                            Validé
+                            <CheckCircle className="w-4 h-4" />Validé
                           </span>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB: Mon Équipe (NOUVEAU) */}
+        {activeTab === 'team' && hasPermission(userRole, 'view_team') && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900">Formations de mon équipe</h3>
+              <p className="text-sm text-gray-500">{employees.length} membre(s)</p>
+            </div>
+            
+            {teamAssignments.length === 0 ? (
+              <div className="bg-white rounded-xl p-12 text-center">
+                <UsersRound className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">Aucune formation assignée à votre équipe</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {employees.map((emp) => {
+                  const empAssignments = teamAssignments.filter(a => a.employee_id === emp.id);
+                  if (empAssignments.length === 0) return null;
+                  
+                  const inProgress = empAssignments.filter(a => a.status === 'in_progress' || a.status === 'assigned').length;
+                  const pending = empAssignments.filter(a => a.status === 'pending_validation').length;
+                  const completed = empAssignments.filter(a => a.status === 'completed').length;
+                  
+                  return (
+                    <div key={emp.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                      <div className="p-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold">
+                            {emp.first_name[0]}{emp.last_name[0]}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900">{emp.first_name} {emp.last_name}</p>
+                            <p className="text-sm text-gray-500">{emp.job_title}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm">
+                          {inProgress > 0 && <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full">{inProgress} en cours</span>}
+                          {pending > 0 && <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-full">{pending} à valider</span>}
+                          {completed > 0 && <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full">{completed} terminé(s)</span>}
+                        </div>
+                      </div>
+                      <div className="p-4 space-y-2">
+                        {empAssignments.map((a) => (
+                          <div key={a.id} className={`flex items-center justify-between p-3 rounded-lg ${
+                            a.status === 'pending_validation' ? 'bg-amber-50' : 
+                            a.status === 'completed' ? 'bg-green-50' : 
+                            a.status === 'rejected' ? 'bg-red-50' : 'bg-gray-50'
+                          }`}>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xl">{a.course_image || '📚'}</span>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{a.course_title}</p>
+                                <p className="text-xs text-gray-500">{a.course_duration}h • Deadline: {a.deadline || 'Non définie'}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(a.status)}`}>
+                                {getStatusLabel(a.status)}
+                              </span>
+                              {a.status === 'pending_validation' && (
+                                <button 
+                                  onClick={() => { setSelectedAssignment(a); setShowValidationModal(true); }}
+                                  className="px-3 py-1 bg-amber-500 text-white text-xs font-medium rounded-lg hover:bg-amber-600"
+                                >
+                                  Valider
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1261,9 +1415,7 @@ export default function LearningPage() {
                           <div className={`h-full rounded-full ${path.progress === 100 ? 'bg-green-500' : 'bg-primary-500'}`} style={{ width: `${path.progress}%` }} />
                         </div>
                       </div>
-                      <button className="text-primary-600 hover:text-primary-700">
-                        <ChevronRight className="w-5 h-5" />
-                      </button>
+                      <button className="text-primary-600 hover:text-primary-700"><ChevronRight className="w-5 h-5" /></button>
                     </div>
                   </div>
                 ))}
@@ -1430,7 +1582,7 @@ export default function LearningPage() {
                             <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                               <span className="text-sm text-gray-900">{course.title}</span>
                               <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(course.status)}`}>
-                                {course.status === 'completed' ? 'Terminé' : course.status === 'in-progress' ? 'En cours' : 'Planifié'}
+                                {getStatusLabel(course.status)}
                               </span>
                             </div>
                           ))}
@@ -1572,20 +1724,21 @@ export default function LearningPage() {
           </div>
         )}
 
-        {/* ========================================
-            MODALS
-        ======================================== */}
+        {/* ============================================
+           MODALS
+        ============================================ */}
 
-        {/* Modal: Marquer formation terminée - NOUVEAU */}
+        {/* Modal: Compléter/Resoumettre formation */}
         {showCompleteModal && assignmentToComplete && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-md">
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-gray-900">Terminer la formation</h2>
-                  <button onClick={() => { setShowCompleteModal(false); setAssignmentToComplete(null); }} className="p-2 hover:bg-gray-100 rounded-lg">
-                    <X className="w-5 h-5" />
-                  </button>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {assignmentToComplete.status === 'pending_validation' ? 'Modifier la soumission' : 
+                     assignmentToComplete.status === 'rejected' ? 'Resoumettre' : 'Terminer la formation'}
+                  </h2>
+                  <button onClick={() => { setShowCompleteModal(false); setAssignmentToComplete(null); }} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
                 </div>
               </div>
               <div className="p-6 space-y-4">
@@ -1599,32 +1752,26 @@ export default function LearningPage() {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Note (optionnel)</label>
-                  <textarea
-                    value={completionNote}
-                    onChange={(e) => setCompletionNote(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    rows={3}
-                    placeholder="Commentaires sur la formation, difficultés rencontrées..."
-                  />
+                  <textarea value={completionNote} onChange={(e) => setCompletionNote(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={3} placeholder="Commentaires sur la formation..." />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Certificat/Justificatif (optionnel)</label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                    <input
-                      type="file"
-                      id="certificate-upload"
-                      className="hidden"
-                      accept=".pdf,.png,.jpg,.jpeg"
-                      onChange={(e) => setCompletionFile(e.target.files?.[0] || null)}
-                    />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Certificat/Justificatif {assignmentToComplete.requires_certificate ? <span className="text-red-500">*</span> : '(optionnel)'}
+                  </label>
+                  {assignmentToComplete.certificate_file && !completionFile && (
+                    <div className="mb-2 p-2 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+                      <FileCheck className="w-4 h-4 text-green-600" />
+                      <span className="text-sm text-green-700">Certificat déjà uploadé: {assignmentToComplete.certificate_filename}</span>
+                    </div>
+                  )}
+                  <div className={`border-2 border-dashed rounded-lg p-4 text-center ${assignmentToComplete.requires_certificate && !assignmentToComplete.certificate_file ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}>
+                    <input type="file" id="certificate-upload" className="hidden" accept=".pdf,.png,.jpg,.jpeg" onChange={(e) => setCompletionFile(e.target.files?.[0] || null)} />
                     {completionFile ? (
                       <div className="flex items-center justify-center gap-2">
                         <FileCheck className="w-5 h-5 text-green-600" />
                         <span className="text-sm text-gray-700">{completionFile.name}</span>
-                        <button onClick={() => setCompletionFile(null)} className="text-red-500 hover:text-red-700">
-                          <X className="w-4 h-4" />
-                        </button>
+                        <button onClick={() => setCompletionFile(null)} className="text-red-500 hover:text-red-700"><X className="w-4 h-4" /></button>
                       </div>
                     ) : (
                       <label htmlFor="certificate-upload" className="cursor-pointer">
@@ -1634,42 +1781,34 @@ export default function LearningPage() {
                       </label>
                     )}
                   </div>
+                  {assignmentToComplete.requires_certificate && !assignmentToComplete.certificate_file && !completionFile && (
+                    <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertTriangle className="w-3 h-3" />Un certificat est requis</p>
+                  )}
                 </div>
                 
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                  <p className="text-sm text-amber-800">
-                    <AlertTriangle className="w-4 h-4 inline mr-1" />
-                    Votre manager/RH devra valider la complétion de cette formation.
-                  </p>
+                  <p className="text-sm text-amber-800"><AlertTriangle className="w-4 h-4 inline mr-1" />Votre manager/RH devra valider la complétion.</p>
                 </div>
               </div>
               <div className="p-6 border-t border-gray-200 flex gap-3">
-                <button onClick={() => { setShowCompleteModal(false); setAssignmentToComplete(null); }} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
-                  Annuler
-                </button>
-                <button
-                  onClick={completeAssignment}
-                  disabled={isSubmitting}
-                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                  Soumettre
+                <button onClick={() => { setShowCompleteModal(false); setAssignmentToComplete(null); }} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+                <button onClick={completeAssignment} disabled={isSubmitting || (assignmentToComplete.requires_certificate && !assignmentToComplete.certificate_file && !completionFile)} className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 flex items-center justify-center gap-2">
+                  {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}Soumettre
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Course Detail Modal */}
+        {/* Modal: Détail Course */}
         {selectedCourse && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="relative h-48 bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
                 <span className="text-7xl">{selectedCourse.image_emoji || '📚'}</span>
-                <button onClick={() => setSelectedCourse(null)} className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-lg">
-                  <X className="w-5 h-5 text-white" />
-                </button>
+                <button onClick={() => setSelectedCourse(null)} className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-lg"><X className="w-5 h-5 text-white" /></button>
                 {selectedCourse.is_mandatory && <span className="absolute top-4 left-4 px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-lg">Obligatoire</span>}
+                {selectedCourse.requires_certificate && <span className="absolute top-4 left-28 px-3 py-1 bg-purple-500 text-white text-sm font-medium rounded-lg flex items-center gap-1"><FileWarning className="w-4 h-4" />Certificat requis</span>}
               </div>
               <div className="p-6">
                 <div className="flex items-center gap-2 mb-2">
@@ -1688,19 +1827,17 @@ export default function LearningPage() {
                     <ExternalLink className="w-4 h-4" />Accéder à la formation externe
                   </a>
                 )}
-                <div className="flex gap-3">
-                  {hasPermission(userRole, 'assign_course') && (
-                    <button onClick={() => { setAssignData({ ...assignData, course_id: selectedCourse.id.toString() }); setSelectedCourse(null); setShowAssignModal(true); }} className="flex-1 flex items-center justify-center px-4 py-3 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600">
-                      <User className="w-5 h-5 mr-2" />Assigner à un employé
-                    </button>
-                  )}
-                </div>
+                {hasPermission(userRole, 'assign_course') && (
+                  <button onClick={() => { setAssignData({ ...assignData, course_id: selectedCourse.id.toString() }); setSelectedCourse(null); setShowAssignModal(true); }} className="w-full flex items-center justify-center px-4 py-3 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600">
+                    <User className="w-5 h-5 mr-2" />Assigner à un employé
+                  </button>
+                )}
               </div>
             </div>
           </div>
         )}
 
-        {/* Create Course Modal */}
+        {/* Modal: Créer Formation */}
         {showCreateCourse && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
@@ -1743,7 +1880,7 @@ export default function LearningPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Durée (heures)</label>
-                    <input type="number" value={newCourse.duration_hours} onChange={(e) => setNewCourse({ ...newCourse, duration_hours: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: 8" />
+                    <input type="number" value={newCourse.duration_hours} onChange={(e) => setNewCourse({ ...newCourse, duration_hours: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="8" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Emoji</label>
@@ -1751,16 +1888,24 @@ export default function LearningPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur (ex: Coursera, Udemy)</label>
-                  <input type="text" value={newCourse.provider} onChange={(e) => setNewCourse({ ...newCourse, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label>
+                  <input type="text" value={newCourse.provider} onChange={(e) => setNewCourse({ ...newCourse, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Coursera, Udemy..." />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">URL externe (lien vers la formation)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">URL externe</label>
                   <input type="url" value={newCourse.external_url} onChange={(e) => setNewCourse({ ...newCourse, external_url: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="https://..." />
                 </div>
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" id="mandatory" checked={newCourse.is_mandatory} onChange={(e) => setNewCourse({ ...newCourse, is_mandatory: e.target.checked })} className="rounded" />
-                  <label htmlFor="mandatory" className="text-sm text-gray-700">Formation obligatoire</label>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="mandatory" checked={newCourse.is_mandatory} onChange={(e) => setNewCourse({ ...newCourse, is_mandatory: e.target.checked })} className="rounded" />
+                    <label htmlFor="mandatory" className="text-sm text-gray-700">Formation obligatoire</label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="requires_certificate" checked={newCourse.requires_certificate} onChange={(e) => setNewCourse({ ...newCourse, requires_certificate: e.target.checked })} className="rounded" />
+                    <label htmlFor="requires_certificate" className="text-sm text-gray-700 flex items-center gap-1">
+                      <FileWarning className="w-4 h-4 text-purple-600" />Certificat requis pour validation
+                    </label>
+                  </div>
                 </div>
               </div>
               <div className="p-6 border-t border-gray-200 flex gap-3">
@@ -1771,57 +1916,7 @@ export default function LearningPage() {
           </div>
         )}
 
-        {/* Create Path Modal */}
-        {showCreatePath && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-gray-900">Nouveau Parcours</h2>
-                  <button onClick={() => setShowCreatePath(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
-                </div>
-              </div>
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
-                  <input type="text" value={newPath.title} onChange={(e) => setNewPath({ ...newPath, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: Onboarding Développeur" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea value={newPath.description} onChange={(e) => setNewPath({ ...newPath, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
-                  <select value={newPath.category} onChange={(e) => setNewPath({ ...newPath, category: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                    <option value="Technique">Technique</option>
-                    <option value="Management">Management</option>
-                    <option value="Onboarding">Onboarding</option>
-                    <option value="Commercial">Commercial</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Formations du parcours</label>
-                  <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2">
-                    {courses.map((course) => (
-                      <label key={course.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
-                        <input type="checkbox" checked={newPath.course_ids.includes(course.id)} onChange={(e) => { if (e.target.checked) { setNewPath({ ...newPath, course_ids: [...newPath.course_ids, course.id] }); } else { setNewPath({ ...newPath, course_ids: newPath.course_ids.filter(id => id !== course.id) }); } }} className="rounded" />
-                        <span className="text-sm text-gray-700">{course.image_emoji} {course.title}</span>
-                        <span className="text-xs text-gray-400 ml-auto">{course.duration_hours}h</span>
-                      </label>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">{newPath.course_ids.length} formation(s) sélectionnée(s)</p>
-                </div>
-              </div>
-              <div className="p-6 border-t border-gray-200 flex gap-3">
-                <button onClick={() => setShowCreatePath(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
-                <button onClick={createPath} disabled={!newPath.title} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">Créer</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Assign Modal */}
+        {/* Modal: Assigner */}
         {showAssignModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-md">
@@ -1859,7 +1954,7 @@ export default function LearningPage() {
           </div>
         )}
 
-        {/* Validation Modal */}
+        {/* Modal: Validation */}
         {showValidationModal && selectedAssignment && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-md">
@@ -1890,6 +1985,12 @@ export default function LearningPage() {
                     <a href={`${API_URL}${selectedAssignment.certificate_file}`} target="_blank" rel="noopener noreferrer" className="ml-auto text-blue-600 hover:underline text-sm">Voir</a>
                   </div>
                 )}
+                {selectedAssignment.requires_certificate && !selectedAssignment.certificate_file && (
+                  <div className="mb-4 p-3 bg-red-50 rounded-lg flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-red-600" />
+                    <span className="text-sm text-red-700">Certificat requis mais non fourni!</span>
+                  </div>
+                )}
                 <div className="flex gap-3 mb-4">
                   <button onClick={() => setValidationData({ ...validationData, approved: true })} className={`flex-1 p-3 rounded-lg border-2 flex items-center justify-center gap-2 ${validationData.approved ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-500'}`}>
                     <Check className="w-5 h-5" />Approuver
@@ -1901,7 +2002,7 @@ export default function LearningPage() {
                 {!validationData.approved && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Raison du rejet</label>
-                    <textarea value={validationData.rejection_reason} onChange={(e) => setValidationData({ ...validationData, rejection_reason: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} placeholder="Expliquez pourquoi..." />
+                    <textarea value={validationData.rejection_reason} onChange={(e) => setValidationData({ ...validationData, rejection_reason: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} placeholder="Expliquez..." />
                   </div>
                 )}
               </div>
@@ -1915,7 +2016,7 @@ export default function LearningPage() {
           </div>
         )}
 
-        {/* Create Certification Modal */}
+        {/* Modal: Créer Certification */}
         {showCreateCertification && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-md">
@@ -1926,22 +2027,10 @@ export default function LearningPage() {
                 </div>
               </div>
               <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
-                  <input type="text" value={newCertification.name} onChange={(e) => setNewCertification({ ...newCertification, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: AWS Solutions Architect" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label>
-                  <input type="text" value={newCertification.provider} onChange={(e) => setNewCertification({ ...newCertification, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: Amazon" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea value={newCertification.description} onChange={(e) => setNewCertification({ ...newCertification, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Validité (mois)</label>
-                  <input type="number" value={newCertification.validity_months} onChange={(e) => setNewCertification({ ...newCertification, validity_months: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Laisser vide si permanent" />
-                </div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label><input type="text" value={newCertification.name} onChange={(e) => setNewCertification({ ...newCertification, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="AWS Solutions Architect" /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label><input type="text" value={newCertification.provider} onChange={(e) => setNewCertification({ ...newCertification, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Amazon" /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea value={newCertification.description} onChange={(e) => setNewCertification({ ...newCertification, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Validité (mois)</label><input type="number" value={newCertification.validity_months} onChange={(e) => setNewCertification({ ...newCertification, validity_months: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Permanent si vide" /></div>
               </div>
               <div className="p-6 border-t border-gray-200 flex gap-3">
                 <button onClick={() => setShowCreateCertification(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
@@ -1951,16 +2040,13 @@ export default function LearningPage() {
           </div>
         )}
 
-        {/* Cert Holders Modal */}
+        {/* Modal: Cert Holders */}
         {showCertHolders && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto">
               <div className="p-6 border-b border-gray-200 sticky top-0 bg-white">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">{showCertHolders.name}</h2>
-                    <p className="text-sm text-gray-500">{showCertHolders.provider}</p>
-                  </div>
+                  <div><h2 className="text-xl font-bold text-gray-900">{showCertHolders.name}</h2><p className="text-sm text-gray-500">{showCertHolders.provider}</p></div>
                   <button onClick={() => setShowCertHolders(null)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
                 </div>
               </div>
@@ -1972,17 +2058,9 @@ export default function LearningPage() {
                       <div key={holder.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium">{holder.employee_initials}</div>
-                          <div>
-                            <p className="font-medium text-gray-900">{holder.employee_name}</p>
-                            <p className="text-xs text-gray-500">Obtenue le {holder.obtained_date}</p>
-                          </div>
+                          <div><p className="font-medium text-gray-900">{holder.employee_name}</p><p className="text-xs text-gray-500">Obtenue le {holder.obtained_date}</p></div>
                         </div>
-                        <div className="text-right">
-                          <p className={`text-sm font-medium ${getCertStatusColor(holder.status)}`}>
-                            {holder.status === 'expiring' && <AlertTriangle className="w-3 h-3 inline mr-1" />}
-                            {holder.expiry_date}
-                          </p>
-                        </div>
+                        <div className="text-right"><p className={`text-sm font-medium ${getCertStatusColor(holder.status)}`}>{holder.status === 'expiring' && <AlertTriangle className="w-3 h-3 inline mr-1" />}{holder.expiry_date}</p></div>
                       </div>
                     ))}
                   </div>
@@ -1992,70 +2070,32 @@ export default function LearningPage() {
           </div>
         )}
 
-        {/* Create Plan Modal */}
+        {/* Modal: Créer Plan */}
         {showCreatePlan && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-gray-900">Nouveau Plan de Développement</h2>
-                  <button onClick={() => setShowCreatePlan(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
-                </div>
-              </div>
+              <div className="p-6 border-b border-gray-200"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-gray-900">Nouveau Plan de Développement</h2><button onClick={() => setShowCreatePlan(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div></div>
               <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Employé *</label>
-                  <select value={newPlan.employee_id} onChange={(e) => setNewPlan({ ...newPlan, employee_id: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                    <option value="">Sélectionner...</option>
-                    {employees.map((emp) => (<option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>))}
-                  </select>
-                </div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Employé *</label><select value={newPlan.employee_id} onChange={(e) => setNewPlan({ ...newPlan, employee_id: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="">Sélectionner...</option>{employees.map((emp) => (<option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>))}</select></div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Poste actuel</label>
-                    <input type="text" value={newPlan.current_role} onChange={(e) => setNewPlan({ ...newPlan, current_role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Poste cible</label>
-                    <input type="text" value={newPlan.target_role} onChange={(e) => setNewPlan({ ...newPlan, target_role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-                  </div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Poste actuel</label><input type="text" value={newPlan.current_role} onChange={(e) => setNewPlan({ ...newPlan, current_role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Poste cible</label><input type="text" value={newPlan.target_role} onChange={(e) => setNewPlan({ ...newPlan, target_role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
                 </div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Date cible</label><input type="date" value={newPlan.target_date} onChange={(e) => setNewPlan({ ...newPlan, target_date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date cible</label>
-                  <input type="date" value={newPlan.target_date} onChange={(e) => setNewPlan({ ...newPlan, target_date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700">Compétences à développer</label>
-                    <button onClick={() => setShowCreateSkill(true)} className="text-xs text-primary-600 hover:text-primary-700 flex items-center"><Plus className="w-3 h-3 mr-1" />Ajouter</button>
-                  </div>
-                  {skills.length === 0 ? (
-                    <div className="text-center py-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-500 mb-2">Aucune compétence</p>
-                      <button onClick={() => setShowCreateSkill(true)} className="text-sm text-primary-600 hover:underline">Créer</button>
-                    </div>
-                  ) : (
+                  <div className="flex items-center justify-between mb-2"><label className="block text-sm font-medium text-gray-700">Compétences</label><button onClick={() => setShowCreateSkill(true)} className="text-xs text-primary-600 hover:text-primary-700 flex items-center"><Plus className="w-3 h-3 mr-1" />Ajouter</button></div>
+                  {skills.length === 0 ? (<div className="text-center py-4 bg-gray-50 rounded-lg"><p className="text-sm text-gray-500">Aucune compétence</p></div>) : (
                     <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2">
-                      {skills.map((skill) => (
-                        <label key={skill.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
-                          <input type="checkbox" checked={newPlan.skill_ids.includes(skill.id)} onChange={(e) => { if (e.target.checked) { setNewPlan({ ...newPlan, skill_ids: [...newPlan.skill_ids, skill.id] }); } else { setNewPlan({ ...newPlan, skill_ids: newPlan.skill_ids.filter(id => id !== skill.id) }); } }} className="rounded" />
-                          <span className="text-sm text-gray-700">{skill.name}</span>
-                          <span className="text-xs text-gray-400">({skill.category})</span>
-                        </label>
-                      ))}
+                      {skills.map((skill) => (<label key={skill.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded"><input type="checkbox" checked={newPlan.skill_ids.includes(skill.id)} onChange={(e) => { if (e.target.checked) { setNewPlan({ ...newPlan, skill_ids: [...newPlan.skill_ids, skill.id] }); } else { setNewPlan({ ...newPlan, skill_ids: newPlan.skill_ids.filter(id => id !== skill.id) }); } }} className="rounded" /><span className="text-sm text-gray-700">{skill.name}</span><span className="text-xs text-gray-400">({skill.category})</span></label>))}
                     </div>
                   )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Formations à assigner</label>
                   <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2">
-                    {courses.map((course) => (
-                      <label key={course.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
-                        <input type="checkbox" checked={newPlan.course_ids.includes(course.id)} onChange={(e) => { if (e.target.checked) { setNewPlan({ ...newPlan, course_ids: [...newPlan.course_ids, course.id] }); } else { setNewPlan({ ...newPlan, course_ids: newPlan.course_ids.filter(id => id !== course.id) }); } }} className="rounded" />
-                        <span className="text-sm text-gray-700">{course.title}</span>
-                      </label>
-                    ))}
+                    {courses.map((course) => (<label key={course.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded"><input type="checkbox" checked={newPlan.course_ids.includes(course.id)} onChange={(e) => { if (e.target.checked) { setNewPlan({ ...newPlan, course_ids: [...newPlan.course_ids, course.id] }); } else { setNewPlan({ ...newPlan, course_ids: newPlan.course_ids.filter(id => id !== course.id) }); } }} className="rounded" /><span className="text-sm text-gray-700">{course.title}</span></label>))}
                   </div>
+                  <p className="text-xs text-blue-600 mt-1 flex items-center gap-1"><CheckCircle className="w-3 h-3" />Les formations seront automatiquement assignées</p>
                 </div>
               </div>
               <div className="p-6 border-t border-gray-200 flex gap-3">
@@ -2066,66 +2106,23 @@ export default function LearningPage() {
           </div>
         )}
 
-        {/* Edit Plan Modal */}
+        {/* Modal: Edit Plan */}
         {showEditPlan && selectedPlan && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-gray-900">Modifier le Plan</h2>
-                  <button onClick={() => { setShowEditPlan(false); setSelectedPlan(null); }} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
-                </div>
-              </div>
+              <div className="p-6 border-b border-gray-200"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-gray-900">Modifier le Plan</h2><button onClick={() => { setShowEditPlan(false); setSelectedPlan(null); }} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div></div>
               <div className="p-6 space-y-4">
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold">{selectedPlan.initials}</div>
-                  <div>
-                    <p className="font-medium text-gray-900">{selectedPlan.employee}</p>
-                    <p className="text-sm text-gray-500">{selectedPlan.role}</p>
-                  </div>
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"><div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold">{selectedPlan.initials}</div><div><p className="font-medium text-gray-900">{selectedPlan.employee}</p><p className="text-sm text-gray-500">{selectedPlan.role}</p></div></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Poste cible</label><input type="text" value={editPlanData.target_role} onChange={(e) => setEditPlanData({ ...editPlanData, target_role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Date cible</label><input type="date" value={editPlanData.target_date} onChange={(e) => setEditPlanData({ ...editPlanData, target_date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+                <div>
+                  <div className="flex items-center justify-between mb-2"><label className="block text-sm font-medium text-gray-700">Compétences</label><span className="text-xs text-gray-500">{editPlanData.skill_ids.length} sélectionnée(s)</span></div>
+                  {skills.length > 0 && (<div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2">{skills.map((skill) => (<label key={skill.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" checked={editPlanData.skill_ids.includes(skill.id)} onChange={(e) => { if (e.target.checked) { setEditPlanData({ ...editPlanData, skill_ids: [...editPlanData.skill_ids, skill.id] }); } else { setEditPlanData({ ...editPlanData, skill_ids: editPlanData.skill_ids.filter(id => id !== skill.id) }); } }} className="rounded text-primary-600" /><span className="text-sm text-gray-700">{skill.name}</span><span className="text-xs text-gray-400 ml-auto">({skill.category})</span></label>))}</div>)}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Poste cible</label>
-                  <input type="text" value={editPlanData.target_role} onChange={(e) => setEditPlanData({ ...editPlanData, target_role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date cible</label>
-                  <input type="date" value={editPlanData.target_date} onChange={(e) => setEditPlanData({ ...editPlanData, target_date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700">Compétences à développer</label>
-                    <span className="text-xs text-gray-500">{editPlanData.skill_ids.length} sélectionnée(s)</span>
-                  </div>
-                  {skills.length === 0 ? (
-                    <div className="text-center py-4 bg-gray-50 rounded-lg"><p className="text-sm text-gray-500">Aucune compétence</p></div>
-                  ) : (
-                    <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2">
-                      {skills.map((skill) => (
-                        <label key={skill.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
-                          <input type="checkbox" checked={editPlanData.skill_ids.includes(skill.id)} onChange={(e) => { if (e.target.checked) { setEditPlanData({ ...editPlanData, skill_ids: [...editPlanData.skill_ids, skill.id] }); } else { setEditPlanData({ ...editPlanData, skill_ids: editPlanData.skill_ids.filter(id => id !== skill.id) }); } }} className="rounded text-primary-600" />
-                          <span className="text-sm text-gray-700">{skill.name}</span>
-                          <span className="text-xs text-gray-400 ml-auto">({skill.category})</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700">Formations à assigner</label>
-                    <span className="text-xs text-gray-500">{editPlanData.course_ids.length} sélectionnée(s)</span>
-                  </div>
-                  <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2">
-                    {courses.map((course) => (
-                      <label key={course.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
-                        <input type="checkbox" checked={editPlanData.course_ids.includes(course.id)} onChange={(e) => { if (e.target.checked) { setEditPlanData({ ...editPlanData, course_ids: [...editPlanData.course_ids, course.id] }); } else { setEditPlanData({ ...editPlanData, course_ids: editPlanData.course_ids.filter(id => id !== course.id) }); } }} className="rounded text-primary-600" />
-                        <span className="text-2xl">{course.image_emoji || '📚'}</span>
-                        <span className="text-sm text-gray-700 flex-1">{course.title}</span>
-                        <span className="text-xs text-gray-400">{course.duration_hours}h</span>
-                      </label>
-                    ))}
-                  </div>
+                  <div className="flex items-center justify-between mb-2"><label className="block text-sm font-medium text-gray-700">Formations</label><span className="text-xs text-gray-500">{editPlanData.course_ids.length} sélectionnée(s)</span></div>
+                  <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2">{courses.map((course) => (<label key={course.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" checked={editPlanData.course_ids.includes(course.id)} onChange={(e) => { if (e.target.checked) { setEditPlanData({ ...editPlanData, course_ids: [...editPlanData.course_ids, course.id] }); } else { setEditPlanData({ ...editPlanData, course_ids: editPlanData.course_ids.filter(id => id !== course.id) }); } }} className="rounded text-primary-600" /><span className="text-2xl">{course.image_emoji || '📚'}</span><span className="text-sm text-gray-700 flex-1">{course.title}</span><span className="text-xs text-gray-400">{course.duration_hours}h</span></label>))}</div>
+                  <p className="text-xs text-blue-600 mt-1 flex items-center gap-1"><CheckCircle className="w-3 h-3" />Les nouvelles formations seront auto-assignées</p>
                 </div>
               </div>
               <div className="p-6 border-t border-gray-200 flex gap-3">
@@ -2136,124 +2133,81 @@ export default function LearningPage() {
           </div>
         )}
 
-        {/* Cancel Plan Modal */}
+        {/* Modal: Cancel Plan */}
         {showCancelPlan && planToCancel && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-md">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-gray-900">Annuler le Plan</h2>
-                  <button onClick={() => { setShowCancelPlan(false); setPlanToCancel(null); setCancelReason(''); }} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
-                </div>
-              </div>
+              <div className="p-6 border-b border-gray-200"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-gray-900">Annuler le Plan</h2><button onClick={() => { setShowCancelPlan(false); setPlanToCancel(null); setCancelReason(''); }} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div></div>
               <div className="p-6 space-y-4">
-                <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
-                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-700 font-bold">{planToCancel.initials}</div>
-                  <div>
-                    <p className="font-medium text-gray-900">{planToCancel.employee}</p>
-                    <p className="text-sm text-gray-500">{planToCancel.role} → {planToCancel.targetRole}</p>
-                  </div>
-                </div>
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-amber-800">Attention</p>
-                      <p className="text-xs text-amber-700">Cette action est irréversible.</p>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Motif d&apos;annulation *</label>
-                  <textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={3} placeholder="Ex: Départ de l'employé, réorientation..." />
-                </div>
+                <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200"><div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-700 font-bold">{planToCancel.initials}</div><div><p className="font-medium text-gray-900">{planToCancel.employee}</p><p className="text-sm text-gray-500">{planToCancel.role} → {planToCancel.targetRole}</p></div></div>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3"><div className="flex items-start gap-2"><AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" /><div><p className="text-sm font-medium text-amber-800">Attention</p><p className="text-xs text-amber-700">Cette action est irréversible.</p></div></div></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Motif d&apos;annulation *</label><textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={3} placeholder="Ex: Départ de l'employé..." /></div>
               </div>
               <div className="p-6 border-t border-gray-200 flex gap-3">
                 <button onClick={() => { setShowCancelPlan(false); setPlanToCancel(null); setCancelReason(''); }} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Retour</button>
-                <button onClick={cancelDevelopmentPlan} disabled={!cancelReason.trim()} className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-2">
-                  <Ban className="w-4 h-4" />Annuler le plan
-                </button>
+                <button onClick={cancelDevelopmentPlan} disabled={!cancelReason.trim()} className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-2"><Ban className="w-4 h-4" />Annuler le plan</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Request Course Modal */}
+        {/* Modal: Créer Parcours */}
+        {showCreatePath && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-gray-200"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-gray-900">Nouveau Parcours</h2><button onClick={() => setShowCreatePath(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div></div>
+              <div className="p-6 space-y-4">
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label><input type="text" value={newPath.title} onChange={(e) => setNewPath({ ...newPath, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Onboarding Développeur" /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea value={newPath.description} onChange={(e) => setNewPath({ ...newPath, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label><select value={newPath.category} onChange={(e) => setNewPath({ ...newPath, category: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="Technique">Technique</option><option value="Management">Management</option><option value="Onboarding">Onboarding</option><option value="Commercial">Commercial</option></select></div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Formations</label>
+                  <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2">
+                    {courses.map((course) => (<label key={course.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded"><input type="checkbox" checked={newPath.course_ids.includes(course.id)} onChange={(e) => { if (e.target.checked) { setNewPath({ ...newPath, course_ids: [...newPath.course_ids, course.id] }); } else { setNewPath({ ...newPath, course_ids: newPath.course_ids.filter(id => id !== course.id) }); } }} className="rounded" /><span className="text-sm text-gray-700">{course.image_emoji} {course.title}</span><span className="text-xs text-gray-400 ml-auto">{course.duration_hours}h</span></label>))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">{newPath.course_ids.length} formation(s)</p>
+                </div>
+              </div>
+              <div className="p-6 border-t border-gray-200 flex gap-3">
+                <button onClick={() => setShowCreatePath(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+                <button onClick={createPath} disabled={!newPath.title} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">Créer</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Demander Formation */}
         {showRequestCourse && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-gray-900">Demander une Formation</h2>
-                  <button onClick={() => setShowRequestCourse(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
-                </div>
-              </div>
+              <div className="p-6 border-b border-gray-200"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-gray-900">Demander une Formation</h2><button onClick={() => setShowRequestCourse(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div></div>
               <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Titre de la formation *</label>
-                  <input type="text" value={newRequest.title} onChange={(e) => setNewRequest({ ...newRequest, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: Formation React Avancé" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea value={newRequest.description} onChange={(e) => setNewRequest({ ...newRequest, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} placeholder="De quoi parle cette formation ?" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Pourquoi cette formation ? *</label>
-                  <textarea value={newRequest.reason} onChange={(e) => setNewRequest({ ...newRequest, reason: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} placeholder="Expliquez en quoi elle serait utile..." />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Lien (si connu)</label>
-                  <input type="url" value={newRequest.external_url} onChange={(e) => setNewRequest({ ...newRequest, external_url: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="https://..." />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur suggéré</label>
-                  <input type="text" value={newRequest.provider} onChange={(e) => setNewRequest({ ...newRequest, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: Coursera, LinkedIn Learning..." />
-                </div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label><input type="text" value={newRequest.title} onChange={(e) => setNewRequest({ ...newRequest, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Formation React Avancé" /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea value={newRequest.description} onChange={(e) => setNewRequest({ ...newRequest, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Pourquoi ? *</label><textarea value={newRequest.reason} onChange={(e) => setNewRequest({ ...newRequest, reason: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} placeholder="En quoi serait-elle utile..." /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Lien (optionnel)</label><input type="url" value={newRequest.external_url} onChange={(e) => setNewRequest({ ...newRequest, external_url: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="https://..." /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label><input type="text" value={newRequest.provider} onChange={(e) => setNewRequest({ ...newRequest, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Coursera, LinkedIn..." /></div>
                 {hasPermission(userRole, 'assign_course') && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Pour qui ? (optionnel)</label>
-                    <select value={newRequest.for_employee_id} onChange={(e) => setNewRequest({ ...newRequest, for_employee_id: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                      <option value="">Pour moi-même</option>
-                      {employees.map((emp) => (<option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>))}
-                    </select>
-                  </div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Pour qui ?</label><select value={newRequest.for_employee_id} onChange={(e) => setNewRequest({ ...newRequest, for_employee_id: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="">Moi-même</option>{employees.map((emp) => (<option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>))}</select></div>
                 )}
               </div>
               <div className="p-6 border-t border-gray-200 flex gap-3">
                 <button onClick={() => setShowRequestCourse(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
-                <button onClick={submitCourseRequest} disabled={!newRequest.title || !newRequest.reason} className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 flex items-center justify-center">
-                  <Send className="w-4 h-4 mr-2" />Envoyer
-                </button>
+                <button onClick={submitCourseRequest} disabled={!newRequest.title || !newRequest.reason} className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 flex items-center justify-center"><Send className="w-4 h-4 mr-2" />Envoyer</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Create Skill Modal */}
+        {/* Modal: Créer Compétence */}
         {showCreateSkill && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-md">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-gray-900">Nouvelle Compétence</h2>
-                  <button onClick={() => setShowCreateSkill(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
-                </div>
-              </div>
+              <div className="p-6 border-b border-gray-200"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-gray-900">Nouvelle Compétence</h2><button onClick={() => setShowCreateSkill(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div></div>
               <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
-                  <input type="text" value={newSkill.name} onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: Leadership, Python..." />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
-                  <select value={newSkill.category} onChange={(e) => setNewSkill({ ...newSkill, category: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                    {skillCategories.map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea value={newSkill.description} onChange={(e) => setNewSkill({ ...newSkill, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} />
-                </div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label><input type="text" value={newSkill.name} onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Leadership, Python..." /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label><select value={newSkill.category} onChange={(e) => setNewSkill({ ...newSkill, category: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{skillCategories.map((cat) => (<option key={cat} value={cat}>{cat}</option>))}</select></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea value={newSkill.description} onChange={(e) => setNewSkill({ ...newSkill, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} /></div>
               </div>
               <div className="p-6 border-t border-gray-200 flex gap-3">
                 <button onClick={() => setShowCreateSkill(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>

@@ -119,11 +119,11 @@ const navigation: NavItem[] = [
     roles: ['rh', 'admin', 'dg']
   },
   {
-  name: 'Certificats',
-  href: '/dashboard/certificates',
-  icon: FileText,
-  roles: ['admin', 'dg', 'rh']
-},
+    name: 'Certificats',
+    href: '/dashboard/certificates',
+    icon: FileText,
+    roles: ['admin', 'dg', 'rh']
+  },
   { 
     name: 'Paramètres', 
     href: '/dashboard/settings', 
@@ -275,114 +275,322 @@ export default function Sidebar() {
     
     if (item.disabled) {
       return (
-        <div className={`flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'} rounded-lg cursor-not-allowed opacity-50 group relative`} title={item.disabledReason || 'Non disponible'}>
+        <div 
+          className={`flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'} rounded-lg cursor-not-allowed opacity-50 group relative`} 
+          title={item.disabledReason || 'Non disponible'}
+        >
           <item.icon className={`w-5 h-5 text-gray-500 ${isCollapsed ? '' : 'mr-3'}`} />
-          {!isCollapsed && (<><span className="text-sm font-medium text-gray-500 flex-1">{item.name}</span><Lock className="w-3.5 h-3.5 text-gray-600" /></>)}
-          {showTooltip && (<div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-gray-400 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">{item.name} - {item.disabledReason}</div>)}
+          {!isCollapsed && (
+            <>
+              <span className="text-sm font-medium text-gray-500 flex-1">{item.name}</span>
+              <Lock className="w-3.5 h-3.5 text-gray-600" />
+            </>
+          )}
+          {showTooltip && (
+            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-gray-400 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+              {item.name} - {item.disabledReason}
+            </div>
+          )}
         </div>
       );
     }
     
     return (
-      <Link href={item.href} className={`flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'} rounded-lg transition-colors group relative ${isActive ? 'bg-primary-500 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`} title={isCollapsed ? item.name : undefined}>
+      <Link 
+        href={item.href} 
+        className={`flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'} rounded-lg transition-colors group relative ${isActive ? 'bg-primary-500 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`} 
+        title={isCollapsed ? item.name : undefined}
+      >
         <item.icon className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
         {!isCollapsed && <span className="text-sm font-medium">{item.name}</span>}
-        {showTooltip && (<div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">{item.name}</div>)}
+        {showTooltip && (
+          <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+            {item.name}
+          </div>
+        )}
       </Link>
     );
   };
 
-  // Mode Mon Espace
+  // ============================================
+  // MODE MON ESPACE
+  // ============================================
   if (inMySpace) {
     return (
       <div className="flex h-screen sticky top-0">
+        {/* Sidebar icônes */}
         <aside className="w-20 bg-dark h-screen flex flex-col border-r border-gray-700 overflow-hidden">
           <div className="h-16 flex items-center justify-center border-b border-gray-700 flex-shrink-0">
-            <Link href="/dashboard"><div className="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center"><span className="text-white font-bold">T</span></div></Link>
+            <Link href="/dashboard">
+              <div className="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold">T</span>
+              </div>
+            </Link>
           </div>
-          <nav className="flex-1 py-6 px-2 space-y-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-            {filteredNavigation.map((item) => (<NavItemComponent key={item.name} item={item} isCollapsed={true} showTooltip={true} />))}
+          {/* ✅ SCROLLBAR FIN */}
+          <nav className="flex-1 py-6 px-2 space-y-2 overflow-y-auto overflow-x-hidden sidebar-scroll">
+            {filteredNavigation.map((item) => (
+              <NavItemComponent key={item.name} item={item} isCollapsed={true} showTooltip={true} />
+            ))}
             <div className="border-t border-gray-700 my-4" />
-            <div className="flex items-center justify-center p-3 rounded-lg bg-primary-500 text-white relative group" title="Mon Espace"><User className="w-5 h-5" /></div>
+            <div 
+              className="flex items-center justify-center p-3 rounded-lg bg-primary-500 text-white relative group" 
+              title="Mon Espace"
+            >
+              <User className="w-5 h-5" />
+            </div>
           </nav>
           <div className="p-4 border-t border-gray-700 flex-shrink-0">
-            <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium mx-auto">{initials}</div>
-            <button onClick={handleLogout} className="mt-4 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" title="Déconnexion"><LogOut className="w-5 h-5" /></button>
+            <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium mx-auto">
+              {initials}
+            </div>
+            <button 
+              onClick={handleLogout} 
+              className="mt-4 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" 
+              title="Déconnexion"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
         </aside>
+
+        {/* Sous-menu Mon Espace */}
         <aside className="w-56 bg-gray-900 h-screen flex flex-col overflow-hidden">
-          <div className="h-16 flex items-center px-4 border-b border-gray-700 flex-shrink-0"><User className="w-5 h-5 text-primary-400 mr-3" /><span className="font-semibold text-white">Mon Espace</span></div>
-          <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+          <div className="h-16 flex items-center px-4 border-b border-gray-700 flex-shrink-0">
+            <User className="w-5 h-5 text-primary-400 mr-3" />
+            <span className="font-semibold text-white">Mon Espace</span>
+          </div>
+          {/* ✅ SCROLLBAR FIN */}
+          <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
             {filteredMySpaceNav.map((item) => {
               const isActive = pathname === item.href;
-              return (<Link key={item.name} href={item.href} className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${isActive ? 'bg-primary-500/20 text-primary-400 border-l-2 border-primary-500' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}><item.icon className="w-5 h-5 mr-3" /><span className="text-sm font-medium">{item.name}</span></Link>);
+              return (
+                <Link 
+                  key={item.name} 
+                  href={item.href} 
+                  className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+                    isActive 
+                      ? 'bg-primary-500/20 text-primary-400 border-l-2 border-primary-500' 
+                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5 mr-3" />
+                  <span className="text-sm font-medium">{item.name}</span>
+                </Link>
+              );
             })}
           </nav>
-          <div className="p-4 border-t border-gray-700 flex-shrink-0"><Link href="/dashboard" className="flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"><ChevronLeft className="w-4 h-4 mr-2" />Retour au menu</Link></div>
+          <div className="p-4 border-t border-gray-700 flex-shrink-0">
+            <Link 
+              href="/dashboard" 
+              className="flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Retour au menu
+            </Link>
+          </div>
         </aside>
       </div>
     );
   }
 
-  // Mode Performance
+  // ============================================
+  // MODE PERFORMANCE
+  // ============================================
   if (inPerformance) {
     return (
       <div className="flex h-screen sticky top-0">
+        {/* Sidebar icônes */}
         <aside className="w-20 bg-dark h-screen flex flex-col border-r border-gray-700 overflow-hidden">
           <div className="h-16 flex items-center justify-center border-b border-gray-700 flex-shrink-0">
-            <Link href="/dashboard"><div className="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center"><span className="text-white font-bold">T</span></div></Link>
+            <Link href="/dashboard">
+              <div className="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold">T</span>
+              </div>
+            </Link>
           </div>
-          <nav className="flex-1 py-6 px-2 space-y-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+          {/* ✅ SCROLLBAR FIN */}
+          <nav className="flex-1 py-6 px-2 space-y-2 overflow-y-auto overflow-x-hidden sidebar-scroll">
             {filteredNavigation.map((item) => {
               const isPerformanceItem = item.href === '/dashboard/performance';
               if (item.disabled) {
-                return (<div key={item.name} className="flex items-center justify-center p-3 rounded-lg cursor-not-allowed opacity-50 group relative" title={item.disabledReason || 'Non disponible'}><item.icon className="w-5 h-5 text-gray-500" /><div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-gray-400 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">{item.name} - {item.disabledReason}</div></div>);
+                return (
+                  <div 
+                    key={item.name} 
+                    className="flex items-center justify-center p-3 rounded-lg cursor-not-allowed opacity-50 group relative" 
+                    title={item.disabledReason || 'Non disponible'}
+                  >
+                    <item.icon className="w-5 h-5 text-gray-500" />
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-gray-400 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+                      {item.name} - {item.disabledReason}
+                    </div>
+                  </div>
+                );
               }
-              const isActive = isPerformanceItem ? true : (pathname === item.href || (item.href !== '/dashboard' && !item.href.includes('performance') && pathname.startsWith(item.href)));
-              return (<Link key={item.name} href={item.href} className={`flex items-center justify-center p-3 rounded-lg transition-colors group relative ${isActive ? 'bg-primary-500 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`} title={item.name}><item.icon className="w-5 h-5" /><div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">{item.name}</div></Link>);
+              const isActive = isPerformanceItem 
+                ? true 
+                : (pathname === item.href || (item.href !== '/dashboard' && !item.href.includes('performance') && pathname.startsWith(item.href)));
+              return (
+                <Link 
+                  key={item.name} 
+                  href={item.href} 
+                  className={`flex items-center justify-center p-3 rounded-lg transition-colors group relative ${
+                    isActive ? 'bg-primary-500 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  }`} 
+                  title={item.name}
+                >
+                  <item.icon className="w-5 h-5" />
+                  <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+                    {item.name}
+                  </div>
+                </Link>
+              );
             })}
             <div className="border-t border-gray-700 my-4" />
-            <Link href="/dashboard/my-space" className="flex items-center justify-center p-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors group relative" title="Mon Espace"><User className="w-5 h-5" /><div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">Mon Espace</div></Link>
+            <Link 
+              href="/dashboard/my-space" 
+              className="flex items-center justify-center p-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors group relative" 
+              title="Mon Espace"
+            >
+              <User className="w-5 h-5" />
+              <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+                Mon Espace
+              </div>
+            </Link>
           </nav>
           <div className="p-4 border-t border-gray-700 flex-shrink-0">
-            <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium mx-auto">{initials}</div>
-            <button onClick={handleLogout} className="mt-4 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" title="Déconnexion"><LogOut className="w-5 h-5" /></button>
+            <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium mx-auto">
+              {initials}
+            </div>
+            <button 
+              onClick={handleLogout} 
+              className="mt-4 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" 
+              title="Déconnexion"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
         </aside>
+
+        {/* Sous-menu Performance */}
         <aside className="w-56 bg-gray-900 h-screen flex flex-col overflow-hidden">
-          <div className="h-16 flex items-center px-4 border-b border-gray-700 flex-shrink-0"><TrendingUp className="w-5 h-5 text-primary-400 mr-3" /><span className="font-semibold text-white">Performance</span></div>
-          <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+          <div className="h-16 flex items-center px-4 border-b border-gray-700 flex-shrink-0">
+            <TrendingUp className="w-5 h-5 text-primary-400 mr-3" />
+            <span className="font-semibold text-white">Performance</span>
+          </div>
+          {/* ✅ SCROLLBAR FIN */}
+          <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
             {filteredPerformanceNav.map((item) => {
               const isActive = pathname === item.href;
-              return (<Link key={item.name} href={item.href} className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${isActive ? 'bg-primary-500/20 text-primary-400 border-l-2 border-primary-500' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}><item.icon className="w-5 h-5 mr-3" /><span className="text-sm font-medium">{item.name}</span></Link>);
+              return (
+                <Link 
+                  key={item.name} 
+                  href={item.href} 
+                  className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+                    isActive 
+                      ? 'bg-primary-500/20 text-primary-400 border-l-2 border-primary-500' 
+                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5 mr-3" />
+                  <span className="text-sm font-medium">{item.name}</span>
+                </Link>
+              );
             })}
           </nav>
-          <div className="p-4 border-t border-gray-700 flex-shrink-0"><Link href="/dashboard" className="flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"><ChevronLeft className="w-4 h-4 mr-2" />Retour au menu</Link></div>
+          <div className="p-4 border-t border-gray-700 flex-shrink-0">
+            <Link 
+              href="/dashboard" 
+              className="flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Retour au menu
+            </Link>
+          </div>
         </aside>
       </div>
     );
   }
 
-  // Mode normal
+  // ============================================
+  // MODE NORMAL
+  // ============================================
   return (
     <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-dark h-screen flex flex-col transition-all duration-300 sticky top-0 overflow-hidden`}>
+      {/* Header */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-gray-700 flex-shrink-0">
-        {!collapsed && (<Link href="/dashboard" className="flex items-center space-x-2"><div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center"><span className="text-white font-bold text-sm">T</span></div><span className="font-bold text-white">Targetym AI</span></Link>)}
-        {collapsed && (<div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center mx-auto"><span className="text-white font-bold text-sm">T</span></div>)}
-        <button onClick={() => setCollapsed(!collapsed)} className="text-gray-400 hover:text-white p-1">{collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}</button>
+        {!collapsed && (
+          <Link href="/dashboard" className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">T</span>
+            </div>
+            <span className="font-bold text-white">Targetym AI</span>
+          </Link>
+        )}
+        {collapsed && (
+          <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center mx-auto">
+            <span className="text-white font-bold text-sm">T</span>
+          </div>
+        )}
+        <button 
+          onClick={() => setCollapsed(!collapsed)} 
+          className="text-gray-400 hover:text-white p-1"
+        >
+          {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+        </button>
       </div>
-      <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-        {filteredNavigation.map((item) => (<NavItemComponent key={item.name} item={item} isCollapsed={collapsed} showTooltip={collapsed} />))}
+
+      {/* ✅ NAVIGATION avec SCROLLBAR FIN */}
+      <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
+        {filteredNavigation.map((item) => (
+          <NavItemComponent key={item.name} item={item} isCollapsed={collapsed} showTooltip={collapsed} />
+        ))}
         <div className="border-t border-gray-700 my-4" />
-        <Link href="/dashboard/my-space" className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${pathname.startsWith('/dashboard/my-space') ? 'bg-primary-500 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`} title={collapsed ? 'Mon Espace' : undefined}><User className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />{!collapsed && <span className="text-sm font-medium">Mon Espace</span>}</Link>
+        <Link 
+          href="/dashboard/my-space" 
+          className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+            pathname.startsWith('/dashboard/my-space') 
+              ? 'bg-primary-500 text-white' 
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`} 
+          title={collapsed ? 'Mon Espace' : undefined}
+        >
+          <User className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
+          {!collapsed && <span className="text-sm font-medium">Mon Espace</span>}
+        </Link>
       </nav>
+
+      {/* Footer User */}
       <div className="p-4 border-t border-gray-700 flex-shrink-0">
         <div className={`flex items-center ${collapsed ? 'justify-center' : ''}`}>
-          <div className="w-9 h-9 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">{initials}</div>
-          {!collapsed && (<div className="ml-3 flex-1"><div className="text-sm font-medium text-white truncate">{displayName}</div><div className="text-xs text-gray-400 capitalize">{userRole}</div></div>)}
+          <div className="w-9 h-9 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
+            {initials}
+          </div>
+          {!collapsed && (
+            <div className="ml-3 flex-1">
+              <div className="text-sm font-medium text-white truncate">{displayName}</div>
+              <div className="text-xs text-gray-400 capitalize">{userRole}</div>
+            </div>
+          )}
         </div>
-        {!collapsed && (<button onClick={handleLogout} className="mt-4 w-full flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"><LogOut className="w-4 h-4 mr-2" />Déconnexion</button>)}
-        {collapsed && (<button onClick={handleLogout} className="mt-4 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" title="Déconnexion"><LogOut className="w-5 h-5" /></button>)}
+        {!collapsed && (
+          <button 
+            onClick={handleLogout} 
+            className="mt-4 w-full flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Déconnexion
+          </button>
+        )}
+        {collapsed && (
+          <button 
+            onClick={handleLogout} 
+            className="mt-4 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" 
+            title="Déconnexion"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        )}
       </div>
     </aside>
   );

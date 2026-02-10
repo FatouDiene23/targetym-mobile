@@ -10,3 +10,93 @@ body {
   color: #374151;
   background: #F8FAFC;
 }
+
+/* ============================================
+   CUSTOM SCROLLBAR STYLES
+   Ajouter ces styles à la fin de app/globals.css
+   ============================================ */
+
+/* ===== SCROLLBAR GLOBAL - FIN ET ÉLÉGANT ===== */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(75, 85, 99, 0.5) transparent;
+}
+
+/* Chrome, Safari, Edge */
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 10px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
+
+/* ===== SIDEBAR DARK - SCROLLBAR TRÈS DISCRET ===== */
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.3);
+  border-radius: 10px;
+}
+
+.sidebar-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.5);
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.6);
+}
+
+/* Firefox pour sidebar */
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(75, 85, 99, 0.3) transparent;
+}
+
+/* ===== SCROLLBAR INVISIBLE (apparaît au survol) ===== */
+
+.scrollbar-hover::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.scrollbar-hover:hover::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.4);
+}
+
+/* ===== CONTENU PRINCIPAL - SCROLLBAR CLAIR ===== */
+
+.main-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.main-scroll::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+.main-scroll::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 10px;
+}
+
+.main-scroll::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}

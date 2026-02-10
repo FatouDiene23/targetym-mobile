@@ -952,6 +952,21 @@ export default function DashboardPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
+      // Attendre que le token soit disponible (le layout peut prendre un moment)
+      let token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+      let attempts = 0;
+      while (!token && attempts < 30) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        token = localStorage.getItem('access_token');
+        attempts++;
+      }
+      
+      if (!token) {
+        console.error('No token available after waiting');
+        setLoading(false);
+        return;
+      }
+
       // Essayer d'abord l'API
       let user = await getCurrentUser();
       

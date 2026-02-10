@@ -952,22 +952,39 @@ export default function DashboardPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      // Attendre que le token soit disponible (le layout peut prendre un moment)
-      let token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-      let attempts = 0;
-      while (!token && attempts < 30) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        token = localStorage.getItem('access_token');
-        attempts++;
+      // ÉTAPE 1: Récupérer les tokens depuis l'URL si présents
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenFromUrl = urlParams.get('token');
+        const refreshFromUrl = urlParams.get('refresh');
+        const userFromUrl = urlParams.get('user');
+
+        if (tokenFromUrl && userFromUrl) {
+          console.log('Dashboard: Storing tokens from URL');
+          localStorage.setItem('access_token', tokenFromUrl);
+          if (refreshFromUrl) {
+            localStorage.setItem('refresh_token', refreshFromUrl);
+          }
+          try {
+            localStorage.setItem('user', decodeURIComponent(userFromUrl));
+          } catch (e) {
+            console.error('Dashboard: Error decoding user:', e);
+          }
+          // Nettoyer l'URL
+          window.history.replaceState({}, '', window.location.pathname);
+        }
       }
+
+      // ÉTAPE 2: Vérifier que le token existe
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
       
       if (!token) {
-        console.error('No token available after waiting');
+        console.error('No token available');
         setLoading(false);
         return;
       }
 
-      // Essayer d'abord l'API
+      // ÉTAPE 3: Charger les données utilisateur
       let user = await getCurrentUser();
       
       // Fallback sur localStorage si l'API échoue

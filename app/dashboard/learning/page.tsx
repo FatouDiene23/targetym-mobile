@@ -7,7 +7,7 @@ import {
   TrendingUp, Target, ChevronRight, AlertTriangle,
   GraduationCap, BarChart3, X, User, ArrowRight, Upload, ExternalLink,
   Check, XCircle, RefreshCw, Eye, Edit, MessageSquarePlus, Send,
-  Archive, Ban, Trash2
+  Archive, Ban, Play, FileCheck, Link
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
@@ -52,6 +52,7 @@ interface Assignment {
   course_title: string;
   course_image: string;
   course_duration: number;
+  course_external_url?: string;
   status: string;
   deadline: string;
   assigned_at: string;
@@ -169,7 +170,7 @@ const hasPermission = (userRole: string, action: string): boolean => {
     'view_all_plans': ['admin', 'dg', 'dga', 'rh'],
     'view_analytics': ['admin', 'dg', 'dga', 'rh'],
     'view_requests': ['admin', 'dg', 'dga', 'rh'],
-    'request_course': ['admin', 'dg', 'dga', 'rh', 'manager', 'employee'],
+    'request_course': ['manager', 'employee'],  // MODIFIÉ: RH n'a pas besoin de demander
   };
   
   const allowedRoles = permissions[action] || [];
@@ -183,11 +184,10 @@ export default function LearningPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   
-  // User & Role - Récupérer depuis localStorage
+  // User & Role
   const [userRole, setUserRole] = useState<string>('employee');
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   
-  // Charger le rôle depuis localStorage au montage
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
@@ -195,10 +195,6 @@ export default function LearningPage() {
         const user = JSON.parse(userStr);
         setUserRole(user.role?.toLowerCase() || 'employee');
         setCurrentUserId(user.employee_id || null);
-        
-        // Debug - à supprimer plus tard
-        console.log('User Role:', user.role);
-        console.log('Employee ID:', user.employee_id);
       } catch (e) {
         console.error('Error parsing user:', e);
       }
@@ -235,11 +231,16 @@ export default function LearningPage() {
   const [showCreatePath, setShowCreatePath] = useState(false);
   const [showRequestCourse, setShowRequestCourse] = useState(false);
   const [showCreateSkill, setShowCreateSkill] = useState(false);
-  
-  // Nouveaux états pour Annuler/Archiver
   const [showCancelPlan, setShowCancelPlan] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [planToCancel, setPlanToCancel] = useState<DevelopmentPlan | null>(null);
+  
+  // NOUVEAU: Modal pour actions employé sur ses formations
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [assignmentToComplete, setAssignmentToComplete] = useState<Assignment | null>(null);
+  const [completionNote, setCompletionNote] = useState('');
+  const [completionFile, setCompletionFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form states
   const [newCourse, setNewCourse] = useState({
@@ -381,7 +382,6 @@ export default function LearningPage() {
 
   const fetchEmployees = useCallback(async () => {
     try {
-      // Utiliser /my-team/ pour avoir la bonne liste selon le rôle
       const response = await fetch(`${API_URL}/api/employees/my-team/`, { headers: getAuthHeaders() });
       const data = await response.json();
       setEmployees(data.items || []);
@@ -402,35 +402,94 @@ export default function LearningPage() {
     }
   }, [getAuthHeaders]);
 
-  // Load data on mount
+  // Load data
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       await Promise.all([
-        fetchCourses(),
-        fetchLearningPaths(),
-        fetchPendingValidations(),
-        fetchMyAssignments(),
-        fetchCertifications(),
-        fetchSkills(),
-        fetchDevelopmentPlans(),
-        fetchCourseRequests(),
-        fetchStats(),
-        fetchEmployees()
+        fetchCourses(), fetchLearningPaths(), fetchPendingValidations(), fetchMyAssignments(),
+        fetchCertifications(), fetchSkills(), fetchDevelopmentPlans(), fetchCourseRequests(),
+        fetchStats(), fetchEmployees()
       ]);
       setIsLoading(false);
     };
     loadData();
   }, [fetchCourses, fetchLearningPaths, fetchPendingValidations, fetchMyAssignments, fetchCertifications, fetchSkills, fetchDevelopmentPlans, fetchCourseRequests, fetchStats, fetchEmployees]);
 
-  // Reload courses when filters change
   useEffect(() => {
-    if (!isLoading) {
-      fetchCourses();
-    }
+    if (!isLoading) fetchCourses();
   }, [selectedCategory, searchQuery, fetchCourses, isLoading]);
 
-  // Action functions
+  // ============================================
+  // ACTIONS EMPLOYÉ SUR SES FORMATIONS
+  // ============================================
+
+  // Commencer une formation
+  const startAssignment = async (assignmentId: number) => {
+    try {
+      const response = await fetch(`${API_URL}/api/learning/assignments/${assignmentId}/start`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        fetchMyAssignments();
+      } else {
+        const error = await response.json();
+        alert('Erreur: ' + (error.detail || 'Impossible de commencer'));
+      }
+    } catch (error) {
+      console.error('Error starting assignment:', error);
+    }
+  };
+
+  // Marquer comme terminée
+  const completeAssignment = async () => {
+    if (!assignmentToComplete) return;
+    
+    setIsSubmitting(true);
+    try {
+      // 1. Upload du certificat si fourni
+      if (completionFile) {
+        const formData = new FormData();
+        formData.append('file', completionFile);
+        
+        await fetch(`${API_URL}/api/learning/assignments/${assignmentToComplete.id}/upload-certificate`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+          body: formData
+        });
+      }
+      
+      // 2. Marquer comme terminée
+      const response = await fetch(`${API_URL}/api/learning/assignments/${assignmentToComplete.id}/complete`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ completion_note: completionNote })
+      });
+      
+      if (response.ok) {
+        setShowCompleteModal(false);
+        setAssignmentToComplete(null);
+        setCompletionNote('');
+        setCompletionFile(null);
+        fetchMyAssignments();
+      } else {
+        const error = await response.json();
+        alert('Erreur: ' + (error.detail || 'Impossible de soumettre'));
+      }
+    } catch (error) {
+      console.error('Error completing assignment:', error);
+      alert('Erreur de connexion');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ============================================
+  // AUTRES ACTIONS
+  // ============================================
+
   const createCourse = async () => {
     try {
       const response = await fetch(`${API_URL}/api/learning/courses/`, {
@@ -597,16 +656,13 @@ export default function LearningPage() {
         fetchDevelopmentPlans();
       } else {
         const errorData = await response.json();
-        console.error('Error updating plan:', errorData);
-        alert('Erreur lors de la mise à jour: ' + (errorData.detail || 'Erreur inconnue'));
+        alert('Erreur: ' + (errorData.detail || 'Erreur inconnue'));
       }
     } catch (error) {
       console.error('Error updating plan:', error);
-      alert('Erreur de connexion');
     }
   };
 
-  // Nouvelle fonction: Annuler un plan
   const cancelDevelopmentPlan = async () => {
     if (!planToCancel || !cancelReason.trim()) return;
     
@@ -624,17 +680,15 @@ export default function LearningPage() {
         fetchDevelopmentPlans();
       } else {
         const errorData = await response.json();
-        alert('Erreur: ' + (errorData.detail || 'Impossible d\'annuler le plan'));
+        alert('Erreur: ' + (errorData.detail || 'Impossible d\'annuler'));
       }
     } catch (error) {
       console.error('Error cancelling plan:', error);
-      alert('Erreur de connexion');
     }
   };
 
-  // Nouvelle fonction: Archiver un plan
   const archiveDevelopmentPlan = async (planId: number) => {
-    if (!confirm('Voulez-vous archiver ce plan de développement ?')) return;
+    if (!confirm('Voulez-vous archiver ce plan ?')) return;
     
     try {
       const response = await fetch(`${API_URL}/api/learning/development-plans/${planId}/archive`, {
@@ -646,11 +700,10 @@ export default function LearningPage() {
         fetchDevelopmentPlans();
       } else {
         const errorData = await response.json();
-        alert('Erreur: ' + (errorData.detail || 'Impossible d\'archiver le plan'));
+        alert('Erreur: ' + (errorData.detail || 'Impossible d\'archiver'));
       }
     } catch (error) {
       console.error('Error archiving plan:', error);
-      alert('Erreur de connexion');
     }
   };
 
@@ -717,16 +770,9 @@ export default function LearningPage() {
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
-      'assigned': 'Assigné',
-      'in_progress': 'En cours',
-      'pending_validation': 'En attente',
-      'pending': 'En attente',
-      'completed': 'Terminé',
-      'rejected': 'Rejeté',
-      'approved': 'Approuvé',
-      'active': 'Actif',
-      'cancelled': 'Annulé',
-      'archived': 'Archivé'
+      'assigned': 'Assigné', 'in_progress': 'En cours', 'pending_validation': 'En attente',
+      'pending': 'En attente', 'completed': 'Terminé', 'rejected': 'Rejeté',
+      'approved': 'Approuvé', 'active': 'Actif', 'cancelled': 'Annulé', 'archived': 'Archivé'
     };
     return labels[status] || status;
   };
@@ -745,39 +791,33 @@ export default function LearningPage() {
     return 'bg-gray-100 text-gray-700';
   };
 
-  // Filter plans based on role
   const getVisiblePlans = () => {
     if (hasPermission(userRole, 'view_all_plans')) {
-      // Admin/RH/DG/DGA : voir tous les plans
       return developmentPlans;
     }
-    
-    // Manager : voir son plan + les plans de son équipe
-    // employees vient de /my-team/ donc contient déjà son équipe
     const teamEmployeeIds = employees.map(e => e.id);
-    
     return developmentPlans.filter(p => 
-      p.employee_id === currentUserId ||  // Son propre plan
-      teamEmployeeIds.includes(p.employee_id)  // Plans de son équipe
+      p.employee_id === currentUserId || teamEmployeeIds.includes(p.employee_id)
     );
   };
 
-  // Helper pour ouvrir le modal d'édition avec les données actuelles
   const openEditPlanModal = (plan: DevelopmentPlan) => {
     setSelectedPlan(plan);
-    
-    // Extraire les IDs des compétences et formations actuelles du plan
     const currentSkillIds = plan.skills.map(s => s.id).filter(Boolean) as number[];
     const currentCourseIds = plan.courses.map(c => c.id).filter(Boolean) as number[];
-    
     setEditPlanData({
       target_role: plan.targetRole || '',
       target_date: plan.target_date || '',
       skill_ids: currentSkillIds,
       course_ids: currentCourseIds
     });
-    
     setShowEditPlan(true);
+  };
+
+  // Trouver l'URL externe d'un cours
+  const getCourseExternalUrl = (courseId: number): string | null => {
+    const course = courses.find(c => c.id === courseId);
+    return course?.external_url || null;
   };
 
   if (isLoading) {
@@ -798,7 +838,7 @@ export default function LearningPage() {
       <Header title="Formation & Développement" subtitle="Catalogue, parcours, certifications et plans de développement" />
       
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
-        {/* Stats - Dynamiques selon le rôle */}
+        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
@@ -881,7 +921,7 @@ export default function LearningPage() {
             <Clock className="w-5 h-5 text-amber-600" />
             <div className="flex-1">
               <p className="text-sm font-medium text-amber-800">{pendingValidations.length} formation(s) en attente de validation</p>
-              <p className="text-xs text-amber-600">Des employés ont terminé leurs formations et attendent votre validation</p>
+              <p className="text-xs text-amber-600">Des employés ont terminé leurs formations</p>
             </div>
             <button 
               onClick={() => {
@@ -898,93 +938,53 @@ export default function LearningPage() {
         {/* TAB: Catalogue */}
         {activeTab === 'catalog' && (
           <div>
-            {/* Search & Filters */}
             <div className="flex flex-wrap gap-4 mb-6">
               <div className="relative flex-1 min-w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input 
-                  type="text" 
-                  placeholder="Rechercher une formation..." 
-                  value={searchQuery} 
-                  onChange={(e) => setSearchQuery(e.target.value)} 
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm" 
-                />
+                <input type="text" placeholder="Rechercher une formation..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm" />
               </div>
               <div className="flex gap-2 flex-wrap">
                 {categories.map((cat) => (
-                  <button 
-                    key={cat} 
-                    onClick={() => setSelectedCategory(cat)} 
-                    className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${selectedCategory === cat ? 'bg-primary-500 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
-                  >
-                    {cat}
-                  </button>
+                  <button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${selectedCategory === cat ? 'bg-primary-500 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>{cat}</button>
                 ))}
               </div>
               {hasPermission(userRole, 'create_course') && (
-                <button 
-                  onClick={() => setShowCreateCourse(true)}
-                  className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"
-                >
+                <button onClick={() => setShowCreateCourse(true)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
                   <Plus className="w-4 h-4 mr-2" />Ajouter
                 </button>
               )}
               {hasPermission(userRole, 'assign_course') && (
-                <button 
-                  onClick={() => setShowAssignModal(true)}
-                  className="flex items-center px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600"
-                >
+                <button onClick={() => setShowAssignModal(true)} className="flex items-center px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600">
                   <User className="w-4 h-4 mr-2" />Assigner
                 </button>
               )}
+              {/* MODIFIÉ: Bouton Demander visible seulement pour employee/manager */}
               {hasPermission(userRole, 'request_course') && (
-                <button 
-                  onClick={() => setShowRequestCourse(true)}
-                  className="flex items-center px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600"
-                >
+                <button onClick={() => setShowRequestCourse(true)} className="flex items-center px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600">
                   <MessageSquarePlus className="w-4 h-4 mr-2" />Demander
                 </button>
               )}
             </div>
 
-            {/* Course Grid */}
             {courses.length === 0 ? (
               <div className="bg-white rounded-xl p-12 text-center">
                 <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500">Aucune formation trouvée</p>
-                {hasPermission(userRole, 'create_course') && (
-                  <button 
-                    onClick={() => setShowCreateCourse(true)}
-                    className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
-                  >
-                    Créer une formation
-                  </button>
-                )}
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {courses.map((course) => (
-                  <div 
-                    key={course.id} 
-                    onClick={() => setSelectedCourse(course)} 
-                    className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all cursor-pointer group"
-                  >
+                  <div key={course.id} onClick={() => setSelectedCourse(course)} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all cursor-pointer group">
                     <div className="h-32 bg-gradient-to-br from-primary-100 to-primary-50 flex items-center justify-center text-5xl relative">
                       {course.image_emoji || '📚'}
-                      {course.is_mandatory && (
-                        <span className="absolute top-2 right-2 px-2 py-0.5 bg-red-500 text-white text-xs font-medium rounded">
-                          Obligatoire
-                        </span>
-                      )}
+                      {course.is_mandatory && <span className="absolute top-2 right-2 px-2 py-0.5 bg-red-500 text-white text-xs font-medium rounded">Obligatoire</span>}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
                         <Eye className="w-12 h-12 text-white drop-shadow-lg" />
                       </div>
                     </div>
                     <div className="p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${getLevelColor(course.level)}`}>
-                          {getLevelLabel(course.level)}
-                        </span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${getLevelColor(course.level)}`}>{getLevelLabel(course.level)}</span>
                         <span className="text-xs text-gray-500">{course.duration_hours}h</span>
                       </div>
                       <h4 className="font-semibold text-gray-900 mb-1 line-clamp-2">{course.title}</h4>
@@ -1009,7 +1009,7 @@ export default function LearningPage() {
           </div>
         )}
 
-        {/* TAB: Mes Formations */}
+        {/* TAB: Mes Formations - AMÉLIORÉ avec actions */}
         {activeTab === 'my-learning' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -1024,6 +1024,52 @@ export default function LearningPage() {
               </div>
             ) : (
               <div className="grid gap-4">
+                {/* À commencer */}
+                {myAssignments.filter(a => a.status === 'assigned').length > 0 && (
+                  <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                      <div className="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
+                      À commencer ({myAssignments.filter(a => a.status === 'assigned').length})
+                    </h4>
+                    <div className="space-y-3">
+                      {myAssignments.filter(a => a.status === 'assigned').map((assignment) => (
+                        <div key={assignment.id} className="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{assignment.course_image || '📚'}</span>
+                            <div>
+                              <p className="font-medium text-gray-900">{assignment.course_title}</p>
+                              <p className="text-sm text-gray-500">{assignment.course_duration}h • Deadline: {assignment.deadline || 'Non définie'}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {/* Lien vers formation externe */}
+                            {assignment.course_external_url && (
+                              <a
+                                href={assignment.course_external_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-2 bg-white text-primary-600 rounded-lg hover:bg-primary-50 border border-primary-200"
+                                title="Accéder à la formation"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            )}
+                            {/* Bouton Commencer */}
+                            <button
+                              onClick={() => startAssignment(assignment.id)}
+                              className="px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 flex items-center gap-2"
+                            >
+                              <Play className="w-4 h-4" />
+                              Commencer
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* En cours */}
                 {myAssignments.filter(a => a.status === 'in_progress').length > 0 && (
                   <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
@@ -1033,7 +1079,7 @@ export default function LearningPage() {
                     </h4>
                     <div className="space-y-3">
                       {myAssignments.filter(a => a.status === 'in_progress').map((assignment) => (
-                        <div key={assignment.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                        <div key={assignment.id} className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
                           <div className="flex items-center gap-3">
                             <span className="text-2xl">{assignment.course_image || '📚'}</span>
                             <div>
@@ -1041,31 +1087,34 @@ export default function LearningPage() {
                               <p className="text-sm text-gray-500">{assignment.course_duration}h • Deadline: {assignment.deadline || 'Non définie'}</p>
                             </div>
                           </div>
-                          <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">En cours</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Assignées (à commencer) */}
-                {myAssignments.filter(a => a.status === 'assigned').length > 0 && (
-                  <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                      <div className="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
-                      À commencer ({myAssignments.filter(a => a.status === 'assigned').length})
-                    </h4>
-                    <div className="space-y-3">
-                      {myAssignments.filter(a => a.status === 'assigned').map((assignment) => (
-                        <div key={assignment.id} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl">{assignment.course_image || '📚'}</span>
-                            <div>
-                              <p className="font-medium text-gray-900">{assignment.course_title}</p>
-                              <p className="text-sm text-gray-500">{assignment.course_duration}h • Deadline: {assignment.deadline || 'Non définie'}</p>
-                            </div>
+                          <div className="flex items-center gap-2">
+                            {/* Lien vers formation externe */}
+                            {assignment.course_external_url && (
+                              <a
+                                href={assignment.course_external_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-2 bg-white text-primary-600 rounded-lg hover:bg-primary-50 border border-primary-200"
+                                title="Continuer la formation"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            )}
+                            {/* Bouton Marquer terminée */}
+                            <button
+                              onClick={() => {
+                                setAssignmentToComplete(assignment);
+                                setCompletionNote('');
+                                setCompletionFile(null);
+                                setShowCompleteModal(true);
+                              }}
+                              className="px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 flex items-center gap-2"
+                            >
+                              <FileCheck className="w-4 h-4" />
+                              Terminer
+                            </button>
                           </div>
-                          <span className="px-3 py-1 bg-orange-100 text-orange-700 text-sm font-medium rounded-full">À commencer</span>
                         </div>
                       ))}
                     </div>
@@ -1081,7 +1130,7 @@ export default function LearningPage() {
                     </h4>
                     <div className="space-y-3">
                       {myAssignments.filter(a => a.status === 'pending_validation').map((assignment) => (
-                        <div key={assignment.id} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg">
+                        <div key={assignment.id} className="flex items-center justify-between p-4 bg-amber-50 rounded-lg">
                           <div className="flex items-center gap-3">
                             <span className="text-2xl">{assignment.course_image || '📚'}</span>
                             <div>
@@ -1089,7 +1138,48 @@ export default function LearningPage() {
                               <p className="text-sm text-gray-500">Soumis le {assignment.completed_at}</p>
                             </div>
                           </div>
-                          <span className="px-3 py-1 bg-amber-100 text-amber-700 text-sm font-medium rounded-full">En attente</span>
+                          <span className="px-3 py-1 bg-amber-100 text-amber-700 text-sm font-medium rounded-full flex items-center gap-1">
+                            <Clock className="w-4 h-4" />
+                            En attente
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Rejetées */}
+                {myAssignments.filter(a => a.status === 'rejected').length > 0 && (
+                  <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                      <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                      Rejetées ({myAssignments.filter(a => a.status === 'rejected').length})
+                    </h4>
+                    <div className="space-y-3">
+                      {myAssignments.filter(a => a.status === 'rejected').map((assignment) => (
+                        <div key={assignment.id} className="p-4 bg-red-50 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <span className="text-2xl">{assignment.course_image || '📚'}</span>
+                              <div>
+                                <p className="font-medium text-gray-900">{assignment.course_title}</p>
+                                {assignment.rejection_reason && (
+                                  <p className="text-sm text-red-600">Raison: {assignment.rejection_reason}</p>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setAssignmentToComplete(assignment);
+                                setCompletionNote('');
+                                setCompletionFile(null);
+                                setShowCompleteModal(true);
+                              }}
+                              className="px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"
+                            >
+                              Resoumettre
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1105,15 +1195,18 @@ export default function LearningPage() {
                     </h4>
                     <div className="space-y-3">
                       {myAssignments.filter(a => a.status === 'completed').map((assignment) => (
-                        <div key={assignment.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                        <div key={assignment.id} className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
                           <div className="flex items-center gap-3">
                             <span className="text-2xl">{assignment.course_image || '📚'}</span>
                             <div>
                               <p className="font-medium text-gray-900">{assignment.course_title}</p>
-                              <p className="text-sm text-gray-500">Complété le {assignment.completed_at}</p>
+                              <p className="text-sm text-gray-500">Validé le {assignment.completed_at}</p>
                             </div>
                           </div>
-                          <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">✓ Validé</span>
+                          <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full flex items-center gap-1">
+                            <CheckCircle className="w-4 h-4" />
+                            Validé
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -1130,10 +1223,7 @@ export default function LearningPage() {
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-gray-900">Parcours de Formation</h3>
               {hasPermission(userRole, 'create_path') && (
-                <button 
-                  onClick={() => setShowCreatePath(true)}
-                  className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"
-                >
+                <button onClick={() => setShowCreatePath(true)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
                   <Plus className="w-4 h-4 mr-2" />Créer un Parcours
                 </button>
               )}
@@ -1188,10 +1278,7 @@ export default function LearningPage() {
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-gray-900">Gestion des Certifications</h3>
               {hasPermission(userRole, 'create_certification') && (
-                <button 
-                  onClick={() => setShowCreateCertification(true)}
-                  className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"
-                >
+                <button onClick={() => setShowCreateCertification(true)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
                   <Plus className="w-4 h-4 mr-2" />Ajouter Certification
                 </button>
               )}
@@ -1202,7 +1289,6 @@ export default function LearningPage() {
                 <AlertTriangle className="w-5 h-5 text-orange-600" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-orange-800">{stats.expiring_certifications} certifications expirent dans les 3 prochains mois</p>
-                  <p className="text-xs text-orange-600">Planifiez les renouvellements pour maintenir la conformité</p>
                 </div>
               </div>
             )}
@@ -1215,14 +1301,7 @@ export default function LearningPage() {
             ) : (
               <div className="grid md:grid-cols-2 gap-4">
                 {certifications.map((cert) => (
-                  <div 
-                    key={cert.id} 
-                    className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-md"
-                    onClick={() => {
-                      setShowCertHolders(cert);
-                      fetchCertificationHolders(cert.id);
-                    }}
-                  >
+                  <div key={cert.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-md" onClick={() => { setShowCertHolders(cert); fetchCertificationHolders(cert.id); }}>
                     <div className="p-5 border-b border-gray-100">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -1242,15 +1321,8 @@ export default function LearningPage() {
                     </div>
                     <div className="p-4 bg-gray-50">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">
-                          Validité: {cert.validity_months ? `${cert.validity_months} mois` : 'Permanent'}
-                        </span>
-                        {cert.expiring_soon > 0 && (
-                          <span className="text-xs text-orange-600 flex items-center">
-                            <AlertTriangle className="w-3 h-3 mr-1" />
-                            {cert.expiring_soon} expiration(s) proche(s)
-                          </span>
-                        )}
+                        <span className="text-sm text-gray-600">Validité: {cert.validity_months ? `${cert.validity_months} mois` : 'Permanent'}</span>
+                        {cert.expiring_soon > 0 && <span className="text-xs text-orange-600 flex items-center"><AlertTriangle className="w-3 h-3 mr-1" />{cert.expiring_soon} expiration(s)</span>}
                       </div>
                     </div>
                   </div>
@@ -1260,16 +1332,13 @@ export default function LearningPage() {
           </div>
         )}
 
-        {/* TAB: Plans Développement - MODIFIÉ */}
+        {/* TAB: Plans Développement */}
         {activeTab === 'development' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-gray-900">Plans de Développement Individuels</h3>
               {hasPermission(userRole, 'create_plan') && (
-                <button 
-                  onClick={() => setShowCreatePlan(true)}
-                  className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"
-                >
+                <button onClick={() => setShowCreatePlan(true)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
                   <Plus className="w-4 h-4 mr-2" />Créer un Plan
                 </button>
               )}
@@ -1315,39 +1384,13 @@ export default function LearningPage() {
                         </div>
                         {hasPermission(userRole, 'create_plan') && plan.status !== 'cancelled' && plan.status !== 'archived' && (
                           <div className="flex items-center gap-1">
-                            {/* Bouton Modifier */}
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openEditPlanModal(plan);
-                              }}
-                              className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
-                              title="Modifier le plan"
-                            >
+                            <button onClick={(e) => { e.stopPropagation(); openEditPlanModal(plan); }} className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="Modifier">
                               <Edit className="w-5 h-5" />
                             </button>
-                            {/* Bouton Archiver */}
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                archiveDevelopmentPlan(plan.id);
-                              }}
-                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-                              title="Archiver le plan"
-                            >
+                            <button onClick={(e) => { e.stopPropagation(); archiveDevelopmentPlan(plan.id); }} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="Archiver">
                               <Archive className="w-5 h-5" />
                             </button>
-                            {/* Bouton Annuler */}
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPlanToCancel(plan);
-                                setCancelReason('');
-                                setShowCancelPlan(true);
-                              }}
-                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                              title="Annuler le plan"
-                            >
+                            <button onClick={(e) => { e.stopPropagation(); setPlanToCancel(plan); setCancelReason(''); setShowCancelPlan(true); }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Annuler">
                               <Ban className="w-5 h-5" />
                             </button>
                           </div>
@@ -1429,9 +1472,7 @@ export default function LearningPage() {
                             {request.for_employee_name && ` pour ${request.for_employee_name}`}
                           </p>
                           {request.description && <p className="text-sm text-gray-600 mb-2">{request.description}</p>}
-                          {request.reason && (
-                            <p className="text-sm text-gray-500 italic">&quot;{request.reason}&quot;</p>
-                          )}
+                          {request.reason && <p className="text-sm text-gray-500 italic">&quot;{request.reason}&quot;</p>}
                           {request.external_url && (
                             <a href={request.external_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:underline flex items-center gap-1 mt-2">
                               <ExternalLink className="w-3 h-3" />Lien suggéré
@@ -1445,18 +1486,10 @@ export default function LearningPage() {
                         </span>
                         {request.status === 'pending' && (
                           <div className="flex gap-2 ml-4">
-                            <button 
-                              onClick={() => reviewCourseRequest(request.id, true, '')}
-                              className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"
-                              title="Approuver"
-                            >
+                            <button onClick={() => reviewCourseRequest(request.id, true, '')} className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200" title="Approuver">
                               <Check className="w-4 h-4" />
                             </button>
-                            <button 
-                              onClick={() => reviewCourseRequest(request.id, false, 'Formation non disponible')}
-                              className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-                              title="Rejeter"
-                            >
+                            <button onClick={() => reviewCourseRequest(request.id, false, 'Formation non disponible')} className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200" title="Rejeter">
                               <XCircle className="w-4 h-4" />
                             </button>
                           </div>
@@ -1492,18 +1525,8 @@ export default function LearningPage() {
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie 
-                      data={categoryStats} 
-                      cx="50%" 
-                      cy="50%" 
-                      innerRadius={60} 
-                      outerRadius={100} 
-                      dataKey="value" 
-                      label={({ name, value }) => `${name}: ${value}%`}
-                    >
-                      {categoryStats.map((entry, i) => (
-                        <Cell key={i} fill={entry.color} />
-                      ))}
+                    <Pie data={categoryStats} cx="50%" cy="50%" innerRadius={60} outerRadius={100} dataKey="value" label={({ name, value }) => `${name}: ${value}%`}>
+                      {categoryStats.map((entry, i) => (<Cell key={i} fill={entry.color} />))}
                     </Pie>
                     <Tooltip />
                   </PieChart>
@@ -1534,9 +1557,7 @@ export default function LearningPage() {
                   topLearners.map((learner, i) => (
                     <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center text-xs font-bold text-yellow-700">
-                          {i + 1}
-                        </span>
+                        <span className="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center text-xs font-bold text-yellow-700">{i + 1}</span>
                         <span className="font-medium text-gray-900">{learner.name}</span>
                       </div>
                       <div className="text-right">
@@ -1555,6 +1576,90 @@ export default function LearningPage() {
             MODALS
         ======================================== */}
 
+        {/* Modal: Marquer formation terminée - NOUVEAU */}
+        {showCompleteModal && assignmentToComplete && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900">Terminer la formation</h2>
+                  <button onClick={() => { setShowCompleteModal(false); setAssignmentToComplete(null); }} className="p-2 hover:bg-gray-100 rounded-lg">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                  <span className="text-2xl">{assignmentToComplete.course_image || '📚'}</span>
+                  <div>
+                    <p className="font-medium text-gray-900">{assignmentToComplete.course_title}</p>
+                    <p className="text-sm text-gray-500">{assignmentToComplete.course_duration}h</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Note (optionnel)</label>
+                  <textarea
+                    value={completionNote}
+                    onChange={(e) => setCompletionNote(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    rows={3}
+                    placeholder="Commentaires sur la formation, difficultés rencontrées..."
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Certificat/Justificatif (optionnel)</label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                    <input
+                      type="file"
+                      id="certificate-upload"
+                      className="hidden"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                      onChange={(e) => setCompletionFile(e.target.files?.[0] || null)}
+                    />
+                    {completionFile ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <FileCheck className="w-5 h-5 text-green-600" />
+                        <span className="text-sm text-gray-700">{completionFile.name}</span>
+                        <button onClick={() => setCompletionFile(null)} className="text-red-500 hover:text-red-700">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label htmlFor="certificate-upload" className="cursor-pointer">
+                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-500">Cliquez pour uploader</p>
+                        <p className="text-xs text-gray-400">PDF, PNG, JPG (max 5MB)</p>
+                      </label>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <p className="text-sm text-amber-800">
+                    <AlertTriangle className="w-4 h-4 inline mr-1" />
+                    Votre manager/RH devra valider la complétion de cette formation.
+                  </p>
+                </div>
+              </div>
+              <div className="p-6 border-t border-gray-200 flex gap-3">
+                <button onClick={() => { setShowCompleteModal(false); setAssignmentToComplete(null); }} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                  Annuler
+                </button>
+                <button
+                  onClick={completeAssignment}
+                  disabled={isSubmitting}
+                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                  Soumettre
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Course Detail Modal */}
         {selectedCourse && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -1564,9 +1669,7 @@ export default function LearningPage() {
                 <button onClick={() => setSelectedCourse(null)} className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-lg">
                   <X className="w-5 h-5 text-white" />
                 </button>
-                {selectedCourse.is_mandatory && (
-                  <span className="absolute top-4 left-4 px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-lg">Obligatoire</span>
-                )}
+                {selectedCourse.is_mandatory && <span className="absolute top-4 left-4 px-3 py-1 bg-red-500 text-white text-sm font-medium rounded-lg">Obligatoire</span>}
               </div>
               <div className="p-6">
                 <div className="flex items-center gap-2 mb-2">
@@ -1587,14 +1690,7 @@ export default function LearningPage() {
                 )}
                 <div className="flex gap-3">
                   {hasPermission(userRole, 'assign_course') && (
-                    <button 
-                      onClick={() => {
-                        setAssignData({ ...assignData, course_id: selectedCourse.id.toString() });
-                        setSelectedCourse(null);
-                        setShowAssignModal(true);
-                      }}
-                      className="flex-1 flex items-center justify-center px-4 py-3 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600"
-                    >
+                    <button onClick={() => { setAssignData({ ...assignData, course_id: selectedCourse.id.toString() }); setSelectedCourse(null); setShowAssignModal(true); }} className="flex-1 flex items-center justify-center px-4 py-3 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600">
                       <User className="w-5 h-5 mr-2" />Assigner à un employé
                     </button>
                   )}
@@ -1611,9 +1707,7 @@ export default function LearningPage() {
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-900">Nouvelle Formation</h2>
-                  <button onClick={() => setShowCreateCourse(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                    <X className="w-5 h-5" />
-                  </button>
+                  <button onClick={() => setShowCreateCourse(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
                 </div>
               </div>
               <div className="p-6 space-y-4">
@@ -1657,11 +1751,11 @@ export default function LearningPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur (ex: Coursera)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur (ex: Coursera, Udemy)</label>
                   <input type="text" value={newCourse.provider} onChange={(e) => setNewCourse({ ...newCourse, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">URL externe</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">URL externe (lien vers la formation)</label>
                   <input type="url" value={newCourse.external_url} onChange={(e) => setNewCourse({ ...newCourse, external_url: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="https://..." />
                 </div>
                 <div className="flex items-center gap-2">
@@ -1684,9 +1778,7 @@ export default function LearningPage() {
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-900">Nouveau Parcours</h2>
-                  <button onClick={() => setShowCreatePath(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                    <X className="w-5 h-5" />
-                  </button>
+                  <button onClick={() => setShowCreatePath(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
                 </div>
               </div>
               <div className="p-6 space-y-4">
@@ -1712,18 +1804,7 @@ export default function LearningPage() {
                   <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2">
                     {courses.map((course) => (
                       <label key={course.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
-                        <input 
-                          type="checkbox"
-                          checked={newPath.course_ids.includes(course.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setNewPath({ ...newPath, course_ids: [...newPath.course_ids, course.id] });
-                            } else {
-                              setNewPath({ ...newPath, course_ids: newPath.course_ids.filter(id => id !== course.id) });
-                            }
-                          }}
-                          className="rounded"
-                        />
+                        <input type="checkbox" checked={newPath.course_ids.includes(course.id)} onChange={(e) => { if (e.target.checked) { setNewPath({ ...newPath, course_ids: [...newPath.course_ids, course.id] }); } else { setNewPath({ ...newPath, course_ids: newPath.course_ids.filter(id => id !== course.id) }); } }} className="rounded" />
                         <span className="text-sm text-gray-700">{course.image_emoji} {course.title}</span>
                         <span className="text-xs text-gray-400 ml-auto">{course.duration_hours}h</span>
                       </label>
@@ -1747,9 +1828,7 @@ export default function LearningPage() {
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-900">Assigner une Formation</h2>
-                  <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                    <X className="w-5 h-5" />
-                  </button>
+                  <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
                 </div>
               </div>
               <div className="p-6 space-y-4">
@@ -1757,18 +1836,14 @@ export default function LearningPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Employé *</label>
                   <select value={assignData.employee_id} onChange={(e) => setAssignData({ ...assignData, employee_id: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
                     <option value="">Sélectionner...</option>
-                    {employees.map((emp) => (
-                      <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name} - {emp.job_title}</option>
-                    ))}
+                    {employees.map((emp) => (<option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name} - {emp.job_title}</option>))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Formation *</label>
                   <select value={assignData.course_id} onChange={(e) => setAssignData({ ...assignData, course_id: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
                     <option value="">Sélectionner...</option>
-                    {courses.map((course) => (
-                      <option key={course.id} value={course.id}>{course.title}</option>
-                    ))}
+                    {courses.map((course) => (<option key={course.id} value={course.id}>{course.title}</option>))}
                   </select>
                 </div>
                 <div>
@@ -1791,9 +1866,7 @@ export default function LearningPage() {
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-900">Valider la Formation</h2>
-                  <button onClick={() => setShowValidationModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                    <X className="w-5 h-5" />
-                  </button>
+                  <button onClick={() => setShowValidationModal(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
                 </div>
               </div>
               <div className="p-6">
@@ -1804,14 +1877,12 @@ export default function LearningPage() {
                     <p className="text-sm text-gray-500">{selectedAssignment.course_title}</p>
                   </div>
                 </div>
-                
                 {selectedAssignment.completion_note && (
                   <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                     <p className="text-xs text-gray-500 mb-1">Note de l&apos;employé:</p>
                     <p className="text-sm text-gray-700">{selectedAssignment.completion_note}</p>
                   </div>
                 )}
-
                 {selectedAssignment.certificate_file && (
                   <div className="mb-4 p-3 bg-blue-50 rounded-lg flex items-center gap-2">
                     <Upload className="w-4 h-4 text-blue-600" />
@@ -1819,7 +1890,6 @@ export default function LearningPage() {
                     <a href={`${API_URL}${selectedAssignment.certificate_file}`} target="_blank" rel="noopener noreferrer" className="ml-auto text-blue-600 hover:underline text-sm">Voir</a>
                   </div>
                 )}
-
                 <div className="flex gap-3 mb-4">
                   <button onClick={() => setValidationData({ ...validationData, approved: true })} className={`flex-1 p-3 rounded-lg border-2 flex items-center justify-center gap-2 ${validationData.approved ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-500'}`}>
                     <Check className="w-5 h-5" />Approuver
@@ -1828,7 +1898,6 @@ export default function LearningPage() {
                     <XCircle className="w-5 h-5" />Rejeter
                   </button>
                 </div>
-
                 {!validationData.approved && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Raison du rejet</label>
@@ -1853,9 +1922,7 @@ export default function LearningPage() {
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-900">Nouvelle Certification</h2>
-                  <button onClick={() => setShowCreateCertification(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                    <X className="w-5 h-5" />
-                  </button>
+                  <button onClick={() => setShowCreateCertification(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
                 </div>
               </div>
               <div className="p-6 space-y-4">
@@ -1894,16 +1961,12 @@ export default function LearningPage() {
                     <h2 className="text-xl font-bold text-gray-900">{showCertHolders.name}</h2>
                     <p className="text-sm text-gray-500">{showCertHolders.provider}</p>
                   </div>
-                  <button onClick={() => setShowCertHolders(null)} className="p-2 hover:bg-gray-100 rounded-lg">
-                    <X className="w-5 h-5" />
-                  </button>
+                  <button onClick={() => setShowCertHolders(null)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
                 </div>
               </div>
               <div className="p-6">
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">Titulaires ({certHolders.length})</h3>
-                {certHolders.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">Aucun titulaire</p>
-                ) : (
+                {certHolders.length === 0 ? (<p className="text-gray-500 text-center py-8">Aucun titulaire</p>) : (
                   <div className="space-y-3">
                     {certHolders.map((holder) => (
                       <div key={holder.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -1936,9 +1999,7 @@ export default function LearningPage() {
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-900">Nouveau Plan de Développement</h2>
-                  <button onClick={() => setShowCreatePlan(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                    <X className="w-5 h-5" />
-                  </button>
+                  <button onClick={() => setShowCreatePlan(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
                 </div>
               </div>
               <div className="p-6 space-y-4">
@@ -1946,9 +2007,7 @@ export default function LearningPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Employé *</label>
                   <select value={newPlan.employee_id} onChange={(e) => setNewPlan({ ...newPlan, employee_id: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
                     <option value="">Sélectionner...</option>
-                    {employees.map((emp) => (
-                      <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
-                    ))}
+                    {employees.map((emp) => (<option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>))}
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -1968,31 +2027,18 @@ export default function LearningPage() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="block text-sm font-medium text-gray-700">Compétences à développer</label>
-                    <button onClick={() => setShowCreateSkill(true)} className="text-xs text-primary-600 hover:text-primary-700 flex items-center">
-                      <Plus className="w-3 h-3 mr-1" />Ajouter
-                    </button>
+                    <button onClick={() => setShowCreateSkill(true)} className="text-xs text-primary-600 hover:text-primary-700 flex items-center"><Plus className="w-3 h-3 mr-1" />Ajouter</button>
                   </div>
                   {skills.length === 0 ? (
                     <div className="text-center py-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-500 mb-2">Aucune compétence dans le référentiel</p>
-                      <button onClick={() => setShowCreateSkill(true)} className="text-sm text-primary-600 hover:underline">Créer une compétence</button>
+                      <p className="text-sm text-gray-500 mb-2">Aucune compétence</p>
+                      <button onClick={() => setShowCreateSkill(true)} className="text-sm text-primary-600 hover:underline">Créer</button>
                     </div>
                   ) : (
                     <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2">
                       {skills.map((skill) => (
                         <label key={skill.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
-                          <input 
-                            type="checkbox"
-                            checked={newPlan.skill_ids.includes(skill.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setNewPlan({ ...newPlan, skill_ids: [...newPlan.skill_ids, skill.id] });
-                              } else {
-                                setNewPlan({ ...newPlan, skill_ids: newPlan.skill_ids.filter(id => id !== skill.id) });
-                              }
-                            }}
-                            className="rounded"
-                          />
+                          <input type="checkbox" checked={newPlan.skill_ids.includes(skill.id)} onChange={(e) => { if (e.target.checked) { setNewPlan({ ...newPlan, skill_ids: [...newPlan.skill_ids, skill.id] }); } else { setNewPlan({ ...newPlan, skill_ids: newPlan.skill_ids.filter(id => id !== skill.id) }); } }} className="rounded" />
                           <span className="text-sm text-gray-700">{skill.name}</span>
                           <span className="text-xs text-gray-400">({skill.category})</span>
                         </label>
@@ -2005,18 +2051,7 @@ export default function LearningPage() {
                   <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2">
                     {courses.map((course) => (
                       <label key={course.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
-                        <input 
-                          type="checkbox"
-                          checked={newPlan.course_ids.includes(course.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setNewPlan({ ...newPlan, course_ids: [...newPlan.course_ids, course.id] });
-                            } else {
-                              setNewPlan({ ...newPlan, course_ids: newPlan.course_ids.filter(id => id !== course.id) });
-                            }
-                          }}
-                          className="rounded"
-                        />
+                        <input type="checkbox" checked={newPlan.course_ids.includes(course.id)} onChange={(e) => { if (e.target.checked) { setNewPlan({ ...newPlan, course_ids: [...newPlan.course_ids, course.id] }); } else { setNewPlan({ ...newPlan, course_ids: newPlan.course_ids.filter(id => id !== course.id) }); } }} className="rounded" />
                         <span className="text-sm text-gray-700">{course.title}</span>
                       </label>
                     ))}
@@ -2031,20 +2066,17 @@ export default function LearningPage() {
           </div>
         )}
 
-        {/* Edit Plan Modal - AMÉLIORÉ */}
+        {/* Edit Plan Modal */}
         {showEditPlan && selectedPlan && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-900">Modifier le Plan</h2>
-                  <button onClick={() => { setShowEditPlan(false); setSelectedPlan(null); }} className="p-2 hover:bg-gray-100 rounded-lg">
-                    <X className="w-5 h-5" />
-                  </button>
+                  <button onClick={() => { setShowEditPlan(false); setSelectedPlan(null); }} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
                 </div>
               </div>
               <div className="p-6 space-y-4">
-                {/* Info employé */}
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                   <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold">{selectedPlan.initials}</div>
                   <div>
@@ -2052,55 +2084,26 @@ export default function LearningPage() {
                     <p className="text-sm text-gray-500">{selectedPlan.role}</p>
                   </div>
                 </div>
-                
-                {/* Poste cible */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Poste cible</label>
-                  <input 
-                    type="text" 
-                    value={editPlanData.target_role} 
-                    onChange={(e) => setEditPlanData({ ...editPlanData, target_role: e.target.value })} 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg" 
-                  />
+                  <input type="text" value={editPlanData.target_role} onChange={(e) => setEditPlanData({ ...editPlanData, target_role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
                 </div>
-                
-                {/* Date cible */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date cible</label>
-                  <input 
-                    type="date" 
-                    value={editPlanData.target_date} 
-                    onChange={(e) => setEditPlanData({ ...editPlanData, target_date: e.target.value })} 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg" 
-                  />
+                  <input type="date" value={editPlanData.target_date} onChange={(e) => setEditPlanData({ ...editPlanData, target_date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
                 </div>
-                
-                {/* Compétences */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="block text-sm font-medium text-gray-700">Compétences à développer</label>
                     <span className="text-xs text-gray-500">{editPlanData.skill_ids.length} sélectionnée(s)</span>
                   </div>
                   {skills.length === 0 ? (
-                    <div className="text-center py-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-500">Aucune compétence disponible</p>
-                    </div>
+                    <div className="text-center py-4 bg-gray-50 rounded-lg"><p className="text-sm text-gray-500">Aucune compétence</p></div>
                   ) : (
                     <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2">
                       {skills.map((skill) => (
                         <label key={skill.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
-                          <input 
-                            type="checkbox"
-                            checked={editPlanData.skill_ids.includes(skill.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setEditPlanData({ ...editPlanData, skill_ids: [...editPlanData.skill_ids, skill.id] });
-                              } else {
-                                setEditPlanData({ ...editPlanData, skill_ids: editPlanData.skill_ids.filter(id => id !== skill.id) });
-                              }
-                            }}
-                            className="rounded text-primary-600"
-                          />
+                          <input type="checkbox" checked={editPlanData.skill_ids.includes(skill.id)} onChange={(e) => { if (e.target.checked) { setEditPlanData({ ...editPlanData, skill_ids: [...editPlanData.skill_ids, skill.id] }); } else { setEditPlanData({ ...editPlanData, skill_ids: editPlanData.skill_ids.filter(id => id !== skill.id) }); } }} className="rounded text-primary-600" />
                           <span className="text-sm text-gray-700">{skill.name}</span>
                           <span className="text-xs text-gray-400 ml-auto">({skill.category})</span>
                         </label>
@@ -2108,8 +2111,6 @@ export default function LearningPage() {
                     </div>
                   )}
                 </div>
-                
-                {/* Formations */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="block text-sm font-medium text-gray-700">Formations à assigner</label>
@@ -2118,18 +2119,7 @@ export default function LearningPage() {
                   <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2">
                     {courses.map((course) => (
                       <label key={course.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
-                        <input 
-                          type="checkbox"
-                          checked={editPlanData.course_ids.includes(course.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setEditPlanData({ ...editPlanData, course_ids: [...editPlanData.course_ids, course.id] });
-                            } else {
-                              setEditPlanData({ ...editPlanData, course_ids: editPlanData.course_ids.filter(id => id !== course.id) });
-                            }
-                          }}
-                          className="rounded text-primary-600"
-                        />
+                        <input type="checkbox" checked={editPlanData.course_ids.includes(course.id)} onChange={(e) => { if (e.target.checked) { setEditPlanData({ ...editPlanData, course_ids: [...editPlanData.course_ids, course.id] }); } else { setEditPlanData({ ...editPlanData, course_ids: editPlanData.course_ids.filter(id => id !== course.id) }); } }} className="rounded text-primary-600" />
                         <span className="text-2xl">{course.image_emoji || '📚'}</span>
                         <span className="text-sm text-gray-700 flex-1">{course.title}</span>
                         <span className="text-xs text-gray-400">{course.duration_hours}h</span>
@@ -2139,37 +2129,24 @@ export default function LearningPage() {
                 </div>
               </div>
               <div className="p-6 border-t border-gray-200 flex gap-3">
-                <button 
-                  onClick={() => { setShowEditPlan(false); setSelectedPlan(null); }} 
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  Annuler
-                </button>
-                <button 
-                  onClick={updateDevelopmentPlan} 
-                  className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
-                >
-                  Enregistrer
-                </button>
+                <button onClick={() => { setShowEditPlan(false); setSelectedPlan(null); }} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+                <button onClick={updateDevelopmentPlan} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600">Enregistrer</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Cancel Plan Modal - NOUVEAU */}
+        {/* Cancel Plan Modal */}
         {showCancelPlan && planToCancel && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-md">
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-900">Annuler le Plan</h2>
-                  <button onClick={() => { setShowCancelPlan(false); setPlanToCancel(null); setCancelReason(''); }} className="p-2 hover:bg-gray-100 rounded-lg">
-                    <X className="w-5 h-5" />
-                  </button>
+                  <button onClick={() => { setShowCancelPlan(false); setPlanToCancel(null); setCancelReason(''); }} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
                 </div>
               </div>
               <div className="p-6 space-y-4">
-                {/* Info employé */}
                 <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
                   <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-700 font-bold">{planToCancel.initials}</div>
                   <div>
@@ -2177,43 +2154,24 @@ export default function LearningPage() {
                     <p className="text-sm text-gray-500">{planToCancel.role} → {planToCancel.targetRole}</p>
                   </div>
                 </div>
-                
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-amber-800">Attention</p>
-                      <p className="text-xs text-amber-700">Cette action est irréversible. Le plan sera marqué comme annulé et conservé dans l&apos;historique.</p>
+                      <p className="text-xs text-amber-700">Cette action est irréversible.</p>
                     </div>
                   </div>
                 </div>
-                
-                {/* Motif d'annulation */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Motif d&apos;annulation *</label>
-                  <textarea 
-                    value={cancelReason} 
-                    onChange={(e) => setCancelReason(e.target.value)} 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg" 
-                    rows={3} 
-                    placeholder="Ex: Départ de l'employé, réorientation carrière, plan inadapté..."
-                  />
+                  <textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={3} placeholder="Ex: Départ de l'employé, réorientation..." />
                 </div>
               </div>
               <div className="p-6 border-t border-gray-200 flex gap-3">
-                <button 
-                  onClick={() => { setShowCancelPlan(false); setPlanToCancel(null); setCancelReason(''); }} 
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  Retour
-                </button>
-                <button 
-                  onClick={cancelDevelopmentPlan} 
-                  disabled={!cancelReason.trim()}
-                  className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  <Ban className="w-4 h-4" />
-                  Annuler le plan
+                <button onClick={() => { setShowCancelPlan(false); setPlanToCancel(null); setCancelReason(''); }} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Retour</button>
+                <button onClick={cancelDevelopmentPlan} disabled={!cancelReason.trim()} className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-2">
+                  <Ban className="w-4 h-4" />Annuler le plan
                 </button>
               </div>
             </div>
@@ -2227,9 +2185,7 @@ export default function LearningPage() {
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-900">Demander une Formation</h2>
-                  <button onClick={() => setShowRequestCourse(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                    <X className="w-5 h-5" />
-                  </button>
+                  <button onClick={() => setShowRequestCourse(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
                 </div>
               </div>
               <div className="p-6 space-y-4">
@@ -2243,7 +2199,7 @@ export default function LearningPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Pourquoi cette formation ? *</label>
-                  <textarea value={newRequest.reason} onChange={(e) => setNewRequest({ ...newRequest, reason: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} placeholder="Expliquez en quoi cette formation serait utile..." />
+                  <textarea value={newRequest.reason} onChange={(e) => setNewRequest({ ...newRequest, reason: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} placeholder="Expliquez en quoi elle serait utile..." />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Lien (si connu)</label>
@@ -2258,9 +2214,7 @@ export default function LearningPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Pour qui ? (optionnel)</label>
                     <select value={newRequest.for_employee_id} onChange={(e) => setNewRequest({ ...newRequest, for_employee_id: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
                       <option value="">Pour moi-même</option>
-                      {employees.map((emp) => (
-                        <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
-                      ))}
+                      {employees.map((emp) => (<option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>))}
                     </select>
                   </div>
                 )}
@@ -2282,22 +2236,18 @@ export default function LearningPage() {
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-900">Nouvelle Compétence</h2>
-                  <button onClick={() => setShowCreateSkill(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                    <X className="w-5 h-5" />
-                  </button>
+                  <button onClick={() => setShowCreateSkill(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
                 </div>
               </div>
               <div className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
-                  <input type="text" value={newSkill.name} onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: Leadership, Python, Gestion de projet..." />
+                  <input type="text" value={newSkill.name} onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: Leadership, Python..." />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
                   <select value={newSkill.category} onChange={(e) => setNewSkill({ ...newSkill, category: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                    {skillCategories.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
+                    {skillCategories.map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
                   </select>
                 </div>
                 <div>

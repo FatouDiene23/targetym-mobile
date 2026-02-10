@@ -25,7 +25,8 @@ import {
   Star,
   UserCheck,
   Lock,
-  Briefcase
+  Briefcase,
+  FileText
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -89,7 +90,7 @@ const navigation: NavItem[] = [
     name: 'Formation & Développement', 
     href: '/dashboard/learning', 
     icon: GraduationCap,
-    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],  // ✅ Ajout de 'employee'
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],  
   },
   { 
     name: 'Performance & Feedback', 
@@ -117,6 +118,12 @@ const navigation: NavItem[] = [
     icon: Calendar,
     roles: ['rh', 'admin', 'dg']
   },
+  {
+  name: 'Certificats',
+  href: '/dashboard/certificates',
+  icon: FileText,
+  roles: ['admin', 'dg', 'rh']
+},
   { 
     name: 'Paramètres', 
     href: '/dashboard/settings', 

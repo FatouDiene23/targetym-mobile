@@ -393,6 +393,171 @@ export default function MissionsPage() {
     }
   };
 
+  const handleDownloadPDF = async (missionId: number, reference: string) => {
+    try {
+      // Récupérer les données de la mission pour le PDF
+      const data = await apiFetch(`/api/missions/${missionId}`);
+      const m = data as MissionDetail;
+      const transport = TRANSPORT_LABELS[m.transport_type] || TRANSPORT_LABELS.autre;
+
+      // Générer un document HTML imprimable
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('Veuillez autoriser les popups pour télécharger le PDF');
+        return;
+      }
+
+      printWindow.document.write(`
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Ordre de Mission - ${m.reference}</title>
+  <style>
+    @media print { body { margin: 0; } @page { margin: 1.5cm; } }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #222; padding: 40px; max-width: 800px; margin: 0 auto; }
+    .header { text-align: center; border-bottom: 3px solid #1e40af; padding-bottom: 20px; margin-bottom: 24px; }
+    .header h1 { font-size: 20pt; color: #1e40af; margin-bottom: 4px; letter-spacing: 1px; }
+    .header .ref { font-size: 12pt; color: #555; font-weight: 600; }
+    .header .date { font-size: 9pt; color: #888; margin-top: 6px; }
+    .section { margin-bottom: 18px; }
+    .section-title { font-size: 11pt; font-weight: 700; color: #1e40af; border-bottom: 1.5px solid #dbeafe; padding-bottom: 4px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+    td { padding: 6px 10px; vertical-align: top; font-size: 10.5pt; }
+    .label { font-weight: 600; color: #555; width: 180px; }
+    .value { color: #111; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+    .grid2 td { border-bottom: 1px solid #f3f4f6; }
+    .budget-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px; margin-top: 8px; }
+    .budget-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; text-align: center; }
+    .budget-item .amount { font-size: 14pt; font-weight: 700; color: #16a34a; }
+    .budget-item .blabel { font-size: 8pt; color: #666; margin-top: 2px; }
+    .signatures { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 40px; text-align: center; }
+    .sig-box { border-top: 1.5px solid #ccc; padding-top: 8px; }
+    .sig-box .title { font-size: 9pt; font-weight: 600; color: #555; }
+    .sig-box .name { font-size: 9pt; color: #888; margin-top: 4px; }
+    .sig-box .date-sig { font-size: 8pt; color: #aaa; margin-top: 2px; }
+    .status-badge { display: inline-block; padding: 3px 12px; border-radius: 12px; font-size: 9pt; font-weight: 600; background: #dcfce7; color: #166534; }
+    .footer { margin-top: 30px; text-align: center; font-size: 8pt; color: #aaa; border-top: 1px solid #e5e7eb; padding-top: 10px; }
+    .validation-timeline { margin-top: 8px; }
+    .validation-step { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 10pt; }
+    .validation-step .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
+    .print-btn { display: block; margin: 20px auto; padding: 10px 30px; background: #1e40af; color: white; border: none; border-radius: 8px; font-size: 12pt; cursor: pointer; }
+    .print-btn:hover { background: #1e3a8a; }
+    @media print { .print-btn { display: none; } }
+  </style>
+</head>
+<body>
+  <button class="print-btn" onclick="window.print()">🖨️ Imprimer / Enregistrer en PDF</button>
+  
+  <div class="header">
+    <h1>ORDRE DE MISSION</h1>
+    <div class="ref">${m.reference}</div>
+    <div class="date">Émis le ${formatDate(m.created_at)}</div>
+    <div style="margin-top: 6px;"><span class="status-badge">✓ ${(STATUS_CONFIG[m.status] || STATUS_CONFIG.brouillon).label}</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Missionnaire</div>
+    <table>
+      <tr><td class="label">Nom complet</td><td class="value">${m.employee_name}</td></tr>
+      <tr><td class="label">Matricule</td><td class="value">${m.employee_code || '-'}</td></tr>
+      <tr><td class="label">Poste</td><td class="value">${m.employee_job_title || '-'}</td></tr>
+      <tr><td class="label">Département</td><td class="value">${m.department_name || '-'}</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Objet de la mission</div>
+    <table>
+      <tr><td class="label">Objet</td><td class="value">${m.subject}</td></tr>
+      ${m.description ? `<tr><td class="label">Description</td><td class="value">${m.description}</td></tr>` : ''}
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Itinéraire & Dates</div>
+    <table>
+      <tr><td class="label">Lieu de départ</td><td class="value">${m.departure_location}</td></tr>
+      <tr><td class="label">Destination</td><td class="value">${m.destination}${m.destination_country ? ` (${m.destination_country})` : ''}</td></tr>
+      <tr><td class="label">Date de départ</td><td class="value">${formatDate(m.start_date)}</td></tr>
+      <tr><td class="label">Date de retour</td><td class="value">${formatDate(m.end_date)}</td></tr>
+      <tr><td class="label">Durée</td><td class="value">${m.duration_days} jour(s)</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Transport & Hébergement</div>
+    <table>
+      <tr><td class="label">Moyen de transport</td><td class="value">${transport.label}</td></tr>
+      ${m.transport_details ? `<tr><td class="label">Détails transport</td><td class="value">${m.transport_details}</td></tr>` : ''}
+      <tr><td class="label">Hébergement</td><td class="value">${m.accommodation_type || '-'}</td></tr>
+      ${m.accommodation_details ? `<tr><td class="label">Détails hébergement</td><td class="value">${m.accommodation_details}</td></tr>` : ''}
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Budget & Per Diem</div>
+    <div class="budget-box">
+      <div class="budget-grid">
+        <div class="budget-item">
+          <div class="amount">${formatAmount(m.estimated_budget)}</div>
+          <div class="blabel">Budget estimé</div>
+        </div>
+        <div class="budget-item">
+          <div class="amount">${formatAmount(m.per_diem_amount, m.per_diem_currency)}</div>
+          <div class="blabel">Per Diem journalier</div>
+        </div>
+        <div class="budget-item">
+          <div class="amount">${formatAmount(m.per_diem_amount && m.duration_days ? m.per_diem_amount * m.duration_days : null, m.per_diem_currency)}</div>
+          <div class="blabel">Per Diem total</div>
+        </div>
+      </div>
+    </div>
+    ${m.advance_amount ? `<table style="margin-top:8px;"><tr><td class="label">Avance accordée</td><td class="value" style="font-weight:600;">${formatAmount(m.advance_amount)}</td></tr></table>` : ''}
+  </div>
+
+  ${m.manager_validated_at || m.rh_validated_at ? `
+  <div class="section">
+    <div class="section-title">Validations</div>
+    <div class="validation-timeline">
+      ${m.manager_validated_at ? `<div class="validation-step"><span class="dot"></span> Validé par Manager le ${formatDate(m.manager_validated_at)} ${m.manager_comments ? `— ${m.manager_comments}` : ''}</div>` : ''}
+      ${m.rh_validated_at ? `<div class="validation-step"><span class="dot"></span> Validé par RH le ${formatDate(m.rh_validated_at)} ${m.rh_comments ? `— ${m.rh_comments}` : ''}</div>` : ''}
+    </div>
+  </div>
+  ` : ''}
+
+  <div class="signatures">
+    <div class="sig-box">
+      <div class="title">Le Missionnaire</div>
+      <div class="name">${m.employee_name}</div>
+      <div class="date-sig">Date: _______________</div>
+    </div>
+    <div class="sig-box">
+      <div class="title">Le Responsable</div>
+      <div class="name">${m.manager_name || '_______________'}</div>
+      <div class="date-sig">${m.manager_validated_at ? formatDate(m.manager_validated_at) : 'Date: _______________'}</div>
+    </div>
+    <div class="sig-box">
+      <div class="title">Direction RH</div>
+      <div class="name">_______________</div>
+      <div class="date-sig">${m.rh_validated_at ? formatDate(m.rh_validated_at) : 'Date: _______________'}</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Document généré automatiquement par TARGETYM AI — ${new Date().toLocaleDateString('fr-FR')} ${new Date().toLocaleTimeString('fr-FR')}
+  </div>
+</body>
+</html>
+      `);
+      printWindow.document.close();
+    } catch (err: any) {
+      alert('Erreur lors de la génération: ' + err.message);
+    }
+  };
+
   // ============================================
   // RENDER: Stats Cards
   // ============================================
@@ -491,8 +656,11 @@ export default function MissionsPage() {
               <Eye className="w-4 h-4" />
             </button>
 
-            {/* Bouton Modifier (brouillon ou rejeté, seulement dans mes missions) */}
-            {context === 'mes_missions' && (mission.status === 'brouillon' || mission.status === 'rejetee') && (
+            {/* Bouton Modifier — employé: brouillon/rejetée | manager/RH: tant que pas approuvée */}
+            {(
+              (context === 'mes_missions' && ['brouillon', 'rejetee'].includes(mission.status)) ||
+              ((context === 'equipe' || context === 'a_valider') && isManagerOrAbove(role) && ['brouillon', 'en_attente_manager', 'en_attente_rh', 'rejetee'].includes(mission.status))
+            ) && (
               <button
                 onClick={() => handleEditMission(mission)}
                 className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-yellow-600"
@@ -521,6 +689,17 @@ export default function MissionsPage() {
                 title="Démarrer"
               >
                 <PlayCircle className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Bouton Télécharger l'ordre de mission PDF (approuvée, en_cours, terminée) */}
+            {['approuvee', 'en_cours', 'terminee', 'cloturee'].includes(mission.status) && (
+              <button
+                onClick={() => handleDownloadPDF(mission.id, mission.reference)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-emerald-600"
+                title="Télécharger l'ordre de mission"
+              >
+                <Download className="w-4 h-4" />
               </button>
             )}
 

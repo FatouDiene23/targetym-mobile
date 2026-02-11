@@ -55,6 +55,7 @@ interface MissionDetail extends Mission {
   actual_end_date?: string;
   mission_report?: string;
   created_by_name?: string;
+  employee_job_title?: string;
   expenses: Expense[];
   total_expenses: number;
   total_approved_expenses: number;
@@ -1097,7 +1098,7 @@ function MissionDetailModal({
             <div>
               <p className="font-medium text-gray-900">{mission.employee_name}</p>
               <p className="text-sm text-gray-500">
-                {mission.employee_code} • {mission.employee_job_title} • {mission.department_name}
+                {mission.employee_code || '-'} • {mission.employee_job_title || '-'} • {mission.department_name || '-'}
               </p>
             </div>
           </div>

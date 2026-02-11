@@ -145,24 +145,22 @@ function getToken(): string | null {
   return localStorage.getItem('access_token');
 }
 
-function getUserRole(): string {
-  if (typeof window === 'undefined') return 'employee';
+function getUserFromStorage(): { role: string; employeeId: number | null; userId: number | null } {
+  if (typeof window === 'undefined') return { role: 'employee', employeeId: null, userId: null };
   try {
-    const token = getToken();
-    if (!token) return 'employee';
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return (payload.role || 'employee').toLowerCase();
-  } catch { return 'employee'; }
-}
-
-function getUserId(): number | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const token = getToken();
-    if (!token) return null;
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.sub || payload.user_id || null;
-  } catch { return null; }
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const role = (user.role || 'employee').toLowerCase();
+      const employeeId = user.employee_id || null;
+      const userId = user.id || null;
+      console.log('[Missions] User from localStorage:', { role, employeeId, userId, raw: user });
+      return { role, employeeId, userId };
+    }
+  } catch (e) {
+    console.error('[Missions] Error parsing user from localStorage:', e);
+  }
+  return { role: 'employee', employeeId: null, userId: null };
 }
 
 function canManageAll(role: string): boolean {
@@ -225,10 +223,21 @@ export default function MissionsPage() {
   const [selectedMission, setSelectedMission] = useState<MissionDetail | null>(null);
   const [missionToValidate, setMissionToValidate] = useState<Mission | null>(null);
 
-  const role = getUserRole();
-  const userId = getUserId();
+  // User info - initialisé depuis localStorage
+  const [role, setRole] = useState('employee');
+  const [employeeId, setEmployeeId] = useState<number | null>(null);
+  const [initialized, setInitialized] = useState(false);
+
   const showValidateTab = isManagerOrAbove(role);
   const showTeamTab = isManagerOrAbove(role);
+
+  // Initialiser user info côté client
+  useEffect(() => {
+    const userInfo = getUserFromStorage();
+    setRole(userInfo.role);
+    setEmployeeId(userInfo.employeeId);
+    setInitialized(true);
+  }, []);
 
   // ============================================
   // DATA FETCHING
@@ -240,22 +249,32 @@ export default function MissionsPage() {
       const params = new URLSearchParams();
       if (statusFilter) params.set('status', statusFilter);
       if (searchTerm) params.set('search', searchTerm);
+      // Passer employee_id au backend pour filtrer côté serveur
+      if (employeeId) params.set('employee_id', employeeId.toString());
 
       const data = await apiFetch(`/api/missions/?${params.toString()}`);
-      // Filtrer uniquement les missions de l'utilisateur connecté
-      setMissions(data.missions.filter((m: Mission) => m.employee_id === userId));
+      const allMissions = data.missions || data.items || data || [];
+      console.log('[Missions] Mes missions:', allMissions.length, '| employeeId:', employeeId);
+      // Si RH/admin, le backend retourne toutes les missions → filtrer côté client
+      const myMissions = (canManageAll(role) && employeeId) 
+        ? allMissions.filter((m: Mission) => m.employee_id === employeeId)
+        : allMissions;
+      setMissions(myMissions);
     } catch (err: any) {
+      console.error('[Missions] Erreur fetch:', err.message);
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, searchTerm, userId]);
+  }, [statusFilter, searchTerm, employeeId]);
 
   const fetchPending = useCallback(async () => {
     if (!showValidateTab) return;
     try {
       const data = await apiFetch('/api/missions/pending');
-      setPendingMissions(data.missions);
+      const pendingList = data.missions || data.items || data || [];
+      console.log('[Missions] Pending:', pendingList.length);
+      setPendingMissions(pendingList);
     } catch (err) {
       console.error('Erreur pending:', err);
     }
@@ -269,18 +288,22 @@ export default function MissionsPage() {
       if (searchTerm && activeTab === 'equipe') params.set('search', searchTerm);
 
       const data = await apiFetch(`/api/missions/?${params.toString()}`);
+      const allMissions = data.missions || data.items || data || [];
       
       if (canManageAll(role)) {
         // RH/Admin/DG voient toutes les missions
-        setTeamMissions(data.missions);
+        console.log('[Missions] Equipe (RH/Admin): toutes =', allMissions.length);
+        setTeamMissions(allMissions);
       } else if (role === 'manager') {
         // Manager voit les missions de ses N-1 (pas les siennes)
-        setTeamMissions(data.missions.filter((m: Mission) => m.employee_id !== userId));
+        const filtered = allMissions.filter((m: Mission) => m.employee_id !== employeeId);
+        console.log('[Missions] Equipe (Manager): N-1 =', filtered.length);
+        setTeamMissions(filtered);
       }
     } catch (err) {
       console.error('Erreur team missions:', err);
     }
-  }, [showTeamTab, role, userId, statusFilter, searchTerm, activeTab]);
+  }, [showTeamTab, role, employeeId, statusFilter, searchTerm, activeTab]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -296,11 +319,12 @@ export default function MissionsPage() {
   }, [fetchMyMissions, fetchPending, fetchTeamMissions, fetchStats]);
 
   useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+    if (initialized) fetchAll();
+  }, [fetchAll, initialized]);
 
   // Refetch quand l'onglet change
   useEffect(() => {
+    if (!initialized) return;
     if (activeTab === 'equipe') {
       fetchTeamMissions();
     } else if (activeTab === 'mes_missions') {
@@ -308,7 +332,7 @@ export default function MissionsPage() {
     } else if (activeTab === 'a_valider') {
       fetchPending();
     }
-  }, [activeTab]);
+  }, [activeTab, initialized]);
 
   // ============================================
   // ACTIONS
@@ -388,7 +412,7 @@ export default function MissionsPage() {
     }
 
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+      <div className={`grid gap-4 mb-6 ${cards.length <= 4 ? 'grid-cols-2 md:grid-cols-4' : cards.length === 5 ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6'}`}>
         {cards.map((card) => (
           <div key={card.label} className={`${card.bg} rounded-xl p-4 border`}>
             <div className="flex items-center justify-between mb-2">
@@ -617,6 +641,17 @@ export default function MissionsPage() {
   // RENDER
   // ============================================
 
+  if (!initialized) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header title="Gestion des Missions" />
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header title="Gestion des Missions" />
@@ -703,7 +738,7 @@ export default function MissionsPage() {
       {showCreateModal && (
         <CreateMissionModal
           role={role}
-          userId={userId}
+          employeeId={employeeId}
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             setShowCreateModal(false);
@@ -752,11 +787,11 @@ export default function MissionsPage() {
 // MODAL: Créer une mission
 // ============================================
 
-function CreateMissionModal({ role, userId, onClose, onSuccess }: {
-  role: string; userId: number | null; onClose: () => void; onSuccess: () => void;
+function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
+  role: string; employeeId: number | null; onClose: () => void; onSuccess: () => void;
 }) {
   const [formData, setFormData] = useState({
-    employee_id: userId || 0,
+    employee_id: employeeId || 0,
     subject: '',
     description: '',
     departure_location: '',
@@ -779,27 +814,30 @@ function CreateMissionModal({ role, userId, onClose, onSuccess }: {
       // RH/Admin/DG : tous les employés
       apiFetch('/api/employees/?status=active&page_size=500')
         .then((data) => {
-          const emps = data.employees || data.items || data;
+          const emps = data.items || data.employees || data;
+          console.log('[CreateMission] Employés chargés (RH):', Array.isArray(emps) ? emps.length : 0);
           setEmployees(Array.isArray(emps) ? emps : []);
         })
-        .catch(() => {});
+        .catch((err) => console.error('[CreateMission] Erreur employés:', err));
     } else if (role === 'manager') {
       // Manager : seulement ses N-1
-      apiFetch(`/api/employees/?manager_id=${userId}&status=active&page_size=500`)
+      apiFetch(`/api/employees/${employeeId}/direct-reports`)
         .then((data) => {
-          const emps = data.employees || data.items || data;
-          setEmployees(Array.isArray(emps) ? emps : []);
+          const emps = Array.isArray(data) ? data : (data.items || data.employees || []);
+          console.log('[CreateMission] Employés chargés (Manager N-1):', emps.length);
+          setEmployees(emps);
         })
         .catch(() => {
-          // Fallback: essayer via direct-reports
-          apiFetch(`/api/employees/${userId}/direct-reports`)
+          // Fallback: essayer avec manager_id
+          apiFetch(`/api/employees/?manager_id=${employeeId}&status=active&page_size=500`)
             .then((data) => {
-              setEmployees(Array.isArray(data) ? data : []);
+              const emps = data.items || data.employees || data;
+              setEmployees(Array.isArray(emps) ? emps : []);
             })
             .catch(() => {});
         });
     }
-  }, [role, userId]);
+  }, [role, employeeId]);
 
   const handleSubmit = async () => {
     if (!formData.subject || !formData.departure_location || !formData.destination || !formData.start_date || !formData.end_date) {
@@ -813,7 +851,7 @@ function CreateMissionModal({ role, userId, onClose, onSuccess }: {
         method: 'POST',
         body: JSON.stringify({
           ...formData,
-          employee_id: formData.employee_id || userId,
+          employee_id: formData.employee_id || employeeId,
           estimated_budget: formData.estimated_budget ? parseFloat(formData.estimated_budget) : null,
           accommodation_type: formData.accommodation_type || null,
         }),
@@ -853,7 +891,7 @@ function CreateMissionModal({ role, userId, onClose, onSuccess }: {
                 onChange={(e) => setFormData({ ...formData, employee_id: parseInt(e.target.value) })}
                 className="w-full px-3 py-2 border rounded-xl text-sm"
               >
-                <option value={userId || 0}>Moi-même</option>
+                <option value={employeeId || 0}>Moi-même</option>
                 {employees.map((emp) => (
                   <option key={emp.id} value={emp.id}>
                     {emp.first_name} {emp.last_name} {emp.job_title ? `- ${emp.job_title}` : ''} {emp.department_name ? `(${emp.department_name})` : ''}

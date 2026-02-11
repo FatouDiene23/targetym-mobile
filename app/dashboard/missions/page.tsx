@@ -90,6 +90,8 @@ interface Employee {
   first_name: string;
   last_name: string;
   employee_id?: string;
+  job_title?: string;
+  department_name?: string;
 }
 
 // ============================================
@@ -147,15 +149,20 @@ const EXPENSE_TYPES: Record<string, string> = {
 
 export default function MissionsPage() {
   // State
-  const [activeTab, setActiveTab] = useState<'list' | 'pending' | 'stats'>('list');
+  const [activeTab, setActiveTab] = useState<'list' | 'pending' | 'validated' | 'stats'>('list');
   const [missions, setMissions] = useState<Mission[]>([]);
   const [pendingMissions, setPendingMissions] = useState<Mission[]>([]);
+  const [validatedMissions, setValidatedMissions] = useState<Mission[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [validatedStatusFilter, setValidatedStatusFilter] = useState<string>('');
+  const [validatedSearchQuery, setValidatedSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [validatedCurrentPage, setValidatedCurrentPage] = useState(1);
+  const [validatedTotalPages, setValidatedTotalPages] = useState(1);
   
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -245,6 +252,29 @@ export default function MissionsPage() {
     }
   }, []);
 
+  const fetchValidatedMissions = useCallback(async () => {
+    try {
+      const params = new URLSearchParams({
+        page: validatedCurrentPage.toString(),
+        page_size: '20',
+        ...(validatedSearchQuery && { search: validatedSearchQuery }),
+        ...(validatedStatusFilter && { status: validatedStatusFilter }),
+      });
+      
+      const res = await fetch(`${API_URL}/api/missions/validated?${params}`, {
+        headers: getAuthHeaders()
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setValidatedMissions(data.items || []);
+        setValidatedTotalPages(data.pages || 1);
+      }
+    } catch (e) {
+      console.error('Error fetching validated missions:', e);
+    }
+  }, [validatedCurrentPage, validatedSearchQuery, validatedStatusFilter]);
+
   const fetchMissionDetail = async (missionId: number) => {
     try {
       const res = await fetch(`${API_URL}/api/missions/${missionId}`, {
@@ -268,11 +298,18 @@ export default function MissionsPage() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchMissions(), fetchPendingMissions(), fetchStats()]);
+      await Promise.all([fetchMissions(), fetchPendingMissions(), fetchStats(), fetchValidatedMissions()]);
       setLoading(false);
     };
     loadData();
-  }, [fetchMissions, fetchPendingMissions, fetchStats]);
+  }, [fetchMissions, fetchPendingMissions, fetchStats, fetchValidatedMissions]);
+
+  // Recharger les missions validées quand les filtres changent
+  useEffect(() => {
+    if (activeTab === 'validated') {
+      fetchValidatedMissions();
+    }
+  }, [validatedCurrentPage, validatedSearchQuery, validatedStatusFilter, activeTab, fetchValidatedMissions]);
 
   // ============================================
   // ACTIONS
@@ -367,6 +404,7 @@ export default function MissionsPage() {
 
   const canManageAll = ['admin', 'dg', 'rh'].includes(userRole);
   const canValidate = ['manager', 'admin', 'dg', 'rh'].includes(userRole);
+  const canAssignMission = ['manager', 'admin', 'dg', 'rh'].includes(userRole); // Managers peuvent aussi assigner à leurs N-1
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -414,6 +452,16 @@ export default function MissionsPage() {
                     {pendingMissions.length}
                   </span>
                 )}
+              </button>
+            )}
+            {canValidate && (
+              <button
+                onClick={() => setActiveTab('validated')}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'validated' ? 'bg-primary-500 text-white' : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                Missions validées
               </button>
             )}
           </div>
@@ -474,6 +522,20 @@ export default function MissionsPage() {
             onViewDetail={fetchMissionDetail}
             userRole={userRole}
           />
+        ) : activeTab === 'validated' ? (
+          <ValidatedMissionsList
+            missions={validatedMissions}
+            onViewDetail={fetchMissionDetail}
+            onDownloadPDF={handleDownloadPDF}
+            currentPage={validatedCurrentPage}
+            totalPages={validatedTotalPages}
+            onPageChange={setValidatedCurrentPage}
+            searchQuery={validatedSearchQuery}
+            onSearchChange={setValidatedSearchQuery}
+            statusFilter={validatedStatusFilter}
+            onStatusFilterChange={setValidatedStatusFilter}
+            userRole={userRole}
+          />
         ) : null}
       </main>
 
@@ -486,7 +548,8 @@ export default function MissionsPage() {
             fetchMissions();
             fetchStats();
           }}
-          canAssign={canManageAll}
+          canAssign={canAssignMission}
+          userRole={userRole}
         />
       )}
 
@@ -787,17 +850,212 @@ function PendingMissionsList({
 }
 
 // ============================================
+// COMPOSANT: MISSIONS VALIDÉES
+// ============================================
+
+const VALIDATED_STATUS_OPTIONS = [
+  { value: '', label: 'Tous les statuts' },
+  { value: 'approuvee', label: 'Approuvées' },
+  { value: 'en_cours', label: 'En cours' },
+  { value: 'terminee', label: 'Terminées' },
+  { value: 'cloturee', label: 'Clôturées' },
+];
+
+function ValidatedMissionsList({ 
+  missions, 
+  onViewDetail, 
+  onDownloadPDF,
+  currentPage,
+  totalPages,
+  onPageChange,
+  searchQuery,
+  onSearchChange,
+  statusFilter,
+  onStatusFilterChange,
+  userRole
+}: { 
+  missions: Mission[];
+  onViewDetail: (id: number) => void;
+  onDownloadPDF: (id: number, ref: string) => void;
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  statusFilter: string;
+  onStatusFilterChange: (status: string) => void;
+  userRole: string;
+}) {
+  return (
+    <div className="space-y-4">
+      {/* Filtres spécifiques */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Rechercher par nom, référence, destination..."
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+            />
+          </div>
+          
+          <select
+            value={statusFilter}
+            onChange={(e) => onStatusFilterChange(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+          >
+            {VALIDATED_STATUS_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+
+          <div className="text-sm text-gray-500">
+            {userRole === 'manager' ? 'Missions de mon équipe' : 'Toutes les missions'}
+          </div>
+        </div>
+      </div>
+
+      {/* Liste */}
+      {missions.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+          <CheckCircle className="w-12 h-12 mx-auto text-green-300 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune mission validée</h3>
+          <p className="text-gray-500">
+            {userRole === 'manager' 
+              ? "Aucune mission validée pour votre équipe" 
+              : "Aucune mission validée pour le moment"}
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Référence</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employé</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Destination</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dates</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Per diem</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {missions.map((mission) => {
+                const statusConfig = STATUS_CONFIG[mission.status] || STATUS_CONFIG.brouillon;
+                const transportConfig = TRANSPORT_CONFIG[mission.transport_type] || TRANSPORT_CONFIG.autre;
+
+                return (
+                  <tr key={mission.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <span className="font-mono text-sm font-medium text-primary-600">{mission.reference}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{mission.employee_name}</p>
+                        <p className="text-xs text-gray-500">{mission.department_name}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-900">
+                          {mission.destination}
+                          {mission.destination_country && ` (${mission.destination_country})`}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="text-sm text-gray-900">
+                        {new Date(mission.start_date).toLocaleDateString('fr-FR')}
+                      </p>
+                      <p className="text-xs text-gray-500">{mission.duration_days} jour(s)</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      {mission.per_diem_amount ? (
+                        <span className="text-sm font-medium text-gray-900">
+                          {mission.per_diem_amount.toLocaleString()} {mission.per_diem_currency || 'XOF'}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${statusConfig.bg} ${statusConfig.color}`}>
+                        {statusConfig.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => onViewDetail(mission.id)}
+                          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                          title="Voir détails"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => onDownloadPDF(mission.id, mission.reference)}
+                          className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
+                          title="Télécharger PDF"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+              <p className="text-sm text-gray-500">
+                Page {currentPage} sur {totalPages}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onPageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm border border-gray-200 rounded-lg disabled:opacity-50"
+                >
+                  Précédent
+                </button>
+                <button
+                  onClick={() => onPageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm border border-gray-200 rounded-lg disabled:opacity-50"
+                >
+                  Suivant
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
 // MODAL: CRÉATION
 // ============================================
 
 function CreateMissionModal({ 
   onClose, 
   onSuccess, 
-  canAssign 
+  canAssign,
+  userRole
 }: { 
   onClose: () => void; 
   onSuccess: () => void;
   canAssign: boolean;
+  userRole: string;
 }) {
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -819,12 +1077,17 @@ function CreateMissionModal({
 
   useEffect(() => {
     if (canAssign) {
-      fetch(`${API_URL}/api/employees/?page_size=200&status=active`, { headers: getAuthHeaders() })
+      // Utiliser l'endpoint team-members qui retourne:
+      // - Pour RH/Admin/DG: tous les employés actifs
+      // - Pour Manager: seulement ses N-1
+      fetch(`${API_URL}/api/missions/team-members`, { headers: getAuthHeaders() })
         .then(res => res.json())
-        .then(data => setEmployees(data.items || []))
+        .then(data => setEmployees(Array.isArray(data) ? data : []))
         .catch(console.error);
     }
   }, [canAssign]);
+
+  const isManager = userRole === 'manager';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -873,7 +1136,9 @@ function CreateMissionModal({
           {canAssign && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Employé concerné (laisser vide pour vous-même)
+                {isManager 
+                  ? "Membre de mon équipe (laisser vide pour moi-même)" 
+                  : "Employé concerné (laisser vide pour vous-même)"}
               </label>
               <select
                 value={formData.employee_id}
@@ -883,10 +1148,15 @@ function CreateMissionModal({
                 <option value="">Moi-même</option>
                 {employees.map(emp => (
                   <option key={emp.id} value={emp.id}>
-                    {emp.first_name} {emp.last_name} ({emp.employee_id})
+                    {emp.first_name} {emp.last_name} {emp.employee_id ? `(${emp.employee_id})` : ''}
                   </option>
                 ))}
               </select>
+              {isManager && employees.length === 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Aucun membre dans votre équipe. Vous pouvez créer une mission pour vous-même.
+                </p>
+              )}
             </div>
           )}
 

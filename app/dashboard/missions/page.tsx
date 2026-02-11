@@ -54,6 +54,7 @@ interface MissionDetail extends Mission {
   actual_start_date?: string;
   actual_end_date?: string;
   mission_report?: string;
+  created_by_id?: number;
   created_by_name?: string;
   employee_job_title?: string;
   expenses: Expense[];
@@ -161,6 +162,7 @@ export default function MissionsPage() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false); // FIX #2: Ajout modal édition
   const [selectedMission, setSelectedMission] = useState<MissionDetail | null>(null);
   const [validationType, setValidationType] = useState<'manager' | 'rh'>('manager');
   
@@ -252,9 +254,14 @@ export default function MissionsPage() {
         const data = await res.json();
         setSelectedMission(data);
         setShowDetailModal(true);
+      } else {
+        // FIX #3 & #4: Afficher l'erreur si l'accès est refusé
+        const error = await res.json();
+        alert(error.detail || 'Erreur lors du chargement de la mission');
       }
     } catch (e) {
       console.error('Error fetching mission detail:', e);
+      alert('Erreur de connexion');
     }
   };
 
@@ -500,6 +507,7 @@ export default function MissionsPage() {
             setShowValidationModal(true);
           }}
           onAddExpense={() => setShowExpenseModal(true)}
+          onEdit={() => setShowEditModal(true)} // FIX #2: Bouton modifier
           userRole={userRole}
           userId={userId}
           onRefresh={() => fetchMissionDetail(selectedMission.id)}
@@ -526,6 +534,19 @@ export default function MissionsPage() {
           onClose={() => setShowExpenseModal(false)}
           onSuccess={() => {
             setShowExpenseModal(false);
+            fetchMissionDetail(selectedMission.id);
+          }}
+        />
+      )}
+
+      {/* FIX #2: Modal d'édition */}
+      {showEditModal && selectedMission && (
+        <EditMissionModal
+          mission={selectedMission}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={() => {
+            setShowEditModal(false);
+            fetchMissions();
             fetchMissionDetail(selectedMission.id);
           }}
         />
@@ -1024,7 +1045,7 @@ function CreateMissionModal({
 }
 
 // ============================================
-// MODAL: DÉTAIL
+// MODAL: DÉTAIL (MISE À JOUR)
 // ============================================
 
 function MissionDetailModal({ 
@@ -1037,6 +1058,7 @@ function MissionDetailModal({
   onDelete,
   onValidate,
   onAddExpense,
+  onEdit, // FIX #2: Ajout prop onEdit
   userRole,
   userId,
   onRefresh
@@ -1050,6 +1072,7 @@ function MissionDetailModal({
   onDelete: (id: number) => void;
   onValidate: (type: 'manager' | 'rh') => void;
   onAddExpense: () => void;
+  onEdit: () => void; // FIX #2
   userRole: string;
   userId: number | null;
   onRefresh: () => void;
@@ -1058,8 +1081,17 @@ function MissionDetailModal({
   const transportConfig = TRANSPORT_CONFIG[mission.transport_type] || TRANSPORT_CONFIG.autre;
   const TransportIcon = transportConfig.icon;
   
-  const canEdit = mission.status === 'brouillon' && (mission.employee_id === userId || ['admin', 'rh', 'dg'].includes(userRole));
-  const canSubmit = mission.status === 'brouillon' && (mission.employee_id === userId || mission.created_by_name);
+  const isRH = ['admin', 'rh', 'dg'].includes(userRole);
+  const isOwner = mission.employee_id === userId || mission.created_by_id === userId;
+  
+  // FIX #2: Logique de permission étendue pour modification
+  // Le demandeur peut modifier tant que pas validée
+  const ownerEditableStatuses = ['brouillon', 'rejetee', 'en_attente_manager', 'en_attente_rh'];
+  const canEdit = (isOwner && ownerEditableStatuses.includes(mission.status)) || 
+                  (isRH && mission.status !== 'cloturee');
+  
+  const canSubmit = mission.status === 'brouillon' && isOwner;
+  const canDelete = mission.status === 'brouillon' && (isOwner || isRH);
   const canValidateManager = mission.status === 'en_attente_manager' && ['manager', 'admin', 'rh', 'dg'].includes(userRole);
   const canValidateRH = mission.status === 'en_attente_rh' && ['admin', 'rh', 'dg'].includes(userRole);
   const canStart = mission.status === 'approuvee';
@@ -1215,6 +1247,17 @@ function MissionDetailModal({
 
         {/* Actions */}
         <div className="flex flex-wrap items-center gap-2 p-6 border-t border-gray-100">
+          {/* FIX #2: Bouton Modifier visible pour les bonnes conditions */}
+          {canEdit && (
+            <button
+              onClick={onEdit}
+              className="flex items-center gap-2 px-4 py-2 border border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50"
+            >
+              <Edit className="w-4 h-4" />
+              Modifier
+            </button>
+          )}
+          
           {canSubmit && (
             <button
               onClick={() => onSubmit(mission.id)}
@@ -1285,7 +1328,7 @@ function MissionDetailModal({
             </button>
           )}
           
-          {canEdit && (
+          {canDelete && (
             <button
               onClick={() => onDelete(mission.id)}
               className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
@@ -1307,6 +1350,225 @@ function InfoItem({ icon: Icon, label, value }: { icon: React.ElementType; label
       <div>
         <p className="text-xs text-gray-500">{label}</p>
         <p className="text-sm font-medium text-gray-900">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// FIX #2: MODAL ÉDITION MISSION
+// ============================================
+
+function EditMissionModal({ 
+  mission,
+  onClose, 
+  onSuccess
+}: { 
+  mission: MissionDetail;
+  onClose: () => void; 
+  onSuccess: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    subject: mission.subject || '',
+    description: mission.description || '',
+    departure_location: mission.departure_location || '',
+    destination: mission.destination || '',
+    destination_country: mission.destination_country || '',
+    start_date: mission.start_date || '',
+    end_date: mission.end_date || '',
+    transport_type: mission.transport_type || 'voiture_service',
+    transport_details: mission.transport_details || '',
+    accommodation_type: mission.accommodation_type || '',
+    accommodation_details: mission.accommodation_details || '',
+    estimated_budget: mission.estimated_budget?.toString() || '',
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const payload = {
+        ...formData,
+        estimated_budget: formData.estimated_budget ? parseFloat(formData.estimated_budget) : undefined,
+        accommodation_type: formData.accommodation_type || undefined,
+      };
+
+      const res = await fetch(`${API_URL}/api/missions/${mission.id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        onSuccess();
+      } else {
+        const error = await res.json();
+        alert(error.detail || 'Erreur lors de la modification');
+      }
+    } catch (e) {
+      console.error('Error updating mission:', e);
+      alert('Erreur de connexion');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+          <h2 className="text-xl font-semibold text-gray-900">Modifier la mission {mission.reference}</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Objet */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Objet de la mission *</label>
+            <input
+              type="text"
+              required
+              value={formData.subject}
+              onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+            />
+          </div>
+
+          {/* Lieux */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Lieu de départ *</label>
+              <input
+                type="text"
+                required
+                value={formData.departure_location}
+                onChange={(e) => setFormData({ ...formData, departure_location: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Destination *</label>
+              <input
+                type="text"
+                required
+                value={formData.destination}
+                onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Pays de destination</label>
+            <input
+              type="text"
+              value={formData.destination_country}
+              onChange={(e) => setFormData({ ...formData, destination_country: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+            />
+          </div>
+
+          {/* Dates */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Date de départ *</label>
+              <input
+                type="date"
+                required
+                value={formData.start_date}
+                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Date de retour *</label>
+              <input
+                type="date"
+                required
+                value={formData.end_date}
+                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Transport */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Moyen de transport *</label>
+              <select
+                required
+                value={formData.transport_type}
+                onChange={(e) => setFormData({ ...formData, transport_type: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+              >
+                {Object.entries(TRANSPORT_CONFIG).map(([key, config]) => (
+                  <option key={key} value={key}>{config.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Hébergement</label>
+              <select
+                value={formData.accommodation_type}
+                onChange={(e) => setFormData({ ...formData, accommodation_type: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+              >
+                <option value="">Non spécifié</option>
+                <option value="hotel">Hôtel</option>
+                <option value="residence">Résidence</option>
+                <option value="chez_tiers">Chez un tiers</option>
+                <option value="aucun">Aucun</option>
+                <option value="autre">Autre</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Budget */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Budget estimé (XOF)</label>
+            <input
+              type="number"
+              value={formData.estimated_budget}
+              onChange={(e) => setFormData({ ...formData, estimated_budget: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 py-2.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              Enregistrer
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
@@ -1367,7 +1629,7 @@ function ValidationModal({
         alert(error.detail || 'Erreur lors de la validation');
       }
     } catch (e) {
-      console.error('Error validating:', e);
+      console.error('Error validating mission:', e);
       alert('Erreur de connexion');
     } finally {
       setLoading(false);
@@ -1387,12 +1649,19 @@ function ValidationModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Décision */}
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <p className="font-medium text-gray-900">{mission.reference}</p>
+            <p className="text-sm text-gray-500">{mission.subject}</p>
+            <p className="text-sm text-gray-500">{mission.employee_name}</p>
+          </div>
+
+          {/* Choix approuver/rejeter */}
           <div className="flex gap-4">
-            <label className={`flex-1 p-4 border-2 rounded-xl cursor-pointer transition-colors ${approved ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
+            <label className={`flex-1 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+              approved ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+            }`}>
               <input
                 type="radio"
-                name="decision"
                 checked={approved}
                 onChange={() => setApproved(true)}
                 className="sr-only"
@@ -1402,10 +1671,11 @@ function ValidationModal({
                 <span className="font-medium">Approuver</span>
               </div>
             </label>
-            <label className={`flex-1 p-4 border-2 rounded-xl cursor-pointer transition-colors ${!approved ? 'border-red-500 bg-red-50' : 'border-gray-200'}`}>
+            <label className={`flex-1 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+              !approved ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300'
+            }`}>
               <input
                 type="radio"
-                name="decision"
                 checked={!approved}
                 onChange={() => setApproved(false)}
                 className="sr-only"

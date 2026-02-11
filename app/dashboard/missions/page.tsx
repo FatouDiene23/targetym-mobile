@@ -7,7 +7,7 @@ import {
   Filter, ChevronDown, ChevronRight, Eye, Edit, Trash2, Download,
   CheckCircle, XCircle, AlertCircle, Loader2, Send, PlayCircle,
   StopCircle, Receipt, Building2, Car, Train, Bus, MoreHorizontal,
-  TrendingUp, DollarSign, Briefcase, X, Upload
+  TrendingUp, DollarSign, Briefcase, X, Upload, UserCheck
 } from 'lucide-react';
 
 // ============================================
@@ -94,6 +94,7 @@ interface MissionStats {
   en_cours: number;
   terminee: number;
   rejetee: number;
+  cloturee: number;
   total_per_diem: number;
   pending_validation: number;
 }
@@ -168,6 +169,10 @@ function canManageAll(role: string): boolean {
   return ['rh', 'admin', 'dg', 'superadmin'].includes(role);
 }
 
+function isManagerOrAbove(role: string): boolean {
+  return role === 'manager' || canManageAll(role);
+}
+
 function formatDate(dateStr: string): string {
   if (!dateStr) return '';
   return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -199,10 +204,13 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
 // MAIN COMPONENT
 // ============================================
 
+type TabType = 'mes_missions' | 'a_valider' | 'equipe' | 'toutes';
+
 export default function MissionsPage() {
-  const [activeTab, setActiveTab] = useState<'mes_missions' | 'a_valider' | 'toutes'>('mes_missions');
+  const [activeTab, setActiveTab] = useState<TabType>('mes_missions');
   const [missions, setMissions] = useState<Mission[]>([]);
   const [pendingMissions, setPendingMissions] = useState<Mission[]>([]);
+  const [teamMissions, setTeamMissions] = useState<Mission[]>([]);
   const [stats, setStats] = useState<MissionStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -219,44 +227,60 @@ export default function MissionsPage() {
 
   const role = getUserRole();
   const userId = getUserId();
-  const isManagerOrAbove = role === 'manager' || canManageAll(role);
+  const showValidateTab = isManagerOrAbove(role);
+  const showTeamTab = isManagerOrAbove(role);
 
   // ============================================
   // DATA FETCHING
   // ============================================
 
-  const fetchMissions = useCallback(async () => {
+  const fetchMyMissions = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
       if (statusFilter) params.set('status', statusFilter);
       if (searchTerm) params.set('search', searchTerm);
 
-      // Pour "Mes missions", on filtre côté frontend pour ne montrer que les siennes
       const data = await apiFetch(`/api/missions/?${params.toString()}`);
-      
-      if (activeTab === 'mes_missions') {
-        // Filtrer uniquement les missions de l'utilisateur connecté
-        setMissions(data.missions.filter((m: Mission) => m.employee_id === userId));
-      } else {
-        setMissions(data.missions);
-      }
+      // Filtrer uniquement les missions de l'utilisateur connecté
+      setMissions(data.missions.filter((m: Mission) => m.employee_id === userId));
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, searchTerm, activeTab, userId]);
+  }, [statusFilter, searchTerm, userId]);
 
   const fetchPending = useCallback(async () => {
-    if (!isManagerOrAbove) return;
+    if (!showValidateTab) return;
     try {
       const data = await apiFetch('/api/missions/pending');
       setPendingMissions(data.missions);
     } catch (err) {
       console.error('Erreur pending:', err);
     }
-  }, [isManagerOrAbove]);
+  }, [showValidateTab]);
+
+  const fetchTeamMissions = useCallback(async () => {
+    if (!showTeamTab) return;
+    try {
+      const params = new URLSearchParams();
+      if (statusFilter && activeTab === 'equipe') params.set('status', statusFilter);
+      if (searchTerm && activeTab === 'equipe') params.set('search', searchTerm);
+
+      const data = await apiFetch(`/api/missions/?${params.toString()}`);
+      
+      if (canManageAll(role)) {
+        // RH/Admin/DG voient toutes les missions
+        setTeamMissions(data.missions);
+      } else if (role === 'manager') {
+        // Manager voit les missions de ses N-1 (pas les siennes)
+        setTeamMissions(data.missions.filter((m: Mission) => m.employee_id !== userId));
+      }
+    } catch (err) {
+      console.error('Erreur team missions:', err);
+    }
+  }, [showTeamTab, role, userId, statusFilter, searchTerm, activeTab]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -267,11 +291,24 @@ export default function MissionsPage() {
     }
   }, []);
 
+  const fetchAll = useCallback(async () => {
+    await Promise.all([fetchMyMissions(), fetchPending(), fetchTeamMissions(), fetchStats()]);
+  }, [fetchMyMissions, fetchPending, fetchTeamMissions, fetchStats]);
+
   useEffect(() => {
-    fetchMissions();
-    fetchPending();
-    fetchStats();
-  }, [fetchMissions, fetchPending, fetchStats]);
+    fetchAll();
+  }, [fetchAll]);
+
+  // Refetch quand l'onglet change
+  useEffect(() => {
+    if (activeTab === 'equipe') {
+      fetchTeamMissions();
+    } else if (activeTab === 'mes_missions') {
+      fetchMyMissions();
+    } else if (activeTab === 'a_valider') {
+      fetchPending();
+    }
+  }, [activeTab]);
 
   // ============================================
   // ACTIONS
@@ -305,9 +342,7 @@ export default function MissionsPage() {
   const handleSubmitMission = async (missionId: number) => {
     try {
       await apiFetch(`/api/missions/${missionId}/submit`, { method: 'POST' });
-      fetchMissions();
-      fetchPending();
-      fetchStats();
+      fetchAll();
       alert('Mission soumise avec succès');
     } catch (err: any) {
       alert('Erreur: ' + err.message);
@@ -317,8 +352,7 @@ export default function MissionsPage() {
   const handleStartMission = async (missionId: number) => {
     try {
       await apiFetch(`/api/missions/${missionId}/start`, { method: 'POST' });
-      fetchMissions();
-      fetchStats();
+      fetchAll();
       alert('Mission démarrée');
     } catch (err: any) {
       alert('Erreur: ' + err.message);
@@ -329,8 +363,7 @@ export default function MissionsPage() {
     if (!confirm('Supprimer cette mission ?')) return;
     try {
       await apiFetch(`/api/missions/${missionId}`, { method: 'DELETE' });
-      fetchMissions();
-      fetchStats();
+      fetchAll();
     } catch (err: any) {
       alert('Erreur: ' + err.message);
     }
@@ -342,26 +375,27 @@ export default function MissionsPage() {
 
   const renderStats = () => {
     if (!stats) return null;
-    const cards = [
+    const cards: { label: string; value: string | number; icon: any; color: string; bg: string }[] = [
       { label: 'Total', value: stats.total, icon: Briefcase, color: 'text-gray-700', bg: 'bg-gray-50' },
       { label: 'En attente', value: stats.en_attente, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
-      { label: 'Approuvées', value: stats.approuvee, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50' },
       { label: 'En cours', value: stats.en_cours, icon: PlayCircle, color: 'text-blue-600', bg: 'bg-blue-50' },
+      { label: 'Terminées', value: stats.terminee, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50' },
+      { label: 'Per Diem Total', value: formatAmount(stats.total_per_diem), icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     ];
 
-    if (isManagerOrAbove && stats.pending_validation > 0) {
-      cards.push({ label: 'À valider', value: stats.pending_validation, icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50' });
+    if (showValidateTab && stats.pending_validation > 0) {
+      cards.splice(4, 0, { label: 'À valider', value: stats.pending_validation, icon: UserCheck, color: 'text-red-600', bg: 'bg-red-50' });
     }
 
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
         {cards.map((card) => (
           <div key={card.label} className={`${card.bg} rounded-xl p-4 border`}>
             <div className="flex items-center justify-between mb-2">
               <card.icon className={`w-5 h-5 ${card.color}`} />
-              <span className={`text-2xl font-bold ${card.color}`}>{card.value}</span>
             </div>
-            <p className="text-sm text-gray-500">{card.label}</p>
+            <p className={`text-lg font-bold ${card.color}`}>{card.value}</p>
+            <p className="text-xs text-gray-500 mt-1">{card.label}</p>
           </div>
         ))}
       </div>
@@ -372,7 +406,7 @@ export default function MissionsPage() {
   // RENDER: Mission Row
   // ============================================
 
-  const renderMissionRow = (mission: Mission, showActions: boolean = true) => {
+  const renderMissionRow = (mission: Mission, context: 'mes_missions' | 'a_valider' | 'equipe' | 'toutes') => {
     const statusConf = STATUS_CONFIG[mission.status] || STATUS_CONFIG.brouillon;
     const transport = TRANSPORT_LABELS[mission.transport_type] || TRANSPORT_LABELS.autre;
     const TransportIcon = transport.icon;
@@ -385,13 +419,16 @@ export default function MissionsPage() {
             <p className="text-xs text-gray-500">{formatDate(mission.created_at)}</p>
           </div>
         </td>
+        {context !== 'mes_missions' && (
+          <td className="px-4 py-3">
+            <div>
+              <p className="text-sm font-medium">{mission.employee_name}</p>
+              <p className="text-xs text-gray-500">{mission.department_name || ''}</p>
+            </div>
+          </td>
+        )}
         <td className="px-4 py-3">
-          <div>
-            <p className="text-sm font-medium">{mission.subject}</p>
-            {activeTab !== 'mes_missions' && (
-              <p className="text-xs text-gray-500">{mission.employee_name}</p>
-            )}
-          </div>
+          <p className="text-sm font-medium">{mission.subject}</p>
         </td>
         <td className="px-4 py-3">
           <div className="flex items-center gap-1.5">
@@ -419,75 +456,131 @@ export default function MissionsPage() {
         <td className="px-4 py-3 text-right text-sm font-medium">
           {mission.per_diem_amount ? formatAmount(mission.per_diem_amount) : '-'}
         </td>
-        {showActions && (
-          <td className="px-4 py-3">
-            <div className="flex items-center gap-1">
-              {/* Bouton Voir */}
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-1">
+            {/* Bouton Voir */}
+            <button
+              onClick={() => handleViewMission(mission)}
+              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-blue-600"
+              title="Voir"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
+
+            {/* Bouton Modifier (brouillon ou rejeté, seulement dans mes missions) */}
+            {context === 'mes_missions' && (mission.status === 'brouillon' || mission.status === 'rejetee') && (
               <button
-                onClick={() => handleViewMission(mission)}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-blue-600"
-                title="Voir"
+                onClick={() => handleEditMission(mission)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-yellow-600"
+                title="Modifier"
               >
-                <Eye className="w-4 h-4" />
+                <Edit className="w-4 h-4" />
               </button>
+            )}
 
-              {/* Bouton Modifier (brouillon ou rejeté) */}
-              {(mission.status === 'brouillon' || mission.status === 'rejetee') && (
-                <button
-                  onClick={() => handleEditMission(mission)}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-yellow-600"
-                  title="Modifier"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-              )}
+            {/* Bouton Soumettre (brouillon) */}
+            {context === 'mes_missions' && mission.status === 'brouillon' && (
+              <button
+                onClick={() => handleSubmitMission(mission.id)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-green-600"
+                title="Soumettre"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            )}
 
-              {/* Bouton Soumettre (brouillon) */}
-              {mission.status === 'brouillon' && (
-                <button
-                  onClick={() => handleSubmitMission(mission.id)}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-green-600"
-                  title="Soumettre"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
-              )}
+            {/* Bouton Démarrer (approuvée) */}
+            {mission.status === 'approuvee' && (
+              <button
+                onClick={() => handleStartMission(mission.id)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-blue-600"
+                title="Démarrer"
+              >
+                <PlayCircle className="w-4 h-4" />
+              </button>
+            )}
 
-              {/* Bouton Démarrer (approuvée) */}
-              {mission.status === 'approuvee' && (
-                <button
-                  onClick={() => handleStartMission(mission.id)}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-blue-600"
-                  title="Démarrer"
-                >
-                  <PlayCircle className="w-4 h-4" />
-                </button>
-              )}
+            {/* Bouton Supprimer (brouillon) */}
+            {context === 'mes_missions' && mission.status === 'brouillon' && (
+              <button
+                onClick={() => handleDeleteMission(mission.id)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-red-600"
+                title="Supprimer"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
 
-              {/* Bouton Supprimer (brouillon) */}
-              {mission.status === 'brouillon' && (
-                <button
-                  onClick={() => handleDeleteMission(mission.id)}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-red-600"
-                  title="Supprimer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
-
-              {/* Bouton Traiter (pour validation) */}
-              {activeTab === 'a_valider' && ['en_attente_manager', 'en_attente_rh'].includes(mission.status) && (
-                <button
-                  onClick={() => handleValidateMission(mission)}
-                  className="px-3 py-1 rounded-lg bg-blue-600 text-white text-xs hover:bg-blue-700"
-                >
-                  Traiter
-                </button>
-              )}
-            </div>
-          </td>
-        )}
+            {/* Bouton Traiter (dans onglet À valider) */}
+            {context === 'a_valider' && ['en_attente_manager', 'en_attente_rh'].includes(mission.status) && (
+              <button
+                onClick={() => handleValidateMission(mission)}
+                className="px-3 py-1 rounded-lg bg-blue-600 text-white text-xs hover:bg-blue-700"
+              >
+                Traiter
+              </button>
+            )}
+          </div>
+        </td>
       </tr>
+    );
+  };
+
+  // ============================================
+  // RENDER: Table
+  // ============================================
+
+  const renderTable = (missionList: Mission[], context: TabType) => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+          <span className="ml-2 text-gray-500">Chargement...</span>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="flex items-center justify-center py-12 text-red-500">
+          <AlertCircle className="w-5 h-5 mr-2" />
+          {error}
+        </div>
+      );
+    }
+
+    if (missionList.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+          <Plane className="w-12 h-12 mb-3" />
+          <p>{context === 'a_valider' ? 'Aucune mission en attente de validation' : 'Aucune mission trouvée'}</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-gray-50 border-b">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Référence</th>
+              {context !== 'mes_missions' && (
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employé</th>
+              )}
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Objet</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Destination</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transport</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Per Diem</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {missionList.map((m) => renderMissionRow(m, context))}
+          </tbody>
+        </table>
+      </div>
     );
   };
 
@@ -495,13 +588,30 @@ export default function MissionsPage() {
   // RENDER: Tabs
   // ============================================
 
-  const tabs = [
-    { id: 'mes_missions' as const, label: 'Mes missions', icon: Briefcase },
-    ...(isManagerOrAbove ? [{ id: 'a_valider' as const, label: `À valider${stats?.pending_validation ? ` (${stats.pending_validation})` : ''}`, icon: CheckCircle }] : []),
-    ...(canManageAll(role) ? [{ id: 'toutes' as const, label: 'Toutes les missions', icon: Users }] : []),
+  const tabs: { id: TabType; label: string; icon: any; badge?: number }[] = [
+    { id: 'mes_missions', label: 'Mes missions', icon: Briefcase },
+    ...(showValidateTab ? [{
+      id: 'a_valider' as TabType,
+      label: 'À valider',
+      icon: UserCheck,
+      badge: stats?.pending_validation || 0,
+    }] : []),
+    ...(showTeamTab ? [{
+      id: 'equipe' as TabType,
+      label: canManageAll(role) ? 'Toutes les missions' : 'Missions équipe',
+      icon: Users,
+    }] : []),
   ];
 
-  const displayMissions = activeTab === 'a_valider' ? pendingMissions : missions;
+  // Déterminer les données à afficher
+  const getDisplayMissions = (): Mission[] => {
+    switch (activeTab) {
+      case 'mes_missions': return missions;
+      case 'a_valider': return pendingMissions;
+      case 'equipe': return teamMissions;
+      default: return missions;
+    }
+  };
 
   // ============================================
   // RENDER
@@ -543,78 +653,53 @@ export default function MissionsPage() {
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}
+              {tab.badge && tab.badge > 0 && (
+                <span className={`ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                  activeTab === tab.id ? 'bg-white text-blue-600' : 'bg-red-500 text-white'
+                }`}>
+                  {tab.badge}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Rechercher une mission..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+        {/* Filters (pas pour l'onglet À valider) */}
+        {activeTab !== 'a_valider' && (
+          <div className="flex items-center gap-3 mb-4">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Rechercher une mission..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Tous les statuts</option>
+              {Object.entries(STATUS_CONFIG).map(([key, val]) => (
+                <option key={key} value={key}>{val.label}</option>
+              ))}
+            </select>
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Tous les statuts</option>
-            {Object.entries(STATUS_CONFIG).map(([key, val]) => (
-              <option key={key} value={key}>{val.label}</option>
-            ))}
-          </select>
-        </div>
+        )}
 
         {/* Table */}
         <div className="bg-white rounded-xl border overflow-hidden">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-              <span className="ml-2 text-gray-500">Chargement...</span>
-            </div>
-          ) : error ? (
-            <div className="flex items-center justify-center py-12 text-red-500">
-              <AlertCircle className="w-5 h-5 mr-2" />
-              {error}
-            </div>
-          ) : displayMissions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-gray-400">
-              <Plane className="w-12 h-12 mb-3" />
-              <p>Aucune mission trouvée</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 border-b">
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Référence</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Objet</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Destination</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transport</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Per Diem</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayMissions.map((m) => renderMissionRow(m))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          {renderTable(getDisplayMissions(), activeTab)}
         </div>
       </div>
 
       {/* ============================================ */}
-      {/* MODAL: Créer une mission */}
+      {/* MODALS */}
       {/* ============================================ */}
+
       {showCreateModal && (
         <CreateMissionModal
           role={role}
@@ -622,15 +707,11 @@ export default function MissionsPage() {
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             setShowCreateModal(false);
-            fetchMissions();
-            fetchStats();
+            fetchAll();
           }}
         />
       )}
 
-      {/* ============================================ */}
-      {/* MODAL: Détail mission */}
-      {/* ============================================ */}
       {showDetailModal && selectedMission && (
         <MissionDetailModal
           mission={selectedMission}
@@ -639,9 +720,6 @@ export default function MissionsPage() {
         />
       )}
 
-      {/* ============================================ */}
-      {/* MODAL: Modifier mission */}
-      {/* ============================================ */}
       {showEditModal && selectedMission && (
         <EditMissionModal
           mission={selectedMission}
@@ -649,15 +727,11 @@ export default function MissionsPage() {
           onSuccess={() => {
             setShowEditModal(false);
             setSelectedMission(null);
-            fetchMissions();
-            fetchStats();
+            fetchAll();
           }}
         />
       )}
 
-      {/* ============================================ */}
-      {/* MODAL: Valider mission */}
-      {/* ============================================ */}
       {showValidateModal && missionToValidate && (
         <ValidateMissionModal
           mission={missionToValidate}
@@ -666,9 +740,7 @@ export default function MissionsPage() {
           onSuccess={() => {
             setShowValidateModal(false);
             setMissionToValidate(null);
-            fetchMissions();
-            fetchPending();
-            fetchStats();
+            fetchAll();
           }}
         />
       )}
@@ -703,16 +775,29 @@ function CreateMissionModal({ role, userId, onClose, onSuccess }: {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    // Charger les employés si manager ou RH
-    if (role === 'manager') {
-      // Manager ne voit que ses N-1
-      apiFetch(`/api/employees/?manager_id=${userId}&status=active`)
-        .then((data) => setEmployees(data.employees || data))
+    if (canManageAll(role)) {
+      // RH/Admin/DG : tous les employés
+      apiFetch('/api/employees/?status=active&page_size=500')
+        .then((data) => {
+          const emps = data.employees || data.items || data;
+          setEmployees(Array.isArray(emps) ? emps : []);
+        })
         .catch(() => {});
-    } else if (canManageAll(role)) {
-      apiFetch('/api/employees/?status=active')
-        .then((data) => setEmployees(data.employees || data))
-        .catch(() => {});
+    } else if (role === 'manager') {
+      // Manager : seulement ses N-1
+      apiFetch(`/api/employees/?manager_id=${userId}&status=active&page_size=500`)
+        .then((data) => {
+          const emps = data.employees || data.items || data;
+          setEmployees(Array.isArray(emps) ? emps : []);
+        })
+        .catch(() => {
+          // Fallback: essayer via direct-reports
+          apiFetch(`/api/employees/${userId}/direct-reports`)
+            .then((data) => {
+              setEmployees(Array.isArray(data) ? data : []);
+            })
+            .catch(() => {});
+        });
     }
   }, [role, userId]);
 
@@ -741,10 +826,12 @@ function CreateMissionModal({ role, userId, onClose, onSuccess }: {
     }
   };
 
+  const showEmployeeSelect = role === 'manager' || canManageAll(role);
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white rounded-t-2xl">
+        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white rounded-t-2xl z-10">
           <h2 className="text-lg font-bold">Nouvelle demande de mission</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
             <X className="w-5 h-5" />
@@ -752,10 +839,15 @@ function CreateMissionModal({ role, userId, onClose, onSuccess }: {
         </div>
 
         <div className="p-6 space-y-4">
-          {/* Sélection employé (manager/RH uniquement) */}
-          {(role === 'manager' || canManageAll(role)) && (
+          {/* Sélection employé */}
+          {showEmployeeSelect && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Employé *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Employé concerné *
+                <span className="text-xs text-gray-400 ml-2">
+                  {canManageAll(role) ? '(Tous les employés)' : '(Vos collaborateurs directs)'}
+                </span>
+              </label>
               <select
                 value={formData.employee_id}
                 onChange={(e) => setFormData({ ...formData, employee_id: parseInt(e.target.value) })}
@@ -764,7 +856,7 @@ function CreateMissionModal({ role, userId, onClose, onSuccess }: {
                 <option value={userId || 0}>Moi-même</option>
                 {employees.map((emp) => (
                   <option key={emp.id} value={emp.id}>
-                    {emp.first_name} {emp.last_name} - {emp.job_title || ''}
+                    {emp.first_name} {emp.last_name} {emp.job_title ? `- ${emp.job_title}` : ''} {emp.department_name ? `(${emp.department_name})` : ''}
                   </option>
                 ))}
               </select>
@@ -819,7 +911,7 @@ function CreateMissionModal({ role, userId, onClose, onSuccess }: {
             </div>
           </div>
 
-          {/* Pays destination */}
+          {/* Pays */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Pays de destination</label>
             <input
@@ -853,7 +945,7 @@ function CreateMissionModal({ role, userId, onClose, onSuccess }: {
             </div>
           </div>
 
-          {/* Transport */}
+          {/* Transport + Hébergement */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Moyen de transport *</label>
@@ -939,7 +1031,7 @@ function MissionDetailModal({ mission, role, onClose }: {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white rounded-t-2xl">
+        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white rounded-t-2xl z-10">
           <div>
             <h2 className="text-lg font-bold">{mission.reference}</h2>
             <p className="text-sm text-gray-500">{mission.subject}</p>
@@ -966,7 +1058,7 @@ function MissionDetailModal({ mission, role, onClose }: {
             </div>
           </div>
 
-          {/* Détails mission */}
+          {/* Itinéraire + Dates */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-blue-50 rounded-xl p-4">
               <h3 className="text-sm font-semibold text-blue-700 mb-2 flex items-center gap-2">
@@ -1048,7 +1140,7 @@ function MissionDetailModal({ mission, role, onClose }: {
             </div>
           )}
 
-          {/* Frais de mission */}
+          {/* Frais */}
           {mission.expenses && mission.expenses.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
@@ -1082,7 +1174,7 @@ function MissionDetailModal({ mission, role, onClose }: {
             </div>
           )}
 
-          {/* Rapport de mission */}
+          {/* Rapport */}
           {mission.mission_report && (
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-1">Rapport de mission</h3>
@@ -1146,7 +1238,7 @@ function EditMissionModal({ mission, onClose, onSuccess }: {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white rounded-t-2xl">
+        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white rounded-t-2xl z-10">
           <h2 className="text-lg font-bold">Modifier - {mission.reference}</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
             <X className="w-5 h-5" />
@@ -1156,74 +1248,36 @@ function EditMissionModal({ mission, onClose, onSuccess }: {
         <div className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Objet *</label>
-            <input
-              type="text"
-              value={formData.subject}
-              onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-              className="w-full px-3 py-2 border rounded-xl text-sm"
-            />
+            <input type="text" value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm" />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border rounded-xl text-sm"
-              rows={3}
-            />
+            <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm" rows={3} />
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Lieu de départ *</label>
-              <input
-                type="text"
-                value={formData.departure_location}
-                onChange={(e) => setFormData({ ...formData, departure_location: e.target.value })}
-                className="w-full px-3 py-2 border rounded-xl text-sm"
-              />
+              <input type="text" value={formData.departure_location} onChange={(e) => setFormData({ ...formData, departure_location: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Destination *</label>
-              <input
-                type="text"
-                value={formData.destination}
-                onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
-                className="w-full px-3 py-2 border rounded-xl text-sm"
-              />
+              <input type="text" value={formData.destination} onChange={(e) => setFormData({ ...formData, destination: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm" />
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Date de départ *</label>
-              <input
-                type="date"
-                value={formData.start_date}
-                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                className="w-full px-3 py-2 border rounded-xl text-sm"
-              />
+              <input type="date" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Date de retour *</label>
-              <input
-                type="date"
-                value={formData.end_date}
-                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                className="w-full px-3 py-2 border rounded-xl text-sm"
-              />
+              <input type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm" />
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Transport</label>
-              <select
-                value={formData.transport_type}
-                onChange={(e) => setFormData({ ...formData, transport_type: e.target.value })}
-                className="w-full px-3 py-2 border rounded-xl text-sm"
-              >
+              <select value={formData.transport_type} onChange={(e) => setFormData({ ...formData, transport_type: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm">
                 <option value="avion">Avion</option>
                 <option value="train">Train</option>
                 <option value="voiture_personnelle">Voiture personnelle</option>
@@ -1234,11 +1288,7 @@ function EditMissionModal({ mission, onClose, onSuccess }: {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Hébergement</label>
-              <select
-                value={formData.accommodation_type}
-                onChange={(e) => setFormData({ ...formData, accommodation_type: e.target.value })}
-                className="w-full px-3 py-2 border rounded-xl text-sm"
-              >
+              <select value={formData.accommodation_type} onChange={(e) => setFormData({ ...formData, accommodation_type: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm">
                 <option value="">-- Choisir --</option>
                 <option value="hotel">Hôtel</option>
                 <option value="residence">Résidence</option>
@@ -1248,27 +1298,15 @@ function EditMissionModal({ mission, onClose, onSuccess }: {
               </select>
             </div>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Budget estimé (XOF)</label>
-            <input
-              type="number"
-              value={formData.estimated_budget}
-              onChange={(e) => setFormData({ ...formData, estimated_budget: e.target.value })}
-              className="w-full px-3 py-2 border rounded-xl text-sm"
-            />
+            <input type="number" value={formData.estimated_budget} onChange={(e) => setFormData({ ...formData, estimated_budget: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm" />
           </div>
         </div>
 
         <div className="flex items-center justify-end gap-3 p-6 border-t sticky bottom-0 bg-white rounded-b-2xl">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">
-            Annuler
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 flex items-center gap-2"
-            disabled={submitting}
-          >
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">Annuler</button>
+          <button onClick={handleSubmit} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 flex items-center gap-2" disabled={submitting}>
             {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
             Enregistrer
           </button>
@@ -1290,8 +1328,16 @@ function ValidateMissionModal({ mission, role, onClose, onSuccess }: {
   const [perDiem, setPerDiem] = useState('');
   const [advanceAmount, setAdvanceAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [missionDetail, setMissionDetail] = useState<MissionDetail | null>(null);
 
-  const isRHStep = mission.status === 'en_attente_rh' || canManageAll(role);
+  // Charger les détails de la mission
+  useEffect(() => {
+    apiFetch(`/api/missions/${mission.id}`)
+      .then(setMissionDetail)
+      .catch(console.error);
+  }, [mission.id]);
+
+  const isRHStep = mission.status === 'en_attente_rh' || (canManageAll(role) && mission.status === 'en_attente_manager');
   const endpoint = isRHStep
     ? `/api/missions/${mission.id}/validate/rh`
     : `/api/missions/${mission.id}/validate/manager`;
@@ -1323,9 +1369,9 @@ function ValidateMissionModal({ mission, role, onClose, onSuccess }: {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg">
-        <div className="flex items-center justify-between p-6 border-b">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white rounded-t-2xl z-10">
           <div>
             <h2 className="text-lg font-bold">Traiter la mission</h2>
             <p className="text-sm text-gray-500">{mission.reference} - {mission.subject}</p>
@@ -1337,17 +1383,30 @@ function ValidateMissionModal({ mission, role, onClose, onSuccess }: {
 
         <div className="p-6 space-y-4">
           {/* Résumé */}
-          <div className="bg-gray-50 rounded-xl p-3 text-sm space-y-1">
-            <p><span className="text-gray-500">Employé:</span> {mission.employee_name}</p>
-            <p><span className="text-gray-500">Destination:</span> {mission.destination}</p>
-            <p><span className="text-gray-500">Dates:</span> {formatDate(mission.start_date)} → {formatDate(mission.end_date)} ({mission.duration_days}j)</p>
+          <div className="bg-gray-50 rounded-xl p-4 text-sm space-y-1">
+            <p><span className="text-gray-500">Employé:</span> <span className="font-medium">{mission.employee_name}</span></p>
+            <p><span className="text-gray-500">Destination:</span> <span className="font-medium">{mission.destination}</span></p>
+            <p><span className="text-gray-500">Dates:</span> <span className="font-medium">{formatDate(mission.start_date)} → {formatDate(mission.end_date)} ({mission.duration_days}j)</span></p>
+            {missionDetail?.estimated_budget && (
+              <p><span className="text-gray-500">Budget estimé:</span> <span className="font-medium">{formatAmount(missionDetail.estimated_budget)}</span></p>
+            )}
+            {missionDetail?.description && (
+              <p className="pt-2 border-t mt-2"><span className="text-gray-500">Description:</span> {missionDetail.description}</p>
+            )}
+          </div>
+
+          {/* Étape actuelle */}
+          <div className={`p-3 rounded-xl text-sm font-medium ${
+            isRHStep ? 'bg-yellow-50 text-yellow-800 border border-yellow-200' : 'bg-orange-50 text-orange-800 border border-orange-200'
+          }`}>
+            {isRHStep ? '📋 Validation RH - Définissez le per diem et l\'avance' : '👤 Validation Manager - Validez le besoin opérationnel'}
           </div>
 
           {/* Per diem (RH step) */}
           {isRHStep && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Per diem (XOF)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Per diem journalier (XOF) *</label>
                 <input
                   type="number"
                   value={perDiem}
@@ -1394,7 +1453,7 @@ function ValidateMissionModal({ mission, role, onClose, onSuccess }: {
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 p-6 border-t">
+        <div className="flex items-center justify-end gap-3 p-6 border-t sticky bottom-0 bg-white rounded-b-2xl">
           <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">
             Annuler
           </button>

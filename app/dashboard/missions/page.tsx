@@ -823,7 +823,7 @@ export default function MissionsPage() {
   if (!initialized) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header title="Gestion des Missions" />
+        <Header title="Gestion des Missions" subtitle="Ordres de missions & déplacements professionnels" />
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
         </div>
@@ -833,14 +833,10 @@ export default function MissionsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header title="Gestion des Missions" />
+      <Header title="Gestion des Missions" subtitle="Ordres de missions & déplacements professionnels"/>
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Title + New button */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Gestion des Missions</h1>
-            <p className="text-sm text-gray-500">Ordres de mission et déplacements professionnels</p>
-          </div>
+        {/* New mission button */}
+        <div className="flex items-center justify-end mb-6">
           <button
             onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"

@@ -1101,21 +1101,26 @@ function CreateMissionModal({
         accommodation_type: formData.accommodation_type || undefined,
       };
 
+      console.log('Creating mission with payload:', payload);
+
       const res = await fetch(`${API_URL}/api/missions/`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(payload)
       });
 
+      console.log('Create mission response status:', res.status);
+
       if (res.ok) {
         onSuccess();
       } else {
         const error = await res.json();
+        console.error('Create mission error:', error);
         alert(error.detail || 'Erreur lors de la création');
       }
     } catch (e) {
       console.error('Error creating mission:', e);
-      alert('Erreur de connexion');
+      alert('Erreur de connexion. Vérifiez la console pour plus de détails.');
     } finally {
       setLoading(false);
     }

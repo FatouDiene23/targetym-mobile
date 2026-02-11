@@ -26,7 +26,8 @@ import {
   UserCheck,
   Lock,
   Briefcase,
-  FileText
+  FileText,
+  Plane
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -118,6 +119,12 @@ const navigation: NavItem[] = [
     icon: Calendar,
     roles: ['rh', 'admin', 'dg']
   },
+  { 
+  name: 'Gestion des Missions', 
+  href: '/dashboard/missions', 
+  icon: Plane,  // import { Plane } from 'lucide-react'
+  roles: ['employee', 'manager', 'rh', 'admin', 'dg']
+},
   {
     name: 'Certificats',
     href: '/dashboard/certificates',

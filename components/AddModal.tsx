@@ -5,7 +5,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { 
   X, User, Building2, Briefcase, UserPlus, 
   GraduationCap, Target, Calendar, FileText,
-  ClipboardList, TrendingUp, MessageSquare, Loader2
+  ClipboardList, TrendingUp, MessageSquare, Loader2,
+  Plane
 } from 'lucide-react';
 
 // ============================================
@@ -96,6 +97,12 @@ const pageConfigs: Record<string, PageConfig> = {
       { id: 'certificate', label: 'Certificat de travail', description: 'Générer un certificat pour un employé', icon: FileText, color: 'bg-blue-100 text-blue-600' },
     ]
   },
+  '/dashboard/missions': {
+  title: 'Que souhaitez-vous ajouter ?',
+  options: [
+    { id: 'mission', label: 'Demande de mission', description: 'Créer une nouvelle demande', icon: Plane, color: 'bg-blue-100 text-blue-600' },
+  ]
+},
 };
 
 // ============================================

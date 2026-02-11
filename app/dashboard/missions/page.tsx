@@ -33,6 +33,7 @@ interface Mission {
   employee_code?: string;
   department_name?: string;
   duration_days: number;
+  employee_job_title?: string;
 }
 
 interface MissionDetail extends Mission {
@@ -54,7 +55,6 @@ interface MissionDetail extends Mission {
   actual_start_date?: string;
   actual_end_date?: string;
   mission_report?: string;
-  created_by_id?: number;
   created_by_name?: string;
   employee_job_title?: string;
   expenses: Expense[];
@@ -71,18 +71,10 @@ interface Expense {
   currency: string;
   status: string;
   receipt_url?: string;
-}
-
-interface Stats {
-  total: number;
-  brouillon: number;
-  en_attente: number;
-  approuvees: number;
-  en_cours: number;
-  terminees: number;
-  rejetees: number;
-  total_per_diem: number;
-  total_avances: number;
+  receipt_filename?: string;
+  validator_name?: string;
+  validation_comments?: string;
+  rejection_reason?: string;
 }
 
 interface Employee {
@@ -94,36 +86,34 @@ interface Employee {
   department_name?: string;
 }
 
-// ============================================
-// CONFIG
-// ============================================
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app';
-
-function getAuthHeaders(): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-  };
+interface MissionStats {
+  total: number;
+  brouillon: number;
+  en_attente: number;
+  approuvee: number;
+  en_cours: number;
+  terminee: number;
+  rejetee: number;
+  total_per_diem: number;
+  pending_validation: number;
 }
 
 // ============================================
-// CONSTANTES
+// CONSTANTS
 // ============================================
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   brouillon: { label: 'Brouillon', color: 'text-gray-600', bg: 'bg-gray-100' },
-  en_attente_manager: { label: 'Attente Manager', color: 'text-yellow-600', bg: 'bg-yellow-100' },
-  en_attente_rh: { label: 'Attente RH', color: 'text-orange-600', bg: 'bg-orange-100' },
-  approuvee: { label: 'Approuvée', color: 'text-blue-600', bg: 'bg-blue-100' },
+  en_attente_manager: { label: 'Attente Manager', color: 'text-orange-600', bg: 'bg-orange-100' },
+  en_attente_rh: { label: 'Attente RH', color: 'text-yellow-600', bg: 'bg-yellow-100' },
+  approuvee: { label: 'Approuvée', color: 'text-green-600', bg: 'bg-green-100' },
   rejetee: { label: 'Rejetée', color: 'text-red-600', bg: 'bg-red-100' },
-  en_cours: { label: 'En cours', color: 'text-purple-600', bg: 'bg-purple-100' },
-  terminee: { label: 'Terminée', color: 'text-green-600', bg: 'bg-green-100' },
-  cloturee: { label: 'Clôturée', color: 'text-gray-600', bg: 'bg-gray-100' },
+  en_cours: { label: 'En cours', color: 'text-blue-600', bg: 'bg-blue-100' },
+  terminee: { label: 'Terminée', color: 'text-purple-600', bg: 'bg-purple-100' },
+  cloturee: { label: 'Clôturée', color: 'text-gray-500', bg: 'bg-gray-50' },
 };
 
-const TRANSPORT_CONFIG: Record<string, { label: string; icon: React.ElementType }> = {
+const TRANSPORT_LABELS: Record<string, { label: string; icon: any }> = {
   avion: { label: 'Avion', icon: Plane },
   train: { label: 'Train', icon: Train },
   voiture_personnelle: { label: 'Voiture personnelle', icon: Car },
@@ -132,7 +122,7 @@ const TRANSPORT_CONFIG: Record<string, { label: string; icon: React.ElementType 
   autre: { label: 'Autre', icon: Car },
 };
 
-const EXPENSE_TYPES: Record<string, string> = {
+const EXPENSE_LABELS: Record<string, string> = {
   transport: 'Transport',
   hebergement: 'Hébergement',
   repas: 'Repas',
@@ -143,474 +133,542 @@ const EXPENSE_TYPES: Record<string, string> = {
   autre: 'Autre',
 };
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+
 // ============================================
-// COMPOSANT PRINCIPAL
+// HELPERS
+// ============================================
+
+function getToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('access_token');
+}
+
+function getUserRole(): string {
+  if (typeof window === 'undefined') return 'employee';
+  try {
+    const token = getToken();
+    if (!token) return 'employee';
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return (payload.role || 'employee').toLowerCase();
+  } catch { return 'employee'; }
+}
+
+function getUserId(): number | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const token = getToken();
+    if (!token) return null;
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.sub || payload.user_id || null;
+  } catch { return null; }
+}
+
+function canManageAll(role: string): boolean {
+  return ['rh', 'admin', 'dg', 'superadmin'].includes(role);
+}
+
+function formatDate(dateStr: string): string {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function formatAmount(amount: number | null | undefined, currency: string = 'XOF'): string {
+  if (amount == null) return '-';
+  return new Intl.NumberFormat('fr-FR').format(amount) + ' ' + currency;
+}
+
+async function apiFetch(endpoint: string, options: RequestInit = {}) {
+  const token = getToken();
+  const res = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      ...options.headers,
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Erreur inconnue' }));
+    throw new Error(err.detail || `Erreur ${res.status}`);
+  }
+  return res.json();
+}
+
+// ============================================
+// MAIN COMPONENT
 // ============================================
 
 export default function MissionsPage() {
-  // State
-  const [activeTab, setActiveTab] = useState<'list' | 'pending' | 'validated' | 'stats'>('list');
+  const [activeTab, setActiveTab] = useState<'mes_missions' | 'a_valider' | 'toutes'>('mes_missions');
   const [missions, setMissions] = useState<Mission[]>([]);
   const [pendingMissions, setPendingMissions] = useState<Mission[]>([]);
-  const [validatedMissions, setValidatedMissions] = useState<Mission[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [stats, setStats] = useState<MissionStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [validatedStatusFilter, setValidatedStatusFilter] = useState<string>('');
-  const [validatedSearchQuery, setValidatedSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [validatedCurrentPage, setValidatedCurrentPage] = useState(1);
-  const [validatedTotalPages, setValidatedTotalPages] = useState(1);
-  
-  // Modals
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showValidationModal, setShowValidationModal] = useState(false);
-  const [showExpenseModal, setShowExpenseModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false); // FIX #2: Ajout modal édition
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showValidateModal, setShowValidateModal] = useState(false);
   const [selectedMission, setSelectedMission] = useState<MissionDetail | null>(null);
-  const [validationType, setValidationType] = useState<'manager' | 'rh'>('manager');
-  
-  // User info
-  const [userRole, setUserRole] = useState<string>('employee');
-  const [userId, setUserId] = useState<number | null>(null);
+  const [missionToValidate, setMissionToValidate] = useState<Mission | null>(null);
+
+  const role = getUserRole();
+  const userId = getUserId();
+  const isManagerOrAbove = role === 'manager' || canManageAll(role);
 
   // ============================================
-  // CHARGEMENT DONNÉES
+  // DATA FETCHING
   // ============================================
-
-  useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        setUserId(user.id);
-        const role = (user.role || 'employee').toLowerCase();
-        if (['admin', 'dg', 'rh', 'drh'].includes(role)) {
-          setUserRole(role === 'drh' ? 'rh' : role);
-        } else if (role === 'manager' || user.is_manager) {
-          setUserRole('manager');
-        } else {
-          setUserRole('employee');
-        }
-      } catch (e) {
-        console.error('Error parsing user:', e);
-      }
-    }
-  }, []);
 
   const fetchMissions = useCallback(async () => {
     try {
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        page_size: '20',
-        ...(searchQuery && { search: searchQuery }),
-        ...(statusFilter && { status: statusFilter }),
-      });
-      
-      const res = await fetch(`${API_URL}/api/missions/?${params}`, {
-        headers: getAuthHeaders()
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        setMissions(data.items || []);
-        setTotalPages(data.pages || 1);
-      }
-    } catch (e) {
-      console.error('Error fetching missions:', e);
-    }
-  }, [currentPage, searchQuery, statusFilter]);
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (statusFilter) params.set('status', statusFilter);
+      if (searchTerm) params.set('search', searchTerm);
 
-  const fetchPendingMissions = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/missions/pending`, {
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setPendingMissions(data.items || []);
+      // Pour "Mes missions", on filtre côté frontend pour ne montrer que les siennes
+      const data = await apiFetch(`/api/missions/?${params.toString()}`);
+      
+      if (activeTab === 'mes_missions') {
+        // Filtrer uniquement les missions de l'utilisateur connecté
+        setMissions(data.missions.filter((m: Mission) => m.employee_id === userId));
+      } else {
+        setMissions(data.missions);
       }
-    } catch (e) {
-      console.error('Error fetching pending:', e);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [statusFilter, searchTerm, activeTab, userId]);
+
+  const fetchPending = useCallback(async () => {
+    if (!isManagerOrAbove) return;
+    try {
+      const data = await apiFetch('/api/missions/pending');
+      setPendingMissions(data.missions);
+    } catch (err) {
+      console.error('Erreur pending:', err);
+    }
+  }, [isManagerOrAbove]);
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/missions/stats`, {
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setStats(data);
-      }
-    } catch (e) {
-      console.error('Error fetching stats:', e);
+      const data = await apiFetch('/api/missions/stats');
+      setStats(data);
+    } catch (err) {
+      console.error('Erreur stats:', err);
     }
   }, []);
 
-  const fetchValidatedMissions = useCallback(async () => {
-    try {
-      const params = new URLSearchParams({
-        page: validatedCurrentPage.toString(),
-        page_size: '20',
-        ...(validatedSearchQuery && { search: validatedSearchQuery }),
-        ...(validatedStatusFilter && { status: validatedStatusFilter }),
-      });
-      
-      const res = await fetch(`${API_URL}/api/missions/validated?${params}`, {
-        headers: getAuthHeaders()
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        setValidatedMissions(data.items || []);
-        setValidatedTotalPages(data.pages || 1);
-      }
-    } catch (e) {
-      console.error('Error fetching validated missions:', e);
-    }
-  }, [validatedCurrentPage, validatedSearchQuery, validatedStatusFilter]);
-
-  const fetchMissionDetail = async (missionId: number) => {
-    try {
-      const res = await fetch(`${API_URL}/api/missions/${missionId}`, {
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSelectedMission(data);
-        setShowDetailModal(true);
-      } else {
-        // FIX #3 & #4: Afficher l'erreur si l'accès est refusé
-        const error = await res.json();
-        alert(error.detail || 'Erreur lors du chargement de la mission');
-      }
-    } catch (e) {
-      console.error('Error fetching mission detail:', e);
-      alert('Erreur de connexion');
-    }
-  };
-
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      await Promise.all([fetchMissions(), fetchPendingMissions(), fetchStats(), fetchValidatedMissions()]);
-      setLoading(false);
-    };
-    loadData();
-  }, [fetchMissions, fetchPendingMissions, fetchStats, fetchValidatedMissions]);
-
-  // Recharger les missions validées quand les filtres changent
-  useEffect(() => {
-    if (activeTab === 'validated') {
-      fetchValidatedMissions();
-    }
-  }, [validatedCurrentPage, validatedSearchQuery, validatedStatusFilter, activeTab, fetchValidatedMissions]);
+    fetchMissions();
+    fetchPending();
+    fetchStats();
+  }, [fetchMissions, fetchPending, fetchStats]);
 
   // ============================================
   // ACTIONS
   // ============================================
 
+  const handleViewMission = async (mission: Mission) => {
+    try {
+      const data = await apiFetch(`/api/missions/${mission.id}`);
+      setSelectedMission(data);
+      setShowDetailModal(true);
+    } catch (err: any) {
+      alert('Erreur: ' + err.message);
+    }
+  };
+
+  const handleEditMission = async (mission: Mission) => {
+    try {
+      const data = await apiFetch(`/api/missions/${mission.id}`);
+      setSelectedMission(data);
+      setShowEditModal(true);
+    } catch (err: any) {
+      alert('Erreur: ' + err.message);
+    }
+  };
+
+  const handleValidateMission = (mission: Mission) => {
+    setMissionToValidate(mission);
+    setShowValidateModal(true);
+  };
+
   const handleSubmitMission = async (missionId: number) => {
     try {
-      const res = await fetch(`${API_URL}/api/missions/${missionId}/submit`, {
-        method: 'POST',
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        fetchMissions();
-        fetchPendingMissions();
-        setShowDetailModal(false);
-      }
-    } catch (e) {
-      console.error('Error submitting mission:', e);
+      await apiFetch(`/api/missions/${missionId}/submit`, { method: 'POST' });
+      fetchMissions();
+      fetchPending();
+      fetchStats();
+      alert('Mission soumise avec succès');
+    } catch (err: any) {
+      alert('Erreur: ' + err.message);
     }
   };
 
   const handleStartMission = async (missionId: number) => {
     try {
-      const res = await fetch(`${API_URL}/api/missions/${missionId}/start`, {
-        method: 'POST',
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        fetchMissions();
-        fetchMissionDetail(missionId);
-      }
-    } catch (e) {
-      console.error('Error starting mission:', e);
-    }
-  };
-
-  const handleCompleteMission = async (missionId: number) => {
-    try {
-      const res = await fetch(`${API_URL}/api/missions/${missionId}/complete`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({})
-      });
-      if (res.ok) {
-        fetchMissions();
-        fetchMissionDetail(missionId);
-      }
-    } catch (e) {
-      console.error('Error completing mission:', e);
-    }
-  };
-
-  const handleDownloadPDF = async (missionId: number, reference: string) => {
-    try {
-      const res = await fetch(`${API_URL}/api/missions/${missionId}/pdf`, {
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `ordre_mission_${reference}.pdf`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-      }
-    } catch (e) {
-      console.error('Error downloading PDF:', e);
+      await apiFetch(`/api/missions/${missionId}/start`, { method: 'POST' });
+      fetchMissions();
+      fetchStats();
+      alert('Mission démarrée');
+    } catch (err: any) {
+      alert('Erreur: ' + err.message);
     }
   };
 
   const handleDeleteMission = async (missionId: number) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette mission ?')) return;
-    
+    if (!confirm('Supprimer cette mission ?')) return;
     try {
-      const res = await fetch(`${API_URL}/api/missions/${missionId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        fetchMissions();
-        setShowDetailModal(false);
-      }
-    } catch (e) {
-      console.error('Error deleting mission:', e);
+      await apiFetch(`/api/missions/${missionId}`, { method: 'DELETE' });
+      fetchMissions();
+      fetchStats();
+    } catch (err: any) {
+      alert('Erreur: ' + err.message);
     }
   };
+
+  // ============================================
+  // RENDER: Stats Cards
+  // ============================================
+
+  const renderStats = () => {
+    if (!stats) return null;
+    const cards = [
+      { label: 'Total', value: stats.total, icon: Briefcase, color: 'text-gray-700', bg: 'bg-gray-50' },
+      { label: 'En attente', value: stats.en_attente, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
+      { label: 'Approuvées', value: stats.approuvee, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50' },
+      { label: 'En cours', value: stats.en_cours, icon: PlayCircle, color: 'text-blue-600', bg: 'bg-blue-50' },
+    ];
+
+    if (isManagerOrAbove && stats.pending_validation > 0) {
+      cards.push({ label: 'À valider', value: stats.pending_validation, icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50' });
+    }
+
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
+        {cards.map((card) => (
+          <div key={card.label} className={`${card.bg} rounded-xl p-4 border`}>
+            <div className="flex items-center justify-between mb-2">
+              <card.icon className={`w-5 h-5 ${card.color}`} />
+              <span className={`text-2xl font-bold ${card.color}`}>{card.value}</span>
+            </div>
+            <p className="text-sm text-gray-500">{card.label}</p>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // ============================================
+  // RENDER: Mission Row
+  // ============================================
+
+  const renderMissionRow = (mission: Mission, showActions: boolean = true) => {
+    const statusConf = STATUS_CONFIG[mission.status] || STATUS_CONFIG.brouillon;
+    const transport = TRANSPORT_LABELS[mission.transport_type] || TRANSPORT_LABELS.autre;
+    const TransportIcon = transport.icon;
+
+    return (
+      <tr key={mission.id} className="hover:bg-gray-50 border-b">
+        <td className="px-4 py-3">
+          <div>
+            <p className="font-medium text-sm text-gray-900">{mission.reference}</p>
+            <p className="text-xs text-gray-500">{formatDate(mission.created_at)}</p>
+          </div>
+        </td>
+        <td className="px-4 py-3">
+          <div>
+            <p className="text-sm font-medium">{mission.subject}</p>
+            {activeTab !== 'mes_missions' && (
+              <p className="text-xs text-gray-500">{mission.employee_name}</p>
+            )}
+          </div>
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5 text-gray-400" />
+            <span className="text-sm">{mission.destination}</span>
+          </div>
+        </td>
+        <td className="px-4 py-3">
+          <div className="text-sm">
+            <p>{formatDate(mission.start_date)}</p>
+            <p className="text-xs text-gray-500">{mission.duration_days} jour(s)</p>
+          </div>
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-1.5">
+            <TransportIcon className="w-3.5 h-3.5 text-gray-400" />
+            <span className="text-xs">{transport.label}</span>
+          </div>
+        </td>
+        <td className="px-4 py-3">
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConf.bg} ${statusConf.color}`}>
+            {statusConf.label}
+          </span>
+        </td>
+        <td className="px-4 py-3 text-right text-sm font-medium">
+          {mission.per_diem_amount ? formatAmount(mission.per_diem_amount) : '-'}
+        </td>
+        {showActions && (
+          <td className="px-4 py-3">
+            <div className="flex items-center gap-1">
+              {/* Bouton Voir */}
+              <button
+                onClick={() => handleViewMission(mission)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-blue-600"
+                title="Voir"
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+
+              {/* Bouton Modifier (brouillon ou rejeté) */}
+              {(mission.status === 'brouillon' || mission.status === 'rejetee') && (
+                <button
+                  onClick={() => handleEditMission(mission)}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-yellow-600"
+                  title="Modifier"
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
+              )}
+
+              {/* Bouton Soumettre (brouillon) */}
+              {mission.status === 'brouillon' && (
+                <button
+                  onClick={() => handleSubmitMission(mission.id)}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-green-600"
+                  title="Soumettre"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              )}
+
+              {/* Bouton Démarrer (approuvée) */}
+              {mission.status === 'approuvee' && (
+                <button
+                  onClick={() => handleStartMission(mission.id)}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-blue-600"
+                  title="Démarrer"
+                >
+                  <PlayCircle className="w-4 h-4" />
+                </button>
+              )}
+
+              {/* Bouton Supprimer (brouillon) */}
+              {mission.status === 'brouillon' && (
+                <button
+                  onClick={() => handleDeleteMission(mission.id)}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-red-600"
+                  title="Supprimer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+
+              {/* Bouton Traiter (pour validation) */}
+              {activeTab === 'a_valider' && ['en_attente_manager', 'en_attente_rh'].includes(mission.status) && (
+                <button
+                  onClick={() => handleValidateMission(mission)}
+                  className="px-3 py-1 rounded-lg bg-blue-600 text-white text-xs hover:bg-blue-700"
+                >
+                  Traiter
+                </button>
+              )}
+            </div>
+          </td>
+        )}
+      </tr>
+    );
+  };
+
+  // ============================================
+  // RENDER: Tabs
+  // ============================================
+
+  const tabs = [
+    { id: 'mes_missions' as const, label: 'Mes missions', icon: Briefcase },
+    ...(isManagerOrAbove ? [{ id: 'a_valider' as const, label: `À valider${stats?.pending_validation ? ` (${stats.pending_validation})` : ''}`, icon: CheckCircle }] : []),
+    ...(canManageAll(role) ? [{ id: 'toutes' as const, label: 'Toutes les missions', icon: Users }] : []),
+  ];
+
+  const displayMissions = activeTab === 'a_valider' ? pendingMissions : missions;
 
   // ============================================
   // RENDER
   // ============================================
 
-  const canManageAll = ['admin', 'dg', 'rh'].includes(userRole);
-  const canValidate = ['manager', 'admin', 'dg', 'rh'].includes(userRole);
-  const canAssignMission = ['manager', 'admin', 'dg', 'rh'].includes(userRole); // Managers peuvent aussi assigner à leurs N-1
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header title="Gestion des Missions" subtitle="Ordres de mission et frais de déplacement" />
-
-      <main className="p-6">
-        {/* Stats Cards */}
-        {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
-            <StatCard icon={FileText} label="Total" value={stats.total} color="gray" />
-            <StatCard icon={Clock} label="En attente" value={stats.en_attente} color="yellow" />
-            <StatCard icon={CheckCircle} label="Approuvées" value={stats.approuvees} color="blue" />
-            <StatCard icon={PlayCircle} label="En cours" value={stats.en_cours} color="purple" />
-            <StatCard icon={StopCircle} label="Terminées" value={stats.terminees} color="green" />
-            <StatCard 
-              icon={DollarSign} 
-              label="Per diem total" 
-              value={`${(stats.total_per_diem / 1000).toFixed(0)}k`} 
-              color="emerald" 
-            />
+      <Header title="Gestion des Missions" />
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Title + New button */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Gestion des Missions</h1>
+            <p className="text-sm text-gray-500">Ordres de mission et déplacements professionnels</p>
           </div>
-        )}
-
-        {/* Tabs */}
-        <div className="flex items-center gap-4 mb-6">
-          <div className="flex bg-white rounded-lg border border-gray-200 p-1">
-            <button
-              onClick={() => setActiveTab('list')}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                activeTab === 'list' ? 'bg-primary-500 text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              Mes Missions
-            </button>
-            {canValidate && (
-              <button
-                onClick={() => setActiveTab('pending')}
-                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors relative ${
-                  activeTab === 'pending' ? 'bg-primary-500 text-white' : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                À valider
-                {pendingMissions.length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    {pendingMissions.length}
-                  </span>
-                )}
-              </button>
-            )}
-            {canValidate && (
-              <button
-                onClick={() => setActiveTab('validated')}
-                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                  activeTab === 'validated' ? 'bg-primary-500 text-white' : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                Missions validées
-              </button>
-            )}
-          </div>
-
-          <div className="flex-1" />
-
-          {/* Search & Filter */}
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Rechercher..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none w-64"
-              />
-            </div>
-            
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-            >
-              <option value="">Tous les statuts</option>
-              {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-                <option key={key} value={key}>{config.label}</option>
-              ))}
-            </select>
-
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Nouvelle Mission
-            </button>
-          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Nouvelle mission
+          </button>
         </div>
 
-        {/* Content */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
-          </div>
-        ) : activeTab === 'list' ? (
-          <MissionsList
-            missions={missions}
-            onViewDetail={fetchMissionDetail}
-            onDownloadPDF={handleDownloadPDF}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
-        ) : activeTab === 'pending' ? (
-          <PendingMissionsList
-            missions={pendingMissions}
-            onViewDetail={fetchMissionDetail}
-            userRole={userRole}
-          />
-        ) : activeTab === 'validated' ? (
-          <ValidatedMissionsList
-            missions={validatedMissions}
-            onViewDetail={fetchMissionDetail}
-            onDownloadPDF={handleDownloadPDF}
-            currentPage={validatedCurrentPage}
-            totalPages={validatedTotalPages}
-            onPageChange={setValidatedCurrentPage}
-            searchQuery={validatedSearchQuery}
-            onSearchChange={setValidatedSearchQuery}
-            statusFilter={validatedStatusFilter}
-            onStatusFilterChange={setValidatedStatusFilter}
-            userRole={userRole}
-          />
-        ) : null}
-      </main>
+        {/* Stats */}
+        {renderStats()}
 
-      {/* Modals */}
+        {/* Tabs */}
+        <div className="flex items-center gap-1 mb-4 bg-white rounded-xl p-1 border">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Rechercher une mission..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Tous les statuts</option>
+            {Object.entries(STATUS_CONFIG).map(([key, val]) => (
+              <option key={key} value={key}>{val.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Table */}
+        <div className="bg-white rounded-xl border overflow-hidden">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+              <span className="ml-2 text-gray-500">Chargement...</span>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center py-12 text-red-500">
+              <AlertCircle className="w-5 h-5 mr-2" />
+              {error}
+            </div>
+          ) : displayMissions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+              <Plane className="w-12 h-12 mb-3" />
+              <p>Aucune mission trouvée</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50 border-b">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Référence</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Objet</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Destination</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transport</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Per Diem</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayMissions.map((m) => renderMissionRow(m))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ============================================ */}
+      {/* MODAL: Créer une mission */}
+      {/* ============================================ */}
       {showCreateModal && (
         <CreateMissionModal
+          role={role}
+          userId={userId}
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             setShowCreateModal(false);
             fetchMissions();
             fetchStats();
           }}
-          canAssign={canAssignMission}
-          userRole={userRole}
         />
       )}
 
+      {/* ============================================ */}
+      {/* MODAL: Détail mission */}
+      {/* ============================================ */}
       {showDetailModal && selectedMission && (
         <MissionDetailModal
           mission={selectedMission}
-          onClose={() => {
-            setShowDetailModal(false);
-            setSelectedMission(null);
-          }}
-          onSubmit={handleSubmitMission}
-          onStart={handleStartMission}
-          onComplete={handleCompleteMission}
-          onDownloadPDF={handleDownloadPDF}
-          onDelete={handleDeleteMission}
-          onValidate={(type) => {
-            setValidationType(type);
-            setShowValidationModal(true);
-          }}
-          onAddExpense={() => setShowExpenseModal(true)}
-          onEdit={() => setShowEditModal(true)} // FIX #2: Bouton modifier
-          userRole={userRole}
-          userId={userId}
-          onRefresh={() => fetchMissionDetail(selectedMission.id)}
+          role={role}
+          onClose={() => { setShowDetailModal(false); setSelectedMission(null); }}
         />
       )}
 
-      {showValidationModal && selectedMission && (
-        <ValidationModal
-          mission={selectedMission}
-          type={validationType}
-          onClose={() => setShowValidationModal(false)}
-          onSuccess={() => {
-            setShowValidationModal(false);
-            fetchMissions();
-            fetchPendingMissions();
-            fetchMissionDetail(selectedMission.id);
-          }}
-        />
-      )}
-
-      {showExpenseModal && selectedMission && (
-        <AddExpenseModal
-          missionId={selectedMission.id}
-          onClose={() => setShowExpenseModal(false)}
-          onSuccess={() => {
-            setShowExpenseModal(false);
-            fetchMissionDetail(selectedMission.id);
-          }}
-        />
-      )}
-
-      {/* FIX #2: Modal d'édition */}
+      {/* ============================================ */}
+      {/* MODAL: Modifier mission */}
+      {/* ============================================ */}
       {showEditModal && selectedMission && (
         <EditMissionModal
           mission={selectedMission}
-          onClose={() => setShowEditModal(false)}
+          onClose={() => { setShowEditModal(false); setSelectedMission(null); }}
           onSuccess={() => {
             setShowEditModal(false);
+            setSelectedMission(null);
             fetchMissions();
-            fetchMissionDetail(selectedMission.id);
+            fetchStats();
+          }}
+        />
+      )}
+
+      {/* ============================================ */}
+      {/* MODAL: Valider mission */}
+      {/* ============================================ */}
+      {showValidateModal && missionToValidate && (
+        <ValidateMissionModal
+          mission={missionToValidate}
+          role={role}
+          onClose={() => { setShowValidateModal(false); setMissionToValidate(null); }}
+          onSuccess={() => {
+            setShowValidateModal(false);
+            setMissionToValidate(null);
+            fetchMissions();
+            fetchPending();
+            fetchStats();
           }}
         />
       )}
@@ -619,448 +677,14 @@ export default function MissionsPage() {
 }
 
 // ============================================
-// COMPOSANTS
+// MODAL: Créer une mission
 // ============================================
 
-function StatCard({ icon: Icon, label, value, color }: { 
-  icon: React.ElementType; 
-  label: string; 
-  value: number | string; 
-  color: string;
+function CreateMissionModal({ role, userId, onClose, onSuccess }: {
+  role: string; userId: number | null; onClose: () => void; onSuccess: () => void;
 }) {
-  const colorClasses: Record<string, string> = {
-    gray: 'bg-gray-100 text-gray-600',
-    yellow: 'bg-yellow-100 text-yellow-600',
-    blue: 'bg-blue-100 text-blue-600',
-    purple: 'bg-purple-100 text-purple-600',
-    green: 'bg-green-100 text-green-600',
-    emerald: 'bg-emerald-100 text-emerald-600',
-  };
-
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
-      <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colorClasses[color]}`}>
-          <Icon className="w-5 h-5" />
-        </div>
-        <div>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-          <p className="text-xs text-gray-500">{label}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MissionsList({ 
-  missions, 
-  onViewDetail, 
-  onDownloadPDF,
-  currentPage,
-  totalPages,
-  onPageChange
-}: { 
-  missions: Mission[];
-  onViewDetail: (id: number) => void;
-  onDownloadPDF: (id: number, ref: string) => void;
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-}) {
-  if (missions.length === 0) {
-    return (
-      <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-        <Plane className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune mission</h3>
-        <p className="text-gray-500">Créez votre première demande de mission</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <table className="w-full">
-        <thead className="bg-gray-50 border-b border-gray-200">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Référence</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employé</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Destination</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dates</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transport</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Per diem</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {missions.map((mission) => {
-            const statusConfig = STATUS_CONFIG[mission.status] || STATUS_CONFIG.brouillon;
-            const transportConfig = TRANSPORT_CONFIG[mission.transport_type] || TRANSPORT_CONFIG.autre;
-            const TransportIcon = transportConfig.icon;
-
-            return (
-              <tr key={mission.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3">
-                  <span className="font-mono text-sm font-medium text-primary-600">{mission.reference}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{mission.employee_name}</p>
-                    <p className="text-xs text-gray-500">{mission.department_name}</p>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-900">
-                      {mission.destination}
-                      {mission.destination_country && ` (${mission.destination_country})`}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <p className="text-sm text-gray-900">
-                    {new Date(mission.start_date).toLocaleDateString('fr-FR')}
-                  </p>
-                  <p className="text-xs text-gray-500">{mission.duration_days} jour(s)</p>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <TransportIcon className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">{transportConfig.label}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  {mission.per_diem_amount ? (
-                    <span className="text-sm font-medium text-gray-900">
-                      {mission.per_diem_amount.toLocaleString()} {mission.per_diem_currency || 'XOF'}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-gray-400">-</span>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${statusConfig.bg} ${statusConfig.color}`}>
-                    {statusConfig.label}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <button
-                      onClick={() => onViewDetail(mission.id)}
-                      className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                      title="Voir détails"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    {['approuvee', 'en_cours', 'terminee', 'cloturee'].includes(mission.status) && (
-                      <button
-                        onClick={() => onDownloadPDF(mission.id, mission.reference)}
-                        className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
-                        title="Télécharger PDF"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
-          <p className="text-sm text-gray-500">
-            Page {currentPage} sur {totalPages}
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-sm border border-gray-200 rounded-lg disabled:opacity-50"
-            >
-              Précédent
-            </button>
-            <button
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm border border-gray-200 rounded-lg disabled:opacity-50"
-            >
-              Suivant
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PendingMissionsList({ 
-  missions, 
-  onViewDetail,
-  userRole
-}: { 
-  missions: Mission[];
-  onViewDetail: (id: number) => void;
-  userRole: string;
-}) {
-  if (missions.length === 0) {
-    return (
-      <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-        <CheckCircle className="w-12 h-12 mx-auto text-green-300 mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune mission en attente</h3>
-        <p className="text-gray-500">Toutes les missions ont été traitées</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {missions.map((mission) => (
-        <div key={mission.id} className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                <AlertCircle className="w-6 h-6 text-yellow-600" />
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">{mission.subject}</p>
-                <p className="text-sm text-gray-500">
-                  {mission.employee_name} • {mission.destination} • {mission.duration_days} jour(s)
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {new Date(mission.start_date).toLocaleDateString('fr-FR')} - {new Date(mission.end_date).toLocaleDateString('fr-FR')}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => onViewDetail(mission.id)}
-              className="px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"
-            >
-              Traiter
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ============================================
-// COMPOSANT: MISSIONS VALIDÉES
-// ============================================
-
-const VALIDATED_STATUS_OPTIONS = [
-  { value: '', label: 'Tous les statuts' },
-  { value: 'approuvee', label: 'Approuvées' },
-  { value: 'en_cours', label: 'En cours' },
-  { value: 'terminee', label: 'Terminées' },
-  { value: 'cloturee', label: 'Clôturées' },
-];
-
-function ValidatedMissionsList({ 
-  missions, 
-  onViewDetail, 
-  onDownloadPDF,
-  currentPage,
-  totalPages,
-  onPageChange,
-  searchQuery,
-  onSearchChange,
-  statusFilter,
-  onStatusFilterChange,
-  userRole
-}: { 
-  missions: Mission[];
-  onViewDetail: (id: number) => void;
-  onDownloadPDF: (id: number, ref: string) => void;
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  statusFilter: string;
-  onStatusFilterChange: (status: string) => void;
-  userRole: string;
-}) {
-  return (
-    <div className="space-y-4">
-      {/* Filtres spécifiques */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Rechercher par nom, référence, destination..."
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-            />
-          </div>
-          
-          <select
-            value={statusFilter}
-            onChange={(e) => onStatusFilterChange(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-          >
-            {VALIDATED_STATUS_OPTIONS.map(option => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-
-          <div className="text-sm text-gray-500">
-            {userRole === 'manager' ? 'Missions de mon équipe' : 'Toutes les missions'}
-          </div>
-        </div>
-      </div>
-
-      {/* Liste */}
-      {missions.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <CheckCircle className="w-12 h-12 mx-auto text-green-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune mission validée</h3>
-          <p className="text-gray-500">
-            {userRole === 'manager' 
-              ? "Aucune mission validée pour votre équipe" 
-              : "Aucune mission validée pour le moment"}
-          </p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Référence</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employé</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Destination</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dates</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Per diem</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {missions.map((mission) => {
-                const statusConfig = STATUS_CONFIG[mission.status] || STATUS_CONFIG.brouillon;
-                const transportConfig = TRANSPORT_CONFIG[mission.transport_type] || TRANSPORT_CONFIG.autre;
-
-                return (
-                  <tr key={mission.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <span className="font-mono text-sm font-medium text-primary-600">{mission.reference}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{mission.employee_name}</p>
-                        <p className="text-xs text-gray-500">{mission.department_name}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-900">
-                          {mission.destination}
-                          {mission.destination_country && ` (${mission.destination_country})`}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="text-sm text-gray-900">
-                        {new Date(mission.start_date).toLocaleDateString('fr-FR')}
-                      </p>
-                      <p className="text-xs text-gray-500">{mission.duration_days} jour(s)</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      {mission.per_diem_amount ? (
-                        <span className="text-sm font-medium text-gray-900">
-                          {mission.per_diem_amount.toLocaleString()} {mission.per_diem_currency || 'XOF'}
-                        </span>
-                      ) : (
-                        <span className="text-sm text-gray-400">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${statusConfig.bg} ${statusConfig.color}`}>
-                        {statusConfig.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => onViewDetail(mission.id)}
-                          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                          title="Voir détails"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => onDownloadPDF(mission.id, mission.reference)}
-                          className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
-                          title="Télécharger PDF"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
-              <p className="text-sm text-gray-500">
-                Page {currentPage} sur {totalPages}
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => onPageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 text-sm border border-gray-200 rounded-lg disabled:opacity-50"
-                >
-                  Précédent
-                </button>
-                <button
-                  onClick={() => onPageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 text-sm border border-gray-200 rounded-lg disabled:opacity-50"
-                >
-                  Suivant
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ============================================
-// MODAL: CRÉATION
-// ============================================
-
-function CreateMissionModal({ 
-  onClose, 
-  onSuccess, 
-  canAssign,
-  userRole
-}: { 
-  onClose: () => void; 
-  onSuccess: () => void;
-  canAssign: boolean;
-  userRole: string;
-}) {
-  const [loading, setLoading] = useState(false);
-  const [employees, setEmployees] = useState<Employee[]>([]);
   const [formData, setFormData] = useState({
-    employee_id: '',
+    employee_id: userId || 0,
     subject: '',
     description: '',
     departure_location: '',
@@ -1068,100 +692,82 @@ function CreateMissionModal({
     destination_country: '',
     start_date: '',
     end_date: '',
-    transport_type: 'voiture_service',
+    transport_type: 'avion',
     transport_details: '',
     accommodation_type: '',
     accommodation_details: '',
     estimated_budget: '',
+    as_draft: false,
   });
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (canAssign) {
-      // Utiliser l'endpoint team-members qui retourne:
-      // - Pour RH/Admin/DG: tous les employés actifs
-      // - Pour Manager: seulement ses N-1
-      fetch(`${API_URL}/api/missions/team-members`, { headers: getAuthHeaders() })
-        .then(res => res.json())
-        .then(data => setEmployees(Array.isArray(data) ? data : []))
-        .catch(console.error);
+    // Charger les employés si manager ou RH
+    if (role === 'manager') {
+      // Manager ne voit que ses N-1
+      apiFetch(`/api/employees/?manager_id=${userId}&status=active`)
+        .then((data) => setEmployees(data.employees || data))
+        .catch(() => {});
+    } else if (canManageAll(role)) {
+      apiFetch('/api/employees/?status=active')
+        .then((data) => setEmployees(data.employees || data))
+        .catch(() => {});
     }
-  }, [canAssign]);
+  }, [role, userId]);
 
-  const isManager = userRole === 'manager';
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleSubmit = async () => {
+    if (!formData.subject || !formData.departure_location || !formData.destination || !formData.start_date || !formData.end_date) {
+      alert('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
 
     try {
-      const payload = {
-        ...formData,
-        employee_id: formData.employee_id ? parseInt(formData.employee_id) : undefined,
-        estimated_budget: formData.estimated_budget ? parseFloat(formData.estimated_budget) : undefined,
-        accommodation_type: formData.accommodation_type || undefined,
-      };
-
-      console.log('Creating mission with payload:', payload);
-
-      const res = await fetch(`${API_URL}/api/missions/`, {
+      setSubmitting(true);
+      await apiFetch('/api/missions/', {
         method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          ...formData,
+          employee_id: formData.employee_id || userId,
+          estimated_budget: formData.estimated_budget ? parseFloat(formData.estimated_budget) : null,
+          accommodation_type: formData.accommodation_type || null,
+        }),
       });
-
-      console.log('Create mission response status:', res.status);
-
-      if (res.ok) {
-        onSuccess();
-      } else {
-        const error = await res.json();
-        console.error('Create mission error:', error);
-        alert(error.detail || 'Erreur lors de la création');
-      }
-    } catch (e) {
-      console.error('Error creating mission:', e);
-      alert('Erreur de connexion. Vérifiez la console pour plus de détails.');
+      onSuccess();
+    } catch (err: any) {
+      alert('Erreur: ' + err.message);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-900">Nouvelle demande de mission</h2>
+        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white rounded-t-2xl">
+          <h2 className="text-lg font-bold">Nouvelle demande de mission</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Employé (si assignation) */}
-          {canAssign && (
+        <div className="p-6 space-y-4">
+          {/* Sélection employé (manager/RH uniquement) */}
+          {(role === 'manager' || canManageAll(role)) && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {isManager 
-                  ? "Membre de mon équipe (laisser vide pour moi-même)" 
-                  : "Employé concerné (laisser vide pour vous-même)"}
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Employé *</label>
               <select
                 value={formData.employee_id}
-                onChange={(e) => setFormData({ ...formData, employee_id: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                onChange={(e) => setFormData({ ...formData, employee_id: parseInt(e.target.value) })}
+                className="w-full px-3 py-2 border rounded-xl text-sm"
               >
-                <option value="">Moi-même</option>
-                {employees.map(emp => (
+                <option value={userId || 0}>Moi-même</option>
+                {employees.map((emp) => (
                   <option key={emp.id} value={emp.id}>
-                    {emp.first_name} {emp.last_name} {emp.employee_id ? `(${emp.employee_id})` : ''}
+                    {emp.first_name} {emp.last_name} - {emp.job_title || ''}
                   </option>
                 ))}
               </select>
-              {isManager && employees.length === 0 && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Aucun membre dans votre équipe. Vous pouvez créer une mission pour vous-même.
-                </p>
-              )}
             </div>
           )}
 
@@ -1170,11 +776,10 @@ function CreateMissionModal({
             <label className="block text-sm font-medium text-gray-700 mb-1">Objet de la mission *</label>
             <input
               type="text"
-              required
               value={formData.subject}
               onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-              placeholder="Ex: Participation au salon Tech Africa 2025"
+              className="w-full px-3 py-2 border rounded-xl text-sm"
+              placeholder="Ex: Participation au salon RH Africa 2025"
             />
           </div>
 
@@ -1184,8 +789,8 @@ function CreateMissionModal({
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-3 py-2 border rounded-xl text-sm"
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
               placeholder="Détails de la mission..."
             />
           </div>
@@ -1196,10 +801,9 @@ function CreateMissionModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">Lieu de départ *</label>
               <input
                 type="text"
-                required
                 value={formData.departure_location}
                 onChange={(e) => setFormData({ ...formData, departure_location: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                className="w-full px-3 py-2 border rounded-xl text-sm"
                 placeholder="Dakar"
               />
             </div>
@@ -1207,554 +811,23 @@ function CreateMissionModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">Destination *</label>
               <input
                 type="text"
-                required
                 value={formData.destination}
                 onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                className="w-full px-3 py-2 border rounded-xl text-sm"
                 placeholder="Abidjan"
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Pays de destination (si international)</label>
-            <input
-              type="text"
-              value={formData.destination_country}
-              onChange={(e) => setFormData({ ...formData, destination_country: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-              placeholder="Côte d'Ivoire"
-            />
-          </div>
-
-          {/* Dates */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date de départ *</label>
-              <input
-                type="date"
-                required
-                value={formData.start_date}
-                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date de retour *</label>
-              <input
-                type="date"
-                required
-                value={formData.end_date}
-                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Transport */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Moyen de transport *</label>
-              <select
-                required
-                value={formData.transport_type}
-                onChange={(e) => setFormData({ ...formData, transport_type: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-              >
-                {Object.entries(TRANSPORT_CONFIG).map(([key, config]) => (
-                  <option key={key} value={key}>{config.label}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Hébergement</label>
-              <select
-                value={formData.accommodation_type}
-                onChange={(e) => setFormData({ ...formData, accommodation_type: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-              >
-                <option value="">Non spécifié</option>
-                <option value="hotel">Hôtel</option>
-                <option value="residence">Résidence</option>
-                <option value="chez_tiers">Chez un tiers</option>
-                <option value="aucun">Aucun</option>
-                <option value="autre">Autre</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Budget */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Budget estimé (XOF)</label>
-            <input
-              type="number"
-              value={formData.estimated_budget}
-              onChange={(e) => setFormData({ ...formData, estimated_budget: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-              placeholder="150000"
-            />
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 py-2.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              Créer la demande
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// ============================================
-// MODAL: DÉTAIL (MISE À JOUR)
-// ============================================
-
-function MissionDetailModal({ 
-  mission, 
-  onClose, 
-  onSubmit,
-  onStart,
-  onComplete,
-  onDownloadPDF,
-  onDelete,
-  onValidate,
-  onAddExpense,
-  onEdit, // FIX #2: Ajout prop onEdit
-  userRole,
-  userId,
-  onRefresh
-}: { 
-  mission: MissionDetail;
-  onClose: () => void;
-  onSubmit: (id: number) => void;
-  onStart: (id: number) => void;
-  onComplete: (id: number) => void;
-  onDownloadPDF: (id: number, ref: string) => void;
-  onDelete: (id: number) => void;
-  onValidate: (type: 'manager' | 'rh') => void;
-  onAddExpense: () => void;
-  onEdit: () => void; // FIX #2
-  userRole: string;
-  userId: number | null;
-  onRefresh: () => void;
-}) {
-  const statusConfig = STATUS_CONFIG[mission.status] || STATUS_CONFIG.brouillon;
-  const transportConfig = TRANSPORT_CONFIG[mission.transport_type] || TRANSPORT_CONFIG.autre;
-  const TransportIcon = transportConfig.icon;
-  
-  const isRH = ['admin', 'rh', 'dg'].includes(userRole);
-  const isOwner = mission.employee_id === userId || mission.created_by_id === userId;
-  
-  // FIX #2: Logique de permission étendue pour modification
-  // Le demandeur peut modifier tant que pas validée
-  const ownerEditableStatuses = ['brouillon', 'rejetee', 'en_attente_manager', 'en_attente_rh'];
-  const canEdit = (isOwner && ownerEditableStatuses.includes(mission.status)) || 
-                  (isRH && mission.status !== 'cloturee');
-  
-  const canSubmit = mission.status === 'brouillon' && isOwner;
-  const canDelete = mission.status === 'brouillon' && (isOwner || isRH);
-  const canValidateManager = mission.status === 'en_attente_manager' && ['manager', 'admin', 'rh', 'dg'].includes(userRole);
-  const canValidateRH = mission.status === 'en_attente_rh' && ['admin', 'rh', 'dg'].includes(userRole);
-  const canStart = mission.status === 'approuvee';
-  const canComplete = ['approuvee', 'en_cours'].includes(mission.status);
-  const canAddExpense = ['approuvee', 'en_cours', 'terminee'].includes(mission.status);
-  const canDownload = ['approuvee', 'en_cours', 'terminee', 'cloturee'].includes(mission.status);
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl font-semibold text-gray-900">{mission.reference}</h2>
-              <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusConfig.bg} ${statusConfig.color}`}>
-                {statusConfig.label}
-              </span>
-            </div>
-            <p className="text-sm text-gray-500 mt-1">{mission.subject}</p>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Infos employé */}
-          <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
-            <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
-              <span className="text-primary-600 font-semibold">
-                {mission.employee_name.split(' ').map(n => n[0]).join('')}
-              </span>
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">{mission.employee_name}</p>
-              <p className="text-sm text-gray-500">
-                {mission.employee_code || '-'} • {mission.employee_job_title || '-'} • {mission.department_name || '-'}
-              </p>
-            </div>
-          </div>
-
-          {/* Détails mission */}
-          <div className="grid grid-cols-2 gap-4">
-            <InfoItem icon={MapPin} label="Départ" value={mission.departure_location} />
-            <InfoItem 
-              icon={MapPin} 
-              label="Destination" 
-              value={`${mission.destination}${mission.destination_country ? ` (${mission.destination_country})` : ''}`} 
-            />
-            <InfoItem 
-              icon={Calendar} 
-              label="Dates" 
-              value={`${new Date(mission.start_date).toLocaleDateString('fr-FR')} - ${new Date(mission.end_date).toLocaleDateString('fr-FR')}`} 
-            />
-            <InfoItem icon={Clock} label="Durée" value={`${mission.duration_days} jour(s)`} />
-            <InfoItem icon={TransportIcon} label="Transport" value={transportConfig.label} />
-            {mission.accommodation_type && (
-              <InfoItem icon={Building2} label="Hébergement" value={mission.accommodation_type} />
-            )}
-          </div>
-
-          {/* Budget */}
-          <div className="grid grid-cols-3 gap-4 p-4 bg-emerald-50 rounded-xl">
-            <div>
-              <p className="text-xs text-emerald-600 mb-1">Budget estimé</p>
-              <p className="text-lg font-semibold text-emerald-700">
-                {mission.estimated_budget ? `${mission.estimated_budget.toLocaleString()} XOF` : '-'}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-emerald-600 mb-1">Per diem accordé</p>
-              <p className="text-lg font-semibold text-emerald-700">
-                {mission.per_diem_amount ? `${mission.per_diem_amount.toLocaleString()} ${mission.per_diem_currency}` : '-'}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-emerald-600 mb-1">Avance</p>
-              <p className="text-lg font-semibold text-emerald-700">
-                {mission.advance_amount ? `${mission.advance_amount.toLocaleString()} XOF` : '-'}
-              </p>
-            </div>
-          </div>
-
-          {/* Description */}
-          {mission.description && (
-            <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Description</h4>
-              <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">{mission.description}</p>
-            </div>
-          )}
-
-          {/* Historique validation */}
-          {(mission.manager_validated_at || mission.rh_validated_at || mission.rejection_reason) && (
-            <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Historique</h4>
-              <div className="space-y-2">
-                {mission.manager_validated_at && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span>Validé par manager le {new Date(mission.manager_validated_at).toLocaleDateString('fr-FR')}</span>
-                    {mission.manager_comments && <span className="text-gray-500">- {mission.manager_comments}</span>}
-                  </div>
-                )}
-                {mission.rh_validated_at && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span>Validé par RH le {new Date(mission.rh_validated_at).toLocaleDateString('fr-FR')}</span>
-                    {mission.rh_comments && <span className="text-gray-500">- {mission.rh_comments}</span>}
-                  </div>
-                )}
-                {mission.rejection_reason && (
-                  <div className="flex items-center gap-2 text-sm text-red-600">
-                    <XCircle className="w-4 h-4" />
-                    <span>Rejetée : {mission.rejection_reason}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Frais de mission */}
-          {mission.expenses && mission.expenses.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-sm font-medium text-gray-700">Frais de mission</h4>
-                <span className="text-sm text-gray-500">
-                  Total : {mission.total_expenses.toLocaleString()} XOF
-                </span>
-              </div>
-              <div className="space-y-2">
-                {mission.expenses.map(expense => (
-                  <div key={expense.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{expense.description}</p>
-                      <p className="text-xs text-gray-500">
-                        {EXPENSE_TYPES[expense.expense_type]} • {new Date(expense.expense_date).toLocaleDateString('fr-FR')}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">{expense.amount.toLocaleString()} {expense.currency}</p>
-                      <span className={`text-xs ${expense.status === 'approuve' ? 'text-green-600' : expense.status === 'rejete' ? 'text-red-600' : 'text-yellow-600'}`}>
-                        {expense.status === 'approuve' ? 'Approuvé' : expense.status === 'rejete' ? 'Rejeté' : 'En attente'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex flex-wrap items-center gap-2 p-6 border-t border-gray-100">
-          {/* FIX #2: Bouton Modifier visible pour les bonnes conditions */}
-          {canEdit && (
-            <button
-              onClick={onEdit}
-              className="flex items-center gap-2 px-4 py-2 border border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50"
-            >
-              <Edit className="w-4 h-4" />
-              Modifier
-            </button>
-          )}
-          
-          {canSubmit && (
-            <button
-              onClick={() => onSubmit(mission.id)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
-            >
-              <Send className="w-4 h-4" />
-              Soumettre
-            </button>
-          )}
-          
-          {canValidateManager && (
-            <button
-              onClick={() => onValidate('manager')}
-              className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
-            >
-              <CheckCircle className="w-4 h-4" />
-              Valider (Manager)
-            </button>
-          )}
-          
-          {canValidateRH && (
-            <button
-              onClick={() => onValidate('rh')}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-            >
-              <CheckCircle className="w-4 h-4" />
-              Valider (RH)
-            </button>
-          )}
-          
-          {canStart && (
-            <button
-              onClick={() => onStart(mission.id)}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
-            >
-              <PlayCircle className="w-4 h-4" />
-              Démarrer
-            </button>
-          )}
-          
-          {canComplete && (
-            <button
-              onClick={() => onComplete(mission.id)}
-              className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-            >
-              <StopCircle className="w-4 h-4" />
-              Terminer
-            </button>
-          )}
-          
-          {canAddExpense && (
-            <button
-              onClick={onAddExpense}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-            >
-              <Receipt className="w-4 h-4" />
-              Ajouter frais
-            </button>
-          )}
-          
-          {canDownload && (
-            <button
-              onClick={() => onDownloadPDF(mission.id, mission.reference)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-            >
-              <Download className="w-4 h-4" />
-              PDF
-            </button>
-          )}
-          
-          {canDelete && (
-            <button
-              onClick={() => onDelete(mission.id)}
-              className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
-            >
-              <Trash2 className="w-4 h-4" />
-              Supprimer
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function InfoItem({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
-  return (
-    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-      <Icon className="w-5 h-5 text-gray-400" />
-      <div>
-        <p className="text-xs text-gray-500">{label}</p>
-        <p className="text-sm font-medium text-gray-900">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-// ============================================
-// FIX #2: MODAL ÉDITION MISSION
-// ============================================
-
-function EditMissionModal({ 
-  mission,
-  onClose, 
-  onSuccess
-}: { 
-  mission: MissionDetail;
-  onClose: () => void; 
-  onSuccess: () => void;
-}) {
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    subject: mission.subject || '',
-    description: mission.description || '',
-    departure_location: mission.departure_location || '',
-    destination: mission.destination || '',
-    destination_country: mission.destination_country || '',
-    start_date: mission.start_date || '',
-    end_date: mission.end_date || '',
-    transport_type: mission.transport_type || 'voiture_service',
-    transport_details: mission.transport_details || '',
-    accommodation_type: mission.accommodation_type || '',
-    accommodation_details: mission.accommodation_details || '',
-    estimated_budget: mission.estimated_budget?.toString() || '',
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const payload = {
-        ...formData,
-        estimated_budget: formData.estimated_budget ? parseFloat(formData.estimated_budget) : undefined,
-        accommodation_type: formData.accommodation_type || undefined,
-      };
-
-      const res = await fetch(`${API_URL}/api/missions/${mission.id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(payload)
-      });
-
-      if (res.ok) {
-        onSuccess();
-      } else {
-        const error = await res.json();
-        alert(error.detail || 'Erreur lors de la modification');
-      }
-    } catch (e) {
-      console.error('Error updating mission:', e);
-      alert('Erreur de connexion');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-900">Modifier la mission {mission.reference}</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Objet */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Objet de la mission *</label>
-            <input
-              type="text"
-              required
-              value={formData.subject}
-              onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-            />
-          </div>
-
-          {/* Lieux */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Lieu de départ *</label>
-              <input
-                type="text"
-                required
-                value={formData.departure_location}
-                onChange={(e) => setFormData({ ...formData, departure_location: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Destination *</label>
-              <input
-                type="text"
-                required
-                value={formData.destination}
-                onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-              />
-            </div>
-          </div>
-
+          {/* Pays destination */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Pays de destination</label>
             <input
               type="text"
               value={formData.destination_country}
               onChange={(e) => setFormData({ ...formData, destination_country: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+              className="w-full px-3 py-2 border rounded-xl text-sm"
+              placeholder="Côte d'Ivoire (si international)"
             />
           </div>
 
@@ -1764,20 +837,18 @@ function EditMissionModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">Date de départ *</label>
               <input
                 type="date"
-                required
                 value={formData.start_date}
                 onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                className="w-full px-3 py-2 border rounded-xl text-sm"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Date de retour *</label>
               <input
                 type="date"
-                required
                 value={formData.end_date}
                 onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                className="w-full px-3 py-2 border rounded-xl text-sm"
               />
             </div>
           </div>
@@ -1787,14 +858,16 @@ function EditMissionModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Moyen de transport *</label>
               <select
-                required
                 value={formData.transport_type}
                 onChange={(e) => setFormData({ ...formData, transport_type: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                className="w-full px-3 py-2 border rounded-xl text-sm"
               >
-                {Object.entries(TRANSPORT_CONFIG).map(([key, config]) => (
-                  <option key={key} value={key}>{config.label}</option>
-                ))}
+                <option value="avion">Avion</option>
+                <option value="train">Train</option>
+                <option value="voiture_personnelle">Voiture personnelle</option>
+                <option value="voiture_service">Voiture de service</option>
+                <option value="bus">Bus</option>
+                <option value="autre">Autre</option>
               </select>
             </div>
             <div>
@@ -1802,9 +875,9 @@ function EditMissionModal({
               <select
                 value={formData.accommodation_type}
                 onChange={(e) => setFormData({ ...formData, accommodation_type: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                className="w-full px-3 py-2 border rounded-xl text-sm"
               >
-                <option value="">Non spécifié</option>
+                <option value="">-- Choisir --</option>
                 <option value="hotel">Hôtel</option>
                 <option value="residence">Résidence</option>
                 <option value="chez_tiers">Chez un tiers</option>
@@ -1821,171 +894,479 @@ function EditMissionModal({
               type="number"
               value={formData.estimated_budget}
               onChange={(e) => setFormData({ ...formData, estimated_budget: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+              className="w-full px-3 py-2 border rounded-xl text-sm"
+              placeholder="500000"
             />
           </div>
+        </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 py-2.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              Enregistrer
-            </button>
-          </div>
-        </form>
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 p-6 border-t sticky bottom-0 bg-white rounded-b-2xl">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">
+            Annuler
+          </button>
+          <button
+            onClick={() => { formData.as_draft = true; handleSubmit(); }}
+            className="px-4 py-2 text-sm border rounded-xl hover:bg-gray-50"
+            disabled={submitting}
+          >
+            Enregistrer brouillon
+          </button>
+          <button
+            onClick={() => { formData.as_draft = false; handleSubmit(); }}
+            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 flex items-center gap-2"
+            disabled={submitting}
+          >
+            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+            Soumettre
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
 // ============================================
-// MODAL: VALIDATION
+// MODAL: Détail mission
 // ============================================
 
-function ValidationModal({ 
-  mission, 
-  type, 
-  onClose, 
-  onSuccess 
-}: { 
-  mission: MissionDetail;
-  type: 'manager' | 'rh';
-  onClose: () => void;
-  onSuccess: () => void;
+function MissionDetailModal({ mission, role, onClose }: {
+  mission: MissionDetail; role: string; onClose: () => void;
 }) {
-  const [loading, setLoading] = useState(false);
-  const [approved, setApproved] = useState(true);
-  const [comments, setComments] = useState('');
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [perDiem, setPerDiem] = useState('');
-  const [advance, setAdvance] = useState('');
+  const statusConf = STATUS_CONFIG[mission.status] || STATUS_CONFIG.brouillon;
+  const transport = TRANSPORT_LABELS[mission.transport_type] || TRANSPORT_LABELS.autre;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white rounded-t-2xl">
+          <div>
+            <h2 className="text-lg font-bold">{mission.reference}</h2>
+            <p className="text-sm text-gray-500">{mission.subject}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusConf.bg} ${statusConf.color}`}>
+              {statusConf.label}
+            </span>
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
 
+        <div className="p-6 space-y-6">
+          {/* Info employé */}
+          <div className="bg-gray-50 rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Missionnaire</h3>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><span className="text-gray-500">Nom:</span> <span className="font-medium">{mission.employee_name}</span></div>
+              <div><span className="text-gray-500">Matricule:</span> <span className="font-medium">{mission.employee_code || '-'}</span></div>
+              <div><span className="text-gray-500">Poste:</span> <span className="font-medium">{mission.employee_job_title || '-'}</span></div>
+              <div><span className="text-gray-500">Département:</span> <span className="font-medium">{mission.department_name || '-'}</span></div>
+            </div>
+          </div>
+
+          {/* Détails mission */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-blue-50 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-blue-700 mb-2 flex items-center gap-2">
+                <MapPin className="w-4 h-4" /> Itinéraire
+              </h3>
+              <p className="text-sm"><span className="text-gray-500">De:</span> {mission.departure_location}</p>
+              <p className="text-sm"><span className="text-gray-500">À:</span> {mission.destination} {mission.destination_country && `(${mission.destination_country})`}</p>
+            </div>
+            <div className="bg-purple-50 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-purple-700 mb-2 flex items-center gap-2">
+                <Calendar className="w-4 h-4" /> Dates
+              </h3>
+              <p className="text-sm"><span className="text-gray-500">Du:</span> {formatDate(mission.start_date)}</p>
+              <p className="text-sm"><span className="text-gray-500">Au:</span> {formatDate(mission.end_date)}</p>
+              <p className="text-sm font-medium">{mission.duration_days} jour(s)</p>
+            </div>
+          </div>
+
+          {/* Transport & Hébergement */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-1">Transport</h3>
+              <p className="text-sm">{transport.label}</p>
+              {mission.transport_details && <p className="text-xs text-gray-500 mt-1">{mission.transport_details}</p>}
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-1">Hébergement</h3>
+              <p className="text-sm">{mission.accommodation_type || '-'}</p>
+              {mission.accommodation_details && <p className="text-xs text-gray-500 mt-1">{mission.accommodation_details}</p>}
+            </div>
+          </div>
+
+          {/* Budget */}
+          <div className="bg-green-50 rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-green-700 mb-2 flex items-center gap-2">
+              <DollarSign className="w-4 h-4" /> Budget & Per Diem
+            </h3>
+            <div className="grid grid-cols-3 gap-3 text-sm">
+              <div><span className="text-gray-500">Budget estimé:</span><br /><span className="font-medium">{formatAmount(mission.estimated_budget)}</span></div>
+              <div><span className="text-gray-500">Per diem:</span><br /><span className="font-medium">{formatAmount(mission.per_diem_amount, mission.per_diem_currency)}</span></div>
+              <div><span className="text-gray-500">Avance:</span><br /><span className="font-medium">{formatAmount(mission.advance_amount)}</span></div>
+            </div>
+          </div>
+
+          {/* Validation timeline */}
+          {(mission.manager_validated_at || mission.rh_validated_at || mission.rejection_reason) && (
+            <div className="bg-gray-50 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">Historique de validation</h3>
+              <div className="space-y-2 text-sm">
+                {mission.manager_validated_at && (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span>Manager validé le {formatDate(mission.manager_validated_at)}</span>
+                    {mission.manager_comments && <span className="text-gray-500">- {mission.manager_comments}</span>}
+                  </div>
+                )}
+                {mission.rh_validated_at && (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span>RH validé le {formatDate(mission.rh_validated_at)}</span>
+                    {mission.rh_comments && <span className="text-gray-500">- {mission.rh_comments}</span>}
+                  </div>
+                )}
+                {mission.rejection_reason && (
+                  <div className="flex items-center gap-2">
+                    <XCircle className="w-4 h-4 text-red-500" />
+                    <span className="text-red-600">Rejeté: {mission.rejection_reason}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Description */}
+          {mission.description && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-1">Description</h3>
+              <p className="text-sm text-gray-600 whitespace-pre-wrap">{mission.description}</p>
+            </div>
+          )}
+
+          {/* Frais de mission */}
+          {mission.expenses && mission.expenses.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <Receipt className="w-4 h-4" /> Frais de mission
+              </h3>
+              <div className="space-y-2">
+                {mission.expenses.map((exp) => (
+                  <div key={exp.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm">
+                    <div>
+                      <span className="font-medium">{EXPENSE_LABELS[exp.expense_type] || exp.expense_type}</span>
+                      <span className="text-gray-500 ml-2">- {exp.description}</span>
+                      <span className="text-gray-400 ml-2">({formatDate(exp.expense_date)})</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium">{formatAmount(exp.amount, exp.currency)}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs ${
+                        exp.status === 'approuve' ? 'bg-green-100 text-green-600' :
+                        exp.status === 'rejete' ? 'bg-red-100 text-red-600' :
+                        exp.status === 'rembourse' ? 'bg-purple-100 text-purple-600' :
+                        'bg-yellow-100 text-yellow-600'
+                      }`}>
+                        {exp.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                <div className="flex justify-end text-sm font-medium pt-2 border-t">
+                  Total: {formatAmount(mission.total_expenses)}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Rapport de mission */}
+          {mission.mission_report && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-1">Rapport de mission</h3>
+              <p className="text-sm text-gray-600 whitespace-pre-wrap bg-gray-50 p-3 rounded-lg">{mission.mission_report}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end p-6 border-t sticky bottom-0 bg-white rounded-b-2xl">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// MODAL: Modifier mission
+// ============================================
+
+function EditMissionModal({ mission, onClose, onSuccess }: {
+  mission: MissionDetail; onClose: () => void; onSuccess: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    subject: mission.subject,
+    description: mission.description || '',
+    departure_location: mission.departure_location,
+    destination: mission.destination,
+    destination_country: mission.destination_country || '',
+    start_date: mission.start_date,
+    end_date: mission.end_date,
+    transport_type: mission.transport_type,
+    transport_details: mission.transport_details || '',
+    accommodation_type: mission.accommodation_type || '',
+    accommodation_details: mission.accommodation_details || '',
+    estimated_budget: mission.estimated_budget?.toString() || '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
     try {
-      const endpoint = type === 'manager' 
-        ? `${API_URL}/api/missions/${mission.id}/validate/manager`
-        : `${API_URL}/api/missions/${mission.id}/validate/rh`;
-
-      const payload: Record<string, unknown> = {
-        approved,
-        comments: comments || undefined,
-        rejection_reason: !approved ? rejectionReason : undefined,
-      };
-
-      if (type === 'rh' && approved) {
-        payload.per_diem_amount = perDiem ? parseFloat(perDiem) : undefined;
-        payload.advance_amount = advance ? parseFloat(advance) : undefined;
-      }
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(payload)
+      setSubmitting(true);
+      await apiFetch(`/api/missions/${mission.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          ...formData,
+          estimated_budget: formData.estimated_budget ? parseFloat(formData.estimated_budget) : null,
+          accommodation_type: formData.accommodation_type || null,
+        }),
       });
-
-      if (res.ok) {
-        onSuccess();
-      } else {
-        const error = await res.json();
-        alert(error.detail || 'Erreur lors de la validation');
-      }
-    } catch (e) {
-      console.error('Error validating mission:', e);
-      alert('Erreur de connexion');
+      onSuccess();
+    } catch (err: any) {
+      alert('Erreur: ' + err.message);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-900">
-            Validation {type === 'manager' ? 'Manager' : 'RH'}
-          </h2>
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white rounded-t-2xl">
+          <h2 className="text-lg font-bold">Modifier - {mission.reference}</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <p className="font-medium text-gray-900">{mission.reference}</p>
-            <p className="text-sm text-gray-500">{mission.subject}</p>
-            <p className="text-sm text-gray-500">{mission.employee_name}</p>
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Objet *</label>
+            <input
+              type="text"
+              value={formData.subject}
+              onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+              className="w-full px-3 py-2 border rounded-xl text-sm"
+            />
           </div>
 
-          {/* Choix approuver/rejeter */}
-          <div className="flex gap-4">
-            <label className={`flex-1 p-4 border-2 rounded-xl cursor-pointer transition-all ${
-              approved ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
-            }`}>
-              <input
-                type="radio"
-                checked={approved}
-                onChange={() => setApproved(true)}
-                className="sr-only"
-              />
-              <div className="flex items-center gap-3">
-                <CheckCircle className={`w-6 h-6 ${approved ? 'text-green-500' : 'text-gray-400'}`} />
-                <span className="font-medium">Approuver</span>
-              </div>
-            </label>
-            <label className={`flex-1 p-4 border-2 rounded-xl cursor-pointer transition-all ${
-              !approved ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300'
-            }`}>
-              <input
-                type="radio"
-                checked={!approved}
-                onChange={() => setApproved(false)}
-                className="sr-only"
-              />
-              <div className="flex items-center gap-3">
-                <XCircle className={`w-6 h-6 ${!approved ? 'text-red-500' : 'text-gray-400'}`} />
-                <span className="font-medium">Rejeter</span>
-              </div>
-            </label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-3 py-2 border rounded-xl text-sm"
+              rows={3}
+            />
           </div>
 
-          {/* Per diem (RH uniquement) */}
-          {type === 'rh' && approved && (
-            <>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Lieu de départ *</label>
+              <input
+                type="text"
+                value={formData.departure_location}
+                onChange={(e) => setFormData({ ...formData, departure_location: e.target.value })}
+                className="w-full px-3 py-2 border rounded-xl text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Destination *</label>
+              <input
+                type="text"
+                value={formData.destination}
+                onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
+                className="w-full px-3 py-2 border rounded-xl text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Date de départ *</label>
+              <input
+                type="date"
+                value={formData.start_date}
+                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                className="w-full px-3 py-2 border rounded-xl text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Date de retour *</label>
+              <input
+                type="date"
+                value={formData.end_date}
+                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                className="w-full px-3 py-2 border rounded-xl text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Transport</label>
+              <select
+                value={formData.transport_type}
+                onChange={(e) => setFormData({ ...formData, transport_type: e.target.value })}
+                className="w-full px-3 py-2 border rounded-xl text-sm"
+              >
+                <option value="avion">Avion</option>
+                <option value="train">Train</option>
+                <option value="voiture_personnelle">Voiture personnelle</option>
+                <option value="voiture_service">Voiture de service</option>
+                <option value="bus">Bus</option>
+                <option value="autre">Autre</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Hébergement</label>
+              <select
+                value={formData.accommodation_type}
+                onChange={(e) => setFormData({ ...formData, accommodation_type: e.target.value })}
+                className="w-full px-3 py-2 border rounded-xl text-sm"
+              >
+                <option value="">-- Choisir --</option>
+                <option value="hotel">Hôtel</option>
+                <option value="residence">Résidence</option>
+                <option value="chez_tiers">Chez un tiers</option>
+                <option value="aucun">Aucun</option>
+                <option value="autre">Autre</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Budget estimé (XOF)</label>
+            <input
+              type="number"
+              value={formData.estimated_budget}
+              onChange={(e) => setFormData({ ...formData, estimated_budget: e.target.value })}
+              className="w-full px-3 py-2 border rounded-xl text-sm"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 p-6 border-t sticky bottom-0 bg-white rounded-b-2xl">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">
+            Annuler
+          </button>
+          <button
+            onClick={handleSubmit}
+            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 flex items-center gap-2"
+            disabled={submitting}
+          >
+            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+            Enregistrer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// MODAL: Valider mission
+// ============================================
+
+function ValidateMissionModal({ mission, role, onClose, onSuccess }: {
+  mission: Mission; role: string; onClose: () => void; onSuccess: () => void;
+}) {
+  const [comments, setComments] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [perDiem, setPerDiem] = useState('');
+  const [advanceAmount, setAdvanceAmount] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const isRHStep = mission.status === 'en_attente_rh' || canManageAll(role);
+  const endpoint = isRHStep
+    ? `/api/missions/${mission.id}/validate/rh`
+    : `/api/missions/${mission.id}/validate/manager`;
+
+  const handleValidate = async (approved: boolean) => {
+    if (!approved && !rejectionReason) {
+      alert('Veuillez indiquer la raison du rejet');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await apiFetch(endpoint, {
+        method: 'POST',
+        body: JSON.stringify({
+          approved,
+          comments,
+          rejection_reason: rejectionReason || null,
+          per_diem_amount: perDiem ? parseFloat(perDiem) : null,
+          advance_amount: advanceAmount ? parseFloat(advanceAmount) : null,
+        }),
+      });
+      onSuccess();
+    } catch (err: any) {
+      alert('Erreur: ' + err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-lg">
+        <div className="flex items-center justify-between p-6 border-b">
+          <div>
+            <h2 className="text-lg font-bold">Traiter la mission</h2>
+            <p className="text-sm text-gray-500">{mission.reference} - {mission.subject}</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          {/* Résumé */}
+          <div className="bg-gray-50 rounded-xl p-3 text-sm space-y-1">
+            <p><span className="text-gray-500">Employé:</span> {mission.employee_name}</p>
+            <p><span className="text-gray-500">Destination:</span> {mission.destination}</p>
+            <p><span className="text-gray-500">Dates:</span> {formatDate(mission.start_date)} → {formatDate(mission.end_date)} ({mission.duration_days}j)</p>
+          </div>
+
+          {/* Per diem (RH step) */}
+          {isRHStep && (
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Per diem à accorder (XOF)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Per diem (XOF)</label>
                 <input
                   type="number"
                   value={perDiem}
                   onChange={(e) => setPerDiem(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                  placeholder="Ex: 50000"
+                  className="w-full px-3 py-2 border rounded-xl text-sm"
+                  placeholder="50000"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Avance à verser (XOF)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Avance (XOF)</label>
                 <input
                   type="number"
-                  value={advance}
-                  onChange={(e) => setAdvance(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                  placeholder="Ex: 100000"
+                  value={advanceAmount}
+                  onChange={(e) => setAdvanceAmount(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-xl text-sm"
+                  placeholder="0"
                 />
               </div>
-            </>
+            </div>
           )}
 
           {/* Commentaires */}
@@ -1994,194 +1375,46 @@ function ValidationModal({
             <textarea
               value={comments}
               onChange={(e) => setComments(e.target.value)}
-              rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+              className="w-full px-3 py-2 border rounded-xl text-sm"
+              rows={3}
+              placeholder="Commentaires optionnels..."
             />
           </div>
 
-          {/* Motif de rejet */}
-          {!approved && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Motif du rejet *</label>
-              <textarea
-                required
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                placeholder="Expliquez la raison du rejet..."
-              />
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className={`flex-1 py-2.5 text-white rounded-lg flex items-center justify-center gap-2 ${
-                approved ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
-              } disabled:opacity-50`}
-            >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {approved ? 'Approuver' : 'Rejeter'}
-            </button>
+          {/* Raison de rejet */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Raison du rejet (si rejeté)</label>
+            <textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              className="w-full px-3 py-2 border rounded-xl text-sm"
+              rows={2}
+              placeholder="Obligatoire en cas de rejet..."
+            />
           </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// ============================================
-// MODAL: AJOUTER FRAIS
-// ============================================
-
-function AddExpenseModal({ 
-  missionId, 
-  onClose, 
-  onSuccess 
-}: { 
-  missionId: number;
-  onClose: () => void;
-  onSuccess: () => void;
-}) {
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    expense_type: 'transport',
-    description: '',
-    expense_date: new Date().toISOString().split('T')[0],
-    amount: '',
-    currency: 'XOF',
-    receipt_url: '',
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const res = await fetch(`${API_URL}/api/missions/${missionId}/expenses`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          ...formData,
-          amount: parseFloat(formData.amount),
-        })
-      });
-
-      if (res.ok) {
-        onSuccess();
-      } else {
-        const error = await res.json();
-        alert(error.detail || 'Erreur lors de l\'ajout du frais');
-      }
-    } catch (e) {
-      console.error('Error adding expense:', e);
-      alert('Erreur de connexion');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-900">Ajouter un frais</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type de frais *</label>
-            <select
-              required
-              value={formData.expense_type}
-              onChange={(e) => setFormData({ ...formData, expense_type: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-            >
-              {Object.entries(EXPENSE_TYPES).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
-            <input
-              type="text"
-              required
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-              placeholder="Ex: Taxi aéroport - hôtel"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
-              <input
-                type="date"
-                required
-                value={formData.expense_date}
-                onChange={(e) => setFormData({ ...formData, expense_date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Montant *</label>
-              <input
-                type="number"
-                required
-                min="1"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                placeholder="5000"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Justificatif (URL)</label>
-            <input
-              type="url"
-              value={formData.receipt_url}
-              onChange={(e) => setFormData({ ...formData, receipt_url: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-              placeholder="https://..."
-            />
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 py-2.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              Ajouter
-            </button>
-          </div>
-        </form>
+        <div className="flex items-center justify-end gap-3 p-6 border-t">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">
+            Annuler
+          </button>
+          <button
+            onClick={() => handleValidate(false)}
+            className="px-4 py-2 text-sm bg-red-600 text-white rounded-xl hover:bg-red-700 flex items-center gap-2"
+            disabled={submitting}
+          >
+            <XCircle className="w-4 h-4" />
+            Rejeter
+          </button>
+          <button
+            onClick={() => handleValidate(true)}
+            className="px-4 py-2 text-sm bg-green-600 text-white rounded-xl hover:bg-green-700 flex items-center gap-2"
+            disabled={submitting}
+          >
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+            Approuver
+          </button>
+        </div>
       </div>
     </div>
   );

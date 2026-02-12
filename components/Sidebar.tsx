@@ -83,9 +83,7 @@ const navigation: NavItem[] = [
     name: 'Talents & Carrière', 
     href: '/dashboard/talents', 
     icon: Sparkles,
-    roles: ['rh', 'admin', 'dg'],
-    disabled: true,
-    disabledReason: 'Bientôt disponible'
+    roles: ['rh', 'admin', 'dg']
   },
   { 
     name: 'Formation & Développement', 
@@ -103,9 +101,7 @@ const navigation: NavItem[] = [
     name: 'People Analytics', 
     href: '/dashboard/analytics', 
     icon: BarChart3,
-    roles: ['manager', 'rh', 'admin', 'dg'],
-    disabled: true,
-    disabledReason: 'Bientôt disponible'
+    roles: ['manager', 'rh', 'admin', 'dg']
   },
   { 
     name: 'Gestion du Personnel', 

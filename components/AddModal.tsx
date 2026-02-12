@@ -8,6 +8,7 @@ import {
   ClipboardList, TrendingUp, MessageSquare, Loader2,
   Plane
 } from 'lucide-react';
+import AddOrganizationalUnitModal from '@/components/AddOrganizationalUnitModal';
 
 // ============================================
 // TYPES
@@ -98,11 +99,11 @@ const pageConfigs: Record<string, PageConfig> = {
     ]
   },
   '/dashboard/missions': {
-  title: 'Que souhaitez-vous ajouter ?',
-  options: [
-    { id: 'mission', label: 'Demande de mission', description: 'Créer une nouvelle demande', icon: Plane, color: 'bg-blue-100 text-blue-600' },
-  ]
-},
+    title: 'Que souhaitez-vous ajouter ?',
+    options: [
+      { id: 'mission', label: 'Demande de mission', description: 'Créer une nouvelle demande', icon: Plane, color: 'bg-blue-100 text-blue-600' },
+    ]
+  },
 };
 
 // ============================================
@@ -133,18 +134,15 @@ export default function AddModal({ onClose, onSuccess }: AddModalProps) {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Charger les départements
         const deptRes = await fetch(`${API_URL}/api/departments/`, { headers: getAuthHeaders() });
         if (deptRes.ok) setDepartments(await deptRes.json());
 
-        // Charger les employés (pour certains formulaires)
         const empRes = await fetch(`${API_URL}/api/employees/?page_size=200`, { headers: getAuthHeaders() });
         if (empRes.ok) {
           const data = await empRes.json();
           setEmployees(data.items || []);
         }
 
-        // Charger les offres d'emploi (pour candidats)
         const jobRes = await fetch(`${API_URL}/api/recruitment/jobs?status=active&page_size=50`, { headers: getAuthHeaders() });
         if (jobRes.ok) {
           const data = await jobRes.json();
@@ -182,6 +180,19 @@ export default function AddModal({ onClose, onSuccess }: AddModalProps) {
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
   }, [onClose]);
+
+  // ========================================
+  // Si "department" est sélectionné, ouvrir directement
+  // le modal AddOrganizationalUnitModal (le bon modal)
+  // ========================================
+  if (selectedOption === 'department') {
+    return (
+      <AddOrganizationalUnitModal
+        onClose={onClose}
+        onSuccess={handleSuccess}
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -227,12 +238,8 @@ export default function AddModal({ onClose, onSuccess }: AddModalProps) {
                 ← Retour aux options
               </button>
               
-              {/* Formulaires selon l'option */}
               {selectedOption === 'employee' && (
                 <EmployeeForm departments={departments} onSuccess={handleSuccess} onCancel={handleBack} />
-              )}
-              {selectedOption === 'department' && (
-                <DepartmentForm departments={departments} onSuccess={handleSuccess} onCancel={handleBack} />
               )}
               {selectedOption === 'candidate' && (
                 <CandidateForm jobs={jobs} onSuccess={handleSuccess} onCancel={handleBack} />
@@ -252,7 +259,6 @@ export default function AddModal({ onClose, onSuccess }: AddModalProps) {
               {selectedOption === 'certificate' && (
                 <CertificateRedirect onClose={onClose} />
               )}
-              {/* Ajouter d'autres formulaires selon besoin */}
             </div>
           )}
         </div>
@@ -335,60 +341,6 @@ function EmployeeForm({ departments, onSuccess, onCancel }: { departments: Depar
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Date d&apos;embauche</label>
         <input type="date" value={formData.hire_date} onChange={(e) => setFormData({...formData, hire_date: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
-      </div>
-      <div className="flex gap-3 pt-4">
-        <button type="button" onClick={onCancel} className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
-        <button type="submit" disabled={saving} className="flex-1 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
-          {saving ? 'Création...' : 'Créer'}
-        </button>
-      </div>
-    </form>
-  );
-}
-
-// ============================================
-// FORMULAIRE: DÉPARTEMENT
-// ============================================
-
-function DepartmentForm({ departments, onSuccess, onCancel }: { departments: Department[]; onSuccess: () => void; onCancel: () => void }) {
-  const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({ name: '', parent_id: '', description: '' });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const res = await fetch(`${API_URL}/api/departments/`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          name: formData.name,
-          parent_id: formData.parent_id ? parseInt(formData.parent_id) : null,
-          description: formData.description || null,
-        })
-      });
-      if (res.ok) onSuccess();
-      else alert('Erreur lors de la création');
-    } catch { alert('Erreur de connexion'); }
-    finally { setSaving(false); }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
-        <input type="text" required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: Direction Technique" />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Rattaché à</label>
-        <select value={formData.parent_id} onChange={(e) => setFormData({...formData, parent_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-          <option value="">Aucun (niveau racine)</option>
-          {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-        <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Description optionnelle..." />
       </div>
       <div className="flex gap-3 pt-4">
         <button type="button" onClick={onCancel} className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>

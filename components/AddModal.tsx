@@ -9,6 +9,7 @@ import {
   Plane
 } from 'lucide-react';
 import AddOrganizationalUnitModal from '@/components/AddOrganizationalUnitModal';
+import AddEmployeeModal from '@/components/AddEmployeeModal';
 
 // ============================================
 // TYPES
@@ -194,6 +195,19 @@ export default function AddModal({ onClose, onSuccess }: AddModalProps) {
     );
   }
 
+  // ========================================
+  // Si "employee" est sélectionné, ouvrir directement
+  // le modal AddEmployeeModal (le bon modal complet)
+  // ========================================
+  if (selectedOption === 'employee') {
+    return (
+      <AddEmployeeModal
+        onClose={onClose}
+        onSuccess={handleSuccess}
+      />
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl">
@@ -238,9 +252,6 @@ export default function AddModal({ onClose, onSuccess }: AddModalProps) {
                 ← Retour aux options
               </button>
               
-              {selectedOption === 'employee' && (
-                <EmployeeForm departments={departments} onSuccess={handleSuccess} onCancel={handleBack} />
-              )}
               {selectedOption === 'candidate' && (
                 <CandidateForm jobs={jobs} onSuccess={handleSuccess} onCancel={handleBack} />
               )}
@@ -276,79 +287,6 @@ export default function AddModal({ onClose, onSuccess }: AddModalProps) {
         )}
       </div>
     </div>
-  );
-}
-
-// ============================================
-// FORMULAIRE: EMPLOYÉ
-// ============================================
-
-function EmployeeForm({ departments, onSuccess, onCancel }: { departments: Department[]; onSuccess: () => void; onCancel: () => void }) {
-  const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({
-    first_name: '', last_name: '', email: '', phone: '', department_id: '', job_title: '', hire_date: new Date().toISOString().split('T')[0]
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const res = await fetch(`${API_URL}/api/employees/`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          ...formData,
-          department_id: formData.department_id ? parseInt(formData.department_id) : null,
-        })
-      });
-      if (res.ok) onSuccess();
-      else alert('Erreur lors de la création');
-    } catch { alert('Erreur de connexion'); }
-    finally { setSaving(false); }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
-          <input type="text" required value={formData.first_name} onChange={(e) => setFormData({...formData, first_name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
-          <input type="text" required value={formData.last_name} onChange={(e) => setFormData({...formData, last_name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-        <input type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
-        <input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Département</label>
-        <select value={formData.department_id} onChange={(e) => setFormData({...formData, department_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-          <option value="">Sélectionner...</option>
-          {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Poste</label>
-        <input type="text" value={formData.job_title} onChange={(e) => setFormData({...formData, job_title: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: Développeur Senior" />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Date d&apos;embauche</label>
-        <input type="date" value={formData.hire_date} onChange={(e) => setFormData({...formData, hire_date: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
-      </div>
-      <div className="flex gap-3 pt-4">
-        <button type="button" onClick={onCancel} className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
-        <button type="submit" disabled={saving} className="flex-1 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
-          {saving ? 'Création...' : 'Créer'}
-        </button>
-      </div>
-    </form>
   );
 }
 

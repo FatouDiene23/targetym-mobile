@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   User, Edit2, Save, X, AlertCircle,
   Briefcase, MapPin, Phone, Mail, Building, CalendarDays,
-  FileText, Download, Loader2
+  FileText, Download, Loader2, PenTool, Upload, Trash2, CheckCircle
 } from 'lucide-react';
 
 // ============================================
@@ -43,6 +43,13 @@ interface Employee {
   nationality?: string;
 }
 
+interface SignatureData {
+  employee_id: number;
+  employee_name: string;
+  has_signature: boolean;
+  signature_url: string | null;
+}
+
 // ============================================
 // API
 // ============================================
@@ -53,6 +60,13 @@ function getAuthHeaders(): HeadersInit {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
   return {
     'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+}
+
+function getAuthHeadersNoContentType(): HeadersInit {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  return {
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
   };
 }
@@ -83,6 +97,43 @@ async function updateEmployeeProfile(id: number, data: Partial<Employee>): Promi
   return response.json();
 }
 
+async function getSignature(employeeId: number): Promise<SignatureData> {
+  const response = await fetch(`${API_URL}/api/employees/${employeeId}/signature`, {
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Erreur de chargement de la signature');
+  return response.json();
+}
+
+async function uploadSignature(employeeId: number, file: File): Promise<{ message: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const response = await fetch(`${API_URL}/api/employees/${employeeId}/signature`, {
+    method: 'POST',
+    headers: getAuthHeadersNoContentType(),
+    body: formData,
+  });
+  
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.detail || 'Erreur lors de l\'upload');
+  }
+  return response.json();
+}
+
+async function deleteSignature(employeeId: number): Promise<{ message: string }> {
+  const response = await fetch(`${API_URL}/api/employees/${employeeId}/signature`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.detail || 'Erreur lors de la suppression');
+  }
+  return response.json();
+}
+
 // ============================================
 // COMPONENT
 // ============================================
@@ -98,7 +149,14 @@ export default function MyProfilePage() {
     address: '',
   });
   
-  // État pour le certificat de travail
+  // Signature
+  const [signature, setSignature] = useState<SignatureData | null>(null);
+  const [signatureLoading, setSignatureLoading] = useState(false);
+  const [signatureUploading, setSignatureUploading] = useState(false);
+  const [signatureMessage, setSignatureMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Certificat de travail
   const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -120,6 +178,15 @@ export default function MyProfilePage() {
         phone: emp.phone || '',
         address: emp.address || '',
       });
+      
+      // Charger la signature
+      try {
+        const sig = await getSignature(currentUser.employee_id);
+        setSignature(sig);
+      } catch {
+        // Pas de signature, c'est OK
+        setSignature(null);
+      }
     } catch (err) {
       console.error('Erreur de chargement:', err);
       setError('Erreur de chargement des données');
@@ -145,6 +212,68 @@ export default function MyProfilePage() {
       setSaving(false);
     }
   };
+
+  // Signature handlers
+  const handleSignatureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !employee) return;
+    
+    // Validation côté client
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setSignatureMessage({ type: 'error', text: 'Format non accepté. Utilisez PNG, JPEG ou WebP.' });
+      return;
+    }
+    
+    if (file.size > 2 * 1024 * 1024) {
+      setSignatureMessage({ type: 'error', text: 'Fichier trop volumineux (max 2 MB).' });
+      return;
+    }
+    
+    setSignatureUploading(true);
+    setSignatureMessage(null);
+    
+    try {
+      await uploadSignature(employee.id, file);
+      const sig = await getSignature(employee.id);
+      setSignature(sig);
+      setSignatureMessage({ type: 'success', text: 'Signature uploadée avec succès !' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur lors de l\'upload';
+      setSignatureMessage({ type: 'error', text: message });
+    } finally {
+      setSignatureUploading(false);
+      // Reset file input
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSignatureDelete = async () => {
+    if (!employee) return;
+    if (!confirm('Supprimer votre signature électronique ?')) return;
+    
+    setSignatureLoading(true);
+    setSignatureMessage(null);
+    
+    try {
+      await deleteSignature(employee.id);
+      setSignature({ employee_id: employee.id, employee_name: `${employee.first_name} ${employee.last_name}`, has_signature: false, signature_url: null });
+      setSignatureMessage({ type: 'success', text: 'Signature supprimée.' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur lors de la suppression';
+      setSignatureMessage({ type: 'error', text: message });
+    } finally {
+      setSignatureLoading(false);
+    }
+  };
+
+  // Auto-clear signature message after 4 seconds
+  useEffect(() => {
+    if (signatureMessage) {
+      const timer = setTimeout(() => setSignatureMessage(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [signatureMessage]);
 
   // Fonction pour générer le certificat de travail
   const generateWorkCertificate = async () => {
@@ -371,7 +500,101 @@ export default function MyProfilePage() {
           </div>
         </div>
 
-        {/* Section Certificat de Travail - Visible seulement si employé actif */}
+        {/* ============================================ */}
+        {/* SECTION SIGNATURE ÉLECTRONIQUE */}
+        {/* ============================================ */}
+        <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-1 flex items-center gap-2">
+            <PenTool className="w-5 h-5 text-primary-600" />
+            Signature électronique
+          </h3>
+          <p className="text-sm text-gray-500 mb-5">
+            Votre signature sera utilisée sur les ordres de mission et autres documents officiels.
+          </p>
+
+          {/* Message de feedback */}
+          {signatureMessage && (
+            <div className={`mb-4 flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium ${
+              signatureMessage.type === 'success' 
+                ? 'bg-green-50 text-green-700 border border-green-200' 
+                : 'bg-red-50 text-red-700 border border-red-200'
+            }`}>
+              {signatureMessage.type === 'success' 
+                ? <CheckCircle className="w-4 h-4 shrink-0" /> 
+                : <AlertCircle className="w-4 h-4 shrink-0" />
+              }
+              {signatureMessage.text}
+            </div>
+          )}
+
+          {signature?.has_signature && signature.signature_url ? (
+            /* Signature existante */
+            <div>
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 inline-block">
+                <p className="text-xs text-gray-400 mb-2">Aperçu de votre signature :</p>
+                <img 
+                  src={signature.signature_url} 
+                  alt="Ma signature" 
+                  className="max-h-20 max-w-xs object-contain"
+                />
+              </div>
+              <div className="mt-4 flex gap-3">
+                <label className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors text-sm font-medium">
+                  <Upload className="w-4 h-4" />
+                  {signatureUploading ? 'Upload...' : 'Remplacer'}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handleSignatureUpload}
+                    className="hidden"
+                    disabled={signatureUploading}
+                  />
+                </label>
+                <button
+                  onClick={handleSignatureDelete}
+                  disabled={signatureLoading}
+                  className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {signatureLoading ? 'Suppression...' : 'Supprimer'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Pas de signature */
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+              <PenTool className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm text-gray-500 mb-1">Aucune signature enregistrée</p>
+              <p className="text-xs text-gray-400 mb-4">
+                Uploadez une image de votre signature manuscrite (PNG, JPEG ou WebP, max 2 MB)
+              </p>
+              <label className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors text-sm font-medium">
+                {signatureUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Upload en cours...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4" />
+                    Uploader ma signature
+                  </>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handleSignatureUpload}
+                  className="hidden"
+                  disabled={signatureUploading}
+                />
+              </label>
+            </div>
+          )}
+        </div>
+
+        {/* Section Certificat de Travail */}
         {employee.status === 'active' && (
           <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">

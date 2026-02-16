@@ -9,14 +9,12 @@ interface AddOrganizationalUnitModalProps {
   onSuccess: () => void;
 }
 
-// Définition des niveaux hiérarchiques
+// Définition des niveaux (ordre d'affichage uniquement, pas de contrainte parent)
 const ORGANIZATIONAL_LEVELS = [
   { 
     value: 'dg', 
     label: 'Direction Générale', 
     shortLabel: 'DG',
-    description: 'Plus haut niveau de l\'organisation',
-    allowedParents: [],
     icon: Building2,
     color: 'bg-red-500'
   },
@@ -24,8 +22,6 @@ const ORGANIZATIONAL_LEVELS = [
     value: 'dga', 
     label: 'Direction Générale Adjointe', 
     shortLabel: 'DGA',
-    description: 'Rattachée à la Direction Générale',
-    allowedParents: ['dg'],
     icon: Building2,
     color: 'bg-orange-500'
   },
@@ -33,8 +29,6 @@ const ORGANIZATIONAL_LEVELS = [
     value: 'direction_centrale', 
     label: 'Direction Centrale', 
     shortLabel: 'DC',
-    description: 'Rattachée à une DGA',
-    allowedParents: ['dga'],
     icon: Network,
     color: 'bg-amber-500'
   },
@@ -42,8 +36,6 @@ const ORGANIZATIONAL_LEVELS = [
     value: 'direction', 
     label: 'Direction', 
     shortLabel: 'DIR',
-    description: 'Rattachée à une Direction Centrale',
-    allowedParents: ['direction_centrale'],
     icon: GitBranch,
     color: 'bg-yellow-500'
   },
@@ -51,8 +43,6 @@ const ORGANIZATIONAL_LEVELS = [
     value: 'departement', 
     label: 'Département', 
     shortLabel: 'DEPT',
-    description: 'Rattaché à une Direction',
-    allowedParents: ['direction'],
     icon: Users,
     color: 'bg-green-500'
   },
@@ -60,8 +50,6 @@ const ORGANIZATIONAL_LEVELS = [
     value: 'service', 
     label: 'Service', 
     shortLabel: 'SRV',
-    description: 'Rattaché à un Département',
-    allowedParents: ['departement'],
     icon: Layers,
     color: 'bg-blue-500'
   },
@@ -79,6 +67,11 @@ const COLORS = [
   { value: '#06B6D4', label: 'Cyan', class: 'bg-cyan-500' },
   { value: '#6366F1', label: 'Indigo', class: 'bg-indigo-500' },
 ];
+
+// Helper pour obtenir le label d'un niveau
+function getLevelLabel(level: string): string {
+  return ORGANIZATIONAL_LEVELS.find(l => l.value === level)?.label || level;
+}
 
 export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOrganizationalUnitModalProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -125,48 +118,11 @@ export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOr
     }
   }
 
-  // Filtrer les parents possibles selon le niveau sélectionné
-  const availableParents = useMemo(() => {
-    if (!formData.level) return [];
-    
-    const levelConfig = ORGANIZATIONAL_LEVELS.find(l => l.value === formData.level);
-    if (!levelConfig || levelConfig.allowedParents.length === 0) return [];
-    
-    return departments.filter(dept => 
-      levelConfig.allowedParents.includes(dept.level || 'departement')
-    );
-  }, [formData.level, departments]);
-
-  // Vérifier si un parent est requis
-  const parentRequired = useMemo(() => {
-    if (!formData.level) return false;
-    const levelConfig = ORGANIZATIONAL_LEVELS.find(l => l.value === formData.level);
-    return levelConfig ? levelConfig.allowedParents.length > 0 : false;
-  }, [formData.level]);
-
-  // Obtenir le label du niveau parent attendu
-  const expectedParentLabel = useMemo(() => {
-    if (!formData.level) return '';
-    const levelConfig = ORGANIZATIONAL_LEVELS.find(l => l.value === formData.level);
-    if (!levelConfig || levelConfig.allowedParents.length === 0) return '';
-    
-    const parentLabels = levelConfig.allowedParents.map(p => {
-      const parent = ORGANIZATIONAL_LEVELS.find(l => l.value === p);
-      return parent?.label || p;
-    });
-    return parentLabels.join(' ou ');
-  }, [formData.level]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.level) {
       setError('Veuillez sélectionner un type d\'unité');
-      return;
-    }
-
-    if (parentRequired && !formData.parent_id) {
-      setError(`Veuillez sélectionner un(e) ${expectedParentLabel}`);
       return;
     }
 
@@ -199,17 +155,7 @@ export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOr
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    
-    // Si on change le niveau, réinitialiser le parent
-    if (name === 'level') {
-      setFormData(prev => ({ 
-        ...prev, 
-        level: value as OrganizationalLevel | '', 
-        parent_id: '' 
-      }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const selectedLevel = ORGANIZATIONAL_LEVELS.find(l => l.value === formData.level);
@@ -248,7 +194,7 @@ export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOr
                     <button
                       key={level.value}
                       type="button"
-                      onClick={() => handleChange({ target: { name: 'level', value: level.value } } as React.ChangeEvent<HTMLSelectElement>)}
+                      onClick={() => setFormData(prev => ({ ...prev, level: level.value as OrganizationalLevel }))}
                       className={`flex items-center p-3 border-2 rounded-xl transition-all text-left ${
                         isSelected 
                           ? 'border-primary-500 bg-primary-50' 
@@ -268,40 +214,33 @@ export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOr
                   );
                 })}
               </div>
-              {selectedLevel && (
-                <p className="text-xs text-gray-500 mt-2 flex items-center">
-                  <Briefcase className="w-3 h-3 mr-1" />
-                  {selectedLevel.description}
-                </p>
-              )}
             </div>
 
-            {/* Parent (si requis) */}
-            {formData.level && parentRequired && (
+            {/* Parent (optionnel pour toutes les unités) */}
+            {formData.level && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Rattachement ({expectedParentLabel}) *
+                  Rattachement (optionnel)
                 </label>
                 <select
                   name="parent_id"
                   value={formData.parent_id}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                  required={parentRequired}
                   disabled={isLoadingData}
                 >
                   <option value="">
-                    {isLoadingData ? 'Chargement...' : `Sélectionner un(e) ${expectedParentLabel}`}
+                    {isLoadingData ? 'Chargement...' : 'Aucun (niveau racine)'}
                   </option>
-                  {availableParents.map(dept => (
-                    <option key={dept.id} value={dept.id}>{dept.name}</option>
+                  {departments.map(dept => (
+                    <option key={dept.id} value={dept.id}>
+                      {getLevelLabel(dept.level || 'departement')} — {dept.name}
+                    </option>
                   ))}
                 </select>
-                {!isLoadingData && availableParents.length === 0 && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    Aucun(e) {expectedParentLabel} disponible. Créez-en un(e) d&apos;abord.
-                  </p>
-                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  Laissez vide pour créer une unité au niveau racine
+                </p>
               </div>
             )}
 
@@ -399,7 +338,7 @@ export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOr
           </button>
           <button
             onClick={handleSubmit}
-            disabled={isLoading || !formData.name || !formData.level || (parentRequired && !formData.parent_id)}
+            disabled={isLoading || !formData.name || !formData.level}
             className="px-4 py-2 text-sm text-white font-medium bg-primary-500 rounded-lg hover:bg-primary-600 disabled:opacity-50 flex items-center"
           >
             {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

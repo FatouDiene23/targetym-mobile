@@ -51,6 +51,7 @@ interface MissionDetail extends Mission {
   manager_comments?: string;
   rh_validated_at?: string;
   rh_comments?: string;
+  rh_validator_name?: string;
   rejection_reason?: string;
   actual_start_date?: string;
   actual_end_date?: string;
@@ -60,6 +61,10 @@ interface MissionDetail extends Mission {
   expenses: Expense[];
   total_expenses: number;
   total_approved_expenses: number;
+  // Signatures électroniques
+  employee_signature_url?: string;
+  manager_signature_url?: string;
+  drh_signature_url?: string;
 }
 
 interface Expense {
@@ -223,7 +228,7 @@ export default function MissionsPage() {
   const [selectedMission, setSelectedMission] = useState<MissionDetail | null>(null);
   const [missionToValidate, setMissionToValidate] = useState<Mission | null>(null);
 
-  // User info - initialisé depuis localStorage
+  // User info
   const [role, setRole] = useState('employee');
   const [employeeId, setEmployeeId] = useState<number | null>(null);
   const [initialized, setInitialized] = useState(false);
@@ -231,7 +236,6 @@ export default function MissionsPage() {
   const showValidateTab = isManagerOrAbove(role);
   const showTeamTab = isManagerOrAbove(role);
 
-  // Initialiser user info côté client
   useEffect(() => {
     const userInfo = getUserFromStorage();
     setRole(userInfo.role);
@@ -249,13 +253,11 @@ export default function MissionsPage() {
       const params = new URLSearchParams();
       if (statusFilter) params.set('status', statusFilter);
       if (searchTerm) params.set('search', searchTerm);
-      // Passer employee_id au backend pour filtrer côté serveur
       if (employeeId) params.set('employee_id', employeeId.toString());
 
       const data = await apiFetch(`/api/missions/?${params.toString()}`);
       const allMissions = data.missions || data.items || data || [];
       console.log('[Missions] Mes missions:', allMissions.length, '| employeeId:', employeeId);
-      // Si RH/admin, le backend retourne toutes les missions → filtrer côté client
       const myMissions = (canManageAll(role) && employeeId) 
         ? allMissions.filter((m: Mission) => m.employee_id === employeeId)
         : allMissions;
@@ -291,11 +293,9 @@ export default function MissionsPage() {
       const allMissions = data.missions || data.items || data || [];
       
       if (canManageAll(role)) {
-        // RH/Admin/DG voient toutes les missions
         console.log('[Missions] Equipe (RH/Admin): toutes =', allMissions.length);
         setTeamMissions(allMissions);
       } else if (role === 'manager') {
-        // Manager voit les missions de ses N-1 (pas les siennes)
         const filtered = allMissions.filter((m: Mission) => m.employee_id !== employeeId);
         console.log('[Missions] Equipe (Manager): N-1 =', filtered.length);
         setTeamMissions(filtered);
@@ -322,7 +322,6 @@ export default function MissionsPage() {
     if (initialized) fetchAll();
   }, [fetchAll, initialized]);
 
-  // Refetch quand l'onglet change
   useEffect(() => {
     if (!initialized) return;
     if (activeTab === 'equipe') {
@@ -393,19 +392,46 @@ export default function MissionsPage() {
     }
   };
 
+  // ============================================
+  // PDF GENERATION - Ordre de Mission
+  // ============================================
+
   const handleDownloadPDF = async (missionId: number, reference: string) => {
     try {
-      // Récupérer les données de la mission pour le PDF
       const data = await apiFetch(`/api/missions/${missionId}`);
       const m = data as MissionDetail;
       const transport = TRANSPORT_LABELS[m.transport_type] || TRANSPORT_LABELS.autre;
 
-      // Générer un document HTML imprimable
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
         alert('Veuillez autoriser les popups pour télécharger le PDF');
         return;
       }
+
+      // Helper pour générer le bloc signature avec image ou ligne vide
+      const renderSignatureBlock = (
+        title: string,
+        name: string,
+        signatureUrl: string | null | undefined,
+        dateStr: string | null | undefined
+      ) => {
+        const sigImage = signatureUrl
+          ? `<div class="sig-image"><img src="${signatureUrl}" alt="Signature" /></div>`
+          : `<div class="sig-placeholder"></div>`;
+        
+        const sigDate = dateStr
+          ? formatDate(dateStr)
+          : '_______________';
+
+        return `
+          <div class="sig-box">
+            <div class="title">${title}</div>
+            ${sigImage}
+            <div class="name">${name || '_______________'}</div>
+            <div class="date-sig">Date: ${sigDate}</div>
+          </div>
+        `;
+      };
 
       printWindow.document.write(`
 <!DOCTYPE html>
@@ -430,14 +456,17 @@ export default function MissionsPage() {
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
     .grid2 td { border-bottom: 1px solid #f3f4f6; }
     .budget-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px; margin-top: 8px; }
-    .budget-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; text-align: center; }
+    .budget-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: center; }
     .budget-item .amount { font-size: 14pt; font-weight: 700; color: #16a34a; }
     .budget-item .blabel { font-size: 8pt; color: #666; margin-top: 2px; }
     .signatures { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 40px; text-align: center; }
-    .sig-box { border-top: 1.5px solid #ccc; padding-top: 8px; }
-    .sig-box .title { font-size: 9pt; font-weight: 600; color: #555; }
-    .sig-box .name { font-size: 9pt; color: #888; margin-top: 4px; }
-    .sig-box .date-sig { font-size: 8pt; color: #aaa; margin-top: 2px; }
+    .sig-box { padding-top: 8px; }
+    .sig-box .title { font-size: 9pt; font-weight: 700; color: #1e40af; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .sig-box .sig-image { height: 60px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
+    .sig-box .sig-image img { max-height: 60px; max-width: 150px; object-fit: contain; }
+    .sig-box .sig-placeholder { height: 60px; border-bottom: 1.5px solid #ccc; margin-bottom: 6px; }
+    .sig-box .name { font-size: 9pt; color: #333; font-weight: 600; }
+    .sig-box .date-sig { font-size: 8pt; color: #888; margin-top: 4px; }
     .status-badge { display: inline-block; padding: 3px 12px; border-radius: 12px; font-size: 9pt; font-weight: 600; background: #dcfce7; color: #166534; }
     .footer { margin-top: 30px; text-align: center; font-size: 8pt; color: #aaa; border-top: 1px solid #e5e7eb; padding-top: 10px; }
     .validation-timeline { margin-top: 8px; }
@@ -459,7 +488,7 @@ export default function MissionsPage() {
   </div>
 
   <div class="section">
-    <div class="section-title">Missionnaire</div>
+    <div class="section-title">Employé</div>
     <table>
       <tr><td class="label">Nom complet</td><td class="value">${m.employee_name}</td></tr>
       <tr><td class="label">Matricule</td><td class="value">${m.employee_code || '-'}</td></tr>
@@ -497,53 +526,37 @@ export default function MissionsPage() {
     </table>
   </div>
 
-  <div class="section">
-    <div class="section-title">Budget & Per Diem</div>
-    <div class="budget-box">
-      <div class="budget-grid">
-        <div class="budget-item">
-          <div class="amount">${formatAmount(m.estimated_budget)}</div>
-          <div class="blabel">Budget estimé</div>
-        </div>
-        <div class="budget-item">
-          <div class="amount">${formatAmount(m.per_diem_amount, m.per_diem_currency)}</div>
-          <div class="blabel">Per Diem journalier</div>
-        </div>
-        <div class="budget-item">
-          <div class="amount">${formatAmount(m.per_diem_amount && m.duration_days ? m.per_diem_amount * m.duration_days : null, m.per_diem_currency)}</div>
-          <div class="blabel">Per Diem total</div>
-        </div>
-      </div>
-    </div>
-    ${m.advance_amount ? `<table style="margin-top:8px;"><tr><td class="label">Avance accordée</td><td class="value" style="font-weight:600;">${formatAmount(m.advance_amount)}</td></tr></table>` : ''}
-  </div>
+
 
   ${m.manager_validated_at || m.rh_validated_at ? `
   <div class="section">
     <div class="section-title">Validations</div>
     <div class="validation-timeline">
-      ${m.manager_validated_at ? `<div class="validation-step"><span class="dot"></span> Validé par Manager le ${formatDate(m.manager_validated_at)} ${m.manager_comments ? `— ${m.manager_comments}` : ''}</div>` : ''}
-      ${m.rh_validated_at ? `<div class="validation-step"><span class="dot"></span> Validé par RH le ${formatDate(m.rh_validated_at)} ${m.rh_comments ? `— ${m.rh_comments}` : ''}</div>` : ''}
+      ${m.manager_validated_at ? `<div class="validation-step"><span class="dot"></span> Validé par le Responsable le ${formatDate(m.manager_validated_at)} ${m.manager_comments ? `— ${m.manager_comments}` : ''}</div>` : ''}
+      ${m.rh_validated_at ? `<div class="validation-step"><span class="dot"></span> Validé par la DRH le ${formatDate(m.rh_validated_at)} ${m.rh_comments ? `— ${m.rh_comments}` : ''}</div>` : ''}
     </div>
   </div>
   ` : ''}
 
   <div class="signatures">
-    <div class="sig-box">
-      <div class="title">Le Missionnaire</div>
-      <div class="name">${m.employee_name}</div>
-      <div class="date-sig">Date: _______________</div>
-    </div>
-    <div class="sig-box">
-      <div class="title">Le Responsable</div>
-      <div class="name">${m.manager_name || '_______________'}</div>
-      <div class="date-sig">${m.manager_validated_at ? formatDate(m.manager_validated_at) : 'Date: _______________'}</div>
-    </div>
-    <div class="sig-box">
-      <div class="title">Direction RH</div>
-      <div class="name">_______________</div>
-      <div class="date-sig">${m.rh_validated_at ? formatDate(m.rh_validated_at) : 'Date: _______________'}</div>
-    </div>
+    ${renderSignatureBlock(
+      'Direction des Ressources Humaines',
+      m.rh_validator_name || '',
+      m.drh_signature_url,
+      m.rh_validated_at
+    )}
+    ${renderSignatureBlock(
+      'Le Responsable',
+      m.manager_name || '',
+      m.manager_signature_url,
+      m.manager_validated_at
+    )}
+    ${renderSignatureBlock(
+      "L'Employé",
+      m.employee_name,
+      m.employee_signature_url,
+      null
+    )}
   </div>
 
   <div class="footer">
@@ -573,7 +586,7 @@ export default function MissionsPage() {
     ];
 
     if (showValidateTab && stats.pending_validation > 0) {
-      cards.splice(4, 0, { label: 'À valider', value: stats.pending_validation, icon: UserCheck, color: 'text-red-600', bg: 'bg-red-50' });
+      cards.splice(5, 0, { label: 'À valider', value: stats.pending_validation, icon: UserCheck, color: 'text-red-600', bg: 'bg-red-50' });
     }
 
     return (
@@ -647,7 +660,6 @@ export default function MissionsPage() {
         </td>
         <td className="px-4 py-3">
           <div className="flex items-center gap-1">
-            {/* Bouton Voir */}
             <button
               onClick={() => handleViewMission(mission)}
               className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-blue-600"
@@ -656,7 +668,6 @@ export default function MissionsPage() {
               <Eye className="w-4 h-4" />
             </button>
 
-            {/* Bouton Modifier — employé: brouillon/rejetée | manager/RH: tant que pas approuvée */}
             {(
               (context === 'mes_missions' && ['brouillon', 'rejetee'].includes(mission.status)) ||
               ((context === 'equipe' || context === 'a_valider') && isManagerOrAbove(role) && ['brouillon', 'en_attente_manager', 'en_attente_rh', 'rejetee'].includes(mission.status))
@@ -670,7 +681,6 @@ export default function MissionsPage() {
               </button>
             )}
 
-            {/* Bouton Soumettre (brouillon) */}
             {context === 'mes_missions' && mission.status === 'brouillon' && (
               <button
                 onClick={() => handleSubmitMission(mission.id)}
@@ -681,7 +691,6 @@ export default function MissionsPage() {
               </button>
             )}
 
-            {/* Bouton Démarrer (approuvée) */}
             {mission.status === 'approuvee' && (
               <button
                 onClick={() => handleStartMission(mission.id)}
@@ -692,7 +701,6 @@ export default function MissionsPage() {
               </button>
             )}
 
-            {/* Bouton Télécharger l'ordre de mission PDF (approuvée, en_cours, terminée) */}
             {['approuvee', 'en_cours', 'terminee', 'cloturee'].includes(mission.status) && (
               <button
                 onClick={() => handleDownloadPDF(mission.id, mission.reference)}
@@ -703,7 +711,6 @@ export default function MissionsPage() {
               </button>
             )}
 
-            {/* Bouton Supprimer (brouillon) */}
             {context === 'mes_missions' && mission.status === 'brouillon' && (
               <button
                 onClick={() => handleDeleteMission(mission.id)}
@@ -714,7 +721,6 @@ export default function MissionsPage() {
               </button>
             )}
 
-            {/* Bouton Traiter (dans onglet À valider) */}
             {context === 'a_valider' && ['en_attente_manager', 'en_attente_rh'].includes(mission.status) && (
               <button
                 onClick={() => handleValidateMission(mission)}
@@ -806,7 +812,6 @@ export default function MissionsPage() {
     }] : []),
   ];
 
-  // Déterminer les données à afficher
   const getDisplayMissions = (): Mission[] => {
     switch (activeTab) {
       case 'mes_missions': return missions;
@@ -835,7 +840,6 @@ export default function MissionsPage() {
     <div className="min-h-screen bg-gray-50">
       <Header title="Gestion des Missions" subtitle="Ordres de missions & déplacements professionnels"/>
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* New mission button */}
         <div className="flex items-center justify-end mb-6">
           <button
             onClick={() => setShowCreateModal(true)}
@@ -846,10 +850,8 @@ export default function MissionsPage() {
           </button>
         </div>
 
-        {/* Stats */}
         {renderStats()}
 
-        {/* Tabs */}
         <div className="flex items-center gap-1 mb-4 bg-white rounded-xl p-1 border">
           {tabs.map((tab) => (
             <button
@@ -874,7 +876,6 @@ export default function MissionsPage() {
           ))}
         </div>
 
-        {/* Filters (pas pour l'onglet À valider) */}
         {activeTab !== 'a_valider' && (
           <div className="flex items-center gap-3 mb-4">
             <div className="relative flex-1 max-w-md">
@@ -900,15 +901,12 @@ export default function MissionsPage() {
           </div>
         )}
 
-        {/* Table */}
         <div className="bg-white rounded-xl border overflow-hidden">
           {renderTable(getDisplayMissions(), activeTab)}
         </div>
       </div>
 
-      {/* ============================================ */}
       {/* MODALS */}
-      {/* ============================================ */}
 
       {showCreateModal && (
         <CreateMissionModal
@@ -986,24 +984,19 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
 
   useEffect(() => {
     if (canManageAll(role)) {
-      // RH/Admin/DG : tous les employés
       apiFetch('/api/employees/?status=active&page_size=500')
         .then((data) => {
           const emps = data.items || data.employees || data;
-          console.log('[CreateMission] Employés chargés (RH):', Array.isArray(emps) ? emps.length : 0);
           setEmployees(Array.isArray(emps) ? emps : []);
         })
         .catch((err) => console.error('[CreateMission] Erreur employés:', err));
     } else if (role === 'manager') {
-      // Manager : seulement ses N-1
       apiFetch(`/api/employees/${employeeId}/direct-reports`)
         .then((data) => {
           const emps = Array.isArray(data) ? data : (data.items || data.employees || []);
-          console.log('[CreateMission] Employés chargés (Manager N-1):', emps.length);
           setEmployees(emps);
         })
         .catch(() => {
-          // Fallback: essayer avec manager_id
           apiFetch(`/api/employees/?manager_id=${employeeId}&status=active&page_size=500`)
             .then((data) => {
               const emps = data.items || data.employees || data;
@@ -1052,7 +1045,6 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
         </div>
 
         <div className="p-6 space-y-4">
-          {/* Sélection employé */}
           {showEmployeeSelect && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1076,7 +1068,6 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
             </div>
           )}
 
-          {/* Objet */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Objet de la mission *</label>
             <input
@@ -1088,7 +1079,6 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
             />
           </div>
 
-          {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
             <textarea
@@ -1100,7 +1090,6 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
             />
           </div>
 
-          {/* Lieux */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Lieu de départ *</label>
@@ -1124,7 +1113,6 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
             </div>
           </div>
 
-          {/* Pays */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Pays de destination</label>
             <input
@@ -1136,7 +1124,6 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
             />
           </div>
 
-          {/* Dates */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Date de départ *</label>
@@ -1158,7 +1145,6 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
             </div>
           </div>
 
-          {/* Transport + Hébergement */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Moyen de transport *</label>
@@ -1192,7 +1178,6 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
             </div>
           </div>
 
-          {/* Budget */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Budget estimé (XOF)</label>
             <input
@@ -1205,7 +1190,6 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-end gap-3 p-6 border-t sticky bottom-0 bg-white rounded-b-2xl">
           <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">
             Annuler
@@ -1262,7 +1246,7 @@ function MissionDetailModal({ mission, role, onClose }: {
         <div className="p-6 space-y-6">
           {/* Info employé */}
           <div className="bg-gray-50 rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">Missionnaire</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Employé</h3>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div><span className="text-gray-500">Nom:</span> <span className="font-medium">{mission.employee_name}</span></div>
               <div><span className="text-gray-500">Matricule:</span> <span className="font-medium">{mission.employee_code || '-'}</span></div>
@@ -1304,7 +1288,7 @@ function MissionDetailModal({ mission, role, onClose }: {
             </div>
           </div>
 
-          {/* Budget */}
+          {/* Budget & Per Diem */}
           <div className="bg-green-50 rounded-xl p-4">
             <h3 className="text-sm font-semibold text-green-700 mb-2 flex items-center gap-2">
               <DollarSign className="w-4 h-4" /> Budget & Per Diem
@@ -1324,14 +1308,14 @@ function MissionDetailModal({ mission, role, onClose }: {
                 {mission.manager_validated_at && (
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span>Manager validé le {formatDate(mission.manager_validated_at)}</span>
+                    <span>Responsable validé le {formatDate(mission.manager_validated_at)}</span>
                     {mission.manager_comments && <span className="text-gray-500">- {mission.manager_comments}</span>}
                   </div>
                 )}
                 {mission.rh_validated_at && (
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span>RH validé le {formatDate(mission.rh_validated_at)}</span>
+                    <span>DRH validé le {formatDate(mission.rh_validated_at)}</span>
                     {mission.rh_comments && <span className="text-gray-500">- {mission.rh_comments}</span>}
                   </div>
                 )}
@@ -1543,7 +1527,6 @@ function ValidateMissionModal({ mission, role, onClose, onSuccess }: {
   const [submitting, setSubmitting] = useState(false);
   const [missionDetail, setMissionDetail] = useState<MissionDetail | null>(null);
 
-  // Charger les détails de la mission
   useEffect(() => {
     apiFetch(`/api/missions/${mission.id}`)
       .then(setMissionDetail)
@@ -1595,7 +1578,6 @@ function ValidateMissionModal({ mission, role, onClose, onSuccess }: {
         </div>
 
         <div className="p-6 space-y-4">
-          {/* Résumé */}
           <div className="bg-gray-50 rounded-xl p-4 text-sm space-y-1">
             <p><span className="text-gray-500">Employé:</span> <span className="font-medium">{mission.employee_name}</span></p>
             <p><span className="text-gray-500">Destination:</span> <span className="font-medium">{mission.destination}</span></p>
@@ -1608,14 +1590,12 @@ function ValidateMissionModal({ mission, role, onClose, onSuccess }: {
             )}
           </div>
 
-          {/* Étape actuelle */}
           <div className={`p-3 rounded-xl text-sm font-medium ${
             isRHStep ? 'bg-yellow-50 text-yellow-800 border border-yellow-200' : 'bg-orange-50 text-orange-800 border border-orange-200'
           }`}>
             {isRHStep ? '📋 Validation RH - Définissez le per diem et l\'avance' : '👤 Validation Manager - Validez le besoin opérationnel'}
           </div>
 
-          {/* Per diem (RH step) */}
           {isRHStep && (
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -1641,7 +1621,6 @@ function ValidateMissionModal({ mission, role, onClose, onSuccess }: {
             </div>
           )}
 
-          {/* Commentaires */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Commentaires</label>
             <textarea
@@ -1653,7 +1632,6 @@ function ValidateMissionModal({ mission, role, onClose, onSuccess }: {
             />
           </div>
 
-          {/* Raison de rejet */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Raison du rejet (si rejeté)</label>
             <textarea

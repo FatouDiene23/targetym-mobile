@@ -399,6 +399,13 @@ export default function OnboardingPage() {
     if (activeTab === 'get_to_know') fetchGTK();
   }, [activeTab, suiviFilter, gtkFilter]);
 
+  // Écouter l'event du header "+Ajouter"
+  useEffect(() => {
+    const handler = () => setShowAssignModal(true);
+    window.addEventListener('onboarding-add', handler);
+    return () => window.removeEventListener('onboarding-add', handler);
+  }, []);
+
   const fetchDashboard = async () => {
     setLoading(true);
     try {

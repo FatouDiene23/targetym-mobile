@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Search, Bell, Plus, X, Loader2, User, UserPlus, Briefcase, GraduationCap, Target, FileText } from 'lucide-react';
 import AddModal from './AddModal';
 
@@ -43,7 +43,6 @@ async function globalSearch(query: string): Promise<SearchResult[]> {
   const results: SearchResult[] = [];
   
   try {
-    // Rechercher dans les employés
     const empRes = await fetch(`${API_URL}/api/employees/?search=${encodeURIComponent(query)}&page_size=5`, {
       headers: getAuthHeaders()
     });
@@ -64,7 +63,6 @@ async function globalSearch(query: string): Promise<SearchResult[]> {
   }
   
   try {
-    // Rechercher dans les candidats
     const candRes = await fetch(`${API_URL}/api/recruitment/applications?page_size=20`, {
       headers: getAuthHeaders()
     });
@@ -88,7 +86,6 @@ async function globalSearch(query: string): Promise<SearchResult[]> {
   }
   
   try {
-    // Rechercher dans les offres d'emploi
     const jobRes = await fetch(`${API_URL}/api/recruitment/jobs?page_size=20`, {
       headers: getAuthHeaders()
     });
@@ -115,11 +112,20 @@ async function globalSearch(query: string): Promise<SearchResult[]> {
 }
 
 // ============================================
+// ROUTES AVEC ACTIONS CONTEXTUELLES
+// ============================================
+
+const CONTEXTUAL_ROUTES: Record<string, string> = {
+  '/dashboard/onboarding': 'onboarding-add',
+};
+
+// ============================================
 // COMPONENT
 // ============================================
 
 export default function Header({ title, subtitle }: HeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -176,6 +182,16 @@ export default function Header({ title, subtitle }: HeaderProps) {
   const handleAddSuccess = () => {
     setShowAddModal(false);
     window.location.reload();
+  };
+
+  // Bouton Ajouter : contextuel selon la route
+  const handleAddClick = () => {
+    const contextualEvent = CONTEXTUAL_ROUTES[pathname];
+    if (contextualEvent) {
+      window.dispatchEvent(new Event(contextualEvent));
+    } else {
+      setShowAddModal(true);
+    }
   };
 
   // Fermer avec Escape
@@ -324,9 +340,9 @@ export default function Header({ title, subtitle }: HeaderProps) {
               )}
             </div>
 
-            {/* Bouton Ajouter */}
+            {/* Bouton Ajouter — contextuel selon la route */}
             <button
-              onClick={() => setShowAddModal(true)}
+              onClick={handleAddClick}
               className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -336,7 +352,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
         </div>
       </header>
 
-      {/* Modal Ajouter (contextuel automatiquement) */}
+      {/* Modal Ajouter (global — sauf routes contextuelles) */}
       {showAddModal && (
         <AddModal 
           onClose={() => setShowAddModal(false)} 

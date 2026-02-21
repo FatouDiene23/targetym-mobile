@@ -80,6 +80,12 @@ const navigation: NavItem[] = [
     roles: ['rh', 'admin', 'dg']
   },
   { 
+    name: 'Onboarding', 
+    href: '/dashboard/onboarding', 
+    icon: UserPlus,
+    roles: ['rh', 'admin', 'dg']
+  },
+  { 
     name: 'Talents & Carrière', 
     href: '/dashboard/talents', 
     icon: Sparkles,

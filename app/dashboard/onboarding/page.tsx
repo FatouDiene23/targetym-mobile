@@ -683,7 +683,7 @@ export default function OnboardingPage() {
                         {ROLE_CONFIG[t.assigned_role]?.label || t.assigned_role}
                       </span>
                       {t.is_required && <span className="text-red-400" title="Obligatoire">*</span>}
-                      {t.requires_document && <FileText size={13} className="text-gray-400" title="Document requis" />}
+                      {t.requires_document && <span className="text-gray-400" title="Document requis"><FileText size={13} /></span>}
                       {isHR && (
                         <button onClick={async (e) => {
                           e.stopPropagation();
@@ -1405,14 +1405,9 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <Header title="Onboarding" subtitle="Gestion de l'intégration des nouveaux collaborateurs" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        {/* Page title */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Onboarding</h1>
-          <p className="text-sm text-gray-500 mt-1">Gestion de l'intégration des nouveaux collaborateurs</p>
-        </div>
 
         {/* Error banner */}
         {error && (

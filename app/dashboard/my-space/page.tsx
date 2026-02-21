@@ -603,7 +603,7 @@ export default function MyProfilePage() {
       
       if (!response.ok) {
         const error = await response.json();
-        alert(error.detail || 'Erreur lors de la génération du certificat');
+        alert(error.detail || 'Erreur lors de la génération de votre attestation de travail');
         return;
       }
       
@@ -1019,15 +1019,15 @@ export default function MyProfilePage() {
           )}
         </div>
 
-        {/* Section Certificat de Travail */}
+        {/* Section Attestation de Travail */}
         {employee.status === 'active' && (
           <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary-600" />
-              Certificat de Travail
+              Attestation de Travail
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              Générez votre certificat de travail attestant de votre emploi actuel dans l&apos;entreprise.
+              Générez votre attestation de travail attestant de votre emploi actuel dans l&apos;entreprise.
               Ce document officiel peut être utilisé pour vos démarches administratives.
             </p>
             <button
@@ -1043,7 +1043,7 @@ export default function MyProfilePage() {
               ) : (
                 <>
                   <Download className="w-4 h-4" />
-                  Télécharger mon certificat
+                  Télécharger mon attestation de travail
                 </>
               )}
             </button>

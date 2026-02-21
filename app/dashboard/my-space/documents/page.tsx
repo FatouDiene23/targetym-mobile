@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import {
   FileText, Download, Eye, Search, Filter, Loader2, Calendar,
   Clock, AlertTriangle, ChevronLeft, ChevronRight, File,
-  FileSpreadsheet, Image, Shield, X
+  FileSpreadsheet, Image, Shield, X, Award, ExternalLink
 } from 'lucide-react';
 
 // ============================================
@@ -100,6 +101,7 @@ function getFileIcon(mimeType: string | null) {
 // ============================================
 
 export default function MyDocumentsPage() {
+  const router = useRouter();
   const [tab, setTab] = useState<'documents' | 'history'>('documents');
   const [documents, setDocuments] = useState<Document[]>([]);
   const [history, setHistory] = useState<DownloadRecord[]>([]);
@@ -179,7 +181,7 @@ export default function MyDocumentsPage() {
   });
 
   // Types présents (pour le filtre)
-  const presentTypes = [...new Set(documents.map(d => d.document_type))];
+  const presentTypes = Array.from(new Set(documents.map(d => d.document_type)));
 
   // Stats
   const totalDocs = documents.length;
@@ -191,6 +193,21 @@ export default function MyDocumentsPage() {
       <Header title="Mes Documents" subtitle="Vos documents RH et administratifs" />
 
       <div className="p-6 max-w-5xl mx-auto">
+        {/* Raccourci : Générer une attestation */}
+        <div
+          onClick={() => router.push('/dashboard/my-space?tab=profile')}
+          className="mb-6 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-sm transition-shadow group"
+        >
+          <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
+            <Award className="w-6 h-6 text-indigo-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-indigo-900">Générer une attestation de travail</h3>
+            <p className="text-xs text-indigo-600 mt-0.5">Créez et téléchargez votre attestation depuis Mon Profil</p>
+          </div>
+          <ExternalLink className="w-5 h-5 text-indigo-400 group-hover:text-indigo-600 transition-colors" />
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Header from '@/components/Header';
 import {
   Users, UserPlus, ClipboardList, Calendar, Plus, Search,
@@ -328,6 +328,102 @@ function EmptyState({ icon: Icon, title, subtitle }: { icon: any; title: string;
       <Icon size={48} className="mx-auto text-gray-300 mb-4" />
       <h3 className="text-lg font-medium text-gray-500">{title}</h3>
       {subtitle && <p className="text-sm text-gray-400 mt-1">{subtitle}</p>}
+    </div>
+  );
+}
+
+// ============================================
+// SEARCHABLE SELECT COMPONENT
+// ============================================
+
+interface SelectOption {
+  value: string;
+  label: string;
+  subtitle?: string;
+}
+
+function SearchableSelect({ 
+  options, value, onChange, placeholder = 'Rechercher...', emptyLabel = 'Aucun résultat', className = ''
+}: { 
+  options: SelectOption[]; value: string; onChange: (val: string) => void; 
+  placeholder?: string; emptyLabel?: string; className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  const filtered = options.filter(o => 
+    o.label.toLowerCase().includes(search.toLowerCase()) ||
+    (o.subtitle && o.subtitle.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const selected = options.find(o => o.value === value);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={ref} className={`relative ${className}`}>
+      <button
+        type="button"
+        onClick={() => { setOpen(!open); setSearch(''); }}
+        className="w-full border rounded-lg px-3 py-2 text-sm text-left flex items-center justify-between hover:border-gray-400 transition-colors"
+      >
+        <span className={selected ? 'text-gray-900' : 'text-gray-400'}>
+          {selected ? selected.label : placeholder}
+        </span>
+        <ChevronDown size={16} className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+          <div className="p-2 border-b">
+            <div className="flex items-center gap-2 bg-gray-50 rounded-md px-2 py-1.5">
+              <Search size={14} className="text-gray-400 flex-shrink-0" />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Rechercher..."
+                className="flex-1 text-sm outline-none bg-transparent"
+                autoFocus
+              />
+              {search && (
+                <button onClick={() => setSearch('')} className="p-0.5 hover:bg-gray-200 rounded">
+                  <X size={12} className="text-gray-400" />
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="max-h-48 overflow-y-auto">
+            {placeholder && (
+              <button
+                onClick={() => { onChange(''); setOpen(false); }}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${!value ? 'bg-blue-50 text-blue-700' : 'text-gray-400'}`}
+              >
+                {placeholder}
+              </button>
+            )}
+            {filtered.length > 0 ? filtered.map(o => (
+              <button
+                key={o.value}
+                onClick={() => { onChange(o.value); setOpen(false); }}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${o.value === value ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+              >
+                <span>{o.label}</span>
+                {o.subtitle && <span className="text-xs text-gray-400 ml-1">— {o.subtitle}</span>}
+              </button>
+            )) : (
+              <div className="px-3 py-4 text-sm text-gray-400 text-center">{emptyLabel}</div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1264,32 +1360,40 @@ export default function OnboardingPage() {
           <div className="p-6 space-y-4">
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">Employé *</label>
-              <select value={empId} onChange={e => setEmpId(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
-                <option value="">Sélectionner un employé</option>
-                {employees.map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name} {e.job_title ? `(${e.job_title})` : ''}</option>)}
-              </select>
+              <SearchableSelect
+                value={empId}
+                onChange={setEmpId}
+                placeholder="Sélectionner un employé"
+                options={employees.map(e => ({ value: String(e.id), label: `${e.first_name} ${e.last_name}`, subtitle: e.job_title || '' }))}
+              />
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">Programme *</label>
-              <select value={progId} onChange={e => setProgId(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
-                <option value="">Sélectionner un programme</option>
-                {programs.filter(p => p.is_active).map(p => <option key={p.id} value={p.id}>{p.name} ({p.task_count} tâches)</option>)}
-              </select>
+              <SearchableSelect
+                value={progId}
+                onChange={setProgId}
+                placeholder="Sélectionner un programme"
+                options={programs.filter(p => p.is_active).map(p => ({ value: String(p.id), label: p.name, subtitle: `${p.task_count} tâches` }))}
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">Manager</label>
-                <select value={managerId} onChange={e => setManagerId(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
-                  <option value="">Auto (depuis fiche)</option>
-                  {employees.map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
-                </select>
+                <SearchableSelect
+                  value={managerId}
+                  onChange={setManagerId}
+                  placeholder="Auto (depuis fiche)"
+                  options={employees.map(e => ({ value: String(e.id), label: `${e.first_name} ${e.last_name}`, subtitle: e.job_title || '' }))}
+                />
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">Buddy / Parrain</label>
-                <select value={buddyId} onChange={e => setBuddyId(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
-                  <option value="">Aucun</option>
-                  {employees.map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
-                </select>
+                <SearchableSelect
+                  value={buddyId}
+                  onChange={setBuddyId}
+                  placeholder="Aucun"
+                  options={employees.map(e => ({ value: String(e.id), label: `${e.first_name} ${e.last_name}`, subtitle: e.job_title || '' }))}
+                />
               </div>
             </div>
             <div>
@@ -1353,17 +1457,21 @@ export default function OnboardingPage() {
           <div className="p-6 space-y-4">
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">Nouvel employé *</label>
-              <select value={newEmpId} onChange={e => setNewEmpId(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
-                <option value="">Sélectionner</option>
-                {employees.map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name} {e.job_title ? `- ${e.job_title}` : ''}</option>)}
-              </select>
+              <SearchableSelect
+                value={newEmpId}
+                onChange={setNewEmpId}
+                placeholder="Sélectionner"
+                options={employees.map(e => ({ value: String(e.id), label: `${e.first_name} ${e.last_name}`, subtitle: e.job_title || '' }))}
+              />
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">Rencontre avec *</label>
-              <select value={meetEmpId} onChange={e => setMeetEmpId(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
-                <option value="">Sélectionner</option>
-                {employees.filter(e => e.id.toString() !== newEmpId).map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name} {e.job_title ? `- ${e.job_title}` : ''}</option>)}
-              </select>
+              <SearchableSelect
+                value={meetEmpId}
+                onChange={setMeetEmpId}
+                placeholder="Sélectionner"
+                options={employees.filter(e => e.id.toString() !== newEmpId).map(e => ({ value: String(e.id), label: `${e.first_name} ${e.last_name}`, subtitle: e.job_title || '' }))}
+              />
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">Onboarding lié</label>

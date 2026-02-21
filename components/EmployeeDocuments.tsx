@@ -373,7 +373,7 @@ export default function EmployeeDocuments({ employeeId, employeeName, readOnly =
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-gray-900 truncate">{doc.title}</p>
                     {doc.is_confidential && <Shield className="w-3 h-3 text-orange-500" />}
-                    {!doc.visible_to_employee && <Eye className="w-3 h-3 text-gray-400" title="Non visible par l'employé" />}
+                    {!doc.visible_to_employee && <Eye className="w-3 h-3 text-gray-400" />}
                     {expired && <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-medium">Expiré</span>}
                   </div>
                   <div className="flex items-center gap-2 text-[11px] text-gray-400">

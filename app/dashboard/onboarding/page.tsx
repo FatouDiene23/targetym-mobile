@@ -387,8 +387,8 @@ export default function OnboardingPage() {
   // Fetch employees & departments
   useEffect(() => {
     if (!canManageAll(role)) return;
-    apiFetch('/api/employees?limit=200').then(res => setEmployees(res.employees || res.items || [])).catch(() => {});
-    apiFetch('/api/departments').then(res => setDepartments(res.departments || res.items || res || [])).catch(() => {});
+    apiFetch('/api/employees/?limit=200').then(res => setEmployees(res.employees || res.items || res || [])).catch(() => {});
+    apiFetch('/api/departments/').then(res => setDepartments(res.departments || res.items || res || [])).catch(() => {});
   }, [role]);
 
   // Fetch data per tab

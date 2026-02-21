@@ -359,6 +359,7 @@ export default function OnboardingPage() {
   const [showProgramModal, setShowProgramModal] = useState(false);
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<ProgramTask | null>(null);
 
   // Suivi (Assignments)
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -652,7 +653,7 @@ export default function OnboardingPage() {
               <div className="flex gap-2">
                 <button onClick={() => { setEditingProgram(p); setShowProgramModal(true); }}
                   className="flex items-center gap-1 px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50"><Edit size={14} /> Modifier</button>
-                <button onClick={() => setShowTaskModal(true)}
+                <button onClick={() => { setEditingTask(null); setShowTaskModal(true); }}
                   className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"><Plus size={14} /> Tâche</button>
               </div>
             )}
@@ -685,13 +686,17 @@ export default function OnboardingPage() {
                       {t.is_required && <span className="text-red-400" title="Obligatoire">*</span>}
                       {t.requires_document && <span className="text-gray-400" title="Document requis"><FileText size={13} /></span>}
                       {isHR && (
-                        <button onClick={async (e) => {
-                          e.stopPropagation();
-                          if (confirm('Supprimer cette tâche ?')) {
-                            await apiFetch(`/api/onboarding/tasks/${t.id}`, { method: 'DELETE' });
-                            fetchProgramDetail(p.id);
-                          }
-                        }} className="text-gray-300 hover:text-red-500"><Trash2 size={14} /></button>
+                        <div className="flex items-center gap-1">
+                          <button onClick={(e) => { e.stopPropagation(); setEditingTask(t); setShowTaskModal(true); }}
+                            className="text-gray-300 hover:text-blue-500"><Edit size={14} /></button>
+                          <button onClick={async (e) => {
+                            e.stopPropagation();
+                            if (confirm('Supprimer cette tâche ?')) {
+                              await apiFetch(`/api/onboarding/tasks/${t.id}`, { method: 'DELETE' });
+                              fetchProgramDetail(p.id);
+                            }
+                          }} className="text-gray-300 hover:text-red-500"><Trash2 size={14} /></button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1097,30 +1102,42 @@ export default function OnboardingPage() {
   };
 
   const TaskModal = () => {
-    const [title, setTitle] = useState('');
-    const [desc, setDesc] = useState('');
-    const [category, setCategory] = useState('administratif');
-    const [assignedRole, setAssignedRole] = useState('hr');
-    const [dueDay, setDueDay] = useState(1);
-    const [isRequired, setIsRequired] = useState(true);
-    const [requiresDoc, setRequiresDoc] = useState(false);
-    const [docType, setDocType] = useState('');
+    const [title, setTitle] = useState(editingTask?.title || '');
+    const [desc, setDesc] = useState(editingTask?.description || '');
+    const [category, setCategory] = useState(editingTask?.category || 'administratif');
+    const [assignedRole, setAssignedRole] = useState(editingTask?.assigned_role || 'hr');
+    const [dueDay, setDueDay] = useState(editingTask?.due_day || 1);
+    const [isRequired, setIsRequired] = useState(editingTask?.is_required ?? true);
+    const [requiresDoc, setRequiresDoc] = useState(editingTask?.requires_document || false);
+    const [docType, setDocType] = useState(editingTask?.document_type || '');
     const [saving, setSaving] = useState(false);
 
     const handleSave = async () => {
       if (!title.trim() || !selectedProgram) return;
       setSaving(true);
       try {
-        await apiFetch('/api/onboarding/tasks', {
-          method: 'POST',
-          body: JSON.stringify({
-            program_id: selectedProgram.id, title, description: desc || null,
-            category, assigned_role: assignedRole, due_day: dueDay,
-            is_required: isRequired, requires_document: requiresDoc,
-            document_type: requiresDoc && docType ? docType : null
-          })
-        });
+        if (editingTask) {
+          await apiFetch(`/api/onboarding/tasks/${editingTask.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+              title, description: desc || null, category, assigned_role: assignedRole,
+              due_day: dueDay, is_required: isRequired, requires_document: requiresDoc,
+              document_type: requiresDoc && docType ? docType : null
+            })
+          });
+        } else {
+          await apiFetch('/api/onboarding/tasks', {
+            method: 'POST',
+            body: JSON.stringify({
+              program_id: selectedProgram.id, title, description: desc || null,
+              category, assigned_role: assignedRole, due_day: dueDay,
+              is_required: isRequired, requires_document: requiresDoc,
+              document_type: requiresDoc && docType ? docType : null
+            })
+          });
+        }
         setShowTaskModal(false);
+        setEditingTask(null);
         fetchProgramDetail(selectedProgram.id);
       } catch (e: any) { setError(e.message); }
       setSaving(false);
@@ -1130,8 +1147,8 @@ export default function OnboardingPage() {
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
           <div className="px-6 py-4 border-b flex items-center justify-between">
-            <h3 className="font-semibold">Ajouter une tâche</h3>
-            <button onClick={() => setShowTaskModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            <h3 className="font-semibold">{editingTask ? 'Modifier la tâche' : 'Ajouter une tâche'}</h3>
+            <button onClick={() => { setShowTaskModal(false); setEditingTask(null); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
           </div>
           <div className="p-6 space-y-4">
             <div>
@@ -1187,9 +1204,9 @@ export default function OnboardingPage() {
             )}
           </div>
           <div className="px-6 py-4 border-t flex justify-end gap-2">
-            <button onClick={() => setShowTaskModal(false)} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Annuler</button>
+            <button onClick={() => { setShowTaskModal(false); setEditingTask(null); }} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Annuler</button>
             <button onClick={handleSave} disabled={saving || !title.trim()} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
-              {saving ? <Loader2 size={16} className="animate-spin" /> : 'Ajouter'}
+              {saving ? <Loader2 size={16} className="animate-spin" /> : editingTask ? 'Modifier' : 'Ajouter'}
             </button>
           </div>
         </div>

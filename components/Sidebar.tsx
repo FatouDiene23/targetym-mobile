@@ -27,7 +27,8 @@ import {
   Lock,
   Briefcase,
   FileText,
-  Plane
+  Plane,
+  Handshake
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -82,7 +83,7 @@ const navigation: NavItem[] = [
   { 
     name: 'Onboarding', 
     href: '/dashboard/onboarding', 
-    icon: UserPlus,
+    icon: Handshake,
     roles: ['rh', 'admin', 'dg']
   },
   { 

@@ -937,7 +937,7 @@ function MyTasksTab({
 
       // Charger les tâches à venir séparément (ne bloque pas les stats)
       try {
-        const allTasksData = await getMyTasks({ page_size: 200 });
+        const allTasksData = await getMyTasks({ page_size: 100 });
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const allTasks = allTasksData.items || allTasksData || [];
@@ -1316,7 +1316,7 @@ function TeamTasksTab({
   async function loadTeamTasks() {
     setIsLoading(true);
     try {
-      const data = await getTeamTasks({ page_size: 200 });
+      const data = await getTeamTasks({ page_size: 100 });
       setTeamTasks(data.items || []);
     } catch (err) {
       console.error('Error loading team tasks:', err);

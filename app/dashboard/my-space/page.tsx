@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   User, Edit2, Save, X, AlertCircle,
-  Briefcase, MapPin, Phone, Mail, Building, CalendarDays,
-  FileText, Download, Loader2, PenTool, Upload, Trash2, CheckCircle
+  Briefcase, MapPin, Phone, Mail, Building, CalendarDays, Building2,
+  FileText, Download, Loader2, PenTool, Upload, Trash2, CheckCircle,
+  Network, ZoomIn, ZoomOut, Users, ChevronUp, ChevronDown
 } from 'lucide-react';
 
 // ============================================
@@ -48,6 +49,207 @@ interface SignatureData {
   employee_name: string;
   has_signature: boolean;
   signature_url: string | null;
+}
+
+// ============================================
+// ORGANIGRAMME PERSONNEL - Types & Composants
+// ============================================
+interface OrgNode {
+  id: number;
+  first_name: string;
+  last_name: string;
+  job_title?: string;
+  department_name?: string;
+  is_manager?: boolean;
+  children: OrgNode[];
+}
+
+const myOrgCSS = `
+.my-org-tree {
+  display: flex;
+  justify-content: center;
+  padding: 20px 20px 40px;
+}
+.my-org-tree ul {
+  display: flex;
+  justify-content: center;
+  padding-top: 24px;
+  position: relative;
+  list-style: none;
+  margin: 0;
+  gap: 2px;
+}
+.my-org-tree ul::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 24px;
+  background: #94a3b8;
+}
+.my-org-tree li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  padding: 24px 4px 0;
+}
+.my-org-tree li::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 24px;
+  background: #94a3b8;
+}
+.my-org-tree li::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 2px;
+  background: #94a3b8;
+  left: 0;
+}
+.my-org-tree li:first-child::after {
+  left: 50%;
+  width: 50%;
+}
+.my-org-tree li:last-child::after {
+  right: 50%;
+  left: auto;
+  width: 50%;
+}
+.my-org-tree li:only-child::after {
+  display: none;
+}
+.my-org-tree > ul > li::before,
+.my-org-tree > ul > li::after,
+.my-org-tree > ul::before {
+  display: none;
+}
+`;
+
+function MyOrgCard({ node, isMe, isManager, level, hasChildren, isExpanded, onToggle }: {
+  node: OrgNode; isMe?: boolean; isManager?: boolean; level?: string; hasChildren?: boolean;
+  isExpanded?: boolean; onToggle?: () => void;
+}) {
+  const initials = `${node.first_name?.[0] || ''}${node.last_name?.[0] || ''}`.toUpperCase();
+  const bgColor = isMe
+    ? 'bg-primary-50 border-primary-500 ring-2 ring-primary-300'
+    : isManager
+    ? 'bg-orange-50 border-orange-400'
+    : 'bg-blue-50 border-blue-300';
+  const avatarColor = isMe ? 'bg-primary-600' : isManager ? 'bg-orange-500' : 'bg-blue-500';
+  const textColor = isMe ? 'text-primary-800' : isManager ? 'text-orange-800' : 'text-blue-800';
+  const badgeColor = isMe ? 'bg-primary-100 text-primary-700' : isManager ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700';
+
+  return (
+    <div className="relative">
+      <div className={`relative px-4 py-3 rounded-xl border-2 ${bgColor} shadow-sm min-w-[140px] max-w-[200px] transition-all`}>
+        <div className="flex flex-col items-center text-center">
+          {level && (
+            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[9px] font-bold bg-orange-500 text-white shadow-sm">
+              {level}
+            </span>
+          )}
+          <div className={`w-11 h-11 ${avatarColor} rounded-full flex items-center justify-center text-white font-bold text-sm mb-2 shadow-sm ${level ? 'mt-1' : ''}`}>
+            {initials}
+          </div>
+          <p className={`font-semibold text-xs leading-tight ${textColor}`}>
+            {node.first_name} {node.last_name}
+          </p>
+          <p className="text-[10px] text-gray-500 mt-0.5 leading-tight truncate max-w-[170px]">
+            {node.job_title || '-'}
+          </p>
+          {node.department_name && (
+            <span className={`mt-1 px-2 py-0.5 rounded-full text-[9px] font-medium ${badgeColor}`}>
+              {node.department_name}
+            </span>
+          )}
+          {isMe && (
+            <span className="mt-1 px-2 py-0.5 rounded-full text-[9px] font-medium bg-primary-500 text-white">
+              Vous
+            </span>
+          )}
+          {hasChildren && node.children.length > 0 && (
+            <span className="mt-1 px-2 py-0.5 rounded-full text-[9px] font-medium bg-gray-200 text-gray-600">
+              {node.children.length} N-1{node.children.length > 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+      </div>
+      {hasChildren && node.children.length > 0 && onToggle && (
+        <button
+          onClick={onToggle}
+          className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-10 w-6 h-6 rounded-full border-2 border-gray-300 bg-white shadow-sm flex items-center justify-center hover:bg-gray-100 transition-all"
+        >
+          <span className="text-gray-500 text-xs font-bold leading-none">{isExpanded ? '−' : '+'}</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function MyOrgTreeNode({ node, myId, expanded, onToggle, depthFromMe }: {
+  node: OrgNode; myId: number; expanded: Set<number>; onToggle: (id: number) => void;
+  depthFromMe?: number;
+}) {
+  const isMe = node.id === myId;
+  const isExp = expanded.has(node.id);
+  const hasKids = node.children.length > 0;
+  
+  // Calculer le label de niveau
+  let level: string | undefined;
+  if (depthFromMe !== undefined && depthFromMe < 0) {
+    const n = Math.abs(depthFromMe);
+    level = `N+${n}`;
+  }
+
+  // Calculer la profondeur pour les enfants
+  let childDepth: number | undefined;
+  if (isMe) {
+    childDepth = 1; // mes enfants sont N-1
+  } else if (depthFromMe !== undefined) {
+    if (depthFromMe < 0) {
+      // On descend vers moi : on se rapproche
+      childDepth = depthFromMe + 1;
+    } else {
+      childDepth = depthFromMe + 1;
+    }
+  }
+
+  return (
+    <li>
+      <MyOrgCard
+        node={node}
+        isMe={isMe}
+        isManager={!isMe && (depthFromMe !== undefined && depthFromMe < 0)}
+        level={level}
+        hasChildren={hasKids}
+        isExpanded={isExp}
+        onToggle={() => onToggle(node.id)}
+      />
+      {hasKids && isExp && (
+        <ul>
+          {node.children.map(child => (
+            <MyOrgTreeNode
+              key={child.id}
+              node={child}
+              myId={myId}
+              expanded={expanded}
+              onToggle={onToggle}
+              depthFromMe={childDepth}
+            />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
 }
 
 // ============================================
@@ -158,6 +360,15 @@ export default function MyProfilePage() {
   
   // Certificat de travail
   const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
+
+  // Tab
+  const [activeTab, setActiveTab] = useState<'profile' | 'orgchart'>('profile');
+
+  // Organigramme personnel
+  const [orgTree, setOrgTree] = useState<OrgNode | null>(null);
+  const [orgLoading, setOrgLoading] = useState(false);
+  const [orgExpanded, setOrgExpanded] = useState<Set<number>>(new Set());
+  const [orgZoom, setOrgZoom] = useState(90);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -275,6 +486,109 @@ export default function MyProfilePage() {
     }
   }, [signatureMessage]);
 
+  // ============================================
+  // ORGANIGRAMME PERSONNEL
+  // ============================================
+  const fetchMyOrgChart = useCallback(async () => {
+    if (!employee) return;
+    setOrgLoading(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${API_URL}/api/employees/?page=1&page_size=500`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) throw new Error('Erreur');
+      const data = await res.json();
+      const allEmps: Employee[] = data.items || [];
+
+      // Filtrer les inactifs et admins
+      const activeEmps = allEmps.filter(e => {
+        const s = e.status?.toLowerCase();
+        if (s === 'terminated') return false;
+        const name = `${e.first_name} ${e.last_name}`.toLowerCase();
+        const job = (e.job_title || '').toLowerCase();
+        if (name.includes('admin') || job === 'administrateur') return false;
+        return true;
+      });
+
+      const myId = employee.id;
+      const me = activeEmps.find(e => e.id === myId);
+      if (!me) { setOrgLoading(false); return; }
+
+      // Construire le noeud "Moi" avec mes N-1 et leurs N-1
+      const buildNode = (emp: Employee, depth: number): OrgNode => {
+        const children = depth < 2
+          ? activeEmps
+              .filter(e => e.manager_id === emp.id)
+              .sort((a, b) => (a.last_name || '').localeCompare(b.last_name || ''))
+              .map(e => buildNode(e, depth + 1))
+          : [];
+        return {
+          id: emp.id,
+          first_name: emp.first_name,
+          last_name: emp.last_name,
+          job_title: emp.job_title,
+          department_name: emp.department_name,
+          is_manager: emp.is_manager,
+          children,
+        };
+      };
+
+      const myNode = buildNode(me, 0);
+
+      // Construire la chaîne N+1 → N+2 → N+3 ... vers le haut
+      let tree: OrgNode = myNode;
+      let currentEmp = me;
+      
+      while (currentEmp.manager_id) {
+        const manager = activeEmps.find(e => e.id === currentEmp.manager_id);
+        if (!manager || manager.id === currentEmp.id) break; // sécurité anti-boucle
+        tree = {
+          id: manager.id,
+          first_name: manager.first_name,
+          last_name: manager.last_name,
+          job_title: manager.job_title,
+          department_name: manager.department_name,
+          is_manager: manager.is_manager,
+          children: [tree],
+        };
+        currentEmp = manager;
+      }
+
+      setOrgTree(tree);
+
+      // Auto-expand tout
+      const ids = new Set<number>();
+      const collect = (n: OrgNode) => { ids.add(n.id); n.children.forEach(collect); };
+      collect(tree);
+      setOrgExpanded(ids);
+    } catch (err) {
+      console.error('Error loading org chart:', err);
+    } finally {
+      setOrgLoading(false);
+    }
+  }, [employee]);
+
+  useEffect(() => {
+    if (activeTab === 'orgchart' && !orgTree && !orgLoading && employee) {
+      fetchMyOrgChart();
+    }
+  }, [activeTab, orgTree, orgLoading, employee, fetchMyOrgChart]);
+
+  const toggleOrgNode = (id: number) => {
+    setOrgExpanded(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const countNodes = (node: OrgNode): number => {
+    let c = 1;
+    node.children.forEach(ch => { c += countNodes(ch); });
+    return c;
+  };
+
   // Fonction pour générer le certificat de travail
   const generateWorkCertificate = async () => {
     setIsGeneratingCertificate(true);
@@ -339,12 +653,123 @@ export default function MyProfilePage() {
 
   return (
     <div className="py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
+      <style dangerouslySetInnerHTML={{ __html: myOrgCSS }} />
+      <div className={activeTab === 'orgchart' ? 'max-w-7xl mx-auto' : 'max-w-4xl mx-auto'}>
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Mon Profil</h1>
-          <p className="text-gray-500 mt-1">Consultez et modifiez vos informations personnelles</p>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Mon Espace</h1>
+          <p className="text-gray-500 mt-1">Votre profil et votre position dans l&apos;organisation</p>
         </div>
+
+        {/* Tabs */}
+        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit mb-6">
+          <button onClick={() => setActiveTab('profile')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${activeTab === 'profile' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+            <User className="w-4 h-4" />Mon Profil
+          </button>
+          <button onClick={() => setActiveTab('orgchart')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${activeTab === 'orgchart' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+            <Network className="w-4 h-4" />Mon Organigramme
+          </button>
+        </div>
+
+        {/* ============================================ */}
+        {/* Tab: Organigramme Personnel */}
+        {/* ============================================ */}
+        {activeTab === 'orgchart' && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <Network className="w-5 h-5 text-primary-600" />
+                    Ma position dans l&apos;organisation
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Toute votre chaîne hiérarchique, vos N-1 et leurs subordonnés
+                  </p>
+                </div>
+                <div className="flex gap-2 items-center">
+                  <div className="flex items-center gap-1 bg-gray-100 rounded-lg px-2 py-1">
+                    <button onClick={() => setOrgZoom(z => Math.max(50, z - 10))} className="p-1 hover:bg-gray-200 rounded"><ZoomOut className="w-4 h-4 text-gray-600" /></button>
+                    <span className="text-xs text-gray-600 w-10 text-center">{orgZoom}%</span>
+                    <button onClick={() => setOrgZoom(z => Math.min(150, z + 10))} className="p-1 hover:bg-gray-200 rounded"><ZoomIn className="w-4 h-4 text-gray-600" /></button>
+                  </div>
+                  <button onClick={() => { setOrgTree(null); fetchMyOrgChart(); }} className="flex items-center px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
+                    <Loader2 className={`w-4 h-4 mr-1.5 ${orgLoading ? 'animate-spin' : ''}`} />Actualiser
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto" style={{ minHeight: 300 }}>
+              {orgLoading ? (
+                <div className="flex items-center justify-center py-20">
+                  <div className="text-center">
+                    <Loader2 className="w-10 h-10 animate-spin text-primary-500 mx-auto mb-3" />
+                    <p className="text-gray-500">Chargement de votre organigramme...</p>
+                  </div>
+                </div>
+              ) : orgTree ? (() => {
+                // Calculer profondeur de la racine par rapport à moi
+                let depth = 0;
+                const findDepth = (n: OrgNode, target: number, d: number): number => {
+                  if (n.id === target) return d;
+                  for (const c of n.children) {
+                    const r = findDepth(c, target, d + 1);
+                    if (r >= 0) return r;
+                  }
+                  return -1;
+                };
+                depth = findDepth(orgTree, employee.id, 0);
+                return (
+                <div style={{ transform: `scale(${orgZoom / 100})`, transformOrigin: 'top center', transition: 'transform 0.2s' }}>
+                  <div className="my-org-tree">
+                    <ul>
+                      <MyOrgTreeNode
+                        node={orgTree}
+                        myId={employee.id}
+                        expanded={orgExpanded}
+                        onToggle={toggleOrgNode}
+                        depthFromMe={-depth}
+                      />
+                    </ul>
+                  </div>
+                </div>
+                );
+              })() : (
+                <div className="flex items-center justify-center py-20 text-center">
+                  <div>
+                    <Network className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 mb-2">Aucune donnée disponible</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Légende */}
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+              <p className="text-xs font-medium text-gray-500 mb-2">Légende</p>
+              <div className="flex flex-wrap gap-4">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-primary-600" />
+                  <span className="text-xs text-gray-600">Vous</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-orange-500" />
+                  <span className="text-xs text-gray-600">Vos supérieurs (N+1, N+2, N+3...)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-blue-500" />
+                  <span className="text-xs text-gray-600">Vos subordonnés (N-1 et N-2)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================ */}
+        {/* Tab: Mon Profil */}
+        {/* ============================================ */}
+        {activeTab === 'profile' && (<>
 
         {/* Profile Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -632,6 +1057,7 @@ export default function MyProfilePage() {
             Pour toute autre modification, veuillez contacter le service RH.
           </p>
         </div>
+        </>)}
       </div>
     </div>
   );

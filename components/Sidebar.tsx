@@ -28,7 +28,7 @@ import {
   Briefcase,
   FileText,
   Plane,
-  Handshake
+  Handshake,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -178,6 +178,12 @@ const mySpaceNavigation: NavItem[] = [
     name: 'Offres Internes',
     href: '/dashboard/my-space/internal-jobs',
     icon: Briefcase,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg']
+  },
+  {
+    name: 'Mes Documents',
+    href: '/dashboard/my-space/documents',
+    icon: FileText,
     roles: ['employee', 'manager', 'rh', 'admin', 'dg']
   },
 ];

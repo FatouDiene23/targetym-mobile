@@ -272,6 +272,70 @@ function TaskCard({
   );
 }
 
+// Composant groupe repliable pour tâches à venir
+function CollapsibleGroup({
+  label,
+  color,
+  tasks,
+  defaultOpen = false,
+  renderTask,
+}: {
+  label: string;
+  color: string;
+  tasks: Task[];
+  defaultOpen?: boolean;
+  renderTask: (task: Task) => React.ReactNode;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [showAll, setShowAll] = useState(false);
+  const INITIAL_SHOW = 10;
+  const hasMore = tasks.length > INITIAL_SHOW;
+  const visibleTasks = showAll ? tasks : tasks.slice(0, INITIAL_SHOW);
+
+  return (
+    <div className="border border-gray-100 rounded-lg overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+      >
+        <h3 className={`text-sm font-semibold flex items-center gap-2 ${color}`}>
+          <Calendar className="w-4 h-4" />
+          {label} ({tasks.length})
+        </h3>
+        {isOpen ? (
+          <ChevronUp className="w-4 h-4 text-gray-400" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-gray-400" />
+        )}
+      </button>
+      
+      {isOpen && (
+        <div className="px-4 pb-4 space-y-3">
+          {visibleTasks.map((task) => renderTask(task))}
+          
+          {hasMore && !showAll && (
+            <button
+              onClick={() => setShowAll(true)}
+              className="w-full py-2 text-sm text-primary-600 hover:text-primary-700 font-medium bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
+            >
+              Voir {tasks.length - INITIAL_SHOW} tâche{tasks.length - INITIAL_SHOW > 1 ? 's' : ''} de plus
+            </button>
+          )}
+          
+          {hasMore && showAll && (
+            <button
+              onClick={() => setShowAll(false)}
+              className="w-full py-2 text-sm text-gray-500 hover:text-gray-700 font-medium"
+            >
+              Réduire
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Labels pour les niveaux OKR
 const OKR_LEVEL_LABELS: Record<string, string> = {
   enterprise: '🏢 Entreprise',
@@ -1041,14 +1105,10 @@ function MyTasksTab({
   const totalPages = Math.ceil(filteredTasks.length / pageSize);
   const paginatedTasks = filteredTasks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  // Pagination tâches à venir
-  const upcomingTotalPages = Math.ceil(upcomingTasks.length / pageSize);
-  const paginatedUpcoming = upcomingTasks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
   const incompleteTasks = tasks.filter(t => t.status !== 'completed' && t.status !== 'cancelled');
 
-  // Grouper les tâches à venir paginées
-  const upcomingGroups = groupByPeriod(paginatedUpcoming);
+  // Grouper toutes les tâches à venir par période
+  const upcomingGroups = groupByPeriod(upcomingTasks);
 
   if (isLoading) {
     return (
@@ -1249,33 +1309,26 @@ function MyTasksTab({
                 <p className="text-gray-500">Aucune tâche à venir</p>
               </div>
             ) : (
-              <div className="p-4 space-y-6">
-                {upcomingGroups.map((group) => (
-                  <div key={group.label}>
-                    <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${group.color}`}>
-                      <Calendar className="w-4 h-4" />
-                      {group.label} ({group.tasks.length})
-                    </h3>
-                    <div className="space-y-3">
-                      {group.tasks.map((task) => (
-                        <TaskCard
-                          key={task.id}
-                          task={task}
-                          onComplete={handleCompleteTask}
-                          onStart={handleStartTask}
-                          onDelete={handleDeleteTask}
-                          isLoading={actionLoading}
-                        />
-                      ))}
-                    </div>
-                  </div>
+              <div className="p-4 space-y-3">
+                {upcomingGroups.map((group, index) => (
+                  <CollapsibleGroup
+                    key={group.label}
+                    label={group.label}
+                    color={group.color}
+                    tasks={group.tasks}
+                    defaultOpen={index === 0}
+                    renderTask={(task) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        onComplete={handleCompleteTask}
+                        onStart={handleStartTask}
+                        onDelete={handleDeleteTask}
+                        isLoading={actionLoading}
+                      />
+                    )}
+                  />
                 ))}
-                
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={upcomingTotalPages}
-                  onPageChange={setCurrentPage}
-                />
               </div>
             )}
           </>
@@ -1354,8 +1407,8 @@ function TeamTasksTab({
   const totalPages = Math.ceil(filteredTasks.length / pageSize);
   const paginatedTasks = filteredTasks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  // Grouper à venir par période
-  const upcomingGroups = subTab === 'upcoming' ? groupByPeriod(paginatedTasks) : [];
+  // Grouper à venir par période (sans pagination, groupes repliables)
+  const upcomingGroups = subTab === 'upcoming' ? groupByPeriod(filteredTasks) : [];
 
   // Stats
   const tasksByStatus = {
@@ -1467,7 +1520,7 @@ function TeamTasksTab({
           </div>
         </div>
 
-        {paginatedTasks.length === 0 ? (
+        {(subTab === 'today' ? paginatedTasks.length === 0 : filteredTasks.length === 0) ? (
           <div className="p-8 text-center">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               {subTab === 'today' ? (
@@ -1481,31 +1534,24 @@ function TeamTasksTab({
             </p>
           </div>
         ) : subTab === 'upcoming' ? (
-          <div className="p-4 space-y-6">
-            {upcomingGroups.map((group) => (
-              <div key={group.label}>
-                <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${group.color}`}>
-                  <Calendar className="w-4 h-4" />
-                  {group.label} ({group.tasks.length})
-                </h3>
-                <div className="space-y-3">
-                  {group.tasks.map((task) => (
-                    <TaskCard
-                      key={task.id}
-                      task={task}
-                      isLoading={false}
-                      showAssignee={true}
-                    />
-                  ))}
-                </div>
-              </div>
+          <div className="p-4 space-y-3">
+            {upcomingGroups.map((group, index) => (
+              <CollapsibleGroup
+                key={group.label}
+                label={group.label}
+                color={group.color}
+                tasks={group.tasks}
+                defaultOpen={index === 0}
+                renderTask={(task) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    isLoading={false}
+                    showAssignee={true}
+                  />
+                )}
+              />
             ))}
-            
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
           </div>
         ) : (
           <div className="p-4 space-y-3">

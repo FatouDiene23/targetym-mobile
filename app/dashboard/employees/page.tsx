@@ -51,6 +51,7 @@ const orgChartCSS = `
   position: relative;
   list-style: none;
   margin: 0;
+  gap: 2px;
 }
 .org-tree ul::before {
   content: '';
@@ -67,7 +68,7 @@ const orgChartCSS = `
   flex-direction: column;
   align-items: center;
   position: relative;
-  padding: 24px 6px 0;
+  padding: 24px 4px 0;
 }
 .org-tree li::before {
   content: '';
@@ -134,11 +135,12 @@ function OrgCard({ node, level, isExpanded, hasChildren, onToggle, onSelect }: {
   const s = getLS(level);
   const initials = `${node.first_name?.[0] || ''}${node.last_name?.[0] || ''}`.toUpperCase();
   const isVirtual = node.id === 0;
+  const childCount = node.children.length;
 
   return (
     <div className="relative group">
       <div
-        className={`relative px-4 py-3 rounded-xl border-2 ${s.border} ${s.bg} shadow-sm hover:shadow-lg transition-all cursor-pointer min-w-[140px] max-w-[200px]`}
+        className={`relative px-4 py-3 rounded-xl border-2 ${s.border} ${s.bg} shadow-sm hover:shadow-lg transition-all cursor-pointer min-w-[140px] max-w-[200px] ${node.is_manager ? 'ring-1 ring-offset-1 ring-opacity-30 ring-current' : ''}`}
         onClick={onSelect}
       >
         <div className="flex flex-col items-center text-center">
@@ -160,6 +162,11 @@ function OrgCard({ node, level, isExpanded, hasChildren, onToggle, onSelect }: {
           {node.department_name && (
             <span className={`mt-1 px-2 py-0.5 rounded-full text-[9px] font-medium ${s.badge}`}>
               {node.department_name}
+            </span>
+          )}
+          {hasChildren && (
+            <span className="mt-1 px-2 py-0.5 rounded-full text-[9px] font-medium bg-gray-200 text-gray-600">
+              {childCount} N-1{childCount > 1 ? 's' : ''}
             </span>
           )}
         </div>
@@ -341,13 +348,21 @@ export default function EmployeesPage() {
   const [orgLoading, setOrgLoading] = useState(false);
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
   const [orgSearch, setOrgSearch] = useState('');
-  const [orgZoom, setOrgZoom] = useState(100);
+  const [orgZoom, setOrgZoom] = useState(70);
 
   // ============================================
   // ORGANIGRAMME LOGIC
   // ============================================
   const buildOrgTree = useCallback((emps: Employee[]): OrgNode | null => {
-    const activeEmps = emps.filter(e => e.status?.toLowerCase() !== 'terminated');
+    // Filtrer les inactifs et les comptes admin/test
+    const activeEmps = emps.filter(e => {
+      const s = e.status?.toLowerCase();
+      if (s === 'terminated') return false;
+      const name = `${e.first_name} ${e.last_name}`.toLowerCase();
+      const job = (e.position || e.job_title || '').toLowerCase();
+      if (name.includes('admin') || job === 'administrateur') return false;
+      return true;
+    });
     const map = new Map<number, OrgNode>();
     activeEmps.forEach(emp => {
       map.set(emp.id, { id: emp.id, first_name: emp.first_name, last_name: emp.last_name, job_title: emp.position || emp.job_title, department_name: emp.department_name, is_manager: emp.is_manager, status: emp.status, children: [] });
@@ -359,12 +374,31 @@ export default function EmployeesPage() {
       if (emp.manager_id && map.has(emp.manager_id)) { map.get(emp.manager_id)!.children.push(node); }
       else { roots.push(node); }
     });
+    // Tri: managers avec enfants en premier, puis managers sans enfants, puis autres
     const sortC = (node: OrgNode) => {
-      node.children.sort((a, b) => { if (a.is_manager && !b.is_manager) return -1; if (!a.is_manager && b.is_manager) return 1; return a.last_name.localeCompare(b.last_name); });
+      node.children.sort((a, b) => {
+        const aHasKids = a.children.length > 0 ? 1 : 0;
+        const bHasKids = b.children.length > 0 ? 1 : 0;
+        if (aHasKids !== bHasKids) return bHasKids - aHasKids;
+        if (a.is_manager && !b.is_manager) return -1;
+        if (!a.is_manager && b.is_manager) return 1;
+        return a.last_name.localeCompare(b.last_name);
+      });
       node.children.forEach(sortC);
     };
     if (roots.length === 1) { sortC(roots[0]); return roots[0]; }
-    if (roots.length > 1) { roots.sort((a, b) => a.last_name.localeCompare(b.last_name)); roots.forEach(sortC); return { id: 0, first_name: 'Direction', last_name: 'Générale', job_title: 'Organisation', children: roots }; }
+    if (roots.length > 1) {
+      roots.sort((a, b) => {
+        const aHasKids = a.children.length > 0 ? 1 : 0;
+        const bHasKids = b.children.length > 0 ? 1 : 0;
+        if (aHasKids !== bHasKids) return bHasKids - aHasKids;
+        if (a.is_manager && !b.is_manager) return -1;
+        if (!a.is_manager && b.is_manager) return 1;
+        return a.last_name.localeCompare(b.last_name);
+      });
+      roots.forEach(sortC);
+      return { id: 0, first_name: 'Direction', last_name: 'Générale', job_title: 'Organisation', children: roots };
+    }
     return null;
   }, []);
 
@@ -377,7 +411,13 @@ export default function EmployeesPage() {
       if (tree) {
         const ids = new Set<number>();
         ids.add(tree.id);
-        tree.children.forEach(c => { ids.add(c.id); c.children.forEach(gc => ids.add(gc.id)); });
+        // Expand first level + any node that has children (managers with reports)
+        tree.children.forEach(c => {
+          ids.add(c.id);
+          if (c.children.length > 0) {
+            c.children.forEach(gc => ids.add(gc.id));
+          }
+        });
         setExpandedNodes(ids);
       }
     } catch (err) { console.error('Error building org chart:', err); }

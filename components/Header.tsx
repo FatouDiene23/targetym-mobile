@@ -171,6 +171,14 @@ const CONTEXTUAL_ROUTES: Record<string, string> = {
   '/dashboard/onboarding': 'onboarding-add',
 };
 
+// Routes où le bouton "+Ajouter" est masqué
+const HIDDEN_ADD_ROUTES = [
+  '/dashboard/notifications',
+  '/dashboard/my-space',
+  '/dashboard/analytics',
+  '/dashboard/settings',
+];
+
 // ============================================
 // COMPONENT
 // ============================================
@@ -189,6 +197,20 @@ export default function Header({ title, subtitle }: HeaderProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loadingNotifs, setLoadingNotifs] = useState(false);
+
+  // Rôle utilisateur
+  const [userRole, setUserRole] = useState('');
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setUserRole((parsed.role || '').toLowerCase());
+      }
+    } catch {}
+  }, []);
+
+  const canAdd = ['admin', 'rh', 'manager', 'dg'].includes(userRole);
 
   // Charger le count non lu au mount + polling toutes les 30s
   useEffect(() => {
@@ -555,14 +577,16 @@ export default function Header({ title, subtitle }: HeaderProps) {
               )}
             </div>
 
-            {/* Bouton Ajouter — contextuel selon la route */}
-            <button
-              onClick={handleAddClick}
-              className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Ajouter
-            </button>
+            {/* Bouton Ajouter — masqué pour employés simples et certaines routes */}
+            {canAdd && !HIDDEN_ADD_ROUTES.some(r => pathname.startsWith(r)) && (
+              <button
+                onClick={handleAddClick}
+                className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Ajouter
+              </button>
+            )}
           </div>
         </div>
       </header>

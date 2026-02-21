@@ -46,6 +46,7 @@ const DOC_TYPES = [
   { value: 'carte_vitale', label: 'Assurance santé', icon: '🏥' },
   { value: 'permis_conduire', label: 'Permis de conduire', icon: '🚗' },
   { value: 'photo_identite', label: 'Photo d\'identité', icon: '📸' },
+  { value: 'certificat_residence', label: 'Certificat de résidence', icon: '🏠' },
   { value: 'autre', label: 'Autre', icon: '📁' },
 ];
 

@@ -6,7 +6,7 @@ import Header from '@/components/Header';
 import {
   FileText, Download, Eye, Search, Filter, Loader2, Calendar,
   Clock, AlertTriangle, ChevronLeft, ChevronRight, File,
-  FileSpreadsheet, Image, Shield, X, Award, ExternalLink
+  FileSpreadsheet, Image, Shield, X, Award, ExternalLink, Upload, Plus
 } from 'lucide-react';
 
 // ============================================
@@ -56,6 +56,7 @@ const DOC_TYPE_MAP: Record<string, { label: string; icon: string; color: string;
   carte_vitale: { label: 'Assurance santé', icon: '🏥', color: 'text-red-600', bg: 'bg-red-50' },
   permis_conduire: { label: 'Permis de conduire', icon: '🚗', color: 'text-cyan-600', bg: 'bg-cyan-50' },
   photo_identite: { label: 'Photo d\'identité', icon: '📸', color: 'text-pink-600', bg: 'bg-pink-50' },
+  certificat_residence: { label: 'Certificat de résidence', icon: '🏠', color: 'text-emerald-600', bg: 'bg-emerald-50' },
   autre: { label: 'Autre', icon: '📁', color: 'text-gray-600', bg: 'bg-gray-50' },
 };
 
@@ -111,10 +112,80 @@ export default function MyDocumentsPage() {
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [downloading, setDownloading] = useState<number | null>(null);
 
+  // Upload state
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadType, setUploadType] = useState('cni');
+  const [uploadTitle, setUploadTitle] = useState('');
+  const [uploadExpiry, setUploadExpiry] = useState('');
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState('');
+  const [employeeId, setEmployeeId] = useState<number | null>(null);
+
+  const EMPLOYEE_TYPES = [
+    { value: 'cni', label: 'Carte nationale d\'identité', icon: '🪪' },
+    { value: 'passeport', label: 'Passeport', icon: '🛂' },
+    { value: 'diplome', label: 'Diplôme', icon: '🎓' },
+    { value: 'cv', label: 'CV', icon: '📄' },
+    { value: 'photo_identite', label: 'Photo d\'identité', icon: '📸' },
+    { value: 'rib', label: 'RIB', icon: '🏦' },
+    { value: 'certificat_residence', label: 'Certificat de résidence', icon: '🏠' },
+  ];
+
+  // Get employee ID from user storage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setEmployeeId(parsed.employeeId || parsed.employee_id || null);
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     fetchDocuments();
     fetchHistory();
   }, []);
+
+  async function handleUpload() {
+    if (!uploadFile || !uploadTitle || !employeeId) return;
+    setUploading(true);
+    setUploadError('');
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('employee_id', String(employeeId));
+      formData.append('document_type', uploadType);
+      formData.append('title', uploadTitle);
+      if (uploadExpiry) formData.append('expiry_date', uploadExpiry);
+      formData.append('visible_to_employee', 'true');
+      formData.append('is_confidential', 'false');
+
+      const res = await fetch(`${API_URL}/api/documents/upload`, {
+        method: 'POST',
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Erreur upload');
+      }
+
+      setShowUpload(false);
+      setUploadFile(null);
+      setUploadTitle('');
+      setUploadExpiry('');
+      setUploadType('cni');
+      fetchDocuments();
+    } catch (e: any) {
+      setUploadError(e.message);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function fetchDocuments() {
     setLoading(true);
@@ -243,27 +314,135 @@ export default function MyDocumentsPage() {
           )}
         </div>
 
-        {/* Tabs */}
-        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit mb-6">
+        {/* Tabs + Upload button */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
+            <button
+              onClick={() => setTab('documents')}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${
+                tab === 'documents' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              Mes Documents
+            </button>
+            <button
+              onClick={() => setTab('history')}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${
+                tab === 'history' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+              Historique
+            </button>
+          </div>
           <button
-            onClick={() => setTab('documents')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${
-              tab === 'documents' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-            }`}
+            onClick={() => setShowUpload(!showUpload)}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            <FileText className="w-4 h-4" />
-            Mes Documents
-          </button>
-          <button
-            onClick={() => setTab('history')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${
-              tab === 'history' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Clock className="w-4 h-4" />
-            Historique
+            <Upload className="w-4 h-4" />
+            Ajouter un document
           </button>
         </div>
+
+        {/* Upload Form */}
+        {showUpload && (
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-blue-900 flex items-center gap-2">
+                <Upload className="w-4 h-4" /> Ajouter un document personnel
+              </h3>
+              <button onClick={() => setShowUpload(false)}>
+                <X className="w-4 h-4 text-blue-400 hover:text-blue-600" />
+              </button>
+            </div>
+
+            {uploadError && <p className="text-sm text-red-600 bg-red-50 px-3 py-1.5 rounded">{uploadError}</p>}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Type de document *</label>
+                <select
+                  value={uploadType}
+                  onChange={e => {
+                    setUploadType(e.target.value);
+                    const t = EMPLOYEE_TYPES.find(t => t.value === e.target.value);
+                    if (t && !uploadTitle) setUploadTitle(t.label);
+                  }}
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                >
+                  {EMPLOYEE_TYPES.map(t => (
+                    <option key={t.value} value={t.value}>{t.icon} {t.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Titre *</label>
+                <input
+                  type="text"
+                  value={uploadTitle}
+                  onChange={e => setUploadTitle(e.target.value)}
+                  placeholder="Ex: CNI - Marie Reine"
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Date d&apos;expiration</label>
+                <input
+                  type="date"
+                  value={uploadExpiry}
+                  onChange={e => setUploadExpiry(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Fichier *</label>
+                <input
+                  type="file"
+                  onChange={e => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      setUploadFile(f);
+                      if (!uploadTitle) {
+                        const t = EMPLOYEE_TYPES.find(t => t.value === uploadType);
+                        setUploadTitle(t?.label || f.name);
+                      }
+                    }
+                  }}
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                />
+              </div>
+            </div>
+
+            {uploadFile && (
+              <p className="text-xs text-blue-700 flex items-center gap-1">
+                <FileText className="w-3 h-3" />
+                {uploadFile.name} ({(uploadFile.size / 1024).toFixed(0)} Ko)
+              </p>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => { setShowUpload(false); setUploadFile(null); setUploadTitle(''); }}
+                className="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleUpload}
+                disabled={uploading || !uploadFile || !uploadTitle}
+                className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                {uploading ? 'Upload...' : 'Uploader'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ============ DOCUMENTS TAB ============ */}
         {tab === 'documents' && (

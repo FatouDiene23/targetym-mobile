@@ -226,7 +226,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
       });
       if (res.ok) {
         const data = await res.json();
-        setUnreadCount(data.count);
+        setUnreadCount(data.unread_count ?? data.count ?? 0);
       }
     } catch (e) {
       // Silencieux si l'API n'est pas encore déployée

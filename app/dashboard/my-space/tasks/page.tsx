@@ -87,6 +87,35 @@ function Pagination({
   );
 }
 
+// Helper pour grouper les tâches à venir par période
+function groupByPeriod(tasks: Task[]): { label: string; tasks: Task[]; color: string }[] {
+  const groups: Record<string, { tasks: Task[]; color: string; order: number }> = {};
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  tasks.forEach(task => {
+    const due = new Date(task.due_date);
+    due.setHours(0, 0, 0, 0);
+    const diff = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    let label: string;
+    let color: string;
+    let order: number;
+    if (diff === 1) { label = 'Demain'; color = 'text-blue-600'; order = 1; }
+    else if (diff <= 7) { label = 'Cette semaine'; color = 'text-indigo-600'; order = 2; }
+    else if (diff <= 14) { label = 'Semaine prochaine'; color = 'text-purple-600'; order = 3; }
+    else if (diff <= 30) { label = 'Ce mois'; color = 'text-gray-600'; order = 4; }
+    else { label = 'Plus tard'; color = 'text-gray-400'; order = 5; }
+
+    if (!groups[label]) groups[label] = { tasks: [], color, order };
+    groups[label].tasks.push(task);
+  });
+
+  return Object.entries(groups)
+    .sort(([, a], [, b]) => a.order - b.order)
+    .map(([label, { tasks, color }]) => ({ label, tasks, color }));
+}
+
 // Composant carte de tâche
 function TaskCard({ 
   task, 
@@ -192,7 +221,6 @@ function TaskCard({
 
           {/* Badges */}
           <div className="flex flex-wrap items-center gap-2 mt-2">
-            {/* Assigné à (pour vue équipe) */}
             {showAssignee && task.assigned_to_name && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">
                 <User className="w-3 h-3" />
@@ -200,13 +228,11 @@ function TaskCard({
               </span>
             )}
 
-            {/* Priorité */}
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${priority.bg} ${priority.text}`}>
               <Flag className="w-3 h-3" />
               {priority.label}
             </span>
 
-            {/* Statut */}
             {isInProgress && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-600">
                 <Play className="w-3 h-3" />
@@ -214,7 +240,6 @@ function TaskCard({
               </span>
             )}
 
-            {/* En retard */}
             {isOverdue && !isCompleted && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-600">
                 <AlertTriangle className="w-3 h-3" />
@@ -222,7 +247,6 @@ function TaskCard({
               </span>
             )}
 
-            {/* Lien OKR */}
             {task.objective_title && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">
                 <Target className="w-3 h-3" />
@@ -230,13 +254,11 @@ function TaskCard({
               </span>
             )}
 
-            {/* Date */}
             <span className={`inline-flex items-center gap-1 text-xs ${isOverdue && !isCompleted ? 'text-red-500' : 'text-gray-400'}`}>
               <Calendar className="w-3 h-3" />
               {new Date(task.due_date).toLocaleDateString('fr-FR')}
             </span>
 
-            {/* Assigné par */}
             {!showAssignee && task.created_by_id !== task.assigned_to_id && task.created_by_name && (
               <span className="inline-flex items-center gap-1 text-xs text-gray-400">
                 <User className="w-3 h-3" />
@@ -258,7 +280,7 @@ const OKR_LEVEL_LABELS: Record<string, string> = {
   individual: '👤 Individuel',
 };
 
-// Modal de création de tâche (avec OKR obligatoire et tâche administrative)
+// Modal de création de tâche
 function CreateTaskModal({ 
   isOpen, 
   onClose, 
@@ -287,14 +309,12 @@ function CreateTaskModal({
     is_administrative: false,
   });
 
-  // Charger les objectifs quand le modal s'ouvre ou quand l'employé change
   useEffect(() => {
     if (isOpen) {
       loadObjectivesForEmployee(parseInt(formData.assigned_to_id));
     }
   }, [isOpen, formData.assigned_to_id]);
 
-  // Fonction pour charger les objectifs d'un employé
   const loadObjectivesForEmployee = async (employeeId: number) => {
     setLoadingObjectives(true);
     setObjectives([]);
@@ -310,7 +330,6 @@ function CreateTaskModal({
     }
   };
 
-  // Reset le formulaire quand le modal s'ouvre
   useEffect(() => {
     if (isOpen && currentEmployeeId) {
       setFormData(prev => ({ 
@@ -328,16 +347,13 @@ function CreateTaskModal({
     }
   }, [isOpen, currentEmployeeId]);
 
-  // Obtenir les key results de l'objectif sélectionné
   const selectedObjective = objectives.find(o => o.id.toString() === formData.objective_id);
   const availableKeyResults = selectedObjective?.key_results || [];
 
-  // Reset key_result_id si l'objectif change
   useEffect(() => {
     setFormData(prev => ({ ...prev, key_result_id: '' }));
   }, [formData.objective_id]);
 
-  // Grouper les objectifs par niveau
   const groupedObjectives = objectives.reduce((acc, obj) => {
     const level = obj.level;
     if (!acc[level]) acc[level] = [];
@@ -345,20 +361,13 @@ function CreateTaskModal({
     return acc;
   }, {} as Record<string, ObjectiveForLinking[]>);
 
-  // Vérifier si le formulaire est valide
   const isFormValid = () => {
     if (!formData.title.trim()) return false;
     if (!formData.due_date) return false;
-    
-    // Si pas tâche administrative, objectif obligatoire
-    if (!formData.is_administrative && !formData.objective_id) {
-      return false;
-    }
-    
+    if (!formData.is_administrative && !formData.objective_id) return false;
     return true;
   };
 
-  // Message d'erreur pour objectifs manquants
   const getObjectiveError = () => {
     if (formData.is_administrative) return null;
     if (loadingObjectives) return null;
@@ -376,7 +385,6 @@ function CreateTaskModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
     if (!formData.is_administrative && !formData.objective_id) {
       setError("Veuillez sélectionner un objectif ou cocher 'Tâche administrative'.");
       return;
@@ -420,11 +428,8 @@ function CreateTaskModal({
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Titre */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Titre *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
                 <input
                   type="text"
                   value={formData.title}
@@ -435,11 +440,8 @@ function CreateTaskModal({
                 />
               </div>
 
-              {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -449,11 +451,8 @@ function CreateTaskModal({
                 />
               </div>
 
-              {/* Assigner à */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Assigner à *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Assigner à *</label>
                 <select
                   value={formData.assigned_to_id}
                   onChange={(e) => setFormData({ ...formData, assigned_to_id: e.target.value })}
@@ -468,12 +467,9 @@ function CreateTaskModal({
                 </select>
               </div>
 
-              {/* Date et Priorité */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Date d&apos;échéance *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date d&apos;échéance *</label>
                   <input
                     type="date"
                     value={formData.due_date}
@@ -483,11 +479,8 @@ function CreateTaskModal({
                     required
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Priorité
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Priorité</label>
                   <select
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: e.target.value as TaskPriority })}
@@ -501,14 +494,12 @@ function CreateTaskModal({
                 </div>
               </div>
 
-              {/* Séparateur */}
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
                   <Target className="w-4 h-4 text-indigo-600" />
                   Liaison Objectif
                 </h3>
 
-                {/* Checkbox Tâche Administrative */}
                 <label className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors mb-3">
                   <input
                     type="checkbox"
@@ -532,7 +523,6 @@ function CreateTaskModal({
                   </div>
                 </label>
 
-                {/* Section Objectif (masquée si tâche administrative) */}
                 {!formData.is_administrative && (
                   <div className="space-y-3">
                     {loadingObjectives ? (
@@ -552,11 +542,8 @@ function CreateTaskModal({
                       </div>
                     ) : (
                       <>
-                        {/* Dropdown Objectif */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Objectif *
-                          </label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Objectif *</label>
                           <select
                             value={formData.objective_id}
                             onChange={(e) => setFormData({ ...formData, objective_id: e.target.value })}
@@ -580,12 +567,9 @@ function CreateTaskModal({
                           </select>
                         </div>
 
-                        {/* Dropdown Key Result (si objectif sélectionné) */}
                         {formData.objective_id && availableKeyResults.length > 0 && (
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Key Result (optionnel)
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Key Result (optionnel)</label>
                             <select
                               value={formData.key_result_id}
                               onChange={(e) => setFormData({ ...formData, key_result_id: e.target.value })}
@@ -601,7 +585,6 @@ function CreateTaskModal({
                           </div>
                         )}
 
-                        {/* Message de confirmation */}
                         {formData.objective_id && (
                           <p className="text-xs text-indigo-600 flex items-center gap-1 bg-indigo-50 p-2 rounded">
                             <CheckCircle2 className="w-3 h-3" />
@@ -609,7 +592,6 @@ function CreateTaskModal({
                           </p>
                         )}
 
-                        {/* Message d'erreur */}
                         {getObjectiveError() && (
                           <p className="text-xs text-red-600 flex items-center gap-1">
                             <AlertTriangle className="w-3 h-3" />
@@ -621,7 +603,6 @@ function CreateTaskModal({
                   </div>
                 )}
 
-                {/* Message si tâche administrative */}
                 {formData.is_administrative && (
                   <p className="text-xs text-gray-500 flex items-center gap-1 bg-gray-100 p-2 rounded">
                     <Mail className="w-3 h-3" />
@@ -630,7 +611,6 @@ function CreateTaskModal({
                 )}
               </div>
 
-              {/* Boutons */}
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
@@ -911,7 +891,7 @@ function PendingValidationsSection({
 }
 
 // ============================================
-// ONGLET 1: MES TÂCHES
+// ONGLET 1: MES TÂCHES (avec sous-onglets Du jour / À venir)
 // ============================================
 function MyTasksTab({
   onRefresh,
@@ -921,6 +901,7 @@ function MyTasksTab({
   hasManager: boolean;
 }) {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [upcomingTasks, setUpcomingTasks] = useState<Task[]>([]);
   const [stats, setStats] = useState<TaskStats | null>(null);
   const [validationStatus, setValidationStatus] = useState<{
     validation: { status: string; validation_comment?: string } | null;
@@ -936,6 +917,7 @@ function MyTasksTab({
   const [actionLoading, setActionLoading] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [subTab, setSubTab] = useState<'today' | 'upcoming'>('today');
   const [currentPage, setCurrentPage] = useState(1);
   const [isManager, setIsManager] = useState(false);
   const pageSize = 10;
@@ -943,15 +925,28 @@ function MyTasksTab({
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [tasksData, statsData, validationData] = await Promise.all([
+      const [tasksData, statsData, validationData, allTasksData] = await Promise.all([
         getMyTasksToday(),
         getMyTaskStats(),
         getMyDailyValidationStatus(),
+        getMyTasks({ page_size: 200 }),
       ]);
       
       setTasks(tasksData);
       setStats(statsData);
       setValidationStatus(validationData);
+
+      // Filtrer les tâches à venir (après aujourd'hui, non terminées)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const allTasks = allTasksData.items || [];
+      const upcoming = allTasks.filter((t: Task) => {
+        const due = new Date(t.due_date);
+        due.setHours(0, 0, 0, 0);
+        return due > today && t.status !== 'completed' && t.status !== 'cancelled';
+      });
+      upcoming.sort((a: Task, b: Task) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+      setUpcomingTasks(upcoming);
 
       const userStr = localStorage.getItem('user');
       if (userStr) {
@@ -1031,18 +1026,25 @@ function MyTasksTab({
     }
   }
 
-  // Filtrer les tâches
+  // Filtrer les tâches du jour
   const filteredTasks = tasks.filter(task => {
     if (statusFilter === 'all') return true;
     if (statusFilter === 'todo') return task.status === 'pending' || task.status === 'in_progress';
     return task.status === statusFilter;
   });
 
-  // Pagination
+  // Pagination tâches du jour
   const totalPages = Math.ceil(filteredTasks.length / pageSize);
   const paginatedTasks = filteredTasks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
+  // Pagination tâches à venir
+  const upcomingTotalPages = Math.ceil(upcomingTasks.length / pageSize);
+  const paginatedUpcoming = upcomingTasks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
   const incompleteTasks = tasks.filter(t => t.status !== 'completed' && t.status !== 'cancelled');
+
+  // Grouper les tâches à venir paginées
+  const upcomingGroups = groupByPeriod(paginatedUpcoming);
 
   if (isLoading) {
     return (
@@ -1085,7 +1087,7 @@ function MyTasksTab({
         />
       )}
 
-      {/* Statut de validation - UNIQUEMENT SI L'EMPLOYÉ A UN MANAGER */}
+      {/* Statut de validation */}
       {hasManager && validationStatus?.validation && (
         <div className={`rounded-xl p-4 ${
           validationStatus.validation.status === 'approved' 
@@ -1126,72 +1128,153 @@ function MyTasksTab({
         </div>
       )}
 
-      {/* Liste des tâches */}
+      {/* Liste des tâches avec sous-onglets */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-            <ClipboardList className="w-5 h-5 text-gray-400" />
-            Tâches du jour ({filteredTasks.length})
-          </h2>
-          
-          <div className="flex items-center gap-3">
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-            >
-              <option value="all">Tous les statuts</option>
-              <option value="todo">À faire</option>
-              <option value="in_progress">En cours</option>
-              <option value="completed">Terminées</option>
-            </select>
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Sous-onglets Du jour / À venir */}
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => { setSubTab('today'); setCurrentPage(1); }}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
+                  subTab === 'today'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <ClipboardList className="w-4 h-4" />
+                Du jour ({filteredTasks.length})
+              </button>
+              <button
+                onClick={() => { setSubTab('upcoming'); setCurrentPage(1); }}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
+                  subTab === 'upcoming'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Calendar className="w-4 h-4" />
+                À venir ({upcomingTasks.length})
+              </button>
+            </div>
             
-            {/* Bouton soumettre ou message horaire - UNIQUEMENT SI L'EMPLOYÉ A UN MANAGER */}
-            {hasManager && tasks.length > 0 && !validationStatus?.validation && (
-              validationStatus?.can_submit ? (
-                <button
-                  onClick={() => setShowSubmitModal(true)}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm"
+            <div className="flex items-center gap-3">
+              {subTab === 'today' && (
+                <select
+                  value={statusFilter}
+                  onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
                 >
-                  <Send className="w-4 h-4" />
-                  Soumettre ma journée
-                </button>
-              ) : !validationStatus?.can_submit_time ? (
-                <span className="px-4 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  Soumission à partir de 16h30
-                </span>
-              ) : null
-            )}
+                  <option value="all">Tous les statuts</option>
+                  <option value="todo">À faire</option>
+                  <option value="in_progress">En cours</option>
+                  <option value="completed">Terminées</option>
+                </select>
+              )}
+              
+              {/* Bouton soumettre */}
+              {hasManager && subTab === 'today' && tasks.length > 0 && !validationStatus?.validation && (
+                validationStatus?.can_submit ? (
+                  <button
+                    onClick={() => setShowSubmitModal(true)}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm"
+                  >
+                    <Send className="w-4 h-4" />
+                    Soumettre ma journée
+                  </button>
+                ) : !validationStatus?.can_submit_time ? (
+                  <span className="px-4 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Soumission à partir de 16h30
+                  </span>
+                ) : null
+              )}
+            </div>
           </div>
         </div>
 
-        {paginatedTasks.length === 0 ? (
-          <div className="p-8 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 className="w-8 h-8 text-gray-400" />
-            </div>
-            <p className="text-gray-500">Aucune tâche à afficher</p>
-          </div>
-        ) : (
-          <div className="p-4 space-y-3">
-            {paginatedTasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onComplete={handleCompleteTask}
-                onStart={handleStartTask}
-                onDelete={handleDeleteTask}
-                isLoading={actionLoading}
-              />
-            ))}
-            
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
-          </div>
+        {/* Contenu: Tâches du jour */}
+        {subTab === 'today' && (
+          <>
+            {paginatedTasks.length === 0 ? (
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle2 className="w-8 h-8 text-gray-400" />
+                </div>
+                <p className="text-gray-500">Aucune tâche pour aujourd&apos;hui</p>
+                {upcomingTasks.length > 0 && (
+                  <button
+                    onClick={() => { setSubTab('upcoming'); setCurrentPage(1); }}
+                    className="mt-3 text-sm text-primary-600 hover:text-primary-700 font-medium"
+                  >
+                    Voir les {upcomingTasks.length} tâches à venir →
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="p-4 space-y-3">
+                {paginatedTasks.map((task) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    onComplete={handleCompleteTask}
+                    onStart={handleStartTask}
+                    onDelete={handleDeleteTask}
+                    isLoading={actionLoading}
+                  />
+                ))}
+                
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Contenu: Tâches à venir */}
+        {subTab === 'upcoming' && (
+          <>
+            {upcomingTasks.length === 0 ? (
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="w-8 h-8 text-gray-400" />
+                </div>
+                <p className="text-gray-500">Aucune tâche à venir</p>
+              </div>
+            ) : (
+              <div className="p-4 space-y-6">
+                {upcomingGroups.map((group) => (
+                  <div key={group.label}>
+                    <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${group.color}`}>
+                      <Calendar className="w-4 h-4" />
+                      {group.label} ({group.tasks.length})
+                    </h3>
+                    <div className="space-y-3">
+                      {group.tasks.map((task) => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          onComplete={handleCompleteTask}
+                          onStart={handleStartTask}
+                          onDelete={handleDeleteTask}
+                          isLoading={actionLoading}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={upcomingTotalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -1207,7 +1290,7 @@ function MyTasksTab({
 }
 
 // ============================================
-// ONGLET 2: TÂCHES ÉQUIPE (Managers)
+// ONGLET 2: TÂCHES ÉQUIPE (avec sous-onglets Du jour / À venir)
 // ============================================
 function TeamTasksTab({
   teamMembers,
@@ -1218,7 +1301,7 @@ function TeamTasksTab({
   const [isLoading, setIsLoading] = useState(true);
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('0');
+  const [subTab, setSubTab] = useState<'today' | 'upcoming'>('today');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
@@ -1229,7 +1312,7 @@ function TeamTasksTab({
   async function loadTeamTasks() {
     setIsLoading(true);
     try {
-      const data = await getTeamTasks({ page_size: 100 });
+      const data = await getTeamTasks({ page_size: 200 });
       setTeamTasks(data.items || []);
     } catch (err) {
       console.error('Error loading team tasks:', err);
@@ -1238,51 +1321,37 @@ function TeamTasksTab({
     }
   }
 
-  // Calculer la date de début et fin selon le filtre période
-  const getPeriodDates = () => {
-    const now = new Date();
-    if (selectedPeriod === '0') {
-      // Aujourd'hui seulement
-      const today = now.toISOString().split('T')[0];
-      return { startDate: today, endDate: today };
-    } else if (selectedPeriod === '1') {
-      // Hier seulement
-      const yesterday = new Date(now);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
-      return { startDate: yesterdayStr, endDate: yesterdayStr };
-    } else if (selectedPeriod !== 'all') {
-      // X derniers jours
-      const daysAgo = new Date(now);
-      daysAgo.setDate(daysAgo.getDate() - parseInt(selectedPeriod));
-      return { startDate: daysAgo.toISOString().split('T')[0], endDate: null };
-    }
-    return { startDate: null, endDate: null };
-  };
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().split('T')[0];
+
+  // Séparer tâches du jour vs à venir
+  const todayTasks = teamTasks.filter(task => {
+    const dueStr = new Date(task.due_date).toISOString().split('T')[0];
+    return dueStr <= todayStr && task.status !== 'completed' && task.status !== 'cancelled';
+  });
+
+  const upcomingTeamTasks = teamTasks.filter(task => {
+    const due = new Date(task.due_date);
+    due.setHours(0, 0, 0, 0);
+    return due > today && task.status !== 'completed' && task.status !== 'cancelled';
+  }).sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+
+  const currentTasks = subTab === 'today' ? todayTasks : upcomingTeamTasks;
 
   // Filtrer
-  const filteredTasks = teamTasks.filter(task => {
+  const filteredTasks = currentTasks.filter(task => {
     const matchEmployee = selectedEmployee === 'all' || task.assigned_to_id.toString() === selectedEmployee;
     const matchStatus = selectedStatus === 'all' || task.status === selectedStatus;
-    
-    // Filtre par période (basé sur due_date)
-    const { startDate, endDate } = getPeriodDates();
-    let matchPeriod = true;
-    if (startDate) {
-      const taskDate = new Date(task.due_date).toISOString().split('T')[0];
-      if (endDate) {
-        matchPeriod = taskDate >= startDate && taskDate <= endDate;
-      } else {
-        matchPeriod = taskDate >= startDate;
-      }
-    }
-    
-    return matchEmployee && matchStatus && matchPeriod;
+    return matchEmployee && matchStatus;
   });
 
   // Pagination
   const totalPages = Math.ceil(filteredTasks.length / pageSize);
   const paginatedTasks = filteredTasks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // Grouper à venir par période
+  const upcomingGroups = subTab === 'upcoming' ? groupByPeriod(paginatedTasks) : [];
 
   // Stats
   const tasksByStatus = {
@@ -1354,19 +1423,6 @@ function TeamTasksTab({
             <option value="completed">Terminées</option>
           </select>
 
-          <select
-            value={selectedPeriod}
-            onChange={(e) => { setSelectedPeriod(e.target.value); setCurrentPage(1); }}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-          >
-            <option value="0">Aujourd&apos;hui</option>
-            <option value="1">Hier</option>
-            <option value="7">7 derniers jours</option>
-            <option value="30">30 derniers jours</option>
-            <option value="90">3 derniers mois</option>
-            <option value="all">Toutes les périodes</option>
-          </select>
-
           <button
             onClick={loadTeamTasks}
             className="ml-auto px-3 py-1.5 text-sm text-primary-600 hover:text-primary-700 font-medium"
@@ -1376,21 +1432,76 @@ function TeamTasksTab({
         </div>
       </div>
 
-      {/* Liste */}
+      {/* Liste avec sous-onglets */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-4 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-            <ClipboardList className="w-5 h-5 text-gray-400" />
-            Tâches de l&apos;équipe ({filteredTasks.length})
-          </h2>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => { setSubTab('today'); setCurrentPage(1); }}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
+                  subTab === 'today'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <ClipboardList className="w-4 h-4" />
+                Du jour ({todayTasks.length})
+              </button>
+              <button
+                onClick={() => { setSubTab('upcoming'); setCurrentPage(1); }}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
+                  subTab === 'upcoming'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Calendar className="w-4 h-4" />
+                À venir ({upcomingTeamTasks.length})
+              </button>
+            </div>
+          </div>
         </div>
 
         {paginatedTasks.length === 0 ? (
           <div className="p-8 text-center">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Users className="w-8 h-8 text-gray-400" />
+              {subTab === 'today' ? (
+                <Users className="w-8 h-8 text-gray-400" />
+              ) : (
+                <Calendar className="w-8 h-8 text-gray-400" />
+              )}
             </div>
-            <p className="text-gray-500">Aucune tâche trouvée</p>
+            <p className="text-gray-500">
+              {subTab === 'today' ? 'Aucune tâche trouvée' : 'Aucune tâche à venir'}
+            </p>
+          </div>
+        ) : subTab === 'upcoming' ? (
+          <div className="p-4 space-y-6">
+            {upcomingGroups.map((group) => (
+              <div key={group.label}>
+                <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${group.color}`}>
+                  <Calendar className="w-4 h-4" />
+                  {group.label} ({group.tasks.length})
+                </h3>
+                <div className="space-y-3">
+                  {group.tasks.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      isLoading={false}
+                      showAssignee={true}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+            
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           </div>
         ) : (
           <div className="p-4 space-y-3">
@@ -1431,27 +1542,22 @@ function HistoryTab() {
   const loadHistory = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Calculer la date de début et fin selon le filtre
       const now = new Date();
       let startDate: string | undefined;
       let endDate: string | undefined;
       
       if (periodFilter === '0') {
-        // Aujourd'hui seulement
         startDate = now.toISOString().split('T')[0];
         endDate = now.toISOString().split('T')[0];
       } else if (periodFilter === '1') {
-        // Hier seulement
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
         startDate = yesterday.toISOString().split('T')[0];
         endDate = yesterday.toISOString().split('T')[0];
       } else if (periodFilter !== 'all') {
-        // X derniers jours (du jour -X jusqu'à aujourd'hui)
         const daysAgo = new Date(now);
         daysAgo.setDate(daysAgo.getDate() - parseInt(periodFilter));
         startDate = daysAgo.toISOString().split('T')[0];
-        // Pas de endDate = jusqu'à aujourd'hui
       }
 
       const [tasks, validations] = await Promise.all([
@@ -1459,12 +1565,11 @@ function HistoryTab() {
         getValidationHistory({ page_size: 100 }),
       ]);
 
-      // Filtrer par période
       let filteredTasks = tasks.items || [];
       let filteredValidations = validations.items || [];
 
       if (startDate) {
-        filteredTasks = filteredTasks.filter(t => {
+        filteredTasks = filteredTasks.filter((t: Task) => {
           if (!t.completed_at) return false;
           const taskDate = new Date(t.completed_at).toISOString().split('T')[0];
           if (endDate) {
@@ -1472,7 +1577,7 @@ function HistoryTab() {
           }
           return taskDate >= startDate;
         });
-        filteredValidations = filteredValidations.filter(v => {
+        filteredValidations = filteredValidations.filter((v: DailyValidation) => {
           const valDate = new Date(v.validation_date).toISOString().split('T')[0];
           if (endDate) {
             return valDate >= startDate && valDate <= endDate;
@@ -1494,18 +1599,15 @@ function HistoryTab() {
     loadHistory();
   }, [loadHistory]);
 
-  // Filtrer les validations par statut
   const filteredValidations = validationHistory.filter(v => {
     if (validationStatusFilter === 'all') return true;
     return v.status === validationStatusFilter;
   });
 
-  // Pagination
   const currentData = subTab === 'tasks' ? taskHistory : filteredValidations;
   const totalPages = Math.ceil(currentData.length / pageSize);
   const paginatedData = currentData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  // Reset page on filter change
   useEffect(() => {
     setCurrentPage(1);
   }, [subTab, periodFilter, validationStatusFilter]);
@@ -1520,7 +1622,6 @@ function HistoryTab() {
 
   return (
     <div className="space-y-6">
-      {/* Sous-onglets */}
       <div className="bg-white rounded-xl border border-gray-200 p-1 inline-flex">
         <button
           onClick={() => setSubTab('tasks')}
@@ -1546,7 +1647,6 @@ function HistoryTab() {
         </button>
       </div>
 
-      {/* Filtres */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
@@ -1585,7 +1685,6 @@ function HistoryTab() {
         </div>
       </div>
 
-      {/* Contenu */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-4 border-b border-gray-200">
           <h2 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -1729,7 +1828,6 @@ function StatsTab({
     loadStats();
   }, [loadStats]);
 
-  // Calculs stats
   const totalTasks = taskHistory.length;
   const completedTasks = taskHistory.filter(t => t.status === 'completed').length;
   const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
@@ -1738,14 +1836,12 @@ function StatsTab({
   const rejectedDays = validationHistory.filter(v => v.status === 'rejected').length;
   const pendingDays = validationHistory.filter(v => v.status === 'pending').length;
 
-  // Suggestions intelligentes
   const suggestions: { type: 'success' | 'warning' | 'info' | 'error'; icon: React.ReactNode; message: string }[] = [];
 
   if (stats) {
     const totalActive = stats.pending + stats.in_progress + stats.completed;
     const currentRate = totalActive > 0 ? (stats.completed / totalActive) * 100 : 0;
 
-    // Suggestions basées sur le taux de complétion
     if (currentRate < 50 && totalActive > 0) {
       suggestions.push({
         type: 'warning',
@@ -1766,7 +1862,6 @@ function StatsTab({
       });
     }
 
-    // Tâches en retard
     if (stats.overdue > 0) {
       suggestions.push({
         type: 'error',
@@ -1775,7 +1870,6 @@ function StatsTab({
       });
     }
 
-    // Tâches du jour
     if (stats.due_today > 3) {
       suggestions.push({
         type: 'info',
@@ -1790,7 +1884,6 @@ function StatsTab({
       });
     }
 
-    // Aucune tâche en attente
     if (stats.pending === 0 && stats.in_progress === 0 && totalActive > 0) {
       suggestions.push({
         type: 'success',
@@ -1800,7 +1893,6 @@ function StatsTab({
     }
   }
 
-  // Journées validées
   if (validatedDays > 0 && rejectedDays === 0) {
     suggestions.push({
       type: 'success',
@@ -1823,7 +1915,6 @@ function StatsTab({
     });
   }
 
-  // Journées en attente
   if (pendingDays > 0) {
     suggestions.push({
       type: 'info',
@@ -1832,7 +1923,6 @@ function StatsTab({
     });
   }
 
-  // Suggestions manager
   if (isManager && teamTasks.length > 0) {
     teamMembers.forEach(member => {
       const memberTasks = teamTasks.filter(t => t.assigned_to_id === member.id);
@@ -1858,7 +1948,6 @@ function StatsTab({
 
   return (
     <div className="space-y-6">
-      {/* Filtre période */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="flex items-center gap-4">
           <Filter className="w-4 h-4 text-gray-400" />
@@ -1875,7 +1964,6 @@ function StatsTab({
         </div>
       </div>
 
-      {/* Suggestions */}
       {suggestions.length > 0 && (
         <div className="space-y-3">
           <h3 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -1908,7 +1996,6 @@ function StatsTab({
         </div>
       )}
 
-      {/* Stats personnelles */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-gray-400" />
@@ -1934,7 +2021,6 @@ function StatsTab({
           </div>
         </div>
 
-        {/* Barre de progression */}
         <div className="mt-6">
           <div className="flex justify-between text-sm text-gray-600 mb-2">
             <span>Performance globale</span>
@@ -1953,7 +2039,6 @@ function StatsTab({
         </div>
       </div>
 
-      {/* Stats équipe (Manager) */}
       {isManager && teamMembers.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -2039,7 +2124,6 @@ export default function MyTasksPage() {
           const userIsManager = ['ADMIN', 'MANAGER', 'RH', 'DG'].includes(user.role?.toUpperCase());
           setIsManager(userIsManager);
 
-          // Charger les infos employé pour vérifier s'il a un manager
           if (employeeId) {
             try {
               const employeeData = await getEmployee(employeeId);

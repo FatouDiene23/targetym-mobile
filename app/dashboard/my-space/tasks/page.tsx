@@ -925,28 +925,32 @@ function MyTasksTab({
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [tasksData, statsData, validationData, allTasksData] = await Promise.all([
+      const [tasksData, statsData, validationData] = await Promise.all([
         getMyTasksToday(),
         getMyTaskStats(),
         getMyDailyValidationStatus(),
-        getMyTasks({ page_size: 200 }),
       ]);
       
       setTasks(tasksData);
       setStats(statsData);
       setValidationStatus(validationData);
 
-      // Filtrer les tâches à venir (après aujourd'hui, non terminées)
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const allTasks = allTasksData.items || [];
-      const upcoming = allTasks.filter((t: Task) => {
-        const due = new Date(t.due_date);
-        due.setHours(0, 0, 0, 0);
-        return due > today && t.status !== 'completed' && t.status !== 'cancelled';
-      });
-      upcoming.sort((a: Task, b: Task) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
-      setUpcomingTasks(upcoming);
+      // Charger les tâches à venir séparément (ne bloque pas les stats)
+      try {
+        const allTasksData = await getMyTasks({ page_size: 200 });
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const allTasks = allTasksData.items || allTasksData || [];
+        const upcoming = (Array.isArray(allTasks) ? allTasks : []).filter((t: Task) => {
+          const due = new Date(t.due_date);
+          due.setHours(0, 0, 0, 0);
+          return due > today && t.status !== 'completed' && t.status !== 'cancelled';
+        });
+        upcoming.sort((a: Task, b: Task) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+        setUpcomingTasks(upcoming);
+      } catch (err) {
+        console.error('Error loading upcoming tasks:', err);
+      }
 
       const userStr = localStorage.getItem('user');
       if (userStr) {

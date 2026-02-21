@@ -6,7 +6,7 @@ import Header from '@/components/Header';
 import {
   FileText, Download, Eye, Search, Filter, Loader2, Calendar,
   Clock, AlertTriangle, ChevronLeft, ChevronRight, File,
-  FileSpreadsheet, Image, Shield, X, Award, ExternalLink, Upload, Plus
+  FileSpreadsheet, Image, Shield, X, Award, ExternalLink, Upload, Plus, Trash2
 } from 'lucide-react';
 
 // ============================================
@@ -111,6 +111,7 @@ export default function MyDocumentsPage() {
   const [search, setSearch] = useState('');
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [downloading, setDownloading] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState<number | null>(null);
 
   // Upload state
   const [showUpload, setShowUpload] = useState(false);
@@ -241,6 +242,29 @@ export default function MyDocumentsPage() {
       console.error('Download error:', e);
     } finally {
       setDownloading(null);
+    }
+  }
+
+  const EMPLOYEE_DELETABLE_TYPES = ['cni', 'passeport', 'diplome', 'cv', 'photo_identite', 'rib', 'certificat_residence'];
+
+  async function handleDelete(doc: Document) {
+    if (!confirm(`Supprimer "${doc.title}" ? Cette action est irréversible.`)) return;
+    setDeleting(doc.id);
+    try {
+      const res = await fetch(`${API_URL}/api/documents/${doc.id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        fetchDocuments();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.detail || 'Erreur lors de la suppression');
+      }
+    } catch (e) {
+      console.error('Delete error:', e);
+    } finally {
+      setDeleting(null);
     }
   }
 
@@ -563,6 +587,20 @@ export default function MyDocumentsPage() {
                             <Download className="w-5 h-5" />
                           )}
                         </button>
+                        {EMPLOYEE_DELETABLE_TYPES.includes(doc.document_type) && (
+                          <button
+                            onClick={() => handleDelete(doc)}
+                            disabled={deleting === doc.id}
+                            className="p-2 rounded-lg hover:bg-red-50 text-red-500 transition-colors"
+                            title="Supprimer"
+                          >
+                            {deleting === doc.id ? (
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-5 h-5" />
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
                   );

@@ -108,7 +108,7 @@ export default function EmployeeDocuments({ employeeId, employeeName, readOnly =
       });
       if (res.ok) {
         const data = await res.json();
-        setDocuments(data);
+        setDocuments(Array.isArray(data) ? data : data.items || []);
       }
     } catch (e) {
       console.error('Error:', e);

@@ -5,13 +5,14 @@ import EmployeeModal from '@/components/EmployeeModal';
 import AddModal from '@/components/AddModal';
 import EditEmployeeModal from '@/components/EditEmployeeModal';
 import LeaveRequestModal from '@/components/LeaveRequestModal';
+import HRDocumentsTab from '@/components/HRDocumentsTab';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Search, Plus, Mail, Phone, MapPin, Calendar, Building2, Download,
   Edit2, Eye, Users, UserCheck, UserPlus, TrendingDown,
   Palmtree, CheckCircle, XCircle, Filter, ChevronDown, Briefcase,
   User, Loader2, RefreshCw, X, Send, Clock, MailCheck, AlertCircle,
-  Copy, Check, Maximize2, Minimize2, Network, ZoomIn, ZoomOut
+  Copy, Check, Maximize2, Minimize2, Network, ZoomIn, ZoomOut, FileText
 } from 'lucide-react';
 import { 
   getEmployees, getEmployeeStats, getDepartments, exportEmployeesToCSV,
@@ -315,7 +316,7 @@ export default function EmployeesPage() {
   const [selectedDepartment, setSelectedDepartment] = useState('Tous');
   const [selectedLocation, setSelectedLocation] = useState('Tous');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [activeTab, setActiveTab] = useState<'employees' | 'leaves' | 'invitations' | 'orgchart'>('employees');
+  const [activeTab, setActiveTab] = useState<'employees' | 'leaves' | 'invitations' | 'orgchart' | 'documents'>('employees');
   const [showViewModal, setShowViewModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -354,7 +355,6 @@ export default function EmployeesPage() {
   // ORGANIGRAMME LOGIC
   // ============================================
   const buildOrgTree = useCallback((emps: Employee[]): OrgNode | null => {
-    // Filtrer les inactifs et les comptes admin/test
     const activeEmps = emps.filter(e => {
       const s = e.status?.toLowerCase();
       if (s === 'terminated') return false;
@@ -374,7 +374,6 @@ export default function EmployeesPage() {
       if (emp.manager_id && map.has(emp.manager_id)) { map.get(emp.manager_id)!.children.push(node); }
       else { roots.push(node); }
     });
-    // Tri: managers avec enfants en premier, puis managers sans enfants, puis autres
     const sortC = (node: OrgNode) => {
       node.children.sort((a, b) => {
         const aHasKids = a.children.length > 0 ? 1 : 0;
@@ -411,7 +410,6 @@ export default function EmployeesPage() {
       if (tree) {
         const ids = new Set<number>();
         ids.add(tree.id);
-        // Expand first level + any node that has children (managers with reports)
         tree.children.forEach(c => {
           ids.add(c.id);
           if (c.children.length > 0) {
@@ -429,7 +427,6 @@ export default function EmployeesPage() {
   const collapseAllNodes = () => { if (orgData) setExpandedNodes(new Set([orgData.id])); };
   const countDescendants = (node: OrgNode): number => { let c = node.id === 0 ? 0 : 1; node.children.forEach(ch => { c += countDescendants(ch); }); return c; };
 
-  // Recherche organigramme
   useEffect(() => {
     if (!orgSearch || !orgData) return;
     const sl = orgSearch.toLowerCase();
@@ -551,6 +548,13 @@ export default function EmployeesPage() {
   const handleSuccess = () => { loadAllData(); setSelectedEmployee(null); };
   const hasActiveFilter = selectedDepartment !== 'Tous' || selectedLocation !== 'Tous' || searchTerm !== '';
 
+  // Handler for opening employee profile from Documents tab
+  const handleOpenEmployeeProfile = (empId: number) => {
+    const emp = employees.find(e => e.id === empId);
+    if (emp) { setSelectedEmployee(emp); setShowViewModal(true); }
+    else { getEmployees({ page: 1, page_size: 1, search: empId.toString() }).then(res => { if (res.items?.[0]) { setSelectedEmployee(res.items[0]); setShowViewModal(true); } }); }
+  };
+
   // ============================================
   // RENDER
   // ============================================
@@ -588,9 +592,17 @@ export default function EmployeesPage() {
         <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit mb-6">
           <button onClick={() => setActiveTab('employees')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'employees' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Users className="w-4 h-4 inline mr-2" />Annuaire</button>
           <button onClick={() => setActiveTab('orgchart')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'orgchart' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Network className="w-4 h-4 inline mr-2" />Organigramme</button>
+          <button onClick={() => setActiveTab('documents')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'documents' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><FileText className="w-4 h-4 inline mr-2" />Documents</button>
           <button onClick={() => setActiveTab('leaves')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'leaves' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Palmtree className="w-4 h-4 inline mr-2" />Congés{leaveStats.pending > 0 && <span className="ml-2 px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">{leaveStats.pending}</span>}</button>
           <button onClick={() => setActiveTab('invitations')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'invitations' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Send className="w-4 h-4 inline mr-2" />Invitations{invitationStats && invitationStats.pending > 0 && <span className="ml-2 px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">{invitationStats.pending}</span>}</button>
         </div>
+
+        {/* ============================================ */}
+        {/* Tab: Documents (NEW) */}
+        {/* ============================================ */}
+        {activeTab === 'documents' && (
+          <HRDocumentsTab onOpenEmployeeProfile={handleOpenEmployeeProfile} />
+        )}
 
         {/* ============================================ */}
         {/* Tab: Organigramme Pyramidal */}

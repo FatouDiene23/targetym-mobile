@@ -24,6 +24,7 @@ import {
   Shield
 } from 'lucide-react';
 import { getEmployeeAccessStatus, activateEmployeeAccess, deactivateEmployeeAccess, type AccessStatus } from '@/lib/api';
+import EmployeeDocuments from '@/components/EmployeeDocuments';
 
 interface Employee {
   id: number;
@@ -93,7 +94,7 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
     age = new Date().getFullYear() - new Date(employee.date_of_birth).getFullYear();
   }
   
-  // Données fictives pour le dossier complet
+  // Données contrat
   const contractInfo = {
     type: 'CDI',
     startDate: displayHireDate,
@@ -108,13 +109,6 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
     taken: 12,
     pending: 3
   };
-
-  const documents = [
-    { name: 'Contrat de travail', date: '15 Mar 2021', type: 'PDF' },
-    { name: 'Avenant salaire 2023', date: '01 Jan 2023', type: 'PDF' },
-    { name: 'Attestation employeur', date: '15 Nov 2024', type: 'PDF' },
-    { name: 'Fiche de paie Nov 2024', date: '30 Nov 2024', type: 'PDF' },
-  ];
 
   useEffect(() => {
     loadAccessStatus();
@@ -253,7 +247,7 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Colonne 1 - Informations personnelles */}
             <div className="space-y-6">
-              {/* Accès plateforme - NOUVEAU */}
+              {/* Accès plateforme */}
               <div className="bg-gray-50 rounded-xl p-5">
                 <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                   <Shield className="w-4 h-4 mr-2 text-primary-500" />
@@ -465,36 +459,16 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
               </div>
             </div>
 
-            {/* Colonne 3 - Documents */}
+            {/* Colonne 3 - Documents réels + Modules à venir */}
             <div className="space-y-6">
-              {/* Documents RH */}
-              <div className="bg-gray-50 rounded-xl p-5">
-                <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
-                  <FileText className="w-4 h-4 mr-2 text-primary-500" />
-                  Documents RH
-                </h3>
-                <div className="space-y-2">
-                  {documents.map((doc, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-white rounded-lg hover:bg-gray-100 cursor-pointer">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-red-100 rounded flex items-center justify-center mr-3">
-                          <FileText className="w-4 h-4 text-red-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{doc.name}</p>
-                          <p className="text-xs text-gray-500">{doc.date}</p>
-                        </div>
-                      </div>
-                      <Download className="w-4 h-4 text-gray-400" />
-                    </div>
-                  ))}
-                </div>
-                <button className="w-full mt-4 px-4 py-2 text-sm text-primary-600 font-medium border border-primary-200 rounded-lg hover:bg-primary-50">
-                  Voir tous les documents
-                </button>
-              </div>
+              {/* Documents RH — Composant réel connecté à l'API */}
+              <EmployeeDocuments
+                employeeId={employee.id}
+                employeeName={displayName}
+                readOnly={false}
+              />
 
-              {/* Infos supplémentaires Phase 1 */}
+              {/* Modules à venir */}
               <div className="bg-gray-50 rounded-xl p-5">
                 <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                   <TrendingUp className="w-4 h-4 mr-2 text-primary-500" />

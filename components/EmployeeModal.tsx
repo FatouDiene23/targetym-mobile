@@ -1,526 +1,939 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { 
-  X, Mail, Phone, MapPin, Calendar, Briefcase, User, FileText,
-  GraduationCap, Award, Clock, Palmtree, TrendingUp, Edit2, Download,
-  Key, Loader2, CheckCircle, XCircle, Shield, DollarSign, Printer
+import { useState, useEffect, useCallback } from 'react';
+import {
+  X, Maximize2, Minimize2, Download, Mail, Phone, MapPin, Calendar,
+  Briefcase, Building2, Users, CreditCard, Globe, Award, TrendingUp,
+  BookOpen, GraduationCap, AlertTriangle, ChevronDown, ChevronUp,
+  Star, Target, CheckCircle2, Clock, Loader2, Plus, Trash2, MessageSquare,
+  ThumbsUp, ExternalLink
 } from 'lucide-react';
-import { getEmployeeAccessStatus, activateEmployeeAccess, deactivateEmployeeAccess, type AccessStatus } from '@/lib/api';
-import EmployeeDocuments from '@/components/EmployeeDocuments';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app';
+// ============================================
+// AUTH HELPER
+// ============================================
 
 function getAuthHeaders(): HeadersInit {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-  return { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) };
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
 }
+
+// ============================================
+// TYPES
+// ============================================
 
 interface Employee {
   id: number;
-  name?: string;
-  first_name?: string;
-  last_name?: string;
+  employee_id?: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone?: string;
-  department?: string;
-  department_name?: string;
-  position?: string;
   job_title?: string;
-  location?: string;
-  site?: string;
-  startDate?: string;
-  hire_date?: string;
-  status: string;
-  manager?: string;
+  position?: string;
+  department_name?: string;
+  department_id?: number;
   manager_name?: string;
-  gender?: string;
-  birthYear?: number;
-  date_of_birth?: string;
-  isManager?: boolean;
+  manager_id?: number;
   is_manager?: boolean;
-  isTopManager?: boolean;
-  onLeave?: boolean;
   role?: string;
+  hire_date?: string;
+  date_of_birth?: string;
+  birth_date?: string;
+  gender?: string;
+  status?: string;
+  contract_type?: string;
+  site?: string;
+  location?: string;
   salary?: number;
   currency?: string;
-  contract_type?: string;
   classification?: string;
   coefficient?: string;
+  nationality?: string;
+  address?: string;
+  photo_url?: string;
+}
+
+interface PerformanceScore {
+  overall_score: number;
+  okr_score: number;
+  task_score: number;
+  validation_score: number;
+  feedback_score: number;
+  period: { start: string; end: string };
+  weights: Record<string, number>;
+  breakdown: Record<string, any>;
+}
+
+interface EvaluationItem {
+  id: number;
+  campaign_name?: string;
+  overall_score?: number;
+  status: string;
+  submitted_at?: string;
+  validated_at?: string;
+  created_at?: string;
+  evaluator_name?: string;
+  employee_name?: string;
+  type?: string;
+  strengths?: string[];
+  improvements?: string[];
+}
+
+interface FeedbackItem {
+  id: number;
+  from_employee_name?: string;
+  from_employee_initials?: string;
+  to_employee_name?: string;
+  type: string;
+  message: string;
+  is_public: boolean;
+  likes_count: number;
+  created_at: string;
+  is_liked_by_me?: boolean;
+}
+
+interface TrainingAssignment {
+  id: number;
+  course_id: number;
+  course_title?: string;
+  course_image?: string;
+  course_duration?: number;
+  course_external_url?: string;
+  requires_certificate?: boolean;
+  status: string;
+  deadline?: string;
+  assigned_at?: string;
+  completed_at?: string;
+  completion_note?: string;
+  certificate_file?: string;
+  certificate_filename?: string;
+  rejection_reason?: string;
+}
+
+interface EmployeeSkillItem {
+  id: number;
+  skill_id: number;
+  skill_name?: string;
+  skill_category?: string;
+  current_level: number;
+  target_level?: number;
+}
+
+interface Sanction {
+  id: number;
+  type: string;
+  date: string;
+  reason: string;
+  notes?: string;
+  issued_by?: string;
 }
 
 interface EmployeeModalProps {
   employee: Employee;
   onClose: () => void;
-  onEdit?: () => void;
 }
 
-interface LeaveBalanceItem {
-  id: number;
-  leave_type_name: string;
-  leave_type_code: string;
-  allocated: number;
-  taken: number;
-  pending: number;
-  carried_over: number;
-  available: number;
+// ============================================
+// HELPERS
+// ============================================
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+
+async function apiFetch(url: string, options?: RequestInit) {
+  const res = await fetch(`${API_BASE}${url}`, {
+    ...options,
+    headers: { ...getAuthHeaders(), ...(options?.headers || {}) },
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
 }
 
-interface LeaveBalanceData {
-  employee_id: number;
-  year: number;
-  balances: LeaveBalanceItem[];
-  total_available: number;
-  total_taken: number;
-  total_pending: number;
+function formatDate(dateStr?: string): string {
+  if (!dateStr) return '—';
+  try {
+    return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch { return dateStr; }
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  employee: 'Employé', manager: 'Manager', rh: 'RH', admin: 'Administrateur', dg: 'Direction Générale',
+function getScoreColor(score: number): string {
+  if (score >= 80) return 'text-green-600';
+  if (score >= 60) return 'text-blue-600';
+  if (score >= 40) return 'text-yellow-600';
+  return 'text-red-600';
+}
+
+function getScoreBg(score: number): string {
+  if (score >= 80) return 'bg-green-100';
+  if (score >= 60) return 'bg-blue-100';
+  if (score >= 40) return 'bg-yellow-100';
+  return 'bg-red-100';
+}
+
+function getScoreLabel(score: number): string {
+  if (score >= 90) return 'Exceptionnel';
+  if (score >= 80) return 'Excellent';
+  if (score >= 70) return 'Très bien';
+  if (score >= 60) return 'Bien';
+  if (score >= 50) return 'Satisfaisant';
+  if (score >= 40) return 'À améliorer';
+  return 'Insuffisant';
+}
+
+function getStatusBadge(status: string) {
+  const map: Record<string, { label: string; cls: string }> = {
+    completed: { label: 'Terminé', cls: 'bg-green-100 text-green-700' },
+    validated: { label: 'Validé', cls: 'bg-green-100 text-green-700' },
+    submitted: { label: 'Soumis', cls: 'bg-blue-100 text-blue-700' },
+    in_progress: { label: 'En cours', cls: 'bg-yellow-100 text-yellow-700' },
+    pending: { label: 'En attente', cls: 'bg-gray-100 text-gray-600' },
+    pending_validation: { label: 'Validation', cls: 'bg-orange-100 text-orange-700' },
+    assigned: { label: 'Assigné', cls: 'bg-purple-100 text-purple-700' },
+    rejected: { label: 'Rejeté', cls: 'bg-red-100 text-red-700' },
+    cancelled: { label: 'Annulé', cls: 'bg-gray-100 text-gray-500' },
+  };
+  const s = map[status] || { label: status, cls: 'bg-gray-100 text-gray-600' };
+  return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.cls}`}>{s.label}</span>;
+}
+
+const FEEDBACK_TYPES: Record<string, { label: string; emoji: string; color: string }> = {
+  recognition: { label: 'Reconnaissance', emoji: '🌟', color: 'text-yellow-600' },
+  encouragement: { label: 'Encouragement', emoji: '💪', color: 'text-blue-600' },
+  constructive: { label: 'Constructif', emoji: '🔧', color: 'text-orange-600' },
+  suggestion: { label: 'Suggestion', emoji: '💡', color: 'text-purple-600' },
+  gratitude: { label: 'Gratitude', emoji: '🙏', color: 'text-green-600' },
 };
 
-const LEAVE_COLORS: Record<string, { bg: string; text: string }> = {
-  'ANNUAL': { bg: 'bg-green-100', text: 'text-green-700' },
-  'annual': { bg: 'bg-green-100', text: 'text-green-700' },
-  'RTT': { bg: 'bg-blue-100', text: 'text-blue-700' },
-  'rtt': { bg: 'bg-blue-100', text: 'text-blue-700' },
-  'SENIORITY': { bg: 'bg-purple-100', text: 'text-purple-700' },
-  'seniority': { bg: 'bg-purple-100', text: 'text-purple-700' },
-  'SICK': { bg: 'bg-orange-100', text: 'text-orange-700' },
-  'sick': { bg: 'bg-orange-100', text: 'text-orange-700' },
+const SANCTION_TYPES: Record<string, { icon: string; color: string }> = {
+  'Avertissement': { icon: '⚠️', color: 'bg-yellow-100 text-yellow-800' },
+  'Blâme': { icon: '📋', color: 'bg-orange-100 text-orange-800' },
+  'Mise à pied': { icon: '🚫', color: 'bg-red-100 text-red-800' },
+  'Rétrogradation': { icon: '⬇️', color: 'bg-red-100 text-red-800' },
+  'Licenciement': { icon: '❌', color: 'bg-red-200 text-red-900' },
+  'Rappel à l\'ordre': { icon: '📝', color: 'bg-blue-100 text-blue-800' },
+  'Autre': { icon: '📄', color: 'bg-gray-100 text-gray-800' },
 };
 
-function getLeaveColor(code: string) {
-  return LEAVE_COLORS[code] || { bg: 'bg-gray-100', text: 'text-gray-700' };
-}
+// ============================================
+// MAIN COMPONENT
+// ============================================
 
-function calculateSeniority(hireDate: string): { years: number; months: number; text: string } {
-  const hire = new Date(hireDate);
-  const now = new Date();
-  let years = now.getFullYear() - hire.getFullYear();
-  let months = now.getMonth() - hire.getMonth();
-  if (months < 0) { years--; months += 12; }
-  if (now.getDate() < hire.getDate()) { months--; if (months < 0) { years--; months += 12; } }
-  const parts: string[] = [];
-  if (years > 0) parts.push(`${years} an${years > 1 ? 's' : ''}`);
-  if (months > 0) parts.push(`${months} mois`);
-  if (parts.length === 0) parts.push("Moins d'un mois");
-  return { years, months, text: parts.join(' ') };
-}
+export default function EmployeeModal({ employee, onClose }: EmployeeModalProps) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-function formatCurrency(amount: number, currency: string = 'XOF'): string {
-  return new Intl.NumberFormat('fr-FR', { style: 'decimal', maximumFractionDigits: 0 }).format(amount) + ' ' + currency;
-}
+  // Performance Score
+  const [perfScore, setPerfScore] = useState<PerformanceScore | null>(null);
+  const [perfPeriod, setPerfPeriod] = useState('quarter');
+  const [isLoadingPerf, setIsLoadingPerf] = useState(false);
 
-const CONTRACT_LABELS: Record<string, string> = {
-  'cdi': 'CDI', 'CDI': 'CDI', 'cdd': 'CDD', 'CDD': 'CDD',
-  'stage': 'Stage', 'STAGE': 'Stage', 'alternance': 'Alternance', 'ALTERNANCE': 'Alternance',
-  'consultant': 'Consultant', 'CONSULTANT': 'Consultant', 'interim': 'Intérim', 'INTERIM': 'Intérim',
-  'freelance': 'Freelance', 'FREELANCE': 'Freelance',
-};
+  // Evaluations (from performance.py)
+  const [evaluations, setEvaluations] = useState<EvaluationItem[]>([]);
+  const [showAllEvals, setShowAllEvals] = useState(false);
+  const [isLoadingEvals, setIsLoadingEvals] = useState(false);
 
-export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeModalProps) {
-  const [accessStatus, setAccessStatus] = useState<AccessStatus | null>(null);
-  const [isLoadingAccess, setIsLoadingAccess] = useState(true);
-  const [isActivating, setIsActivating] = useState(false);
-  const [isDeactivating, setIsDeactivating] = useState(false);
-  const [tempPassword, setTempPassword] = useState<string | null>(null);
-  const [error, setError] = useState('');
-  const [leaveBalance, setLeaveBalance] = useState<LeaveBalanceData | null>(null);
-  const [isLoadingLeave, setIsLoadingLeave] = useState(true);
-  const [isExporting, setIsExporting] = useState(false);
+  // Feedbacks (from performance.py)
+  const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
+  const [showAllFeedbacks, setShowAllFeedbacks] = useState(false);
+  const [isLoadingFeedbacks, setIsLoadingFeedbacks] = useState(false);
 
-  const displayName = employee.name || `${employee.first_name || ''} ${employee.last_name || ''}`.trim();
-  const displayPosition = employee.position || employee.job_title || 'Poste non défini';
-  const displayDepartment = employee.department || employee.department_name || '-';
-  const displayLocation = employee.location || employee.site || '-';
-  const displayManager = employee.manager || employee.manager_name || 'Aucun';
-  const displayHireDate = employee.startDate || employee.hire_date || '';
-  const isManager = employee.isManager || employee.is_manager || false;
-  const isOnLeave = employee.onLeave || employee.status === 'on_leave';
+  // Trainings / Assignments (from learning.py)
+  const [trainings, setTrainings] = useState<TrainingAssignment[]>([]);
+  const [showAllTrainings, setShowAllTrainings] = useState(false);
+  const [isLoadingTrainings, setIsLoadingTrainings] = useState(false);
 
-  let age = 0;
-  if (employee.birthYear) { age = new Date().getFullYear() - employee.birthYear; }
-  else if (employee.date_of_birth) { age = new Date().getFullYear() - new Date(employee.date_of_birth).getFullYear(); }
+  // Skills (from learning.py)
+  const [skills, setSkills] = useState<EmployeeSkillItem[]>([]);
+  const [isLoadingSkills, setIsLoadingSkills] = useState(false);
 
-  const seniority = displayHireDate ? calculateSeniority(displayHireDate) : null;
-  const contractTypeDisplay = CONTRACT_LABELS[employee.contract_type || ''] || employee.contract_type || '-';
+  // Sanctions (backend pending)
+  const [sanctions, setSanctions] = useState<Sanction[]>([]);
+  const [isLoadingSanctions, setIsLoadingSanctions] = useState(false);
+  const [showAddSanction, setShowAddSanction] = useState(false);
+  const [isSavingSanction, setIsSavingSanction] = useState(false);
+  const [newSanction, setNewSanction] = useState({
+    type: 'Avertissement',
+    date: new Date().toISOString().split('T')[0],
+    reason: '',
+    notes: '',
+  });
 
-  useEffect(() => { loadAccessStatus(); loadLeaveBalance(); }, [employee.id]);
+  // ============================================
+  // DATA LOADING — REAL API ENDPOINTS
+  // ============================================
 
-  async function loadAccessStatus() {
-    setIsLoadingAccess(true);
-    try { const status = await getEmployeeAccessStatus(employee.id); setAccessStatus(status); }
-    catch (err) { console.error('Error loading access status:', err); }
-    finally { setIsLoadingAccess(false); }
-  }
-
-  async function loadLeaveBalance() {
-    setIsLoadingLeave(true);
+  // 1) Performance Score — GET /api/performance/score/employee/{id}?period=...
+  const loadPerformance = useCallback(async () => {
+    setIsLoadingPerf(true);
     try {
-      const year = new Date().getFullYear();
-      const res = await fetch(`${API_URL}/api/leaves/balance/${employee.id}?year=${year}`, { headers: getAuthHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          const balances = data as LeaveBalanceItem[];
-          setLeaveBalance({
-            employee_id: employee.id, year,
-            balances,
-            total_available: balances.reduce((s, b) => s + (b.available || 0), 0),
-            total_taken: balances.reduce((s, b) => s + (b.taken || 0), 0),
-            total_pending: balances.reduce((s, b) => s + (b.pending || 0), 0),
-          });
-        } else if (data.balances) {
-          setLeaveBalance(data);
-        }
+      const data = await apiFetch(`/api/performance/score/employee/${employee.id}?period=${perfPeriod}`);
+      setPerfScore(data);
+    } catch (err) {
+      console.warn('Performance score not available:', err);
+      setPerfScore(null);
+    } finally {
+      setIsLoadingPerf(false);
+    }
+  }, [employee.id, perfPeriod]);
+
+  // 2) Evaluations — GET /api/performance/evaluations?employee_id={id}
+  const loadEvaluations = useCallback(async () => {
+    setIsLoadingEvals(true);
+    try {
+      const data = await apiFetch(`/api/performance/evaluations?employee_id=${employee.id}&page_size=10`);
+      setEvaluations(data.items || []);
+    } catch (err) {
+      console.warn('Evaluations not available:', err);
+      setEvaluations([]);
+    } finally {
+      setIsLoadingEvals(false);
+    }
+  }, [employee.id]);
+
+  // 3) Feedbacks reçus — GET /api/performance/feedbacks?to_employee_id={id}
+  const loadFeedbacks = useCallback(async () => {
+    setIsLoadingFeedbacks(true);
+    try {
+      const data = await apiFetch(`/api/performance/feedbacks?to_employee_id=${employee.id}&page_size=10`);
+      setFeedbacks(data.items || []);
+    } catch (err) {
+      console.warn('Feedbacks not available:', err);
+      setFeedbacks([]);
+    } finally {
+      setIsLoadingFeedbacks(false);
+    }
+  }, [employee.id]);
+
+  // 4) Training Assignments — GET /api/learning/assignments/?employee_id={id}
+  const loadTrainings = useCallback(async () => {
+    setIsLoadingTrainings(true);
+    try {
+      const data = await apiFetch(`/api/learning/assignments/?employee_id=${employee.id}&page_size=50`);
+      setTrainings(data.items || []);
+    } catch (err) {
+      console.warn('Trainings not available:', err);
+      setTrainings([]);
+    } finally {
+      setIsLoadingTrainings(false);
+    }
+  }, [employee.id]);
+
+  // 5) Employee Skills — GET /api/learning/employees/{id}/skills
+  const loadSkills = useCallback(async () => {
+    setIsLoadingSkills(true);
+    try {
+      const data = await apiFetch(`/api/learning/employees/${employee.id}/skills`);
+      setSkills(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.warn('Skills not available:', err);
+      setSkills([]);
+    } finally {
+      setIsLoadingSkills(false);
+    }
+  }, [employee.id]);
+
+  // 6) Sanctions — GET /api/employees/{id}/sanctions (backend pending)
+  const loadSanctions = useCallback(async () => {
+    setIsLoadingSanctions(true);
+    try {
+      const data = await apiFetch(`/api/employees/${employee.id}/sanctions`);
+      setSanctions(Array.isArray(data) ? data : data.items || []);
+    } catch {
+      setSanctions([]);
+    } finally {
+      setIsLoadingSanctions(false);
+    }
+  }, [employee.id]);
+
+  // Initial load
+  useEffect(() => {
+    loadPerformance();
+    loadEvaluations();
+    loadFeedbacks();
+    loadTrainings();
+    loadSkills();
+    loadSanctions();
+  }, [loadPerformance, loadEvaluations, loadFeedbacks, loadTrainings, loadSkills, loadSanctions]);
+
+  // Reload performance on period change
+  useEffect(() => {
+    loadPerformance();
+  }, [perfPeriod, loadPerformance]);
+
+  // ESC key handler
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isFullscreen) setIsFullscreen(false);
+        else onClose();
       }
-    } catch (err) { console.error('Error loading leave balance:', err); }
-    finally { setIsLoadingLeave(false); }
-  }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [isFullscreen, onClose]);
 
-  async function handleActivateAccess() {
-    setIsActivating(true); setError('');
+  // ============================================
+  // SANCTIONS ACTIONS
+  // ============================================
+
+  const handleAddSanction = async () => {
+    if (!newSanction.reason.trim()) return;
+    setIsSavingSanction(true);
     try {
-      const result = await activateEmployeeAccess(employee.id, false);
-      setTempPassword(result.temp_password);
-      setAccessStatus({ has_access: true, user_id: result.user_id, is_active: true, is_verified: false, last_login: null, role: result.role });
-    } catch (err) { setError(err instanceof Error ? err.message : "Erreur lors de l'activation"); }
-    finally { setIsActivating(false); }
-  }
+      const data = await apiFetch(`/api/employees/${employee.id}/sanctions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSanction),
+      });
+      setSanctions(prev => [data, ...prev]);
+    } catch {
+      // Fallback local si API pas encore dispo
+      const localSanction: Sanction = { id: Date.now(), ...newSanction, issued_by: 'Vous' };
+      setSanctions(prev => [localSanction, ...prev]);
+    } finally {
+      setNewSanction({ type: 'Avertissement', date: new Date().toISOString().split('T')[0], reason: '', notes: '' });
+      setShowAddSanction(false);
+      setIsSavingSanction(false);
+    }
+  };
 
-  async function handleDeactivateAccess() {
-    if (!confirm("Êtes-vous sûr de vouloir désactiver l'accès de cet employé ?")) return;
-    setIsDeactivating(true); setError('');
-    try { await deactivateEmployeeAccess(employee.id); setAccessStatus(prev => prev ? { ...prev, is_active: false } : null); }
-    catch (err) { setError(err instanceof Error ? err.message : "Erreur lors de la désactivation"); }
-    finally { setIsDeactivating(false); }
-  }
-
-  function handleExportPDF() {
-    setIsExporting(true);
+  const handleDeleteSanction = async (sanctionId: number) => {
+    if (!confirm('Supprimer cette sanction ?')) return;
     try {
-      const hireFmt = displayHireDate ? new Date(displayHireDate).toLocaleDateString('fr-FR') : '-';
-      const senText = seniority?.text || '-';
-      const genderText = employee.gender === 'female' || employee.gender === 'F' ? 'Femme' : 'Homme';
+      await apiFetch(`/api/employees/${employee.id}/sanctions/${sanctionId}`, { method: 'DELETE' });
+    } catch { /* fallback */ }
+    setSanctions(prev => prev.filter(s => s.id !== sanctionId));
+  };
 
-      const leaveRows = leaveBalance?.balances?.map(b => `
-        <tr><td style="padding:8px;border-bottom:1px solid #eee;">${b.leave_type_name}</td>
-        <td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">${b.allocated}</td>
-        <td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">${b.taken}</td>
-        <td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">${b.pending}</td>
-        <td style="padding:8px;border-bottom:1px solid #eee;text-align:center;font-weight:bold;">${b.available}</td></tr>
-      `).join('') || '<tr><td colspan="5" style="padding:12px;text-align:center;color:#999;">Aucun solde configuré</td></tr>';
+  // ============================================
+  // DERIVED DATA
+  // ============================================
 
-      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Dossier - ${displayName}</title>
-<style>body{font-family:'Segoe UI',Arial,sans-serif;margin:0;padding:40px;color:#333}
-.header{background:linear-gradient(135deg,#4F46E5,#7C3AED);color:white;padding:30px;border-radius:12px;margin-bottom:30px}
-.header h1{margin:0 0 5px 0;font-size:24px}.header p{margin:0;opacity:0.9}
-.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;background:rgba(255,255,255,0.2);margin-top:8px}
-.section{margin-bottom:25px}.section h2{font-size:16px;color:#4F46E5;border-bottom:2px solid #E5E7EB;padding-bottom:8px;margin-bottom:15px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.field{margin-bottom:10px}.field .label{font-size:12px;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px}
-.field .value{font-size:14px;font-weight:500;margin-top:2px}
-table{width:100%;border-collapse:collapse}th{background:#F9FAFB;padding:10px 8px;text-align:left;font-size:12px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #E5E7EB}
-.footer{margin-top:40px;padding-top:20px;border-top:1px solid #E5E7EB;font-size:11px;color:#9CA3AF;text-align:center}
-@media print{body{padding:20px}.header{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head>
-<body>
-<div class="header"><h1>${displayName}</h1><p>${displayPosition} — ${displayDepartment}</p>
-<span class="badge">${employee.status === 'active' ? 'Actif' : employee.status}</span>
-${isManager ? '<span class="badge" style="margin-left:8px;">Manager</span>' : ''}</div>
+  const initials = `${employee.first_name?.[0] || ''}${employee.last_name?.[0] || ''}`.toUpperCase();
+  const fullName = `${employee.first_name} ${employee.last_name}`;
+  const jobTitle = employee.job_title || employee.position || '—';
+  const department = employee.department_name || '—';
+  const hireDate = employee.hire_date;
+  const birthDate = employee.date_of_birth || employee.birth_date;
+  const seniority = hireDate
+    ? Math.floor((Date.now() - new Date(hireDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+    : null;
 
-<div class="section"><h2>📋 Informations Personnelles</h2><div class="grid">
-<div class="field"><div class="label">Email</div><div class="value">${employee.email}</div></div>
-<div class="field"><div class="label">Téléphone</div><div class="value">${employee.phone || '-'}</div></div>
-<div class="field"><div class="label">Localisation</div><div class="value">${displayLocation}</div></div>
-<div class="field"><div class="label">Genre</div><div class="value">${genderText}</div></div>
-${age > 0 ? `<div class="field"><div class="label">Âge</div><div class="value">${age} ans</div></div>` : ''}
-</div></div>
+  const completedTrainings = trainings.filter(t => t.status === 'completed').length;
+  const inProgressTrainings = trainings.filter(t => ['assigned', 'in_progress', 'pending_validation'].includes(t.status)).length;
 
-<div class="section"><h2>💼 Poste & Organisation</h2><div class="grid">
-<div class="field"><div class="label">Poste</div><div class="value">${displayPosition}</div></div>
-<div class="field"><div class="label">Département</div><div class="value">${displayDepartment}</div></div>
-<div class="field"><div class="label">Manager</div><div class="value">${displayManager}</div></div>
-<div class="field"><div class="label">Site</div><div class="value">${displayLocation}</div></div>
-</div></div>
+  const statusMap: Record<string, { label: string; cls: string }> = {
+    active: { label: 'Actif', cls: 'bg-green-100 text-green-700' },
+    probation: { label: 'Essai', cls: 'bg-yellow-100 text-yellow-700' },
+    on_leave: { label: 'Congé', cls: 'bg-blue-100 text-blue-700' },
+    suspended: { label: 'Suspendu', cls: 'bg-red-100 text-red-700' },
+    terminated: { label: 'Terminé', cls: 'bg-gray-100 text-gray-600' },
+  };
+  const empStatus = statusMap[employee.status || 'active'] || statusMap.active;
 
-<div class="section"><h2>📄 Contrat</h2><div class="grid">
-<div class="field"><div class="label">Type de contrat</div><div class="value">${contractTypeDisplay}</div></div>
-<div class="field"><div class="label">Date d'entrée</div><div class="value">${hireFmt}</div></div>
-${employee.classification ? `<div class="field"><div class="label">Classification</div><div class="value">${employee.classification}</div></div>` : ''}
-${employee.coefficient ? `<div class="field"><div class="label">Coefficient</div><div class="value">${employee.coefficient}</div></div>` : ''}
-<div class="field"><div class="label">Ancienneté</div><div class="value">${senText}</div></div>
-${employee.salary ? `<div class="field"><div class="label">Salaire brut mensuel</div><div class="value">${formatCurrency(employee.salary, employee.currency || 'XOF')}</div></div>` : ''}
-</div></div>
+  const contractMap: Record<string, string> = {
+    cdi: 'CDI', cdd: 'CDD', stage: 'Stage', alternance: 'Alternance',
+    consultant: 'Consultant', interim: 'Intérim',
+  };
 
-<div class="section"><h2>🌴 Solde de Congés ${leaveBalance?.year || new Date().getFullYear()}</h2>
-<table><thead><tr><th>Type</th><th style="text-align:center;">Alloués</th><th style="text-align:center;">Pris</th><th style="text-align:center;">En attente</th><th style="text-align:center;">Disponibles</th></tr></thead>
-<tbody>${leaveRows}</tbody></table></div>
-
-<div class="footer">Dossier employé exporté depuis TARGETYM AI — ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
-</body></html>`;
-
-      const w = window.open('', '_blank');
-      if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500); }
-    } catch (err) { console.error('Export error:', err); }
-    finally { setIsExporting(false); }
-  }
+  // ============================================
+  // RENDER
+  // ============================================
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-primary-500 to-primary-600">
-          <div className="flex items-center">
-            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-white text-xl font-bold mr-4">
-              {displayName.split(' ').map(n => n[0]).join('').substring(0, 2)}
+      <div
+        className={`bg-white flex flex-col transition-all duration-300 ${
+          isFullscreen
+            ? 'w-full h-full max-w-full max-h-full rounded-none'
+            : 'w-full max-w-4xl max-h-[90vh] rounded-2xl'
+        }`}
+      >
+        {/* ==================== HEADER ==================== */}
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-lg">
+              {initials}
             </div>
-            <div className="text-white">
-              <h2 className="text-xl font-bold">{displayName}</h2>
-              <p className="text-primary-100">{displayPosition}</p>
-              <div className="flex items-center gap-2 mt-1">
-                {isOnLeave ? (
-                  <span className="px-2 py-0.5 bg-green-400/30 text-white text-xs rounded-full">En congés</span>
-                ) : (
-                  <span className="px-2 py-0.5 bg-white/20 text-white text-xs rounded-full">
-                    {employee.status === 'active' ? 'Actif' : employee.status}
-                  </span>
-                )}
-                {employee.role && (
-                  <span className="px-2 py-0.5 bg-purple-400/30 text-white text-xs rounded-full">
-                    {ROLE_LABELS[employee.role] || employee.role}
-                  </span>
-                )}
-                {isManager && (
-                  <span className="px-2 py-0.5 bg-yellow-400/30 text-white text-xs rounded-full">Manager</span>
-                )}
-              </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">{fullName}</h2>
+              <p className="text-sm text-gray-500">{jobTitle} · {department}</p>
             </div>
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${empStatus.cls}`}>
+              {empStatus.label}
+            </span>
           </div>
           <div className="flex items-center gap-2">
-            {onEdit && (
-              <button onClick={onEdit} className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg" title="Modifier">
-                <Edit2 className="w-5 h-5" />
-              </button>
-            )}
-            <button onClick={handleExportPDF} disabled={isExporting} className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg" title="Télécharger le dossier">
-              {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+            <button onClick={() => window.print()} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg" title="Exporter PDF">
+              <Download className="w-5 h-5" />
             </button>
-            <button onClick={onClose} className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg">
+            <button onClick={() => setIsFullscreen(!isFullscreen)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg" title={isFullscreen ? 'Réduire' : 'Plein écran'}>
+              {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+            </button>
+            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {tempPassword && (
-            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-start">
-                <Key className="w-5 h-5 text-yellow-600 mr-3 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-yellow-800">Compte créé avec succès !</p>
-                  <p className="text-sm text-yellow-700 mt-1">Mot de passe temporaire :</p>
-                  <p className="font-mono text-lg font-bold text-yellow-900 select-all mt-1">{tempPassword}</p>
-                  <p className="text-xs text-yellow-600 mt-2">⚠️ Notez ce mot de passe et communiquez-le à l&apos;employé. Il ne sera plus affiché.</p>
+        {/* ==================== BODY ==================== */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+          {/* ──────────── INFORMATIONS PERSONNELLES ──────────── */}
+          <section>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <Users className="w-4 h-4 text-gray-400" />
+              Informations personnelles
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <InfoItem icon={<Mail className="w-4 h-4" />} label="Email" value={employee.email} />
+              <InfoItem icon={<Phone className="w-4 h-4" />} label="Téléphone" value={employee.phone} />
+              <InfoItem icon={<Calendar className="w-4 h-4" />} label="Date de naissance" value={formatDate(birthDate)} />
+              <InfoItem icon={<Globe className="w-4 h-4" />} label="Nationalité" value={employee.nationality} />
+              <InfoItem icon={<MapPin className="w-4 h-4" />} label="Adresse" value={employee.address || employee.site || employee.location} />
+              <InfoItem label="Genre" value={employee.gender === 'male' ? 'Homme' : employee.gender === 'female' ? 'Femme' : employee.gender} />
+            </div>
+          </section>
+
+          {/* ──────────── INFORMATIONS PROFESSIONNELLES ──────────── */}
+          <section>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <Briefcase className="w-4 h-4 text-gray-400" />
+              Informations professionnelles
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <InfoItem label="Matricule" value={employee.employee_id} />
+              <InfoItem icon={<Building2 className="w-4 h-4" />} label="Département" value={department} />
+              <InfoItem label="Poste" value={jobTitle} />
+              <InfoItem label="Manager" value={employee.manager_name} />
+              <InfoItem icon={<Calendar className="w-4 h-4" />} label="Date d'embauche" value={formatDate(hireDate)} />
+              {seniority !== null && <InfoItem label="Ancienneté" value={`${seniority} an${seniority > 1 ? 's' : ''}`} />}
+              <InfoItem label="Contrat" value={contractMap[employee.contract_type || ''] || employee.contract_type} />
+              <InfoItem label="Classification" value={employee.classification} />
+              <InfoItem label="Rôle système" value={employee.role} />
+              {employee.salary != null && employee.salary > 0 && (
+                <InfoItem icon={<CreditCard className="w-4 h-4" />} label="Salaire" value={`${employee.salary.toLocaleString('fr-FR')} ${employee.currency || 'XOF'}`} />
+              )}
+            </div>
+          </section>
+
+          {/* ──────────── PERFORMANCE SCORE ──────────── */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-gray-400" />
+                Score de performance
+              </h3>
+              <select
+                value={perfPeriod}
+                onChange={e => setPerfPeriod(e.target.value)}
+                className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:ring-1 focus:ring-primary-500 outline-none"
+              >
+                <option value="month">Ce mois</option>
+                <option value="quarter">Ce trimestre</option>
+                <option value="year">Cette année</option>
+                <option value="last_quarter">Trim. précédent</option>
+                <option value="last_month">Mois précédent</option>
+              </select>
+            </div>
+
+            {isLoadingPerf ? (
+              <LoadingRow />
+            ) : perfScore ? (
+              <div className="grid grid-cols-5 gap-3">
+                <div className={`col-span-1 p-4 rounded-xl text-center ${getScoreBg(perfScore.overall_score)}`}>
+                  <div className={`text-2xl font-bold ${getScoreColor(perfScore.overall_score)}`}>
+                    {Math.round(perfScore.overall_score)}%
+                  </div>
+                  <div className={`text-xs font-medium mt-1 ${getScoreColor(perfScore.overall_score)}`}>
+                    {getScoreLabel(perfScore.overall_score)}
+                  </div>
+                </div>
+                <div className="col-span-4 grid grid-cols-4 gap-2">
+                  <ScoreCard label="OKRs" value={perfScore.okr_score} weight="40%" icon={<Target className="w-3.5 h-3.5" />} />
+                  <ScoreCard label="Tâches" value={perfScore.task_score} weight="25%" icon={<CheckCircle2 className="w-3.5 h-3.5" />} />
+                  <ScoreCard label="Validations" value={perfScore.validation_score} weight="20%" icon={<Clock className="w-3.5 h-3.5" />} />
+                  <ScoreCard label="Feedbacks" value={perfScore.feedback_score} weight="15%" icon={<Star className="w-3.5 h-3.5" />} />
                 </div>
               </div>
-            </div>
+            ) : (
+              <EmptyState text="Aucun score de performance disponible pour cette période." />
+            )}
+          </section>
+
+          {/* ──────────── ÉVALUATIONS ──────────── */}
+          <section>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <Award className="w-4 h-4 text-gray-400" />
+              Évaluations
+              {evaluations.length > 0 && (
+                <span className="ml-auto text-xs text-gray-400 font-normal">{evaluations.length} évaluation(s)</span>
+              )}
+            </h3>
+
+            {isLoadingEvals ? (
+              <LoadingRow />
+            ) : evaluations.length > 0 ? (
+              <>
+                <div className="space-y-2">
+                  {(showAllEvals ? evaluations : evaluations.slice(0, 3)).map(ev => (
+                    <div key={ev.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {ev.campaign_name || `Évaluation #${ev.id}`}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {ev.evaluator_name && `Par ${ev.evaluator_name} · `}
+                          {formatDate(ev.submitted_at || ev.validated_at || ev.created_at)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {ev.overall_score != null && (
+                          <span className={`text-sm font-bold ${getScoreColor(ev.overall_score * 20)}`}>
+                            {ev.overall_score}/5
+                          </span>
+                        )}
+                        {getStatusBadge(ev.status)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {evaluations.length > 3 && (
+                  <ToggleButton
+                    expanded={showAllEvals}
+                    remaining={evaluations.length - 3}
+                    onToggle={() => setShowAllEvals(!showAllEvals)}
+                  />
+                )}
+              </>
+            ) : (
+              <EmptyState text="Aucune évaluation trouvée." />
+            )}
+          </section>
+
+          {/* ──────────── FEEDBACKS REÇUS ──────────── */}
+          {feedbacks.length > 0 && (
+            <section>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-gray-400" />
+                Feedbacks reçus
+                <span className="ml-auto text-xs text-gray-400 font-normal">{feedbacks.length}</span>
+              </h3>
+              <div className="space-y-2">
+                {(showAllFeedbacks ? feedbacks : feedbacks.slice(0, 3)).map(fb => {
+                  const fbType = FEEDBACK_TYPES[fb.type] || { label: fb.type, emoji: '💬', color: 'text-gray-600' };
+                  return (
+                    <div key={fb.id} className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">{fbType.emoji}</span>
+                          <span className="text-xs font-medium text-gray-500">{fb.from_employee_name || 'Anonyme'}</span>
+                          <span className={`text-xs ${fbType.color}`}>{fbType.label}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                          {fb.likes_count > 0 && (
+                            <span className="flex items-center gap-0.5">
+                              <ThumbsUp className="w-3 h-3" /> {fb.likes_count}
+                            </span>
+                          )}
+                          {formatDate(fb.created_at)}
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-700">{fb.message}</p>
+                    </div>
+                  );
+                })}
+              </div>
+              {feedbacks.length > 3 && (
+                <ToggleButton
+                  expanded={showAllFeedbacks}
+                  remaining={feedbacks.length - 3}
+                  onToggle={() => setShowAllFeedbacks(!showAllFeedbacks)}
+                />
+              )}
+            </section>
           )}
 
-          {error && <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>}
-
-          <div className="grid lg:grid-cols-3 gap-6">
-            {/* Colonne 1 */}
-            <div className="space-y-6">
-              {/* Accès plateforme */}
-              <div className="bg-gray-50 rounded-xl p-5">
-                <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
-                  <Shield className="w-4 h-4 mr-2 text-primary-500" />Accès Plateforme
-                </h3>
-                {isLoadingAccess ? (
-                  <div className="flex items-center justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
-                ) : accessStatus?.has_access ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-500">Statut</span>
-                      {accessStatus.is_active ? (
-                        <span className="flex items-center text-sm text-green-600"><CheckCircle className="w-4 h-4 mr-1" />Actif</span>
-                      ) : (
-                        <span className="flex items-center text-sm text-red-600"><XCircle className="w-4 h-4 mr-1" />Désactivé</span>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-500">Vérifié</span>
-                      <span className="text-sm text-gray-900">{accessStatus.is_verified ? 'Oui' : 'Non (mot de passe temporaire)'}</span>
-                    </div>
-                    {accessStatus.last_login && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500">Dernière connexion</span>
-                        <span className="text-sm text-gray-900">{new Date(accessStatus.last_login).toLocaleDateString('fr-FR')}</span>
-                      </div>
-                    )}
-                    {accessStatus.is_active && (
-                      <button onClick={handleDeactivateAccess} disabled={isDeactivating}
-                        className="w-full mt-2 px-3 py-2 text-sm text-red-600 font-medium border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50 flex items-center justify-center">
-                        {isDeactivating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Désactiver l&apos;accès
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-gray-500 mb-3">Aucun compte d&apos;accès</p>
-                    <button onClick={handleActivateAccess} disabled={isActivating}
-                      className="px-4 py-2 text-sm text-white font-medium bg-primary-500 rounded-lg hover:bg-primary-600 disabled:opacity-50 flex items-center justify-center mx-auto">
-                      {isActivating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Key className="w-4 h-4 mr-2" />}
-                      Activer l&apos;accès
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Infos personnelles */}
-              <div className="bg-gray-50 rounded-xl p-5">
-                <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
-                  <User className="w-4 h-4 mr-2 text-primary-500" />Informations Personnelles
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center text-sm"><Mail className="w-4 h-4 mr-3 text-gray-400" /><span className="text-gray-600">{employee.email}</span></div>
-                  <div className="flex items-center text-sm"><Phone className="w-4 h-4 mr-3 text-gray-400" /><span className="text-gray-600">{employee.phone || '-'}</span></div>
-                  <div className="flex items-center text-sm"><MapPin className="w-4 h-4 mr-3 text-gray-400" /><span className="text-gray-600">{displayLocation}</span></div>
-                  {age > 0 && <div className="flex items-center text-sm"><Calendar className="w-4 h-4 mr-3 text-gray-400" /><span className="text-gray-600">{age} ans</span></div>}
-                  <div className="flex items-center text-sm">
-                    <span className="w-4 h-4 mr-3 text-gray-400 text-center">{employee.gender === 'female' || employee.gender === 'F' ? '♀' : '♂'}</span>
-                    <span className="text-gray-600">{employee.gender === 'female' || employee.gender === 'F' ? 'Femme' : 'Homme'}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Poste */}
-              <div className="bg-gray-50 rounded-xl p-5">
-                <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
-                  <Briefcase className="w-4 h-4 mr-2 text-primary-500" />Poste & Organisation
-                </h3>
-                <div className="space-y-3">
-                  <div><p className="text-xs text-gray-500">Poste</p><p className="text-sm font-medium text-gray-900">{displayPosition}</p></div>
-                  <div><p className="text-xs text-gray-500">Département</p><p className="text-sm font-medium text-gray-900">{displayDepartment}</p></div>
-                  <div><p className="text-xs text-gray-500">Manager</p><p className="text-sm font-medium text-gray-900">{displayManager}</p></div>
-                  <div><p className="text-xs text-gray-500">Site</p><p className="text-sm font-medium text-gray-900">{displayLocation}</p></div>
-                </div>
-              </div>
-            </div>
-
-            {/* Colonne 2 */}
-            <div className="space-y-6">
-              {/* Contrat */}
-              <div className="bg-gray-50 rounded-xl p-5">
-                <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
-                  <FileText className="w-4 h-4 mr-2 text-primary-500" />Contrat
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between"><span className="text-sm text-gray-500">Type</span><span className="text-sm font-medium text-gray-900">{contractTypeDisplay}</span></div>
-                  <div className="flex justify-between"><span className="text-sm text-gray-500">Date d&apos;entrée</span><span className="text-sm font-medium text-gray-900">{displayHireDate ? new Date(displayHireDate).toLocaleDateString('fr-FR') : '-'}</span></div>
-                  {employee.classification && <div className="flex justify-between"><span className="text-sm text-gray-500">Classification</span><span className="text-sm font-medium text-gray-900">{employee.classification}</span></div>}
-                  {employee.coefficient && <div className="flex justify-between"><span className="text-sm text-gray-500">Coefficient</span><span className="text-sm font-medium text-gray-900">{employee.coefficient}</span></div>}
-                </div>
-              </div>
-
-              {/* Salaire */}
-              {employee.salary != null && employee.salary > 0 && (
-                <div className="bg-gray-50 rounded-xl p-5">
-                  <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
-                    <DollarSign className="w-4 h-4 mr-2 text-primary-500" />Rémunération
-                  </h3>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">Salaire brut mensuel</span>
-                    <span className="text-sm font-bold text-gray-900">{formatCurrency(employee.salary, employee.currency || 'XOF')}</span>
-                  </div>
-                </div>
+          {/* ──────────── FORMATIONS ──────────── */}
+          <section>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <GraduationCap className="w-4 h-4 text-gray-400" />
+              Formations
+              {trainings.length > 0 && (
+                <span className="ml-auto flex items-center gap-2 text-xs font-normal">
+                  <span className="text-green-600">✓ {completedTrainings} terminée(s)</span>
+                  {inProgressTrainings > 0 && <span className="text-yellow-600">⏳ {inProgressTrainings} en cours</span>}
+                </span>
               )}
+            </h3>
 
-              {/* Solde congés — DONNÉES RÉELLES */}
-              <div className="bg-gray-50 rounded-xl p-5">
-                <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
-                  <Palmtree className="w-4 h-4 mr-2 text-green-500" />Solde de Congés
-                </h3>
-                {isLoadingLeave ? (
-                  <div className="flex items-center justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
-                ) : leaveBalance && leaveBalance.balances.length > 0 ? (
-                  <div className="space-y-3">
-                    {leaveBalance.balances.map((b) => {
-                      const c = getLeaveColor(b.leave_type_code);
-                      return (
-                        <div key={b.id} className="flex justify-between items-center">
-                          <span className="text-sm text-gray-500">{b.leave_type_name}</span>
-                          <span className={`px-2 py-1 ${c.bg} ${c.text} text-sm font-medium rounded-lg`}>{b.available} jours</span>
-                        </div>
-                      );
-                    })}
-                    <div className="border-t border-gray-200 pt-3 mt-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-500">Pris cette année</span>
-                        <span className="text-sm font-medium text-gray-900">{leaveBalance.total_taken} jours</span>
-                      </div>
-                      {leaveBalance.total_pending > 0 && (
-                        <div className="flex justify-between items-center mt-2">
-                          <span className="text-sm text-gray-500">En attente</span>
-                          <span className="text-sm font-medium text-yellow-600">{leaveBalance.total_pending} jours</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-3">
-                    <p className="text-sm text-gray-400">Aucun solde configuré</p>
-                    <p className="text-xs text-gray-400 mt-1">Initialisez les soldes dans le module Congés</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Ancienneté — CALCULÉE */}
-              {seniority && (
-                <div className="bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl p-5">
-                  <div className="flex items-center justify-between">
-                    <div><p className="text-xs text-primary-600">Ancienneté</p><p className="text-2xl font-bold text-primary-700">{seniority.text}</p></div>
-                    <Clock className="w-10 h-10 text-primary-300" />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Colonne 3 */}
-            <div className="space-y-6">
-              <EmployeeDocuments employeeId={employee.id} employeeName={displayName} readOnly={false} />
-              <div className="bg-gray-50 rounded-xl p-5">
-                <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
-                  <TrendingUp className="w-4 h-4 mr-2 text-primary-500" />Modules à venir
-                </h3>
+            {isLoadingTrainings ? (
+              <LoadingRow />
+            ) : trainings.length > 0 ? (
+              <>
                 <div className="space-y-2">
-                  <div className="flex items-center p-2 bg-gray-200/50 rounded-lg"><GraduationCap className="w-4 h-4 text-gray-400 mr-2" /><span className="text-sm text-gray-500">Formations (Phase 3)</span></div>
-                  <div className="flex items-center p-2 bg-gray-200/50 rounded-lg"><Award className="w-4 h-4 text-gray-400 mr-2" /><span className="text-sm text-gray-500">Performance (Phase 2)</span></div>
-                  <div className="flex items-center p-2 bg-gray-200/50 rounded-lg"><TrendingUp className="w-4 h-4 text-gray-400 mr-2" /><span className="text-sm text-gray-500">Carrière (Phase 3)</span></div>
+                  {(showAllTrainings ? trainings : trainings.slice(0, 4)).map(t => (
+                    <div key={t.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg group">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <span className="text-lg flex-shrink-0">{t.course_image || '📚'}</span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {t.course_title || `Formation #${t.course_id}`}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {t.course_duration && `${t.course_duration}h`}
+                            {t.deadline && ` · Échéance: ${formatDate(t.deadline)}`}
+                            {t.completed_at && ` · Terminé le ${formatDate(t.completed_at)}`}
+                            {t.rejection_reason && (
+                              <span className="text-red-500"> · Rejeté: {t.rejection_reason}</span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {t.requires_certificate && (
+                          <span className="text-xs text-gray-400" title="Certificat requis">📎</span>
+                        )}
+                        {t.course_external_url && (
+                          <a
+                            href={t.course_external_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-primary-600 transition-opacity"
+                            title="Ouvrir la formation"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                        {getStatusBadge(t.status)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {trainings.length > 4 && (
+                  <ToggleButton
+                    expanded={showAllTrainings}
+                    remaining={trainings.length - 4}
+                    onToggle={() => setShowAllTrainings(!showAllTrainings)}
+                  />
+                )}
+              </>
+            ) : (
+              <EmptyState text="Aucune formation assignée." />
+            )}
+          </section>
+
+          {/* ──────────── COMPÉTENCES ──────────── */}
+          {skills.length > 0 && (
+            <section>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-gray-400" />
+                Compétences
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {skills.map(s => (
+                  <div key={s.id} className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm font-medium text-gray-900">{s.skill_name}</p>
+                    {s.skill_category && <p className="text-xs text-gray-400 mb-1.5">{s.skill_category}</p>}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary-500 rounded-full transition-all"
+                          style={{ width: `${Math.min(s.current_level, 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-medium text-gray-600">
+                        {s.current_level}{s.target_level ? `/${s.target_level}` : '%'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* ──────────── SANCTIONS DISCIPLINAIRES ──────────── */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-gray-400" />
+                Sanctions disciplinaires
+                {sanctions.length > 0 && (
+                  <span className="bg-orange-100 text-orange-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                    {sanctions.length}
+                  </span>
+                )}
+              </h3>
+              <button
+                onClick={() => setShowAddSanction(!showAddSanction)}
+                className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
+              >
+                <Plus className="w-3.5 h-3.5" /> Ajouter
+              </button>
+            </div>
+
+            {/* Formulaire d'ajout */}
+            {showAddSanction && (
+              <div className="mb-3 p-4 bg-orange-50 border border-orange-200 rounded-xl space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Type *</label>
+                    <select
+                      value={newSanction.type}
+                      onChange={e => setNewSanction(p => ({ ...p, type: e.target.value }))}
+                      className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none"
+                    >
+                      {Object.keys(SANCTION_TYPES).map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Date *</label>
+                    <input
+                      type="date"
+                      value={newSanction.date}
+                      onChange={e => setNewSanction(p => ({ ...p, date: e.target.value }))}
+                      className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Motif *</label>
+                  <textarea
+                    value={newSanction.reason}
+                    onChange={e => setNewSanction(p => ({ ...p, reason: e.target.value }))}
+                    rows={2}
+                    className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none resize-none"
+                    placeholder="Motif de la sanction..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Notes (optionnel)</label>
+                  <input
+                    type="text"
+                    value={newSanction.notes}
+                    onChange={e => setNewSanction(p => ({ ...p, notes: e.target.value }))}
+                    className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none"
+                    placeholder="Observations complémentaires..."
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setShowAddSanction(false)}
+                    className="px-3 py-1.5 text-xs text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={handleAddSanction}
+                    disabled={!newSanction.reason.trim() || isSavingSanction}
+                    className="px-3 py-1.5 text-xs text-white bg-orange-500 rounded-lg hover:bg-orange-600 disabled:opacity-50 flex items-center gap-1"
+                  >
+                    {isSavingSanction && <Loader2 className="w-3 h-3 animate-spin" />}
+                    Enregistrer
+                  </button>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-between">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 font-medium hover:bg-gray-200 rounded-lg">Fermer</button>
-          <div className="flex gap-2">
-            <button onClick={handleExportPDF} disabled={isExporting}
-              className="px-4 py-2 text-sm text-gray-700 font-medium border border-gray-300 rounded-lg hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50">
-              {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}Exporter PDF
-            </button>
-            {onEdit && (
-              <button onClick={onEdit} className="px-4 py-2 text-sm text-white font-medium bg-primary-500 rounded-lg hover:bg-primary-600">
-                Modifier le dossier
-              </button>
             )}
-          </div>
+
+            {/* Liste des sanctions */}
+            {isLoadingSanctions ? (
+              <LoadingRow />
+            ) : sanctions.length > 0 ? (
+              <div className="space-y-2">
+                {sanctions.map(s => {
+                  const st = SANCTION_TYPES[s.type] || SANCTION_TYPES['Autre'];
+                  return (
+                    <div key={s.id} className="group flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <span className="text-lg">{st.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${st.color}`}>
+                            {s.type}
+                          </span>
+                          <span className="text-xs text-gray-400">{formatDate(s.date)}</span>
+                        </div>
+                        <p className="text-sm text-gray-700">{s.reason}</p>
+                        {s.notes && <p className="text-xs text-gray-400 mt-0.5">{s.notes}</p>}
+                        {s.issued_by && <p className="text-xs text-gray-400 mt-0.5">Par {s.issued_by}</p>}
+                      </div>
+                      <button
+                        onClick={() => handleDeleteSanction(s.id)}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-600 transition-opacity"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : !showAddSanction ? (
+              <EmptyState text="Aucune sanction enregistrée." />
+            ) : null}
+          </section>
+
         </div>
       </div>
     </div>
+  );
+}
+
+// ============================================
+// SUB-COMPONENTS
+// ============================================
+
+function InfoItem({ icon, label, value }: { icon?: React.ReactNode; label: string; value?: string | null }) {
+  if (!value || value === '—') return null;
+  return (
+    <div className="flex items-start gap-2 p-2.5 bg-gray-50 rounded-lg">
+      {icon && <span className="text-gray-400 mt-0.5 flex-shrink-0">{icon}</span>}
+      <div className="min-w-0">
+        <p className="text-xs text-gray-400">{label}</p>
+        <p className="text-sm text-gray-900 truncate">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function ScoreCard({ label, value, weight, icon }: { label: string; value: number; weight: string; icon: React.ReactNode }) {
+  return (
+    <div className="p-3 bg-gray-50 rounded-lg text-center">
+      <div className="flex items-center justify-center gap-1 text-gray-400 mb-1">
+        {icon}
+        <span className="text-xs">{label}</span>
+      </div>
+      <div className={`text-lg font-bold ${getScoreColor(value)}`}>{Math.round(value)}%</div>
+      <div className="text-[10px] text-gray-400">{weight}</div>
+    </div>
+  );
+}
+
+function LoadingRow() {
+  return (
+    <div className="flex items-center gap-2 text-sm text-gray-400 py-4">
+      <Loader2 className="w-4 h-4 animate-spin" /> Chargement...
+    </div>
+  );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return <p className="text-sm text-gray-400 py-2">{text}</p>;
+}
+
+function ToggleButton({ expanded, remaining, onToggle }: { expanded: boolean; remaining: number; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      className="mt-2 text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
+    >
+      {expanded ? (
+        <><ChevronUp className="w-3 h-3" /> Réduire</>
+      ) : (
+        <><ChevronDown className="w-3 h-3" /> Voir les {remaining} autres</>
+      )}
+    </button>
   );
 }

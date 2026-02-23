@@ -6,6 +6,7 @@ import {
   updateEmployee, deleteEmployee, getDepartments, getEmployees, 
   type Employee, type EmployeeCreate, type Department, type GenderType, type ContractType, type StatusType, type EmployeeRole 
 } from '@/lib/api';
+import NationalitySelect from '@/components/NationalitySelect';
 
 interface EditEmployeeModalProps {
   employee: Employee;
@@ -91,6 +92,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
     currency: employee.currency || 'XOF',
     classification: employee.classification || '',
     coefficient: employee.coefficient || '',
+    nationality: employee.nationality || '',
   });
 
   useEffect(() => {
@@ -149,6 +151,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
         currency: formData.currency,
         classification: formData.classification || null,
         coefficient: formData.coefficient || null,
+        nationality: formData.nationality || null,
       } as Partial<EmployeeCreate>);
       onSuccess();
       onClose();
@@ -303,6 +306,16 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               />
             </div>
 
+            {/* Nationalité — SELECT SEARCHABLE */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nationalité</label>
+              <NationalitySelect
+                value={formData.nationality}
+                onChange={(val) => setFormData(prev => ({ ...prev, nationality: val }))}
+                placeholder="Sélectionner une nationalité..."
+              />
+            </div>
+
             {/* Poste */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Poste</label>
@@ -450,7 +463,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               </select>
             </div>
 
-            {/* Classification — NOUVEAU */}
+            {/* Classification */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Classification</label>
               <select
@@ -470,7 +483,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               </select>
             </div>
 
-            {/* Coefficient — NOUVEAU */}
+            {/* Coefficient */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Coefficient</label>
               <input

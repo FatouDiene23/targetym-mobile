@@ -6,6 +6,7 @@ import {
   createEmployee, getDepartments, getEmployees, activateEmployeeAccess,
   type Department, type Employee, type GenderType, type ContractType, type StatusType, type EmployeeRole 
 } from '@/lib/api';
+import NationalitySelect from '@/components/NationalitySelect';
 
 interface AddEmployeeModalProps {
   onClose: () => void;
@@ -309,16 +310,13 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               />
             </div>
 
-            {/* Nationalité */}
+            {/* Nationalité — SELECT SEARCHABLE */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nationalité</label>
-              <input
-                type="text"
-                name="nationality"
+              <NationalitySelect
                 value={formData.nationality}
-                onChange={handleChange}
-                placeholder="Guinéenne"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                onChange={(val) => setFormData(prev => ({ ...prev, nationality: val }))}
+                placeholder="Sélectionner une nationalité..."
               />
             </div>
 
@@ -473,7 +471,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               </select>
             </div>
 
-            {/* Classification — NOUVEAU */}
+            {/* Classification */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Classification</label>
               <select
@@ -493,7 +491,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               </select>
             </div>
 
-            {/* Coefficient — NOUVEAU */}
+            {/* Coefficient */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Coefficient</label>
               <input

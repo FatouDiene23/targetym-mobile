@@ -6,6 +6,7 @@ import AddModal from '@/components/AddModal';
 import EditEmployeeModal from '@/components/EditEmployeeModal';
 import LeaveRequestModal from '@/components/LeaveRequestModal';
 import HRDocumentsTab from '@/components/HRDocumentsTab';
+import DepartmentManagementTab from '@/components/DepartmentManagementTab';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Search, Plus, Mail, Phone, MapPin, Calendar, Building2, Download,
@@ -315,8 +316,9 @@ export default function EmployeesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('Tous');
   const [selectedLocation, setSelectedLocation] = useState('Tous');
+  const [cardFilter, setCardFilter] = useState<string | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [activeTab, setActiveTab] = useState<'employees' | 'leaves' | 'invitations' | 'orgchart' | 'documents'>('employees');
+  const [activeTab, setActiveTab] = useState<'employees' | 'leaves' | 'invitations' | 'orgchart' | 'documents' | 'departments'>('employees');
   const [showViewModal, setShowViewModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -492,6 +494,25 @@ export default function EmployeesPage() {
     new_this_month: selectedDepartment === 'Tous' && selectedLocation === 'Tous' && !searchTerm ? (stats?.new_this_month || 0) : filteredEmployees.filter(e => { if (!e.hire_date) return false; const h = new Date(e.hire_date); const n = new Date(); return h.getMonth() === n.getMonth() && h.getFullYear() === n.getFullYear(); }).length
   };
 
+  // Apply card filter for display
+  const displayedEmployees = cardFilter ? filteredEmployees.filter(emp => {
+    const status = emp.status?.toLowerCase() || '';
+    switch (cardFilter) {
+      case 'active': return !['terminated', 'suspended', 'inactive'].includes(status);
+      case 'inactive': return ['terminated', 'suspended', 'inactive'].includes(status);
+      case 'on_leave': return status === 'on_leave';
+      case 'managers': return emp.is_manager;
+      case 'female': { const g = emp.gender?.toLowerCase(); return g === 'female' || g === 'f'; }
+      case 'new_this_month': { if (!emp.hire_date) return false; const h = new Date(emp.hire_date); const n = new Date(); return h.getMonth() === n.getMonth() && h.getFullYear() === n.getFullYear(); }
+      default: return true;
+    }
+  }) : filteredEmployees;
+
+  const cardFilterLabels: Record<string, string> = {
+    active: 'Actifs', inactive: 'Inactifs', on_leave: 'En congés',
+    managers: 'Managers', female: 'Femmes', new_this_month: 'Nouveaux ce mois'
+  };
+
   const filteredLeaveRequests = leaveRequests.filter(leave => leaveStatusFilter === 'all' ? true : leave.status === leaveStatusFilter);
   const leaveStats = { pending: leaveRequests.filter(l => l.status === 'pending').length, approved: leaveRequests.filter(l => l.status === 'approved').length, rejected: leaveRequests.filter(l => l.status === 'rejected').length, total: leaveRequests.length };
 
@@ -546,7 +567,7 @@ export default function EmployeesPage() {
 
   const handleExport = () => exportEmployeesToCSV(filteredEmployees);
   const handleSuccess = () => { loadAllData(); setSelectedEmployee(null); };
-  const hasActiveFilter = selectedDepartment !== 'Tous' || selectedLocation !== 'Tous' || searchTerm !== '';
+  const hasActiveFilter = selectedDepartment !== 'Tous' || selectedLocation !== 'Tous' || searchTerm !== '' || cardFilter !== null;
 
   // Handler for opening employee profile from Documents tab
   const handleOpenEmployeeProfile = (empId: number) => {
@@ -571,30 +592,43 @@ export default function EmployeesPage() {
 
         {hasActiveFilter && (
           <div className="mb-4 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
-            <span className="text-sm text-blue-700"><Filter className="w-4 h-4 inline mr-2" />Filtres : {selectedDepartment !== 'Tous' && <span className="ml-2 px-2 py-0.5 bg-blue-100 rounded">{selectedDepartment}</span>}{selectedLocation !== 'Tous' && <span className="ml-2 px-2 py-0.5 bg-blue-100 rounded">{selectedLocation}</span>}{searchTerm && <span className="ml-2 px-2 py-0.5 bg-blue-100 rounded">&quot;{searchTerm}&quot;</span>}</span>
-            <button onClick={() => { setSelectedDepartment('Tous'); setSelectedLocation('Tous'); setSearchTerm(''); setCurrentPage(1); }} className="text-sm text-blue-600 hover:text-blue-800 flex items-center"><X className="w-4 h-4 mr-1" />Effacer</button>
+            <span className="text-sm text-blue-700"><Filter className="w-4 h-4 inline mr-2" />Filtres : {selectedDepartment !== 'Tous' && <span className="ml-2 px-2 py-0.5 bg-blue-100 rounded">{selectedDepartment}</span>}{selectedLocation !== 'Tous' && <span className="ml-2 px-2 py-0.5 bg-blue-100 rounded">{selectedLocation}</span>}{searchTerm && <span className="ml-2 px-2 py-0.5 bg-blue-100 rounded">&quot;{searchTerm}&quot;</span>}{cardFilter && <span className="ml-2 px-2 py-0.5 bg-primary-100 text-primary-700 rounded">{cardFilterLabels[cardFilter]}</span>}</span>
+            <button onClick={() => { setSelectedDepartment('Tous'); setSelectedLocation('Tous'); setSearchTerm(''); setCardFilter(null); setCurrentPage(1); }} className="text-sm text-blue-600 hover:text-blue-800 flex items-center"><X className="w-4 h-4 mr-1" />Effacer</button>
           </div>
         )}
 
-        {/* Stats */}
+        {/* Stats — clickable cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Users className="w-5 h-5 text-blue-500 mb-2" /><p className="text-2xl font-bold text-gray-900">{dynamicStats.total}</p><p className="text-xs text-gray-500">Total</p></div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><UserCheck className="w-5 h-5 text-green-500 mb-2" /><p className="text-2xl font-bold text-green-600">{dynamicStats.active}</p><p className="text-xs text-gray-500">Actifs</p></div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><UserPlus className="w-5 h-5 text-blue-500 mb-2" /><p className="text-2xl font-bold text-blue-600">{dynamicStats.new_this_month}</p><p className="text-xs text-gray-500">Nouveaux</p></div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><TrendingDown className="w-5 h-5 text-red-500 mb-2" /><p className="text-2xl font-bold text-red-600">{dynamicStats.inactive}</p><p className="text-xs text-gray-500">Inactifs</p></div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Building2 className="w-5 h-5 text-purple-500 mb-2" /><p className="text-2xl font-bold text-purple-600">{departments.length}</p><p className="text-xs text-gray-500">Départements</p></div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Briefcase className="w-5 h-5 text-indigo-500 mb-2" /><p className="text-2xl font-bold text-indigo-600">{dynamicStats.managers}</p><p className="text-xs text-gray-500">Managers</p></div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Palmtree className="w-5 h-5 text-green-500 mb-2" /><p className="text-2xl font-bold text-green-600">{dynamicStats.on_leave}</p><p className="text-xs text-gray-500">En congés</p></div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><span className="text-sm font-bold text-pink-500 block mb-2">♀</span><p className="text-2xl font-bold text-pink-600">{dynamicStats.female}</p><p className="text-xs text-gray-500">Femmes</p></div>
+          <div onClick={() => { setCardFilter(null); setActiveTab('employees'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${!cardFilter ? 'border-blue-300 ring-2 ring-blue-100' : 'border-gray-100'}`}><Users className="w-5 h-5 text-blue-500 mb-2" /><p className="text-2xl font-bold text-gray-900">{dynamicStats.total}</p><p className="text-xs text-gray-500">Total</p></div>
+          <div onClick={() => { setCardFilter(cardFilter === 'active' ? null : 'active'); setActiveTab('employees'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'active' ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}><UserCheck className="w-5 h-5 text-green-500 mb-2" /><p className="text-2xl font-bold text-green-600">{dynamicStats.active}</p><p className="text-xs text-gray-500">Actifs</p></div>
+          <div onClick={() => { setCardFilter(cardFilter === 'new_this_month' ? null : 'new_this_month'); setActiveTab('employees'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'new_this_month' ? 'border-blue-300 ring-2 ring-blue-100' : 'border-gray-100'}`}><UserPlus className="w-5 h-5 text-blue-500 mb-2" /><p className="text-2xl font-bold text-blue-600">{dynamicStats.new_this_month}</p><p className="text-xs text-gray-500">Nouveaux</p></div>
+          <div onClick={() => { setCardFilter(cardFilter === 'inactive' ? null : 'inactive'); setActiveTab('employees'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'inactive' ? 'border-red-300 ring-2 ring-red-100' : 'border-gray-100'}`}><TrendingDown className="w-5 h-5 text-red-500 mb-2" /><p className="text-2xl font-bold text-red-600">{dynamicStats.inactive}</p><p className="text-xs text-gray-500">Inactifs</p></div>
+          <div onClick={() => { setActiveTab('departments'); setCardFilter(null); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${activeTab === 'departments' ? 'border-purple-300 ring-2 ring-purple-100' : 'border-gray-100'}`}><Building2 className="w-5 h-5 text-purple-500 mb-2" /><p className="text-2xl font-bold text-purple-600">{departments.length}</p><p className="text-xs text-gray-500">Départements</p></div>
+          <div onClick={() => { setCardFilter(cardFilter === 'managers' ? null : 'managers'); setActiveTab('employees'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'managers' ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-gray-100'}`}><Briefcase className="w-5 h-5 text-indigo-500 mb-2" /><p className="text-2xl font-bold text-indigo-600">{dynamicStats.managers}</p><p className="text-xs text-gray-500">Managers</p></div>
+          <div onClick={() => { setCardFilter(cardFilter === 'on_leave' ? null : 'on_leave'); setActiveTab('employees'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'on_leave' ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}><Palmtree className="w-5 h-5 text-green-500 mb-2" /><p className="text-2xl font-bold text-green-600">{dynamicStats.on_leave}</p><p className="text-xs text-gray-500">En congés</p></div>
+          <div onClick={() => { setCardFilter(cardFilter === 'female' ? null : 'female'); setActiveTab('employees'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'female' ? 'border-pink-300 ring-2 ring-pink-100' : 'border-gray-100'}`}><span className="text-sm font-bold text-pink-500 block mb-2">♀</span><p className="text-2xl font-bold text-pink-600">{dynamicStats.female}</p><p className="text-xs text-gray-500">Femmes</p></div>
         </div>
 
         {/* Tabs */}
-        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit mb-6">
-          <button onClick={() => setActiveTab('employees')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'employees' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Users className="w-4 h-4 inline mr-2" />Annuaire</button>
-          <button onClick={() => setActiveTab('orgchart')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'orgchart' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Network className="w-4 h-4 inline mr-2" />Organigramme</button>
-          <button onClick={() => setActiveTab('documents')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'documents' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><FileText className="w-4 h-4 inline mr-2" />Documents</button>
-          <button onClick={() => setActiveTab('leaves')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'leaves' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Palmtree className="w-4 h-4 inline mr-2" />Congés{leaveStats.pending > 0 && <span className="ml-2 px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">{leaveStats.pending}</span>}</button>
-          <button onClick={() => setActiveTab('invitations')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'invitations' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Send className="w-4 h-4 inline mr-2" />Invitations{invitationStats && invitationStats.pending > 0 && <span className="ml-2 px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">{invitationStats.pending}</span>}</button>
+        <div className="flex items-center gap-4 mb-6">
+          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
+            <button onClick={() => { setActiveTab('employees'); }} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'employees' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Users className="w-4 h-4 inline mr-2" />Annuaire</button>
+            <button onClick={() => { setActiveTab('departments'); setCardFilter(null); }} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'departments' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Building2 className="w-4 h-4 inline mr-2" />Départements</button>
+            <button onClick={() => { setActiveTab('orgchart'); setCardFilter(null); }} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'orgchart' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Network className="w-4 h-4 inline mr-2" />Organigramme</button>
+            <button onClick={() => { setActiveTab('documents'); setCardFilter(null); }} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'documents' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><FileText className="w-4 h-4 inline mr-2" />Documents</button>
+            <button onClick={() => { setActiveTab('leaves'); setCardFilter(null); }} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'leaves' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Palmtree className="w-4 h-4 inline mr-2" />Congés{leaveStats.pending > 0 && <span className="ml-2 px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">{leaveStats.pending}</span>}</button>
+            <button onClick={() => { setActiveTab('invitations'); setCardFilter(null); }} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'invitations' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Send className="w-4 h-4 inline mr-2" />Invitations{invitationStats && invitationStats.pending > 0 && <span className="ml-2 px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">{invitationStats.pending}</span>}</button>
+          </div>
+
+          {/* Card filter indicator */}
+          {cardFilter && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary-50 border border-primary-200 rounded-lg text-sm text-primary-700">
+              <Filter className="w-3.5 h-3.5" />
+              <span className="font-medium">{cardFilterLabels[cardFilter]}</span>
+              <span className="text-primary-500">({displayedEmployees.length})</span>
+              <button onClick={() => setCardFilter(null)} className="ml-1 p-0.5 hover:bg-primary-100 rounded"><X className="w-3.5 h-3.5" /></button>
+            </div>
+          )}
         </div>
 
         {/* ============================================ */}
@@ -602,6 +636,13 @@ export default function EmployeesPage() {
         {/* ============================================ */}
         {activeTab === 'documents' && (
           <HRDocumentsTab onOpenEmployeeProfile={handleOpenEmployeeProfile} />
+        )}
+
+        {/* ============================================ */}
+        {/* Tab: Gestion des Départements */}
+        {/* ============================================ */}
+        {activeTab === 'departments' && (
+          <DepartmentManagementTab />
         )}
 
         {/* ============================================ */}
@@ -676,13 +717,13 @@ export default function EmployeesPage() {
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                  {filteredEmployees.length === 0 ? (
+                  {displayedEmployees.length === 0 ? (
                     <div className="p-12 text-center"><Users className="w-12 h-12 mx-auto mb-4 text-gray-300" /><p className="text-gray-500 mb-4">Aucun employé trouvé</p><button onClick={loadAllData} className="flex items-center mx-auto px-4 py-2 text-primary-600 hover:bg-primary-50 rounded-lg"><RefreshCw className="w-4 h-4 mr-2" />Actualiser</button></div>
                   ) : (
                     <table className="w-full">
                       <thead className="bg-gray-50 border-b border-gray-100"><tr><th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Employé</th><th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Département</th><th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Localisation</th><th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Statut</th><th className="text-right px-5 py-3 text-sm font-semibold text-gray-600">Actions</th></tr></thead>
                       <tbody>
-                        {filteredEmployees.map((employee) => (
+                        {displayedEmployees.map((employee) => (
                           <tr key={employee.id} className={`border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${selectedEmployee?.id === employee.id ? 'bg-primary-50' : ''}`} onClick={() => setSelectedEmployee(employee)}>
                             <td className="px-5 py-4"><div className="flex items-center"><div className="relative"><div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium">{getInitials(employee.first_name, employee.last_name)}</div>{employee.status?.toLowerCase() === 'on_leave' && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center"><Palmtree className="w-2.5 h-2.5 text-white" /></div>}</div><div className="ml-3"><div className="flex items-center"><p className="font-medium text-gray-900">{employee.first_name} {employee.last_name}</p>{employee.is_manager && <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">Mgr</span>}</div><p className="text-sm text-gray-500">{employee.position || employee.job_title || '-'}</p></div></div></td>
                             <td className="px-5 py-4"><span className="px-2 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">{employee.department_name || '-'}</span></td>

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, Loader2, Trash2 } from 'lucide-react';
 import { 
   updateEmployee, deleteEmployee, getDepartments, getEmployees, 
-  type Employee, type Department, type GenderType, type ContractType, type StatusType, type EmployeeRole 
+  type Employee, type EmployeeCreate, type Department, type GenderType, type ContractType, type StatusType, type EmployeeRole 
 } from '@/lib/api';
 
 interface EditEmployeeModalProps {
@@ -87,8 +87,10 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
     status: normalizeStatus(employee.status),
     contract_type: normalizeContractType(employee.contract_type),
     site: employee.location || employee.site || '',
-    salary: employee.salary?.toString() || '',
+    salary: employee.salary != null && employee.salary > 0 ? employee.salary.toString() : '',
     currency: employee.currency || 'XOF',
+    classification: employee.classification || '',
+    coefficient: employee.coefficient || '',
   });
 
   useEffect(() => {
@@ -134,7 +136,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
         phone: formData.phone || undefined,
         job_title: formData.job_title || undefined,
         department_id: formData.department_id ? parseInt(formData.department_id) : undefined,
-        manager_id: formData.manager_id ? parseInt(formData.manager_id) : undefined,
+        manager_id: formData.manager_id ? parseInt(formData.manager_id) : null,
         is_manager: formData.is_manager,
         role: formData.role,
         hire_date: formData.hire_date || undefined,
@@ -143,9 +145,11 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
         status: formData.status,
         contract_type: formData.contract_type,
         site: formData.site || undefined,
-        salary: formData.salary ? parseFloat(formData.salary) : undefined,
+        salary: formData.salary ? parseFloat(formData.salary) : null,
         currency: formData.currency,
-      });
+        classification: formData.classification || null,
+        coefficient: formData.coefficient || null,
+      } as Partial<EmployeeCreate>);
       onSuccess();
       onClose();
     } catch (err) {
@@ -353,7 +357,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               </select>
             </div>
 
-            {/* Rôle système - NOUVEAU */}
+            {/* Rôle système */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
               <select
@@ -446,8 +450,41 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               </select>
             </div>
 
-            {/* Salaire */}
+            {/* Classification — NOUVEAU */}
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Classification</label>
+              <select
+                name="classification"
+                value={formData.classification}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              >
+                <option value="">Non définie</option>
+                <option value="Cadre dirigeant">Cadre dirigeant</option>
+                <option value="Cadre supérieur">Cadre supérieur</option>
+                <option value="Cadre">Cadre</option>
+                <option value="Agent de maîtrise">Agent de maîtrise</option>
+                <option value="Employé">Employé</option>
+                <option value="Non-cadre">Non-cadre</option>
+                <option value="Ouvrier">Ouvrier</option>
+              </select>
+            </div>
+
+            {/* Coefficient — NOUVEAU */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Coefficient</label>
+              <input
+                type="text"
+                name="coefficient"
+                value={formData.coefficient}
+                onChange={handleChange}
+                placeholder="Ex: 350"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            {/* Salaire */}
+            <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Salaire brut mensuel</label>
               <div className="flex">
                 <input
@@ -455,6 +492,9 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                   name="salary"
                   value={formData.salary}
                   onChange={handleChange}
+                  placeholder="Ex: 500000"
+                  step="1000"
+                  min="0"
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 />
                 <select
@@ -463,9 +503,13 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                   onChange={handleChange}
                   className="px-3 py-2 border border-l-0 border-gray-300 rounded-r-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-gray-50"
                 >
-                  <option value="XOF">XOF</option>
-                  <option value="EUR">EUR</option>
-                  <option value="USD">USD</option>
+                  <option value="GNF">GNF - Franc guinéen</option>
+                  <option value="XOF">XOF - Franc CFA (UEMOA)</option>
+                  <option value="XAF">XAF - Franc CFA (CEMAC)</option>
+                  <option value="EUR">EUR - Euro</option>
+                  <option value="USD">USD - Dollar US</option>
+                  <option value="NGN">NGN - Naira nigérian</option>
+                  <option value="GHS">GHS - Cédi ghanéen</option>
                 </select>
               </div>
             </div>

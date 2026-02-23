@@ -48,9 +48,11 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
     site: '',
     salary: '',
     currency: 'XOF',
+    classification: '',
+    coefficient: '',
     nationality: '',
     address: '',
-    create_access: false,  // Créer un compte d'accès
+    create_access: false,
   });
 
   useEffect(() => {
@@ -86,7 +88,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
     setError('');
 
     try {
-      const dataToSend = {
+      const newEmployee = await createEmployee({
         employee_id: formData.employee_id,
         first_name: formData.first_name,
         last_name: formData.last_name,
@@ -105,11 +107,11 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
         site: formData.site || undefined,
         salary: formData.salary ? parseFloat(formData.salary) : undefined,
         currency: formData.currency,
+        classification: formData.classification || undefined,
+        coefficient: formData.coefficient || undefined,
         nationality: formData.nationality || undefined,
         address: formData.address || undefined,
-      };
-      
-      const newEmployee = await createEmployee(dataToSend);
+      });
       
       // Si on doit créer un compte d'accès
       if (formData.create_access && newEmployee.id) {
@@ -315,7 +317,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
                 name="nationality"
                 value={formData.nationality}
                 onChange={handleChange}
-                placeholder="Ivoirienne"
+                placeholder="Guinéenne"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
             </div>
@@ -376,7 +378,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               </select>
             </div>
 
-            {/* Rôle système - NOUVEAU */}
+            {/* Rôle système */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
               <select
@@ -418,7 +420,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
                 name="site"
                 value={formData.site}
                 onChange={handleChange}
-                placeholder="Abidjan"
+                placeholder="Conakry"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
             </div>
@@ -471,8 +473,41 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               </select>
             </div>
 
-            {/* Salaire */}
+            {/* Classification — NOUVEAU */}
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Classification</label>
+              <select
+                name="classification"
+                value={formData.classification}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              >
+                <option value="">Non définie</option>
+                <option value="Cadre dirigeant">Cadre dirigeant</option>
+                <option value="Cadre supérieur">Cadre supérieur</option>
+                <option value="Cadre">Cadre</option>
+                <option value="Agent de maîtrise">Agent de maîtrise</option>
+                <option value="Employé">Employé</option>
+                <option value="Non-cadre">Non-cadre</option>
+                <option value="Ouvrier">Ouvrier</option>
+              </select>
+            </div>
+
+            {/* Coefficient — NOUVEAU */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Coefficient</label>
+              <input
+                type="text"
+                name="coefficient"
+                value={formData.coefficient}
+                onChange={handleChange}
+                placeholder="Ex: 350"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            {/* Salaire */}
+            <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Salaire brut mensuel</label>
               <div className="flex">
                 <input
@@ -480,7 +515,9 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
                   name="salary"
                   value={formData.salary}
                   onChange={handleChange}
-                  placeholder="500000"
+                  placeholder="Ex: 500000"
+                  step="1000"
+                  min="0"
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 />
                 <select
@@ -489,9 +526,13 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
                   onChange={handleChange}
                   className="px-3 py-2 border border-l-0 border-gray-300 rounded-r-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-gray-50"
                 >
-                  <option value="XOF">XOF</option>
-                  <option value="EUR">EUR</option>
-                  <option value="USD">USD</option>
+                  <option value="GNF">GNF - Franc guinéen</option>
+                  <option value="XOF">XOF - Franc CFA (UEMOA)</option>
+                  <option value="XAF">XAF - Franc CFA (CEMAC)</option>
+                  <option value="EUR">EUR - Euro</option>
+                  <option value="USD">USD - Dollar US</option>
+                  <option value="NGN">NGN - Naira nigérian</option>
+                  <option value="GHS">GHS - Cédi ghanéen</option>
                 </select>
               </div>
             </div>
@@ -509,7 +550,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               />
             </div>
 
-            {/* Créer un compte d'accès - NOUVEAU */}
+            {/* Créer un compte d'accès */}
             <div className="col-span-2 mt-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <label className="flex items-start cursor-pointer">
                 <input

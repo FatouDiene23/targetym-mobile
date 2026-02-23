@@ -85,6 +85,8 @@ export interface Employee {
   contract_type?: string;
   salary?: number;
   currency?: string;
+  classification?: string;
+  coefficient?: string;
   location?: string;
   site?: string;
   is_manager?: boolean;
@@ -112,8 +114,10 @@ export interface EmployeeCreate {
   status?: StatusType;
   contract_type?: ContractType;
   site?: string;
-  salary?: number;
+  salary?: number | null;
   currency?: string;
+  classification?: string | null;
+  coefficient?: string | null;
   nationality?: string;
   address?: string;
 }
@@ -193,7 +197,7 @@ export interface Task {
   objective_title?: string;
   key_result_id?: number;
   key_result_title?: string;
-  // 🆕 Tâche administrative
+  // Tâche administrative
   is_administrative?: boolean;
   // Timestamps
   created_at: string;
@@ -209,7 +213,7 @@ export interface TaskCreate {
   // Lien OKR (obligatoire sauf si is_administrative=true)
   objective_id?: number;
   key_result_id?: number;
-  // 🆕 Tâche administrative (pas de lien OKR requis)
+  // Tâche administrative (pas de lien OKR requis)
   is_administrative?: boolean;
 }
 
@@ -357,9 +361,11 @@ export async function createEmployee(data: EmployeeCreate): Promise<Employee> {
 }
 
 export async function updateEmployee(id: number, data: Partial<EmployeeCreate>): Promise<Employee> {
+  // FIX: On garde les valeurs null (pour permettre d'effacer un champ comme salary)
+  // On ne filtre que undefined et les chaînes vides
   const cleanData: Record<string, unknown> = {};
   Object.entries(data).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
+    if (value !== undefined) {
       cleanData[key] = value;
     }
   });
@@ -907,8 +913,6 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
   return response.json();
 }
 
-// 🆕 Récupérer les objectifs pour le dropdown de liaison
-// Paramètre employeeId optionnel pour charger les objectifs d'un autre employé
 export async function getObjectivesForLinking(employeeId?: number): Promise<ObjectiveForLinking[]> {
   const queryParams = new URLSearchParams();
   if (employeeId) queryParams.set('employee_id', employeeId.toString());
@@ -922,7 +926,6 @@ export async function getObjectivesForLinking(employeeId?: number): Promise<Obje
   });
 
   if (!response.ok) {
-    // Retourner un tableau vide si pas d'objectifs disponibles
     console.warn('Could not fetch objectives for linking');
     return [];
   }

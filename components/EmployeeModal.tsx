@@ -134,6 +134,7 @@ interface Sanction {
 interface EmployeeModalProps {
   employee: Employee;
   onClose: () => void;
+  onEdit?: () => void;
 }
 
 // ============================================
@@ -220,7 +221,7 @@ const SANCTION_TYPES: Record<string, { icon: string; color: string }> = {
 // MAIN COMPONENT
 // ============================================
 
-export default function EmployeeModal({ employee, onClose }: EmployeeModalProps) {
+export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeModalProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Performance Score
@@ -465,6 +466,11 @@ export default function EmployeeModal({ employee, onClose }: EmployeeModalProps)
             </span>
           </div>
           <div className="flex items-center gap-2">
+            {onEdit && (
+              <button onClick={onEdit} className="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg">
+                Modifier
+              </button>
+            )}
             <button onClick={() => window.print()} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg" title="Exporter PDF">
               <Download className="w-5 h-5" />
             </button>

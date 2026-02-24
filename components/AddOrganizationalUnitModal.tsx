@@ -12,6 +12,20 @@ interface AddOrganizationalUnitModalProps {
 // Définition des niveaux (ordre d'affichage uniquement, pas de contrainte parent)
 const ORGANIZATIONAL_LEVELS = [
   { 
+    value: 'president', 
+    label: 'Présidence', 
+    shortLabel: 'PCA',
+    icon: Building2,
+    color: 'bg-slate-700'
+  },
+  { 
+    value: 'vice_president', 
+    label: 'Vice-Présidence', 
+    shortLabel: 'VP',
+    icon: Building2,
+    color: 'bg-slate-500'
+  },
+  { 
     value: 'dg', 
     label: 'Direction Générale', 
     shortLabel: 'DG',

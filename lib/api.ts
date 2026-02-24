@@ -56,8 +56,7 @@ export type StatusType = 'active' | 'on_leave' | 'suspended' | 'terminated' | 'p
 export type EmployeeRole = 'employee' | 'manager' | 'rh' | 'admin' | 'dg';
 
 // Types pour les niveaux hiérarchiques organisationnels
-export type OrganizationalLevel = 'dg' | 'dga' | 'direction_centrale' | 'direction' | 'departement' | 'service';
-
+export type OrganizationalLevel = 'president' | 'vice_president' | 'dg' | 'dga' | 'direction_centrale' | 'direction' | 'departement' | 'service';
 // Types pour les tâches
 export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';

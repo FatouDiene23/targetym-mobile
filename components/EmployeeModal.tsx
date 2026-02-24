@@ -161,6 +161,17 @@ interface Sanction {
   issued_by?: string;
 }
 
+interface SalaryHistoryItem {
+  id: number;
+  effective_date: string;
+  amount: number;
+  currency: string;
+  previous_amount?: number | null;
+  change_percentage?: number | null;
+  reason?: string | null;
+  created_at?: string | null;
+}
+
 // ============================================
 // CONSTANTS
 // ============================================
@@ -234,6 +245,12 @@ function formatCurrency(amount: number, currency: string = 'XOF'): string {
 function formatDate(dateStr?: string): string {
   if (!dateStr) return '—';
   try { return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }); }
+  catch { return dateStr; }
+}
+
+function formatDateShort(dateStr: string): string {
+  if (!dateStr) return '—';
+  try { return new Date(dateStr).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }); }
   catch { return dateStr; }
 }
 
@@ -319,6 +336,11 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
   const [showAddSanction, setShowAddSanction] = useState(false);
   const [isSavingSanction, setIsSavingSanction] = useState(false);
   const [newSanction, setNewSanction] = useState({ type: 'Avertissement', date: new Date().toISOString().split('T')[0], reason: '', notes: '' });
+
+  // ---- Salary History states ----
+  const [salaryHistory, setSalaryHistory] = useState<SalaryHistoryItem[]>([]);
+  const [isLoadingSalaryHistory, setIsLoadingSalaryHistory] = useState(false);
+  const [showAllSalaryHistory, setShowAllSalaryHistory] = useState(false);
 
   // ---- Derived data ----
   const displayName = employee.name || `${employee.first_name || ''} ${employee.last_name || ''}`.trim();
@@ -426,6 +448,15 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
     finally { setIsLoadingSanctions(false); }
   }, [employee.id]);
 
+  const loadSalaryHistory = useCallback(async () => {
+    setIsLoadingSalaryHistory(true);
+    try {
+      const data = await apiFetch(`/api/employees/${employee.id}/salary-history`);
+      setSalaryHistory(Array.isArray(data) ? data : []);
+    } catch { setSalaryHistory([]); }
+    finally { setIsLoadingSalaryHistory(false); }
+  }, [employee.id]);
+
   useEffect(() => {
     loadAccessStatus();
     loadLeaveBalance();
@@ -435,6 +466,7 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
     loadTrainings();
     loadSkills();
     loadSanctions();
+    loadSalaryHistory();
   }, [employee.id]);
 
   useEffect(() => { loadPerformance(); }, [perfPeriod, loadPerformance]);
@@ -528,6 +560,13 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
         <td style="padding:8px;border-bottom:1px solid #eee;">${s.reason}</td></tr>
       `).join('') : '';
 
+      const salaryHistoryRows = salaryHistory.length > 0 ? salaryHistory.map(sh => `
+        <tr><td style="padding:8px;border-bottom:1px solid #eee;">${new Date(sh.effective_date).toLocaleDateString('fr-FR')}</td>
+        <td style="padding:8px;border-bottom:1px solid #eee;text-align:right;font-weight:bold;">${formatCurrency(sh.amount, sh.currency)}</td>
+        <td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">${sh.change_percentage ? (sh.change_percentage > 0 ? '+' : '') + sh.change_percentage.toFixed(1) + '%' : '—'}</td>
+        <td style="padding:8px;border-bottom:1px solid #eee;">${sh.reason || '—'}</td></tr>
+      `).join('') : '';
+
       const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Dossier - ${displayName}</title>
 <style>body{font-family:'Segoe UI',Arial,sans-serif;margin:0;padding:40px;color:#333}
 .header{background:linear-gradient(135deg,#4F46E5,#7C3AED);color:white;padding:30px;border-radius:12px;margin-bottom:30px}
@@ -569,6 +608,10 @@ ${employee.coefficient ? `<div class="field"><div class="label">Coefficient</div
 ${employee.salary ? `<div class="field"><div class="label">Salaire brut mensuel</div><div class="value">${formatCurrency(employee.salary, employee.currency || 'XOF')}</div></div>` : ''}
 </div></div>
 
+${salaryHistory.length > 0 ? `<div class="section"><h2>💰 Historique Salarial</h2>
+<table><thead><tr><th>Date</th><th style="text-align:right;">Montant</th><th style="text-align:center;">Variation</th><th>Motif</th></tr></thead>
+<tbody>${salaryHistoryRows}</tbody></table></div>` : ''}
+
 ${perfSection}
 
 <div class="section"><h2>🌴 Solde de Congés ${leaveBalance?.year || new Date().getFullYear()}</h2>
@@ -604,7 +647,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
           : 'w-full max-w-5xl max-h-[90vh] rounded-2xl'
       } overflow-hidden`}>
 
-        {/* ==================== HEADER (ORIGINAL) ==================== */}
+        {/* ==================== HEADER ==================== */}
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-primary-500 to-primary-600">
           <div className="flex items-center">
             <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-white text-xl font-bold mr-4">
@@ -669,10 +712,10 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
 
           {error && <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>}
 
-          {/* ==================== 3-COLUMN GRID (ORIGINAL LAYOUT) ==================== */}
+          {/* ==================== 3-COLUMN GRID ==================== */}
           <div className="grid lg:grid-cols-3 gap-6">
 
-            {/* ──────── Colonne 1 (ORIGINAL) ──────── */}
+            {/* ──────── Colonne 1 ──────── */}
             <div className="space-y-6">
               {/* Accès plateforme */}
               <div className="bg-gray-50 rounded-xl p-5">
@@ -751,7 +794,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
               </div>
             </div>
 
-            {/* ──────── Colonne 2 (ORIGINAL) ──────── */}
+            {/* ──────── Colonne 2 ──────── */}
             <div className="space-y-6">
               {/* Contrat */}
               <div className="bg-gray-50 rounded-xl p-5">
@@ -778,6 +821,55 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                   </div>
                 </div>
               )}
+
+              {/* ====== NEW: Historique Salarial ====== */}
+              <div className="bg-gray-50 rounded-xl p-5">
+                <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
+                  <TrendingUp className="w-4 h-4 mr-2 text-green-500" />Historique Salarial
+                  {salaryHistory.length > 0 && (
+                    <span className="ml-auto text-xs text-gray-400 font-normal">{salaryHistory.length} entrée(s)</span>
+                  )}
+                </h3>
+                {isLoadingSalaryHistory ? (
+                  <div className="flex items-center justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
+                ) : salaryHistory.length > 0 ? (
+                  <div className="space-y-2">
+                    {(showAllSalaryHistory ? [...salaryHistory].reverse() : [...salaryHistory].reverse().slice(0, 4)).map((sh, idx) => {
+                      const isLatest = idx === 0;
+                      return (
+                        <div key={sh.id} className={`p-3 rounded-lg border ${isLatest ? 'bg-green-50 border-green-200' : 'bg-white border-gray-100'}`}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-gray-500">{formatDateShort(sh.effective_date)}</span>
+                            {sh.change_percentage != null && sh.change_percentage !== 0 && (
+                              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
+                                sh.change_percentage > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                              }`}>
+                                {sh.change_percentage > 0 ? '+' : ''}{sh.change_percentage.toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-bold text-gray-900">{formatCurrency(sh.amount, sh.currency)}</span>
+                            {sh.reason && <span className="text-xs text-gray-400 truncate ml-2">{sh.reason}</span>}
+                          </div>
+                          {sh.previous_amount != null && (
+                            <p className="text-xs text-gray-400 mt-0.5">Avant: {formatCurrency(sh.previous_amount, sh.currency)}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {salaryHistory.length > 4 && (
+                      <ToggleButton
+                        expanded={showAllSalaryHistory}
+                        remaining={salaryHistory.length - 4}
+                        onToggle={() => setShowAllSalaryHistory(!showAllSalaryHistory)}
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 text-center py-3">Aucun historique salarial</p>
+                )}
+              </div>
 
               {/* Solde de Congés */}
               <div className="bg-gray-50 rounded-xl p-5">
@@ -829,12 +921,10 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
               )}
             </div>
 
-            {/* ──────── Colonne 3 (ORIGINAL Documents + NEW Skills) ──────── */}
+            {/* ──────── Colonne 3 ──────── */}
             <div className="space-y-6">
-              {/* Documents RH (existing component) */}
               <EmployeeDocuments employeeId={employee.id} employeeName={displayName} readOnly={false} />
 
-              {/* NEW: Compétences */}
               <div className="bg-gray-50 rounded-xl p-5">
                 <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                   <BookOpen className="w-4 h-4 mr-2 text-primary-500" />Compétences
@@ -862,10 +952,10 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
             </div>
           </div>
 
-          {/* ==================== FULL-WIDTH SECTIONS (NEW) ==================== */}
+          {/* ==================== FULL-WIDTH SECTIONS ==================== */}
           <div className="mt-6 space-y-6">
 
-            {/* ──────── PERFORMANCE SCORE ──────── */}
+            {/* PERFORMANCE SCORE */}
             <div className="bg-gray-50 rounded-xl p-5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900 flex items-center">
@@ -900,7 +990,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
               )}
             </div>
 
-            {/* ──────── ÉVALUATIONS ──────── */}
+            {/* ÉVALUATIONS */}
             <div className="bg-gray-50 rounded-xl p-5">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                 <Award className="w-4 h-4 mr-2 text-primary-500" />Évaluations
@@ -931,7 +1021,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
               )}
             </div>
 
-            {/* ──────── FEEDBACKS REÇUS ──────── */}
+            {/* FEEDBACKS REÇUS */}
             {(isLoadingFeedbacks || feedbacks.length > 0) && (
               <div className="bg-gray-50 rounded-xl p-5">
                 <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
@@ -969,7 +1059,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
               </div>
             )}
 
-            {/* ──────── FORMATIONS ──────── */}
+            {/* FORMATIONS */}
             <div className="bg-gray-50 rounded-xl p-5">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                 <GraduationCap className="w-4 h-4 mr-2 text-primary-500" />Formations
@@ -1019,7 +1109,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
               )}
             </div>
 
-            {/* ──────── SANCTIONS DISCIPLINAIRES ──────── */}
+            {/* SANCTIONS DISCIPLINAIRES */}
             <div className="bg-gray-50 rounded-xl p-5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900 flex items-center">
@@ -1102,7 +1192,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
           </div>
         </div>
 
-        {/* ==================== FOOTER (ORIGINAL) ==================== */}
+        {/* ==================== FOOTER ==================== */}
         <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-between flex-shrink-0">
           <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 font-medium hover:bg-gray-200 rounded-lg">Fermer</button>
           <div className="flex gap-2">

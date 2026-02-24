@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import {
   Building2, Plus, Edit2, Trash2, ChevronRight, ChevronDown,
-  Users, Loader2, X, Save, ArrowUpRight, GripVertical, Search, Network
+  Users, Loader2, X, Save, ArrowUpRight, Search, Network
 } from 'lucide-react';
 import {
-  getDepartments, createDepartment, updateDepartment, deleteDepartment,
+  getDepartments, updateDepartment, deleteDepartment,
   getEmployees,
   type Department, type DepartmentCreate, type Employee
 } from '@/lib/api';
+import AddOrganizationalUnitModal from './AddOrganizationalUnitModal';
 
 // ============================================
 // TYPES
@@ -30,7 +31,8 @@ export default function DepartmentManagementTab() {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Modal state
-  const [showModal, setShowModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [editingDept, setEditingDept] = useState<Department | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<Department | null>(null);
 
@@ -57,7 +59,7 @@ export default function DepartmentManagementTab() {
       const allIds = new Set((depts || []).map(d => d.id));
       setExpandedNodes(allIds);
     } catch (err) {
-      setError('Erreur lors du chargement des départements');
+      setError('Erreur lors du chargement');
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -89,14 +91,13 @@ export default function DepartmentManagementTab() {
   // ============================================
   // ACTIONS
   // ============================================
-  function handleAdd(parentId?: number) {
-    setEditingDept(parentId ? { id: 0, name: '', parent_id: parentId } as Department : null);
-    setShowModal(true);
+  function handleAdd() {
+    setShowAddModal(true);
   }
 
   function handleEdit(dept: Department) {
     setEditingDept(dept);
-    setShowModal(true);
+    setShowEditModal(true);
   }
 
   async function handleDelete(dept: Department) {
@@ -109,14 +110,11 @@ export default function DepartmentManagementTab() {
     }
   }
 
-  async function handleSave(data: DepartmentCreate) {
+  async function handleSaveEdit(data: DepartmentCreate) {
+    if (!editingDept) return;
     try {
-      if (editingDept && editingDept.id > 0) {
-        await updateDepartment(editingDept.id, data);
-      } else {
-        await createDepartment(data);
-      }
-      setShowModal(false);
+      await updateDepartment(editingDept.id, data);
+      setShowEditModal(false);
       setEditingDept(null);
       loadData();
     } catch (err) {
@@ -162,6 +160,8 @@ export default function DepartmentManagementTab() {
   function LevelBadge({ level }: { level?: string }) {
     if (!level) return null;
     const config: Record<string, { bg: string; text: string; label: string }> = {
+      president: { bg: 'bg-slate-200', text: 'text-slate-800', label: 'Présidence' },
+      vice_president: { bg: 'bg-slate-100', text: 'text-slate-700', label: 'Vice-Présidence' },
       dg: { bg: 'bg-red-100', text: 'text-red-700', label: 'DG' },
       dga: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'DGA' },
       direction_centrale: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Dir. Centrale' },
@@ -222,13 +222,6 @@ export default function DepartmentManagementTab() {
 
           {/* Actions */}
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={() => handleAdd(node.id)}
-              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md"
-              title="Ajouter un sous-département"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
             <button
               onClick={() => handleEdit(node)}
               className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md"
@@ -322,7 +315,7 @@ export default function DepartmentManagementTab() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Rechercher un département..."
+              placeholder="Rechercher une unité..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
@@ -350,14 +343,14 @@ export default function DepartmentManagementTab() {
           className="px-4 py-2 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          Nouveau département
+          Nouvelle unité
         </button>
       </div>
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4 mb-4">
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">Total départements</p>
+          <p className="text-xs text-gray-500 mb-1">Total unités</p>
           <p className="text-2xl font-bold text-gray-900">{departments.length}</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
@@ -376,14 +369,14 @@ export default function DepartmentManagementTab() {
           <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
             <p className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <Network className="w-4 h-4 text-gray-500" />
-              Hiérarchie des départements
+              Hiérarchie organisationnelle
             </p>
           </div>
           <div className="py-2">
             {tree.length === 0 ? (
               <div className="text-center py-10 text-gray-500">
                 <Building2 className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-                <p className="text-sm">Aucun département trouvé</p>
+                <p className="text-sm">Aucune unité trouvée</p>
               </div>
             ) : (
               tree.map(node => <TreeNode key={node.id} node={node} />)
@@ -395,7 +388,7 @@ export default function DepartmentManagementTab() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Département</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Unité</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Niveau</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Rattachement</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Responsable</th>
@@ -405,7 +398,7 @@ export default function DepartmentManagementTab() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {filteredDepts.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-10 text-gray-500 text-sm">Aucun département trouvé</td></tr>
+                <tr><td colSpan={6} className="text-center py-10 text-gray-500 text-sm">Aucune unité trouvée</td></tr>
               ) : (
                 filteredDepts.map(dept => <ListRow key={dept.id} dept={dept} />)
               )}
@@ -418,13 +411,13 @@ export default function DepartmentManagementTab() {
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Supprimer le département</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Supprimer l&apos;unité</h3>
             <p className="text-sm text-gray-600 mb-1">
               Voulez-vous supprimer <strong>{showDeleteConfirm.name}</strong> ?
             </p>
             {getEmployeeCount(showDeleteConfirm.id) > 0 && (
               <p className="text-sm text-amber-600 bg-amber-50 p-2 rounded-lg mb-3">
-                ⚠️ Ce département contient {getEmployeeCount(showDeleteConfirm.id)} employé(s). Ils seront détachés.
+                ⚠️ Cette unité contient {getEmployeeCount(showDeleteConfirm.id)} employé(s). Ils seront détachés.
               </p>
             )}
             <div className="flex gap-3 mt-4">
@@ -445,14 +438,22 @@ export default function DepartmentManagementTab() {
         </div>
       )}
 
-      {/* ADD/EDIT MODAL */}
-      {showModal && (
-        <DepartmentFormModal
+      {/* ADD MODAL - Unified AddOrganizationalUnitModal */}
+      {showAddModal && (
+        <AddOrganizationalUnitModal
+          onClose={() => setShowAddModal(false)}
+          onSuccess={() => loadData()}
+        />
+      )}
+
+      {/* EDIT MODAL */}
+      {showEditModal && editingDept && (
+        <EditDepartmentModal
           department={editingDept}
           departments={departments}
           employees={employees}
-          onClose={() => { setShowModal(false); setEditingDept(null); }}
-          onSave={handleSave}
+          onClose={() => { setShowEditModal(false); setEditingDept(null); }}
+          onSave={handleSaveEdit}
         />
       )}
     </div>
@@ -460,26 +461,27 @@ export default function DepartmentManagementTab() {
 }
 
 // ============================================
-// FORM MODAL
+// EDIT FORM MODAL
 // ============================================
-function DepartmentFormModal({
+function EditDepartmentModal({
   department,
   departments,
   employees,
   onClose,
   onSave,
 }: {
-  department: Department | null;
+  department: Department;
   departments: Department[];
   employees: Employee[];
   onClose: () => void;
   onSave: (data: DepartmentCreate) => Promise<void>;
 }) {
-  const isEditing = department && department.id > 0;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const LEVEL_OPTIONS = [
+    { value: 'president', label: 'Présidence' },
+    { value: 'vice_president', label: 'Vice-Présidence' },
     { value: 'dg', label: 'Direction Générale' },
     { value: 'dga', label: 'Direction Générale Adjointe' },
     { value: 'direction_centrale', label: 'Direction Centrale' },
@@ -491,13 +493,13 @@ function DepartmentFormModal({
   const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#64748b'];
 
   const [form, setForm] = useState({
-    name: department?.name || '',
-    code: department?.code || '',
-    description: department?.description || '',
-    color: department?.color || '#6366f1',
-    level: department?.level || '',
-    parent_id: department?.parent_id?.toString() || '',
-    head_id: department?.head_id?.toString() || '',
+    name: department.name || '',
+    code: department.code || '',
+    description: department.description || '',
+    color: department.color || '#6366f1',
+    level: department.level || '',
+    parent_id: department.parent_id?.toString() || '',
+    head_id: department.head_id?.toString() || '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -526,25 +528,19 @@ function DepartmentFormModal({
     }
   };
 
-  // Filter potential parents (exclude self and children to prevent cycles)
-  const availableParents = departments.filter(d => !isEditing || d.id !== department!.id);
-
-  // Filter employees for head selection (prefer managers in this dept)
-  const managers = employees.filter(e => e.is_manager);
+  const availableParents = departments.filter(d => d.id !== department.id);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-gray-900">
-            {isEditing ? 'Modifier le département' : 'Nouveau département'}
-          </h3>
+      <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+          <h3 className="text-lg font-bold text-gray-900">Modifier l&apos;unité</h3>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>
           )}
@@ -596,14 +592,14 @@ function DepartmentFormModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               <ArrowUpRight className="w-4 h-4 inline mr-1" />
-              Rattaché à (département parent)
+              Rattaché à
             </label>
             <select
               value={form.parent_id}
               onChange={(e) => setForm(f => ({ ...f, parent_id: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
             >
-              <option value="">Aucun (département racine)</option>
+              <option value="">Aucun (niveau racine)</option>
               {availableParents.map(d => (
                 <option key={d.id} value={d.id}>
                   {d.level ? `[${d.level.toUpperCase()}] ` : ''}{d.name}
@@ -621,9 +617,9 @@ function DepartmentFormModal({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
             >
               <option value="">Non assigné</option>
-              {managers.map(m => (
+              {employees.map(m => (
                 <option key={m.id} value={m.id}>
-                  {m.first_name} {m.last_name} — {m.job_title || m.position || ''}
+                  {m.first_name} {m.last_name} {m.job_title ? `— ${m.job_title}` : ''}
                 </option>
               ))}
             </select>
@@ -651,14 +647,14 @@ function DepartmentFormModal({
             <textarea
               value={form.description}
               onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))}
-              placeholder="Description du département..."
+              placeholder="Description de l'unité..."
               rows={2}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
             />
           </div>
         </form>
 
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3 flex-shrink-0">
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm text-gray-600 font-medium hover:bg-gray-200 rounded-lg"
@@ -672,7 +668,7 @@ function DepartmentFormModal({
           >
             {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
             <Save className="w-4 h-4" />
-            {isEditing ? 'Enregistrer' : 'Créer'}
+            Enregistrer
           </button>
         </div>
       </div>

@@ -95,6 +95,8 @@ export interface Employee {
   address?: string;
   created_at: string;
   updated_at?: string;
+  probation_end_date?: string;
+  contract_end_date?: string;
 }
 
 export interface EmployeeCreate {
@@ -120,6 +122,8 @@ export interface EmployeeCreate {
   coefficient?: string | null;
   nationality?: string;
   address?: string;
+  probation_end_date?: string;
+  contract_end_date?: string;
 }
 
 export interface EmployeeStats {

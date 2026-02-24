@@ -21,6 +21,8 @@ const ROLE_OPTIONS: { value: EmployeeRole; label: string; description: string }[
   { value: 'dg', label: 'Direction Générale', description: 'DG, CODIR' },
 ];
 
+const CONTRACT_TYPES_WITH_END_DATE = ['cdd', 'stage', 'alternance', 'interim'];
+
 export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -54,6 +56,8 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
     nationality: '',
     address: '',
     create_access: false,
+    probation_end_date: '',
+    contract_end_date: '',
   });
 
   useEffect(() => {
@@ -66,6 +70,20 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
       setFormData(prev => ({ ...prev, is_manager: true }));
     }
   }, [formData.role]);
+
+  // Reset probation_end_date quand statut change
+  useEffect(() => {
+    if (formData.status !== 'probation') {
+      setFormData(prev => ({ ...prev, probation_end_date: '' }));
+    }
+  }, [formData.status]);
+
+  // Reset contract_end_date quand type de contrat change vers CDI/consultant
+  useEffect(() => {
+    if (!CONTRACT_TYPES_WITH_END_DATE.includes(formData.contract_type)) {
+      setFormData(prev => ({ ...prev, contract_end_date: '' }));
+    }
+  }, [formData.contract_type]);
 
   async function loadData() {
     setIsLoadingData(true);
@@ -112,6 +130,8 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
         coefficient: formData.coefficient || undefined,
         nationality: formData.nationality || undefined,
         address: formData.address || undefined,
+        probation_end_date: formData.probation_end_date || undefined,
+        contract_end_date: formData.contract_end_date || undefined,
       });
       
       // Si on doit créer un compte d'accès
@@ -120,11 +140,9 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
           const accessResult = await activateEmployeeAccess(newEmployee.id, false);
           setCreatedEmployee({ id: newEmployee.id, email: newEmployee.email });
           setTempPassword(accessResult.temp_password);
-          // Ne pas fermer le modal, afficher le mot de passe
           return;
         } catch (accessErr) {
           console.error('Error creating access:', accessErr);
-          // L'employé est créé mais pas le compte - on continue
         }
       }
       
@@ -310,7 +328,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               />
             </div>
 
-            {/* Nationalité — SELECT SEARCHABLE */}
+            {/* Nationalité */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nationalité</label>
               <NationalitySelect
@@ -454,6 +472,29 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               </select>
             </div>
 
+            {/* Date de fin de contrat — conditionnel CDD/Stage/Alternance/Intérim */}
+            {CONTRACT_TYPES_WITH_END_DATE.includes(formData.contract_type) && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date de fin de contrat *
+                </label>
+                <input
+                  type="date"
+                  name="contract_end_date"
+                  value={formData.contract_end_date}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.contract_type === 'cdd' && "Date d'échéance du CDD"}
+                  {formData.contract_type === 'stage' && 'Date de fin du stage'}
+                  {formData.contract_type === 'alternance' && "Date de fin de l'alternance"}
+                  {formData.contract_type === 'interim' && 'Date de fin de mission'}
+                </p>
+              </div>
+            )}
+
             {/* Statut */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
@@ -470,6 +511,26 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
                 <option value="terminated">Terminé</option>
               </select>
             </div>
+
+            {/* Fin de période d'essai — conditionnel */}
+            {formData.status === 'probation' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Fin de période d&apos;essai *
+                </label>
+                <input
+                  type="date"
+                  name="probation_end_date"
+                  value={formData.probation_end_date}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Date à laquelle la période d&apos;essai se termine
+                </p>
+              </div>
+            )}
 
             {/* Classification */}
             <div>
@@ -502,6 +563,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
                 placeholder="Ex: 350"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
+              <p className="text-xs text-gray-500 mt-1">Niveau dans la grille de la convention collective</p>
             </div>
 
             {/* Salaire */}

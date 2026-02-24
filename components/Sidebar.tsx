@@ -17,6 +17,7 @@ import {
   Sparkles,
   GraduationCap,
   Calendar,
+  CalendarDays,
   UserCircle,
   UsersRound,
   ClipboardList,
@@ -125,7 +126,7 @@ const navigation: NavItem[] = [
   { 
   name: 'Gestion des Missions', 
   href: '/dashboard/missions', 
-  icon: Plane,  // import { Plane } from 'lucide-react'
+  icon: Plane,
   roles: ['employee', 'manager', 'rh', 'admin', 'dg']
 },
   {
@@ -148,6 +149,12 @@ const mySpaceNavigation: NavItem[] = [
     name: 'Mon Profil',
     href: '/dashboard/my-space',
     icon: UserCircle,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg']
+  },
+  {
+    name: 'Mon Calendrier',
+    href: '/dashboard/my-space/calendar',
+    icon: CalendarDays,
     roles: ['employee', 'manager', 'rh', 'admin', 'dg']
   },
   {

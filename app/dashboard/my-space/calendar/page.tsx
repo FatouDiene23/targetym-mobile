@@ -154,7 +154,9 @@ async function getMyLeaveRequests(employeeId: number): Promise<LeaveRequest[]> {
   const response = await fetch(`${API_URL}/api/leaves/requests?employee_id=${employeeId}&page_size=100`, { headers: getAuthHeaders() });
   if (!response.ok) return [];
   const data = await response.json();
-  return data.items || [];
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.items)) return data.items;
+  return [];
 }
 
 async function getTeamLeaveRequests(managerId: number): Promise<LeaveRequest[]> {
@@ -162,7 +164,9 @@ async function getTeamLeaveRequests(managerId: number): Promise<LeaveRequest[]> 
     const response = await fetch(`${API_URL}/api/leaves/requests?manager_id=${managerId}&status=approved&page_size=100`, { headers: getAuthHeaders() });
     if (!response.ok) return [];
     const data = await response.json();
-    return data.items || [];
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.items)) return data.items;
+    return [];
   } catch {
     return [];
   }
@@ -173,7 +177,10 @@ async function getEmployees(): Promise<Employee[]> {
     const response = await fetch(`${API_URL}/api/employees/?page_size=200`, { headers: getAuthHeaders() });
     if (!response.ok) return [];
     const data = await response.json();
-    return data.items || data || [];
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.items)) return data.items;
+    if (data && Array.isArray(data.employees)) return data.employees;
+    return [];
   } catch {
     return [];
   }
@@ -184,7 +191,10 @@ async function getMyMissions(employeeId: number): Promise<Mission[]> {
     const response = await fetch(`${API_URL}/api/missions/?employee_id=${employeeId}&page_size=50`, { headers: getAuthHeaders() });
     if (!response.ok) return [];
     const data = await response.json();
-    return data.items || data || [];
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.items)) return data.items;
+    if (data && Array.isArray(data.missions)) return data.missions;
+    return [];
   } catch {
     return [];
   }
@@ -195,7 +205,10 @@ async function getTeamMembers(managerId: number): Promise<Employee[]> {
     const response = await fetch(`${API_URL}/api/employees/?manager_id=${managerId}&page_size=50`, { headers: getAuthHeaders() });
     if (!response.ok) return [];
     const data = await response.json();
-    return data.items || data || [];
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.items)) return data.items;
+    if (data && Array.isArray(data.employees)) return data.employees;
+    return [];
   } catch {
     return [];
   }
@@ -806,19 +819,26 @@ export default function MyCalendarPage() {
         getMyMissions(user.employee_id),
       ]);
 
+      // Safety: ensure all are arrays
+      const safeMyLeaves = Array.isArray(myLeaves) ? myLeaves : [];
+      const safeEmployees = Array.isArray(employees) ? employees : [];
+      const safeMyMissions = Array.isArray(myMissions) ? myMissions : [];
+
       // Get team data if manager
       let teamLeaves: LeaveRequest[] = [];
       let teamMembers: Employee[] = [];
       if (isManager || ['rh', 'admin', 'dg'].includes(userRole)) {
-        [teamLeaves, teamMembers] = await Promise.all([
+        const [tl, tm] = await Promise.all([
           getTeamLeaveRequests(user.employee_id),
           getTeamMembers(user.employee_id),
         ]);
+        teamLeaves = Array.isArray(tl) ? tl : [];
+        teamMembers = Array.isArray(tm) ? tm : [];
       }
 
       const events = buildCalendarEvents(
-        myLeaves, teamLeaves, employees, teamMembers,
-        myMissions, user.employee_id, userRole, isManager,
+        safeMyLeaves, teamLeaves, safeEmployees, teamMembers,
+        safeMyMissions, user.employee_id, userRole, isManager,
         currentYear, currentMonth,
       );
 

@@ -158,6 +158,12 @@ const mySpaceNavigation: NavItem[] = [
     roles: ['employee', 'manager', 'rh', 'admin', 'dg']
   },
   {
+    name: 'Mon Parcours',
+    href: '/dashboard/my-space/career',
+    icon: TrendingUp,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg']
+  },
+  {
     name: 'Mes Congés',
     href: '/dashboard/my-space/leaves',
     icon: Calendar,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import {
   X, Download, FileSpreadsheet, FileText, File,
   ChevronRight, ChevronLeft, Check, Loader2,
@@ -8,7 +8,7 @@ import {
   Filter, Columns, CheckSquare, Square, Search
 } from 'lucide-react';
 import {
-  getEmployees, getLeaveRequests, getDepartments, getMyTasks, getTeamTasks,
+  getEmployees, getLeaveRequests, getDepartments, getTeamTasks,
   type Employee, type LeaveRequest, type Department, type Task
 } from '@/lib/api';
 
@@ -47,7 +47,7 @@ const EMPLOYEE_COLUMNS: ColumnDef[] = [
     const g = e.gender?.toLowerCase();
     return g === 'male' ? 'Homme' : g === 'female' ? 'Femme' : g || '';
   }},
-  { key: 'date_of_birth', label: 'Date de naissance', checked: false, getValue: (e: Employee) => formatDate(e.date_of_birth) },
+  { key: 'date_of_birth', label: 'Date de naissance', checked: false, getValue: (e: Employee) => fmtDate(e.date_of_birth) },
   { key: 'nationality', label: 'Nationalité', checked: false, getValue: (e: Employee) => e.nationality || '' },
   { key: 'address', label: 'Adresse', checked: false, getValue: (e: Employee) => e.address || '' },
   { key: 'job_title', label: 'Poste', checked: true, getValue: (e: Employee) => e.job_title || e.position || '' },
@@ -59,24 +59,24 @@ const EMPLOYEE_COLUMNS: ColumnDef[] = [
     return roles[e.role || ''] || e.role || '';
   }},
   { key: 'is_manager', label: 'Est manager', checked: false, getValue: (e: Employee) => e.is_manager ? 'Oui' : 'Non' },
-  { key: 'hire_date', label: 'Date d\'embauche', checked: true, getValue: (e: Employee) => formatDate(e.hire_date) },
+  { key: 'hire_date', label: "Date d'embauche", checked: true, getValue: (e: Employee) => fmtDate(e.hire_date) },
   { key: 'status', label: 'Statut', checked: true, getValue: (e: Employee) => {
-    const statuses: Record<string, string> = { active: 'Actif', inactive: 'Inactif', on_leave: 'En congés', terminated: 'Terminé', probation: 'Période d\'essai', suspended: 'Suspendu' };
-    return statuses[e.status?.toLowerCase() || ''] || e.status || '';
+    const s: Record<string, string> = { active: 'Actif', inactive: 'Inactif', on_leave: 'En congés', terminated: 'Terminé', probation: "Période d'essai", suspended: 'Suspendu' };
+    return s[e.status?.toLowerCase() || ''] || e.status || '';
   }},
   { key: 'contract_type', label: 'Type de contrat', checked: true, getValue: (e: Employee) => (e.contract_type || '').toUpperCase() },
   { key: 'classification', label: 'Classification', checked: false, getValue: (e: Employee) => e.classification || '' },
   { key: 'coefficient', label: 'Coefficient', checked: false, getValue: (e: Employee) => e.coefficient || '' },
   { key: 'salary', label: 'Salaire', checked: false, getValue: (e: Employee) => e.salary ? `${Number(e.salary).toLocaleString('fr-FR')} ${e.currency || 'XOF'}` : '' },
-  { key: 'probation_end_date', label: 'Fin période d\'essai', checked: false, getValue: (e: Employee) => formatDate(e.probation_end_date) },
-  { key: 'contract_end_date', label: 'Fin de contrat', checked: false, getValue: (e: Employee) => formatDate(e.contract_end_date) },
+  { key: 'probation_end_date', label: "Fin période d'essai", checked: false, getValue: (e: Employee) => fmtDate(e.probation_end_date) },
+  { key: 'contract_end_date', label: 'Fin de contrat', checked: false, getValue: (e: Employee) => fmtDate(e.contract_end_date) },
 ];
 
 const LEAVE_COLUMNS: ColumnDef[] = [
   { key: 'employee_name', label: 'Employé', checked: true, getValue: (l: LeaveRequest) => l.employee_name || '' },
   { key: 'leave_type_name', label: 'Type de congé', checked: true, getValue: (l: LeaveRequest) => l.leave_type_name || '' },
-  { key: 'start_date', label: 'Date début', checked: true, getValue: (l: LeaveRequest) => formatDate(l.start_date) },
-  { key: 'end_date', label: 'Date fin', checked: true, getValue: (l: LeaveRequest) => formatDate(l.end_date) },
+  { key: 'start_date', label: 'Date début', checked: true, getValue: (l: LeaveRequest) => fmtDate(l.start_date) },
+  { key: 'end_date', label: 'Date fin', checked: true, getValue: (l: LeaveRequest) => fmtDate(l.end_date) },
   { key: 'days_requested', label: 'Jours demandés', checked: true, getValue: (l: LeaveRequest) => l.days_requested?.toString() || '' },
   { key: 'status', label: 'Statut', checked: true, getValue: (l: LeaveRequest) => {
     const s: Record<string, string> = { pending: 'En attente', approved: 'Approuvé', rejected: 'Refusé', cancelled: 'Annulé', draft: 'Brouillon' };
@@ -85,9 +85,9 @@ const LEAVE_COLUMNS: ColumnDef[] = [
   { key: 'reason', label: 'Motif', checked: false, getValue: (l: LeaveRequest) => l.reason || '' },
   { key: 'department', label: 'Département', checked: true, getValue: (l: LeaveRequest) => l.department || '' },
   { key: 'approved_by_name', label: 'Approuvé par', checked: false, getValue: (l: LeaveRequest) => l.approved_by_name || '' },
-  { key: 'approved_at', label: 'Date approbation', checked: false, getValue: (l: LeaveRequest) => formatDate(l.approved_at) },
+  { key: 'approved_at', label: 'Date approbation', checked: false, getValue: (l: LeaveRequest) => fmtDate(l.approved_at) },
   { key: 'rejection_reason', label: 'Motif refus', checked: false, getValue: (l: LeaveRequest) => l.rejection_reason || '' },
-  { key: 'created_at', label: 'Date demande', checked: true, getValue: (l: LeaveRequest) => formatDate(l.created_at) },
+  { key: 'created_at', label: 'Date demande', checked: true, getValue: (l: LeaveRequest) => fmtDate(l.created_at) },
 ];
 
 const DEPARTMENT_COLUMNS: ColumnDef[] = [
@@ -105,7 +105,7 @@ const DEPARTMENT_COLUMNS: ColumnDef[] = [
 const TASK_COLUMNS: ColumnDef[] = [
   { key: 'title', label: 'Titre', checked: true, getValue: (t: Task) => t.title },
   { key: 'assigned_to_name', label: 'Assigné à', checked: true, getValue: (t: Task) => t.assigned_to_name || '' },
-  { key: 'due_date', label: 'Échéance', checked: true, getValue: (t: Task) => formatDate(t.due_date) },
+  { key: 'due_date', label: 'Échéance', checked: true, getValue: (t: Task) => fmtDate(t.due_date) },
   { key: 'status', label: 'Statut', checked: true, getValue: (t: Task) => {
     const s: Record<string, string> = { pending: 'En attente', in_progress: 'En cours', completed: 'Terminée', cancelled: 'Annulée' };
     return s[t.status] || t.status;
@@ -116,23 +116,24 @@ const TASK_COLUMNS: ColumnDef[] = [
   }},
   { key: 'description', label: 'Description', checked: false, getValue: (t: Task) => t.description || '' },
   { key: 'created_by_name', label: 'Créé par', checked: false, getValue: (t: Task) => t.created_by_name || '' },
-  { key: 'completed_at', label: 'Date achèvement', checked: false, getValue: (t: Task) => formatDate(t.completed_at) },
+  { key: 'completed_at', label: 'Date achèvement', checked: false, getValue: (t: Task) => fmtDate(t.completed_at) },
   { key: 'is_overdue', label: 'En retard', checked: false, getValue: (t: Task) => t.is_overdue ? 'Oui' : 'Non' },
   { key: 'objective_title', label: 'Objectif lié', checked: false, getValue: (t: Task) => t.objective_title || '' },
-  { key: 'created_at', label: 'Date création', checked: true, getValue: (t: Task) => formatDate(t.created_at) },
+  { key: 'created_at', label: 'Date création', checked: true, getValue: (t: Task) => fmtDate(t.created_at) },
 ];
 
-function formatDate(ds?: string): string {
+function fmtDate(ds?: string): string {
   if (!ds) return '';
-  try {
-    return new Date(ds).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  } catch {
-    return ds;
-  }
+  try { return new Date(ds).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
+  catch { return ds; }
+}
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 // ============================================
-// DATA TYPE CONFIG
+// DATA TYPE / FORMAT CONFIG
 // ============================================
 const DATA_TYPES = [
   { key: 'employees' as DataType, label: 'Employés', sublabel: 'Annuaire complet', icon: Users, color: 'bg-blue-500' },
@@ -157,7 +158,6 @@ interface ExportDataModalProps {
 }
 
 export default function ExportDataModal({ onClose, initialDataType, departments: propDepartments }: ExportDataModalProps) {
-  // Steps: 1 = data type, 2 = columns + filters, 3 = format + export
   const [step, setStep] = useState(initialDataType ? 2 : 1);
   const [dataType, setDataType] = useState<DataType>(initialDataType || 'employees');
   const [format, setFormat] = useState<ExportFormat>('xlsx');
@@ -170,14 +170,12 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
   const [exportSuccess, setExportSuccess] = useState(false);
   const [columnSearch, setColumnSearch] = useState('');
 
-  // Load departments if not passed as prop
   useEffect(() => {
     if (!propDepartments || propDepartments.length === 0) {
       getDepartments().then(d => setDepartments(d || [])).catch(() => {});
     }
   }, [propDepartments]);
 
-  // Init columns when data type changes
   useEffect(() => {
     const colMap: Record<DataType, ColumnDef[]> = {
       employees: EMPLOYEE_COLUMNS,
@@ -190,7 +188,6 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
     setDataCount(null);
   }, [dataType]);
 
-  // Fetch data count when filters change
   useEffect(() => {
     if (step < 2) return;
     const timer = setTimeout(() => fetchDataCount(), 500);
@@ -202,23 +199,12 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
     try {
       switch (dataType) {
         case 'employees': {
-          const res = await getEmployees({
-            page: 1, page_size: 1,
-            department_id: filters.department_id,
-            status: filters.status,
-            search: filters.search,
-          });
+          const res = await getEmployees({ page: 1, page_size: 1, department_id: filters.department_id, status: filters.status, search: filters.search });
           setDataCount(res.total);
           break;
         }
         case 'leaves': {
-          const res = await getLeaveRequests({
-            page: 1, page_size: 1,
-            status: filters.status,
-            department_id: filters.department_id,
-            start_date: filters.date_from,
-            end_date: filters.date_to,
-          });
+          const res = await getLeaveRequests({ page: 1, page_size: 1, status: filters.status, department_id: filters.department_id, start_date: filters.date_from, end_date: filters.date_to });
           setDataCount(res.total);
           break;
         }
@@ -233,25 +219,16 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
           break;
         }
       }
-    } catch {
-      setDataCount(null);
-    } finally {
-      setIsLoadingData(false);
-    }
+    } catch { setDataCount(null); }
+    finally { setIsLoadingData(false); }
   }
 
-  // Toggle column
   function toggleColumn(key: string) {
     setColumns(prev => prev.map(c => c.key === key ? { ...c, checked: !c.checked } : c));
   }
 
-  function selectAllColumns() {
-    setColumns(prev => prev.map(c => ({ ...c, checked: true })));
-  }
-
-  function deselectAllColumns() {
-    setColumns(prev => prev.map(c => ({ ...c, checked: false })));
-  }
+  function selectAllColumns() { setColumns(prev => prev.map(c => ({ ...c, checked: true }))); }
+  function deselectAllColumns() { setColumns(prev => prev.map(c => ({ ...c, checked: false }))); }
 
   const checkedColumns = columns.filter(c => c.checked);
   const filteredColumns = columnSearch
@@ -259,27 +236,16 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
     : columns;
 
   // ============================================
-  // FETCH ALL DATA FOR EXPORT
+  // FETCH ALL DATA
   // ============================================
   async function fetchAllData(): Promise<any[]> {
     switch (dataType) {
       case 'employees': {
-        const res = await getEmployees({
-          page: 1, page_size: 1000,
-          department_id: filters.department_id,
-          status: filters.status,
-          search: filters.search,
-        });
+        const res = await getEmployees({ page: 1, page_size: 1000, department_id: filters.department_id, status: filters.status, search: filters.search });
         return res.items || [];
       }
       case 'leaves': {
-        const res = await getLeaveRequests({
-          page: 1, page_size: 1000,
-          status: filters.status,
-          department_id: filters.department_id,
-          start_date: filters.date_from,
-          end_date: filters.date_to,
-        });
+        const res = await getLeaveRequests({ page: 1, page_size: 1000, status: filters.status, department_id: filters.department_id, start_date: filters.date_from, end_date: filters.date_to });
         return res.items || [];
       }
       case 'departments': {
@@ -293,7 +259,7 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
   }
 
   // ============================================
-  // EXPORT FUNCTIONS
+  // EXPORT FUNCTIONS (zero dependencies)
   // ============================================
   async function handleExport() {
     if (checkedColumns.length === 0) return;
@@ -304,86 +270,97 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
       const data = await fetchAllData();
       const headers = checkedColumns.map(c => c.label);
       const rows = data.map(item => checkedColumns.map(c => c.getValue(item)));
-
       const typeLabels: Record<DataType, string> = { employees: 'employes', leaves: 'conges', departments: 'organisation', tasks: 'taches' };
       const filename = `${typeLabels[dataType]}_${new Date().toISOString().split('T')[0]}`;
 
       switch (format) {
-        case 'csv':
-          exportCSV(headers, rows, filename);
-          break;
-        case 'xlsx':
-          await exportXLSX(headers, rows, filename);
-          break;
-        case 'pdf':
-          await exportPDF(headers, rows, filename);
-          break;
+        case 'csv': exportCSV(headers, rows, filename); break;
+        case 'xlsx': exportXLSX(headers, rows, filename); break;
+        case 'pdf': exportPDF(headers, rows, filename); break;
       }
 
       setExportSuccess(true);
       setTimeout(() => setExportSuccess(false), 3000);
     } catch (err) {
       console.error('Export error:', err);
-      alert('Erreur lors de l\'export. Vérifiez la console.');
+      alert("Erreur lors de l'export.");
     } finally {
       setIsExporting(false);
     }
   }
 
+  // --- CSV ---
   function exportCSV(headers: string[], rows: string[][], filename: string) {
     const csvContent = [
       headers.join(';'),
       ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';'))
     ].join('\n');
-
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    downloadBlob(blob, `${filename}.csv`);
+    downloadBlob(new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' }), `${filename}.csv`);
   }
 
-  async function exportXLSX(headers: string[], rows: string[][], filename: string) {
-    const XLSX = await import('xlsx');
-    const wsData = [headers, ...rows];
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-    // Auto-width columns
-    const colWidths = headers.map((h, i) => {
-      const maxLen = Math.max(h.length, ...rows.map(r => (r[i] || '').length));
-      return { wch: Math.min(Math.max(maxLen + 2, 10), 40) };
-    });
-    ws['!cols'] = colWidths;
-
-    const wb = XLSX.utils.book_new();
+  // --- XLSX (via HTML table that Excel opens natively) ---
+  function exportXLSX(headers: string[], rows: string[][], filename: string) {
     const typeLabels: Record<DataType, string> = { employees: 'Employés', leaves: 'Congés', departments: 'Organisation', tasks: 'Tâches' };
-    XLSX.utils.book_append_sheet(wb, ws, typeLabels[dataType]);
-    XLSX.writeFile(wb, `${filename}.xlsx`);
+    const title = `Export ${typeLabels[dataType]}`;
+
+    let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="UTF-8">
+<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
+<x:Name>${title}</x:Name>
+<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+<style>
+  td, th { padding: 4px 8px; border: 1px solid #ccc; font-family: Calibri, sans-serif; font-size: 11pt; }
+  th { background: #3B82F6; color: white; font-weight: bold; }
+  tr:nth-child(even) { background: #F5F7FA; }
+</style>
+</head><body>
+<table>
+<thead><tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>
+<tbody>
+${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`).join('\n')}
+</tbody></table></body></html>`;
+
+    downloadBlob(new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' }), `${filename}.xls`);
   }
 
-  async function exportPDF(headers: string[], rows: string[][], filename: string) {
-    const { default: jsPDF } = await import('jspdf');
-    const autoTable = (await import('jspdf-autotable')).default;
-
-    const doc = new jsPDF({ orientation: headers.length > 6 ? 'landscape' : 'portrait' });
-
-    // Title
+  // --- PDF (via print window) ---
+  function exportPDF(headers: string[], rows: string[][], filename: string) {
     const typeLabels: Record<DataType, string> = { employees: 'Employés', leaves: 'Congés', departments: 'Organisation', tasks: 'Tâches' };
-    doc.setFontSize(16);
-    doc.text(`Export ${typeLabels[dataType]}`, 14, 20);
-    doc.setFontSize(9);
-    doc.setTextColor(128);
-    doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')} — ${rows.length} enregistrement(s)`, 14, 28);
+    const title = `Export ${typeLabels[dataType]}`;
+    const dateStr = new Date().toLocaleDateString('fr-FR');
 
-    // Table
-    autoTable(doc, {
-      head: [headers],
-      body: rows,
-      startY: 35,
-      styles: { fontSize: 7, cellPadding: 2 },
-      headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [245, 247, 250] },
-      margin: { left: 14, right: 14 },
-    });
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Veuillez autoriser les popups pour exporter en PDF.');
+      return;
+    }
 
-    doc.save(`${filename}.pdf`);
+    printWindow.document.write(`<!DOCTYPE html><html><head>
+<title>${filename}</title>
+<style>
+  @page { size: ${headers.length > 6 ? 'landscape' : 'portrait'}; margin: 15mm; }
+  body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; color: #1a1a1a; margin: 0; padding: 20px; }
+  h1 { font-size: 18px; color: #1e3a5f; margin: 0 0 4px 0; }
+  .meta { font-size: 11px; color: #666; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 10px; }
+  th { background: #3B82F6; color: white; padding: 6px 8px; text-align: left; font-weight: 600; }
+  td { padding: 5px 8px; border-bottom: 1px solid #e5e7eb; }
+  tr:nth-child(even) { background: #f8f9fb; }
+  tr:hover { background: #eef2ff; }
+  @media print { body { padding: 0; } }
+</style>
+</head><body>
+<h1>${escapeHtml(title)}</h1>
+<p class="meta">Généré le ${dateStr} — ${rows.length} enregistrement${rows.length > 1 ? 's' : ''}</p>
+<table>
+<thead><tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>
+<tbody>
+${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`).join('\n')}
+</tbody></table>
+<script>window.onload=function(){window.print();}<\/script>
+</body></html>`);
+    printWindow.document.close();
   }
 
   function downloadBlob(blob: Blob, filename: string) {
@@ -399,7 +376,7 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
   }
 
   // ============================================
-  // RENDER - STEP 1: DATA TYPE
+  // RENDER - STEP 1
   // ============================================
   function renderStep1() {
     return (
@@ -414,9 +391,7 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
                 key={dt.key}
                 onClick={() => setDataType(dt.key)}
                 className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left ${
-                  isSelected
-                    ? 'border-primary-500 bg-primary-50'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  isSelected ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                 }`}
               >
                 <div className={`w-10 h-10 ${dt.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
@@ -435,18 +410,16 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
   }
 
   // ============================================
-  // RENDER - STEP 2: COLUMNS + FILTERS
+  // RENDER - STEP 2
   // ============================================
   function renderStep2() {
     return (
       <div className="p-6 space-y-5">
-        {/* Filters */}
         <div>
           <h3 className="text-sm font-medium text-gray-500 mb-3 flex items-center gap-2">
             <Filter className="w-4 h-4" /> Filtres
           </h3>
           <div className="grid grid-cols-2 gap-3">
-            {/* Department filter (for employees and leaves) */}
             {(dataType === 'employees' || dataType === 'leaves') && (
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Département</label>
@@ -456,14 +429,11 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 >
                   <option value="">Tous les départements</option>
-                  {departments.map(d => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
+                  {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
             )}
 
-            {/* Status filter */}
             {dataType === 'employees' && (
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Statut</label>
@@ -499,21 +469,13 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Du</label>
-                  <input
-                    type="date"
-                    value={filters.date_from || ''}
-                    onChange={(e) => setFilters(f => ({ ...f, date_from: e.target.value || undefined }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                  />
+                  <input type="date" value={filters.date_from || ''} onChange={(e) => setFilters(f => ({ ...f, date_from: e.target.value || undefined }))}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Au</label>
-                  <input
-                    type="date"
-                    value={filters.date_to || ''}
-                    onChange={(e) => setFilters(f => ({ ...f, date_to: e.target.value || undefined }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                  />
+                  <input type="date" value={filters.date_to || ''} onChange={(e) => setFilters(f => ({ ...f, date_to: e.target.value || undefined }))}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
                 </div>
               </>
             )}
@@ -534,35 +496,24 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
               </div>
             )}
 
-            {/* Search for employees */}
             {dataType === 'employees' && (
               <div className="col-span-2">
                 <label className="block text-xs font-medium text-gray-600 mb-1">Recherche</label>
-                <input
-                  type="text"
-                  placeholder="Nom, email, poste..."
-                  value={filters.search || ''}
+                <input type="text" placeholder="Nom, email, poste..." value={filters.search || ''}
                   onChange={(e) => setFilters(f => ({ ...f, search: e.target.value || undefined }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                />
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
               </div>
             )}
           </div>
 
-          {/* Data count */}
           <div className="mt-3 flex items-center gap-2">
-            {isLoadingData ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />
-            ) : (
-              <div className="w-2 h-2 bg-green-500 rounded-full" />
-            )}
+            {isLoadingData ? <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" /> : <div className="w-2 h-2 bg-green-500 rounded-full" />}
             <span className="text-xs text-gray-500">
               {dataCount !== null ? `${dataCount} enregistrement${dataCount > 1 ? 's' : ''} trouvé${dataCount > 1 ? 's' : ''}` : 'Chargement...'}
             </span>
           </div>
         </div>
 
-        {/* Column selection */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-gray-500 flex items-center gap-2">
@@ -575,17 +526,11 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
             </div>
           </div>
 
-          {/* Column search */}
           {columns.length > 8 && (
             <div className="relative mb-2">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Filtrer les colonnes..."
-                value={columnSearch}
-                onChange={(e) => setColumnSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              />
+              <input type="text" placeholder="Filtrer les colonnes..." value={columnSearch} onChange={(e) => setColumnSearch(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
             </div>
           )}
 
@@ -595,16 +540,12 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
                 key={col.key}
                 onClick={() => toggleColumn(col.key)}
                 className={`flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-md transition-colors text-left ${
-                  col.checked
-                    ? 'bg-primary-50 text-primary-700'
-                    : 'text-gray-600 hover:bg-gray-50'
+                  col.checked ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                {col.checked ? (
-                  <CheckSquare className="w-3.5 h-3.5 text-primary-500 flex-shrink-0" />
-                ) : (
-                  <Square className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
-                )}
+                {col.checked
+                  ? <CheckSquare className="w-3.5 h-3.5 text-primary-500 flex-shrink-0" />
+                  : <Square className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />}
                 <span className="truncate">{col.label}</span>
               </button>
             ))}
@@ -615,12 +556,11 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
   }
 
   // ============================================
-  // RENDER - STEP 3: FORMAT + CONFIRM
+  // RENDER - STEP 3
   // ============================================
   function renderStep3() {
     return (
       <div className="p-6 space-y-5">
-        {/* Format selection */}
         <div>
           <h3 className="text-sm font-medium text-gray-500 mb-3">Format d&apos;export</h3>
           <div className="grid grid-cols-3 gap-3">
@@ -632,9 +572,7 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
                   key={f.key}
                   onClick={() => setFormat(f.key)}
                   className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                    isSelected
-                      ? 'border-primary-500 bg-primary-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                    isSelected ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
                   <Icon className={`w-8 h-8 ${isSelected ? 'text-primary-500' : 'text-gray-400'}`} />
@@ -648,7 +586,6 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
           </div>
         </div>
 
-        {/* Summary */}
         <div className="bg-gray-50 rounded-xl p-4 space-y-2">
           <h3 className="text-sm font-semibold text-gray-700">Résumé de l&apos;export</h3>
           <div className="grid grid-cols-2 gap-y-2 text-sm">
@@ -663,7 +600,6 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
           </div>
         </div>
 
-        {/* Export success message */}
         {exportSuccess && (
           <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
             <Check className="w-4 h-4" />
@@ -744,11 +680,7 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
               disabled={isExporting || checkedColumns.length === 0}
               className="flex items-center gap-2 px-5 py-2 text-sm text-white font-medium bg-primary-500 rounded-lg hover:bg-primary-600 disabled:opacity-50"
             >
-              {isExporting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Download className="w-4 h-4" />
-              )}
+              {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               {isExporting ? 'Export en cours...' : 'Exporter'}
             </button>
           )}

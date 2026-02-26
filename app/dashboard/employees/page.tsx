@@ -20,8 +20,8 @@ import {
   getLeaveRequests, approveLeaveRequest, rejectLeaveRequest,
   type Employee, type EmployeeStats, type Department, type LeaveRequest
 } from '@/lib/api';
-import ExportDataModal from '@/components/ExportDataModal';
-
+import dynamic from 'next/dynamic';
+const ExportDataModal = dynamic(() => import('@/components/ExportDataModal'), { ssr: false });
 const locations = ['Tous', 'Abidjan', 'Dakar', 'Bamako', 'Ouagadougou', 'Conakry', 'Remote'];
 const [showExportModal, setShowExportModal] = useState(false);
 
@@ -878,6 +878,12 @@ export default function EmployeesPage() {
       {showEditModal && selectedEmployee && <EditEmployeeModal employee={selectedEmployee} onClose={() => setShowEditModal(false)} onSuccess={handleSuccess} />}
       {showLeaveModal && selectedLeaveRequest && <LeaveRequestModal request={{ id: selectedLeaveRequest.id, employee_id: selectedLeaveRequest.employee_id, employee_name: selectedLeaveRequest.employee_name || 'Employé', leave_type_id: selectedLeaveRequest.leave_type_id, leave_type_name: selectedLeaveRequest.leave_type_name || 'Congé', leave_type_code: selectedLeaveRequest.leave_type_code, start_date: selectedLeaveRequest.start_date, end_date: selectedLeaveRequest.end_date, days_requested: selectedLeaveRequest.days_requested, start_half_day: selectedLeaveRequest.start_half_day, end_half_day: selectedLeaveRequest.end_half_day, status: selectedLeaveRequest.status, reason: selectedLeaveRequest.reason, department: selectedLeaveRequest.department, job_title: selectedLeaveRequest.job_title, manager_name: selectedLeaveRequest.manager_name, leave_balance: selectedLeaveRequest.leave_balance, approved_by_name: selectedLeaveRequest.approved_by_name, approved_at: selectedLeaveRequest.approved_at, rejection_reason: selectedLeaveRequest.rejection_reason, created_at: selectedLeaveRequest.created_at }} onClose={() => { setShowLeaveModal(false); setSelectedLeaveRequest(null); }} onApprove={handleApproveLeave} onReject={handleRejectLeave} />}
       {tempPasswordData && <TempPasswordModal isOpen={showTempPasswordModal} onClose={() => { setShowTempPasswordModal(false); setTempPasswordData(null); }} employeeName={tempPasswordData.employeeName} email={tempPasswordData.email} tempPassword={tempPasswordData.tempPassword} emailSent={tempPasswordData.emailSent} />}
+      {showExportModal && (
+  <ExportDataModal 
+    onClose={() => setShowExportModal(false)} 
+    departments={departments}
+  />
+)}
     </>
   );
 }

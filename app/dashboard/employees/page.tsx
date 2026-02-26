@@ -20,8 +20,10 @@ import {
   getLeaveRequests, approveLeaveRequest, rejectLeaveRequest,
   type Employee, type EmployeeStats, type Department, type LeaveRequest
 } from '@/lib/api';
+import ExportDataModal from '@/components/ExportDataModal';
 
 const locations = ['Tous', 'Abidjan', 'Dakar', 'Bamako', 'Ouagadougou', 'Conakry', 'Remote'];
+const [showExportModal, setShowExportModal] = useState(false);
 
 // ============================================
 // TYPES ORGANIGRAMME
@@ -710,7 +712,7 @@ export default function EmployeesPage() {
                   <select value={selectedDepartment} onChange={(e) => { setSelectedDepartment(e.target.value); setCurrentPage(1); }} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm"><option value="Tous">Tous les départements</option>{departments.map(dept => <option key={dept.id} value={dept.name}>{dept.parent_id ? `  ↳ ${dept.name}` : dept.name}</option>)}</select>
                   <select value={selectedLocation} onChange={(e) => { setSelectedLocation(e.target.value); setCurrentPage(1); }} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm">{locations.map(loc => <option key={loc} value={loc}>{loc === 'Tous' ? 'Toutes les localisations' : loc}</option>)}</select>
                   <button onClick={() => setShowAddModal(true)} className="flex items-center px-4 py-2.5 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"><Plus className="w-4 h-4 mr-2" />Ajouter</button>
-                  <button onClick={handleExport} className="flex items-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"><Download className="w-4 h-4 mr-2" />Exporter</button>
+                  <button onClick={() => setShowExportModal(true)} className="flex items-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"><Download className="w-4 h-4 mr-2" />Exporter</button>
                 </div>
               </div>
             </div>

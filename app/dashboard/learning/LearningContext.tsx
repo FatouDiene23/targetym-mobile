@@ -45,6 +45,7 @@ interface LearningContextType {
   epfAll: PostTrainingEval[];
   epfStats: EpfStats | null;
   epfSettings: EpfSettings | null;
+  setEpfSettings: (s: EpfSettings | null) => void;
 
   // Catalog filters
   selectedCategory: string;
@@ -706,7 +707,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     courses, learningPaths, certifications, skills, developmentPlans, courseRequests,
     stats, monthlyStats, categoryStats, topLearners, employees, pendingValidations,
     myAssignments, teamAssignments, certHolders,
-    epfPending, epfAll, epfStats, epfSettings: epfSettings,
+    epfPending, epfAll, epfStats, epfSettings: epfSettings, setEpfSettings: setEpfSettingsState,
     selectedCategory, setSelectedCategory, searchQuery, setSearchQuery,
     selectedCourse, setSelectedCourse, showCreateCourse, setShowCreateCourse,
     showAssignModal, setShowAssignModal, showValidationModal, setShowValidationModal,

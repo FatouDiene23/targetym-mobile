@@ -22,7 +22,7 @@ export function LearningModals() {
   const ctx = useLearning();
   const {
     userRole, courses, employees, skills, certHolders,
-    epfStats, epfSettings,
+    epfStats, epfSettings, setEpfSettings,
     // Modal states
     selectedCourse, setSelectedCourse,
     showCreateCourse, setShowCreateCourse,

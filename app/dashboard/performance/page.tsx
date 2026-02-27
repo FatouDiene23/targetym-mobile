@@ -294,13 +294,23 @@ function FeedbackCard({ feedback, onLike }: { feedback: FeedbackItem; onLike: (i
 function AttitudeSelector({ 
   attitudes, 
   selectedAttitudes, 
-  onChange
+  onChange,
+  feedbackType
 }: {
   attitudes: AttitudeItem[];
   selectedAttitudes: Map<number, 'recognition' | 'improvement'>;
   onChange: (newMap: Map<number, 'recognition' | 'improvement'>) => void;
+  feedbackType: FeedbackType;
 }) {
   if (attitudes.length === 0) return null;
+
+  // Le sentiment est déterminé par le type de feedback
+  const sentiment: 'recognition' | 'improvement' = 
+    feedbackType === 'improvement' ? 'improvement' : 'recognition';
+  
+  const isRecognition = sentiment === 'recognition';
+  const label = isRecognition ? 'Reconnaissance' : 'À améliorer';
+  const color = isRecognition ? 'green' : 'amber';
 
   // Grouper par catégorie
   const grouped = attitudes.reduce((acc, att) => {
@@ -310,13 +320,25 @@ function AttitudeSelector({
     return acc;
   }, {} as Record<string, AttitudeItem[]>);
 
-  const handleSelect = (attitudeId: number, sentiment: 'recognition' | 'improvement') => {
+  const handleToggle = (attitudeId: number) => {
     const next = new Map(selectedAttitudes);
-    // Si déjà le même sentiment → décocher
-    if (next.get(attitudeId) === sentiment) {
+    if (next.has(attitudeId)) {
       next.delete(attitudeId);
     } else {
       next.set(attitudeId, sentiment);
+    }
+    onChange(next);
+  };
+
+  const allIds = attitudes.map(a => a.id);
+  const allSelected = allIds.every(id => selectedAttitudes.has(id));
+  
+  const handleSelectAll = () => {
+    const next = new Map(selectedAttitudes);
+    if (allSelected) {
+      allIds.forEach(id => next.delete(id));
+    } else {
+      allIds.forEach(id => next.set(id, sentiment));
     }
     onChange(next);
   };
@@ -327,59 +349,56 @@ function AttitudeSelector({
         Attitudes observées <span className="text-gray-400 font-normal">(optionnel)</span>
       </label>
       <p className="text-xs text-gray-500 mb-3">
-        Pour chaque attitude, cochez <span className="text-green-600 font-medium">Reconnaissance</span> ou <span className="text-amber-600 font-medium">À améliorer</span>
+        Cochez les attitudes dont le collaborateur a fait preuve 
+        <span className={`font-medium ${isRecognition ? 'text-green-600' : 'text-amber-600'}`}> ({label})</span>
       </p>
       
       <div className="border rounded-lg overflow-hidden">
-        {/* Header */}
-        <div className="grid grid-cols-[1fr_90px_90px] bg-gray-50 px-3 py-2 border-b">
+        {/* Header avec Tout cocher */}
+        <div className="flex items-center justify-between bg-gray-50 px-3 py-2 border-b">
           <span className="text-xs font-semibold text-gray-500 uppercase">Attitude</span>
-          <span className="text-xs font-semibold text-green-600 uppercase text-center">Reconn.</span>
-          <span className="text-xs font-semibold text-amber-600 uppercase text-center">À amélior.</span>
+          <button 
+            type="button"
+            onClick={handleSelectAll}
+            className={`text-xs font-medium ${isRecognition ? 'text-green-600 hover:text-green-700' : 'text-amber-600 hover:text-amber-700'}`}
+          >
+            {allSelected ? 'Tout décocher' : 'Tout cocher'}
+          </button>
         </div>
         
         {Object.entries(grouped).map(([category, atts]) => (
           <div key={category}>
-            {/* Category header */}
             <div className="px-3 py-1.5 bg-gray-50/50 border-b">
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{category}</span>
             </div>
             {atts.map((att, idx) => {
-              const selected = selectedAttitudes.get(att.id);
+              const isChecked = selectedAttitudes.has(att.id);
               return (
-                <div key={att.id} className={`grid grid-cols-[1fr_90px_90px] px-3 py-2 items-center ${idx < atts.length - 1 ? 'border-b border-gray-100' : ''} hover:bg-gray-50/50`}>
-                  {/* Attitude name */}
+                <div 
+                  key={att.id} 
+                  onClick={() => handleToggle(att.id)}
+                  className={`flex items-center justify-between px-3 py-2.5 cursor-pointer transition-colors ${
+                    idx < atts.length - 1 ? 'border-b border-gray-100' : ''
+                  } ${isChecked 
+                    ? isRecognition ? 'bg-green-50/50' : 'bg-amber-50/50'
+                    : 'hover:bg-gray-50/50'
+                  }`}
+                >
                   <div className="flex items-center gap-2">
                     <span className="text-base">{att.icon}</span>
                     <span className="text-sm text-gray-700">{att.name}</span>
                   </div>
-                  {/* Reconnaissance radio */}
-                  <div className="flex justify-center">
-                    <button
-                      type="button"
-                      onClick={() => handleSelect(att.id, 'recognition')}
-                      className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
-                        selected === 'recognition'
-                          ? 'bg-green-500 border-green-500 text-white'
-                          : 'border-gray-300 hover:border-green-400'
-                      }`}
-                    >
-                      {selected === 'recognition' && <Check className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  {/* À améliorer radio */}
-                  <div className="flex justify-center">
-                    <button
-                      type="button"
-                      onClick={() => handleSelect(att.id, 'improvement')}
-                      className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
-                        selected === 'improvement'
-                          ? 'bg-amber-500 border-amber-500 text-white'
-                          : 'border-gray-300 hover:border-amber-400'
-                      }`}
-                    >
-                      {selected === 'improvement' && <Check className="w-4 h-4" />}
-                    </button>
+                  <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${
+                    isChecked
+                      ? `bg-${color}-500 border-${color}-500 text-white`
+                      : `border-gray-300 hover:border-${color}-400`
+                  }`}
+                    style={isChecked ? { 
+                      backgroundColor: isRecognition ? '#22c55e' : '#f59e0b', 
+                      borderColor: isRecognition ? '#22c55e' : '#f59e0b' 
+                    } : {}}
+                  >
+                    {isChecked && <Check className="w-4 h-4 text-white" />}
                   </div>
                 </div>
               );
@@ -389,15 +408,8 @@ function AttitudeSelector({
       </div>
       
       {selectedAttitudes.size > 0 && (
-        <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-green-500"></span>
-            {Array.from(selectedAttitudes.values()).filter(s => s === 'recognition').length} reconnaissance(s)
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-            {Array.from(selectedAttitudes.values()).filter(s => s === 'improvement').length} à améliorer
-          </span>
+        <div className={`mt-2 text-xs ${isRecognition ? 'text-green-600' : 'text-amber-600'}`}>
+          {selectedAttitudes.size} attitude(s) cochée(s) en {label.toLowerCase()}
         </div>
       )}
     </div>
@@ -490,6 +502,7 @@ function CreateFeedbackModal({ isOpen, onClose, employees, attitudes, onSuccess 
               attitudes={attitudes}
               selectedAttitudes={selectedAttitudes}
               onChange={setSelectedAttitudes}
+              feedbackType={feedbackType}
             />
           )}
           

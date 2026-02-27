@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   Plus, ThumbsUp, Send, X, Loader2, AlertCircle, Search,
-  ChevronLeft, ChevronRight, BarChart3, Check
+  ChevronLeft, ChevronRight, BarChart3, Check, Trash2
 } from 'lucide-react';
 
 // =============================================
@@ -130,6 +130,15 @@ async function likeFeedback(feedbackId: number): Promise<number> {
   } catch { return -1; }
 }
 
+async function deleteFeedback(feedbackId: number): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_URL}/api/performance/feedbacks/${feedbackId}`, {
+      method: 'DELETE', headers: getAuthHeaders(),
+    });
+    return response.ok;
+  } catch { return false; }
+}
+
 async function fetchEmployees(): Promise<Employee[]> {
   try {
     const response = await fetch(`${API_URL}/api/employees/?page_size=200&status=active`, { headers: getAuthHeaders() });
@@ -223,13 +232,23 @@ function Pagination({ currentPage, totalPages, onPageChange }: {
   );
 }
 
-function FeedbackCard({ feedback, onLike }: { feedback: FeedbackItem; onLike: (id: number) => void }) {
+function FeedbackCard({ feedback, onLike, onDelete }: { feedback: FeedbackItem; onLike: (id: number) => void; onDelete: (id: number) => void }) {
   const [liked, setLiked] = useState(feedback.is_liked_by_me || false);
   const [likes, setLikes] = useState(feedback.likes_count);
+  const [deleting, setDeleting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleLike = async () => {
     const newCount = await likeFeedback(feedback.id);
     if (newCount >= 0) { setLikes(newCount); setLiked(!liked); onLike(feedback.id); }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    const success = await deleteFeedback(feedback.id);
+    setDeleting(false);
+    if (success) { onDelete(feedback.id); }
+    setShowConfirm(false);
   };
 
   const timeAgo = (dateStr: string) => {
@@ -240,6 +259,11 @@ function FeedbackCard({ feedback, onLike }: { feedback: FeedbackItem; onLike: (i
     return `Il y a ${Math.floor(hours / 24)}j`;
   };
 
+  // Suppression autorisée uniquement dans les 15 premières minutes
+  const minutesSinceCreation = (Date.now() - new Date(feedback.created_at).getTime()) / (1000 * 60);
+  const canDelete = minutesSinceCreation <= 15;
+  const minutesLeft = Math.max(0, Math.ceil(15 - minutesSinceCreation));
+
   const attitudes = feedback.attitudes || [];
 
   return (
@@ -249,11 +273,23 @@ function FeedbackCard({ feedback, onLike }: { feedback: FeedbackItem; onLike: (i
           {feedback.from_employee_initials || getInitials(feedback.from_employee_name)}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-medium text-gray-900 text-sm">{feedback.from_employee_name}</span>
-            <span className="text-gray-400">→</span>
-            <span className="font-medium text-primary-600 text-sm">{feedback.to_employee_name}</span>
-            <span className="text-lg">{getFeedbackIcon(feedback.type)}</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-medium text-gray-900 text-sm">{feedback.from_employee_name}</span>
+              <span className="text-gray-400">→</span>
+              <span className="font-medium text-primary-600 text-sm">{feedback.to_employee_name}</span>
+              <span className="text-lg">{getFeedbackIcon(feedback.type)}</span>
+            </div>
+            {/* Bouton supprimer - uniquement dans les 15 premières minutes */}
+            {canDelete && (
+              <button 
+                onClick={() => setShowConfirm(true)} 
+                className="p-1.5 text-gray-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
+                title={`Supprimer (${minutesLeft} min restantes)`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
           <p className="text-gray-700 text-sm mt-2 leading-relaxed">{feedback.message}</p>
           
@@ -282,6 +318,19 @@ function FeedbackCard({ feedback, onLike }: { feedback: FeedbackItem; onLike: (i
           </div>
         </div>
       </div>
+      
+      {/* Confirmation suppression */}
+      {showConfirm && (
+        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
+          <span className="text-sm text-red-700">Supprimer ce feedback ? ({minutesLeft} min restantes)</span>
+          <div className="flex gap-2">
+            <button onClick={() => setShowConfirm(false)} className="px-3 py-1 text-xs border border-gray-300 rounded-lg hover:bg-white">Annuler</button>
+            <button onClick={handleDelete} disabled={deleting} className="px-3 py-1 text-xs bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50">
+              {deleting ? 'Suppression...' : 'Confirmer'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -782,7 +831,7 @@ export default function FeedbackPage() {
           </div>
           <div className="space-y-4">
             {paginatedFeedbacks.length > 0 ? paginatedFeedbacks.map(fb => (
-              <FeedbackCard key={fb.id} feedback={fb} onLike={() => {}} />
+              <FeedbackCard key={fb.id} feedback={fb} onLike={() => {}} onDelete={(id) => setFeedbacks(prev => prev.filter(f => f.id !== id))} />
             )) : (
               <p className="text-gray-500 text-center py-8">Aucun feedback trouvé</p>
             )}

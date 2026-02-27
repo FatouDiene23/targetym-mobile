@@ -2,7 +2,7 @@
 
 import { useLearning } from '../LearningContext';
 import { getStatusColor, getStatusLabel } from '../shared';
-import { MessageSquarePlus, Check, XCircle, ExternalLink } from 'lucide-react';
+import { MessageSquarePlus, Check, XCircle, ChevronRight } from 'lucide-react';
 
 export default function RequestsPage() {
   const { courseRequests, reviewCourseRequest } = useLearning();

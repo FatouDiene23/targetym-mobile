@@ -2,16 +2,14 @@
 
 import { useLearning } from '../LearningContext';
 import { hasPermission, getEpfStatusColor, getEpfStatusLabel, getRecommendationColor, getRecommendationLabel, getScoreColor, getTrendIcon } from '../shared';
-import { ClipboardCheck, Clock, CheckCircle, AlertTriangle, Eye, UserPlus, Link, Settings, Zap, TrendingUp, Award } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { ClipboardCheck, Clock, CheckCircle, AlertTriangle, Eye, UserPlus, Link, Settings, Zap, TrendingUp } from 'lucide-react';
 
 export default function PostEvalPage() {
   const {
     userRole, epfPending, epfAll, epfStats, epfSettings, employees,
-    epfSubTab, setEpfSubTab, showEpfHistory,
+    epfSubTab, setEpfSubTab,
     openEvalModal, setShowEpfDetail, setShowAssignEvaluator,
-    syncCareer, fetchEmployeeHistory, setShowEpfSettings,
-    fetchEpfSettings, setSelectedEvaluatorId
+    syncCareer, fetchEmployeeHistory, setShowEpfSettings
   } = useLearning();
 
   return (
@@ -88,7 +86,7 @@ export default function PostEvalPage() {
                           {epf.evaluator_name ? (
                             <div className="text-right"><p className="text-xs text-gray-500">Évaluateur</p><p className="text-sm font-medium text-gray-700">{epf.evaluator_name}</p></div>
                           ) : (
-                            <button onClick={() => { setShowAssignEvaluator(epf); setSelectedEvaluatorId(''); }} className="px-3 py-1.5 bg-gray-100 text-gray-600 text-sm rounded-lg hover:bg-gray-200 flex items-center gap-1"><UserPlus className="w-4 h-4" />Assigner</button>
+                            <button onClick={() => { setShowAssignEvaluator(epf); setSelectedEvaluatorId(''); }} className="px-3 py-1.5 bg-gray-100 text-gray-600 text-sm rounded-lg hover:bg-gray-200 flex items-center gap-1"><User className="w-4 h-4" />Assigner</button>
                           )}
                           <button onClick={() => openEvalModal(epf)} className="px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 flex items-center gap-2"><ClipboardCheck className="w-4 h-4" />Évaluer</button>
                         </div>

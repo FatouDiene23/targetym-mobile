@@ -2,12 +2,13 @@
 
 import Header from '@/components/Header';
 import { useState, useEffect, useCallback } from 'react';
-import { 
+import {
   BookOpen, Award, Clock, Users, CheckCircle, Plus, Search,
   TrendingUp, Target, ChevronRight, AlertTriangle,
   GraduationCap, BarChart3, X, User, ArrowRight, Upload, ExternalLink,
   Check, XCircle, RefreshCw, Eye, Edit, MessageSquarePlus, Send,
-  Archive, Ban, Play, FileCheck, Link, UsersRound, FileWarning
+  Archive, Ban, Play, FileCheck, Link, UsersRound, FileWarning,
+  ClipboardCheck, Zap, Settings
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
@@ -163,6 +164,87 @@ interface Employee {
   job_title: string;
 }
 
+interface PostTrainingEval {
+  id: number;
+  tenant_id: number;
+  assignment_id: number;
+  course_id: number;
+  employee_id: number;
+  employee_name: string;
+  employee_initials: string;
+  employee_job_title: string;
+  course_title: string;
+  course_category: string;
+  course_emoji: string;
+  evaluator_id: number | null;
+  evaluator_name: string | null;
+  evaluator_initials: string | null;
+  evaluator_type: string;
+  scheduled_date: string | null;
+  due_date: string | null;
+  status: string;
+  score: number | null;
+  criteria_scores: CriteriaScore[] | null;
+  comments: string | null;
+  strengths: string | null;
+  improvements: string | null;
+  competency_validated: boolean;
+  recommendation: string;
+  recommendation_details: string | null;
+  retrain_course_id: number | null;
+  retrain_course_title: string | null;
+  retrain_assignment_id: number | null;
+  career_synced: boolean;
+  career_synced_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string | null;
+  passing_threshold?: number;
+  default_criteria?: CriteriaScore[];
+}
+
+interface CriteriaScore {
+  code: string;
+  label: string;
+  score: number;
+  weight: number;
+}
+
+interface EpfStats {
+  total: number;
+  pending: number;
+  in_progress: number;
+  completed: number;
+  avg_score: number;
+  validation_rate: number;
+  retrain_count: number;
+  passing_threshold: number;
+}
+
+interface EpfSettings {
+  trigger_delay_days: number;
+  default_evaluator_type: string;
+  passing_threshold: number;
+  auto_retrain: boolean;
+  default_criteria: CriteriaScore[];
+}
+
+interface EmployeeEvalHistory {
+  employee_id: number;
+  employee_name: string;
+  summary: {
+    total_evaluations: number;
+    avg_score: number;
+    min_score: number;
+    max_score: number;
+    validated_count: number;
+    retrain_count: number;
+    validation_rate: number;
+    trend: string;
+  };
+  evaluations: PostTrainingEval[];
+}
+
 // ============================================
 // PERMISSIONS HELPER
 // ============================================
@@ -252,13 +334,67 @@ const getCertStatusColor = (status: string) => {
   return 'text-red-600';
 };
 
+const getEpfStatusColor = (status: string) => {
+  const colors: Record<string, string> = {
+    'pending': 'bg-amber-100 text-amber-700',
+    'in_progress': 'bg-blue-100 text-blue-700',
+    'completed': 'bg-green-100 text-green-700',
+    'cancelled': 'bg-red-100 text-red-700',
+    'expired': 'bg-gray-100 text-gray-700'
+  };
+  return colors[status] || 'bg-gray-100 text-gray-700';
+};
+
+const getEpfStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
+    'pending': 'En attente',
+    'in_progress': 'En cours',
+    'completed': 'Complétée',
+    'cancelled': 'Annulée',
+    'expired': 'Expirée'
+  };
+  return labels[status] || status;
+};
+
+const getRecommendationColor = (rec: string) => {
+  const colors: Record<string, string> = {
+    'validated': 'bg-green-100 text-green-700',
+    'retrain': 'bg-red-100 text-red-700',
+    'complement': 'bg-orange-100 text-orange-700',
+    'pending': 'bg-gray-100 text-gray-500'
+  };
+  return colors[rec] || 'bg-gray-100 text-gray-700';
+};
+
+const getRecommendationLabel = (rec: string) => {
+  const labels: Record<string, string> = {
+    'validated': '✅ Validée',
+    'retrain': '🔄 Re-formation',
+    'complement': '📚 Complément',
+    'pending': '⏳ En attente'
+  };
+  return labels[rec] || rec;
+};
+
+const getScoreColor = (score: number, threshold: number) => {
+  if (score >= threshold) return 'text-green-600';
+  if (score >= threshold * 0.7) return 'text-orange-600';
+  return 'text-red-600';
+};
+
+const getTrendIcon = (trend: string) => {
+  if (trend === 'up') return '📈';
+  if (trend === 'down') return '📉';
+  return '➡️';
+};
+
 // ============================================
 // MAIN COMPONENT - ÉTATS
 // ============================================
 
 export default function LearningPage() {
   // Navigation & Filters
-  const [activeTab, setActiveTab] = useState<'catalog' | 'my-learning' | 'team' | 'paths' | 'certifications' | 'development' | 'requests' | 'analytics'>('catalog');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'my-learning' | 'team' | 'paths' | 'certifications' | 'development' | 'requests' | 'analytics' | 'post-eval'>('catalog');
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -306,6 +442,24 @@ export default function LearningPage() {
   const [completionNote, setCompletionNote] = useState('');
   const [completionFile, setCompletionFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Post-Training Eval states
+  const [epfPending, setEpfPending] = useState<PostTrainingEval[]>([]);
+  const [epfAll, setEpfAll] = useState<PostTrainingEval[]>([]);
+  const [epfStats, setEpfStats] = useState<EpfStats | null>(null);
+  const [epfSettings, setEpfSettings] = useState<EpfSettings | null>(null);
+  const [showEvalModal, setShowEvalModal] = useState(false);
+  const [selectedEpf, setSelectedEpf] = useState<PostTrainingEval | null>(null);
+  const [evalCriteria, setEvalCriteria] = useState<CriteriaScore[]>([]);
+  const [evalComments, setEvalComments] = useState('');
+  const [evalStrengths, setEvalStrengths] = useState('');
+  const [evalImprovements, setEvalImprovements] = useState('');
+  const [showEpfDetail, setShowEpfDetail] = useState<PostTrainingEval | null>(null);
+  const [showEpfHistory, setShowEpfHistory] = useState<EmployeeEvalHistory | null>(null);
+  const [showEpfSettings, setShowEpfSettings] = useState(false);
+  const [showAssignEvaluator, setShowAssignEvaluator] = useState<PostTrainingEval | null>(null);
+  const [selectedEvaluatorId, setSelectedEvaluatorId] = useState('');
+  const [epfSubTab, setEpfSubTab] = useState<'pending' | 'all' | 'history'>('pending');
 
   // Form states
   const [newCourse, setNewCourse] = useState({
@@ -505,6 +659,66 @@ export default function LearningPage() {
     }
   }, [getAuthHeaders]);
 
+  const fetchEpfPending = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/learning/post-eval/pending`, { headers: getAuthHeaders() });
+      if (response.ok) {
+        const data = await response.json();
+        setEpfPending(data.items || []);
+      }
+    } catch (error) {
+      console.error('Error fetching EPF pending:', error);
+    }
+  }, [getAuthHeaders]);
+
+  const fetchEpfAll = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/learning/post-eval/?page_size=50`, { headers: getAuthHeaders() });
+      if (response.ok) {
+        const data = await response.json();
+        setEpfAll(data.items || []);
+      }
+    } catch (error) {
+      console.error('Error fetching EPF all:', error);
+    }
+  }, [getAuthHeaders]);
+
+  const fetchEpfStats = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/learning/post-eval/stats/overview`, { headers: getAuthHeaders() });
+      if (response.ok) {
+        const data = await response.json();
+        setEpfStats(data);
+      }
+    } catch (error) {
+      console.error('Error fetching EPF stats:', error);
+    }
+  }, [getAuthHeaders]);
+
+  const fetchEpfSettings = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/learning/post-eval/settings/config`, { headers: getAuthHeaders() });
+      if (response.ok) {
+        const data = await response.json();
+        setEpfSettings(data);
+      }
+    } catch (error) {
+      console.error('Error fetching EPF settings:', error);
+    }
+  }, [getAuthHeaders]);
+
+  const fetchEmployeeHistory = async (employeeId: number) => {
+    try {
+      const response = await fetch(`${API_URL}/api/learning/post-eval/history/${employeeId}`, { headers: getAuthHeaders() });
+      if (response.ok) {
+        const data = await response.json();
+        setShowEpfHistory(data);
+      }
+    } catch (error) {
+      console.error('Error fetching EPF history:', error);
+    }
+  };
+
   // Load all data
   useEffect(() => {
     const loadData = async () => {
@@ -512,12 +726,13 @@ export default function LearningPage() {
       await Promise.all([
         fetchCourses(), fetchLearningPaths(), fetchPendingValidations(), fetchMyAssignments(),
         fetchCertifications(), fetchSkills(), fetchDevelopmentPlans(), fetchCourseRequests(),
-        fetchStats(), fetchEmployees(), fetchTeamAssignments()
+        fetchStats(), fetchEmployees(), fetchTeamAssignments(),
+        fetchEpfPending(), fetchEpfAll(), fetchEpfStats(), fetchEpfSettings()
       ]);
       setIsLoading(false);
     };
     loadData();
-  }, [fetchCourses, fetchLearningPaths, fetchPendingValidations, fetchMyAssignments, fetchCertifications, fetchSkills, fetchDevelopmentPlans, fetchCourseRequests, fetchStats, fetchEmployees, fetchTeamAssignments]);
+  }, [fetchCourses, fetchLearningPaths, fetchPendingValidations, fetchMyAssignments, fetchCertifications, fetchSkills, fetchDevelopmentPlans, fetchCourseRequests, fetchStats, fetchEmployees, fetchTeamAssignments, fetchEpfPending, fetchEpfAll, fetchEpfStats, fetchEpfSettings]);
 
   // Refresh courses on filter change
   useEffect(() => {
@@ -903,6 +1118,108 @@ export default function LearningPage() {
   };
 
 
+  // ============================================
+  // ACTIONS EPF
+  // ============================================
+
+  const openEvalModal = (epf: PostTrainingEval) => {
+    setSelectedEpf(epf);
+    const criteria = epf.criteria_scores || epfSettings?.default_criteria || [
+      { code: 'maitrise_theorique', label: 'Maîtrise théorique', score: 0, weight: 25 },
+      { code: 'application_pratique', label: 'Application pratique', score: 0, weight: 25 },
+      { code: 'participation', label: 'Participation & engagement', score: 0, weight: 25 },
+      { code: 'comprehension_globale', label: 'Compréhension globale', score: 0, weight: 25 }
+    ];
+    setEvalCriteria(criteria.map(c => ({ ...c, score: c.score || 0 })));
+    setEvalComments('');
+    setEvalStrengths('');
+    setEvalImprovements('');
+    setShowEvalModal(true);
+  };
+
+  const computeWeightedScore = (criteria: CriteriaScore[]): number => {
+    const totalWeight = criteria.reduce((sum, c) => sum + c.weight, 0);
+    if (totalWeight === 0) return 0;
+    const weighted = criteria.reduce((sum, c) => sum + (c.score * c.weight / totalWeight), 0);
+    return Math.round(weighted * 10) / 10;
+  };
+
+  const submitEvaluation = async () => {
+    if (!selectedEpf) return;
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`${API_URL}/api/learning/post-eval/${selectedEpf.id}/evaluate`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          criteria_scores: evalCriteria,
+          comments: evalComments || null,
+          strengths: evalStrengths || null,
+          improvements: evalImprovements || null
+        })
+      });
+      if (response.ok) {
+        setShowEvalModal(false);
+        setSelectedEpf(null);
+        fetchEpfPending();
+        fetchEpfAll();
+        fetchEpfStats();
+      } else {
+        const error = await response.json();
+        alert('Erreur: ' + (error.detail || 'Impossible de soumettre'));
+      }
+    } catch (error) {
+      console.error('Error submitting evaluation:', error);
+      alert('Erreur de connexion');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const assignEvaluator = async () => {
+    if (!showAssignEvaluator || !selectedEvaluatorId) return;
+    try {
+      const response = await fetch(`${API_URL}/api/learning/post-eval/${showAssignEvaluator.id}/assign-evaluator`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          evaluator_id: parseInt(selectedEvaluatorId),
+          evaluator_type: 'internal'
+        })
+      });
+      if (response.ok) {
+        setShowAssignEvaluator(null);
+        setSelectedEvaluatorId('');
+        fetchEpfPending();
+        fetchEpfAll();
+      } else {
+        const error = await response.json();
+        alert('Erreur: ' + (error.detail || 'Erreur'));
+      }
+    } catch (error) {
+      console.error('Error assigning evaluator:', error);
+    }
+  };
+
+  const syncCareer = async (evalId: number) => {
+    if (!confirm('Synchroniser ce score avec le module Carrière ?')) return;
+    try {
+      const response = await fetch(`${API_URL}/api/learning/post-eval/${evalId}/sync-career`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      if (response.ok) {
+        fetchEpfAll();
+        alert('Score synchronisé avec le module Carrière');
+      } else {
+        const error = await response.json();
+        alert('Erreur: ' + (error.detail || 'Erreur'));
+      }
+    } catch (error) {
+      console.error('Error syncing career:', error);
+    }
+  };
+
   // Loading state
   if (isLoading) {
     return (
@@ -1007,6 +1324,14 @@ export default function LearningPage() {
                 <BarChart3 className="w-4 h-4 inline mr-2" />Analytics
               </button>
             )}
+            <button onClick={() => setActiveTab('post-eval')} className={`flex-shrink-0 px-6 py-4 text-sm font-medium relative ${activeTab === 'post-eval' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
+              <ClipboardCheck className="w-4 h-4 inline mr-2" />Éval. Post-Formation
+              {epfPending.length > 0 && (
+                <span className="absolute top-2 -right-1 min-w-5 h-5 px-1 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                  {epfPending.length}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -1724,6 +2049,294 @@ export default function LearningPage() {
           </div>
         )}
 
+        {/* TAB: Évaluation Post-Formation */}
+        {activeTab === 'post-eval' && (
+          <div className="space-y-6">
+            {/* Stats EPF */}
+            {epfStats && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div><p className="text-xs text-gray-500">En attente</p><p className="text-2xl font-bold text-amber-600">{epfStats.pending}</p></div>
+                    <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center"><Clock className="w-5 h-5 text-amber-600" /></div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div><p className="text-xs text-gray-500">Complétées</p><p className="text-2xl font-bold text-green-600">{epfStats.completed}</p></div>
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center"><CheckCircle className="w-5 h-5 text-green-600" /></div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div><p className="text-xs text-gray-500">Score moyen</p><p className="text-2xl font-bold text-primary-600">{epfStats.avg_score}/100</p></div>
+                    <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center"><TrendingUp className="w-5 h-5 text-primary-600" /></div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div><p className="text-xs text-gray-500">Taux validation</p><p className="text-2xl font-bold text-blue-600">{epfStats.validation_rate}%</p></div>
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><Award className="w-5 h-5 text-blue-600" /></div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sub-tabs */}
+            <div className="flex gap-2 items-center">
+              <button onClick={() => setEpfSubTab('pending')} className={`px-4 py-2 text-sm font-medium rounded-lg ${epfSubTab === 'pending' ? 'bg-primary-500 text-white' : 'bg-white border border-gray-300 text-gray-700'}`}>
+                En attente ({epfPending.length})
+              </button>
+              <button onClick={() => setEpfSubTab('all')} className={`px-4 py-2 text-sm font-medium rounded-lg ${epfSubTab === 'all' ? 'bg-primary-500 text-white' : 'bg-white border border-gray-300 text-gray-700'}`}>
+                Toutes
+              </button>
+              <button onClick={() => setEpfSubTab('history')} className={`px-4 py-2 text-sm font-medium rounded-lg ${epfSubTab === 'history' ? 'bg-primary-500 text-white' : 'bg-white border border-gray-300 text-gray-700'}`}>
+                Historique
+              </button>
+              {hasPermission(userRole, 'view_analytics') && (
+                <button onClick={() => { fetchEpfSettings(); setShowEpfSettings(true); }} className="ml-auto p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg" title="Paramètres EPF">
+                  <Settings className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+
+            {/* Sub-tab: En attente */}
+            {epfSubTab === 'pending' && (
+              <div className="space-y-4">
+                {epfPending.length === 0 ? (
+                  <div className="bg-white rounded-xl p-12 text-center">
+                    <CheckCircle className="w-12 h-12 text-green-300 mx-auto mb-4" />
+                    <p className="text-gray-500">Aucune évaluation en attente</p>
+                    <p className="text-sm text-gray-400 mt-1">Les évaluations apparaissent ici quand une formation est validée</p>
+                  </div>
+                ) : (
+                  epfPending.map((epf) => (
+                    <div key={epf.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="text-3xl">{epf.course_emoji}</div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900">{epf.course_title}</h4>
+                            <div className="flex items-center gap-3 mt-1">
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 text-xs font-bold">
+                                  {epf.employee_initials}
+                                </div>
+                                <span className="text-sm text-gray-600">{epf.employee_name}</span>
+                              </div>
+                              <span className="text-xs text-gray-400">•</span>
+                              <span className="text-sm text-gray-500">{epf.course_category}</span>
+                            </div>
+                            {epf.scheduled_date && (
+                              <p className="text-xs text-gray-400 mt-1">Prévue: {epf.scheduled_date} • Limite: {epf.due_date}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {epf.evaluator_name ? (
+                            <div className="text-right">
+                              <p className="text-xs text-gray-500">Évaluateur</p>
+                              <p className="text-sm font-medium text-gray-700">{epf.evaluator_name}</p>
+                            </div>
+                          ) : (
+                            <button onClick={() => { setShowAssignEvaluator(epf); setSelectedEvaluatorId(''); }} className="px-3 py-1.5 bg-gray-100 text-gray-600 text-sm rounded-lg hover:bg-gray-200 flex items-center gap-1">
+                              <User className="w-4 h-4" />Assigner
+                            </button>
+                          )}
+                          <button onClick={() => openEvalModal(epf)} className="px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 flex items-center gap-2">
+                            <ClipboardCheck className="w-4 h-4" />Évaluer
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* Sub-tab: Toutes les évaluations */}
+            {epfSubTab === 'all' && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Formation</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Collaborateur</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Évaluateur</th>
+                        <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500">Score</th>
+                        <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500">Statut</th>
+                        <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500">Recommandation</th>
+                        <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {epfAll.map((epf) => (
+                        <tr key={epf.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{epf.course_emoji}</span>
+                              <span className="text-sm font-medium text-gray-900 truncate max-w-48">{epf.course_title}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 text-xs font-bold">{epf.employee_initials}</div>
+                              <span className="text-sm text-gray-700">{epf.employee_name}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-sm text-gray-600">{epf.evaluator_name || '—'}</span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {epf.score !== null ? (
+                              <span className={`text-sm font-bold ${getScoreColor(epf.score, epfStats?.passing_threshold || 70)}`}>
+                                {epf.score}/100
+                              </span>
+                            ) : (
+                              <span className="text-sm text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEpfStatusColor(epf.status)}`}>
+                              {getEpfStatusLabel(epf.status)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRecommendationColor(epf.recommendation)}`}>
+                              {getRecommendationLabel(epf.recommendation)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <button onClick={() => setShowEpfDetail(epf)} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded" title="Détail">
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              {epf.status === 'pending' && (
+                                <button onClick={() => openEvalModal(epf)} className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded" title="Évaluer">
+                                  <ClipboardCheck className="w-4 h-4" />
+                                </button>
+                              )}
+                              {epf.status === 'completed' && !epf.career_synced && hasPermission(userRole, 'view_analytics') && (
+                                <button onClick={() => syncCareer(epf.id)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Sync Carrière">
+                                  <Zap className="w-4 h-4" />
+                                </button>
+                              )}
+                              {epf.career_synced && (
+                                <span className="p-1.5 text-green-500" title="Synchronisé">
+                                  <Link className="w-4 h-4" />
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Sub-tab: Historique par employé */}
+            {epfSubTab === 'history' && (
+              <div className="space-y-4">
+                <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                  <h4 className="font-semibold text-gray-900 mb-3">Sélectionner un collaborateur</h4>
+                  <div className="flex gap-3">
+                    <select
+                      onChange={(e) => { if (e.target.value) fetchEmployeeHistory(parseInt(e.target.value)); }}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="">Choisir un collaborateur...</option>
+                      {employees.map((emp) => (
+                        <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {showEpfHistory && (
+                  <div className="space-y-4">
+                    <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-semibold text-gray-900">{showEpfHistory.employee_name}</h4>
+                        <span className="text-2xl">{getTrendIcon(showEpfHistory.summary.trend)}</span>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <p className="text-2xl font-bold text-gray-900">{showEpfHistory.summary.total_evaluations}</p>
+                          <p className="text-xs text-gray-500">Évaluations</p>
+                        </div>
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <p className="text-2xl font-bold text-primary-600">{showEpfHistory.summary.avg_score}</p>
+                          <p className="text-xs text-gray-500">Score moyen</p>
+                        </div>
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <p className="text-2xl font-bold text-green-600">{showEpfHistory.summary.validation_rate}%</p>
+                          <p className="text-xs text-gray-500">Taux validation</p>
+                        </div>
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <p className="text-2xl font-bold text-red-600">{showEpfHistory.summary.retrain_count}</p>
+                          <p className="text-xs text-gray-500">Re-formations</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {showEpfHistory.evaluations.length > 1 && (
+                      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                        <h4 className="font-semibold text-gray-900 mb-4">Tendance des scores</h4>
+                        <div className="h-48">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={showEpfHistory.evaluations.map((e) => ({
+                              name: e.course_title?.substring(0, 15) + '...',
+                              score: e.score,
+                              seuil: epfStats?.passing_threshold || 70
+                            }))}>
+                              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                              <YAxis domain={[0, 100]} />
+                              <Tooltip />
+                              <Line type="monotone" dataKey="score" stroke="#6366F1" strokeWidth={2} dot={{ fill: '#6366F1', r: 4 }} />
+                              <Line type="monotone" dataKey="seuil" stroke="#EF4444" strokeWidth={1} strokeDasharray="5 5" dot={false} />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <p className="text-xs text-gray-400 text-center mt-2">Ligne rouge: seuil de validation ({epfStats?.passing_threshold || 70}/100)</p>
+                      </div>
+                    )}
+
+                    <div className="space-y-3">
+                      {showEpfHistory.evaluations.map((epf) => (
+                        <div key={epf.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <span className="text-2xl">{epf.course_emoji}</span>
+                              <div>
+                                <p className="font-medium text-gray-900">{epf.course_title}</p>
+                                <p className="text-xs text-gray-500">{epf.completed_at ? new Date(epf.completed_at).toLocaleDateString('fr-FR') : ''} • Éval: {epf.evaluator_name}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <p className={`text-xl font-bold ${getScoreColor(epf.score || 0, epfStats?.passing_threshold || 70)}`}>{epf.score}/100</p>
+                              </div>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRecommendationColor(epf.recommendation)}`}>
+                                {getRecommendationLabel(epf.recommendation)}
+                              </span>
+                              <button onClick={() => setShowEpfDetail(epf)} className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg">
+                                <Eye className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ============================================
            MODALS
         ============================================ */}
@@ -2212,6 +2825,299 @@ export default function LearningPage() {
               <div className="p-6 border-t border-gray-200 flex gap-3">
                 <button onClick={() => setShowCreateSkill(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
                 <button onClick={createSkill} disabled={!newSkill.name} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">Créer</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Évaluer (EPF) */}
+        {showEvalModal && selectedEpf && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Évaluation Post-Formation</h2>
+                    <p className="text-sm text-gray-500 mt-1">{selectedEpf.course_title}</p>
+                  </div>
+                  <button onClick={() => { setShowEvalModal(false); setSelectedEpf(null); }} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+                </div>
+              </div>
+              <div className="p-6 space-y-6">
+                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                  <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold">
+                    {selectedEpf.employee_initials}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">{selectedEpf.employee_name}</p>
+                    <p className="text-sm text-gray-500">{selectedEpf.employee_job_title}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-3">Critères d&apos;évaluation</h3>
+                  <div className="space-y-4">
+                    {evalCriteria.map((criterion, idx) => (
+                      <div key={criterion.code} className="p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-medium text-gray-700">{criterion.label}</label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400">Poids: {criterion.weight}%</span>
+                            <span className={`text-sm font-bold ${criterion.score >= (epfStats?.passing_threshold || 70) ? 'text-green-600' : criterion.score >= 50 ? 'text-orange-600' : 'text-red-600'}`}>
+                              {criterion.score}/100
+                            </span>
+                          </div>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          step="5"
+                          value={criterion.score}
+                          onChange={(e) => {
+                            const updated = [...evalCriteria];
+                            updated[idx] = { ...updated[idx], score: parseInt(e.target.value) };
+                            setEvalCriteria(updated);
+                          }}
+                          className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer accent-primary-500"
+                        />
+                        <div className="flex justify-between text-xs text-gray-400 mt-1">
+                          <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-4 bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg border border-primary-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Score final pondéré</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Seuil de validation: {epfStats?.passing_threshold || 70}/100</p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-3xl font-bold ${computeWeightedScore(evalCriteria) >= (epfStats?.passing_threshold || 70) ? 'text-green-600' : 'text-red-600'}`}>
+                        {computeWeightedScore(evalCriteria)}/100
+                      </p>
+                      <p className={`text-xs font-medium ${computeWeightedScore(evalCriteria) >= (epfStats?.passing_threshold || 70) ? 'text-green-600' : 'text-red-600'}`}>
+                        {computeWeightedScore(evalCriteria) >= (epfStats?.passing_threshold || 70) ? '✅ Compétence validée' : '⚠️ Sous le seuil'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Points forts observés</label>
+                  <textarea value={evalStrengths} onChange={(e) => setEvalStrengths(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} placeholder="Ex: Bonne compréhension des concepts..." />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Axes d&apos;amélioration</label>
+                  <textarea value={evalImprovements} onChange={(e) => setEvalImprovements(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} placeholder="Ex: Manque de pratique sur..." />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Commentaire global</label>
+                  <textarea value={evalComments} onChange={(e) => setEvalComments(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} placeholder="Commentaire général..." />
+                </div>
+
+                {computeWeightedScore(evalCriteria) < (epfStats?.passing_threshold || 70) && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                    <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-red-800">Score insuffisant</p>
+                      <p className="text-xs text-red-600">Une re-formation sera automatiquement recommandée pour ce collaborateur.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="p-6 border-t border-gray-200 flex gap-3">
+                <button onClick={() => { setShowEvalModal(false); setSelectedEpf(null); }} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+                <button onClick={submitEvaluation} disabled={isSubmitting} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 flex items-center justify-center gap-2">
+                  {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                  Soumettre l&apos;évaluation
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Détail évaluation EPF */}
+        {showEpfDetail && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900">Détail de l&apos;évaluation</h2>
+                  <button onClick={() => setShowEpfDetail(null)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+                </div>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <span className="text-3xl">{showEpfDetail.course_emoji}</span>
+                  <div>
+                    <p className="font-medium text-gray-900">{showEpfDetail.course_title}</p>
+                    <p className="text-sm text-gray-500">{showEpfDetail.employee_name} • {showEpfDetail.course_category}</p>
+                  </div>
+                </div>
+
+                {showEpfDetail.score !== null && (
+                  <div className="text-center p-4 bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg">
+                    <p className={`text-4xl font-bold ${getScoreColor(showEpfDetail.score, epfStats?.passing_threshold || 70)}`}>
+                      {showEpfDetail.score}/100
+                    </p>
+                    <span className={`inline-block mt-2 px-3 py-1 rounded-full text-sm font-medium ${getRecommendationColor(showEpfDetail.recommendation)}`}>
+                      {getRecommendationLabel(showEpfDetail.recommendation)}
+                    </span>
+                  </div>
+                )}
+
+                {showEpfDetail.criteria_scores && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Scores par critère</h4>
+                    <div className="space-y-2">
+                      {showEpfDetail.criteria_scores.map((c: CriteriaScore) => (
+                        <div key={c.code} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                          <span className="text-sm text-gray-700">{c.label}</span>
+                          <div className="flex items-center gap-2">
+                            <div className="w-24 h-2 bg-gray-200 rounded-full">
+                              <div className={`h-full rounded-full ${c.score >= (epfStats?.passing_threshold || 70) ? 'bg-green-500' : c.score >= 50 ? 'bg-orange-500' : 'bg-red-500'}`} style={{ width: `${c.score}%` }} />
+                            </div>
+                            <span className="text-sm font-medium text-gray-900 w-12 text-right">{c.score}/100</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {showEpfDetail.strengths && (
+                  <div><p className="text-xs text-gray-500 mb-1">Points forts</p><p className="text-sm text-gray-700 bg-green-50 p-2 rounded">{showEpfDetail.strengths}</p></div>
+                )}
+                {showEpfDetail.improvements && (
+                  <div><p className="text-xs text-gray-500 mb-1">Axes d&apos;amélioration</p><p className="text-sm text-gray-700 bg-orange-50 p-2 rounded">{showEpfDetail.improvements}</p></div>
+                )}
+                {showEpfDetail.comments && (
+                  <div><p className="text-xs text-gray-500 mb-1">Commentaire</p><p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">{showEpfDetail.comments}</p></div>
+                )}
+
+                {showEpfDetail.recommendation_details && (
+                  <div className={`p-3 rounded-lg border ${showEpfDetail.competency_validated ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                    <p className={`text-sm ${showEpfDetail.competency_validated ? 'text-green-700' : 'text-red-700'}`}>
+                      {showEpfDetail.recommendation_details}
+                    </p>
+                  </div>
+                )}
+
+                {showEpfDetail.retrain_course_title && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-sm font-medium text-amber-800">🔄 Re-formation assignée</p>
+                    <p className="text-xs text-amber-600 mt-1">{showEpfDetail.retrain_course_title}</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="bg-gray-50 p-2 rounded"><p className="text-xs text-gray-500">Évaluateur</p><p className="font-medium">{showEpfDetail.evaluator_name || '—'}</p></div>
+                  <div className="bg-gray-50 p-2 rounded"><p className="text-xs text-gray-500">Complétée le</p><p className="font-medium">{showEpfDetail.completed_at ? new Date(showEpfDetail.completed_at).toLocaleDateString('fr-FR') : '—'}</p></div>
+                </div>
+
+                <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                  <span className="text-sm text-gray-600">Sync module Carrière</span>
+                  {showEpfDetail.career_synced ? (
+                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full flex items-center gap-1"><Link className="w-3 h-3" />Synchronisé</span>
+                  ) : (
+                    <span className="px-2 py-1 bg-gray-100 text-gray-500 text-xs rounded-full">Non synchronisé</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Assigner Évaluateur */}
+        {showAssignEvaluator && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900">Assigner un évaluateur</h2>
+                  <button onClick={() => setShowAssignEvaluator(null)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+                </div>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                  <span className="text-2xl">{showAssignEvaluator.course_emoji}</span>
+                  <div>
+                    <p className="font-medium text-gray-900">{showAssignEvaluator.course_title}</p>
+                    <p className="text-sm text-gray-500">Pour: {showAssignEvaluator.employee_name}</p>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Évaluateur *</label>
+                  <select value={selectedEvaluatorId} onChange={(e) => setSelectedEvaluatorId(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Sélectionner...</option>
+                    {employees.filter(e => e.id !== showAssignEvaluator.employee_id).map((emp) => (
+                      <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name} - {emp.job_title}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="p-6 border-t border-gray-200 flex gap-3">
+                <button onClick={() => setShowAssignEvaluator(null)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+                <button onClick={assignEvaluator} disabled={!selectedEvaluatorId} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">Assigner</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Paramètres EPF */}
+        {showEpfSettings && epfSettings && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900">Paramètres Éval. Post-Formation</h2>
+                  <button onClick={() => setShowEpfSettings(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+                </div>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Délai de déclenchement</label>
+                  <select value={epfSettings.trigger_delay_days} onChange={(e) => setEpfSettings({...epfSettings, trigger_delay_days: parseInt(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="0">Immédiat (dès validation)</option>
+                    <option value="3">J+3 (3 jours après)</option>
+                    <option value="7">J+7 (7 jours après)</option>
+                    <option value="14">J+14 (14 jours après)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Évaluateur par défaut</label>
+                  <select value={epfSettings.default_evaluator_type} onChange={(e) => setEpfSettings({...epfSettings, default_evaluator_type: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="internal">Évaluateur interne (manager)</option>
+                    <option value="trainer">Formateur</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Seuil de validation (/100)</label>
+                  <input type="number" min="0" max="100" value={epfSettings.passing_threshold} onChange={(e) => setEpfSettings({...epfSettings, passing_threshold: parseInt(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  <p className="text-xs text-gray-400 mt-1">Score minimum pour valider la compétence théorique</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="auto_retrain" checked={epfSettings.auto_retrain} onChange={(e) => setEpfSettings({...epfSettings, auto_retrain: e.target.checked})} className="rounded" />
+                  <label htmlFor="auto_retrain" className="text-sm text-gray-700">Re-formation automatique si score insuffisant</label>
+                </div>
+              </div>
+              <div className="p-6 border-t border-gray-200 flex gap-3">
+                <button onClick={() => setShowEpfSettings(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Fermer</button>
+                <button onClick={async () => {
+                  try {
+                    const response = await fetch(`${API_URL}/api/learning/post-eval/settings/config`, {
+                      method: 'PUT', headers: getAuthHeaders(),
+                      body: JSON.stringify(epfSettings)
+                    });
+                    if (response.ok) { setShowEpfSettings(false); fetchEpfStats(); }
+                  } catch (error) { console.error('Error saving settings:', error); }
+                }} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600">
+                  Enregistrer
+                </button>
               </div>
             </div>
           </div>

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import {
+import { 
   Plus, ThumbsUp, Send, X, Loader2, AlertCircle, Search,
-  ChevronLeft, ChevronRight, BarChart3
+  ChevronLeft, ChevronRight, BarChart3, Check
 } from 'lucide-react';
 
 // =============================================
@@ -60,7 +60,8 @@ interface AttitudeScoreItem {
   total_feedbacks: number;
   recognition_count: number;
   improvement_count: number;
-  score: number;
+  score_solde: number;
+  score_pct: number;
 }
 
 interface EmployeeAttitudeScores {
@@ -101,10 +102,7 @@ async function fetchFeedbacks(): Promise<FeedbackItem[]> {
 }
 
 async function createFeedback(data: { 
-  to_employee_id: number; 
-  type: string; 
-  message: string; 
-  is_public: boolean;
+  to_employee_id: number; type: string; message: string; is_public: boolean;
   attitudes?: { attitude_id: number; sentiment: string }[];
 }): Promise<{ success: boolean; error?: string }> {
   try {
@@ -129,9 +127,7 @@ async function likeFeedback(feedbackId: number): Promise<number> {
     if (!response.ok) return -1;
     const data = await response.json();
     return data.likes_count;
-  } catch {
-    return -1;
-  }
+  } catch { return -1; }
 }
 
 async function fetchEmployees(): Promise<Employee[]> {
@@ -140,9 +136,7 @@ async function fetchEmployees(): Promise<Employee[]> {
     if (!response.ok) throw new Error('API error');
     const data = await response.json();
     return data.items || [];
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 async function fetchAttitudes(): Promise<AttitudeItem[]> {
@@ -150,9 +144,7 @@ async function fetchAttitudes(): Promise<AttitudeItem[]> {
     const response = await fetch(`${API_URL}/api/attitudes?active_only=true`, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error('API error');
     return await response.json();
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 async function fetchMyAttitudeScores(): Promise<EmployeeAttitudeScores | null> {
@@ -160,9 +152,7 @@ async function fetchMyAttitudeScores(): Promise<EmployeeAttitudeScores | null> {
     const response = await fetch(`${API_URL}/api/attitudes/scores/me`, { headers: getAuthHeaders() });
     if (!response.ok) return null;
     return await response.json();
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 // =============================================
@@ -183,23 +173,18 @@ function getFeedbackIcon(type: string) {
 }
 
 function getScoreColor(score: number): string {
-  if (score >= 70) return 'text-green-600';
-  if (score >= 30) return 'text-yellow-600';
-  if (score >= 0) return 'text-orange-500';
+  if (score >= 95) return 'text-green-600';
+  if (score >= 70) return 'text-blue-600';
+  if (score >= 50) return 'text-yellow-600';
+  if (score >= 25) return 'text-orange-500';
   return 'text-red-500';
 }
 
-function getScoreBg(score: number): string {
-  if (score >= 70) return 'bg-green-50 border-green-200';
-  if (score >= 30) return 'bg-yellow-50 border-yellow-200';
-  if (score >= 0) return 'bg-orange-50 border-orange-200';
-  return 'bg-red-50 border-red-200';
-}
-
 function getScoreBarColor(score: number): string {
-  if (score >= 70) return 'bg-green-500';
-  if (score >= 30) return 'bg-yellow-500';
-  if (score >= 0) return 'bg-orange-500';
+  if (score >= 95) return 'bg-green-500';
+  if (score >= 70) return 'bg-blue-500';
+  if (score >= 50) return 'bg-yellow-500';
+  if (score >= 25) return 'bg-orange-500';
   return 'bg-red-500';
 }
 
@@ -211,7 +196,6 @@ function Pagination({ currentPage, totalPages, onPageChange }: {
   currentPage: number; totalPages: number; onPageChange: (page: number) => void;
 }) {
   if (totalPages <= 1) return null;
-
   return (
     <div className="flex items-center justify-center gap-2 mt-6 pt-4 border-t">
       <button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -251,7 +235,7 @@ function FeedbackCard({ feedback, onLike }: { feedback: FeedbackItem; onLike: (i
   const timeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
-    if (hours < 1) return 'Il y a moins d\'1h';
+    if (hours < 1) return "Il y a moins d'1h";
     if (hours < 24) return `Il y a ${hours}h`;
     return `Il y a ${Math.floor(hours / 24)}j`;
   };
@@ -277,17 +261,14 @@ function FeedbackCard({ feedback, onLike }: { feedback: FeedbackItem; onLike: (i
           {attitudes.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
               {attitudes.map((att, idx) => (
-                <span 
-                  key={idx} 
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                    att.sentiment === 'recognition' 
-                      ? 'bg-green-50 text-green-700 border border-green-200' 
-                      : 'bg-amber-50 text-amber-700 border border-amber-200'
-                  }`}
-                >
+                <span key={idx} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                  att.sentiment === 'recognition' 
+                    ? 'bg-green-50 text-green-700 border border-green-200' 
+                    : 'bg-amber-50 text-amber-700 border border-amber-200'
+                }`}>
                   <span>{att.icon}</span>
                   <span>{att.name}</span>
-                  <span>{att.sentiment === 'recognition' ? '+' : '−'}</span>
+                  <span className="font-bold">{att.sentiment === 'recognition' ? '+1' : '−1'}</span>
                 </span>
               ))}
             </div>
@@ -307,107 +288,116 @@ function FeedbackCard({ feedback, onLike }: { feedback: FeedbackItem; onLike: (i
 
 
 // =============================================
-// ATTITUDE CHECKBOXES COMPONENT
+// ATTITUDE CHECKBOXES - Radio per attitude (FBK-01)
 // =============================================
 
-function AttitudeCheckboxes({ 
+function AttitudeSelector({ 
   attitudes, 
   selectedAttitudes, 
-  onToggle,
-  feedbackType 
+  onChange
 }: {
   attitudes: AttitudeItem[];
   selectedAttitudes: Map<number, 'recognition' | 'improvement'>;
-  onToggle: (attitudeId: number, sentiment: 'recognition' | 'improvement' | null) => void;
-  feedbackType: FeedbackType;
+  onChange: (newMap: Map<number, 'recognition' | 'improvement'>) => void;
 }) {
   if (attitudes.length === 0) return null;
 
   // Grouper par catégorie
   const grouped = attitudes.reduce((acc, att) => {
-    const cat = att.category || 'other';
+    const cat = att.category || 'Autre';
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(att);
     return acc;
   }, {} as Record<string, AttitudeItem[]>);
 
-  const categoryLabels: Record<string, string> = {
-    soft_skill: 'Soft Skills',
-    leadership: 'Leadership',
-    technical: 'Technique',
-    other: 'Autres'
+  const handleSelect = (attitudeId: number, sentiment: 'recognition' | 'improvement') => {
+    const next = new Map(selectedAttitudes);
+    // Si déjà le même sentiment → décocher
+    if (next.get(attitudeId) === sentiment) {
+      next.delete(attitudeId);
+    } else {
+      next.set(attitudeId, sentiment);
+    }
+    onChange(next);
   };
-
-  // Déterminer le sentiment par défaut basé sur le type de feedback
-  const defaultSentiment: 'recognition' | 'improvement' = 
-    feedbackType === 'improvement' ? 'improvement' : 'recognition';
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
+      <label className="block text-sm font-medium text-gray-700 mb-1">
         Attitudes observées <span className="text-gray-400 font-normal">(optionnel)</span>
       </label>
       <p className="text-xs text-gray-500 mb-3">
-        Cochez les attitudes observées chez votre collègue. Cliquez une fois pour 
-        <span className="text-green-600 font-medium"> Reconnaissance (+)</span>, 
-        deux fois pour 
-        <span className="text-amber-600 font-medium"> Amélioration (−)</span>, 
-        trois fois pour décocher.
+        Pour chaque attitude, cochez <span className="text-green-600 font-medium">Reconnaissance</span> ou <span className="text-amber-600 font-medium">À améliorer</span>
       </p>
       
-      <div className="space-y-3">
+      <div className="border rounded-lg overflow-hidden">
+        {/* Header */}
+        <div className="grid grid-cols-[1fr_90px_90px] bg-gray-50 px-3 py-2 border-b">
+          <span className="text-xs font-semibold text-gray-500 uppercase">Attitude</span>
+          <span className="text-xs font-semibold text-green-600 uppercase text-center">Reconn.</span>
+          <span className="text-xs font-semibold text-amber-600 uppercase text-center">À amélior.</span>
+        </div>
+        
         {Object.entries(grouped).map(([category, atts]) => (
           <div key={category}>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-              {categoryLabels[category] || category}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {atts.map(att => {
-                const selected = selectedAttitudes.get(att.id);
-                const isRecognition = selected === 'recognition';
-                const isImprovement = selected === 'improvement';
-                
-                return (
-                  <button
-                    key={att.id}
-                    type="button"
-                    onClick={() => {
-                      if (!selected) {
-                        // Premier clic: sentiment par défaut
-                        onToggle(att.id, defaultSentiment);
-                      } else if (selected === 'recognition') {
-                        // Deuxième clic: basculer vers improvement
-                        onToggle(att.id, 'improvement');
-                      } else {
-                        // Troisième clic: décocher
-                        onToggle(att.id, null);
-                      }
-                    }}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
-                      isRecognition
-                        ? 'bg-green-50 text-green-700 border-green-300 ring-2 ring-green-200'
-                        : isImprovement
-                        ? 'bg-amber-50 text-amber-700 border-amber-300 ring-2 ring-amber-200'
-                        : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
-                    }`}
-                    title={att.description || att.name}
-                  >
-                    <span>{att.icon}</span>
-                    <span>{att.name}</span>
-                    {isRecognition && <span className="text-green-600 font-bold">+</span>}
-                    {isImprovement && <span className="text-amber-600 font-bold">−</span>}
-                  </button>
-                );
-              })}
+            {/* Category header */}
+            <div className="px-3 py-1.5 bg-gray-50/50 border-b">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{category}</span>
             </div>
+            {atts.map((att, idx) => {
+              const selected = selectedAttitudes.get(att.id);
+              return (
+                <div key={att.id} className={`grid grid-cols-[1fr_90px_90px] px-3 py-2 items-center ${idx < atts.length - 1 ? 'border-b border-gray-100' : ''} hover:bg-gray-50/50`}>
+                  {/* Attitude name */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{att.icon}</span>
+                    <span className="text-sm text-gray-700">{att.name}</span>
+                  </div>
+                  {/* Reconnaissance radio */}
+                  <div className="flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => handleSelect(att.id, 'recognition')}
+                      className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
+                        selected === 'recognition'
+                          ? 'bg-green-500 border-green-500 text-white'
+                          : 'border-gray-300 hover:border-green-400'
+                      }`}
+                    >
+                      {selected === 'recognition' && <Check className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {/* À améliorer radio */}
+                  <div className="flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => handleSelect(att.id, 'improvement')}
+                      className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
+                        selected === 'improvement'
+                          ? 'bg-amber-500 border-amber-500 text-white'
+                          : 'border-gray-300 hover:border-amber-400'
+                      }`}
+                    >
+                      {selected === 'improvement' && <Check className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
       
       {selectedAttitudes.size > 0 && (
-        <div className="mt-2 text-xs text-gray-500">
-          {Array.from(selectedAttitudes.values()).filter(s => s === 'recognition').length} reconnaissance(s), 
-          {' '}{Array.from(selectedAttitudes.values()).filter(s => s === 'improvement').length} amélioration(s)
+        <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-green-500"></span>
+            {Array.from(selectedAttitudes.values()).filter(s => s === 'recognition').length} reconnaissance(s)
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+            {Array.from(selectedAttitudes.values()).filter(s => s === 'improvement').length} à améliorer
+          </span>
         </div>
       )}
     </div>
@@ -416,15 +406,11 @@ function AttitudeCheckboxes({
 
 
 // =============================================
-// CREATE FEEDBACK MODAL (enrichi avec attitudes)
+// CREATE FEEDBACK MODAL
 // =============================================
 
 function CreateFeedbackModal({ isOpen, onClose, employees, attitudes, onSuccess }: {
-  isOpen: boolean; 
-  onClose: () => void; 
-  employees: Employee[]; 
-  attitudes: AttitudeItem[];
-  onSuccess: () => void;
+  isOpen: boolean; onClose: () => void; employees: Employee[]; attitudes: AttitudeItem[]; onSuccess: () => void;
 }) {
   const [toEmployee, setToEmployee] = useState('');
   const [feedbackType, setFeedbackType] = useState<FeedbackType>('recognition');
@@ -435,51 +421,24 @@ function CreateFeedbackModal({ isOpen, onClose, employees, attitudes, onSuccess 
   const [error, setError] = useState('');
 
   // Reset attitudes quand le type change
-  useEffect(() => {
-    setSelectedAttitudes(new Map());
-  }, [feedbackType]);
-
-  const handleToggleAttitude = (attitudeId: number, sentiment: 'recognition' | 'improvement' | null) => {
-    setSelectedAttitudes(prev => {
-      const next = new Map(prev);
-      if (sentiment === null) {
-        next.delete(attitudeId);
-      } else {
-        next.set(attitudeId, sentiment);
-      }
-      return next;
-    });
-  };
+  useEffect(() => { setSelectedAttitudes(new Map()); }, [feedbackType]);
 
   const handleSubmit = async () => {
     if (!toEmployee || !message.trim()) { setError('Veuillez remplir tous les champs obligatoires'); return; }
     if (message.length < 10) { setError('Le message doit contenir au moins 10 caractères'); return; }
     setError(''); setSaving(true);
     
-    // Préparer les attitudes
-    const attitudesPayload = Array.from(selectedAttitudes.entries()).map(([attitude_id, sentiment]) => ({
-      attitude_id,
-      sentiment
-    }));
+    const attitudesPayload = Array.from(selectedAttitudes.entries()).map(([attitude_id, sentiment]) => ({ attitude_id, sentiment }));
     
     const result = await createFeedback({ 
-      to_employee_id: parseInt(toEmployee), 
-      type: feedbackType, 
-      message: message.trim(), 
-      is_public: isPublic,
+      to_employee_id: parseInt(toEmployee), type: feedbackType, message: message.trim(), is_public: isPublic,
       attitudes: attitudesPayload.length > 0 ? attitudesPayload : undefined
     });
     setSaving(false);
     if (result.success) { 
-      setToEmployee(''); 
-      setMessage(''); 
-      setFeedbackType('recognition'); 
-      setIsPublic(true); 
-      setSelectedAttitudes(new Map());
-      onSuccess(); 
-      onClose(); 
-    }
-    else setError(result.error || 'Erreur lors de la création');
+      setToEmployee(''); setMessage(''); setFeedbackType('recognition'); setIsPublic(true); setSelectedAttitudes(new Map());
+      onSuccess(); onClose(); 
+    } else setError(result.error || 'Erreur lors de la création');
   };
 
   if (!isOpen) return null;
@@ -499,6 +458,7 @@ function CreateFeedbackModal({ isOpen, onClose, employees, attitudes, onSuccess 
         </div>
         <div className="p-5 space-y-4 overflow-y-auto flex-1">
           {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4 flex-shrink-0" />{error}</div>}
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Destinataire *</label>
             <select value={toEmployee} onChange={(e) => setToEmployee(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm">
@@ -506,6 +466,7 @@ function CreateFeedbackModal({ isOpen, onClose, employees, attitudes, onSuccess 
               {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}
             </select>
           </div>
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Type de feedback</label>
             <div className="flex gap-2">
@@ -516,19 +477,19 @@ function CreateFeedbackModal({ isOpen, onClose, employees, attitudes, onSuccess 
               ))}
             </div>
           </div>
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Message *</label>
             <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} placeholder="Partagez votre feedback..." className="w-full px-3 py-2.5 border rounded-lg text-sm resize-none" />
             <p className="text-xs text-gray-400 mt-1">{message.length}/2000 caractères (min. 10)</p>
           </div>
           
-          {/* ✅ NOUVEAU: Checkboxes Attitudes */}
-          {(feedbackType === 'recognition' || feedbackType === 'improvement') && (
-            <AttitudeCheckboxes 
+          {/* ✅ Grille d'attitudes - visible sauf type "général" */}
+          {feedbackType !== 'general' && (
+            <AttitudeSelector 
               attitudes={attitudes}
               selectedAttitudes={selectedAttitudes}
-              onToggle={handleToggleAttitude}
-              feedbackType={feedbackType}
+              onChange={setSelectedAttitudes}
             />
           )}
           
@@ -550,7 +511,8 @@ function CreateFeedbackModal({ isOpen, onClose, employees, attitudes, onSuccess 
 
 
 // =============================================
-// ATTITUDE SCORES DASHBOARD
+// DASHBOARD ATTITUDES (FBK-03)
+// Score Global + détail % par attitude + nb feedbackers
 // =============================================
 
 function AttitudeScoresDashboard({ scores }: { scores: EmployeeAttitudeScores | null }) {
@@ -564,75 +526,85 @@ function AttitudeScoresDashboard({ scores }: { scores: EmployeeAttitudeScores | 
     );
   }
 
-  const sortedScores = [...scores.scores].sort((a, b) => b.score - a.score);
-  const maxBar = Math.max(...sortedScores.map(s => Math.abs(s.score)), 1);
+  const sortedScores = [...scores.scores].sort((a, b) => b.score_pct - a.score_pct);
+  const isCareerReady = scores.global_score >= 95;
 
   return (
     <div className="space-y-4">
       {/* Score global */}
-      <div className={`rounded-xl p-5 border ${getScoreBg(scores.global_score)}`}>
+      <div className={`rounded-xl p-5 border ${isCareerReady ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'}`}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-600">Score Global d'Attitudes</p>
+            <p className="text-sm font-medium text-gray-600">Score Global Attitudes</p>
             <p className={`text-3xl font-bold mt-1 ${getScoreColor(scores.global_score)}`}>
-              {scores.global_score > 0 ? '+' : ''}{scores.global_score}%
+              {scores.global_score}%
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Moyenne des % de reconnaissance par attitude
             </p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-gray-500">{scores.total_feedbacks_with_attitudes} feedbacks</p>
-            <p className="text-xs text-gray-400 mt-1">avec attitudes</p>
+            <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+              isCareerReady ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+            }`}>
+              {isCareerReady ? '✅ Éligible carrière (≥95%)' : `⏳ ${(95 - scores.global_score).toFixed(1)}% restant pour ≥95%`}
+            </div>
+            <p className="text-sm text-gray-500 mt-2">{scores.total_feedbacks_with_attitudes} feedbackers</p>
           </div>
         </div>
       </div>
-
-      {/* Scores par attitude */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h3 className="text-sm font-semibold text-gray-900 mb-4">Détail par attitude</h3>
-        <div className="space-y-3">
-          {sortedScores.map(att => {
-            const barWidth = (Math.abs(att.score) / maxBar) * 100;
-            
-            return (
-              <div key={att.attitude_id} className="group">
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">{att.attitude_icon}</span>
-                    <span className="text-sm font-medium text-gray-700">{att.attitude_name}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 text-xs text-gray-400">
-                      <span className="text-green-500">{att.recognition_count}+</span>
-                      <span>/</span>
-                      <span className="text-amber-500">{att.improvement_count}−</span>
-                    </div>
-                    <span className={`text-sm font-bold ${getScoreColor(att.score)}`}>
-                      {att.score > 0 ? '+' : ''}{att.score}%
-                    </span>
-                  </div>
-                </div>
-                {/* Barre de progression bidirectionnelle */}
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden relative">
-                  {att.score >= 0 ? (
-                    <div 
-                      className={`h-full rounded-full transition-all ${getScoreBarColor(att.score)}`}
-                      style={{ width: `${barWidth}%` }}
-                    />
-                  ) : (
-                    <div className="h-full flex justify-end">
-                      <div 
-                        className="h-full bg-red-400 rounded-full transition-all"
-                        style={{ width: `${barWidth}%` }}
-                      />
-                    </div>
-                  )}
-                </div>
-                {att.total_feedbacks === 0 && (
-                  <p className="text-xs text-gray-400 mt-0.5">Aucune évaluation</p>
+      
+      {/* Détail par attitude */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        {/* Header tableau */}
+        <div className="grid grid-cols-[1fr_80px_70px_70px_80px] px-5 py-3 bg-gray-50 border-b text-xs font-semibold text-gray-500 uppercase">
+          <span>Attitude</span>
+          <span className="text-center">Score %</span>
+          <span className="text-center text-green-600">Reconn.</span>
+          <span className="text-center text-amber-600">Amélior.</span>
+          <span className="text-center">Solde</span>
+        </div>
+        
+        {sortedScores.map((att, idx) => (
+          <div key={att.attitude_id} className={`grid grid-cols-[1fr_80px_70px_70px_80px] px-5 py-3 items-center ${idx < sortedScores.length - 1 ? 'border-b border-gray-100' : ''}`}>
+            {/* Nom + barre */}
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span>{att.attitude_icon}</span>
+                <span className="text-sm font-medium text-gray-700">{att.attitude_name}</span>
+                {att.total_feedbacks > 0 && (
+                  <span className="text-xs text-gray-400">({att.total_feedbacks} avis)</span>
                 )}
               </div>
-            );
-          })}
-        </div>
+              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden w-full max-w-[200px]">
+                <div 
+                  className={`h-full rounded-full transition-all ${getScoreBarColor(att.score_pct)}`}
+                  style={{ width: `${Math.min(att.score_pct, 100)}%` }}
+                />
+              </div>
+            </div>
+            {/* Score % */}
+            <div className="text-center">
+              <span className={`text-sm font-bold ${getScoreColor(att.score_pct)}`}>
+                {att.score_pct}%
+              </span>
+            </div>
+            {/* Recognition count */}
+            <div className="text-center">
+              <span className="text-sm text-green-600 font-medium">{att.recognition_count}</span>
+            </div>
+            {/* Improvement count */}
+            <div className="text-center">
+              <span className="text-sm text-amber-600 font-medium">{att.improvement_count}</span>
+            </div>
+            {/* Score solde */}
+            <div className="text-center">
+              <span className={`text-sm font-bold ${att.score_solde > 0 ? 'text-green-600' : att.score_solde < 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                {att.score_solde > 0 ? '+' : ''}{att.score_solde}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -640,20 +612,13 @@ function AttitudeScoresDashboard({ scores }: { scores: EmployeeAttitudeScores | 
 
 
 // =============================================
-// STATS TYPES & API
+// STATS
 // =============================================
 
 interface MyStats {
-  scope: string;
-  avg_score: number;
-  evaluations_total: number;
-  evaluations_completed: number;
-  completion_rate: number;
-  feedbacks_received: number;
-  feedbacks_given: number;
-  one_on_ones_scheduled: number;
-  one_on_ones_completed: number;
-  okr_achievement: number;
+  scope: string; avg_score: number; evaluations_total: number; evaluations_completed: number;
+  completion_rate: number; feedbacks_received: number; feedbacks_given: number;
+  one_on_ones_scheduled: number; one_on_ones_completed: number; okr_achievement: number;
 }
 
 async function fetchMyStats(): Promise<MyStats | null> {
@@ -661,18 +626,11 @@ async function fetchMyStats(): Promise<MyStats | null> {
     const response = await fetch(`${API_URL}/api/performance/my-stats`, { headers: getAuthHeaders() });
     if (!response.ok) return null;
     return response.json();
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
-
-// =============================================
-// STATS COMPONENT
-// =============================================
 
 function StatsCards({ stats, attitudeScore }: { stats: MyStats | null; attitudeScore: number | null }) {
   if (!stats) return null;
-  
   return (
     <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
       <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
@@ -689,13 +647,12 @@ function StatsCards({ stats, attitudeScore }: { stats: MyStats | null; attitudeS
         <p className="text-2xl font-bold text-purple-600">{stats.feedbacks_received}</p>
         <p className="text-xs text-gray-400">{stats.feedbacks_given} donnés</p>
       </div>
-      {/* ✅ NOUVEAU: Score d'attitudes */}
       <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
         <p className="text-sm text-gray-500">Attitudes</p>
         <p className={`text-2xl font-bold ${attitudeScore !== null ? getScoreColor(attitudeScore) : 'text-gray-300'}`}>
-          {attitudeScore !== null ? `${attitudeScore > 0 ? '+' : ''}${attitudeScore}%` : '-'}
+          {attitudeScore !== null ? `${attitudeScore}%` : '-'}
         </p>
-        <p className="text-xs text-gray-400">score global</p>
+        <p className="text-xs text-gray-400">{attitudeScore !== null && attitudeScore >= 95 ? '✅ ≥95%' : 'score global'}</p>
       </div>
       <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
         <p className="text-sm text-gray-500">OKRs</p>
@@ -731,11 +688,7 @@ export default function FeedbackPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     const [feedbacksData, employeesData, statsData, attitudesData, attScoresData] = await Promise.all([
-      fetchFeedbacks(), 
-      fetchEmployees(),
-      fetchMyStats(),
-      fetchAttitudes(),
-      fetchMyAttitudeScores()
+      fetchFeedbacks(), fetchEmployees(), fetchMyStats(), fetchAttitudes(), fetchMyAttitudeScores()
     ]);
     setFeedbacks(feedbacksData);
     setEmployees(employeesData);
@@ -752,9 +705,7 @@ export default function FeedbackPage() {
       f.from_employee_name?.toLowerCase().includes(search.toLowerCase()) ||
       f.to_employee_name?.toLowerCase().includes(search.toLowerCase()) ||
       f.message.toLowerCase().includes(search.toLowerCase());
-    
     const matchType = filterType === 'all' || f.type === filterType;
-    
     return matchSearch && matchType;
   });
   
@@ -774,10 +725,8 @@ export default function FeedbackPage() {
 
   return (
     <div className="p-8">
-      {/* Stats KPIs */}
       <StatsCards stats={stats} attitudeScore={attitudeScores?.global_score ?? null} />
       
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Feedback Continu</h1>
@@ -788,40 +737,22 @@ export default function FeedbackPage() {
         </button>
       </div>
 
-      {/* Tabs: Feed / Mes Attitudes */}
+      {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
-        <button 
-          onClick={() => setActiveTab('feed')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'feed' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
+        <button onClick={() => setActiveTab('feed')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'feed' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
           📋 Fil d'activité
         </button>
-        <button 
-          onClick={() => setActiveTab('attitudes')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'attitudes' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
+        <button onClick={() => setActiveTab('attitudes')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'attitudes' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
           📊 Mes Attitudes
         </button>
       </div>
 
-      {/* Content based on active tab */}
       {activeTab === 'feed' ? (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          {/* Search + Filters */}
           <div className="flex flex-col sm:flex-row gap-3 mb-6">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input 
-                type="text" 
-                value={search} 
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }} 
-                placeholder="Rechercher un feedback..." 
-                className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" 
-              />
+              <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Rechercher un feedback..." className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
             </div>
             <div className="flex gap-2">
               {[
@@ -830,48 +761,26 @@ export default function FeedbackPage() {
                 { value: 'improvement', label: '💡 Amélioration' },
                 { value: 'general', label: '💬 Général' },
               ].map(f => (
-                <button
-                  key={f.value}
-                  onClick={() => { setFilterType(f.value); setPage(1); }}
-                  className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
-                    filterType === f.value 
-                      ? 'bg-primary-50 text-primary-700 border-primary-200' 
-                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
+                <button key={f.value} onClick={() => { setFilterType(f.value); setPage(1); }} className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${filterType === f.value ? 'bg-primary-50 text-primary-700 border-primary-200' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
                   {f.label}
                 </button>
               ))}
             </div>
           </div>
-
-          {/* Feedbacks List */}
           <div className="space-y-4">
             {paginatedFeedbacks.length > 0 ? paginatedFeedbacks.map(fb => (
-              <FeedbackCard key={fb.id} feedback={fb} onLike={(id) => {
-                setFeedbacks(prev => prev.map(f => f.id === id ? { ...f, is_liked_by_me: !f.is_liked_by_me } : f));
-              }} />
+              <FeedbackCard key={fb.id} feedback={fb} onLike={() => {}} />
             )) : (
               <p className="text-gray-500 text-center py-8">Aucun feedback trouvé</p>
             )}
           </div>
-
-          {/* Pagination */}
           <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       ) : (
-        /* Attitudes Dashboard */
         <AttitudeScoresDashboard scores={attitudeScores} />
       )}
 
-      {/* Modal */}
-      <CreateFeedbackModal 
-        isOpen={showModal} 
-        onClose={() => setShowModal(false)} 
-        employees={employees} 
-        attitudes={attitudes}
-        onSuccess={loadData} 
-      />
+      <CreateFeedbackModal isOpen={showModal} onClose={() => setShowModal(false)} employees={employees} attitudes={attitudes} onSuccess={loadData} />
     </div>
   );
 }

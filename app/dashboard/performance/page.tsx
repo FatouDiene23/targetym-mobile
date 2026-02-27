@@ -166,7 +166,7 @@ async function fetchMyAttitudeScores(): Promise<EmployeeAttitudeScores | null> {
 
 async function fetchCurrentEmployeeId(): Promise<number | null> {
   try {
-    const response = await fetch(`${API_URL}/api/users/me`, { headers: getAuthHeaders() });
+    const response = await fetch(`${API_URL}/api/auth/me`, { headers: getAuthHeaders() });
     if (!response.ok) return null;
     const data = await response.json();
     return data.employee_id || null;

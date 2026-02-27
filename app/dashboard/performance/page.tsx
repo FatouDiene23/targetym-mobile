@@ -164,6 +164,15 @@ async function fetchMyAttitudeScores(): Promise<EmployeeAttitudeScores | null> {
   } catch { return null; }
 }
 
+async function fetchCurrentEmployeeId(): Promise<number | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/users/me`, { headers: getAuthHeaders() });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.employee_id || null;
+  } catch { return null; }
+}
+
 // =============================================
 // HELPERS
 // =============================================
@@ -232,7 +241,7 @@ function Pagination({ currentPage, totalPages, onPageChange }: {
   );
 }
 
-function FeedbackCard({ feedback, onLike, onDelete }: { feedback: FeedbackItem; onLike: (id: number) => void; onDelete: (id: number) => void }) {
+function FeedbackCard({ feedback, onLike, onDelete, currentEmployeeId }: { feedback: FeedbackItem; onLike: (id: number) => void; onDelete: (id: number) => void; currentEmployeeId: number | null }) {
   const [liked, setLiked] = useState(feedback.is_liked_by_me || false);
   const [likes, setLikes] = useState(feedback.likes_count);
   const [deleting, setDeleting] = useState(false);
@@ -259,9 +268,10 @@ function FeedbackCard({ feedback, onLike, onDelete }: { feedback: FeedbackItem; 
     return `Il y a ${Math.floor(hours / 24)}j`;
   };
 
-  // Suppression autorisée uniquement dans les 15 premières minutes
+  // Suppression autorisée uniquement par l'auteur dans les 15 premières minutes
   const minutesSinceCreation = (Date.now() - new Date(feedback.created_at).getTime()) / (1000 * 60);
-  const canDelete = minutesSinceCreation <= 15;
+  const isAuthor = currentEmployeeId !== null && feedback.from_employee_id === currentEmployeeId;
+  const canDelete = isAuthor && minutesSinceCreation <= 15;
   const minutesLeft = Math.max(0, Math.ceil(15 - minutesSinceCreation));
 
   const attitudes = feedback.attitudes || [];
@@ -740,6 +750,7 @@ export default function FeedbackPage() {
   const [attitudes, setAttitudes] = useState<AttitudeItem[]>([]);
   const [attitudeScores, setAttitudeScores] = useState<EmployeeAttitudeScores | null>(null);
   const [stats, setStats] = useState<MyStats | null>(null);
+  const [currentEmployeeId, setCurrentEmployeeId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -749,14 +760,15 @@ export default function FeedbackPage() {
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [feedbacksData, employeesData, statsData, attitudesData, attScoresData] = await Promise.all([
-      fetchFeedbacks(), fetchEmployees(), fetchMyStats(), fetchAttitudes(), fetchMyAttitudeScores()
+    const [feedbacksData, employeesData, statsData, attitudesData, attScoresData, empId] = await Promise.all([
+      fetchFeedbacks(), fetchEmployees(), fetchMyStats(), fetchAttitudes(), fetchMyAttitudeScores(), fetchCurrentEmployeeId()
     ]);
     setFeedbacks(feedbacksData);
     setEmployees(employeesData);
     setStats(statsData);
     setAttitudes(attitudesData);
     setAttitudeScores(attScoresData);
+    setCurrentEmployeeId(empId);
     setLoading(false);
   }, []);
 
@@ -831,7 +843,7 @@ export default function FeedbackPage() {
           </div>
           <div className="space-y-4">
             {paginatedFeedbacks.length > 0 ? paginatedFeedbacks.map(fb => (
-              <FeedbackCard key={fb.id} feedback={fb} onLike={() => {}} onDelete={(id) => setFeedbacks(prev => prev.filter(f => f.id !== id))} />
+              <FeedbackCard key={fb.id} feedback={fb} onLike={() => {}} onDelete={(id) => setFeedbacks(prev => prev.filter(f => f.id !== id))} currentEmployeeId={currentEmployeeId} />
             )) : (
               <p className="text-gray-500 text-center py-8">Aucun feedback trouvé</p>
             )}

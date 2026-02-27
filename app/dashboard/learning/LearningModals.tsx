@@ -15,7 +15,7 @@ import {
 import {
   X, Clock, Users, User, Upload, ExternalLink, Check, XCircle,
   RefreshCw, CheckCircle, AlertTriangle, FileCheck, FileWarning,
-  Plus, Edit, Archive, Ban, Target, TrendingUp, Eye, Link, Zap, Settings
+  Plus, Edit, Archive, Ban, Target, TrendingUp, Eye, Link, Zap, Settings, Send
 } from 'lucide-react';
 
 export function LearningModals() {

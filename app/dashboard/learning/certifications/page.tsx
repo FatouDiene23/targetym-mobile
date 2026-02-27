@@ -5,7 +5,7 @@ import { hasPermission, getCertStatusColor } from '../shared';
 import { Award, Plus, AlertTriangle, Users, Eye } from 'lucide-react';
 
 export default function CertificationsPage() {
-  const { userRole, certifications, setShowCreateCertification, setShowCertHolders, fetchCertificationHolders } = useLearning();
+  const { userRole, stats, certifications, setShowCreateCertification, setShowCertHolders, fetchCertificationHolders } = useLearning();
 
   return (
           <div className="space-y-6">
@@ -51,7 +51,6 @@ export default function CertificationsPage() {
               </div>
             )}
           </div>
-        )}
 
   );
 }

@@ -554,7 +554,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       const response = await fetch(`${API_URL}/api/learning/assignments/${selectedAssignment.id}/validate`, {
         method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(validationData)
       });
-      if (response.ok) { setShowValidationModal(false); setSelectedAssignment(null); setValidationData({ approved: true, rejection_reason: '' }); fetchPendingValidations(); fetchStats(); fetchTeamAssignments(); fetchMyAssignments(); }
+      if (response.ok) { setShowValidationModal(false); setSelectedAssignment(null); setValidationData({ approved: true, rejection_reason: '' }); fetchPendingValidations(); fetchStats(); fetchTeamAssignments(); fetchMyAssignments(); fetchEpfPending(); fetchEpfAll(); fetchEpfStats(); }
     } catch (error) { console.error('Error validating:', error); }
   };
 

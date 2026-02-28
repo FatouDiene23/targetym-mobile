@@ -2,7 +2,7 @@
 
 import { useLearning } from '../LearningContext';
 import { hasPermission } from '../shared';
-import { Target, Plus, Clock, Users } from 'lucide-react';
+import { Target, Plus, Clock, Users, BookOpen, ChevronRight } from 'lucide-react';
 
 export default function PathsPage() {
   const { userRole, learningPaths, setShowCreatePath } = useLearning();

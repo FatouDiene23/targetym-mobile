@@ -11,7 +11,7 @@ import { Target, User, Filter, Eye, Edit, ArrowRight, ArrowUpRight, Award } from
 import { useTalents } from '../TalentsContext';
 import {
   NineBoxEmployee, QUADRANT_LABELS, PERFORMANCE_LABELS, POTENTIAL_LABELS,
-  getInitials, formatDate
+  getInitials, formatDate, isRH, getUserDepartment
 } from '../shared';
 
 export default function NineBoxPage() {
@@ -19,8 +19,13 @@ export default function NineBoxPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('');
   const [selectedDept, setSelectedDept] = useState<string>('');
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+  const isRHUser = isRH();
 
-  useEffect(() => { loadNineBox(); }, [loadNineBox]);
+  useEffect(() => {
+    const dept = !isRHUser ? (getUserDepartment() || '') : '';
+    setSelectedDept(dept);
+    loadNineBox(undefined, dept || undefined);
+  }, []);
 
   useEffect(() => {
     if (nineBoxData?.period && !selectedPeriod) {
@@ -76,16 +81,23 @@ export default function NineBoxPage() {
               <option key={p} value={p}>{p}</option>
             ))}
           </select>
-          <select
-            value={selectedDept}
-            onChange={e => handleFilterChange(undefined, e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
-          >
-            <option value="">Tous les départements</option>
-            {data?.available_departments?.map(d => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
+          {isRHUser ? (
+            <select
+              value={selectedDept}
+              onChange={e => handleFilterChange(undefined, e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+            >
+              <option value="">Tous les départements</option>
+              {data?.available_departments?.map(d => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          ) : (
+            <div className="px-4 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-600 flex items-center gap-2">
+              <span className="w-2 h-2 bg-primary-500 rounded-full" />
+              {getUserDepartment() || 'Mon département'}
+            </div>
+          )}
 
           {/* Stats inline */}
           <div className="ml-auto flex gap-4 items-center text-sm">

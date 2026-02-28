@@ -301,10 +301,12 @@ export function getInitials(firstName?: string, lastName?: string): string {
 export function getUserRole(): string {
   if (typeof window === 'undefined') return 'employee';
   try {
-    const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
-    if (!token) return 'employee';
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return (payload.role || 'employee').toLowerCase();
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      if (user.role) return user.role.toLowerCase();
+    }
+    return 'employee';
   } catch {
     return 'employee';
   }

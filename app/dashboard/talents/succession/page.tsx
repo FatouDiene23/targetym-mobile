@@ -225,8 +225,8 @@ function CreatePlanModal({ onClose, onCreate }: { onClose: () => void; onCreate:
   const [searchEmp, setSearchEmp] = useState('');
 
   useEffect(() => {
-    apiFetch('/api/employees').then(data => {
-      const list = Array.isArray(data) ? data : data.employees || [];
+    apiFetch('/api/employees/?page_size=200').then(data => {
+      const list = Array.isArray(data) ? data : (data.items || data.employees || []);
       setEmployees(list);
     }).catch(() => {});
   }, []);

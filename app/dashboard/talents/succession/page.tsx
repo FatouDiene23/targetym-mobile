@@ -23,6 +23,7 @@ export default function SuccessionPage() {
 
   const [filterCrit, setFilterCrit] = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [showAddCandidate, setShowAddCandidate] = useState<number | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const canEdit = isRH() || isManager();
 
@@ -131,7 +132,10 @@ export default function SuccessionPage() {
                           Successeurs Identifiés ({selectedPlan.candidates?.length || 0})
                         </h4>
                         {canEdit && (
-                          <button className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center">
+                          <button
+                            onClick={() => setShowAddCandidate(plan.id)}
+                            className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center"
+                          >
                             <UserPlus className="w-4 h-4 mr-1" />Ajouter
                           </button>
                         )}
@@ -159,6 +163,22 @@ export default function SuccessionPage() {
                                   <span className={`px-2 py-1 rounded text-xs font-medium ${readyInfo.color}`}>
                                     {readyInfo.label}
                                   </span>
+                                  {/* Scores 9-Box */}
+                                  {(cand.latest_perf != null || cand.latest_pot != null) ? (
+                                    <div className="flex items-center gap-2 px-2 py-1 bg-gray-100 rounded-lg">
+                                      <div className="text-center">
+                                        <p className="text-xs text-gray-500">Perf.</p>
+                                        <p className="text-sm font-bold text-blue-600">{Number(cand.latest_perf).toFixed(1)}</p>
+                                      </div>
+                                      <div className="w-px h-6 bg-gray-300" />
+                                      <div className="text-center">
+                                        <p className="text-xs text-gray-500">Pot.</p>
+                                        <p className="text-sm font-bold text-green-600">{Number(cand.latest_pot).toFixed(1)}</p>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs text-gray-400 px-2">Non évalué</span>
+                                  )}
                                   <div className="text-right">
                                     <p className="text-sm font-bold text-primary-600">{cand.preparation_score}%</p>
                                     <p className="text-xs text-gray-500">Préparation</p>
@@ -207,6 +227,15 @@ export default function SuccessionPage() {
 
         {/* Create Modal */}
         {showCreate && <CreatePlanModal onClose={() => setShowCreate(false)} onCreate={createSuccessionPlan} />}
+
+        {/* Add Candidate Modal */}
+        {showAddCandidate !== null && (
+          <AddCandidateModal
+            planId={showAddCandidate}
+            onClose={() => { setShowAddCandidate(null); loadPlanDetail(showAddCandidate); }}
+            onAdd={addCandidate}
+          />
+        )}
       </main>
     </>
   );
@@ -223,11 +252,17 @@ function CreatePlanModal({ onClose, onCreate }: { onClose: () => void; onCreate:
   const [saving, setSaving] = useState(false);
   const [employees, setEmployees] = useState<any[]>([]);
   const [searchEmp, setSearchEmp] = useState('');
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [searchDept, setSearchDept] = useState('');
+  const [showDeptDropdown, setShowDeptDropdown] = useState(false);
 
   useEffect(() => {
     apiFetch('/api/employees/?page_size=200').then(data => {
       const list = Array.isArray(data) ? data : (data.items || data.employees || []);
       setEmployees(list);
+    }).catch(() => {});
+    apiFetch('/api/departments/').then(data => {
+      setDepartments(Array.isArray(data) ? data : []);
     }).catch(() => {});
   }, []);
 
@@ -258,8 +293,46 @@ function CreatePlanModal({ onClose, onCreate }: { onClose: () => void; onCreate:
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Département</label>
-            <input value={form.department} onChange={e => setForm({ ...form, department: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+            <div className="relative">
+              {form.department ? (
+                <div className="flex items-center justify-between px-3 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                  <span className="text-sm text-gray-900">{form.department}</span>
+                  <button onClick={() => { setForm({ ...form, department: '' }); setSearchDept(''); }} className="text-gray-400 hover:text-red-500">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <input
+                    value={searchDept}
+                    onChange={e => { setSearchDept(e.target.value); setShowDeptDropdown(true); }}
+                    onFocus={() => setShowDeptDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowDeptDropdown(false), 150)}
+                    placeholder="Rechercher un département..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                  {showDeptDropdown && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                      {departments
+                        .filter(d => d.name?.toLowerCase().includes(searchDept.toLowerCase()))
+                        .slice(0, 10)
+                        .map(d => (
+                          <button
+                            key={d.id}
+                            onMouseDown={() => { setForm({ ...form, department: d.name }); setSearchDept(''); setShowDeptDropdown(false); }}
+                            className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm text-gray-900"
+                          >
+                            {d.name}
+                          </button>
+                        ))}
+                      {departments.filter(d => d.name?.toLowerCase().includes(searchDept.toLowerCase())).length === 0 && (
+                        <p className="px-3 py-2 text-sm text-gray-400">Aucun département trouvé</p>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Titulaire Actuel <span className="text-gray-400">(optionnel)</span></label>
@@ -326,6 +399,152 @@ function CreatePlanModal({ onClose, onCreate }: { onClose: () => void; onCreate:
           <button onClick={handleSubmit} disabled={saving || !form.position_title.trim()}
             className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
             {saving ? 'Création...' : 'Créer'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// ADD CANDIDATE MODAL
+// ============================================
+
+function AddCandidateModal({ planId, onClose, onAdd }: {
+  planId: number;
+  onClose: () => void;
+  onAdd: (planId: number, data: any) => Promise<void>;
+}) {
+  const [form, setForm] = useState({
+    employee_id: null as number | null,
+    readiness: '3+ years',
+    preparation_score: 0,
+    rank_order: 1,
+    development_notes: '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [searchEmp, setSearchEmp] = useState('');
+
+  useEffect(() => {
+    apiFetch('/api/employees/?page_size=200').then(data => {
+      const list = Array.isArray(data) ? data : (data.items || data.employees || []);
+      setEmployees(list);
+    }).catch(() => {});
+  }, []);
+
+  const filteredEmployees = employees.filter(e =>
+    `${e.first_name} ${e.last_name}`.toLowerCase().includes(searchEmp.toLowerCase())
+  );
+  const selectedEmp = employees.find(e => e.id === form.employee_id);
+
+  const handleSubmit = async () => {
+    if (!form.employee_id) return;
+    setSaving(true);
+    try { await onAdd(planId, form); onClose(); } catch { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-xl p-6 w-full max-w-lg" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Ajouter un Successeur</h3>
+          <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+        </div>
+        <div className="space-y-4">
+          {/* Sélecteur employé */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Employé <span className="text-red-500">*</span></label>
+            {selectedEmp ? (
+              <div className="flex items-center justify-between px-3 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                <span className="text-sm text-gray-900">{selectedEmp.first_name} {selectedEmp.last_name} — {selectedEmp.job_title || ''}</span>
+                <button onClick={() => setForm({ ...form, employee_id: null })} className="text-gray-400 hover:text-red-500">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <input
+                  value={searchEmp}
+                  onChange={e => setSearchEmp(e.target.value)}
+                  placeholder="Rechercher un employé..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+                {searchEmp && filteredEmployees.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                    {filteredEmployees.slice(0, 8).map(emp => (
+                      <button
+                        key={emp.id}
+                        onClick={() => { setForm({ ...form, employee_id: emp.id }); setSearchEmp(''); }}
+                        className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm flex justify-between"
+                      >
+                        <span className="font-medium text-gray-900">{emp.first_name} {emp.last_name}</span>
+                        <span className="text-gray-400 text-xs">{emp.job_title}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Readiness */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Disponibilité</label>
+              <select value={form.readiness} onChange={e => setForm({ ...form, readiness: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                <option value="ready">Prêt maintenant</option>
+                <option value="1-2 years">Dans 1-2 ans</option>
+                <option value="3+ years">Dans 3+ ans</option>
+              </select>
+            </div>
+            {/* Rang */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Rang priorité</label>
+              <input
+                type="number" min={1} max={10}
+                value={form.rank_order}
+                onChange={e => setForm({ ...form, rank_order: parseInt(e.target.value) || 1 })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Score de préparation */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Score de préparation : <span className="text-primary-600 font-semibold">{form.preparation_score}%</span>
+            </label>
+            <input
+              type="range" min={0} max={100} step={5}
+              value={form.preparation_score}
+              onChange={e => setForm({ ...form, preparation_score: parseInt(e.target.value) })}
+              className="w-full accent-primary-500"
+            />
+            <div className="flex justify-between text-xs text-gray-400 mt-1">
+              <span>0%</span><span>50%</span><span>100%</span>
+            </div>
+          </div>
+
+          {/* Notes de développement */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Notes de développement</label>
+            <textarea
+              value={form.development_notes}
+              onChange={e => setForm({ ...form, development_notes: e.target.value })}
+              placeholder="Ce qu'il doit encore acquérir..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              rows={2}
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">Annuler</button>
+          <button onClick={handleSubmit} disabled={saving || !form.employee_id}
+            className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
+            {saving ? 'Ajout...' : 'Ajouter'}
           </button>
         </div>
       </div>

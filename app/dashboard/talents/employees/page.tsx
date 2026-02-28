@@ -1,6 +1,6 @@
 // ============================================
-// app/dashboard/talents/team/page.tsx
-// Vue Manager — Progression carrière de l'équipe
+// app/dashboard/talents/employees/page.tsx
+// Vue RH — Tous les collaborateurs (carrières)
 // ============================================
 
 'use client';
@@ -9,20 +9,22 @@ import { useEffect, useState } from 'react';
 import Header from '@/components/Header';
 import {
   Search, RefreshCw, ChevronRight, CheckCircle2, Circle,
-  TrendingUp, BookOpen, Heart, ArrowUpRight, Users, AlertCircle
+  TrendingUp, BookOpen, Heart, ArrowUpRight, Users, AlertCircle,
+  Filter
 } from 'lucide-react';
 import { useTalents } from '../TalentsContext';
-import { getInitials, ELIGIBILITY_LABELS, formatDate, getUserEmployeeId } from '../shared';
+import { getInitials, ELIGIBILITY_LABELS, formatDate } from '../shared';
 
-export default function TeamCareerPage() {
+export default function AllEmployeesCareerPage() {
   const {
     employeeCareers, loadEmployeeCareers,
     syncProgress, loadEmployeeCareerDetail,
-    requestPromotion,
+    requestPromotion, paths, loadPaths,
   } = useTalents();
 
   const [search, setSearch] = useState('');
   const [eligFilter, setEligFilter] = useState('');
+  const [pathFilter, setPathFilter] = useState('');
   const [selected, setSelected] = useState<any>(null);
   const [detail, setDetail] = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -30,16 +32,16 @@ export default function TeamCareerPage() {
   const [promoting, setPromoting] = useState<number | null>(null);
 
   useEffect(() => {
-    // Always filter by N-1 (current user's direct reports)
-    const empId = getUserEmployeeId();
-    loadEmployeeCareers(undefined, undefined, undefined, empId || undefined);
+    loadEmployeeCareers(); // No manager_id = tous les employés
+    loadPaths();
   }, []);
 
   const filtered = employeeCareers.filter(ec => {
     const matchSearch = !search || `${ec.first_name} ${ec.last_name} ${ec.path_name} ${ec.current_level_title}`
       .toLowerCase().includes(search.toLowerCase());
     const matchElig = !eligFilter || ec.eligibility_status === eligFilter;
-    return matchSearch && matchElig;
+    const matchPath = !pathFilter || String(ec.career_path_id) === pathFilter;
+    return matchSearch && matchElig && matchPath;
   });
 
   const openDetail = async (ec: any) => {
@@ -94,8 +96,8 @@ export default function TeamCareerPage() {
   return (
     <>
       <Header
-        title="Mon Équipe"
-        subtitle={`${employeeCareers.length} collaborateur(s) · ${eligibleCount} éligible(s) à la promotion`}
+        title="Collaborateurs"
+        subtitle={`${employeeCareers.length} collaborateur(s) assigné(s) · ${eligibleCount} éligible(s) à la promotion`}
       />
       <main className="flex-1 flex overflow-hidden bg-gray-50" style={{ height: 'calc(100vh - 64px)' }}>
 
@@ -124,6 +126,18 @@ export default function TeamCareerPage() {
               <option value="in_progress">En progression</option>
               <option value="not_eligible">Non éligible</option>
             </select>
+            {paths.length > 0 && (
+              <select
+                value={pathFilter}
+                onChange={e => setPathFilter(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500 text-gray-600"
+              >
+                <option value="">Tous les parcours</option>
+                {paths.map(p => (
+                  <option key={p.id} value={String(p.id)}>{p.name}</option>
+                ))}
+              </select>
+            )}
             <p className="text-xs text-gray-400">{filtered.length} résultat(s)</p>
           </div>
 

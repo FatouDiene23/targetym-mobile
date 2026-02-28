@@ -12,44 +12,20 @@ import {
   ArrowUpRight, Trophy, AlertCircle, Clock, ListChecks,
   GraduationCap, Star, ChevronRight, Timer, ExternalLink
 } from 'lucide-react';
+import Link from 'next/link';
 import { apiFetch, formatDate, ELIGIBILITY_LABELS } from '../shared';
 
 export default function MyCareerPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [requesting, setRequesting] = useState(false);
-  const [requestSuccess, setRequestSuccess] = useState(false);
 
-  const load = async () => {
-    try {
-      const res = await apiFetch('/api/careers/employees/my-career');
-      setData(res);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { load(); }, []);
-
-  const handleRequestPromotion = async (ecId: number) => {
-    if (!confirm('Envoyer une demande de promotion ?')) return;
-    setRequesting(true);
-    try {
-      await apiFetch('/api/careers/promotions/request', {
-        method: 'POST',
-        body: JSON.stringify({ employee_career_id: ecId }),
-      });
-      setRequestSuccess(true);
-      await load();
-    } catch (e: any) {
-      alert(e.message);
-    } finally {
-      setRequesting(false);
-    }
-  };
+  useEffect(() => {
+    apiFetch('/api/careers/employees/my-career')
+      .then(res => setData(res))
+      .catch((e: any) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
 
   if (loading) {
     return (
@@ -145,13 +121,6 @@ export default function MyCareerPage() {
       <Header title="Ma Carrière" subtitle={career.path_name} />
       <main className="flex-1 p-6 overflow-auto bg-gray-50 space-y-6">
 
-        {requestSuccess && (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
-            <p className="text-green-700 text-sm font-medium">Demande de promotion envoyée avec succès !</p>
-          </div>
-        )}
-
         {/* ── Timeline des niveaux ── */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
           <h3 className="font-semibold text-gray-900 mb-6">Votre progression dans le parcours</h3>
@@ -235,21 +204,18 @@ export default function MyCareerPage() {
                   <p className="text-sm text-gray-500 mt-1">Vous avez atteint le niveau maximum 🎉</p>
                 )}
               </div>
-              {career.eligibility_status === 'eligible' && career.next_level_id && !hasPendingPromotion && (
-                <button
-                  onClick={() => handleRequestPromotion(career.id)}
-                  disabled={requesting}
-                  className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 disabled:opacity-50 flex items-center gap-1.5 flex-shrink-0"
-                >
-                  <ArrowUpRight className="w-4 h-4" />
-                  {requesting ? 'Envoi...' : 'Demander ma promotion'}
-                </button>
-              )}
-              {hasPendingPromotion && (
-                <span className="px-3 py-1.5 bg-yellow-50 text-yellow-700 text-sm rounded-lg border border-yellow-200 flex-shrink-0">
-                  Demande en cours...
-                </span>
-              )}
+              <Link
+                href="/dashboard/talents/my-promotions"
+                className={`px-4 py-2 text-sm rounded-lg flex items-center gap-1.5 flex-shrink-0 font-medium transition-colors
+                  ${career.eligibility_status === 'eligible' && career.next_level_id && !hasPendingPromotion
+                    ? 'bg-primary-500 text-white hover:bg-primary-600'
+                    : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+              >
+                <ArrowUpRight className="w-4 h-4" />
+                {career.eligibility_status === 'eligible' && !hasPendingPromotion
+                  ? 'Demander ma promotion'
+                  : hasPendingPromotion ? 'Demande en cours →' : 'Mes promotions'}
+              </Link>
             </div>
 
             {/* Critères additionnels de promotion */}
@@ -353,62 +319,6 @@ export default function MyCareerPage() {
             </div>
           </div>
         )}
-
-        {/* ── Mes demandes de promotion ── */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <ArrowUpRight className="w-5 h-5 text-primary-500" />
-            <h3 className="font-semibold text-gray-900">Mes demandes de promotion</h3>
-            {career.promotion_history?.length > 0 && (
-              <span className="ml-auto text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                {career.promotion_history.length} demande(s)
-              </span>
-            )}
-          </div>
-
-          {!career.promotion_history?.length ? (
-            <div className="text-center py-8 text-gray-400">
-              <ArrowUpRight className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-              <p className="text-sm">Aucune demande de promotion pour le moment</p>
-              {career.eligibility_status !== 'eligible' && career.next_level_id && (
-                <p className="text-xs mt-1 text-gray-400">
-                  Validez toutes vos compétences pour devenir éligible
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {career.promotion_history.map((pr: any) => (
-                <div key={pr.id} className={`flex items-start justify-between p-4 rounded-xl border
-                  ${pr.status === 'approved' ? 'bg-green-50 border-green-200' :
-                    pr.status === 'rejected' ? 'bg-red-50 border-red-200' :
-                    'bg-yellow-50 border-yellow-200'}`}>
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium
-                        ${pr.status === 'approved' ? 'bg-green-100 text-green-700' :
-                          pr.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                          'bg-yellow-100 text-yellow-700'}`}>
-                        {pr.status === 'approved' ? 'Approuvée' : pr.status === 'rejected' ? 'Refusée' : 'En attente'}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {pr.from_level_title} → {pr.to_level_title}
-                      </span>
-                    </div>
-                    {pr.comments && <p className="text-xs text-gray-500 mt-1">"{pr.comments}"</p>}
-                    {pr.committee_decision && <p className="text-xs text-gray-500 mt-1">Décision comité : {pr.committee_decision}</p>}
-                  </div>
-                  {pr.decision_date && (
-                    <span className="text-xs text-gray-400 flex-shrink-0 ml-4">{formatDate(pr.decision_date)}</span>
-                  )}
-                  {!pr.decision_date && pr.status === 'pending' && (
-                    <span className="text-xs text-yellow-600 flex-shrink-0 ml-4">En cours de traitement</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* ── Détail des compétences ── */}
         {totalCount > 0 && (

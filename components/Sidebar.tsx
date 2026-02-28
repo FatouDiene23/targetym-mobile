@@ -189,8 +189,9 @@ const learningNavigation: NavItem[] = [
 
 // Sous-menu Talents & Carrière
 const talentsNavigation: NavItem[] = [
-  { name: 'Ma Carrière',      href: '/dashboard/talents/my-career',  icon: TrendingUp,   roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
-  { name: 'Mon Équipe',       href: '/dashboard/talents/team',       icon: UsersRound,   roles: ['manager', 'rh', 'admin', 'dg'] },
+  { name: 'Ma Carrière',      href: '/dashboard/talents/my-career',       icon: TrendingUp,   roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+  { name: 'Mes Promotions',   href: '/dashboard/talents/my-promotions',   icon: ArrowUpRight, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+  { name: 'Mon Équipe',       href: '/dashboard/talents/team',            icon: UsersRound,   roles: ['manager', 'rh', 'admin', 'dg'] },
   { name: 'Collaborateurs',   href: '/dashboard/talents/employees',  icon: Users,        roles: ['rh', 'admin', 'dg'] },
   { name: 'Dashboard',        href: '/dashboard/talents',            icon: BarChart3,    roles: ['rh', 'admin', 'dg'] },
   { name: 'Matrice 9-Box',    href: '/dashboard/talents/ninebox',   icon: Target,       roles: ['rh', 'admin', 'dg', 'manager'] },

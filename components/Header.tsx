@@ -177,6 +177,7 @@ const HIDDEN_ADD_ROUTES = [
   '/dashboard/my-space',
   '/dashboard/analytics',
   '/dashboard/settings',
+  '/dashboard/learning',
 ];
 
 // ============================================

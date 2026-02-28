@@ -7,17 +7,30 @@
 
 import Header from '@/components/Header';
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Users, Star, TrendingUp, AlertTriangle, Crown, Target,
   ArrowUpRight, Award, BarChart3, UserCheck, Briefcase
 } from 'lucide-react';
 import { useTalents } from './TalentsContext';
-import { QUADRANT_LABELS, ELIGIBILITY_LABELS, formatDate, getInitials } from './shared';
+import { QUADRANT_LABELS, ELIGIBILITY_LABELS, formatDate, getInitials, getUserRole, isRH, isManager } from './shared';
 
 export default function TalentsDashboard() {
   const { dashboard, loadDashboard } = useTalents();
+  const router = useRouter();
 
-  useEffect(() => { loadDashboard(); }, [loadDashboard]);
+  useEffect(() => {
+    const role = getUserRole();
+    if (!isRH()) {
+      if (isManager()) {
+        router.replace('/dashboard/talents/team');
+      } else {
+        router.replace('/dashboard/talents/my-career');
+      }
+      return;
+    }
+    loadDashboard();
+  }, []);
 
   const d = dashboard;
 

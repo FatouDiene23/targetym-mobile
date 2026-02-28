@@ -12,7 +12,7 @@ import {
   GraduationCap, Target, Award, Settings, Users, Layers
 } from 'lucide-react';
 import { useTalents } from '../TalentsContext';
-import { CareerPath, CareerLevel, isRH, getInitials } from '../shared';
+import { CareerPath, CareerLevel, isRH, getInitials, apiFetch, ELIGIBILITY_LABELS } from '../shared';
 
 export default function PathsPage() {
   const {
@@ -22,14 +22,24 @@ export default function PathsPage() {
     createCompetency, deleteCompetency,
     createFactor, deleteFactor,
     attitudes, loadAttitudes, linkAttitudes,
+    employeeCareers, loadEmployeeCareers, assignEmployee, unassignCareer,
   } = useTalents();
 
   const [showCreate, setShowCreate] = useState(false);
   const [expandedLevel, setExpandedLevel] = useState<number | null>(null);
   const [showAddLevel, setShowAddLevel] = useState(false);
+  const [showAssign, setShowAssign] = useState(false);
+  const [activeTab, setActiveTab] = useState<'levels' | 'employees'>('levels');
   const canEdit = isRH();
 
   useEffect(() => { loadPaths(); loadAttitudes(); }, [loadPaths, loadAttitudes]);
+
+  useEffect(() => {
+    if (selectedPath) {
+      loadEmployeeCareers(selectedPath.id);
+      setActiveTab('levels');
+    }
+  }, [selectedPath?.id]);
 
   return (
     <>
@@ -109,6 +119,25 @@ export default function PathsPage() {
                     )}
                   </div>
                 </div>
+
+                {/* Tabs */}
+                <div className="flex border-b border-gray-200 bg-white rounded-t-xl px-5 pt-3">
+                  <button
+                    onClick={() => setActiveTab('levels')}
+                    className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'levels' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                  >
+                    Niveaux ({selectedPath.levels?.length || 0})
+                  </button>
+                  <button
+                    onClick={() => { setActiveTab('employees'); loadEmployeeCareers(selectedPath.id); }}
+                    className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'employees' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                  >
+                    Employés ({selectedPath.employee_count || employeeCareers.length || 0})
+                  </button>
+                </div>
+
+                {/* ── LEVELS TAB ── */}
+                {activeTab === 'levels' && (<>
 
                 {/* Timeline visual */}
                 {selectedPath.levels && selectedPath.levels.length > 0 && (
@@ -282,6 +311,101 @@ export default function PathsPage() {
                     <p className="text-sm text-gray-400">Aucun niveau dans ce parcours</p>
                   </div>
                 )}
+
+                </>)}
+
+                {/* ── EMPLOYEES TAB ── */}
+                {activeTab === 'employees' && (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-semibold text-gray-900">
+                        Employés assignés ({employeeCareers.length})
+                      </h3>
+                      {canEdit && (
+                        <button
+                          onClick={() => setShowAssign(true)}
+                          className="flex items-center px-3 py-1.5 bg-primary-500 text-white text-xs font-medium rounded-lg hover:bg-primary-600"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />Assigner un employé
+                        </button>
+                      )}
+                    </div>
+
+                    {employeeCareers.length === 0 ? (
+                      <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 text-center">
+                        <Users className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+                        <p className="text-sm text-gray-400">Aucun employé assigné à ce parcours</p>
+                        {canEdit && (
+                          <button
+                            onClick={() => setShowAssign(true)}
+                            className="mt-3 inline-flex items-center px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600"
+                          >
+                            <Plus className="w-4 h-4 mr-1" />Assigner le premier employé
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      employeeCareers.map(ec => {
+                        const elig = ELIGIBILITY_LABELS[ec.eligibility_status] || { label: ec.eligibility_status, color: 'text-gray-600 bg-gray-100' };
+                        const initials = `${(ec.first_name || '')[0] || ''}${(ec.last_name || '')[0] || ''}`.toUpperCase();
+                        return (
+                          <div key={ec.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                            <div className="flex items-center gap-3">
+                              {ec.photo_url ? (
+                                <img src={ec.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-semibold text-sm">
+                                  {initials}
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-gray-900 text-sm truncate">
+                                  {ec.first_name} {ec.last_name}
+                                </p>
+                                <p className="text-xs text-gray-500 truncate">{ec.job_title}</p>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <div className="text-right">
+                                  <p className="text-xs text-gray-500">{ec.current_level_title}</p>
+                                  {ec.overall_progress != null && (
+                                    <p className="text-xs text-gray-400">{ec.overall_progress}% progression</p>
+                                  )}
+                                </div>
+                                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${elig.color}`}>
+                                  {elig.label}
+                                </span>
+                                {canEdit && (
+                                  <button
+                                    onClick={async () => {
+                                      if (confirm(`Retirer ${ec.first_name} ${ec.last_name} de ce parcours ?`)) {
+                                        await unassignCareer(ec.employee_id, selectedPath.id);
+                                        loadEmployeeCareers(selectedPath.id);
+                                      }
+                                    }}
+                                    className="p-1.5 text-gray-400 hover:text-red-500 rounded"
+                                    title="Retirer du parcours"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            {ec.overall_progress != null && (
+                              <div className="mt-3">
+                                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-primary-500 rounded-full transition-all"
+                                    style={{ width: `${ec.overall_progress}%` }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
@@ -302,6 +426,19 @@ export default function PathsPage() {
             existingCount={selectedPath.levels?.length || 0}
             onClose={() => setShowAddLevel(false)}
             onAdd={createLevel}
+          />
+        )}
+
+        {/* Assign Employee Modal */}
+        {showAssign && selectedPath && (
+          <AssignEmployeeModal
+            path={selectedPath}
+            onClose={() => setShowAssign(false)}
+            onAssign={async (employeeId, levelId) => {
+              await assignEmployee(employeeId, selectedPath.id, levelId);
+              await loadEmployeeCareers(selectedPath.id);
+              setShowAssign(false);
+            }}
           />
         )}
       </main>
@@ -348,6 +485,151 @@ function CreatePathModal({ onClose, onCreate }: { onClose: () => void; onCreate:
           <button onClick={handleSubmit} disabled={saving || !name.trim()}
             className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
             {saving ? 'Création...' : 'Créer'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AssignEmployeeModal({ path, onClose, onAssign }: {
+  path: any;
+  onClose: () => void;
+  onAssign: (employeeId: number, levelId: number) => Promise<void>;
+}) {
+  const [search, setSearch] = useState('');
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [filtered, setFiltered] = useState<any[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedLevelId, setSelectedLevelId] = useState<number>(
+    path.levels?.find((l: CareerLevel) => l.is_entry_level)?.id || path.levels?.[0]?.id || 0
+  );
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    apiFetch('/api/employees/?page_size=200')
+      .then(data => {
+        const list = data.items || data.employees || [];
+        setEmployees(list);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (!search.trim()) { setFiltered([]); return; }
+    const q = search.toLowerCase();
+    setFiltered(
+      employees
+        .filter(e => `${e.first_name} ${e.last_name} ${e.job_title || ''}`.toLowerCase().includes(q))
+        .slice(0, 8)
+    );
+  }, [search, employees]);
+
+  const handleSubmit = async () => {
+    if (!selectedEmployee || !selectedLevelId) return;
+    setSaving(true);
+    try { await onAssign(selectedEmployee.id, selectedLevelId); }
+    catch { setSaving(false); }
+  };
+
+  const levels: CareerLevel[] = path.levels || [];
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Assigner un Employé</h3>
+          <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+        </div>
+
+        <div className="space-y-4">
+          {/* Employee search */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Employé</label>
+            {selectedEmployee ? (
+              <div className="flex items-center gap-2 px-3 py-2 border border-primary-300 bg-primary-50 rounded-lg">
+                <div className="w-7 h-7 rounded-full bg-primary-200 flex items-center justify-center text-primary-700 text-xs font-semibold flex-shrink-0">
+                  {`${(selectedEmployee.first_name || '')[0] || ''}${(selectedEmployee.last_name || '')[0] || ''}`.toUpperCase()}
+                </div>
+                <span className="text-sm font-medium text-gray-900 flex-1">
+                  {selectedEmployee.first_name} {selectedEmployee.last_name}
+                </span>
+                <button onClick={() => { setSelectedEmployee(null); setSearch(''); }}
+                  className="text-gray-400 hover:text-red-500">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <input
+                  value={search}
+                  onChange={e => { setSearch(e.target.value); setShowDropdown(true); }}
+                  onFocus={() => setShowDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+                  placeholder={loading ? 'Chargement...' : 'Rechercher un employé...'}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+                {showDropdown && filtered.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {filtered.map(emp => (
+                      <button
+                        key={emp.id}
+                        type="button"
+                        onMouseDown={() => { setSelectedEmployee(emp); setSearch(''); setShowDropdown(false); }}
+                        className="w-full text-left px-3 py-2 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xs font-semibold flex-shrink-0">
+                          {`${(emp.first_name || '')[0] || ''}${(emp.last_name || '')[0] || ''}`.toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{emp.first_name} {emp.last_name}</p>
+                          {emp.job_title && <p className="text-xs text-gray-500">{emp.job_title}</p>}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {showDropdown && search.trim() && filtered.length === 0 && !loading && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-sm text-gray-400 text-center">
+                    Aucun employé trouvé
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Level selector */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Niveau d'entrée</label>
+            <select
+              value={selectedLevelId}
+              onChange={e => setSelectedLevelId(Number(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+            >
+              {levels.map((lv: CareerLevel) => (
+                <option key={lv.id} value={lv.id}>
+                  {lv.level_order}. {lv.title}{lv.is_entry_level ? ' (entrée)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button onClick={onClose}
+            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">
+            Annuler
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving || !selectedEmployee || !selectedLevelId}
+            className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50"
+          >
+            {saving ? 'Assignation...' : 'Assigner'}
           </button>
         </div>
       </div>

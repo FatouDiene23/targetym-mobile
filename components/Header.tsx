@@ -178,6 +178,7 @@ const HIDDEN_ADD_ROUTES = [
   '/dashboard/analytics',
   '/dashboard/settings',
   '/dashboard/learning',
+  '/dashboard/talents',
 ];
 
 // ============================================

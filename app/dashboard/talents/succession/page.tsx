@@ -11,7 +11,7 @@ import { Crown, Plus, Eye, Edit, Trash2, UserPlus, ChevronDown, ChevronUp, X } f
 import { useTalents } from '../TalentsContext';
 import {
   SuccessionPlan, CRITICALITY_LABELS, RISK_LABELS, READINESS_LABELS,
-  getInitials, isRH, isManager
+  getInitials, isRH, isManager, apiFetch
 } from '../shared';
 
 export default function SuccessionPage() {
@@ -218,17 +218,29 @@ export default function SuccessionPage() {
 
 function CreatePlanModal({ onClose, onCreate }: { onClose: () => void; onCreate: (data: any) => Promise<void> }) {
   const [form, setForm] = useState({
-    position_title: '', department: '', criticality: 'medium', vacancy_risk: 'low', notes: ''
+    position_title: '', department: '', criticality: 'medium', vacancy_risk: 'low', notes: '', current_holder_id: null as number | null
   });
   const [saving, setSaving] = useState(false);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [searchEmp, setSearchEmp] = useState('');
+
+  useEffect(() => {
+    apiFetch('/api/employees').then(data => {
+      const list = Array.isArray(data) ? data : data.employees || [];
+      setEmployees(list);
+    }).catch(() => {});
+  }, []);
+
+  const filteredEmployees = employees.filter(e =>
+    `${e.first_name} ${e.last_name}`.toLowerCase().includes(searchEmp.toLowerCase())
+  );
+
+  const selectedHolder = employees.find(e => e.id === form.current_holder_id);
 
   const handleSubmit = async () => {
     if (!form.position_title.trim()) return;
     setSaving(true);
-    try {
-      await onCreate(form);
-      onClose();
-    } catch { setSaving(false); }
+    try { await onCreate(form); onClose(); } catch { setSaving(false); }
   };
 
   return (
@@ -248,6 +260,40 @@ function CreatePlanModal({ onClose, onCreate }: { onClose: () => void; onCreate:
             <label className="block text-sm font-medium text-gray-700 mb-1">Département</label>
             <input value={form.department} onChange={e => setForm({ ...form, department: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Titulaire Actuel <span className="text-gray-400">(optionnel)</span></label>
+            {selectedHolder ? (
+              <div className="flex items-center justify-between px-3 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                <span className="text-sm text-gray-900">{selectedHolder.first_name} {selectedHolder.last_name} — {selectedHolder.job_title || ''}</span>
+                <button onClick={() => setForm({ ...form, current_holder_id: null })} className="text-gray-400 hover:text-red-500">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <input
+                  value={searchEmp}
+                  onChange={e => setSearchEmp(e.target.value)}
+                  placeholder="Rechercher un employé..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+                {searchEmp && filteredEmployees.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                    {filteredEmployees.slice(0, 8).map(emp => (
+                      <button
+                        key={emp.id}
+                        onClick={() => { setForm({ ...form, current_holder_id: emp.id }); setSearchEmp(''); }}
+                        className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm flex justify-between"
+                      >
+                        <span className="font-medium text-gray-900">{emp.first_name} {emp.last_name}</span>
+                        <span className="text-gray-400 text-xs">{emp.job_title}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

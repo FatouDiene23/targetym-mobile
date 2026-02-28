@@ -12,7 +12,7 @@ import {
   TrendingUp, BookOpen, Heart, ArrowUpRight, Users, AlertCircle
 } from 'lucide-react';
 import { useTalents } from '../TalentsContext';
-import { getInitials, ELIGIBILITY_LABELS, formatDate } from '../shared';
+import { getInitials, ELIGIBILITY_LABELS, formatDate, isRH, getUserEmployeeId } from '../shared';
 
 export default function TeamCareerPage() {
   const {
@@ -29,7 +29,16 @@ export default function TeamCareerPage() {
   const [syncing, setSyncing] = useState<number | null>(null);
   const [promoting, setPromoting] = useState<number | null>(null);
 
-  useEffect(() => { loadEmployeeCareers(); }, []);
+  useEffect(() => {
+    // Managers: filter to their direct reports (N-1) via manager_id
+    // RH/Admin: show all employees in the tenant
+    if (!isRH()) {
+      const empId = getUserEmployeeId();
+      loadEmployeeCareers(undefined, undefined, undefined, empId || undefined);
+    } else {
+      loadEmployeeCareers();
+    }
+  }, []);
 
   const filtered = employeeCareers.filter(ec => {
     const matchSearch = !search || `${ec.first_name} ${ec.last_name} ${ec.path_name} ${ec.current_level_title}`

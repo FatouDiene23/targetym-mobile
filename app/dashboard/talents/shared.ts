@@ -322,6 +322,18 @@ export function isManager(): boolean {
   return ['rh', 'admin', 'directeur', 'manager'].includes(role);
 }
 
+export function getUserEmployeeId(): number | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return null;
+    const user = JSON.parse(userStr);
+    return user.employee_id || null;
+  } catch {
+    return null;
+  }
+}
+
 export function getUserDepartment(): string | null {
   if (typeof window === 'undefined') return null;
   try {

@@ -60,7 +60,7 @@ interface TalentsContextType {
 
   // Employee Careers
   employeeCareers: EmployeeCareer[];
-  loadEmployeeCareers: (pathId?: number, eligibility?: string, search?: string) => Promise<void>;
+  loadEmployeeCareers: (pathId?: number, eligibility?: string, search?: string, managerId?: number) => Promise<void>;
   assignEmployee: (employeeId: number, pathId: number, levelId: number) => Promise<void>;
   assignBulk: (employeeIds: number[], pathId: number, levelId: number) => Promise<void>;
   loadEmployeeCareerDetail: (employeeId: number) => Promise<any>;
@@ -278,12 +278,13 @@ export function TalentsProvider({ children }: { children: React.ReactNode }) {
   // EMPLOYEE CAREERS
   // ============================================
 
-  const loadEmployeeCareers = useCallback(async (pathId?: number, eligibility?: string, search?: string) => {
+  const loadEmployeeCareers = useCallback(async (pathId?: number, eligibility?: string, search?: string, managerId?: number) => {
     try {
       const params = new URLSearchParams();
       if (pathId) params.set('path_id', String(pathId));
       if (eligibility) params.set('eligibility', eligibility);
       if (search) params.set('search', search);
+      if (managerId) params.set('manager_id', String(managerId));
       const data = await apiFetch(`/api/careers/employees/all?${params}`);
       setEmployeeCareers(data);
     } catch (e: any) { setError(e.message); }

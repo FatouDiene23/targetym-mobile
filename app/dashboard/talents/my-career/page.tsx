@@ -1,6 +1,6 @@
 // ============================================
 // app/dashboard/talents/my-career/page.tsx
-// Vue employé — Ma Carrière de Carrière
+// Vue employé — Ma Carrière
 // ============================================
 
 'use client';

@@ -34,6 +34,9 @@ import {
   Award,
   MessageSquarePlus,
   ClipboardCheck,
+  Crown,
+  Layers,
+  ArrowUpRight,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -184,6 +187,15 @@ const learningNavigation: NavItem[] = [
   { name: 'Analytics', href: '/dashboard/learning/analytics', icon: BarChart3, roles: ['rh', 'admin', 'dg'] },
 ];
 
+// Sous-menu Talents & Carrière
+const talentsNavigation: NavItem[] = [
+  { name: 'Dashboard',     href: '/dashboard/talents',            icon: BarChart3,    roles: ['rh', 'admin', 'dg', 'manager'] },
+  { name: 'Matrice 9-Box', href: '/dashboard/talents/ninebox',   icon: Target,       roles: ['rh', 'admin', 'dg', 'manager'] },
+  { name: 'Succession',    href: '/dashboard/talents/succession', icon: Crown,        roles: ['rh', 'admin', 'dg', 'manager'] },
+  { name: 'Parcours',      href: '/dashboard/talents/paths',      icon: Layers,       roles: ['rh', 'admin', 'dg'] },
+  { name: 'Promotions',    href: '/dashboard/talents/promotions', icon: ArrowUpRight, roles: ['rh', 'admin', 'dg', 'manager'] },
+];
+
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
@@ -214,12 +226,14 @@ function SidebarInner() {
   const [inMySpace, setInMySpace] = useState(false);
   const [inPerformance, setInPerformance] = useState(false);
   const [inLearning, setInLearning] = useState(false);
+  const [inTalents, setInTalents] = useState(false);
   const [isManager, setIsManager] = useState(false);
 
   useEffect(() => {
     setInMySpace(pathname.startsWith('/dashboard/my-space'));
     setInPerformance(pathname.startsWith('/dashboard/performance'));
     setInLearning(pathname.startsWith('/dashboard/learning'));
+    setInTalents(pathname.startsWith('/dashboard/talents'));
   }, [pathname]);
 
   useEffect(() => {
@@ -250,6 +264,7 @@ function SidebarInner() {
   const filteredMySpaceNav = mySpaceNavigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredPerformanceNav = performanceNavigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredLearningNav = learningNavigation.filter(item => hasAccess(item, userRole, isManager));
+  const filteredTalentsNav = talentsNavigation.filter(item => hasAccess(item, userRole, isManager));
 
   const NavItemComponent = ({ item, isCollapsed, showTooltip = false }: { item: NavItem; isCollapsed: boolean; showTooltip?: boolean }) => {
     const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
@@ -296,7 +311,7 @@ function SidebarInner() {
   // ============================================
   // ICON SIDEBAR (shared by sub-menu modes)
   // ============================================
-  const IconSidebar = ({ activeModule }: { activeModule: 'my-space' | 'performance' | 'learning' }) => (
+  const IconSidebar = ({ activeModule }: { activeModule: 'my-space' | 'performance' | 'learning' | 'talents' }) => (
     <aside className="w-20 bg-dark h-screen flex flex-col border-r border-gray-700 overflow-hidden">
       <div className="h-16 flex items-center justify-center border-b border-gray-700 flex-shrink-0">
         <Link href="/dashboard">
@@ -322,7 +337,7 @@ function SidebarInner() {
             );
           }
           // Determine active module href path
-          const modulePath = activeModule === 'my-space' ? '/dashboard/my-space' : activeModule === 'performance' ? '/dashboard/performance' : '/dashboard/learning';
+          const modulePath = activeModule === 'my-space' ? '/dashboard/my-space' : activeModule === 'performance' ? '/dashboard/performance' : activeModule === 'talents' ? '/dashboard/talents' : '/dashboard/learning';
           const isModuleItem = item.href === modulePath;
           const isActive = isModuleItem 
             ? true 
@@ -500,6 +515,51 @@ function SidebarInner() {
           <div className="p-4 border-t border-gray-700 flex-shrink-0">
             <Link 
               href="/dashboard" 
+              className="flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Retour au menu
+            </Link>
+          </div>
+        </aside>
+      </div>
+    );
+  }
+
+  // ============================================
+  // MODE TALENTS & CARRIÈRE
+  // ============================================
+  if (inTalents) {
+    return (
+      <div className="flex h-screen sticky top-0">
+        <IconSidebar activeModule="talents" />
+        <aside className="w-56 bg-gray-900 h-screen flex flex-col overflow-hidden">
+          <div className="h-16 flex items-center px-4 border-b border-gray-700 flex-shrink-0">
+            <Star className="w-5 h-5 text-primary-400 mr-3" />
+            <span className="font-semibold text-white">Talents & Carrière</span>
+          </div>
+          <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
+            {filteredTalentsNav.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-primary-500/20 text-primary-400 border-l-2 border-primary-500'
+                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5 mr-3" />
+                  <span className="text-sm font-medium">{item.name}</span>
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="p-4 border-t border-gray-700 flex-shrink-0">
+            <Link
+              href="/dashboard"
               className="flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
             >
               <ChevronLeft className="w-4 h-4 mr-2" />

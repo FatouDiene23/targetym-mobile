@@ -3,7 +3,7 @@
 // File: app/dashboard/learning/shared.ts
 // ============================================
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app';
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app').replace(/^http:\/\//, 'https://');
 
 // ============================================
 // TYPES

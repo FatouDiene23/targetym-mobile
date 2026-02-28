@@ -122,7 +122,7 @@ export default function PathsPage() {
                           }`}>
                             {lv.title}
                           </div>
-                          {i < selectedPath.levels.length - 1 && (
+                          {i < (selectedPath.levels?.length ?? 0) - 1 && (
                             <ChevronRight className="w-4 h-4 text-gray-400 mx-1 flex-shrink-0" />
                           )}
                         </div>

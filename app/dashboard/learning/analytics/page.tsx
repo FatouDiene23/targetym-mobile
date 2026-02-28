@@ -1,13 +1,34 @@
 'use client';
 
 import { useLearning } from '../LearningContext';
-import { BarChart3, TrendingUp, Users } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
 export default function AnalyticsPage() {
   const { stats, monthlyStats, categoryStats, topLearners } = useLearning();
 
   return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Tableau de Bord Analytique</h2>
+          <p className="text-sm text-gray-500">Suivi des formations et performances</p>
+        </div>
+        <div className="flex gap-3">
+          <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
+            <p className="text-lg font-bold text-primary-600">{stats?.completed_this_month ?? 0}</p>
+            <p className="text-xs text-gray-500">Ce mois</p>
+          </div>
+          <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
+            <p className="text-lg font-bold text-blue-600">{stats?.hours_this_month ?? 0}h</p>
+            <p className="text-xs text-gray-500">Heures</p>
+          </div>
+          <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
+            <p className="text-lg font-bold text-green-600">{stats?.completion_rate ?? 0}%</p>
+            <p className="text-xs text-gray-500">Taux global</p>
+          </div>
+        </div>
+      </div>
           <div className="grid lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <h3 className="font-semibold text-gray-900 mb-4">Formations Complétées par Mois</h3>
@@ -47,6 +68,7 @@ export default function AnalyticsPage() {
               </div>
             </div>
           </div>
+    </div>
 
   );
 }

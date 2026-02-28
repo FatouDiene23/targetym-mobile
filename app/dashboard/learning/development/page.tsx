@@ -14,12 +14,26 @@ export default function DevelopmentPage() {
 
   return (
           <div className="space-y-6">
-            <div className="flex justify-end">
-              {hasPermission(userRole, 'create_plan') && (
-                <button onClick={() => setShowCreatePlan(true)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
-                  <Plus className="w-4 h-4 mr-2" />Créer un Plan
-                </button>
-              )}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Plans de Développement</h2>
+                <p className="text-sm text-gray-500">Suivi des plans de montée en compétences</p>
+              </div>
+              <div className="flex gap-3">
+                <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
+                  <p className="text-lg font-bold text-primary-600">{visiblePlans.filter(p => !p.status || p.status === 'active').length}</p>
+                  <p className="text-xs text-gray-500">Actifs</p>
+                </div>
+                <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
+                  <p className="text-lg font-bold text-gray-600">{visiblePlans.length}</p>
+                  <p className="text-xs text-gray-500">Total</p>
+                </div>
+                {hasPermission(userRole, 'create_plan') && (
+                  <button onClick={() => setShowCreatePlan(true)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
+                    <Plus className="w-4 h-4 mr-2" />Créer un Plan
+                  </button>
+                )}
+              </div>
             </div>
             {getVisiblePlans().length === 0 ? (
               <div className="bg-white rounded-xl p-12 text-center">

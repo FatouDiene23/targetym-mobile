@@ -9,6 +9,24 @@ export default function RequestsPage() {
 
   return (
           <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Demandes de Formation</h2>
+                <p className="text-sm text-gray-500">Demandes soumises par les collaborateurs</p>
+              </div>
+              <div className="flex gap-3">
+                <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
+                  <p className="text-lg font-bold text-gray-700">{courseRequests.length}</p>
+                  <p className="text-xs text-gray-500">Total</p>
+                </div>
+                {courseRequests.filter(r => r.status === 'pending').length > 0 && (
+                  <div className="bg-amber-50 rounded-xl px-4 py-2.5 border border-amber-200 text-center">
+                    <p className="text-lg font-bold text-amber-600">{courseRequests.filter(r => r.status === 'pending').length}</p>
+                    <p className="text-xs text-amber-600">En attente</p>
+                  </div>
+                )}
+              </div>
+            </div>
             {courseRequests.length === 0 ? (
               <div className="bg-white rounded-xl p-12 text-center">
                 <MessageSquarePlus className="w-12 h-12 text-gray-300 mx-auto mb-4" />

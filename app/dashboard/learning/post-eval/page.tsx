@@ -16,6 +16,13 @@ export default function PostEvalPage() {
 
   return (
           <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Évaluations Post-Formation</h2>
+                <p className="text-sm text-gray-500">Suivi de l'efficacité des formations</p>
+              </div>
+            </div>
             {/* Stats EPF */}
             {epfStats && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

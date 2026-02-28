@@ -9,12 +9,28 @@ export default function CertificationsPage() {
 
   return (
           <div className="space-y-6">
-            <div className="flex justify-end">
-              {hasPermission(userRole, 'create_certification') && (
-                <button onClick={() => setShowCreateCertification(true)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
-                  <Plus className="w-4 h-4 mr-2" />Ajouter Certification
-                </button>
-              )}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Certifications</h2>
+                <p className="text-sm text-gray-500">Certifications et habilitations de l'équipe</p>
+              </div>
+              <div className="flex gap-3">
+                <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
+                  <p className="text-lg font-bold text-primary-600">{certifications.length}</p>
+                  <p className="text-xs text-gray-500">Certifications</p>
+                </div>
+                {(stats?.expiring_certifications ?? 0) > 0 && (
+                  <div className="bg-orange-50 rounded-xl px-4 py-2.5 border border-orange-200 text-center">
+                    <p className="text-lg font-bold text-orange-600">{stats!.expiring_certifications}</p>
+                    <p className="text-xs text-orange-600">Expirent bientôt</p>
+                  </div>
+                )}
+                {hasPermission(userRole, 'create_certification') && (
+                  <button onClick={() => setShowCreateCertification(true)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
+                    <Plus className="w-4 h-4 mr-2" />Ajouter Certification
+                  </button>
+                )}
+              </div>
             </div>
             {stats?.expiring_certifications && stats.expiring_certifications > 0 && (
               <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center gap-3">

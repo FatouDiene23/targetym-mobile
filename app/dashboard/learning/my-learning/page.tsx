@@ -55,6 +55,28 @@ export default function MyLearningPage() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Mon Apprentissage</h2>
+          <p className="text-sm text-gray-500">Mes formations assignées et leur avancement</p>
+        </div>
+        <div className="flex gap-3">
+          <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
+            <p className="text-lg font-bold text-blue-600">{inProgress.length + assigned.length}</p>
+            <p className="text-xs text-gray-500">En cours</p>
+          </div>
+          <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
+            <p className="text-lg font-bold text-green-600">{completed.length}</p>
+            <p className="text-xs text-gray-500">Terminées</p>
+          </div>
+          {pendingValidation.length > 0 && (
+            <div className="bg-amber-50 rounded-xl px-4 py-2.5 border border-amber-200 text-center">
+              <p className="text-lg font-bold text-amber-600">{pendingValidation.length}</p>
+              <p className="text-xs text-amber-600">En attente</p>
+            </div>
+          )}
+        </div>
+      </div>
       {pendingValidation.length > 0 && (
         <div><h3 className="text-sm font-semibold text-orange-700 mb-3 flex items-center gap-2"><Clock className="w-4 h-4" />En attente de validation ({pendingValidation.length})</h3><div className="space-y-3">{pendingValidation.map(renderAssignment)}</div></div>
       )}

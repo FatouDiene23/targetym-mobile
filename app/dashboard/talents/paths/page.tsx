@@ -30,6 +30,9 @@ export default function PathsPage() {
   const [showAddLevel, setShowAddLevel] = useState(false);
   const [showAssign, setShowAssign] = useState(false);
   const [activeTab, setActiveTab] = useState<'levels' | 'employees'>('levels');
+  const [addCompForLevel, setAddCompForLevel] = useState<number | null>(null);
+  const [addAttForLevel, setAddAttForLevel] = useState<number | null>(null);
+  const [addFactorForLevel, setAddFactorForLevel] = useState<number | null>(null);
   const canEdit = isRH();
 
   useEffect(() => { loadPaths(); loadAttitudes(); }, [loadPaths, loadAttitudes]);
@@ -208,6 +211,12 @@ export default function PathsPage() {
                               <h5 className="text-xs font-semibold text-gray-600 uppercase flex items-center gap-1">
                                 <GraduationCap className="w-3 h-3" /> Compétences
                               </h5>
+                              {canEdit && (
+                                <button onClick={() => setAddCompForLevel(level.id)}
+                                  className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800 font-medium">
+                                  <Plus className="w-3 h-3" />Ajouter
+                                </button>
+                              )}
                             </div>
                             {level.competencies && level.competencies.length > 0 ? (
                               <div className="space-y-2">
@@ -249,9 +258,17 @@ export default function PathsPage() {
 
                           {/* Attitudes requises */}
                           <div>
-                            <h5 className="text-xs font-semibold text-gray-600 uppercase flex items-center gap-1 mb-2">
-                              <Award className="w-3 h-3" /> Attitudes requises
-                            </h5>
+                            <div className="flex justify-between items-center mb-2">
+                              <h5 className="text-xs font-semibold text-gray-600 uppercase flex items-center gap-1">
+                                <Award className="w-3 h-3" /> Attitudes requises
+                              </h5>
+                              {canEdit && (
+                                <button onClick={() => setAddAttForLevel(level.id)}
+                                  className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800 font-medium">
+                                  <Plus className="w-3 h-3" />Configurer
+                                </button>
+                              )}
+                            </div>
                             {level.required_attitudes && level.required_attitudes.length > 0 ? (
                               <div className="flex flex-wrap gap-2">
                                 {level.required_attitudes.map(att => (
@@ -267,9 +284,17 @@ export default function PathsPage() {
 
                           {/* Facteurs de promotion */}
                           <div>
-                            <h5 className="text-xs font-semibold text-gray-600 uppercase flex items-center gap-1 mb-2">
-                              <Target className="w-3 h-3" /> Facteurs de promotion
-                            </h5>
+                            <div className="flex justify-between items-center mb-2">
+                              <h5 className="text-xs font-semibold text-gray-600 uppercase flex items-center gap-1">
+                                <Target className="w-3 h-3" /> Facteurs de promotion
+                              </h5>
+                              {canEdit && (
+                                <button onClick={() => setAddFactorForLevel(level.id)}
+                                  className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800 font-medium">
+                                  <Plus className="w-3 h-3" />Ajouter
+                                </button>
+                              )}
+                            </div>
                             {level.promotion_factors && level.promotion_factors.length > 0 ? (
                               <div className="space-y-1">
                                 {level.promotion_factors.map(f => (
@@ -426,6 +451,44 @@ export default function PathsPage() {
             existingCount={selectedPath.levels?.length || 0}
             onClose={() => setShowAddLevel(false)}
             onAdd={createLevel}
+          />
+        )}
+
+        {/* Add Competency Modal */}
+        {addCompForLevel !== null && (
+          <AddCompetencyModal
+            levelId={addCompForLevel}
+            onClose={() => setAddCompForLevel(null)}
+            onAdd={async (data) => {
+              await createCompetency(addCompForLevel, data);
+              setAddCompForLevel(null);
+            }}
+          />
+        )}
+
+        {/* Link Attitudes Modal */}
+        {addAttForLevel !== null && selectedPath && (
+          <LinkAttitudesModal
+            levelId={addAttForLevel}
+            currentAttitudes={selectedPath.levels?.find((l: CareerLevel) => l.id === addAttForLevel)?.required_attitudes || []}
+            availableAttitudes={attitudes}
+            onClose={() => setAddAttForLevel(null)}
+            onSave={async (attitudeIds, threshold) => {
+              await linkAttitudes(addAttForLevel, attitudeIds, threshold);
+              setAddAttForLevel(null);
+            }}
+          />
+        )}
+
+        {/* Add Factor Modal */}
+        {addFactorForLevel !== null && (
+          <AddFactorModal
+            levelId={addFactorForLevel}
+            onClose={() => setAddFactorForLevel(null)}
+            onAdd={async (data) => {
+              await createFactor(addFactorForLevel, data);
+              setAddFactorForLevel(null);
+            }}
           />
         )}
 
@@ -689,6 +752,262 @@ function AddLevelModal({ pathId, existingCount, onClose, onAdd }: {
         <div className="flex gap-3 mt-6">
           <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">Annuler</button>
           <button onClick={handleSubmit} disabled={saving || !title.trim()}
+            className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
+            {saving ? 'Ajout...' : 'Ajouter'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// AddCompetencyModal
+// ============================================
+
+function AddCompetencyModal({ levelId, onClose, onAdd }: {
+  levelId: number;
+  onClose: () => void;
+  onAdd: (data: any) => Promise<void>;
+}) {
+  const [name, setName] = useState('');
+  const [desc, setDesc] = useState('');
+  const [perfThreshold, setPerfThreshold] = useState(75);
+  const [attThreshold, setAttThreshold] = useState(75);
+  const [isMandatory, setIsMandatory] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      await onAdd({
+        competency_name: name,
+        description: desc || null,
+        performance_threshold: perfThreshold,
+        attitude_threshold: attThreshold,
+        is_mandatory: isMandatory,
+      });
+    } catch { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Ajouter une Compétence</h3>
+          <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nom de la compétence *</label>
+            <input value={name} onChange={e => setName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              placeholder="Ex: Maîtrise des outils de gestion de projet" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea value={desc} onChange={e => setDesc(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" rows={2}
+              placeholder="Description de la compétence attendue..." />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Seuil Performance <span className="text-primary-600 font-bold">{perfThreshold}%</span>
+              </label>
+              <input type="range" min={0} max={100} step={5} value={perfThreshold}
+                onChange={e => setPerfThreshold(Number(e.target.value))}
+                className="w-full accent-primary-500" />
+              <div className="flex justify-between text-xs text-gray-400 mt-1"><span>0%</span><span>100%</span></div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Seuil Attitude <span className="text-purple-600 font-bold">{attThreshold}%</span>
+              </label>
+              <input type="range" min={0} max={100} step={5} value={attThreshold}
+                onChange={e => setAttThreshold(Number(e.target.value))}
+                className="w-full accent-purple-500" />
+              <div className="flex justify-between text-xs text-gray-400 mt-1"><span>0%</span><span>100%</span></div>
+            </div>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={isMandatory} onChange={e => setIsMandatory(e.target.checked)}
+              className="rounded border-gray-300 text-primary-500" />
+            <span className="text-sm text-gray-700">Compétence obligatoire</span>
+            <span className="text-xs text-gray-400">(bloque la promotion si non validée)</span>
+          </label>
+        </div>
+        <div className="flex gap-3 mt-6">
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">Annuler</button>
+          <button onClick={handleSubmit} disabled={saving || !name.trim()}
+            className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
+            {saving ? 'Ajout...' : 'Ajouter'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// LinkAttitudesModal
+// ============================================
+
+function LinkAttitudesModal({ levelId, currentAttitudes, availableAttitudes, onClose, onSave }: {
+  levelId: number;
+  currentAttitudes: any[];
+  availableAttitudes: any[];
+  onClose: () => void;
+  onSave: (attitudeIds: number[], threshold: number) => Promise<void>;
+}) {
+  const [selected, setSelected] = useState<number[]>(currentAttitudes.map(a => a.attitude_id));
+  const [threshold, setThreshold] = useState(95);
+  const [saving, setSaving] = useState(false);
+
+  const toggle = (id: number) =>
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try { await onSave(selected, threshold); }
+    catch { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-xl p-6 w-full max-w-lg" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Configurer les Attitudes</h3>
+          <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Seuil minimum requis : <span className="text-purple-600 font-bold">{threshold}%</span>
+          </label>
+          <input type="range" min={50} max={100} step={5} value={threshold}
+            onChange={e => setThreshold(Number(e.target.value))}
+            className="w-full accent-purple-500" />
+          <div className="flex justify-between text-xs text-gray-400 mt-1"><span>50%</span><span>100%</span></div>
+        </div>
+
+        <p className="text-xs text-gray-500 mb-3">Sélectionnez les attitudes requises pour ce niveau :</p>
+
+        {availableAttitudes.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-4">Aucune attitude disponible. Configurez-les dans les paramètres.</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+            {availableAttitudes.map(att => (
+              <label key={att.id} className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                selected.includes(att.id) ? 'border-purple-400 bg-purple-50' : 'border-gray-200 hover:border-gray-300'
+              }`}>
+                <input type="checkbox" checked={selected.includes(att.id)} onChange={() => toggle(att.id)}
+                  className="rounded border-gray-300 text-purple-500" />
+                <span className="text-lg">{att.icon || '🎯'}</span>
+                <span className="text-sm text-gray-800 font-medium">{att.name}</span>
+              </label>
+            ))}
+          </div>
+        )}
+
+        <p className="text-xs text-gray-400 mt-3">
+          {selected.length} attitude{selected.length !== 1 ? 's' : ''} sélectionnée{selected.length !== 1 ? 's' : ''}
+        </p>
+
+        <div className="flex gap-3 mt-4">
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">Annuler</button>
+          <button onClick={handleSave} disabled={saving}
+            className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50">
+            {saving ? 'Sauvegarde...' : 'Enregistrer'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// AddFactorModal
+// ============================================
+
+function AddFactorModal({ levelId, onClose, onAdd }: {
+  levelId: number;
+  onClose: () => void;
+  onAdd: (data: any) => Promise<void>;
+}) {
+  const [name, setName] = useState('');
+  const [factorType, setFactorType] = useState<'auto' | 'committee' | 'n_plus_1'>('auto');
+  const [thresholdValue, setThresholdValue] = useState('');
+  const [isBlocking, setIsBlocking] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const FACTOR_TYPES = [
+    { value: 'auto', label: 'Automatique', desc: 'Validé automatiquement par le système' },
+    { value: 'committee', label: 'Comité RH', desc: 'Requiert l\'approbation du comité' },
+    { value: 'n_plus_1', label: 'Manager N+1', desc: 'Validé par le manager direct' },
+  ];
+
+  const handleSubmit = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      await onAdd({
+        factor_name: name,
+        factor_type: factorType,
+        threshold_value: thresholdValue || null,
+        is_blocking: isBlocking,
+      });
+    } catch { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Ajouter un Facteur de Promotion</h3>
+          <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nom du facteur *</label>
+            <input value={name} onChange={e => setName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              placeholder="Ex: Ancienneté ≥ 12 mois, Évaluation ≥ 4/5..." />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Type de validation</label>
+            <div className="space-y-2">
+              {FACTOR_TYPES.map(ft => (
+                <label key={ft.value} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  factorType === ft.value ? 'border-primary-400 bg-primary-50' : 'border-gray-200 hover:border-gray-300'
+                }`}>
+                  <input type="radio" name="factorType" value={ft.value} checked={factorType === ft.value}
+                    onChange={() => setFactorType(ft.value as any)} className="mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{ft.label}</p>
+                    <p className="text-xs text-gray-500">{ft.desc}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Seuil / Valeur (optionnel)</label>
+            <input value={thresholdValue} onChange={e => setThresholdValue(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              placeholder="Ex: 12, 80%, Approuvé..." />
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={isBlocking} onChange={e => setIsBlocking(e.target.checked)}
+              className="rounded border-gray-300 text-red-500" />
+            <span className="text-sm text-gray-700">Facteur bloquant</span>
+            <span className="text-xs text-gray-400">(la promotion est impossible sans ce critère)</span>
+          </label>
+        </div>
+        <div className="flex gap-3 mt-6">
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">Annuler</button>
+          <button onClick={handleSubmit} disabled={saving || !name.trim()}
             className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
             {saving ? 'Ajout...' : 'Ajouter'}
           </button>

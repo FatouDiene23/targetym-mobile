@@ -1,13 +1,13 @@
 'use client';
 
 import { useLearning } from '../LearningContext';
-import { hasPermission, getPlanStatusColor } from '../shared';
-import { GraduationCap, Plus, Edit, Ban, Archive, Target, TrendingUp } from 'lucide-react';
+import { hasPermission, getPlanStatusColor, getStatusColor, getStatusLabel } from '../shared';
+import { GraduationCap, Plus, Edit, Ban, Archive, Target, TrendingUp, ArrowRight } from 'lucide-react';
 
 export default function DevelopmentPage() {
   const {
     userRole, getVisiblePlans, setShowCreatePlan, setShowCreateSkill,
-    openEditPlanModal, setPlanToCancel, setShowCancelPlan, archiveDevelopmentPlan
+    openEditPlanModal, setPlanToCancel, setShowCancelPlan, archiveDevelopmentPlan, setCancelReason
   } = useLearning();
 
   const visiblePlans = getVisiblePlans();

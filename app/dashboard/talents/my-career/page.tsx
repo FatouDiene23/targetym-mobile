@@ -10,7 +10,7 @@ import Header from '@/components/Header';
 import {
   CheckCircle2, Circle, BookOpen, TrendingUp, Heart,
   ArrowUpRight, Trophy, AlertCircle, Clock, ListChecks,
-  GraduationCap, Star, ChevronRight
+  GraduationCap, Star, ChevronRight, Timer, ExternalLink
 } from 'lucide-react';
 import { apiFetch, formatDate, ELIGIBILITY_LABELS } from '../shared';
 
@@ -117,6 +117,29 @@ export default function MyCareerPage() {
 
   const hasPendingPromotion = career.promotion_history?.some((pr: any) => pr.status === 'pending');
 
+  // DSH-03 — Délai estimé avant promotion
+  const estimatedDelay = (() => {
+    if (career.eligibility_status === 'eligible') return { label: 'Vous êtes éligible maintenant !', color: 'text-green-600', urgent: true };
+    if (!career.next_level_id) return null;
+    if (totalCount === 0) return null;
+    const remaining = totalCount - validatedCount;
+    if (remaining === 0) return { label: 'En attente de validation RH', color: 'text-blue-600', urgent: false };
+    if (validatedCount === 0 || !career.level_start_date) {
+      // Pas assez de données : estimation forfaitaire ~2 mois / compétence
+      const est = remaining * 2;
+      return { label: `Environ ${est} mois (estimation)`, color: 'text-gray-500', urgent: false };
+    }
+    const monthsOnLevel = Math.max(
+      (new Date().getTime() - new Date(career.level_start_date).getTime()) / (1000 * 60 * 60 * 24 * 30),
+      0.5
+    );
+    const rate = validatedCount / monthsOnLevel; // compétences/mois
+    const monthsLeft = Math.ceil(remaining / rate);
+    if (monthsLeft <= 1) return { label: 'Moins d\'1 mois à ce rythme', color: 'text-green-600', urgent: true };
+    if (monthsLeft <= 3) return { label: `Environ ${monthsLeft} mois à ce rythme`, color: 'text-blue-600', urgent: false };
+    return { label: `Environ ${monthsLeft} mois à ce rythme`, color: 'text-orange-500', urgent: false };
+  })();
+
   return (
     <>
       <Header title="Ma Carrière" subtitle={career.path_name} />
@@ -187,6 +210,13 @@ export default function MyCareerPage() {
               <div className="mt-4 flex items-center gap-1.5 text-xs text-gray-400">
                 <Clock className="w-3.5 h-3.5" />
                 Sur ce niveau depuis {formatDate(career.level_start_date)}
+              </div>
+            )}
+
+            {estimatedDelay && (
+              <div className={`mt-3 flex items-center gap-1.5 text-xs font-medium ${estimatedDelay.color}`}>
+                <Timer className="w-3.5 h-3.5 flex-shrink-0" />
+                {estimatedDelay.label}
               </div>
             )}
           </div>
@@ -270,9 +300,14 @@ export default function MyCareerPage() {
                         <p className="text-xs text-blue-600 font-medium mb-1">{item.compName}</p>
                         <div className="flex flex-wrap gap-1.5 ml-2">
                           {item.trainings.map((t: any) => (
-                            <span key={t.id} className="text-xs bg-white text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full">
+                            <a
+                              key={t.id}
+                              href={`/dashboard/learning?courseId=${t.id}`}
+                              className="text-xs bg-white text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full hover:bg-blue-50 flex items-center gap-1 transition-colors"
+                            >
                               {t.title}
-                            </span>
+                              <ExternalLink className="w-3 h-3 opacity-60" />
+                            </a>
                           ))}
                         </div>
                       </div>
@@ -444,9 +479,21 @@ export default function MyCareerPage() {
                         <p className="text-xs text-gray-400 mb-1.5">Formations requises :</p>
                         <div className="flex flex-wrap gap-1.5">
                           {comp.required_trainings.map((t: any) => (
-                            <span key={t.id} className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">
-                              {t.title}
-                            </span>
+                            comp.theoretical_status !== 'validated' ? (
+                              <a
+                                key={t.id}
+                                href={`/dashboard/learning?courseId=${t.id}`}
+                                className="text-xs bg-blue-50 text-blue-600 border border-blue-200 px-2.5 py-1 rounded-full hover:bg-blue-100 flex items-center gap-1 font-medium transition-colors"
+                              >
+                                <GraduationCap className="w-3 h-3" />
+                                {t.title} — S'inscrire
+                              </a>
+                            ) : (
+                              <span key={t.id} className="text-xs bg-green-50 text-green-600 border border-green-200 px-2.5 py-1 rounded-full flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" />
+                                {t.title}
+                              </span>
+                            )
                           ))}
                         </div>
                       </div>

@@ -30,13 +30,13 @@ export const employeeTourSteps: TourStep[] = [
     position: 'right',
   },
   {
-    target: '[data-tour="sidebar-leaves"]',
+    target: '[data-tour="sidebar-my-leaves"]',
     title: 'Demandes de congés',
     content: 'Consultez vos soldes de congés et soumettez vos demandes de congés rapidement.',
     position: 'right',
   },
   {
-    target: '[data-tour="sidebar-okr"]',
+    target: '[data-tour="sidebar-my-objectives"]',
     title: 'Vos objectifs (OKR)',
     content: 'Définissez et suivez vos objectifs personnels et professionnels (OKR - Objectives and Key Results).',
     position: 'right',
@@ -60,16 +60,22 @@ export const employeeTourSteps: TourStep[] = [
     position: 'right',
   },
   {
-    target: '[data-tour="user-menu"]',
-    title: 'Menu utilisateur',
-    content: 'Accédez à votre profil, vos paramètres et déconnectez-vous ici.',
+    target: '[data-tour="quick-actions"]',
+    title: 'Actions rapides',
+    content: 'Accédez rapidement aux actions fréquentes comme demander un congé ou consulter vos objectifs.',
     position: 'left',
   },
   {
     target: '[data-tour="notifications"]',
     title: 'Notifications',
     content: 'Restez informé des événements importants : validations, nouvelles tâches, messages, etc.',
-    position: 'left',
+    position: 'bottom',
+  },
+  {
+    target: '[data-tour="user-menu"]',
+    title: 'Menu utilisateur',
+    content: 'Accédez à votre profil et déconnectez-vous ici. Le tour est terminé ! 🎉',
+    position: 'top',
   },
 ];
 
@@ -103,15 +109,9 @@ export const managerTourSteps: TourStep[] = [
     position: 'right',
   },
   {
-    target: '[data-tour="sidebar-leaves"]',
+    target: '[data-tour="sidebar-my-leaves"]',
     title: 'Validation des congés',
     content: 'Approuvez ou refusez les demandes de congés de vos collaborateurs.',
-    position: 'right',
-  },
-  {
-    target: '[data-tour="sidebar-performance"]',
-    title: 'Évaluations d\'équipe',
-    content: 'Réalisez les évaluations de performance de vos collaborateurs et donnez du feedback.',
     position: 'right',
   },
   {
@@ -121,10 +121,40 @@ export const managerTourSteps: TourStep[] = [
     position: 'right',
   },
   {
+    target: '[data-tour="sidebar-performance"]',
+    title: 'Évaluations d\'équipe',
+    content: 'Réalisez les évaluations de performance de vos collaborateurs et donnez du feedback.',
+    position: 'right',
+  },
+  {
+    target: '[data-tour="sidebar-learning"]',
+    title: 'Formation de l\'équipe',
+    content: 'Assignez des formations à vos collaborateurs et suivez leur progression.',
+    position: 'right',
+  },
+  {
+    target: '[data-tour="sidebar-analytics"]',
+    title: 'Analytiques d\'équipe',
+    content: 'Analysez les performances et tendances de votre équipe.',
+    position: 'right',
+  },
+  {
     target: '[data-tour="quick-actions"]',
     title: 'Actions rapides',
     content: 'Accédez rapidement aux actions fréquentes : nouvelle tâche, validation, feedback, etc.',
+    position: 'left',
+  },
+  {
+    target: '[data-tour="notifications"]',
+    title: 'Notifications',
+    content: 'Restez informé des demandes de votre équipe et actions à valider.',
     position: 'bottom',
+  },
+  {
+    target: '[data-tour="user-menu"]',
+    title: 'Votre profil',
+    content: 'Accédez à votre espace personnel. Le tour est terminé ! 🎉',
+    position: 'top',
   },
 ];
 
@@ -146,12 +176,6 @@ export const hrTourSteps: TourStep[] = [
     position: 'right',
   },
   {
-    target: '[data-tour="sidebar-departments"]',
-    title: 'Organigramme',
-    content: 'Gérez la structure organisationnelle : départements, services et hiérarchies.',
-    position: 'right',
-  },
-  {
     target: '[data-tour="sidebar-recruitment"]',
     title: 'Recrutement',
     content: 'Gérez vos processus de recrutement : candidats, entretiens et embauches.',
@@ -167,6 +191,12 @@ export const hrTourSteps: TourStep[] = [
     target: '[data-tour="sidebar-leaves"]',
     title: 'Gestion des congés',
     content: 'Configurez les types de congés, gérez les soldes et supervisez toutes les demandes.',
+    position: 'right',
+  },
+  {
+    target: '[data-tour="sidebar-okr"]',
+    title: 'OKR & Objectifs',
+    content: 'Suivez les objectifs stratégiques et opérationnels de l\'organisation.',
     position: 'right',
   },
   {
@@ -194,10 +224,22 @@ export const hrTourSteps: TourStep[] = [
     position: 'right',
   },
   {
-    target: '[data-tour="sidebar-documents"]',
-    title: 'Documents RH',
-    content: 'Gérez tous les documents sensibles : contrats, attestations, dossiers personnels.',
-    position: 'right',
+    target: '[data-tour="quick-actions"]',
+    title: 'Actions rapides',
+    content: 'Accédez rapidement aux tâches RH quotidiennes.',
+    position: 'left',
+  },
+  {
+    target: '[data-tour="notifications"]',
+    title: 'Notifications',
+    content: 'Restez informé des demandes de congés, évaluations et alertes RH.',
+    position: 'bottom',
+  },
+  {
+    target: '[data-tour="user-menu"]',
+    title: 'Votre profil',
+    content: 'Accédez à votre espace personnel. Le tour est terminé ! 🎉',
+    position: 'top',
   },
 ];
 
@@ -219,21 +261,57 @@ export const adminTourSteps: TourStep[] = [
     position: 'right',
   },
   {
-    target: '[data-tour="sidebar-analytics"]',
-    title: 'Analytiques avancées',
-    content: 'Accédez aux rapports détaillés, prévisions et analyses stratégiques RH.',
-    position: 'right',
-  },
-  {
     target: '[data-tour="sidebar-employees"]',
     title: 'Gestion complète des employés',
     content: 'Contrôle total sur tous les employés de l\'organisation avec droits d\'administration.',
     position: 'right',
   },
   {
-    target: '[data-tour="sidebar-departments"]',
-    title: 'Structure organisationnelle',
-    content: 'Définissez et modifiez l\'organigramme complet de votre entreprise.',
+    target: '[data-tour="sidebar-recruitment"]',
+    title: 'Recrutement',
+    content: 'Gérez les offres d\'emploi, candidatures et processus de recrutement.',
+    position: 'right',
+  },
+  {
+    target: '[data-tour="sidebar-onboarding"]',
+    title: 'Onboarding',
+    content: 'Créez des parcours d\'intégration pour accueillir vos nouveaux collaborateurs.',
+    position: 'right',
+  },
+  {
+    target: '[data-tour="sidebar-leaves"]',
+    title: 'Gestion des congés',
+    content: 'Approuvez les demandes de congés et gérez les soldes de congés de vos équipes.',
+    position: 'right',
+  },
+  {
+    target: '[data-tour="sidebar-okr"]',
+    title: 'OKR & Objectifs',
+    content: 'Suivez et pilotez les objectifs stratégiques de toute l\'organisation.',
+    position: 'right',
+  },
+  {
+    target: '[data-tour="sidebar-performance"]',
+    title: 'Performance & Feedback',
+    content: 'Gérez les évaluations de performance et le feedback continu.',
+    position: 'right',
+  },
+  {
+    target: '[data-tour="sidebar-learning"]',
+    title: 'Formation & Développement',
+    content: 'Créez des parcours de formation et gérez le développement des compétences.',
+    position: 'right',
+  },
+  {
+    target: '[data-tour="sidebar-career"]',
+    title: 'Talents & Carrière',
+    content: 'Gérez les plans de succession, nine-box et parcours de carrière.',
+    position: 'right',
+  },
+  {
+    target: '[data-tour="sidebar-analytics"]',
+    title: 'People Analytics',
+    content: 'Accédez aux rapports détaillés, prévisions et analyses stratégiques RH.',
     position: 'right',
   },
   {
@@ -243,21 +321,21 @@ export const adminTourSteps: TourStep[] = [
     position: 'right',
   },
   {
-    target: '[data-tour="sidebar-users"]',
-    title: 'Gestion des utilisateurs',
-    content: 'Gérez les comptes utilisateurs, rôles et permissions d\'accès à la plateforme.',
-    position: 'right',
+    target: '[data-tour="quick-actions"]',
+    title: 'Actions rapides',
+    content: 'Accédez rapidement aux fonctionnalités les plus utilisées.',
+    position: 'left',
   },
   {
-    target: '[data-tour="sidebar-invitations"]',
-    title: 'Invitations',
-    content: 'Invitez de nouveaux utilisateurs à rejoindre la plateforme par email.',
-    position: 'right',
+    target: '[data-tour="notifications"]',
+    title: 'Notifications',
+    content: 'Restez informé des événements importants et des actions requises.',
+    position: 'bottom',
   },
   {
-    target: '[data-tour="export-data"]',
-    title: 'Export de données',
-    content: 'Exportez toutes les données en masse pour vos analyses externes (Excel, CSV).',
+    target: '[data-tour="user-menu"]',
+    title: 'Votre profil',
+    content: 'Accédez à votre profil personnel et paramètres utilisateur. Le tour est terminé ! 🎉',
     position: 'top',
   },
 ];

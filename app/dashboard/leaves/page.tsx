@@ -6,6 +6,9 @@ import {
   Download, RefreshCw, Users, Settings, BarChart3, CalendarDays,
   ChevronLeft, ChevronRight, X, Search, Plus
 } from 'lucide-react';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { leavesTips } from '@/config/pageTips';
 
 // ============================================
 // TYPES
@@ -712,6 +715,9 @@ export default function LeavesManagementPage() {
   const [calendarLeaves, setCalendarLeaves] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Page Tour Hook
+  const { showTips, dismissTips, resetTips } = usePageTour('leaves');
+
   // Filters
   const [statusFilter, setStatusFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState<number | undefined>();
@@ -808,6 +814,14 @@ export default function LeavesManagementPage() {
 
   return (
     <div className="py-8 px-4 sm:px-6 lg:px-8">
+      {showTips && (
+        <PageTourTips
+          tips={leavesTips}
+          onDismiss={dismissTips}
+          pageTitle="Gestion des Congés"
+        />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -835,7 +849,7 @@ export default function LeavesManagementPage() {
 
         {/* Stats */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
+          <div data-tour="leaves-stats" className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
             <StatCard icon={BarChart3} value={stats.total_requests} label="Total demandes" color="bg-blue-500" />
             <StatCard icon={Clock} value={stats.pending} label="En attente" color="bg-yellow-500" />
             <StatCard icon={CheckCircle} value={stats.approved} label="Approuvées" color="bg-green-500" />
@@ -846,7 +860,7 @@ export default function LeavesManagementPage() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg w-fit">
+        <div data-tour="leaves-tabs" className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg w-fit">
           {[
             { key: 'requests', label: 'Demandes', icon: Clock },
             { key: 'calendar', label: 'Calendrier', icon: CalendarDays },
@@ -871,7 +885,7 @@ export default function LeavesManagementPage() {
         {activeTab === 'requests' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             {/* Filters */}
-            <div className="p-4 border-b border-gray-200 flex flex-wrap gap-4">
+            <div data-tour="leaves-filters" className="p-4 border-b border-gray-200 flex flex-wrap gap-4">
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input

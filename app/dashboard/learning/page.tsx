@@ -5,6 +5,9 @@ import { hasPermission, getLevelColor, getLevelLabel, categories } from './share
 import {
   BookOpen, Search, Plus, User, Users, Eye, FileWarning, MessageSquarePlus
 } from 'lucide-react';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { learningTips } from '@/config/pageTips';
 
 export default function CatalogPage() {
   const {
@@ -13,14 +16,24 @@ export default function CatalogPage() {
     setShowAssignModal, setShowRequestCourse
   } = useLearning();
 
+  const { showTips, dismissTips, resetTips } = usePageTour('learning');
+
   return (
     <div>
+      {showTips && (
+        <PageTourTips
+          tips={learningTips}
+          onDismiss={dismissTips}
+          pageTitle="Catalogue de Formations"
+        />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Catalogue de Formations</h2>
           <p className="text-sm text-gray-500">Toutes les formations disponibles</p>
         </div>
-        <div className="flex gap-3">
+        <div data-tour="learning-stats" className="flex gap-3">
           <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
             <p className="text-lg font-bold text-primary-600">{stats?.total_courses ?? 0}</p>
             <p className="text-xs text-gray-500">Formations</p>
@@ -37,7 +50,7 @@ export default function CatalogPage() {
           )}
         </div>
       </div>
-      <div className="flex flex-wrap gap-4 mb-6">
+      <div data-tour="learning-filters" className="flex flex-wrap gap-4 mb-6">
         <div className="relative flex-1 min-w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input type="text" placeholder="Rechercher une formation..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm" />
@@ -58,7 +71,11 @@ export default function CatalogPage() {
           </button>
         )}
         {hasPermission(userRole, 'request_course') && (
-          <button onClick={() => setShowRequestCourse(true)} className="flex items-center px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600">
+          <button 
+            data-tour="request-course"
+            onClick={() => setShowRequestCourse(true)} 
+            className="flex items-center px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600"
+          >
             <MessageSquarePlus className="w-4 h-4 mr-2" />Demander
           </button>
         )}

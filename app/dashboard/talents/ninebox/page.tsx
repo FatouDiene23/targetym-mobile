@@ -13,6 +13,9 @@ import {
   NineBoxEmployee, QUADRANT_LABELS, PERFORMANCE_LABELS, POTENTIAL_LABELS,
   getInitials, formatDate, isRH, getUserDepartment
 } from '../shared';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { talentsTips } from '@/config/pageTips';
 
 export default function NineBoxPage() {
   const { nineBoxData, loadNineBox } = useTalents();
@@ -20,6 +23,9 @@ export default function NineBoxPage() {
   const [selectedDept, setSelectedDept] = useState<string>('');
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const isRHUser = isRH();
+
+  // Page Tour Hook
+  const { showTips, dismissTips, resetTips } = usePageTour('talents');
 
   useEffect(() => {
     const dept = !isRHUser ? (getUserDepartment() || '') : '';
@@ -67,10 +73,18 @@ export default function NineBoxPage() {
 
   return (
     <>
+      {showTips && (
+        <PageTourTips
+          tips={talentsTips}
+          onDismiss={dismissTips}
+          pageTitle="Matrice 9-Box"
+        />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
       <Header title="Matrice 9-Box" subtitle="Performance × Potentiel" />
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
         {/* Filters */}
-        <div className="flex flex-wrap gap-3 mb-6">
+        <div data-tour="ninebox-filters" className="flex flex-wrap gap-3 mb-6">
           <select
             value={selectedPeriod}
             onChange={e => handleFilterChange(e.target.value, undefined)}
@@ -110,7 +124,7 @@ export default function NineBoxPage() {
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* 9-Box Grid */}
-          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div data-tour="ninebox-grid" className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <h3 className="font-semibold text-gray-900 mb-4">Matrice Performance × Potentiel</h3>
 
             <div className="relative">
@@ -176,7 +190,7 @@ export default function NineBoxPage() {
             </div>
 
             {/* Legend */}
-            <div className="mt-6 grid grid-cols-3 gap-4 text-xs">
+            <div data-tour="ninebox-legend" className="mt-6 grid grid-cols-3 gap-4 text-xs">
               <div className="flex items-center gap-2"><div className="w-4 h-4 bg-green-500 rounded"></div><span>Stars / Hauts Potentiels</span></div>
               <div className="flex items-center gap-2"><div className="w-4 h-4 bg-blue-500 rounded"></div><span>Performants Clés</span></div>
               <div className="flex items-center gap-2"><div className="w-4 h-4 bg-yellow-500 rounded"></div><span>À Développer</span></div>

@@ -155,6 +155,105 @@ export const performanceTips: PageTip[] = [
 ];
 
 /**
+ * Suggestions pour la page Learning
+ */
+export const learningTips: PageTip[] = [
+  {
+    id: 'browse-catalog',
+    title: 'Explorez le catalogue de formations',
+    description: 'Découvrez toutes les formations disponibles : techniques, soft skills, certifications. Filtrez par catégorie pour trouver ce qui vous intéresse.',
+    action: {
+      label: 'Voir les statistiques',
+      element: '[data-tour="learning-stats"]',
+    },
+  },
+  {
+    id: 'request-course',
+    title: 'Demandez une formation',
+    description: 'Vous avez identifié un besoin ? Demandez une nouvelle formation à votre manager ou au service RH.',
+    action: {
+      label: 'Voir le bouton Demander',
+      element: '[data-tour="request-course"]',
+    },
+  },
+  {
+    id: 'track-progress',
+    title: 'Suivez votre progression',
+    description: 'Consultez vos formations en cours, complétées et les certifications obtenues dans l\'onglet "Mon Apprentissage".',
+    action: {
+      label: 'Voir les filtres',
+      element: '[data-tour="learning-filters"]',
+    },
+  },
+];
+
+/**
+ * Suggestions pour la page Leaves
+ */
+export const leavesTips: PageTip[] = [
+  {
+    id: 'view-stats',
+    title: 'Vue d\'ensemble des congés',
+    description: 'Consultez en un coup d\'œil le nombre de demandes en attente, approuvées, et les collaborateurs absents aujourd\'hui.',
+    action: {
+      label: 'Voir les statistiques',
+      element: '[data-tour="leaves-stats"]',
+    },
+  },
+  {
+    id: 'review-requests',
+    title: 'Traitez les demandes',
+    description: 'Approuvez ou refusez les demandes de congés de votre équipe. Vous pouvez filtrer par statut et département.',
+    action: {
+      label: 'Voir les filtres',
+      element: '[data-tour="leaves-filters"]',
+    },
+  },
+  {
+    id: 'calendar-view',
+    title: 'Visualisez le planning',
+    description: 'Utilisez le calendrier pour avoir une vue globale des absences du mois et planifier en conséquence.',
+    action: {
+      label: 'Voir les onglets',
+      element: '[data-tour="leaves-tabs"]',
+    },
+  },
+];
+
+/**
+ * Suggestions pour la page Talents/9-Box
+ */
+export const talentsTips: PageTip[] = [
+  {
+    id: 'ninebox-matrix',
+    title: 'Matrice 9-Box : Performance × Potentiel',
+    description: 'Visualisez le positionnement de vos collaborateurs selon leur performance et leur potentiel. Identifiez vos hauts potentiels et talents à développer.',
+    action: {
+      label: 'Voir la matrice',
+      element: '[data-tour="ninebox-grid"]',
+    },
+  },
+  {
+    id: 'filter-period',
+    title: 'Sélectionnez la période',
+    description: 'Comparez l\'évolution des talents sur différentes périodes d\'évaluation pour suivre leur progression.',
+    action: {
+      label: 'Voir les filtres',
+      element: '[data-tour="ninebox-filters"]',
+    },
+  },
+  {
+    id: 'talent-actions',
+    title: 'Actions de développement',
+    description: 'Cliquez sur un collaborateur pour voir son profil détaillé et définir des actions de développement personnalisées.',
+    action: {
+      label: 'Voir la légende',
+      element: '[data-tour="ninebox-legend"]',
+    },
+  },
+];
+
+/**
  * Obtenir les tips selon l'ID de la page
  */
 export function getPageTips(pageId: string): PageTip[] {
@@ -164,6 +263,9 @@ export function getPageTips(pageId: string): PageTip[] {
     okr: okrTips,
     recruitment: recruitmentTips,
     performance: performanceTips,
+    learning: learningTips,
+    leaves: leavesTips,
+    talents: talentsTips,
   };
 
   return tipsMap[pageId] || [];

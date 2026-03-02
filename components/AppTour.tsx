@@ -227,13 +227,13 @@ export default function AppTour({ steps, isOpen, onComplete, onSkip }: Readonly<
       {/* Spotlight sur l'élément ciblé */}
       {targetElement && (
         <>
-          {/* Fond blanc pour faire ressortir l'élément */}
+          {/* Zone découpée dans l'overlay pour faire apparaître l'élément */}
           <div
             style={{
               ...spotlightStyles,
-              backgroundColor: 'white',
+              backgroundColor: 'transparent',
               borderRadius: '12px',
-              boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
+              boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.7)',
               transition: 'all 0.4s ease',
             }}
           />
@@ -244,7 +244,8 @@ export default function AppTour({ steps, isOpen, onComplete, onSkip }: Readonly<
               ...spotlightStyles,
               border: '4px solid #3b82f6',
               borderRadius: '12px',
-              boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.3), 0 0 30px rgba(59, 130, 246, 0.6), inset 0 0 20px rgba(59, 130, 246, 0.1)',
+              backgroundColor: 'rgba(59, 130, 246, 0.05)',
+              boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.8), inset 0 0 30px rgba(59, 130, 246, 0.15)',
               transition: 'all 0.4s ease',
               animation: 'pulse-border 2s ease-in-out infinite',
             }}

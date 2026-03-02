@@ -118,3 +118,39 @@ body {
   position: relative;
   z-index: 10002 !important;
 }
+
+/* ============================================
+   PAGE TOUR TIPS STYLES
+   ============================================ */
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.4s ease-out;
+}
+
+.page-tip-highlight {
+  position: relative;
+  animation: tipPulse 2s ease-in-out 3;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.4), 0 0 20px rgba(59, 130, 246, 0.6) !important;
+  border-radius: 8px;
+  z-index: 100 !important;
+}
+
+@keyframes tipPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.4), 0 0 20px rgba(59, 130, 246, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2), 0 0 40px rgba(59, 130, 246, 0.8);
+  }
+}

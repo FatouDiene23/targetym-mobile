@@ -22,6 +22,9 @@ import {
   type Employee,
   type EmployeeStats
 } from '@/lib/api';
+import PageTourTips from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { dashboardTips } from '@/config/pageTips';
 
 // ============================================
 // TYPES
@@ -949,6 +952,9 @@ export default function DashboardPage() {
   const [myAssignments, setMyAssignments] = useState<MyAssignment[]>([]);
   const [taskStats, setTaskStats] = useState<TaskStats | null>(null);
 
+  // Page Tour - Suggestions contextuelles pour la première visite
+  const { showTips, dismissTips } = usePageTour('dashboard');
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -1092,6 +1098,15 @@ export default function DashboardPage() {
   if (isSimpleEmployee) {
     return (
       <div className="py-6 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+        {/* Page Tour Tips - Suggestions contextuelles */}
+        {showTips && (
+          <PageTourTips
+            tips={dashboardTips}
+            onDismiss={dismissTips}
+            pageTitle="Tableau de Bord"
+          />
+        )}
+        
         <div className="max-w-6xl mx-auto space-y-6">
           <WelcomeCard userName={name} role={role} />
 
@@ -1125,6 +1140,15 @@ export default function DashboardPage() {
   // ============================================
   return (
     <div className="py-6 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+      {/* Page Tour Tips - Suggestions contextuelles */}
+      {showTips && (
+        <PageTourTips
+          tips={dashboardTips}
+          onDismiss={dismissTips}
+          pageTitle="Tableau de Bord"
+        />
+      )}
+      
       <div className="max-w-7xl mx-auto space-y-6">
         <WelcomeCard userName={name} role={role} />
 

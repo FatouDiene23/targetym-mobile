@@ -17,13 +17,18 @@ import { apiFetch, formatDate, ELIGIBILITY_LABELS } from '../shared';
 
 export default function MyCareerPage() {
   const [data, setData] = useState<any>(null);
+  const [attitudeScores, setAttitudeScores] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch('/api/careers/employees/my-career')
-      .then(res => setData(res))
-      .catch((e: any) => setError(e.message))
+    Promise.all([
+      apiFetch('/api/careers/employees/my-career'),
+      apiFetch('/api/attitudes/scores/me').catch(() => null),
+    ]).then(([career, attitudes]) => {
+      setData(career);
+      setAttitudeScores(attitudes);
+    }).catch((e: any) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
@@ -314,6 +319,55 @@ export default function MyCareerPage() {
               {pendingTrainings.length === 0 && missingScores.length === 0 && (
                 <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-500 text-center">
                   En attente de synchronisation — votre manager peut mettre à jour vos scores.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Scores par attitude ── */}
+        {attitudeScores?.scores?.length > 0 && (
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <div className="flex items-center gap-2 mb-5">
+              <Heart className="w-5 h-5 text-pink-500" />
+              <h3 className="font-semibold text-gray-900">Mes scores d'attitudes</h3>
+              <span className="ml-auto text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                Score global : <span className={`font-semibold ${attitudeScores.global_score >= 95 ? 'text-green-600' : attitudeScores.global_score >= 60 ? 'text-orange-500' : 'text-red-500'}`}>
+                  {attitudeScores.global_score.toFixed(0)}%
+                </span>
+              </span>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {attitudeScores.scores.filter((s: any) => s.total_feedbacks > 0).map((s: any) => {
+                const pct = s.score_pct;
+                const ok = pct >= 95;
+                const mid = pct >= 60;
+                return (
+                  <div key={s.attitude_id} className={`rounded-xl border p-4 ${ok ? 'bg-green-50 border-green-200' : mid ? 'bg-orange-50 border-orange-200' : 'bg-red-50 border-red-200'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">{s.attitude_icon}</span>
+                      <p className="font-medium text-gray-900 text-sm">{s.attitude_name}</p>
+                      <span className={`ml-auto text-sm font-bold ${ok ? 'text-green-600' : mid ? 'text-orange-600' : 'text-red-600'}`}>
+                        {pct.toFixed(0)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-white rounded-full h-1.5 mb-2 border border-gray-200">
+                      <div
+                        className={`h-1.5 rounded-full transition-all ${ok ? 'bg-green-500' : mid ? 'bg-orange-400' : 'bg-red-400'}`}
+                        style={{ width: `${Math.min(pct, 100)}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                      <span className="text-green-600">+{s.recognition_count}</span>
+                      <span className="text-red-500">−{s.improvement_count}</span>
+                      <span className="ml-auto">{s.total_feedbacks} avis</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {attitudeScores.scores.filter((s: any) => s.total_feedbacks === 0).length > 0 && (
+                <div className="sm:col-span-2 lg:col-span-3 text-center py-3 text-xs text-gray-400 border border-dashed border-gray-200 rounded-xl">
+                  {attitudeScores.scores.filter((s: any) => s.total_feedbacks === 0).length} attitude(s) sans données de feedback pour le moment
                 </div>
               )}
             </div>

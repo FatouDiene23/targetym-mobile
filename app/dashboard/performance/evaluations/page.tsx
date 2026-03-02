@@ -1,14 +1,16 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  Eye, Edit, CheckCircle, X, Loader2, AlertCircle, Search, 
+import { useRouter } from 'next/navigation';
+import {
+  Eye, Edit, CheckCircle, X, Loader2, AlertCircle, Search,
   ChevronLeft, ChevronRight, Send, RotateCcw, XCircle
 } from 'lucide-react';
 import { 
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer
 } from 'recharts';
 import PerformanceStats from '../components/PerformanceStats';
+import Header from '@/components/Header';
 
 // =============================================
 // TYPES
@@ -513,6 +515,7 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
 // =============================================
 
 export default function EvaluationsPage() {
+  const router = useRouter();
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [userRole, setUserRole] = useState<UserRole>('employee');
@@ -538,6 +541,12 @@ export default function EvaluationsPage() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => {
+    const handler = () => router.push('/dashboard/performance/campaigns');
+    window.addEventListener('evaluations-add', handler);
+    return () => window.removeEventListener('evaluations-add', handler);
+  }, [router]);
 
   // ✅ FILTRER LES ÉVALUATIONS - EXCLURE CANCELLED PAR DÉFAUT
   const filteredEvaluations = evaluations.filter(e => {
@@ -572,15 +581,11 @@ export default function EvaluationsPage() {
   }
 
   return (
-    <div className="p-8">
+    <>
+      <Header title="Évaluations" subtitle="Consultez et gérez les évaluations" />
+      <main className="flex-1 p-6 overflow-auto bg-gray-50">
       {/* Stats KPIs */}
       <PerformanceStats />
-      
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{userRole === 'employee' ? 'Mes Évaluations' : 'Évaluations'}</h1>
-        <p className="text-gray-500 mt-1">Consultez et gérez les évaluations</p>
-      </div>
 
       {/* Content */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -688,6 +693,7 @@ export default function EvaluationsPage() {
       {/* Modals */}
       <EvaluationViewModal isOpen={showViewModal} onClose={() => setShowViewModal(false)} evaluation={selectedEvaluation} />
       <EvaluationEditModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} evaluation={selectedEvaluation} onSave={loadData} userRole={userRole} currentEmployeeId={currentUser?.employee_id} />
-    </div>
+      </main>
+    </>
   );
 }

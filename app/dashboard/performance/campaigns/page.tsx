@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { 
+import {
   Plus, X, Loader2, AlertCircle, Search, ChevronLeft, ChevronRight,
   XCircle, Archive, RotateCcw, MoreVertical
 } from 'lucide-react';
 import PerformanceStats from '../components/PerformanceStats';
+import Header from '@/components/Header';
 
 // =============================================
 // TYPES
@@ -359,6 +360,12 @@ export default function CampaignsPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  useEffect(() => {
+    const handler = () => setShowModal(true);
+    window.addEventListener('campaigns-add', handler);
+    return () => window.removeEventListener('campaigns-add', handler);
+  }, []);
+
   const canManageCampaigns = ['admin', 'super_admin', 'rh', 'dg'].includes(userRole);
 
   const handleCancel = async (campaignId: number, campaignName: string) => {
@@ -435,22 +442,11 @@ export default function CampaignsPage() {
   }
 
   return (
-    <div className="p-8">
+    <>
+      <Header title="Campagnes d'Évaluation" subtitle="Gérez les campagnes d'évaluation" />
+      <main className="flex-1 p-6 overflow-auto bg-gray-50">
       {/* Stats KPIs */}
       <PerformanceStats />
-      
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Campagnes d&apos;Évaluation</h1>
-          <p className="text-gray-500 mt-1">Gérez les campagnes d&apos;évaluation</p>
-        </div>
-        {canManageCampaigns && (
-          <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600">
-            <Plus className="w-4 h-4" />Nouvelle Campagne
-          </button>
-        )}
-      </div>
 
       {/* Content */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -581,6 +577,7 @@ export default function CampaignsPage() {
       {openMenu && (
         <div className="fixed inset-0 z-0" onClick={() => setOpenMenu(null)} />
       )}
-    </div>
+      </main>
+    </>
   );
 }

@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  Plus, Calendar, Clock, MapPin, X, Loader2, AlertCircle, Search, 
+import {
+  Calendar, Clock, MapPin, X, Loader2, AlertCircle, Search,
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 import PerformanceStats from '../components/PerformanceStats';
+import Header from '@/components/Header';
 
 // =============================================
 // TYPES
@@ -293,6 +294,12 @@ export default function OneOnOnePage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  useEffect(() => {
+    const handler = () => setShowModal(true);
+    window.addEventListener('one-on-one-add', handler);
+    return () => window.removeEventListener('one-on-one-add', handler);
+  }, []);
+
   const canScheduleOneOnOne = ['admin', 'super_admin', 'rh', 'dg', 'manager'].includes(userRole);
 
   const filteredOneOnOnes = oneOnOnes.filter(o => 
@@ -314,22 +321,11 @@ export default function OneOnOnePage() {
   }
 
   return (
-    <div className="p-8">
+    <>
+      <Header title="Entretiens 1-1" subtitle="Planifiez et gérez vos entretiens individuels" />
+      <main className="flex-1 p-6 overflow-auto bg-gray-50">
       {/* Stats KPIs */}
       <PerformanceStats />
-      
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Entretiens 1-on-1</h1>
-          <p className="text-gray-500 mt-1">Planifiez et gérez vos entretiens individuels</p>
-        </div>
-        {canScheduleOneOnOne && (
-          <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600">
-            <Plus className="w-4 h-4" />Planifier un 1-on-1
-          </button>
-        )}
-      </div>
 
       {/* Content */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -388,6 +384,7 @@ export default function OneOnOnePage() {
 
       {/* Modal */}
       <CreateOneOnOneModal isOpen={showModal} onClose={() => setShowModal(false)} employees={employees} onSuccess={loadData} />
-    </div>
+      </main>
+    </>
   );
 }

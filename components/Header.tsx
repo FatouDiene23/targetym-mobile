@@ -172,11 +172,19 @@ const CONTEXTUAL_ROUTES: Record<string, string> = {
   '/dashboard/recruitment': 'recruitment-add',
   '/dashboard/okr': 'okr-add',
   '/dashboard/performance': 'performance-add',
+  '/dashboard/performance/campaigns': 'campaigns-add',
+  '/dashboard/performance/evaluations': 'evaluations-add',
+  '/dashboard/performance/objectives': 'objectives-add',
+  '/dashboard/performance/one-on-one': 'one-on-one-add',
 };
 
 // Labels personnalisés par route (sinon "Ajouter" par défaut)
 const CONTEXTUAL_LABELS: Record<string, string> = {
   '/dashboard/performance': 'Nouveau Feedback',
+  '/dashboard/performance/campaigns': 'Nouvelle Campagne',
+  '/dashboard/performance/evaluations': 'Nouvelle Évaluation',
+  '/dashboard/performance/objectives': 'Nouvel Objectif',
+  '/dashboard/performance/one-on-one': 'Planifier un 1-1',
 };
 
 // Routes où le bouton "+Ajouter" est masqué
@@ -594,7 +602,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
                 className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                {Object.entries(CONTEXTUAL_LABELS).find(([r]) => pathname.startsWith(r))?.[1] ?? 'Ajouter'}
+                {CONTEXTUAL_LABELS[pathname] ?? 'Ajouter'}
               </button>
             )}
           </div>

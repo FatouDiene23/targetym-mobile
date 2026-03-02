@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Target, ChevronRight } from 'lucide-react';
 import PerformanceStats from '../components/PerformanceStats';
+import Header from '@/components/Header';
 
 // =============================================
 // API
@@ -37,6 +39,7 @@ async function fetchMyStats(): Promise<MyStats> {
 // =============================================
 
 export default function ObjectivesPage() {
+  const router = useRouter();
   const [stats, setStats] = useState<MyStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -48,6 +51,12 @@ export default function ObjectivesPage() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => {
+    const handler = () => router.push('/dashboard/okr');
+    window.addEventListener('objectives-add', handler);
+    return () => window.removeEventListener('objectives-add', handler);
+  }, [router]);
 
   if (loading) {
     return (
@@ -61,15 +70,11 @@ export default function ObjectivesPage() {
   }
 
   return (
-    <div className="p-8">
+    <>
+      <Header title="Objectifs & OKRs" subtitle="Gérez vos objectifs et résultats clés" />
+      <main className="flex-1 p-6 overflow-auto bg-gray-50">
       {/* Stats KPIs */}
       <PerformanceStats />
-      
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Objectifs & OKRs</h1>
-        <p className="text-gray-500 mt-1">Gérez vos objectifs et résultats clés</p>
-      </div>
 
       {/* Content */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -122,6 +127,7 @@ export default function ObjectivesPage() {
           </p>
         </div>
       </div>
-    </div>
+      </main>
+    </>
   );
 }

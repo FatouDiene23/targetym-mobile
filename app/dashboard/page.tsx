@@ -262,7 +262,7 @@ function WelcomeCard({ userName, role }: { userName: string; role: UserRole }) {
   const RoleIcon = role === 'manager' ? Users : role === 'rh' ? Briefcase : role === 'admin' ? Zap : UserCheck;
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 rounded-2xl p-6 text-white shadow-lg">
+    <div data-tour="welcome" className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 rounded-2xl p-6 text-white shadow-lg">
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white rounded-full translate-y-1/2 -translate-x-1/2" />
@@ -306,7 +306,7 @@ function QuickActions({ role, isManager }: { role: UserRole; isManager: boolean 
   const filteredActions = actions.filter(action => { if (action.managerOnly && isManager) return true; return action.roles.includes(role); }).slice(0, 4);
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+    <div data-tour="quick-actions" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
       <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
         <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-lg flex items-center justify-center">
           <Zap className="w-4 h-4 text-white" />

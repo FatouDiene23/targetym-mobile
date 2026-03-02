@@ -54,6 +54,7 @@ interface NavItem {
   children?: NavItem[];
   disabled?: boolean;
   disabledReason?: string;
+  dataTour?: string;
 }
 
 
@@ -76,61 +77,71 @@ const navigation: NavItem[] = [
     name: 'Tableau de Bord', 
     href: '/dashboard', 
     icon: LayoutDashboard,
-    roles: ['employee', 'manager', 'rh', 'admin', 'dg']
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
+    dataTour: 'sidebar-dashboard'
   },
   { 
     name: 'OKR & Objectifs', 
     href: '/dashboard/okr', 
     icon: Target,
-    roles: ['manager', 'rh', 'admin', 'dg']
+    roles: ['manager', 'rh', 'admin', 'dg'],
+    dataTour: 'sidebar-okr'
   },
   { 
     name: 'Recrutement', 
     href: '/dashboard/recruitment', 
     icon: UserPlus,
-    roles: ['rh', 'admin', 'dg']
+    roles: ['rh', 'admin', 'dg'],
+    dataTour: 'sidebar-recruitment'
   },
   { 
     name: 'Onboarding', 
     href: '/dashboard/onboarding', 
     icon: Handshake,
-    roles: ['rh', 'admin', 'dg']
+    roles: ['rh', 'admin', 'dg'],
+    dataTour: 'sidebar-onboarding'
   },
   {
     name: 'Talents & Carrière',
     href: '/dashboard/talents',
     icon: Sparkles,
-    roles: ['employee', 'manager', 'rh', 'admin', 'dg']
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
+    dataTour: 'sidebar-career'
   },
   { 
     name: 'Formation & Développement', 
     href: '/dashboard/learning', 
     icon: GraduationCap,
-    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],  
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
+    dataTour: 'sidebar-learning'
   },
   { 
     name: 'Performance & Feedback', 
     href: '/dashboard/performance', 
     icon: TrendingUp,
-    roles: ['employee', 'manager', 'rh', 'admin', 'dg']
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
+    dataTour: 'sidebar-performance'
   },
   { 
     name: 'People Analytics', 
     href: '/dashboard/analytics', 
     icon: BarChart3,
-    roles: ['manager', 'rh', 'admin', 'dg']
+    roles: ['manager', 'rh', 'admin', 'dg'],
+    dataTour: 'sidebar-analytics'
   },
   { 
     name: 'Gestion du Personnel', 
     href: '/dashboard/employees', 
     icon: Users,
-    roles: ['rh', 'admin', 'dg']
+    roles: ['rh', 'admin', 'dg'],
+    dataTour: 'sidebar-employees'
   },
   { 
     name: 'Gestion des Congés', 
     href: '/dashboard/leaves', 
     icon: Calendar,
-    roles: ['rh', 'admin', 'dg']
+    roles: ['rh', 'admin', 'dg'],
+    dataTour: 'sidebar-leaves'
   },
   {
     name: 'Gestion des Missions', 
@@ -148,7 +159,8 @@ const navigation: NavItem[] = [
     name: 'Paramètres', 
     href: '/dashboard/settings', 
     icon: Settings,
-    roles: ['admin', 'dg']
+    roles: ['admin', 'dg'],
+    dataTour: 'sidebar-settings'
   },
 ];
 
@@ -162,7 +174,7 @@ const mySpaceNavigation: NavItem[] = [
   { name: 'Mon Équipe', href: '/dashboard/my-space/team', icon: UsersRound, roles: ['manager', 'rh', 'admin', 'dg'] },
   { name: 'Mes Tâches', href: '/dashboard/my-space/tasks', icon: ClipboardList, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Offres Internes', href: '/dashboard/my-space/internal-jobs', icon: Briefcase, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
-  { name: 'Mes Documents', href: '/dashboard/my-space/documents', icon: FileText, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+  { name: 'Mes Documents', href: '/dashboard/my-space/documents', icon: FileText, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-documents' },
 ];
 
 // Sous-menu Performance
@@ -300,6 +312,7 @@ function SidebarInner() {
         href={item.href} 
         className={`flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'} rounded-lg transition-colors group relative ${isActive ? 'bg-primary-500 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`} 
         title={isCollapsed ? item.name : undefined}
+        data-tour={item.dataTour}
       >
         <item.icon className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
         {!isCollapsed && <span className="text-sm font-medium">{item.name}</span>}
@@ -413,7 +426,8 @@ function SidebarInner() {
               return (
                 <Link 
                   key={item.name} 
-                  href={item.href} 
+                  href={item.href}
+                  {...(item.dataTour ? { 'data-tour': item.dataTour } : {})}
                   className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
                     isActive 
                       ? 'bg-primary-500/20 text-primary-400 border-l-2 border-primary-500' 
@@ -625,7 +639,7 @@ function SidebarInner() {
 
       {/* Footer User */}
       <div className="p-4 border-t border-gray-700 flex-shrink-0">
-        <div className={`flex items-center ${collapsed ? 'justify-center' : ''}`}>
+        <div className={`flex items-center ${collapsed ? 'justify-center' : ''}`} data-tour="user-menu">
           <div className="w-9 h-9 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
             {initials}
           </div>

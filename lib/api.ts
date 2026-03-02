@@ -1103,3 +1103,64 @@ export async function getValidationHistory(params?: {
 
   return response.json();
 }
+
+// ============================================
+// APP TOUR (Guide Applicatif)
+// ============================================
+
+export interface AppTourStatus {
+  has_completed: boolean;
+  completed_at: string | null;
+  user_role: string;
+}
+
+/**
+ * Récupère le statut du tour applicatif pour l'utilisateur connecté
+ */
+export async function getAppTourStatus(): Promise<AppTourStatus> {
+  const response = await fetch(`${API_URL}/api/app-tour/status`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+/**
+ * Marque le tour applicatif comme complété
+ */
+export async function completeAppTour(): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_URL}/api/app-tour/complete`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ force_reset: false }),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+/**
+ * Réinitialise le tour applicatif pour le revoir
+ */
+export async function resetAppTour(): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_URL}/api/app-tour/reset`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}

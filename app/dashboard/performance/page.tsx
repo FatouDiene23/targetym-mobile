@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  Plus, ThumbsUp, Send, X, Loader2, AlertCircle, Search,
+import {
+  ThumbsUp, Send, X, Loader2, AlertCircle, Search,
   ChevronLeft, ChevronRight, BarChart3, Check, Trash2
 } from 'lucide-react';
+import Header from '@/components/Header';
 
 // =============================================
 // TYPES
@@ -774,6 +775,13 @@ export default function FeedbackPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // Écouter le bouton "+ Ajouter" du Header
+  useEffect(() => {
+    const handler = () => setShowModal(true);
+    window.addEventListener('performance-add', handler);
+    return () => window.removeEventListener('performance-add', handler);
+  }, []);
+
   const filteredFeedbacks = feedbacks.filter(f => {
     const matchSearch = !search || 
       f.from_employee_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -788,28 +796,24 @@ export default function FeedbackPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500">Chargement...</p>
+      <>
+        <Header title="Feedback Continu" subtitle="Chargement..." />
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-gray-500">Chargement...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="p-8">
-      <StatsCards stats={stats} attitudeScore={attitudeScores?.global_score ?? null} />
-      
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Feedback Continu</h1>
-          <p className="text-gray-500 mt-1">Partagez et recevez des feedbacks</p>
-        </div>
-        <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600">
-          <Plus className="w-4 h-4" />Nouveau Feedback
-        </button>
-      </div>
+    <>
+      <Header title="Feedback Continu" subtitle="Partagez et recevez des feedbacks" />
+
+      <main className="flex-1 p-6 overflow-auto bg-gray-50">
+        <StatsCards stats={stats} attitudeScore={attitudeScores?.global_score ?? null} />
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
@@ -855,6 +859,7 @@ export default function FeedbackPage() {
       )}
 
       <CreateFeedbackModal isOpen={showModal} onClose={() => setShowModal(false)} employees={employees} attitudes={attitudes} onSuccess={loadData} />
-    </div>
+      </main>
+    </>
   );
 }

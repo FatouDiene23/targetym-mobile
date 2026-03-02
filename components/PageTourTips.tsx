@@ -1,7 +1,7 @@
 'use client';
 
 import { X, Lightbulb, ArrowRight } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export interface PageTip {
   id: string;
@@ -23,10 +23,37 @@ export default function PageTourTips({ tips, onDismiss, pageTitle }: Readonly<Pa
   const [currentTip, setCurrentTip] = useState(0);
   const [highlightedElement, setHighlightedElement] = useState<HTMLElement | null>(null);
 
+  // Mettre en évidence l'élément quand on change d'étape
+  useEffect(() => {
+    const tip = tips[currentTip];
+    
+    // Retirer le highlight précédent
+    if (highlightedElement) {
+      highlightedElement.classList.remove('page-tip-highlight');
+    }
+
+    if (tip?.action?.element) {
+      setTimeout(() => {
+        const element = document.querySelector(tip.action!.element) as HTMLElement;
+        if (element) {
+          element.classList.add('page-tip-highlight');
+          element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+          setHighlightedElement(element);
+        }
+      }, 300);
+    }
+
+    // Cleanup
+    return () => {
+      if (highlightedElement) {
+        highlightedElement.classList.remove('page-tip-highlight');
+      }
+    };
+  }, [currentTip, tips]);
+
   const handleNext = () => {
     if (currentTip < tips.length - 1) {
       setCurrentTip(currentTip + 1);
-      highlightElement(tips[currentTip + 1]);
     } else {
       handleComplete();
     }
@@ -35,22 +62,20 @@ export default function PageTourTips({ tips, onDismiss, pageTitle }: Readonly<Pa
   const handlePrevious = () => {
     if (currentTip > 0) {
       setCurrentTip(currentTip - 1);
-      highlightElement(tips[currentTip - 1]);
     }
   };
 
-  const highlightElement = (tip: PageTip) => {
-    // Retirer le highlight précédent
-    if (highlightedElement) {
-      highlightedElement.classList.remove('page-tip-highlight');
-    }
-
+  const handleHighlightClick = () => {
+    const tip = tips[currentTip];
     if (tip.action?.element) {
       const element = document.querySelector(tip.action.element) as HTMLElement;
       if (element) {
-        element.classList.add('page-tip-highlight');
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setHighlightedElement(element);
+        element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+        // Flash effect
+        element.classList.remove('page-tip-highlight');
+        setTimeout(() => {
+          element.classList.add('page-tip-highlight');
+        }, 100);
       }
     }
   };
@@ -97,16 +122,7 @@ export default function PageTourTips({ tips, onDismiss, pageTitle }: Readonly<Pa
 
           {tip.action && (
             <button
-              onClick={() => {
-                const element = document.querySelector(tip.action!.element) as HTMLElement;
-                if (element) {
-                  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  element.classList.add('page-tip-highlight');
-                  setTimeout(() => {
-                    element.classList.remove('page-tip-highlight');
-                  }, 3000);
-                }
-              }}
+              onClick={handleHighlightClick}
               className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium group"
             >
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

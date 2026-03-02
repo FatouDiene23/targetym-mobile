@@ -42,6 +42,7 @@ export default function DashboardHeader({ title, subtitle, showSearch = true, ac
         {/* Notifications */}
         <div className="relative">
           <button 
+            data-tour="notifications"
             onClick={() => setShowNotifications(!showNotifications)}
             className="relative p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
           >

@@ -100,3 +100,21 @@ body {
 .main-scroll::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
+
+/* ============================================
+   APP TOUR ANIMATIONS
+   ============================================ */
+
+@keyframes pulse-border {
+  0%, 100% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3), 0 0 30px rgba(59, 130, 246, 0.6), inset 0 0 20px rgba(59, 130, 246, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2), 0 0 50px rgba(59, 130, 246, 0.8), inset 0 0 30px rgba(59, 130, 246, 0.2);
+  }
+}
+
+.app-tour-highlight {
+  position: relative;
+  z-index: 10002 !important;
+}

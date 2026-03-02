@@ -30,6 +30,14 @@ export default function AppTour({ steps, isOpen, onComplete, onSkip }: Readonly<
   const [currentStep, setCurrentStep] = useState(0);
   const [targetElement, setTargetElement] = useState<HTMLElement | null>(null);
   const [tooltipStyles, setTooltipStyles] = useState<CSSProperties>({});
+  const [spotlightStyles, setSpotlightStyles] = useState<CSSProperties>({});
+
+  // Réinitialiser le tour quand il s'ouvre
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentStep(0);
+    }
+  }, [isOpen]);
 
   // Calculer la position du tooltip par rapport à l'élément cible
   const calculateTooltipPosition = useCallback((element: HTMLElement, position: string = 'bottom') => {
@@ -90,12 +98,30 @@ export default function AppTour({ steps, isOpen, onComplete, onSkip }: Readonly<
       if (element) {
         setTargetElement(element);
         
-        // Scroller vers l'élément
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
-        // Calculer la position du tooltip
-        const styles = calculateTooltipPosition(element, step.position);
-        setTooltipStyles(styles);
+        // Scroller vers l'élément avec un délai pour stabiliser
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+          
+          // Recalculer après le scroll
+          setTimeout(() => {
+            const rect = element.getBoundingClientRect();
+            
+            // Position du spotlight
+            setSpotlightStyles({
+              position: 'fixed',
+              left: `${rect.left - 8}px`,
+              top: `${rect.top - 8}px`,
+              width: `${rect.width + 16}px`,
+              height: `${rect.height + 16}px`,
+              pointerEvents: 'none',
+              zIndex: 10001,
+            });
+            
+            // Position du tooltip
+            const tooltipPos = calculateTooltipPosition(element, step.position);
+            setTooltipStyles(tooltipPos);
+          }, 500);
+        }, 100);
 
         // Ajouter une classe pour le highlight
         element.classList.add('app-tour-highlight');
@@ -118,16 +144,30 @@ export default function AppTour({ steps, isOpen, onComplete, onSkip }: Readonly<
 
     const handleResize = () => {
       const step = steps[currentStep];
+      const rect = targetElement.getBoundingClientRect();
+      
+      // Mettre à jour le spotlight
+      setSpotlightStyles({
+        position: 'fixed',
+        left: `${rect.left - 8}px`,
+        top: `${rect.top - 8}px`,
+        width: `${rect.width + 16}px`,
+        height: `${rect.height + 16}px`,
+        pointerEvents: 'none',
+        zIndex: 10001,
+      });
+      
+      // Mettre à jour le tooltip
       const styles = calculateTooltipPosition(targetElement, step.position);
       setTooltipStyles(styles);
     };
 
     window.addEventListener('resize', handleResize);
-    window.addEventListener('scroll', handleResize);
+    window.addEventListener('scroll', handleResize, true);
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('scroll', handleResize);
+      window.removeEventListener('scroll', handleResize, true);
     };
   }, [isOpen, targetElement, currentStep, steps, calculateTooltipPosition]);
 
@@ -186,22 +226,30 @@ export default function AppTour({ steps, isOpen, onComplete, onSkip }: Readonly<
 
       {/* Spotlight sur l'élément ciblé */}
       {targetElement && (
-        <div
-          className="app-tour-spotlight"
-          style={{
-            position: 'fixed',
-            zIndex: spotlightZIndex,
-            left: `${targetElement.getBoundingClientRect().left - 8}px`,
-            top: `${targetElement.getBoundingClientRect().top - 8}px`,
-            width: `${targetElement.getBoundingClientRect().width + 16}px`,
-            height: `${targetElement.getBoundingClientRect().height + 16}px`,
-            pointerEvents: 'none',
-            border: '3px solid #3b82f6',
-            borderRadius: '12px',
-            boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.2), 0 0 20px rgba(59, 130, 246, 0.4)',
-            transition: 'all 0.3s ease',
-          }}
-        />
+        <>
+          {/* Fond blanc pour faire ressortir l'élément */}
+          <div
+            style={{
+              ...spotlightStyles,
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
+              transition: 'all 0.4s ease',
+            }}
+          />
+          {/* Bordure animée */}
+          <div
+            className="app-tour-spotlight"
+            style={{
+              ...spotlightStyles,
+              border: '4px solid #3b82f6',
+              borderRadius: '12px',
+              boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.3), 0 0 30px rgba(59, 130, 246, 0.6), inset 0 0 20px rgba(59, 130, 246, 0.1)',
+              transition: 'all 0.4s ease',
+              animation: 'pulse-border 2s ease-in-out infinite',
+            }}
+          />
+        </>
       )}
 
       {/* Tooltip avec le contenu de l'étape */}

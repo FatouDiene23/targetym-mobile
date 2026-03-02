@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   FileText, Download, Search, Loader2,
   Calendar, User, Clock, ChevronLeft, ChevronRight,
-  Building2, RefreshCw, LogOut
+  Building2, RefreshCw, LogOut, FileCheck, X
 } from 'lucide-react';
 import Header from '@/components/Header';
 
@@ -12,7 +12,7 @@ import Header from '@/components/Header';
 // TYPES
 // ============================================
 
-interface FormerEmployee {
+interface Employee {
   id: number;
   employee_id: string;
   first_name: string;
@@ -34,6 +34,8 @@ interface CertificateHistory {
   generation_type: string;
 }
 
+type DocType = 'attestation' | 'certificat';
+
 // ============================================
 // API
 // ============================================
@@ -48,17 +50,14 @@ function getAuthHeaders(): HeadersInit {
   };
 }
 
-async function getFormerEmployees(
+async function getEmployees(
   page: number = 1,
   search: string = '',
-  status: string = 'terminated'
-): Promise<{ items: FormerEmployee[], total: number }> {
-  const params = new URLSearchParams({
-    page: page.toString(),
-    page_size: '10',
-    status,
-  });
+  status: string = ''
+): Promise<{ items: Employee[], total: number }> {
+  const params = new URLSearchParams({ page: page.toString(), page_size: '10' });
   if (search) params.append('search', search);
+  if (status) params.append('status', status);
 
   const response = await fetch(`${API_URL}/api/employees/?${params}`, {
     headers: getAuthHeaders(),
@@ -68,12 +67,9 @@ async function getFormerEmployees(
 }
 
 async function getCertificateHistory(
-  page: number = 1,
-  employeeId?: number
+  page: number = 1
 ): Promise<{ items: CertificateHistory[], total: number }> {
   const params = new URLSearchParams({ page: page.toString(), page_size: '10' });
-  if (employeeId) params.append('employee_id', employeeId.toString());
-
   const response = await fetch(`${API_URL}/api/certificates/history?${params}`, {
     headers: getAuthHeaders(),
   });
@@ -81,18 +77,16 @@ async function getCertificateHistory(
   return response.json();
 }
 
-async function generateCertificateForEmployee(employeeId: number): Promise<Blob> {
+async function generateDocument(employeeId: number, docType: DocType): Promise<Blob> {
   const token = localStorage.getItem('access_token');
   const response = await fetch(
-    `${API_URL}/api/certificates/employee/${employeeId}/work-certificate`,
+    `${API_URL}/api/certificates/employee/${employeeId}/work-certificate?doc_type=${docType}`,
     { method: 'GET', headers: { 'Authorization': `Bearer ${token}` } }
   );
-
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || 'Erreur lors de la génération');
   }
-
   return response.blob();
 }
 
@@ -103,37 +97,151 @@ async function generateCertificateForEmployee(employeeId: number): Promise<Blob>
 function formatDate(dateStr?: string): string {
   if (!dateStr) return '—';
   return new Date(dateStr).toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
+    day: '2-digit', month: '2-digit', year: 'numeric',
   });
 }
 
 function formatDateTime(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
   });
 }
 
+const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  active:     { label: 'Actif',      color: 'bg-green-100 text-green-700' },
+  terminated: { label: 'Parti',      color: 'bg-red-100 text-red-700' },
+  inactive:   { label: 'Inactif',    color: 'bg-gray-100 text-gray-600' },
+  on_leave:   { label: 'En congé',   color: 'bg-blue-100 text-blue-700' },
+  suspended:  { label: 'Suspendu',   color: 'bg-orange-100 text-orange-700' },
+  probation:  { label: 'Période d\'essai', color: 'bg-yellow-100 text-yellow-700' },
+};
+
 // ============================================
-// COMPONENT
+// MODALE SÉLECTION TYPE DE DOCUMENT
+// ============================================
+
+function DocTypeModal({
+  employee,
+  onConfirm,
+  onClose,
+}: {
+  employee: Employee;
+  onConfirm: (docType: DocType) => void;
+  onClose: () => void;
+}) {
+  const isFormer = ['terminated', 'inactive'].includes(employee.status);
+  const [selected, setSelected] = useState<DocType>(isFormer ? 'certificat' : 'attestation');
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+        {/* En-tête */}
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-semibold text-gray-900">Type de document</h2>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg">
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        {/* Employé ciblé */}
+        <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3 mb-5">
+          <div className="w-9 h-9 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium text-sm">
+            {employee.first_name[0]}{employee.last_name[0]}
+          </div>
+          <div>
+            <p className="font-medium text-gray-900 text-sm">{employee.first_name} {employee.last_name}</p>
+            <p className="text-xs text-gray-500">{employee.job_title || '—'} · {employee.employee_id}</p>
+          </div>
+        </div>
+
+        {/* Choix */}
+        <div className="space-y-3 mb-6">
+          {/* Attestation */}
+          <button
+            onClick={() => setSelected('attestation')}
+            className={`w-full flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+              selected === 'attestation'
+                ? 'border-primary-500 bg-primary-50'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              selected === 'attestation' ? 'bg-primary-500' : 'bg-gray-100'
+            }`}>
+              <FileCheck className={`w-5 h-5 ${selected === 'attestation' ? 'text-white' : 'text-gray-500'}`} />
+            </div>
+            <div>
+              <p className="font-medium text-gray-900 text-sm">Attestation de travail</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Confirme l&apos;emploi actuel de l&apos;employé au sein de l&apos;entreprise
+              </p>
+            </div>
+          </button>
+
+          {/* Certificat */}
+          <button
+            onClick={() => setSelected('certificat')}
+            className={`w-full flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+              selected === 'certificat'
+                ? 'border-primary-500 bg-primary-50'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              selected === 'certificat' ? 'bg-primary-500' : 'bg-gray-100'
+            }`}>
+              <LogOut className={`w-5 h-5 ${selected === 'certificat' ? 'text-white' : 'text-gray-500'}`} />
+            </div>
+            <div>
+              <p className="font-medium text-gray-900 text-sm">Certificat de travail</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Retrace le parcours complet de l&apos;employé (tous les postes + dates). Pour les employés ayant quitté l&apos;entreprise.
+              </p>
+            </div>
+          </button>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={() => onConfirm(selected)}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"
+          >
+            <Download className="w-4 h-4" />
+            Générer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// PAGE PRINCIPALE
 // ============================================
 
 export default function CertificatesPage() {
   const [activeTab, setActiveTab] = useState<'generate' | 'history'>('generate');
 
   // Onglet génération
-  const [employees, setEmployees] = useState<FormerEmployee[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [loadingEmployees, setLoadingEmployees] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [employeePage, setEmployeePage] = useState(1);
   const [employeeTotal, setEmployeeTotal] = useState(0);
+  const [statusFilter, setStatusFilter] = useState('');
   const [generatingFor, setGeneratingFor] = useState<number | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'terminated' | 'inactive'>('terminated');
+
+  // Modale sélection type de document
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
 
   // Onglet historique
   const [history, setHistory] = useState<CertificateHistory[]>([]);
@@ -144,7 +252,7 @@ export default function CertificatesPage() {
   const loadEmployees = useCallback(async () => {
     setLoadingEmployees(true);
     try {
-      const data = await getFormerEmployees(employeePage, searchTerm, statusFilter);
+      const data = await getEmployees(employeePage, searchTerm, statusFilter);
       setEmployees(data.items);
       setEmployeeTotal(data.total);
     } catch (error) {
@@ -168,41 +276,34 @@ export default function CertificatesPage() {
   }, [historyPage]);
 
   useEffect(() => {
-    if (activeTab === 'generate') {
-      loadEmployees();
-    } else {
-      loadHistory();
-    }
+    if (activeTab === 'generate') loadEmployees();
+    else loadHistory();
   }, [activeTab, loadEmployees, loadHistory]);
 
-  // Recherche avec debounce
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (activeTab === 'generate') {
-        setEmployeePage(1);
-        loadEmployees();
-      }
+      if (activeTab === 'generate') { setEmployeePage(1); loadEmployees(); }
     }, 300);
     return () => clearTimeout(timer);
   }, [searchTerm, statusFilter]);
 
-  const handleGenerateCertificate = async (employee: FormerEmployee) => {
+  const handleConfirmGenerate = async (docType: DocType) => {
+    if (!selectedEmployee) return;
+    const employee = selectedEmployee;
+    setSelectedEmployee(null);
     setGeneratingFor(employee.id);
     try {
-      const blob = await generateCertificateForEmployee(employee.id);
-
+      const blob = await generateDocument(employee.id, docType);
+      const prefix = docType === 'attestation' ? 'attestation_travail' : 'certificat_travail';
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `certificat_travail_${employee.last_name}_${new Date().toISOString().split('T')[0]}.pdf`;
+      a.download = `${prefix}_${employee.last_name}_${new Date().toISOString().split('T')[0]}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-
-      if (activeTab === 'history') loadHistory();
     } catch (error) {
-      console.error('Erreur:', error);
       alert(error instanceof Error ? error.message : 'Erreur lors de la génération');
     } finally {
       setGeneratingFor(null);
@@ -215,20 +316,11 @@ export default function CertificatesPage() {
   return (
     <>
       <Header
-        title="Certificats de Travail"
-        subtitle="Générez les certificats pour les employés ayant quitté l'entreprise"
+        title="Documents RH"
+        subtitle="Générez attestations et certificats de travail pour vos employés"
       />
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
         <div className="max-w-6xl mx-auto">
-          {/* Info box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-start gap-3">
-            <LogOut className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-blue-800">
-              Le <strong>certificat de travail</strong> est un document remis aux employés ayant quitté
-              l&apos;entreprise. Il retrace leur parcours complet : tous les postes occupés avec les dates.
-              Seul le service RH peut le générer.
-            </p>
-          </div>
 
           {/* Tabs */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
@@ -243,8 +335,8 @@ export default function CertificatesPage() {
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <Download className="w-4 h-4" />
-                    Générer un certificat
+                    <FileText className="w-4 h-4" />
+                    Générer un document
                   </div>
                 </button>
                 <button
@@ -272,28 +364,44 @@ export default function CertificatesPage() {
               {/* ===== TAB: GÉNÉRER ===== */}
               {activeTab === 'generate' && (
                 <div>
+                  {/* Info */}
+                  <div className="flex gap-4 mb-5">
+                    <div className="flex-1 bg-blue-50 border border-blue-100 rounded-lg p-3 flex items-start gap-2">
+                      <FileCheck className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-blue-700">
+                        <strong>Attestation de travail</strong> — confirme qu&apos;un employé fait partie de l&apos;effectif
+                      </p>
+                    </div>
+                    <div className="flex-1 bg-orange-50 border border-orange-100 rounded-lg p-3 flex items-start gap-2">
+                      <LogOut className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-orange-700">
+                        <strong>Certificat de travail</strong> — retrace le parcours complet d&apos;un ex-employé
+                      </p>
+                    </div>
+                  </div>
+
                   {/* Filtres */}
-                  <div className="flex gap-3 mb-6 flex-wrap">
+                  <div className="flex gap-3 mb-5 flex-wrap">
                     <div className="flex-1 min-w-[220px] relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="text"
-                        placeholder="Rechercher un ex-employé..."
+                        placeholder="Rechercher un employé..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
+                        className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                       />
                     </div>
                     <select
                       value={statusFilter}
-                      onChange={(e) => {
-                        setStatusFilter(e.target.value as 'terminated' | 'inactive');
-                        setEmployeePage(1);
-                      }}
-                      className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                      onChange={(e) => { setStatusFilter(e.target.value); setEmployeePage(1); }}
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
                     >
-                      <option value="terminated">Démissionnaires / Licenciés</option>
+                      <option value="">Tous les statuts</option>
+                      <option value="active">Actifs</option>
+                      <option value="terminated">Partis</option>
                       <option value="inactive">Inactifs</option>
+                      <option value="on_leave">En congé</option>
                     </select>
                   </div>
 
@@ -305,10 +413,7 @@ export default function CertificatesPage() {
                   ) : employees.length === 0 ? (
                     <div className="text-center py-12 text-gray-500">
                       <User className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <p className="font-medium">Aucun ex-employé trouvé</p>
-                      <p className="text-sm text-gray-400 mt-1">
-                        Les employés ayant quitté l&apos;entreprise apparaîtront ici
-                      </p>
+                      <p className="font-medium">Aucun employé trouvé</p>
                     </div>
                   ) : (
                     <>
@@ -316,97 +421,84 @@ export default function CertificatesPage() {
                         <table className="w-full">
                           <thead className="bg-gray-50">
                             <tr>
-                              <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">Employé</th>
-                              <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">Matricule</th>
-                              <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">Dernier poste</th>
-                              <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">Département</th>
-                              <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">
-                                <div className="flex items-center gap-1">
-                                  <LogOut className="w-3.5 h-3.5" />
-                                  Date de départ
-                                </div>
-                              </th>
-                              <th className="text-right px-4 py-3 text-sm font-semibold text-gray-600">Action</th>
+                              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Employé</th>
+                              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Poste</th>
+                              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Statut</th>
+                              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Date de départ</th>
+                              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Action</th>
                             </tr>
                           </thead>
-                          <tbody>
-                            {employees.map((employee) => (
-                              <tr key={employee.id} className="border-t border-gray-100 hover:bg-gray-50">
-                                <td className="px-4 py-4">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 font-medium text-sm">
-                                      {employee.first_name[0]}{employee.last_name[0]}
+                          <tbody className="divide-y divide-gray-100">
+                            {employees.map((employee) => {
+                              const statusInfo = STATUS_LABELS[employee.status] || { label: employee.status, color: 'bg-gray-100 text-gray-600' };
+                              return (
+                                <tr key={employee.id} className="hover:bg-gray-50 transition-colors">
+                                  <td className="px-4 py-3.5">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium text-xs flex-shrink-0">
+                                        {employee.first_name[0]}{employee.last_name[0]}
+                                      </div>
+                                      <div>
+                                        <p className="font-medium text-gray-900 text-sm">{employee.first_name} {employee.last_name}</p>
+                                        <p className="text-xs text-gray-400">{employee.employee_id}</p>
+                                      </div>
                                     </div>
-                                    <div>
-                                      <p className="font-medium text-gray-900 text-sm">
-                                        {employee.first_name} {employee.last_name}
-                                      </p>
-                                      <p className="text-xs text-gray-400">{employee.email}</p>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="px-4 py-4 text-sm text-gray-500">
-                                  {employee.employee_id}
-                                </td>
-                                <td className="px-4 py-4 text-sm text-gray-600">
-                                  {employee.job_title || '—'}
-                                </td>
-                                <td className="px-4 py-4 text-sm text-gray-600">
-                                  {employee.department_name || '—'}
-                                </td>
-                                <td className="px-4 py-4">
-                                  {employee.end_date ? (
-                                    <span className="inline-flex items-center gap-1 text-sm text-red-600">
-                                      <Calendar className="w-3.5 h-3.5" />
-                                      {formatDate(employee.end_date)}
+                                  </td>
+                                  <td className="px-4 py-3.5 text-sm text-gray-600">{employee.job_title || '—'}</td>
+                                  <td className="px-4 py-3.5">
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusInfo.color}`}>
+                                      {statusInfo.label}
                                     </span>
-                                  ) : (
-                                    <span className="text-sm text-gray-400">—</span>
-                                  )}
-                                </td>
-                                <td className="px-4 py-4 text-right">
-                                  <button
-                                    onClick={() => handleGenerateCertificate(employee)}
-                                    disabled={generatingFor === employee.id}
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                  >
-                                    {generatingFor === employee.id ? (
-                                      <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        Génération...
-                                      </>
+                                  </td>
+                                  <td className="px-4 py-3.5">
+                                    {employee.end_date ? (
+                                      <span className="flex items-center gap-1 text-sm text-gray-500">
+                                        <Calendar className="w-3.5 h-3.5" />
+                                        {formatDate(employee.end_date)}
+                                      </span>
                                     ) : (
-                                      <>
-                                        <Download className="w-4 h-4" />
-                                        Générer
-                                      </>
+                                      <span className="text-sm text-gray-300">—</span>
                                     )}
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
+                                  </td>
+                                  <td className="px-4 py-3.5 text-right">
+                                    <button
+                                      onClick={() => setSelectedEmployee(employee)}
+                                      disabled={generatingFor === employee.id}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-500 text-white text-xs font-medium rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                      {generatingFor === employee.id ? (
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      ) : (
+                                        <Download className="w-3.5 h-3.5" />
+                                      )}
+                                      Générer
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
 
                       {totalEmployeePages > 1 && (
-                        <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
-                          <p className="text-sm text-gray-500">{employeeTotal} ex-employé(s)</p>
+                        <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-100">
+                          <p className="text-sm text-gray-500">{employeeTotal} employé(s)</p>
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => setEmployeePage(p => Math.max(1, p - 1))}
                               disabled={employeePage === 1}
-                              className="p-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50"
+                              className="p-1.5 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50"
                             >
                               <ChevronLeft className="w-4 h-4" />
                             </button>
                             <span className="text-sm text-gray-600">
-                              Page {employeePage} sur {totalEmployeePages}
+                              {employeePage} / {totalEmployeePages}
                             </span>
                             <button
                               onClick={() => setEmployeePage(p => Math.min(totalEmployeePages, p + 1))}
                               disabled={employeePage === totalEmployeePages}
-                              className="p-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50"
+                              className="p-1.5 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50"
                             >
                               <ChevronRight className="w-4 h-4" />
                             </button>
@@ -421,10 +513,8 @@ export default function CertificatesPage() {
               {/* ===== TAB: HISTORIQUE ===== */}
               {activeTab === 'history' && (
                 <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <p className="text-sm text-gray-500">
-                      Tous les certificats générés par l&apos;entreprise
-                    </p>
+                  <div className="flex items-center justify-between mb-5">
+                    <p className="text-sm text-gray-500">Tous les documents générés</p>
                     <button
                       onClick={loadHistory}
                       disabled={loadingHistory}
@@ -442,7 +532,7 @@ export default function CertificatesPage() {
                   ) : history.length === 0 ? (
                     <div className="text-center py-12 text-gray-500">
                       <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <p>Aucun certificat généré pour le moment</p>
+                      <p>Aucun document généré pour le moment</p>
                     </div>
                   ) : (
                     <>
@@ -450,37 +540,48 @@ export default function CertificatesPage() {
                         <table className="w-full">
                           <thead className="bg-gray-50">
                             <tr>
-                              <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">Référence</th>
-                              <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">Employé</th>
-                              <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">Date de génération</th>
-                              <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">Généré par</th>
+                              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Référence</th>
+                              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Employé</th>
+                              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
+                              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Généré par</th>
+                              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Type</th>
                             </tr>
                           </thead>
-                          <tbody>
+                          <tbody className="divide-y divide-gray-100">
                             {history.map((cert) => (
-                              <tr key={cert.id} className="border-t border-gray-100 hover:bg-gray-50">
-                                <td className="px-4 py-4">
-                                  <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+                              <tr key={cert.id} className="hover:bg-gray-50">
+                                <td className="px-4 py-3.5">
+                                  <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
                                     {cert.reference_number}
                                   </span>
                                 </td>
-                                <td className="px-4 py-4">
+                                <td className="px-4 py-3.5">
                                   <div className="flex items-center gap-2">
-                                    <User className="w-4 h-4 text-gray-400" />
+                                    <User className="w-3.5 h-3.5 text-gray-400" />
                                     <span className="text-sm text-gray-900">{cert.employee_name}</span>
                                   </div>
                                 </td>
-                                <td className="px-4 py-4">
-                                  <div className="flex items-center gap-2">
-                                    <Calendar className="w-4 h-4 text-gray-400" />
-                                    <span className="text-sm text-gray-600">{formatDateTime(cert.generated_at)}</span>
-                                  </div>
+                                <td className="px-4 py-3.5 text-sm text-gray-600">
+                                  {formatDateTime(cert.generated_at)}
                                 </td>
-                                <td className="px-4 py-4 text-sm text-gray-600">
+                                <td className="px-4 py-3.5 text-sm text-gray-600">
                                   <div className="flex items-center gap-1">
                                     <Building2 className="w-3.5 h-3.5 text-gray-400" />
                                     {cert.generated_by}
                                   </div>
+                                </td>
+                                <td className="px-4 py-3.5">
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                    cert.generation_type === 'self'
+                                      ? 'bg-blue-100 text-blue-700'
+                                      : 'bg-green-100 text-green-700'
+                                  }`}>
+                                    {cert.generation_type === 'self' ? (
+                                      <><User className="w-3 h-3" />Self-service</>
+                                    ) : (
+                                      <><Building2 className="w-3 h-3" />RH</>
+                                    )}
+                                  </span>
                                 </td>
                               </tr>
                             ))}
@@ -489,23 +590,21 @@ export default function CertificatesPage() {
                       </div>
 
                       {totalHistoryPages > 1 && (
-                        <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
-                          <p className="text-sm text-gray-500">{historyTotal} certificat(s) généré(s)</p>
+                        <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-100">
+                          <p className="text-sm text-gray-500">{historyTotal} document(s)</p>
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
                               disabled={historyPage === 1}
-                              className="p-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50"
+                              className="p-1.5 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50"
                             >
                               <ChevronLeft className="w-4 h-4" />
                             </button>
-                            <span className="text-sm text-gray-600">
-                              Page {historyPage} sur {totalHistoryPages}
-                            </span>
+                            <span className="text-sm text-gray-600">{historyPage} / {totalHistoryPages}</span>
                             <button
                               onClick={() => setHistoryPage(p => Math.min(totalHistoryPages, p + 1))}
                               disabled={historyPage === totalHistoryPages}
-                              className="p-2 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50"
+                              className="p-1.5 border border-gray-300 rounded-lg disabled:opacity-50 hover:bg-gray-50"
                             >
                               <ChevronRight className="w-4 h-4" />
                             </button>
@@ -520,6 +619,15 @@ export default function CertificatesPage() {
           </div>
         </div>
       </main>
+
+      {/* Modale sélection type de document */}
+      {selectedEmployee && (
+        <DocTypeModal
+          employee={selectedEmployee}
+          onConfirm={handleConfirmGenerate}
+          onClose={() => setSelectedEmployee(null)}
+        />
+      )}
     </>
   );
 }

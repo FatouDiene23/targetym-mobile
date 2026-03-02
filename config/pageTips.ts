@@ -62,16 +62,28 @@ export const okrTips: PageTip[] = [
     id: 'create-okr',
     title: 'Créez votre premier objectif',
     description: 'Les OKR (Objectives and Key Results) vous aident à définir et suivre vos objectifs stratégiques. Commencez par créer un objectif aligné avec la vision de votre organisation.',
+    action: {
+      label: 'Voir le bouton Nouvel OKR',
+      element: '[data-tour="create-okr"]',
+    },
   },
   {
     id: 'track-progress',
     title: 'Suivez la progression',
     description: 'Mettez régulièrement à jour le pourcentage de complétion de vos objectifs pour visualiser votre avancement.',
+    action: {
+      label: 'Voir la progression',
+      element: '[data-tour="okr-progress"]',
+    },
   },
   {
     id: 'team-alignment',
     title: 'Alignez votre équipe',
     description: 'Invitez les membres de votre équipe à créer leurs propres OKR alignés avec les objectifs de l\'organisation.',
+    action: {
+      label: 'Voir les onglets',
+      element: '[data-tour="okr-tabs"]',
+    },
   },
 ];
 
@@ -83,16 +95,28 @@ export const recruitmentTips: PageTip[] = [
     id: 'create-job',
     title: 'Publier une offre d\'emploi',
     description: 'Créez votre première offre d\'emploi en quelques clics. Définissez le poste, les compétences requises et le processus de sélection.',
+    action: {
+      label: 'Voir le bouton Nouvelle Offre',
+      element: '[data-tour="create-job"]',
+    },
   },
   {
     id: 'manage-candidates',
     title: 'Gérer les candidatures',
     description: 'Suivez le parcours de chaque candidat à travers les différentes étapes : présélection, entretiens, décision finale.',
+    action: {
+      label: 'Voir les statistiques',
+      element: '[data-tour="recruitment-stats"]',
+    },
   },
   {
     id: 'pipeline',
     title: 'Visualisez votre pipeline',
     description: 'Utilisez la vue en pipeline pour avoir une vision globale de tous vos recrutements en cours.',
+    action: {
+      label: 'Voir les statistiques',
+      element: '[data-tour="recruitment-stats"]',
+    },
   },
 ];
 
@@ -103,17 +127,30 @@ export const performanceTips: PageTip[] = [
   {
     id: 'create-campaign',
     title: 'Lancer une campagne d\'évaluation',
-    description: 'Créez une campagne pour évaluer les performances de votre équipe sur une période définie.',
+    description
+: 'Créez une campagne pour évaluer les performances de votre équipe sur une période définie.',
+    action: {
+      label: 'Voir les statistiques',
+      element: '[data-tour="performance-stats"]',
+    },
   },
   {
     id: 'continuous-feedback',
     title: 'Donnez du feedback continu',
     description: 'Ne attendez pas l\'évaluation annuelle ! Donnez du feedback régulièrement pour accompagner vos collaborateurs.',
+    action: {
+      label: 'Voir les onglets',
+      element: '[data-tour="feedback-tabs"]',
+    },
   },
   {
     id: '360-feedback',
     title: 'Feedback 360°',
     description: 'Utilisez l\'évaluation 360° pour avoir une vision complète : managers, pairs et auto-évaluation.',
+    action: {
+      label: 'Voir les onglets',
+      element: '[data-tour="feedback-tabs"]',
+    },
   },
 ];
 

@@ -827,10 +827,12 @@ export default function FeedbackPage() {
       <Header title="Feedback Continu" subtitle="Partagez et recevez des feedbacks" />
 
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
-        <StatsCards stats={stats} attitudeScore={attitudeScores?.global_score ?? null} />
+        <div data-tour="performance-stats">
+          <StatsCards stats={stats} attitudeScore={attitudeScores?.global_score ?? null} />
+        </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
+      <div data-tour="feedback-tabs" className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
         <button onClick={() => setActiveTab('feed')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'feed' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
           📋 Fil d'activité
         </button>

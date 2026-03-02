@@ -1014,7 +1014,7 @@ export default function OKRPage() {
             <p className="text-xs text-gray-500">Total OKRs</p>
             <p className="text-2xl font-bold">{stats?.total || 0}</p>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div data-tour="okr-progress" className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <p className="text-xs text-gray-500">Progression Moy.</p>
             <p className="text-2xl font-bold">{stats?.avg_progress || 0}%</p>
           </div>
@@ -1037,7 +1037,7 @@ export default function OKRPage() {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
+        <div data-tour="okr-tabs" className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
           <div className="flex border-b border-gray-200">
             <button onClick={() => setActiveTab('list')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'list' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
               <Layers className="w-4 h-4 inline mr-2" />Liste des OKRs
@@ -1083,6 +1083,7 @@ export default function OKRPage() {
             </button>
             {canEdit && (
               <button 
+                data-tour="create-okr"
                 onClick={() => { setEditingObjective(null); setShowObjectiveModal(true); }}
                 className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600"
               >

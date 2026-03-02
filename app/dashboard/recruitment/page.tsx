@@ -466,7 +466,7 @@ export default function RecruitmentPage() {
       
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div data-tour="recruitment-stats" className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
               <div><p className="text-xs text-gray-500">Postes Ouverts</p><p className="text-2xl font-bold text-gray-900">{stats?.open_positions || 0}</p></div>
@@ -544,7 +544,11 @@ export default function RecruitmentPage() {
               </button>
             )}
             {activeTab === 'jobs' && (
-              <button onClick={() => { setEditingJob(null); setShowJobModal(true); }} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
+              <button 
+                data-tour="create-job"
+                onClick={() => { setEditingJob(null); setShowJobModal(true); }} 
+                className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"
+              >
                 <Plus className="w-4 h-4 mr-2" />Nouvelle Offre
               </button>
             )}

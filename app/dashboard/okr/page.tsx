@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { 
+import {
   Plus, ChevronDown, ChevronRight, Trash2, Edit, X,
   Building2, Users, User, Download, Link2, BarChart3, GitBranch, Layers, Loader2
 } from 'lucide-react';
+import Header from '@/components/Header';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 
 // ============================================
@@ -729,6 +730,13 @@ export default function OKRPage() {
   const [krObjectiveId, setKrObjectiveId] = useState<number>(0);
   const [editingKR, setEditingKR] = useState<KeyResult | null>(null);
 
+  // Écouter le bouton "+ Ajouter" du Header
+  useEffect(() => {
+    const handleHeaderAdd = () => { setEditingObjective(null); setShowObjectiveModal(true); };
+    window.addEventListener('okr-add', handleHeaderAdd);
+    return () => window.removeEventListener('okr-add', handleHeaderAdd);
+  }, []);
+
   // Toggle section collapse
   const toggleSection = (level: string) => {
     setCollapsedSections(prev => ({ ...prev, [level]: !prev[level] }));
@@ -963,29 +971,29 @@ export default function OKRPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-primary-500 mx-auto mb-4" />
-          <p className="text-gray-500">Chargement des OKRs...</p>
+      <>
+        <Header title="OKR & Objectifs" subtitle="Chargement..." />
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-primary-500 mx-auto mb-4" />
+            <p className="text-gray-500">Chargement des OKRs...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-900">OKR & Objectifs</h1>
-        <p className="text-sm text-gray-500">
-          {canSeeAll 
-            ? 'Pilotage stratégique - Alignement Entreprise → Département → Individuel'
-            : 'Vue de votre département - OKRs Entreprise et Département'
-          }
-        </p>
-      </div>
+    <>
+      <Header
+        title="OKR & Objectifs"
+        subtitle={canSeeAll
+          ? 'Pilotage stratégique - Alignement Entreprise → Département → Individuel'
+          : 'Vue de votre département - OKRs Entreprise et Département'
+        }
+      />
 
-      <main className="p-6">
+      <main className="flex-1 p-6 overflow-auto bg-gray-50">
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
@@ -1493,6 +1501,6 @@ export default function OKRPage() {
         objectiveId={krObjectiveId}
         keyResult={editingKR}
       />
-    </div>
+    </>
   );
 }

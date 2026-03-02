@@ -170,6 +170,7 @@ async function globalSearch(query: string): Promise<SearchResult[]> {
 const CONTEXTUAL_ROUTES: Record<string, string> = {
   '/dashboard/onboarding': 'onboarding-add',
   '/dashboard/recruitment': 'recruitment-add',
+  '/dashboard/okr': 'okr-add',
 };
 
 // Routes où le bouton "+Ajouter" est masqué

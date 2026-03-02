@@ -294,11 +294,12 @@ export default function CertificatesPage() {
     setGeneratingFor(employee.id);
     try {
       const blob = await generateDocument(employee.id, docType);
-      const prefix = docType === 'attestation' ? 'attestation_travail' : 'certificat_travail';
+      const docLabel = docType === 'attestation' ? 'Attestation_Travail' : 'Certificat_Travail';
+      const fullName = `${employee.last_name}_${employee.first_name}`.replace(/\s+/g, '_');
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${prefix}_${employee.last_name}_${new Date().toISOString().split('T')[0]}.pdf`;
+      a.download = `${docLabel}_${fullName}_${new Date().toISOString().split('T')[0]}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

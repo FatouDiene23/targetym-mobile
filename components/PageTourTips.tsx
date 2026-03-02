@@ -95,7 +95,7 @@ export default function PageTourTips({ tips, onDismiss, pageTitle }: Readonly<Pa
   const isLastTip = currentTip === tips.length - 1;
 
   return (
-    <div className="fixed top-20 right-6 z-[9999] max-w-md animate-slideInRight">
+    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[9999] max-w-lg w-full mx-4 animate-slideInRight">
       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-4 flex items-start justify-between">

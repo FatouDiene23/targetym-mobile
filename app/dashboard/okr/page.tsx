@@ -6,6 +6,9 @@ import {
   Building2, Users, User, Download, Link2, BarChart3, GitBranch, Layers, Loader2
 } from 'lucide-react';
 import Header from '@/components/Header';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { okrTips } from '@/config/pageTips';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 
 // ============================================
@@ -983,8 +986,18 @@ export default function OKRPage() {
     );
   }
 
+  const { showTips, dismissTips, resetTips } = usePageTour('okr');
+
   return (
     <>
+      {showTips && (
+        <PageTourTips
+          tips={okrTips}
+          onDismiss={dismissTips}
+          pageTitle="OKR & Objectifs"
+        />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
       <Header
         title="OKR & Objectifs"
         subtitle={canSeeAll

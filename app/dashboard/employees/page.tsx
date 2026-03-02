@@ -7,6 +7,9 @@ import EditEmployeeModal from '@/components/EditEmployeeModal';
 import LeaveRequestModal from '@/components/LeaveRequestModal';
 import HRDocumentsTab from '@/components/HRDocumentsTab';
 import DepartmentManagementTab from '@/components/DepartmentManagementTab';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { employeesTips } from '@/config/pageTips';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Search, Plus, Mail, Phone, MapPin, Calendar, Building2, Download,
@@ -353,6 +356,9 @@ export default function EmployeesPage() {
   const [orgSearch, setOrgSearch] = useState('');
   const [orgZoom, setOrgZoom] = useState(70);
 
+  // Page Tour
+  const { showTips, dismissTips, resetTips } = usePageTour('employees');
+
   // ============================================
   // ORGANIGRAMME LOGIC
   // ============================================
@@ -586,6 +592,14 @@ export default function EmployeesPage() {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: orgChartCSS }} />
+      {showTips && (
+        <PageTourTips
+          tips={employeesTips}
+          onDismiss={dismissTips}
+          pageTitle="Gestion du Personnel"
+        />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
       <Header title="Gestion du Personnel" subtitle="Administration RH, effectifs et congés" />
       <main className="flex-1 p-6 overflow-auto">
         {error && (<div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between"><span className="text-red-700">{error}</span><button onClick={loadAllData} className="flex items-center text-red-600 hover:text-red-800"><RefreshCw className="w-4 h-4 mr-1" />Réessayer</button></div>)}

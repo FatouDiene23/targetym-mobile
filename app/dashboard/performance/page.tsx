@@ -6,6 +6,9 @@ import {
   ChevronLeft, ChevronRight, BarChart3, Check, Trash2
 } from 'lucide-react';
 import Header from '@/components/Header';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { performanceTips } from '@/config/pageTips';
 
 // =============================================
 // TYPES
@@ -808,8 +811,18 @@ export default function FeedbackPage() {
     );
   }
 
+  const { showTips, dismissTips, resetTips } = usePageTour('performance');
+
   return (
     <>
+      {showTips && (
+        <PageTourTips
+          tips={performanceTips}
+          onDismiss={dismissTips}
+          pageTitle="Feedback Continu"
+        />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
       <Header title="Feedback Continu" subtitle="Partagez et recevez des feedbacks" />
 
       <main className="flex-1 p-6 overflow-auto bg-gray-50">

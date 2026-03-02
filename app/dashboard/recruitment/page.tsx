@@ -1,6 +1,9 @@
 'use client';
 
 import Header from '@/components/Header';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { recruitmentTips } from '@/config/pageTips';
 import { useState, useEffect, useCallback } from 'react';
 import { 
   UserPlus, Briefcase, Users, Clock, Mail, Phone, MapPin, Plus, XCircle,
@@ -446,8 +449,18 @@ export default function RecruitmentPage() {
     );
   }
 
+  const { showTips, dismissTips, resetTips } = usePageTour('recruitment');
+
   return (
     <>
+      {showTips && (
+        <PageTourTips
+          tips={recruitmentTips}
+          onDismiss={dismissTips}
+          pageTitle="Recrutement"
+        />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
       <Header title="Recrutement" subtitle="Pipeline candidats, offres d'emploi et analytics" />
       
       <main className="flex-1 p-6 overflow-auto bg-gray-50">

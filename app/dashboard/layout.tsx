@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
+import AppTour from '@/components/AppTour';
+import { RestartTourButton } from '@/components/AppTour';
+import { getTourStepsByRole } from '@/components/AppTourSteps';
+import { useAppTour } from '@/hooks/useAppTour';
 
 function LoadingScreen() {
   return (
@@ -21,6 +25,20 @@ export default function DashboardLayout({
 }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Hook pour gérer le tour applicatif
+  const {
+    showTour,
+    tourCompleted,
+    userRole,
+    isLoading: tourLoading,
+    handleCompleteTour,
+    handleSkipTour,
+    handleRestartTour,
+  } = useAppTour();
+
+  // Obtenir les étapes du tour selon le rôle
+  const tourSteps = getTourStepsByRole(userRole);
 
   useEffect(() => {
     // Utiliser window.location.search directement (plus fiable)
@@ -82,6 +100,19 @@ export default function DashboardLayout({
       <main className="flex-1 overflow-auto">
         {children}
       </main>
+
+      {/* Tour Applicatif */}
+      <AppTour
+        steps={tourSteps}
+        isOpen={showTour}
+        onComplete={handleCompleteTour}
+        onSkip={handleSkipTour}
+      />
+
+      {/* Bouton pour redémarrer le tour (visible uniquement si complété) */}
+      {tourCompleted && !showTour && (
+        <RestartTourButton onClick={handleRestartTour} />
+      )}
     </div>
   );
 }

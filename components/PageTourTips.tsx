@@ -177,3 +177,23 @@ export default function PageTourTips({ tips, onDismiss, pageTitle }: Readonly<Pa
     </div>
   );
 }
+
+// Bouton pour relancer les tips de la page
+interface RestartPageTipsButtonProps {
+  onClick: () => void;
+}
+
+export function RestartPageTipsButton({ onClick }: Readonly<RestartPageTipsButtonProps>) {
+  return (
+    <button
+      onClick={onClick}
+      className="fixed bottom-6 left-6 bg-amber-600 text-white p-3 rounded-full shadow-lg hover:bg-amber-700 transition-all hover:scale-110 z-50 group"
+      title="Revoir les suggestions de cette page"
+    >
+      <Lightbulb className="w-4 h-4" />
+      <span className="absolute left-full ml-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1.5 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+        Revoir les suggestions
+      </span>
+    </button>
+  );
+}

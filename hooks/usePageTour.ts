@@ -37,10 +37,19 @@ export function usePageTour(pageId: string) {
     markAsVisited();
   };
 
+  const resetTips = () => {
+    const visitedPages = JSON.parse(localStorage.getItem('visited_pages') || '{}');
+    delete visitedPages[pageId];
+    localStorage.setItem('visited_pages', JSON.stringify(visitedPages));
+    setShowTips(true);
+    setIsFirstVisit(true);
+  };
+
   return {
     showTips,
     isFirstVisit,
     dismissTips,
     markAsVisited,
+    resetTips,
   };
 }

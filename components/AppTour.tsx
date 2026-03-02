@@ -42,42 +42,81 @@ export default function AppTour({ steps, isOpen, onComplete, onSkip }: Readonly<
   // Calculer la position du tooltip par rapport à l'élément cible
   const calculateTooltipPosition = useCallback((element: HTMLElement, position: string = 'bottom') => {
     const rect = element.getBoundingClientRect();
+    const tooltipWidth = 400; // maxWidth du tooltip
+    const tooltipHeight = 300; // hauteur approximative
+    const margin = 20; // marge de sécurité
 
     const baseStyles: CSSProperties = {
       position: 'fixed',
     };
 
+    let left = 0;
+    let top = 0;
+    let transform = '';
+
     switch (position) {
       case 'top':
-        return {
-          ...baseStyles,
-          left: `${rect.left + rect.width / 2}px`,
-          top: `${rect.top - 10}px`,
-          transform: 'translate(-50%, -100%)',
-        };
+        left = rect.left + rect.width / 2;
+        top = rect.top - 10;
+        transform = 'translate(-50%, -100%)';
+        
+        // Vérifier débordement à gauche
+        if (left - tooltipWidth / 2 < margin) {
+          left = margin + tooltipWidth / 2;
+        }
+        // Vérifier débordement à droite
+        if (left + tooltipWidth / 2 > window.innerWidth - margin) {
+          left = window.innerWidth - margin - tooltipWidth / 2;
+        }
+        break;
+        
       case 'left':
-        return {
-          ...baseStyles,
-          left: `${rect.left - 10}px`,
-          top: `${rect.top + rect.height / 2}px`,
-          transform: 'translate(-100%, -50%)',
-        };
+        left = rect.left - 10;
+        top = rect.top + rect.height / 2;
+        transform = 'translate(-100%, -50%)';
+        
+        // Si déborde à gauche, passer à droite
+        if (left - tooltipWidth < margin) {
+          left = rect.right + 10;
+          transform = 'translate(0, -50%)';
+        }
+        break;
+        
       case 'right':
-        return {
-          ...baseStyles,
-          left: `${rect.right + 10}px`,
-          top: `${rect.top + rect.height / 2}px`,
-          transform: 'translate(0, -50%)',
-        };
+        left = rect.right + 10;
+        top = rect.top + rect.height / 2;
+        transform = 'translate(0, -50%)';
+        
+        // Si déborde à droite, passer à gauche
+        if (left + tooltipWidth > window.innerWidth - margin) {
+          left = rect.left - 10;
+          transform = 'translate(-100%, -50%)';
+        }
+        break;
+        
       case 'bottom':
       default:
-        return {
-          ...baseStyles,
-          left: `${rect.left + rect.width / 2}px`,
-          top: `${rect.bottom + 10}px`,
-          transform: 'translate(-50%, 0)',
-        };
+        left = rect.left + rect.width / 2;
+        top = rect.bottom + 10;
+        transform = 'translate(-50%, 0)';
+        
+        // Vérifier débordement à gauche
+        if (left - tooltipWidth / 2 < margin) {
+          left = margin + tooltipWidth / 2;
+        }
+        // Vérifier débordement à droite
+        if (left + tooltipWidth / 2 > window.innerWidth - margin) {
+          left = window.innerWidth - margin - tooltipWidth / 2;
+        }
+        break;
     }
+
+    return {
+      ...baseStyles,
+      left: `${left}px`,
+      top: `${top}px`,
+      transform,
+    };
   }, []);
 
   // Mettre à jour l'élément cible et le tooltip quand l'étape change

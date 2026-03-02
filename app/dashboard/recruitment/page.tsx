@@ -326,6 +326,22 @@ export default function RecruitmentPage() {
   useEffect(() => { loadData(); }, [loadData]);
   useEffect(() => { if (activeTab === 'analytics') loadAnalytics(); }, [activeTab, loadAnalytics]);
 
+  // Écouter l'événement du bouton "+ Ajouter" du Header
+  useEffect(() => {
+    const handleHeaderAdd = () => {
+      if (activeTab === 'jobs') {
+        setEditingJob(null);
+        setShowJobModal(true);
+      } else if (activeTab === 'interviews') {
+        setShowInterviewModal(true);
+      } else {
+        setShowAddCandidateModal(true);
+      }
+    };
+    window.addEventListener('recruitment-add', handleHeaderAdd);
+    return () => window.removeEventListener('recruitment-add', handleHeaderAdd);
+  }, [activeTab]);
+
   const getApplicationsByStage = (stageId: string) => {
     return applications.filter(app => {
       if (app.stage !== stageId) return false;

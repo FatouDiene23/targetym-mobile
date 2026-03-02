@@ -972,6 +972,9 @@ export default function OKRPage() {
     progress: data.avg_progress,
   })) : [];
 
+  // Page Tour Hook
+  const { showTips, dismissTips, resetTips } = usePageTour('okr');
+
   if (loading) {
     return (
       <>
@@ -985,8 +988,6 @@ export default function OKRPage() {
       </>
     );
   }
-
-  const { showTips, dismissTips, resetTips } = usePageTour('okr');
 
   return (
     <>

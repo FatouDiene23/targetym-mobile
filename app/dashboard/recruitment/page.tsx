@@ -435,6 +435,9 @@ export default function RecruitmentPage() {
     if (success) loadData(); else alert('Erreur lors de la suppression');
   };
 
+  // Page Tour Hook
+  const { showTips, dismissTips, resetTips } = usePageTour('recruitment');
+
   if (loading) {
     return (
       <>
@@ -448,8 +451,6 @@ export default function RecruitmentPage() {
       </>
     );
   }
-
-  const { showTips, dismissTips, resetTips } = usePageTour('recruitment');
 
   return (
     <>

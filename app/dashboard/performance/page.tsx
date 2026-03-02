@@ -797,6 +797,9 @@ export default function FeedbackPage() {
   const paginatedFeedbacks = filteredFeedbacks.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
   const totalPages = Math.ceil(filteredFeedbacks.length / ITEMS_PER_PAGE);
 
+  // Page Tour Hook
+  const { showTips, dismissTips, resetTips } = usePageTour('performance');
+
   if (loading) {
     return (
       <>
@@ -810,8 +813,6 @@ export default function FeedbackPage() {
       </>
     );
   }
-
-  const { showTips, dismissTips, resetTips } = usePageTour('performance');
 
   return (
     <>

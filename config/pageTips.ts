@@ -41,24 +41,16 @@ export const employeesTips: PageTip[] = [
     id: 'add-employee',
     title: 'Ajouter votre premier employé',
     description: 'Commencez par ajouter les informations de vos collaborateurs. Vous pourrez ensuite gérer leurs congés, performances et parcours de carrière.',
-    action: {
-      label: 'Ajouter un employé',
-      element: 'button:has-text("Ajouter un employé")',
-    },
   },
   {
     id: 'export-data',
     title: 'Exporter vos données',
-    description: 'Besoin de partager ou analyser vos données ? Exportez la liste complète en Excel ou CSV.',
-    action: {
-      label: 'Voir l\'option d\'export',
-      element: 'button:has-text("Exporter")',
-    },
+    description: 'Besoin de partager ou analyser vos données ? Exportez la liste complète en Excel ou CSV en utilisant le bouton "Exporter" en haut de la page.',
   },
   {
     id: 'filters',
     title: 'Filtrer et rechercher',
-    description: 'Utilisez les filtres pour trouver rapidement des employés par département, statut ou poste.',
+    description: 'Utilisez les filtres pour trouver rapidement des employés par département, statut ou poste. La barre de recherche permet de chercher par nom.',
   },
 ];
 

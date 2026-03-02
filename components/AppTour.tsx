@@ -210,33 +210,87 @@ export default function AppTour({ steps, isOpen, onComplete, onSkip }: Readonly<
 
   return (
     <>
-      {/* Overlay sombre */}
-      <button 
-        type="button"
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity cursor-pointer border-0 p-0"
-        style={{ zIndex: overlayZIndex }}
-        onClick={handleSkip}
-        onKeyDown={(e: KeyboardEvent<HTMLButtonElement>) => {
-          if (e.key === 'Escape' || e.key === 'Enter') {
-            handleSkip();
-          }
-        }}
-        aria-label="Fermer le guide"
-      />
+      {/* Overlay sombre avec découpe pour l'élément ciblé */}
+      {targetElement && (
+        <>
+          {/* Top overlay */}
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: `${targetElement.getBoundingClientRect().top - 8}px`,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              zIndex: overlayZIndex,
+              transition: 'all 0.4s ease',
+              pointerEvents: 'none',
+            }}
+          />
+          {/* Left overlay */}
+          <div
+            style={{
+              position: 'fixed',
+              top: `${targetElement.getBoundingClientRect().top - 8}px`,
+              left: 0,
+              width: `${targetElement.getBoundingClientRect().left - 8}px`,
+              height: `${targetElement.getBoundingClientRect().height + 16}px`,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              zIndex: overlayZIndex,
+              transition: 'all 0.4s ease',
+              pointerEvents: 'none',
+            }}
+          />
+          {/* Right overlay */}
+          <div
+            style={{
+              position: 'fixed',
+              top: `${targetElement.getBoundingClientRect().top - 8}px`,
+              left: `${targetElement.getBoundingClientRect().right + 8}px`,
+              right: 0,
+              height: `${targetElement.getBoundingClientRect().height + 16}px`,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              zIndex: overlayZIndex,
+              transition: 'all 0.4s ease',
+              pointerEvents: 'none',
+            }}
+          />
+          {/* Bottom overlay */}
+          <div
+            style={{
+              position: 'fixed',
+              top: `${targetElement.getBoundingClientRect().bottom + 8}px`,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              zIndex: overlayZIndex,
+              transition: 'all 0.4s ease',
+              pointerEvents: 'none',
+            }}
+          />
+        </>
+      )}
+
+      {/* Si pas d'élément ciblé, overlay complet */}
+      {!targetElement && (
+        <button 
+          type="button"
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity cursor-pointer border-0 p-0"
+          style={{ zIndex: overlayZIndex }}
+          onClick={handleSkip}
+          onKeyDown={(e: KeyboardEvent<HTMLButtonElement>) => {
+            if (e.key === 'Escape' || e.key === 'Enter') {
+              handleSkip();
+            }
+          }}
+          aria-label="Fermer le guide"
+        />
+      )}
 
       {/* Spotlight sur l'élément ciblé */}
       {targetElement && (
         <>
-          {/* Zone découpée dans l'overlay pour faire apparaître l'élément */}
-          <div
-            style={{
-              ...spotlightStyles,
-              backgroundColor: 'transparent',
-              borderRadius: '12px',
-              boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.7)',
-              transition: 'all 0.4s ease',
-            }}
-          />
           {/* Bordure animée */}
           <div
             className="app-tour-spotlight"
@@ -244,7 +298,7 @@ export default function AppTour({ steps, isOpen, onComplete, onSkip }: Readonly<
               ...spotlightStyles,
               border: '4px solid #3b82f6',
               borderRadius: '12px',
-              backgroundColor: 'rgba(59, 130, 246, 0.05)',
+              backgroundColor: 'transparent',
               boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.8), inset 0 0 30px rgba(59, 130, 246, 0.15)',
               transition: 'all 0.4s ease',
               animation: 'pulse-border 2s ease-in-out infinite',

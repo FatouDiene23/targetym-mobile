@@ -1,7 +1,7 @@
 'use client';
 
 import { X, Lightbulb, ArrowRight } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export interface PageTip {
   id: string;
@@ -21,34 +21,37 @@ interface PageTourTipsProps {
 
 export default function PageTourTips({ tips, onDismiss, pageTitle }: Readonly<PageTourTipsProps>) {
   const [currentTip, setCurrentTip] = useState(0);
-  const [highlightedElement, setHighlightedElement] = useState<HTMLElement | null>(null);
+  const highlightedElementRef = useRef<HTMLElement | null>(null);
 
   // Mettre en évidence l'élément quand on change d'étape
   useEffect(() => {
     const tip = tips[currentTip];
     
     // Retirer le highlight précédent
-    if (highlightedElement) {
-      highlightedElement.classList.remove('page-tip-highlight');
+    if (highlightedElementRef.current) {
+      highlightedElementRef.current.classList.remove('page-tip-highlight');
+      highlightedElementRef.current = null;
     }
 
+    // Ajouter le nouveau highlight
     if (tip?.action?.element) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         const element = document.querySelector(tip.action!.element) as HTMLElement;
+        console.log('🎯 Searching for element:', tip.action!.element, 'Found:', element);
         if (element) {
           element.classList.add('page-tip-highlight');
+          console.log('✅ Highlighting element:', element);
           element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-          setHighlightedElement(element);
+          highlightedElementRef.current = element;
+        } else {
+          console.warn('❌ Element not found:', tip.action!.element);
         }
-      }, 300);
-    }
+      }, 100);
 
-    // Cleanup
-    return () => {
-      if (highlightedElement) {
-        highlightedElement.classList.remove('page-tip-highlight');
-      }
-    };
+      return () => {
+        clearTimeout(timer);
+      };
+    }
   }, [currentTip, tips]);
 
   const handleNext = () => {
@@ -71,7 +74,7 @@ export default function PageTourTips({ tips, onDismiss, pageTitle }: Readonly<Pa
       const element = document.querySelector(tip.action.element) as HTMLElement;
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-        // Flash effect
+        // Flash effect - retirer puis remettre la classe
         element.classList.remove('page-tip-highlight');
         setTimeout(() => {
           element.classList.add('page-tip-highlight');
@@ -81,8 +84,9 @@ export default function PageTourTips({ tips, onDismiss, pageTitle }: Readonly<Pa
   };
 
   const handleComplete = () => {
-    if (highlightedElement) {
-      highlightedElement.classList.remove('page-tip-highlight');
+    if (highlightedElementRef.current) {
+      highlightedElementRef.current.classList.remove('page-tip-highlight');
+      highlightedElementRef.current = null;
     }
     onDismiss();
   };

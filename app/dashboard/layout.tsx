@@ -22,9 +22,9 @@ function LoadingScreen() {
 
 export default function DashboardLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -33,7 +33,6 @@ export default function DashboardLayout({
     showTour,
     tourCompleted,
     userRole,
-    isLoading: tourLoading,
     handleCompleteTour,
     handleSkipTour,
     handleRestartTour,
@@ -99,14 +98,15 @@ export default function DashboardLayout({
   return (
     <HelpMenuProvider>
       <DashboardContent
-        children={children}
         tourSteps={tourSteps}
         showTour={showTour}
         tourCompleted={tourCompleted}
         handleCompleteTour={handleCompleteTour}
         handleSkipTour={handleSkipTour}
         handleRestartTour={handleRestartTour}
-      />
+      >
+        {children}
+      </DashboardContent>
     </HelpMenuProvider>
   );
 }
@@ -119,7 +119,7 @@ function DashboardContent({
   handleCompleteTour,
   handleSkipTour,
   handleRestartTour,
-}: {
+}: Readonly<{
   children: React.ReactNode;
   tourSteps: any[];
   showTour: boolean;
@@ -127,7 +127,7 @@ function DashboardContent({
   handleCompleteTour: () => void;
   handleSkipTour: () => void;
   handleRestartTour: () => void;
-}) {
+}>) {
   const { setTourHandler } = useHelpMenu();
 
   // Enregistrer le handler du tour dans le contexte global
@@ -135,7 +135,7 @@ function DashboardContent({
     if (tourCompleted && !showTour) {
       setTourHandler(handleRestartTour);
     } else {
-      setTourHandler(() => {});
+      setTourHandler(null);
     }
   }, [tourCompleted, showTour, handleRestartTour, setTourHandler]);
 

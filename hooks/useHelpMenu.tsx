@@ -1,11 +1,11 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useMemo, useCallback } from 'react';
 
 interface HelpMenuContextType {
   onRestartTour: (() => void) | null;
   onRestartPageTips: (() => void) | null;
-  setTourHandler: (handler: () => void) => void;
+  setTourHandler: (handler: (() => void) | null) => void;
   setPageTipsHandler: (handler: (() => void) | null) => void;
   showTourOption: boolean;
   showTipsOption: boolean;
@@ -13,29 +13,29 @@ interface HelpMenuContextType {
 
 const HelpMenuContext = createContext<HelpMenuContextType | undefined>(undefined);
 
-export function HelpMenuProvider({ children }: { children: ReactNode }) {
+export function HelpMenuProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [onRestartTour, setOnRestartTour] = useState<(() => void) | null>(null);
   const [onRestartPageTips, setOnRestartPageTips] = useState<(() => void) | null>(null);
 
-  const setTourHandler = (handler: () => void) => {
+  const setTourHandler = useCallback((handler: (() => void) | null) => {
     setOnRestartTour(() => handler);
-  };
+  }, []);
 
-  const setPageTipsHandler = (handler: (() => void) | null) => {
+  const setPageTipsHandler = useCallback((handler: (() => void) | null) => {
     setOnRestartPageTips(() => handler);
-  };
+  }, []);
+
+  const contextValue = useMemo(() => ({
+    onRestartTour,
+    onRestartPageTips,
+    setTourHandler,
+    setPageTipsHandler,
+    showTourOption: onRestartTour !== null,
+    showTipsOption: onRestartPageTips !== null,
+  }), [onRestartTour, onRestartPageTips, setTourHandler, setPageTipsHandler]);
 
   return (
-    <HelpMenuContext.Provider
-      value={{
-        onRestartTour,
-        onRestartPageTips,
-        setTourHandler,
-        setPageTipsHandler,
-        showTourOption: onRestartTour !== null,
-        showTipsOption: onRestartPageTips !== null,
-      }}
-    >
+    <HelpMenuContext.Provider value={contextValue}>
       {children}
     </HelpMenuContext.Provider>
   );

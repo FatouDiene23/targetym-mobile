@@ -362,7 +362,7 @@ export default function MyTeamPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8" data-tour="team-stats">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -451,7 +451,7 @@ export default function MyTeamPage() {
           </button>
 
           {showTeam && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4" data-tour="team-list">
               {teamMembers.map((member) => (
                 <TeamMemberCard key={member.id} member={member} />
               ))}

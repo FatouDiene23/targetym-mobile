@@ -373,7 +373,7 @@ function ObjectiveCard({
             <Target className="w-4 h-4 text-primary-600" />
             Résultats Clés
           </h4>
-          <div className="space-y-3">
+          <div className="space-y-3" data-tour="key-results">
             {objective.key_results.map((kr) => (
               <KeyResultItem key={kr.id} kr={kr} onUpdate={onUpdate} />
             ))}
@@ -559,7 +559,7 @@ export default function MyObjectivesPage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4" data-tour="objectives-list">
             {objectives.map((objective) => (
               <ObjectiveCard 
                 key={objective.id} 

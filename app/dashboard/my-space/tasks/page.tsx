@@ -1125,7 +1125,7 @@ function MyTasksTab({
     <div className="space-y-6">
       {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" data-tour="tasks-list">
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <p className="text-sm text-gray-500">À faire</p>
             <p className="text-2xl font-bold text-gray-900">{stats.pending + stats.in_progress}</p>

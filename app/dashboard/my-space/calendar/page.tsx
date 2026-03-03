@@ -1043,7 +1043,7 @@ export default function MyCalendarPage() {
         )}
 
         {/* Quick stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6" data-tour="calendar-view">
           {[
             { label: 'Événements', value: visibleEvents.length, icon: <CalendarIcon className="w-4 h-4" />, color: 'text-primary-600 bg-primary-50' },
             { label: 'Congés', value: (eventCountByType['my_leave'] || 0) + (eventCountByType['team_leave'] || 0), icon: <Briefcase className="w-4 h-4" />, color: 'text-blue-600 bg-blue-50' },

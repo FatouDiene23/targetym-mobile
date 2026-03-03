@@ -48,7 +48,7 @@ export default function TalentsDashboard() {
       <Header title="Talents & Carrière" subtitle="Vue d'ensemble des talents, carrières et plans de succession" />
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6" data-tour="talent-stats">
           <StatCard icon={Users} label="Évalués (9-Box)" value={d?.total_evaluated || 0} color="blue" />
           <StatCard icon={Star} label="Stars" value={d?.stars || 0} color="green" />
           <StatCard icon={TrendingUp} label="Hauts Potentiels" value={d?.high_potentials || 0} color="emerald" />
@@ -103,7 +103,7 @@ export default function TalentsDashboard() {
           </div>
 
           {/* 9-Box Mini Distribution */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6" data-tour="ninebox-chart">
             <div className="flex items-center gap-2 mb-4">
               <Target className="w-5 h-5 text-green-600" />
               <h3 className="font-semibold text-gray-900">Distribution 9-Box</h3>

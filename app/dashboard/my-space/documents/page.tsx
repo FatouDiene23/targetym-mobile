@@ -535,7 +535,7 @@ export default function MyDocumentsPage() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3" data-tour="documents-list">
                 {filtered.map(doc => {
                   const style = getDocStyle(doc.document_type);
                   const FileIcon = getFileIcon(doc.mime_type);

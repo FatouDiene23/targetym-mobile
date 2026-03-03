@@ -675,7 +675,7 @@ export default function MyCareerPage() {
         </div>
 
         {/* Key Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6" data-tour="skills-analysis">
           <StatCard
             icon={<Clock className="w-5 h-5 text-primary-600" />}
             label="Ancienneté"
@@ -718,7 +718,7 @@ export default function MyCareerPage() {
         {/* Salary Chart + Current Position side by side */}
         <div className="grid lg:grid-cols-2 gap-6 mb-6">
           {/* Current Position */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-white rounded-xl border border-gray-200 p-5" data-tour="career-path">
             <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
               <Briefcase className="w-4 h-4 text-primary-600" />
               Poste Actuel

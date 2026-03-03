@@ -1192,7 +1192,7 @@ export default function PerformancePage() {
         <div className="flex-1 p-8">
           {/* Stats Cards */}
           {stats && (
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8" data-tour="performance-stats">
               <div className="bg-white rounded-xl p-4 border border-gray-200">
                 <p className="text-sm text-gray-500">Score Moyen</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.avg_score > 0 ? `${stats.avg_score}/5` : '-'}</p>

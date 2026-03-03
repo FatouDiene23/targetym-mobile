@@ -442,6 +442,7 @@ export default function MyLeavesPage() {
           <button
             onClick={() => setShowModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            data-tour="request-leave"
           >
             <Plus className="w-5 h-5" />
             Nouvelle demande
@@ -464,7 +465,7 @@ export default function MyLeavesPage() {
           </div>
 
           {balances && balances.balances.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" data-tour="leave-balance">
               {balances.balances.map((balance) => (
                 <div 
                   key={balance.id} 

@@ -349,6 +349,7 @@ export default function CareersPage() {
             <button 
               onClick={() => setActiveTab('applications')} 
               className={`flex-1 px-6 py-4 text-sm font-medium transition-colors ${activeTab === 'applications' ? 'text-primary-600 border-b-2 border-primary-600 bg-primary-50/50' : 'text-gray-500 hover:text-gray-700'}`}
+              data-tour="applications-tab"
             >
               <FileText className="w-4 h-4 inline mr-2" />
               Mes Candidatures ({myApplications.length})
@@ -411,7 +412,7 @@ export default function CareersPage() {
                 <p className="text-sm text-gray-400">Modifiez vos filtres ou revenez plus tard</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4" data-tour="jobs-list">
                 {filteredJobs.map((job) => {
                   const applied = hasApplied(job.id);
                   return (

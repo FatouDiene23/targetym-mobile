@@ -7,6 +7,9 @@ import {
   FileText, Download, Loader2, PenTool, Upload, Trash2, CheckCircle,
   Network, ZoomIn, ZoomOut, Users, ChevronUp, ChevronDown
 } from 'lucide-react';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { mySpaceTips } from '@/config/pageTips';
 
 // ============================================
 // TYPES
@@ -370,6 +373,9 @@ export default function MyProfilePage() {
   const [orgExpanded, setOrgExpanded] = useState<Set<number>>(new Set());
   const [orgZoom, setOrgZoom] = useState(90);
 
+  // Tour tips
+  const { showTips, dismissTips, resetTips } = usePageTour('mySpace');
+
   const loadData = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -653,6 +659,14 @@ export default function MyProfilePage() {
 
   return (
     <div className="py-8 px-4 sm:px-6 lg:px-8">
+      {showTips && (
+        <PageTourTips
+          tips={mySpaceTips}
+          onTipDismiss={dismissTips}
+        />
+      )}
+      <RestartPageTipsButton onRestart={resetTips} />
+      
       <style dangerouslySetInnerHTML={{ __html: myOrgCSS }} />
       <div className={activeTab === 'orgchart' ? 'max-w-7xl mx-auto' : 'max-w-4xl mx-auto'}>
         {/* Header */}
@@ -675,7 +689,7 @@ export default function MyProfilePage() {
         {/* Tab: Organigramme Personnel */}
         {/* ============================================ */}
         {activeTab === 'orgchart' && (
-          <div className="space-y-4">
+          <div className="space-y-4" data-tour="org-chart">
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
               <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div>
@@ -772,7 +786,7 @@ export default function MyProfilePage() {
         {activeTab === 'profile' && (<>
 
         {/* Profile Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-tour="profile-section">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <User className="w-5 h-5 text-primary-600" />
@@ -928,7 +942,7 @@ export default function MyProfilePage() {
         {/* ============================================ */}
         {/* SECTION SIGNATURE ÉLECTRONIQUE */}
         {/* ============================================ */}
-        <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-tour="signature-section">
           <h3 className="text-lg font-semibold text-gray-900 mb-1 flex items-center gap-2">
             <PenTool className="w-5 h-5 text-primary-600" />
             Signature électronique

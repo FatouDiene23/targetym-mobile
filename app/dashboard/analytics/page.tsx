@@ -20,6 +20,9 @@ import {
   Zap, GraduationCap, Building2, ArrowUpRight, ArrowDownRight,
   RefreshCw, FileText, FileSpreadsheet, Brain, Eye
 } from "lucide-react";
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { analyticsTips } from '@/config/pageTips';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -215,6 +218,9 @@ export default function PeopleAnalyticsPage() {
   const [departments, setDepartments] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Page Tour Hook
+  const { showTips, dismissTips, resetTips } = usePageTour('analytics');
+
   // Données réelles depuis l'API
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [effectifsEvolution, setEffectifsEvolution] = useState<any[]>([]);
@@ -339,7 +345,7 @@ export default function PeopleAnalyticsPage() {
   const renderOverview = () => (
     <div className="space-y-6">
       {/* KPIs cliquables */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div data-tour="analytics-kpis" className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {renderKPICard(
           "Effectif total",
           overview?.total_employees ?? "—",
@@ -391,7 +397,7 @@ export default function PeopleAnalyticsPage() {
       </div>
 
       {/* Alertes IA */}
-      <div className="bg-white rounded-xl border p-6">
+      <div data-tour="analytics-charts" className="bg-white rounded-xl border p-6">
         <div className="flex items-center gap-2 mb-4">
           <Brain size={20} className="text-purple-600" />
           <h3 className="font-semibold text-gray-900">Alertes & Recommandations IA</h3>
@@ -1039,6 +1045,14 @@ export default function PeopleAnalyticsPage() {
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto">
+      {showTips && (
+        <PageTourTips
+          tips={analyticsTips}
+          onDismiss={dismissTips}
+          pageTitle="People Analytics"
+        />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
@@ -1088,14 +1102,16 @@ export default function PeopleAnalyticsPage() {
           </button>
 
           {/* Export buttons */}
-          <button className="flex items-center gap-2 px-3 py-2 border rounded-lg text-sm hover:bg-gray-50 transition-colors">
-            <FileSpreadsheet size={14} />
-            Excel
-          </button>
-          <button className="flex items-center gap-2 px-3 py-2 border rounded-lg text-sm hover:bg-gray-50 transition-colors">
-            <FileText size={14} />
-            PDF
-          </button>
+          <div data-tour="analytics-export" className="flex gap-2">
+            <button className="flex items-center gap-2 px-3 py-2 border rounded-lg text-sm hover:bg-gray-50 transition-colors">
+              <FileSpreadsheet size={14} />
+              Excel
+            </button>
+            <button className="flex items-center gap-2 px-3 py-2 border rounded-lg text-sm hover:bg-gray-50 transition-colors">
+              <FileText size={14} />
+              PDF
+            </button>
+          </div>
         </div>
       </div>
 

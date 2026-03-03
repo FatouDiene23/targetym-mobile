@@ -7,6 +7,9 @@ import {
   Bell, CheckCheck, Check, X, Loader2, Trash2,
   Handshake, Calendar, FileCheck, Plane, Briefcase, ClipboardList, ChevronLeft, ChevronRight
 } from 'lucide-react';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { notificationsTips } from '@/config/pageTips';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app';
 
@@ -85,6 +88,9 @@ export default function NotificationsPage() {
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const pageSize = 15;
 
+  // Tour tips
+  const { showTips, dismissTips, resetTips } = usePageTour('notifications');
+
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
@@ -157,13 +163,21 @@ export default function NotificationsPage() {
 
   return (
     <>
+      {showTips && (
+        <PageTourTips
+          tips={notificationsTips}
+          onTipDismiss={dismissTips}
+        />
+      )}
+      <RestartPageTipsButton onRestart={resetTips} />
+      
       <Header title="Notifications" subtitle={`${total} notification${total > 1 ? 's' : ''}`} />
       <div className="p-6 max-w-4xl mx-auto">
 
         {/* Toolbar */}
         <div className="bg-white rounded-xl border border-gray-200 mb-4">
           <div className="px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1" data-tour="notifications-filters">
               {(['all', 'unread', 'read'] as const).map((f) => (
                 <button
                   key={f}
@@ -177,7 +191,11 @@ export default function NotificationsPage() {
               ))}
             </div>
             {unreadInView > 0 && (
-              <button onClick={handleMarkAllRead} className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg transition-colors font-medium">
+              <button
+                data-tour="notifications-actions"
+                onClick={handleMarkAllRead}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg transition-colors font-medium"
+              >
                 <CheckCheck className="w-4 h-4" />
                 Tout marquer comme lu
               </button>
@@ -186,7 +204,7 @@ export default function NotificationsPage() {
         </div>
 
         {/* Liste */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden" data-tour="notifications-list">
           {loading ? (
             <div className="py-16 flex flex-col items-center justify-center text-gray-400">
               <Loader2 className="w-8 h-8 animate-spin mb-3" />

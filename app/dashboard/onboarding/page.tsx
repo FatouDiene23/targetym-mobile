@@ -11,6 +11,9 @@ import {
   X, ArrowLeft, ChevronUp, Building2, Mail, Phone, MoreHorizontal,
   CircleDot, Settings, Rocket, ShieldCheck, GraduationCap
 } from 'lucide-react';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { onboardingTips } from '@/config/pageTips';
 
 // ============================================
 // TYPES
@@ -473,6 +476,9 @@ export default function OnboardingPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Tour tips
+  const { showTips, dismissTips, resetTips } = usePageTour('onboarding');
+
   // Init
   useEffect(() => {
     const { role: r, employeeId: eid } = getUserFromStorage();
@@ -579,7 +585,7 @@ export default function OnboardingPage() {
     return (
       <div className="space-y-6">
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-tour="onboarding-stats">
           <StatCard label="Total onboardings" value={stats.total} icon={Users} color="bg-blue-50 text-blue-600" />
           <StatCard label="En cours" value={stats.in_progress} icon={Rocket} color="bg-amber-50 text-amber-600" sub={`${stats.avg_progress}% progrès moyen`} />
           <StatCard label="Terminés" value={stats.completed} icon={CheckCircle} color="bg-green-50 text-green-600" />
@@ -1040,7 +1046,7 @@ export default function OnboardingPage() {
   // ============================================
 
   const renderGetToKnow = () => (
-    <div className="space-y-4">
+    <div className="space-y-4" data-tour="onboarding-meetings">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Rencontres Get to Know</h3>
         {isHR && (
@@ -1537,6 +1543,14 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {showTips && (
+        <PageTourTips
+          tips={onboardingTips}
+          onTipDismiss={dismissTips}
+        />
+      )}
+      <RestartPageTipsButton onRestart={resetTips} />
+      
       <Header title="Onboarding" subtitle="Gestion de l'intégration des nouveaux collaborateurs" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">

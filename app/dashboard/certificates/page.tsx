@@ -7,6 +7,8 @@ import {
   Building2, RefreshCw, LogOut, FileCheck, X
 } from 'lucide-react';
 import Header from '@/components/Header';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { certificatesTips } from '@/config/pageTips';
 
 // ============================================
 // TYPES
@@ -316,6 +318,14 @@ export default function CertificatesPage() {
 
   return (
     <>
+      {showTips && (
+        <PageTourTips
+          tips={certificatesTips}
+          onDismiss={dismissTips}
+          pageTitle="Documents RH"
+        />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
       <Header
         title="Documents RH"
         subtitle="Générez attestations et certificats de travail pour vos employés"
@@ -364,7 +374,7 @@ export default function CertificatesPage() {
             <div className="p-6">
               {/* ===== TAB: GÉNÉRER ===== */}
               {activeTab === 'generate' && (
-                <div>
+                <div data-tour="certificates-generate">
                   {/* Info */}
                   <div className="flex gap-4 mb-5">
                     <div className="flex-1 bg-blue-50 border border-blue-100 rounded-lg p-3 flex items-start gap-2">
@@ -382,7 +392,7 @@ export default function CertificatesPage() {
                   </div>
 
                   {/* Filtres */}
-                  <div className="flex gap-3 mb-5 flex-wrap">
+                  <div className="flex gap-3 mb-5 flex-wrap" data-tour="certificates-search">
                     <div className="flex-1 min-w-[220px] relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
@@ -513,7 +523,7 @@ export default function CertificatesPage() {
 
               {/* ===== TAB: HISTORIQUE ===== */}
               {activeTab === 'history' && (
-                <div>
+                <div data-tour="certificates-history">
                   <div className="flex items-center justify-between mb-5">
                     <p className="text-sm text-gray-500">Tous les documents générés</p>
                     <button

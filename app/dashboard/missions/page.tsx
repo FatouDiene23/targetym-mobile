@@ -9,6 +9,9 @@ import {
   StopCircle, Receipt, Building2, Car, Train, Bus, MoreHorizontal,
   TrendingUp, DollarSign, Briefcase, X, Upload, UserCheck
 } from 'lucide-react';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { missionsTips } from '@/config/pageTips';
 
 // ============================================
 // TYPES
@@ -235,6 +238,9 @@ export default function MissionsPage() {
 
   const showValidateTab = isManagerOrAbove(role);
   const showTeamTab = isManagerOrAbove(role);
+
+  // Tour tips
+  const { showTips, dismissTips, resetTips } = usePageTour('missions');
 
   useEffect(() => {
     const userInfo = getUserFromStorage();
@@ -838,10 +844,19 @@ export default function MissionsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {showTips && (
+        <PageTourTips
+          tips={missionsTips}
+          onTipDismiss={dismissTips}
+        />
+      )}
+      <RestartPageTipsButton onRestart={resetTips} />
+      
       <Header title="Gestion des Missions" subtitle="Ordres de missions & déplacements professionnels"/>
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex items-center justify-end mb-6">
           <button
+            data-tour="create-mission"
             onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
           >
@@ -850,7 +865,9 @@ export default function MissionsPage() {
           </button>
         </div>
 
-        {renderStats()}
+        <div data-tour="missions-stats">
+          {renderStats()}
+        </div>
 
         <div className="flex items-center gap-1 mb-4 bg-white rounded-xl p-1 border">
           {tabs.map((tab) => (
@@ -877,7 +894,7 @@ export default function MissionsPage() {
         </div>
 
         {activeTab !== 'a_valider' && (
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-4" data-tour="missions-filters">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input

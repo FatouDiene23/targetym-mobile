@@ -254,6 +254,237 @@ export const talentsTips: PageTip[] = [
 ];
 
 /**
+ * Suggestions pour la page Analytics
+ */
+export const analyticsTips: PageTip[] = [
+  {
+    id: 'overview-kpis',
+    title: 'Indicateurs clés RH en un coup d\'œil',
+    description: 'Consultez vos KPIs essentiels : effectifs, turnover, rétention, absentéisme. Identifiez rapidement les tendances et points d\'attention.',
+    action: {
+      label: 'Voir les indicateurs',
+      element: '[data-tour="analytics-kpis"]',
+    },
+  },
+  {
+    id: 'charts-visualization',
+    title: 'Visualisez vos données',
+    description: 'Explorez les graphiques interactifs pour analyser la performance, les talents, et la diversité de vos équipes.',
+    action: {
+      label: 'Voir les graphiques',
+      element: '[data-tour="analytics-charts"]',
+    },
+  },
+  {
+    id: 'export-reports',
+    title: 'Exportez vos rapports',
+    description: 'Téléchargez vos données en Excel ou PDF pour des présentations ou analyses approfondies.',
+    action: {
+      label: 'Voir le bouton Export',
+      element: '[data-tour="analytics-export"]',
+    },
+  },
+];
+
+/**
+ * Suggestions pour la page Certificates
+ */
+export const certificatesTips: PageTip[] = [
+  {
+    id: 'generate-doc',
+    title: 'Générez des documents officiels',
+    description: 'Créez des certificats de travail ou attestations en quelques clics. Les documents sont automatiquement conformes et signés.',
+    action: {
+      label: 'Voir la liste',
+      element: '[data-tour="employees-list"]',
+    },
+  },
+  {
+    id: 'search-employee',
+    title: 'Recherchez l\'employé',
+    description: 'Utilisez la recherche pour trouver rapidement le collaborateur concerné. Filtrez par statut (actif/inactif).',
+    action: {
+      label: 'Voir la recherche',
+      element: '[data-tour="certificates-search"]',
+    },
+  },
+  {
+    id: 'view-history',
+    title: 'Historique des générations',
+    description: 'Consultez tous les certificats générés avec leur référence unique et la date de création.',
+    action: {
+      label: 'Voir l\'historique',
+      element: '[data-tour="certificates-history"]',
+    },
+  },
+];
+
+/**
+ * Suggestions pour la page Missions
+ */
+export const missionsTips: PageTip[] = [
+  {
+    id: 'create-mission',
+    title: 'Créez une mission',
+    description: 'Planifiez les déplacements professionnels : destination, dates, transport, hébergement et budget.',
+    action: {
+      label: 'Voir le bouton Nouvelle Mission',
+      element: '[data-tour="create-mission"]',
+    },
+  },
+  {
+    id: 'track-status',
+    title: 'Suivez les validations',
+    description: 'Les missions passent par plusieurs étapes : validation manager, validation RH, exécution, et clôture avec rapport.',
+    action: {
+      label: 'Voir les statistiques',
+      element: '[data-tour="missions-stats"]',
+    },
+  },
+  {
+    id: 'manage-expenses',
+    title: 'Gérez les frais',
+    description: 'Ajoutez les dépenses avec justificatifs, suivez les remboursements et exportez les rapports de frais.',
+    action: {
+      label: 'Voir les filtres',
+      element: '[data-tour="missions-filters"]',
+    },
+  },
+];
+
+/**
+ * Suggestions pour la page My-space
+ */
+export const mySpaceTips: PageTip[] = [
+  {
+    id: 'edit-profile',
+    title: 'Gérez votre profil',
+    description: 'Consultez et mettez à jour vos informations personnelles : coordonnées, poste, département.',
+    action: {
+      label: 'Voir le profil',
+      element: '[data-tour="profile-section"]',
+    },
+  },
+  {
+    id: 'add-signature',
+    title: 'Ajoutez votre signature',
+    description: 'Créez votre signature électronique pour valider les documents et missions en toute sécurité.',
+    action: {
+      label: 'Voir la signature',
+      element: '[data-tour="signature-section"]',
+    },
+  },
+  {
+    id: 'view-org-chart',
+    title: 'Organigramme personnel',
+    description: 'Visualisez votre position dans l\'organisation et votre chaîne hiérarchique.',
+    action: {
+      label: 'Voir l\'organigramme',
+      element: '[data-tour="org-chart"]',
+    },
+  },
+];
+
+/**
+ * Suggestions pour la page Notifications
+ */
+export const notificationsTips: PageTip[] = [
+  {
+    id: 'view-notifications',
+    title: 'Toutes vos notifications',
+    description: 'Recevez les alertes importantes : validations, tâches, rappels, onboarding, congés et missions.',
+    action: {
+      label: 'Voir les notifications',
+      element: '[data-tour="notifications-list"]',
+    },
+  },
+  {
+    id: 'filter-type',
+    title: 'Filtrez par type',
+    description: 'Affichez uniquement les notifications qui vous intéressent : non lues, urgentes, ou par catégorie.',
+    action: {
+      label: 'Voir les filtres',
+      element: '[data-tour="notifications-filters"]',
+    },
+  },
+  {
+    id: 'mark-as-read',
+    title: 'Marquez comme lues',
+    description: 'Gardez votre centre de notifications organisé en marquant les messages traités comme lus.',
+    action: {
+      label: 'Voir les actions',
+      element: '[data-tour="notifications-actions"]',
+    },
+  },
+];
+
+/**
+ * Suggestions pour la page Onboarding
+ */
+export const onboardingTips: PageTip[] = [
+  {
+    id: 'create-program',
+    title: 'Créez un programme d\'onboarding',
+    description: 'Définissez un parcours d\'intégration personnalisé avec des tâches, formations et rencontres planifiées.',
+    action: {
+      label: 'Voir les programmes',
+      element: '[data-tour="onboarding-programs"]',
+    },
+  },
+  {
+    id: 'track-progress',
+    title: 'Suivez la progression',
+    description: 'Visualisez l\'avancement de chaque nouvel arrivant : tâches complétées, rencontres effectuées, délais.',
+    action: {
+      label: 'Voir les statistiques',
+      element: '[data-tour="onboarding-stats"]',
+    },
+  },
+  {
+    id: 'get-to-know',
+    title: 'Planifiez les rencontres',
+    description: 'Organisez des "Get to Know" pour faciliter l\'intégration et créer des liens entre collaborateurs.',
+    action: {
+      label: 'Voir les rencontres',
+      element: '[data-tour="onboarding-meetings"]',
+    },
+  },
+];
+
+/**
+ * Suggestions pour la page Settings
+ */
+export const settingsTips: PageTip[] = [
+  {
+    id: 'company-info',
+    title: 'Informations de l\'entreprise',
+    description: 'Configurez les données de votre organisation : nom, adresse, contact, logo.',
+    action: {
+      label: 'Voir les paramètres',
+      element: '[data-tour="settings-tabs"]',
+    },
+  },
+  {
+    id: 'certificate-config',
+    title: 'Personnalisez vos documents',
+    description: 'Ajoutez votre logo, signature et cachet pour les certificats et attestations officiels.',
+    action: {
+      label: 'Voir la configuration',
+      element: '[data-tour="certificate-config"]',
+    },
+  },
+  {
+    id: 'integrations',
+    title: 'Connectez vos outils',
+    description: 'Intégrez Slack, Teams, Asana et autres applications pour synchroniser vos données RH.',
+    action: {
+      label: 'Voir les intégrations',
+      element: '[data-tour="integrations"]',
+    },
+  },
+];
+
+/**
  * Obtenir les tips selon l'ID de la page
  */
 export function getPageTips(pageId: string): PageTip[] {
@@ -266,6 +497,13 @@ export function getPageTips(pageId: string): PageTip[] {
     learning: learningTips,
     leaves: leavesTips,
     talents: talentsTips,
+    analytics: analyticsTips,
+    certificates: certificatesTips,
+    missions: missionsTips,
+    myspace: mySpaceTips,
+    notifications: notificationsTips,
+    onboarding: onboardingTips,
+    settings: settingsTips,
   };
 
   return tipsMap[pageId] || [];

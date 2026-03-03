@@ -20,6 +20,9 @@ import {
   Stamp,
   PenTool
 } from 'lucide-react';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { settingsTips } from '@/config/pageTips';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app';
 
@@ -113,6 +116,9 @@ export default function SettingsPage() {
   const [loadingCertSettings, setLoadingCertSettings] = useState(false);
   const [savingCertSettings, setSavingCertSettings] = useState(false);
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
+
+  // Tour tips
+  const { showTips, dismissTips, resetTips } = usePageTour('settings');
 
   // ============================================
   // CHARGEMENT DES DONNÉES
@@ -404,12 +410,20 @@ export default function SettingsPage() {
 
   return (
     <>
+      {showTips && (
+        <PageTourTips
+          tips={settingsTips}
+          onTipDismiss={dismissTips}
+        />
+      )}
+      <RestartPageTipsButton onRestart={resetTips} />
+      
       <Header title="Paramètres" subtitle="Configuration de votre espace Targetym AI" />
       
       <main className="flex-1 p-6 overflow-auto">
         <div className="grid lg:grid-cols-4 gap-6">
           {/* Sidebar */}
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 h-fit">
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 h-fit" data-tour="settings-tabs">
             <nav className="space-y-1">
               {tabs.map((tab) => (
                 <button
@@ -599,7 +613,7 @@ export default function SettingsPage() {
             {/* ONGLET: CERTIFICATS            */}
             {/* ============================== */}
             {activeTab === 'certificates' && (
-              <div className="space-y-6">
+              <div className="space-y-6" data-tour="certificate-config">
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">Documents Visuels</h3>
                   <p className="text-sm text-gray-500 mb-6">
@@ -759,7 +773,7 @@ export default function SettingsPage() {
             {/* ONGLET: INTÉGRATIONS           */}
             {/* ============================== */}
             {activeTab === 'integrations' && (
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100" data-tour="integrations">
                 <h3 className="text-lg font-semibold text-gray-900 mb-6">Intégrations</h3>
                 
                 <div className="grid md:grid-cols-2 gap-4">

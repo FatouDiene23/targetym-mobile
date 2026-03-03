@@ -23,10 +23,17 @@ export default function ChatMessageContent({ content, isUser }: Readonly<ChatMes
     text = text.replaceAll(chartRegex, (match, chartType, chartData) => {
       try {
         const data = JSON.parse(chartData.trim());
-        detectedCharts.push({ type: chartType, data });
-        return `\n[Graphique ${chartType}]\n`;
+        // Vérifier que les données sont valides (array non vide)
+        if (Array.isArray(data) && data.length > 0) {
+          detectedCharts.push({ type: chartType, data });
+          // Marque invisible pour savoir où afficher le graphique
+          return `%%CHART_${detectedCharts.length - 1}%%`;
+        }
+        // Si données invalides/vides, supprimer complètement le bloc
+        return '';
       } catch {
-        return match; // Si parsing échoue, garder le bloc original
+        // Si parsing échoue, supprimer le bloc (ne pas laisser le code raw)
+        return '';
       }
     });
 
@@ -103,7 +110,7 @@ export default function ChatMessageContent({ content, isUser }: Readonly<ChatMes
 
   return (
     <div className="text-sm">
-      {/* Contenu markdown */}
+      {/* Contenu markdown avec placeholders de graphiques */}
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -139,10 +146,21 @@ export default function ChatMessageContent({ content, isUser }: Readonly<ChatMes
           h3: (props) => (
             <h3 className="text-sm font-semibold mt-2 mb-1 text-gray-900" {...props} />
           ),
-          // Paragraphes
-          p: (props) => (
-            <p className="my-1.5 leading-relaxed" {...props} />
-          ),
+          // Paragraphes - Injecter les graphiques inline quand placeholder détecté
+          p: ({ children, ...props }: any) => {
+            const text = String(children || '');
+            const chartMatch = text.match(/%%CHART_(\d+)%%/);
+            if (chartMatch) {
+              const chartIndex = parseInt(chartMatch[1]);
+              const chart = charts[chartIndex];
+              if (chart) {
+                return renderChart(chart, chartIndex);
+              }
+              // Si chart introuvable, ne rien afficher
+              return null;
+            }
+            return <p className="my-1.5 leading-relaxed" {...props}>{children}</p>;
+          },
           // Code blocks
           code: ({ inline, ...props }: any) =>
             inline ? (
@@ -170,9 +188,6 @@ export default function ChatMessageContent({ content, isUser }: Readonly<ChatMes
       >
         {textContent}
       </ReactMarkdown>
-
-      {/* Graphiques détectés */}
-      {charts.map((chart, index) => renderChart(chart, index))}
     </div>
   );
 }

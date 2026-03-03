@@ -331,7 +331,7 @@ function EmployeeChecklistView() {
       if (item.status === 'pending') {
         await startTask(item.task_id);
       }
-      await completeTask(item.task_id, {});
+      await completeTask(item.task_id);
       await load();
     } catch {
       // silencieux

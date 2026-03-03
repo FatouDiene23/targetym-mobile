@@ -662,10 +662,11 @@ export default function MyProfilePage() {
       {showTips && (
         <PageTourTips
           tips={mySpaceTips}
-          onTipDismiss={dismissTips}
+          onDismiss={dismissTips}
+          pageTitle="Mon Espace"
         />
       )}
-      <RestartPageTipsButton onRestart={resetTips} />
+      <RestartPageTipsButton onClick={resetTips} />
       
       <style dangerouslySetInnerHTML={{ __html: myOrgCSS }} />
       <div className={activeTab === 'orgchart' ? 'max-w-7xl mx-auto' : 'max-w-4xl mx-auto'}>

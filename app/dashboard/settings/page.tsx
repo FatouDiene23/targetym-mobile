@@ -413,10 +413,11 @@ export default function SettingsPage() {
       {showTips && (
         <PageTourTips
           tips={settingsTips}
-          onTipDismiss={dismissTips}
+          onDismiss={dismissTips}
+          pageTitle="Paramètres"
         />
       )}
-      <RestartPageTipsButton onRestart={resetTips} />
+      <RestartPageTipsButton onClick={resetTips} />
       
       <Header title="Paramètres" subtitle="Configuration de votre espace Targetym AI" />
       

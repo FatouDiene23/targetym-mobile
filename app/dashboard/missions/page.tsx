@@ -847,10 +847,11 @@ export default function MissionsPage() {
       {showTips && (
         <PageTourTips
           tips={missionsTips}
-          onTipDismiss={dismissTips}
+          onDismiss={dismissTips}
+          pageTitle="Missions"
         />
       )}
-      <RestartPageTipsButton onRestart={resetTips} />
+      <RestartPageTipsButton onClick={resetTips} />
       
       <Header title="Gestion des Missions" subtitle="Ordres de missions & déplacements professionnels"/>
       <div className="max-w-7xl mx-auto px-4 py-6">

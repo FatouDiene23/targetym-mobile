@@ -277,10 +277,11 @@ export default function CareersPage() {
       {showTips && (
         <PageTourTips
           tips={internalJobsTips}
-          onTipDismiss={dismissTips}
+          onDismiss={dismissTips}
+          pageTitle="Offres Internes"
         />
       )}
-      <RestartPageTipsButton onRestart={resetTips} />
+      <RestartPageTipsButton onClick={resetTips} />
       
       <Header title="Offres Internes" subtitle="Postulez aux opportunités et suivez vos candidatures" />
       

@@ -166,10 +166,11 @@ export default function NotificationsPage() {
       {showTips && (
         <PageTourTips
           tips={notificationsTips}
-          onTipDismiss={dismissTips}
+          onDismiss={dismissTips}
+          pageTitle="Notifications"
         />
       )}
-      <RestartPageTipsButton onRestart={resetTips} />
+      <RestartPageTipsButton onClick={resetTips} />
       
       <Header title="Notifications" subtitle={`${total} notification${total > 1 ? 's' : ''}`} />
       <div className="p-6 max-w-4xl mx-auto">

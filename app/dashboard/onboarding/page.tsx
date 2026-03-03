@@ -1546,10 +1546,11 @@ export default function OnboardingPage() {
       {showTips && (
         <PageTourTips
           tips={onboardingTips}
-          onTipDismiss={dismissTips}
+          onDismiss={dismissTips}
+          pageTitle="Onboarding"
         />
       )}
-      <RestartPageTipsButton onRestart={resetTips} />
+      <RestartPageTipsButton onClick={resetTips} />
       
       <Header title="Onboarding" subtitle="Gestion de l'intégration des nouveaux collaborateurs" />
 

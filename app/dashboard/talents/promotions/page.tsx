@@ -103,7 +103,7 @@ export default function PromotionsPage() {
         {/* TAB: Promotion Requests */}
         {activeTab === 'requests' && (
           <>
-            <div className="flex justify-between items-center gap-4 mb-4">
+            <div className="flex justify-between items-center gap-4 mb-4" data-tour="eligibility-filters">
               <select
                 value={filterStatus}
                 onChange={e => handleFilter(e.target.value)}
@@ -116,7 +116,7 @@ export default function PromotionsPage() {
               </select>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3" data-tour="promotions-list">
               {promotions.length === 0 ? (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
                   <ArrowUpRight className="w-12 h-12 mx-auto mb-4 text-gray-300" />

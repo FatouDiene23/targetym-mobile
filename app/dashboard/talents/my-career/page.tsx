@@ -170,7 +170,7 @@ export default function MyCareerPage() {
         </div>
 
         {/* ── Statut + Prochaine étape ── */}
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-6" data-tour="my-evaluation">
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
             <h3 className="font-semibold text-gray-900 mb-4">Mon statut</h3>
             <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${elig.color}`}>
@@ -385,7 +385,7 @@ export default function MyCareerPage() {
 
         {/* ── Détail des compétences ── */}
         {totalCount > 0 && (
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6" data-tour="development-plan">
             <h3 className="font-semibold text-gray-900 mb-4">
               Détail des compétences — "{career.next_level_title || career.current_level_title}"
             </h3>

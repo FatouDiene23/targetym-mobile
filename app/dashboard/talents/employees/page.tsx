@@ -114,7 +114,7 @@ export default function AllEmployeesCareerPage() {
         <div className="w-80 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
 
           {/* Filtres */}
-          <div className="p-4 border-b border-gray-100 space-y-2">
+          <div className="p-4 border-b border-gray-100 space-y-2" data-tour="talent-filters">
             <div className="relative">
               <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -151,7 +151,7 @@ export default function AllEmployeesCareerPage() {
           </div>
 
           {/* Liste */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto" data-tour="talent-list">
             {filtered.length === 0 ? (
               <div className="p-8 text-center">
                 <Users className="w-8 h-8 text-gray-200 mx-auto mb-2" />

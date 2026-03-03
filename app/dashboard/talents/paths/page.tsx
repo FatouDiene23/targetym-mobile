@@ -59,12 +59,14 @@ export default function PathsPage() {
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left: Path List */}
-          <div className="space-y-4">
+          <div className="space-y-4" data-tour="paths-list">
             <div className="flex justify-between items-center">
               <h3 className="font-semibold text-gray-900">Filières ({paths.length})</h3>
               {canEdit && (
                 <button onClick={() => setShowCreate(true)}
-                  className="flex items-center px-3 py-1.5 bg-primary-500 text-white text-xs font-medium rounded-lg hover:bg-primary-600">
+                  className="flex items-center px-3 py-1.5 bg-primary-500 text-white text-xs font-medium rounded-lg hover:bg-primary-600"
+                  data-tour="create-path"
+                >
                   <Plus className="w-3 h-3 mr-1" />Nouvelle
                 </button>
               )}

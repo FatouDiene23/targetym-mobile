@@ -689,7 +689,7 @@ export default function OnboardingPage() {
     if (selectedProgram) return renderProgramDetail();
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-4" data-tour="onboarding-programs">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Programmes d'intégration</h3>
           {isHR && (

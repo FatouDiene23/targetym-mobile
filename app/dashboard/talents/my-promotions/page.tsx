@@ -126,7 +126,7 @@ export default function MyPromotionsPage() {
         )}
 
         {/* ── Statut éligibilité + action ── */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6" data-tour="eligibility-criteria">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h3 className="font-semibold text-gray-900 mb-1">Statut d'éligibilité</h3>
@@ -192,7 +192,7 @@ export default function MyPromotionsPage() {
         )}
 
         {/* ── Historique des demandes ── */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6" data-tour="promotion-status">
           <div className="flex items-center gap-2 mb-5">
             <ArrowUpRight className="w-5 h-5 text-primary-500" />
             <h3 className="font-semibold text-gray-900">Historique des demandes</h3>

@@ -18,7 +18,7 @@ import {
   AlertCircle, Info, ChevronRight, Download, Filter, Calendar,
   BarChart3, PieChart as PieChartIcon, Activity, Shield, Star,
   Zap, GraduationCap, Building2, ArrowUpRight, ArrowDownRight,
-  RefreshCw, FileText, FileSpreadsheet, Brain, Eye
+  RefreshCw, FileText, FileSpreadsheet, Brain, Eye, Banknote
 } from "lucide-react";
 import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
@@ -230,6 +230,13 @@ export default function PeopleAnalyticsPage() {
   const [absenteismeByDept, setAbsenteismeByDept] = useState<any[]>([]);
   const [missionsStats, setMissionsStats] = useState<any>(null);
 
+  // Masse salariale
+  const [salaireOverview, setSalaireOverview] = useState<any>(null);
+  const [salaireEvolution, setSalaireEvolution] = useState<any[]>([]);
+  const [salaireByDept, setSalaireByDept] = useState<any[]>([]);
+  const [salaireDistribution, setSalaireDistribution] = useState<any[]>([]);
+  const [salaireByContract, setSalaireByContract] = useState<any[]>([]);
+
   // --- Fetch données réelles ---
   const fetchRealData = useCallback(async () => {
     setLoading(true);
@@ -246,6 +253,11 @@ export default function PeopleAnalyticsPage() {
         absRes,
         missionsRes,
         deptsRes,
+        salaireOvRes,
+        salaireEvolRes,
+        salaireDeptRes,
+        salaireDistRes,
+        salaireContractRes,
       ] = await Promise.allSettled([
         fetchAPI("/api/analytics/overview", params),
         fetchAPI("/api/analytics/effectifs/evolution", params),
@@ -255,6 +267,11 @@ export default function PeopleAnalyticsPage() {
         fetchAPI("/api/analytics/absenteisme/by-department", { period }),
         fetchAPI("/api/analytics/missions/stats", params),
         fetchAPI("/api/analytics/departments"),
+        fetchAPI("/api/analytics/salaires/overview", params),
+        fetchAPI("/api/analytics/salaires/evolution", params),
+        fetchAPI("/api/analytics/salaires/by-department"),
+        fetchAPI("/api/analytics/salaires/distribution"),
+        fetchAPI("/api/analytics/salaires/by-contract"),
       ]);
 
       if (overviewRes.status === "fulfilled") setOverview(overviewRes.value);
@@ -265,6 +282,11 @@ export default function PeopleAnalyticsPage() {
       if (absRes.status === "fulfilled") setAbsenteismeByDept(absRes.value);
       if (missionsRes.status === "fulfilled") setMissionsStats(missionsRes.value);
       if (deptsRes.status === "fulfilled") setDepartments(deptsRes.value);
+      if (salaireOvRes.status === "fulfilled") setSalaireOverview(salaireOvRes.value);
+      if (salaireEvolRes.status === "fulfilled") setSalaireEvolution(salaireEvolRes.value);
+      if (salaireDeptRes.status === "fulfilled") setSalaireByDept(salaireDeptRes.value);
+      if (salaireDistRes.status === "fulfilled") setSalaireDistribution(salaireDistRes.value);
+      if (salaireContractRes.status === "fulfilled") setSalaireByContract(salaireContractRes.value);
     } catch (err) {
       console.error("Erreur fetch analytics:", err);
     } finally {
@@ -286,6 +308,7 @@ export default function PeopleAnalyticsPage() {
     { label: "Formation", icon: <GraduationCap size={16} /> },
     { label: "Engagement", icon: <Heart size={16} /> },
     { label: "Recrutement", icon: <Briefcase size={16} /> },
+    { label: "Masse Salariale", icon: <Banknote size={16} /> },
   ];
 
 
@@ -1030,6 +1053,201 @@ export default function PeopleAnalyticsPage() {
 
 
   // ============================================
+  // TAB 7 - MASSE SALARIALE
+  // ============================================
+
+  const renderMasseSalariale = () => (
+    <div className="space-y-6">
+      {renderBadge("real")}
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-3">
+        {renderKPICard(
+          "Masse annuelle",
+          salaireOverview ? `${formatXOF(salaireOverview.masse_annuelle)} XOF` : "—",
+          <Banknote size={20} className="text-blue-600" />,
+          "bg-blue-50",
+          salaireOverview ? `${formatXOF(salaireOverview.masse_mensuelle)} XOF / mois` : undefined
+        )}
+        {renderKPICard(
+          "Salaire moyen",
+          salaireOverview ? `${formatXOF(salaireOverview.salaire_moyen)} XOF` : "—",
+          <TrendingUp size={20} className="text-green-600" />,
+          "bg-green-50"
+        )}
+        {renderKPICard(
+          "Salaire médian",
+          salaireOverview ? `${formatXOF(salaireOverview.salaire_median)} XOF` : "—",
+          <Activity size={20} className="text-purple-600" />,
+          "bg-purple-50"
+        )}
+        {renderKPICard(
+          "Écart salarial H/F",
+          salaireOverview ? `${salaireOverview.ecart_salarial_hf}%` : "—",
+          <Users size={20} className="text-pink-600" />,
+          "bg-pink-50",
+          salaireOverview ? `H: ${formatXOF(salaireOverview.salaire_moy_hommes)} / F: ${formatXOF(salaireOverview.salaire_moy_femmes)}` : undefined
+        )}
+        {renderKPICard(
+          "Augmentations",
+          salaireOverview?.nb_augmentations ?? "—",
+          <ArrowUpRight size={20} className="text-emerald-600" />,
+          "bg-emerald-50",
+          salaireOverview ? `Moy: +${salaireOverview.pct_augmentation_moy}%` : undefined
+        )}
+        {renderKPICard(
+          "Employés rémunérés",
+          salaireOverview?.nb_avec_salaire ?? "—",
+          <Award size={20} className="text-amber-600" />,
+          "bg-amber-50"
+        )}
+      </div>
+
+      {/* Évolution masse salariale + répartition par département */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl border p-6">
+          <h3 className="font-semibold text-gray-900 mb-4">Évolution de la masse salariale</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={salaireEvolution}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatXOF(v)} />
+              <Tooltip formatter={(v: number) => [`${formatXOF(v)} XOF`, ""]} />
+              <Legend />
+              <Area
+                type="monotone"
+                dataKey="masse_salariale"
+                name="Masse salariale"
+                stroke="#3b82f6"
+                fill="#3b82f620"
+                strokeWidth={2}
+              />
+              <Area
+                type="monotone"
+                dataKey="salaire_moyen"
+                name="Salaire moyen"
+                stroke="#10b981"
+                fill="#10b98120"
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="bg-white rounded-xl border p-6">
+          <h3 className="font-semibold text-gray-900 mb-4">Répartition par département</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={salaireByDept}
+                dataKey="masse_salariale"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                label={({ name, payload }: any) => `${name}: ${payload?.pct_total ?? 0}%`}
+              >
+                {salaireByDept.map((entry, i) => (
+                  <Cell key={i} fill={entry.color || "#3b82f6"} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(v: number) => `${formatXOF(v)} XOF`} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Distribution par tranches + par contrat */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl border p-6">
+          <h3 className="font-semibold text-gray-900 mb-4">Distribution par tranches salariales</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={salaireDistribution}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="tranche" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip
+                formatter={(v: number, name: string) => [
+                  name === "nb_employes" ? `${v} employés` : `${formatXOF(v)} XOF`,
+                  name === "nb_employes" ? "Effectif" : "Salaire moyen",
+                ]}
+              />
+              <Bar dataKey="nb_employes" name="Effectif" radius={[4, 4, 0, 0]}>
+                {salaireDistribution.map((entry, i) => (
+                  <Cell key={i} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="bg-white rounded-xl border p-6">
+          <h3 className="font-semibold text-gray-900 mb-4">Masse salariale par type de contrat</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={salaireByContract} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => formatXOF(v)} />
+              <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={80} />
+              <Tooltip formatter={(v: number) => `${formatXOF(v)} XOF`} />
+              <Bar dataKey="masse_salariale" name="Masse salariale" radius={[0, 4, 4, 0]}>
+                {salaireByContract.map((entry, i) => (
+                  <Cell key={i} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Tableau détaillé par département */}
+      <div className="bg-white rounded-xl border p-6">
+        <h3 className="font-semibold text-gray-900 mb-4">Détail par département</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left text-gray-500">
+                <th className="pb-3 font-medium">Département</th>
+                <th className="pb-3 font-medium text-center">Effectif</th>
+                <th className="pb-3 font-medium text-right">Masse salariale / mois</th>
+                <th className="pb-3 font-medium text-right">Salaire moyen</th>
+                <th className="pb-3 font-medium text-center">% du total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {salaireByDept.map((d, i) => (
+                <tr key={i} className="border-b last:border-0 hover:bg-gray-50">
+                  <td className="py-3 font-medium text-gray-900 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: d.color }} />
+                    {d.name}
+                  </td>
+                  <td className="py-3 text-center">{d.effectif}</td>
+                  <td className="py-3 text-right">{formatXOF(d.masse_salariale)} XOF</td>
+                  <td className="py-3 text-right">{formatXOF(d.salaire_moyen)} XOF</td>
+                  <td className="py-3 text-center">
+                    <div className="flex items-center gap-2 justify-end">
+                      <div className="w-16 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full"
+                          style={{ width: `${Math.min(d.pct_total, 100)}%`, background: d.color }}
+                        />
+                      </div>
+                      <span className="text-xs font-medium text-gray-600">{d.pct_total}%</span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {salaireByDept.length === 0 && (
+            <p className="text-center text-gray-400 py-8 text-sm">Aucune donnée salariale disponible</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+
+  // ============================================
   // RENDER PRINCIPAL
   // ============================================
 
@@ -1041,6 +1259,7 @@ export default function PeopleAnalyticsPage() {
     renderFormation,
     renderEngagement,
     renderRecrutement,
+    renderMasseSalariale,
   ];
 
   return (

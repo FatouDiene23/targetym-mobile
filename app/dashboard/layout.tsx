@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import AppTour from '@/components/AppTour';
+import AIChatBox from '@/components/AIChatBox';
 import { RestartTourButton } from '@/components/AppTour';
 import { getTourStepsByRole } from '@/components/AppTourSteps';
 import { useAppTour } from '@/hooks/useAppTour';
@@ -113,6 +114,9 @@ export default function DashboardLayout({
       {tourCompleted && !showTour && (
         <RestartTourButton onClick={handleRestartTour} />
       )}
+
+      {/* Chatbot AI */}
+      <AIChatBox />
     </div>
   );
 }

@@ -1290,3 +1290,155 @@ export async function resetAppTour(): Promise<{ success: boolean; message: strin
 
   return response.json();
 }
+
+// ============================================
+// AI CHATBOT
+// ============================================
+
+export type MessageRole = 'user' | 'assistant' | 'system';
+
+export interface ChatMessage {
+  id: number;
+  conversation_id: number;
+  role: MessageRole;
+  content: string;
+  created_at: string;
+  tokens_used?: number;
+}
+
+export interface ChatConversation {
+  id: number;
+  employee_id: number;
+  title: string | null;
+  is_active: number;
+  created_at: string;
+  updated_at?: string;
+  message_count?: number;
+}
+
+export interface ChatConversationWithMessages extends ChatConversation {
+  messages: ChatMessage[];
+}
+
+export interface SendMessageRequest {
+  content: string;
+  conversation_id?: number;
+}
+
+export interface HumanEscalation {
+  needs_human: boolean;
+  reason: string;
+  contact_email: string;
+  contact_whatsapp: string;
+  message: string;
+}
+
+export interface ChatbotStatus {
+  enabled: boolean;
+  model: string | null;
+  message: string;
+}
+
+/**
+ * Récupère toutes les conversations de l'utilisateur
+ */
+export async function getChatConversations(): Promise<ChatConversation[]> {
+  const response = await fetch(`${API_URL}/api/ai-chat/conversations`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+/**
+ * Récupère une conversation avec tous ses messages
+ */
+export async function getChatConversation(conversationId: number): Promise<ChatConversationWithMessages> {
+  const response = await fetch(`${API_URL}/api/ai-chat/conversations/${conversationId}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+/**
+ * Crée une nouvelle conversation
+ */
+export async function createChatConversation(title?: string, initialMessage?: string): Promise<ChatConversation> {
+  const response = await fetch(`${API_URL}/api/ai-chat/conversations`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ title, initial_message: initialMessage }),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+/**
+ * Archive une conversation
+ */
+export async function deleteChatConversation(conversationId: number): Promise<{ message: string }> {
+  const response = await fetch(`${API_URL}/api/ai-chat/conversations/${conversationId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+/**
+ * Envoie un message au chatbot et obtient une réponse
+ */
+export async function sendChatMessage(data: SendMessageRequest): Promise<ChatMessage> {
+  const response = await fetch(`${API_URL}/api/ai-chat/message`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+/**
+ * Vérifie le statut du chatbot (activé/configuré)
+ */
+export async function getChatbotStatus(): Promise<ChatbotStatus> {
+  const response = await fetch(`${API_URL}/api/ai-chat/status`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}

@@ -24,7 +24,7 @@ import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { analyticsTips } from '@/config/pageTips';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://web-production-06c3.up.railway.app";
 
 // ============================================
 // TYPES

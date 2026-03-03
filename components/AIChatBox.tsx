@@ -172,7 +172,6 @@ export default function AIChatBox() {
               </div>
               <div>
                 <h3 className="font-semibold text-lg">Assistant Targetym</h3>
-                <p className="text-xs text-blue-100">Propulsé par Claude AI</p>
               </div>
             </div>
             
@@ -310,7 +309,7 @@ export default function AIChatBox() {
 
           {/* Boutons de contact */}
           <div className="px-4 py-2 bg-gray-100 border-t border-gray-200 flex items-center gap-2 text-xs">
-            <span className="text-gray-600">Besoin d'aide humaine ?</span>
+            <span className="text-gray-600">Besoin de parler à un agent ?</span>
             <a
               href="mailto:support@targetym.com"
               className="flex items-center gap-1 text-blue-600 hover:text-blue-700 font-medium"

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { careerTips } from '@/config/pageTips';
 import {
@@ -620,7 +620,6 @@ export default function MyCareerPage() {
       {showTips && (
         <PageTourTips tips={careerTips} onDismiss={dismissTips} pageTitle="Ma Carrière" />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       <div className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
 

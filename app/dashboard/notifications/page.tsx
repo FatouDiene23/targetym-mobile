@@ -7,7 +7,7 @@ import {
   Bell, CheckCheck, Check, X, Loader2, Trash2,
   Handshake, Calendar, FileCheck, Plane, Briefcase, ClipboardList, ChevronLeft, ChevronRight
 } from 'lucide-react';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { notificationsTips } from '@/config/pageTips';
 
@@ -170,7 +170,6 @@ export default function NotificationsPage() {
           pageTitle="Notifications"
         />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       
       <Header title="Notifications" subtitle={`${total} notification${total > 1 ? 's' : ''}`} />
       <div className="p-6 max-w-4xl mx-auto">

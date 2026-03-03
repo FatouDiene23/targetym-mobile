@@ -8,7 +8,7 @@
 import Header from '@/components/Header';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { talentsDashboardTips } from '@/config/pageTips';
 import {
@@ -44,7 +44,6 @@ export default function TalentsDashboard() {
       {showTips && (
         <PageTourTips tips={talentsDashboardTips} onDismiss={dismissTips} pageTitle="Talents & Carrière" />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       <Header title="Talents & Carrière" subtitle="Vue d'ensemble des talents, carrières et plans de succession" />
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
         {/* Stats Cards */}

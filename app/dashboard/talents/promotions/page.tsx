@@ -8,7 +8,7 @@
 import Header from '@/components/Header';
 import { useEffect, useState } from 'react';
 import { ArrowUpRight, Check, X, Clock, Filter, RefreshCw, AlertTriangle } from 'lucide-react';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { promotionsTips } from '@/config/pageTips';
 import { useTalents } from '../TalentsContext';
@@ -71,7 +71,6 @@ export default function PromotionsPage() {
       {showTips && (
         <PageTourTips tips={promotionsTips} onDismiss={dismissTips} pageTitle="Promotions" />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       <Header title="Promotions" subtitle="Demandes, éligibilités et approbations" />
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
         {/* Tabs */}

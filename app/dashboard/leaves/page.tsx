@@ -6,7 +6,7 @@ import {
   Download, RefreshCw, Users, Settings, BarChart3, CalendarDays,
   ChevronLeft, ChevronRight, X, Search, Plus
 } from 'lucide-react';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { leavesTips } from '@/config/pageTips';
 
@@ -821,7 +821,6 @@ export default function LeavesManagementPage() {
           pageTitle="Gestion des Congés"
         />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

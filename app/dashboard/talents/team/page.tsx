@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import Header from '@/components/Header';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { talentsTeamTips } from '@/config/pageTips';
 import {
@@ -101,7 +101,6 @@ export default function TeamCareerPage() {
       {showTips && (
         <PageTourTips tips={talentsTeamTips} onDismiss={dismissTips} pageTitle="Mon Équipe" />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       <Header
         title="Mon Équipe"
         subtitle={`${employeeCareers.length} collaborateur(s) · ${eligibleCount} éligible(s) à la promotion`}

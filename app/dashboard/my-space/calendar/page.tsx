@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { calendarTips } from '@/config/pageTips';
 import {
@@ -980,7 +980,6 @@ export default function MyCalendarPage() {
       {showTips && (
         <PageTourTips tips={calendarTips} onDismiss={dismissTips} pageTitle="Mon Calendrier" />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       <div className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}

@@ -7,7 +7,7 @@ import {
   Building2, RefreshCw, LogOut, FileCheck, X
 } from 'lucide-react';
 import Header from '@/components/Header';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { certificatesTips } from '@/config/pageTips';
 
@@ -328,7 +328,6 @@ export default function CertificatesPage() {
           pageTitle="Documents RH"
         />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       <Header
         title="Documents RH"
         subtitle="Générez attestations et certificats de travail pour vos employés"

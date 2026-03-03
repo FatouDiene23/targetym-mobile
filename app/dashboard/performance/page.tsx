@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight, BarChart3, Check, Trash2
 } from 'lucide-react';
 import Header from '@/components/Header';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { performanceTips } from '@/config/pageTips';
 
@@ -823,7 +823,6 @@ export default function FeedbackPage() {
           pageTitle="Feedback Continu"
         />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       <Header title="Feedback Continu" subtitle="Partagez et recevez des feedbacks" />
 
       <main className="flex-1 p-6 overflow-auto bg-gray-50">

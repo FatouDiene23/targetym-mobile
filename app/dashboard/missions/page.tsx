@@ -9,7 +9,7 @@ import {
   StopCircle, Receipt, Building2, Car, Train, Bus, MoreHorizontal,
   TrendingUp, DollarSign, Briefcase, X, Upload, UserCheck
 } from 'lucide-react';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { missionsTips } from '@/config/pageTips';
 
@@ -851,7 +851,6 @@ export default function MissionsPage() {
           pageTitle="Missions"
         />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       
       <Header title="Gestion des Missions" subtitle="Ordres de missions & déplacements professionnels"/>
       <div className="max-w-7xl mx-auto px-4 py-6">

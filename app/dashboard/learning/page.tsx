@@ -5,7 +5,7 @@ import { hasPermission, getLevelColor, getLevelLabel, categories } from './share
 import {
   BookOpen, Search, Plus, User, Users, Eye, FileWarning, MessageSquarePlus
 } from 'lucide-react';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { learningTips } from '@/config/pageTips';
 
@@ -27,7 +27,6 @@ export default function CatalogPage() {
           pageTitle="Catalogue de Formations"
         />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Catalogue de Formations</h2>

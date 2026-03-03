@@ -11,7 +11,7 @@ import {
   X, ArrowLeft, ChevronUp, Building2, Mail, Phone, MoreHorizontal,
   CircleDot, Settings, Rocket, ShieldCheck, GraduationCap
 } from 'lucide-react';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { onboardingTips } from '@/config/pageTips';
 
@@ -1550,7 +1550,6 @@ export default function OnboardingPage() {
           pageTitle="Onboarding"
         />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       
       <Header title="Onboarding" subtitle="Gestion de l'intégration des nouveaux collaborateurs" />
 

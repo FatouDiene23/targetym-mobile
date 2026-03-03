@@ -22,7 +22,7 @@ import {
   type Employee,
   type EmployeeStats
 } from '@/lib/api';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { dashboardTips } from '@/config/pageTips';
 
@@ -1108,7 +1108,6 @@ export default function DashboardPage() {
         )}
         
         {/* Bouton pour relancer les suggestions */}
-        <RestartPageTipsButton onClick={resetTips} />
         
         <div className="max-w-6xl mx-auto space-y-6">
           <WelcomeCard userName={name} role={role} />
@@ -1153,7 +1152,6 @@ export default function DashboardPage() {
       )}
       
       {/* Bouton pour relancer les suggestions */}
-      <RestartPageTipsButton onClick={resetTips} />
       
       <div className="max-w-7xl mx-auto space-y-6">
         <WelcomeCard userName={name} role={role} />

@@ -7,7 +7,7 @@ import {
   FileText, Download, Loader2, PenTool, Upload, Trash2, CheckCircle,
   Network, ZoomIn, ZoomOut, Users, ChevronUp, ChevronDown
 } from 'lucide-react';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { mySpaceTips } from '@/config/pageTips';
 
@@ -666,7 +666,6 @@ export default function MyProfilePage() {
           pageTitle="Mon Espace"
         />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       
       <style dangerouslySetInnerHTML={{ __html: myOrgCSS }} />
       <div className={activeTab === 'orgchart' ? 'max-w-7xl mx-auto' : 'max-w-4xl mx-auto'}>

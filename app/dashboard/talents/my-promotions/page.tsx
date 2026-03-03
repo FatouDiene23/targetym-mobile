@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import Header from '@/components/Header';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { myPromotionsTips } from '@/config/pageTips';
 import {
@@ -62,7 +62,6 @@ export default function MyPromotionsPage() {
         {showTips && (
           <PageTourTips tips={myPromotionsTips} onDismiss={dismissTips} pageTitle="Mes Promotions" />
         )}
-        <RestartPageTipsButton onClick={resetTips} />
         <Header title="Mes Promotions" subtitle="Chargement..." />
         <main className="flex-1 p-6 bg-gray-50 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />

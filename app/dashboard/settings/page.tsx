@@ -20,7 +20,7 @@ import {
   Stamp,
   PenTool
 } from 'lucide-react';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { settingsTips } from '@/config/pageTips';
 
@@ -417,7 +417,6 @@ export default function SettingsPage() {
           pageTitle="Paramètres"
         />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       
       <Header title="Paramètres" subtitle="Configuration de votre espace Targetym AI" />
       

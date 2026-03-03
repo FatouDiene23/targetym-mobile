@@ -7,7 +7,7 @@
 
 import Header from '@/components/Header';
 import { useEffect, useState } from 'react';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { pathsTips } from '@/config/pageTips';
 import {
@@ -54,7 +54,6 @@ export default function PathsPage() {
       {showTips && (
         <PageTourTips tips={pathsTips} onDismiss={dismissTips} pageTitle="Parcours de Carrière" />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       <Header title="Parcours de Carrière" subtitle="Configuration des filières et niveaux" />
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
         <div className="grid lg:grid-cols-3 gap-6">

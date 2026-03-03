@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { performance1Tips } from '@/config/pageTips';
 import { 
@@ -1132,7 +1132,6 @@ export default function PerformancePage() {
       {showTips && (
         <PageTourTips tips={performance1Tips} onDismiss={dismissTips} pageTitle="Performance" />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       <div className="min-h-screen bg-gray-50">
       <div className="flex">
         {/* Secondary Sidebar Menu - Style Mon Espace (Dark) */}

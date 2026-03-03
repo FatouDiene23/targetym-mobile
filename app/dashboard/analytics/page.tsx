@@ -20,7 +20,7 @@ import {
   Zap, GraduationCap, Building2, ArrowUpRight, ArrowDownRight,
   RefreshCw, FileText, FileSpreadsheet, Brain, Eye, Banknote
 } from "lucide-react";
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { analyticsTips } from '@/config/pageTips';
 
@@ -1509,7 +1509,6 @@ export default function PeopleAnalyticsPage() {
           pageTitle="People Analytics"
         />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>

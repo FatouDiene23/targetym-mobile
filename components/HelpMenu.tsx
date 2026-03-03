@@ -39,7 +39,7 @@ export default function HelpMenu() {
   }
 
   return (
-    <div ref={menuRef} className="fixed bottom-6 left-6 z-50">
+    <div ref={menuRef} className="fixed bottom-6 left-72 z-50">
       {/* Menu déroulant */}
       {isOpen && (
         <div className="absolute bottom-16 left-0 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden mb-2 min-w-[240px] animate-in fade-in slide-in-from-bottom-2 duration-200">

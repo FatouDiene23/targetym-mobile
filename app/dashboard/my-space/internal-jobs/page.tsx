@@ -2,7 +2,7 @@
 
 import Header from '@/components/Header';
 import { useState, useEffect, useCallback } from 'react';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { internalJobsTips } from '@/config/pageTips';
 import { 
@@ -281,7 +281,6 @@ export default function CareersPage() {
           pageTitle="Offres Internes"
         />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       
       <Header title="Offres Internes" subtitle="Postulez aux opportunités et suivez vos candidatures" />
       

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { objectivesTips } from '@/config/pageTips';
 import { 
@@ -458,7 +458,6 @@ export default function MyObjectivesPage() {
       {showTips && (
         <PageTourTips tips={objectivesTips} onDismiss={dismissTips} pageTitle="Mes Objectifs" />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-5">

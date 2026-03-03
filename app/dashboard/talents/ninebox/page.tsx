@@ -13,7 +13,7 @@ import {
   NineBoxEmployee, QUADRANT_LABELS, PERFORMANCE_LABELS, POTENTIAL_LABELS,
   getInitials, formatDate, isRH, getUserDepartment
 } from '../shared';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { talentsTips } from '@/config/pageTips';
 
@@ -80,7 +80,6 @@ export default function NineBoxPage() {
           pageTitle="Matrice 9-Box"
         />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       <Header title="Matrice 9-Box" subtitle="Performance × Potentiel" />
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
         {/* Filters */}

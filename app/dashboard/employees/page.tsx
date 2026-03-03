@@ -7,7 +7,7 @@ import EditEmployeeModal from '@/components/EditEmployeeModal';
 import LeaveRequestModal from '@/components/LeaveRequestModal';
 import HRDocumentsTab from '@/components/HRDocumentsTab';
 import DepartmentManagementTab from '@/components/DepartmentManagementTab';
-import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { employeesTips } from '@/config/pageTips';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -599,7 +599,6 @@ export default function EmployeesPage() {
           pageTitle="Gestion du Personnel"
         />
       )}
-      <RestartPageTipsButton onClick={resetTips} />
       <Header title="Gestion du Personnel" subtitle="Administration RH, effectifs et congés" />
       <main className="flex-1 p-6 overflow-auto">
         {error && (<div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between"><span className="text-red-700">{error}</span><button onClick={loadAllData} className="flex items-center text-red-600 hover:text-red-800"><RefreshCw className="w-4 h-4 mr-1" />Réessayer</button></div>)}

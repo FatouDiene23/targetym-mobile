@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { getAppTourStatus, completeAppTour, resetAppTour } from '@/lib/api';
 
 /**
  * Hook personnalisé pour gérer le tour applicatif
  */
 export function useAppTour() {
+  const router = useRouter();
   const [showTour, setShowTour] = useState(false);
   const [tourCompleted, setTourCompleted] = useState(true);
   const [userRole, setUserRole] = useState<string>('employee');
@@ -64,7 +66,14 @@ export function useAppTour() {
     try {
       await resetAppTour();
       setTourCompleted(false);
-      setShowTour(true);
+      
+      // Rediriger vers le dashboard avant de démarrer le tour
+      router.push('/dashboard');
+      
+      // Laisser le temps à la page de charger avant de démarrer le tour
+      setTimeout(() => {
+        setShowTour(true);
+      }, 500);
     } catch (error) {
       console.error('Erreur lors du redémarrage du tour:', error);
     }

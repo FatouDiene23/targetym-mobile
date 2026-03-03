@@ -536,6 +536,27 @@ function ObjectiveModal({
   );
 }
 
+const UNIT_OPTIONS = [
+  { value: '%',      label: '% — Pourcentage' },
+  { value: 'nombre', label: 'Nombre (sans unité)' },
+  { value: 'XOF',   label: 'XOF — Franc CFA (UEMOA)' },
+  { value: 'k XOF', label: 'k XOF — Milliers CFA' },
+  { value: 'M XOF', label: 'M XOF — Millions CFA' },
+  { value: 'FCFA',  label: 'FCFA' },
+  { value: 'GNF',   label: 'GNF — Franc guinéen' },
+  { value: 'GHS',   label: 'GHS — Cedi ghanéen' },
+  { value: 'NGN',   label: 'NGN — Naira nigérian' },
+  { value: 'USD',   label: 'USD — Dollar américain' },
+  { value: 'EUR',   label: 'EUR — Euro' },
+  { value: 'clients', label: 'Clients' },
+  { value: 'leads',   label: 'Leads' },
+  { value: 'points',  label: 'Points' },
+  { value: 'heures',  label: 'Heures' },
+  { value: 'jours',   label: 'Jours' },
+  { value: '__autre__', label: 'Autre…' },
+];
+const STANDARD_UNIT_VALUES = UNIT_OPTIONS.filter((o) => o.value !== '__autre__').map((o) => o.value);
+
 // Modal pour ajouter un Key Result
 function KeyResultModal({
   isOpen,
@@ -557,18 +578,23 @@ function KeyResultModal({
     unit: '',
     weight: 100,
   });
+  const [isCustomUnit, setIsCustomUnit] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (keyResult) {
+      const unit = keyResult.unit || '';
+      const isCustom = unit !== '' && !STANDARD_UNIT_VALUES.includes(unit);
+      setIsCustomUnit(isCustom);
       setFormData({
         title: keyResult.title,
         target: keyResult.target,
         current: keyResult.current,
-        unit: keyResult.unit || '',
+        unit,
         weight: keyResult.weight,
       });
     } else {
+      setIsCustomUnit(false);
       setFormData({ title: '', target: 100, current: 0, unit: '', weight: 100 });
     }
   }, [keyResult, isOpen]);
@@ -638,13 +664,34 @@ function KeyResultModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Unité</label>
-              <input
-                type="text"
-                value={formData.unit}
-                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+              <select
+                value={isCustomUnit ? '__autre__' : (formData.unit || '')}
+                onChange={(e) => {
+                  if (e.target.value === '__autre__') {
+                    setIsCustomUnit(true);
+                    setFormData({ ...formData, unit: '' });
+                  } else {
+                    setIsCustomUnit(false);
+                    setFormData({ ...formData, unit: e.target.value });
+                  }
+                }}
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
-                placeholder="%"
-              />
+              >
+                <option value="">— Choisir une unité —</option>
+                {UNIT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+              {isCustomUnit && (
+                <input
+                  type="text"
+                  value={formData.unit}
+                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                  className="w-full mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                  placeholder="Ex : km, unités, dossiers…"
+                  autoFocus
+                />
+              )}
             </div>
           </div>
           

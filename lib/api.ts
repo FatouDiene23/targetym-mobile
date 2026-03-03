@@ -1105,6 +1105,132 @@ export async function getValidationHistory(params?: {
 }
 
 // ============================================
+// DAILY CHECKLIST
+// ============================================
+
+export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+
+export interface ChecklistItem {
+  id: number;
+  tenant_id: number;
+  employee_id: number;
+  employee_name?: string;
+  created_by_id: number;
+  created_by_name?: string;
+  title: string;
+  description?: string;
+  priority: TaskPriority;
+  days_of_week: DayOfWeek[];
+  objective_id?: number;
+  objective_title?: string;
+  key_result_id?: number;
+  key_result_title?: string;
+  kr_contribution?: number;
+  order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface ChecklistTodayItem {
+  item_id: number;
+  task_id?: number;
+  title: string;
+  description?: string;
+  priority: TaskPriority;
+  objective_id?: number;
+  key_result_id?: number;
+  kr_contribution?: number;
+  status: TaskStatus;
+  completed_at?: string;
+}
+
+export interface DailyChecklistToday {
+  date: string;
+  day_name: DayOfWeek;
+  items: ChecklistTodayItem[];
+  total: number;
+  completed: number;
+  completion_rate: number;
+}
+
+export interface ChecklistItemCreate {
+  title: string;
+  description?: string;
+  priority?: TaskPriority;
+  days_of_week?: DayOfWeek[];
+  objective_id?: number;
+  key_result_id?: number;
+  kr_contribution?: number;
+  order?: number;
+}
+
+export interface ChecklistTeamMember {
+  id: number;
+  name: string;
+  job_title?: string;
+  checklist_items_count: number;
+}
+
+export async function getTodayChecklist(): Promise<DailyChecklistToday> {
+  const response = await fetch(`${API_URL}/api/daily-checklist/today`, {
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error(await parseApiError(response));
+  return response.json();
+}
+
+export async function getEmployeeChecklist(employeeId: number): Promise<ChecklistItem[]> {
+  const response = await fetch(`${API_URL}/api/daily-checklist/team/${employeeId}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error(await parseApiError(response));
+  return response.json();
+}
+
+export async function getTeamChecklistMembers(): Promise<ChecklistTeamMember[]> {
+  const response = await fetch(`${API_URL}/api/daily-checklist/team`, {
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error(await parseApiError(response));
+  return response.json();
+}
+
+export async function createChecklistItem(
+  employeeId: number,
+  data: ChecklistItemCreate
+): Promise<ChecklistItem> {
+  const response = await fetch(`${API_URL}/api/daily-checklist/team/${employeeId}/items`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error(await parseApiError(response));
+  return response.json();
+}
+
+export async function updateChecklistItem(
+  itemId: number,
+  data: Partial<ChecklistItemCreate> & { is_active?: boolean }
+): Promise<ChecklistItem> {
+  const response = await fetch(`${API_URL}/api/daily-checklist/items/${itemId}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error(await parseApiError(response));
+  return response.json();
+}
+
+export async function deleteChecklistItem(itemId: number): Promise<void> {
+  const response = await fetch(`${API_URL}/api/daily-checklist/items/${itemId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error(await parseApiError(response));
+}
+
+// ============================================
 // APP TOUR (Guide Applicatif)
 // ============================================
 

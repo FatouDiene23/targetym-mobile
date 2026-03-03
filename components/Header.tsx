@@ -196,6 +196,7 @@ const HIDDEN_ADD_ROUTES = [
   '/dashboard/learning',
   '/dashboard/talents',
   '/dashboard/certificates',
+  '/dashboard/my-space/daily-checklist',
 ];
 
 // ============================================

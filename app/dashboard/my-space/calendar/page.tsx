@@ -497,7 +497,7 @@ function EventDetailModal({ event, onClose }: { event: CalendarEvent | null; onC
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

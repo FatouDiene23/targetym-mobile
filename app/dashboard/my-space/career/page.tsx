@@ -849,5 +849,7 @@ export default function MyCareerPage() {
         </div>
 
       </div>
-    </>    </>  );
+    </div>
+    </>
+  );
 }

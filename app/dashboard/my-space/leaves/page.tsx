@@ -337,7 +337,7 @@ function NewLeaveRequestModal({
           </form>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

@@ -2323,6 +2323,7 @@ export default function MyTasksPage() {
           teamMembers={teamMembers}
         />
       </div>
+    </div>
     </>
   );
 }

@@ -191,7 +191,7 @@ export function RestartPageTipsButton({ onClick }: Readonly<RestartPageTipsButto
   return (
     <button
       onClick={onClick}
-      className="fixed bottom-6 left-6 bg-amber-600 text-white p-3 rounded-full shadow-lg hover:bg-amber-700 transition-all hover:scale-110 z-50 group"
+      className="fixed bottom-6 left-72 bg-amber-600 text-white p-3 rounded-full shadow-lg hover:bg-amber-700 transition-all hover:scale-110 z-50 group"
       title="Revoir les suggestions de cette page"
     >
       <Lightbulb className="w-4 h-4" />

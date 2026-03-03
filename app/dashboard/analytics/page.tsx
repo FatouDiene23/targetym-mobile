@@ -405,7 +405,28 @@ export default function PeopleAnalyticsPage() {
   // TAB 0 - VUE D'ENSEMBLE
   // ============================================
 
-  const renderOverview = () => (
+  const renderOverview = () => {
+    // Performance réelle
+    const perfScore = perfOverview?.avg_score;
+    const okrAvg = perfOverview?.okr?.avg_progress;
+    const perfSubtitle = perfScore
+      ? (okrAvg ? `${okrAvg}% avancement OKR` : `${perfOverview.total_evals} évaluations`)
+      : "Aucune évaluation";
+
+    // Talents réels depuis 9-box
+    const totalTalents = nineboxData.reduce((s: number, q: any) => s + q.value, 0);
+    const stars = nineboxData.find((q: any) => q.quadrant === 9)?.value ?? 0;
+    const highPot = (nineboxData.find((q: any) => q.quadrant === 8)?.value ?? 0)
+                  + (nineboxData.find((q: any) => q.quadrant === 7)?.value ?? 0);
+    const talentsSubtitle = totalTalents > 0
+      ? `${stars} stars • ${highPot} hauts potentiels`
+      : "18 stars • 32 futurs leaders";
+
+    // Graphique performance par département
+    const byDept = perfOverview?.by_department ?? [];
+    const perfChartData = byDept.length > 0 ? byDept : performanceByTeam;
+
+    return (
     <div className="space-y-6">
       {/* KPIs cliquables */}
       <div data-tour="analytics-kpis" className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -427,27 +448,19 @@ export default function PeopleAnalyticsPage() {
         )}
         {renderKPICard(
           "Performance moy.",
-          "4.1 / 5",
+          perfScore ? `${perfScore} / 5` : "—",
           <Target size={20} className="text-green-600" />,
           "bg-green-50",
-          "85% objectifs atteints",
+          perfSubtitle,
           () => setActiveTab(2)
         )}
         {renderKPICard(
           "Talents identifiés",
-          "95",
+          totalTalents > 0 ? totalTalents : "—",
           <Star size={20} className="text-purple-600" />,
           "bg-purple-50",
-          "18 stars • 32 futurs leaders",
+          talentsSubtitle,
           () => setActiveTab(3)
-        )}
-        {renderKPICard(
-          "Engagement",
-          "78%",
-          <Heart size={20} className="text-pink-600" />,
-          "bg-pink-50",
-          "+3pts vs trimestre précédent",
-          () => setActiveTab(5)
         )}
         {renderKPICard(
           "Absentéisme",
@@ -456,6 +469,14 @@ export default function PeopleAnalyticsPage() {
           "bg-orange-50",
           "Sur la période sélectionnée",
           () => setActiveTab(5)
+        )}
+        {renderKPICard(
+          "Masse salariale",
+          salaireOverview ? `${formatXOF(salaireOverview.masse_mensuelle)} XOF` : "—",
+          <Banknote size={20} className="text-emerald-600" />,
+          "bg-emerald-50",
+          "Par mois",
+          () => setActiveTab(7)
         )}
       </div>
 
@@ -515,19 +536,23 @@ export default function PeopleAnalyticsPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* Performance par équipe */}
+        {/* Performance par département */}
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Performance par équipe</h3>
-            {renderBadge("hardcoded")}
+            {renderBadge(byDept.length > 0 ? "real" : "hardcoded")}
           </div>
           <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={performanceByTeam} layout="vertical">
+            <BarChart data={perfChartData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis type="number" domain={[0, 5]} tick={{ fontSize: 11 }} />
               <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={100} />
-              <Tooltip />
-              <Bar dataKey="score" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+              <Tooltip formatter={(v: number) => [`${v} / 5`, "Score"]} />
+              <Bar dataKey="score" radius={[0, 4, 4, 0]}>
+                {perfChartData.map((entry: any, i: number) => (
+                  <Cell key={i} fill={entry.score >= 4 ? "#10b981" : entry.score >= 3 ? "#3b82f6" : "#f59e0b"} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -549,7 +574,8 @@ export default function PeopleAnalyticsPage() {
         ))}
       </div>
     </div>
-  );
+    );
+  };
 
 
   // ============================================

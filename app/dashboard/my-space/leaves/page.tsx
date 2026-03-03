@@ -592,6 +592,5 @@ export default function MyLeavesPage() {
           onSuccess={loadData}
         />
       )}
-    </div>
-  );
+    </div>    </>  );
 }

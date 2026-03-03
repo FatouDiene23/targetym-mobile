@@ -459,6 +459,5 @@ export default function MyTeamPage() {
           )}
         </div>
       </div>
-    </>
-  );
+    </>    </>  );
 }

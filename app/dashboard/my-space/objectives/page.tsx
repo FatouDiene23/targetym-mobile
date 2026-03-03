@@ -571,5 +571,6 @@ export default function MyObjectivesPage() {
         )}
       </div>
     </div>
+    </>
   );
 }

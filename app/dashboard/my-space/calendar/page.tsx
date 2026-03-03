@@ -1144,5 +1144,6 @@ export default function MyCalendarPage() {
         <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
       </div>
     </div>
+    </>
   );
 }

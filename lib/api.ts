@@ -7,6 +7,12 @@ function getToken(): string | null {
   return localStorage.getItem('access_token');
 }
 
+// Helper pour obtenir le refresh token
+function getRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('refresh_token');
+}
+
 // Helper pour les headers authentifiés
 function getAuthHeaders(): HeadersInit {
   const token = getToken();
@@ -14,6 +20,89 @@ function getAuthHeaders(): HeadersInit {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
   };
+}
+
+// Rafraîchir le token d'accès
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
+async function refreshAccessToken(): Promise<boolean> {
+  // Éviter les appels multiples simultanés
+  if (isRefreshing && refreshPromise) {
+    return refreshPromise;
+  }
+
+  isRefreshing = true;
+  refreshPromise = (async () => {
+    try {
+      const refreshToken = getRefreshToken();
+      if (!refreshToken) {
+        console.log('No refresh token available');
+        return false;
+      }
+
+      const response = await fetchWithAuth(`${API_URL}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+
+      if (!response.ok) {
+        console.log('Refresh token failed:', response.status);
+        // Token refresh échoué, rediriger vers login
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+        window.location.href = 'https://targetym-website.vercel.app/login';
+        return false;
+      }
+
+      const data = await response.json();
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+      console.log('Token refreshed successfully');
+      return true;
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      return false;
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
+// Wrapper pour fetch avec gestion automatique du refresh token
+async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+  let response = await fetch(url, {
+    ...options,
+    headers: {
+      ...getAuthHeaders(),
+      ...options.headers,
+    },
+  });
+
+  // Si 401, essayer de rafraîchir le token et réessayer
+  if (response.status === 401) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      // Réessayer la requête avec le nouveau token
+      response = await fetch(url, {
+        ...options,
+        headers: {
+          ...getAuthHeaders(),
+          ...options.headers,
+        },
+      });
+    }
+  }
+
+  return response;
 }
 
 // Helper pour parser les erreurs API
@@ -314,8 +403,8 @@ export async function getEmployees(params?: {
   if (params?.department_id) queryParams.set('department_id', params.department_id.toString());
   if (params?.status) queryParams.set('status', params.status);
 
-  const response = await fetch(`${API_URL}/api/employees/?${queryParams}`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/employees/?${queryParams}`, {
+    
   });
 
   if (!response.ok) {
@@ -327,8 +416,8 @@ export async function getEmployees(params?: {
 }
 
 export async function getEmployee(id: number): Promise<Employee> {
-  const response = await fetch(`${API_URL}/api/employees/${id}`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/employees/${id}`, {
+    
   });
 
   if (!response.ok) {
@@ -349,9 +438,9 @@ export async function createEmployee(data: EmployeeCreate): Promise<Employee> {
 
   console.log('Creating employee with cleaned data:', cleanData);
 
-  const response = await fetch(`${API_URL}/api/employees/`, {
+  const response = await fetchWithAuth(`${API_URL}/api/employees/`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    
     body: JSON.stringify(cleanData),
   });
 
@@ -375,9 +464,9 @@ export async function updateEmployee(id: number, data: Partial<EmployeeCreate>):
 
   console.log('Updating employee with cleaned data:', cleanData);
 
-  const response = await fetch(`${API_URL}/api/employees/${id}`, {
+  const response = await fetchWithAuth(`${API_URL}/api/employees/${id}`, {
     method: 'PUT',
-    headers: getAuthHeaders(),
+    
     body: JSON.stringify(cleanData),
   });
 
@@ -390,9 +479,9 @@ export async function updateEmployee(id: number, data: Partial<EmployeeCreate>):
 }
 
 export async function deleteEmployee(id: number): Promise<void> {
-  const response = await fetch(`${API_URL}/api/employees/${id}`, {
+  const response = await fetchWithAuth(`${API_URL}/api/employees/${id}`, {
     method: 'DELETE',
-    headers: getAuthHeaders(),
+    
   });
 
   if (!response.ok) {
@@ -402,8 +491,8 @@ export async function deleteEmployee(id: number): Promise<void> {
 }
 
 export async function getEmployeeStats(): Promise<EmployeeStats> {
-  const response = await fetch(`${API_URL}/api/employees/stats`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/employees/stats`, {
+    
   });
 
   if (!response.ok) {
@@ -428,8 +517,8 @@ export async function getDepartments(level?: OrganizationalLevel): Promise<Depar
     ? `${API_URL}/api/departments/?${queryParams}` 
     : `${API_URL}/api/departments/`;
   
-  const response = await fetch(url, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(url, {
+    
   });
 
   console.log('Departments response status:', response.status);
@@ -461,8 +550,8 @@ export async function getDepartments(level?: OrganizationalLevel): Promise<Depar
 }
 
 export async function getDepartmentsTree(): Promise<Department[]> {
-  const response = await fetch(`${API_URL}/api/departments/tree`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/departments/tree`, {
+    
   });
 
   if (!response.ok) {
@@ -479,8 +568,8 @@ export async function getOrganizationalLevels(): Promise<{
   order: number;
   allowed_parents: string[];
 }[]> {
-  const response = await fetch(`${API_URL}/api/departments/levels`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/departments/levels`, {
+    
   });
 
   if (!response.ok) {
@@ -492,8 +581,8 @@ export async function getOrganizationalLevels(): Promise<{
 }
 
 export async function getDepartment(id: number): Promise<Department> {
-  const response = await fetch(`${API_URL}/api/departments/${id}`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/departments/${id}`, {
+    
   });
 
   if (!response.ok) {
@@ -507,9 +596,9 @@ export async function getDepartment(id: number): Promise<Department> {
 export async function createDepartment(data: DepartmentCreate): Promise<Department> {
   console.log('Creating department with data:', data);
   
-  const response = await fetch(`${API_URL}/api/departments/`, {
+  const response = await fetchWithAuth(`${API_URL}/api/departments/`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    
     body: JSON.stringify(data),
   });
 
@@ -527,9 +616,9 @@ export async function createDepartment(data: DepartmentCreate): Promise<Departme
 }
 
 export async function updateDepartment(id: number, data: Partial<DepartmentCreate>): Promise<Department> {
-  const response = await fetch(`${API_URL}/api/departments/${id}`, {
+  const response = await fetchWithAuth(`${API_URL}/api/departments/${id}`, {
     method: 'PUT',
-    headers: getAuthHeaders(),
+    
     body: JSON.stringify(data),
   });
 
@@ -542,9 +631,9 @@ export async function updateDepartment(id: number, data: Partial<DepartmentCreat
 }
 
 export async function deleteDepartment(id: number): Promise<void> {
-  const response = await fetch(`${API_URL}/api/departments/${id}`, {
+  const response = await fetchWithAuth(`${API_URL}/api/departments/${id}`, {
     method: 'DELETE',
-    headers: getAuthHeaders(),
+    
   });
 
   if (!response.ok) {
@@ -657,8 +746,8 @@ export interface LeaveStats {
 }
 
 export async function getLeaveTypes(activeOnly: boolean = true): Promise<LeaveType[]> {
-  const response = await fetch(`${API_URL}/api/leaves/types?active_only=${activeOnly}`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/leaves/types?active_only=${activeOnly}`, {
+    
   });
 
   if (!response.ok) {
@@ -686,8 +775,8 @@ export async function getLeaveRequests(params?: {
   if (params?.start_date) queryParams.set('start_date', params.start_date);
   if (params?.end_date) queryParams.set('end_date', params.end_date);
 
-  const response = await fetch(`${API_URL}/api/leaves/requests?${queryParams}`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/leaves/requests?${queryParams}`, {
+    
   });
 
   if (!response.ok) {
@@ -698,8 +787,8 @@ export async function getLeaveRequests(params?: {
 }
 
 export async function getPendingLeaveRequests(): Promise<LeaveRequest[]> {
-  const response = await fetch(`${API_URL}/api/leaves/requests/pending`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/leaves/requests/pending`, {
+    
   });
 
   if (!response.ok) {
@@ -710,9 +799,9 @@ export async function getPendingLeaveRequests(): Promise<LeaveRequest[]> {
 }
 
 export async function approveLeaveRequest(id: number): Promise<LeaveRequest> {
-  const response = await fetch(`${API_URL}/api/leaves/requests/${id}/approve`, {
+  const response = await fetchWithAuth(`${API_URL}/api/leaves/requests/${id}/approve`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    
     body: JSON.stringify({ approved: true }),
   });
 
@@ -725,9 +814,9 @@ export async function approveLeaveRequest(id: number): Promise<LeaveRequest> {
 }
 
 export async function rejectLeaveRequest(id: number, reason: string): Promise<LeaveRequest> {
-  const response = await fetch(`${API_URL}/api/leaves/requests/${id}/approve`, {
+  const response = await fetchWithAuth(`${API_URL}/api/leaves/requests/${id}/approve`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    
     body: JSON.stringify({ approved: false, rejection_reason: reason }),
   });
 
@@ -741,8 +830,8 @@ export async function rejectLeaveRequest(id: number, reason: string): Promise<Le
 
 export async function getLeaveStats(year?: number): Promise<LeaveStats> {
   const queryParams = year ? `?year=${year}` : '';
-  const response = await fetch(`${API_URL}/api/leaves/stats${queryParams}`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/leaves/stats${queryParams}`, {
+    
   });
 
   if (!response.ok) {
@@ -774,8 +863,8 @@ export interface ActivateAccessResponse {
 }
 
 export async function getEmployeeAccessStatus(employeeId: number): Promise<AccessStatus> {
-  const response = await fetch(`${API_URL}/api/employees/${employeeId}/access-status`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/employees/${employeeId}/access-status`, {
+    
   });
 
   if (!response.ok) {
@@ -789,11 +878,11 @@ export async function activateEmployeeAccess(
   employeeId: number, 
   sendEmail: boolean = true
 ): Promise<ActivateAccessResponse> {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `${API_URL}/api/employees/${employeeId}/activate-access?send_email=${sendEmail}`, 
     {
       method: 'POST',
-      headers: getAuthHeaders(),
+      
     }
   );
 
@@ -806,9 +895,9 @@ export async function activateEmployeeAccess(
 }
 
 export async function deactivateEmployeeAccess(employeeId: number): Promise<void> {
-  const response = await fetch(`${API_URL}/api/employees/${employeeId}/deactivate-access`, {
+  const response = await fetchWithAuth(`${API_URL}/api/employees/${employeeId}/deactivate-access`, {
     method: 'DELETE',
-    headers: getAuthHeaders(),
+    
   });
 
   if (!response.ok) {
@@ -841,8 +930,8 @@ export async function getMyTasks(params?: {
   if (params?.status) queryParams.set('status', params.status);
   if (params?.due_date) queryParams.set('due_date', params.due_date);
 
-  const response = await fetch(`${API_URL}/api/tasks/my-tasks?${queryParams}`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/tasks/my-tasks?${queryParams}`, {
+    
   });
 
   if (!response.ok) {
@@ -854,8 +943,8 @@ export async function getMyTasks(params?: {
 }
 
 export async function getMyTasksToday(): Promise<Task[]> {
-  const response = await fetch(`${API_URL}/api/tasks/my-tasks/today`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/tasks/my-tasks/today`, {
+    
   });
 
   if (!response.ok) {
@@ -867,8 +956,8 @@ export async function getMyTasksToday(): Promise<Task[]> {
 }
 
 export async function getMyTaskStats(): Promise<TaskStats> {
-  const response = await fetch(`${API_URL}/api/tasks/my-stats`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/tasks/my-stats`, {
+    
   });
 
   if (!response.ok) {
@@ -891,8 +980,8 @@ export async function getTeamTasks(params?: {
   if (params?.employee_id) queryParams.set('employee_id', params.employee_id.toString());
   if (params?.status) queryParams.set('status', params.status);
 
-  const response = await fetch(`${API_URL}/api/tasks/team-tasks?${queryParams}`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/tasks/team-tasks?${queryParams}`, {
+    
   });
 
   if (!response.ok) {
@@ -904,8 +993,8 @@ export async function getTeamTasks(params?: {
 }
 
 export async function getTeamMembers(): Promise<TeamMember[]> {
-  const response = await fetch(`${API_URL}/api/tasks/team-members`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/tasks/team-members`, {
+    
   });
 
   if (!response.ok) {
@@ -924,8 +1013,8 @@ export async function getObjectivesForLinking(employeeId?: number): Promise<Obje
     ? `${API_URL}/api/tasks/objectives-for-linking?${queryParams}`
     : `${API_URL}/api/tasks/objectives-for-linking`;
 
-  const response = await fetch(url, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(url, {
+    
   });
 
   if (!response.ok) {
@@ -937,9 +1026,9 @@ export async function getObjectivesForLinking(employeeId?: number): Promise<Obje
 }
 
 export async function createTask(data: TaskCreate): Promise<Task> {
-  const response = await fetch(`${API_URL}/api/tasks`, {
+  const response = await fetchWithAuth(`${API_URL}/api/tasks`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    
     body: JSON.stringify(data),
   });
 
@@ -952,9 +1041,9 @@ export async function createTask(data: TaskCreate): Promise<Task> {
 }
 
 export async function updateTask(id: number, data: Partial<TaskCreate>): Promise<Task> {
-  const response = await fetch(`${API_URL}/api/tasks/${id}`, {
+  const response = await fetchWithAuth(`${API_URL}/api/tasks/${id}`, {
     method: 'PUT',
-    headers: getAuthHeaders(),
+    
     body: JSON.stringify(data),
   });
 
@@ -967,9 +1056,9 @@ export async function updateTask(id: number, data: Partial<TaskCreate>): Promise
 }
 
 export async function startTask(id: number): Promise<Task> {
-  const response = await fetch(`${API_URL}/api/tasks/${id}/start`, {
+  const response = await fetchWithAuth(`${API_URL}/api/tasks/${id}/start`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    
   });
 
   if (!response.ok) {
@@ -981,9 +1070,9 @@ export async function startTask(id: number): Promise<Task> {
 }
 
 export async function completeTask(id: number, note?: string): Promise<Task> {
-  const response = await fetch(`${API_URL}/api/tasks/${id}/complete`, {
+  const response = await fetchWithAuth(`${API_URL}/api/tasks/${id}/complete`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    
     body: JSON.stringify({ completion_note: note }),
   });
 
@@ -996,9 +1085,9 @@ export async function completeTask(id: number, note?: string): Promise<Task> {
 }
 
 export async function deleteTask(id: number): Promise<void> {
-  const response = await fetch(`${API_URL}/api/tasks/${id}`, {
+  const response = await fetchWithAuth(`${API_URL}/api/tasks/${id}`, {
     method: 'DELETE',
-    headers: getAuthHeaders(),
+    
   });
 
   if (!response.ok) {
@@ -1012,8 +1101,8 @@ export async function deleteTask(id: number): Promise<void> {
 // ============================================
 
 export async function getMyDailyValidationStatus(): Promise<DailyValidationStatus> {
-  const response = await fetch(`${API_URL}/api/tasks/daily-validation/my-status`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/tasks/daily-validation/my-status`, {
+    
   });
 
   if (!response.ok) {
@@ -1028,9 +1117,9 @@ export async function submitDailyValidation(data: {
   submission_note?: string;
   incomplete_tasks?: { task_id: number; reason: string }[];
 }): Promise<DailyValidation> {
-  const response = await fetch(`${API_URL}/api/tasks/daily-validation/submit`, {
+  const response = await fetchWithAuth(`${API_URL}/api/tasks/daily-validation/submit`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    
     body: JSON.stringify(data),
   });
 
@@ -1043,8 +1132,8 @@ export async function submitDailyValidation(data: {
 }
 
 export async function getPendingValidations(): Promise<PendingValidation[]> {
-  const response = await fetch(`${API_URL}/api/tasks/daily-validation/pending`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/tasks/daily-validation/pending`, {
+    
   });
 
   if (!response.ok) {
@@ -1060,9 +1149,9 @@ export async function validateDaily(
   approved: boolean,
   comment?: string
 ): Promise<DailyValidation> {
-  const response = await fetch(`${API_URL}/api/tasks/daily-validation/${validationId}/validate`, {
+  const response = await fetchWithAuth(`${API_URL}/api/tasks/daily-validation/${validationId}/validate`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    
     body: JSON.stringify({ approved, comment }),
   });
 
@@ -1092,8 +1181,8 @@ export async function getValidationHistory(params?: {
   if (params?.employee_id) queryParams.set('employee_id', params.employee_id.toString());
   if (params?.status) queryParams.set('status', params.status);
 
-  const response = await fetch(`${API_URL}/api/tasks/daily-validation/history?${queryParams}`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/tasks/daily-validation/history?${queryParams}`, {
+    
   });
 
   if (!response.ok) {
@@ -1173,24 +1262,24 @@ export interface ChecklistTeamMember {
 }
 
 export async function getTodayChecklist(): Promise<DailyChecklistToday> {
-  const response = await fetch(`${API_URL}/api/daily-checklist/today`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/daily-checklist/today`, {
+    
   });
   if (!response.ok) throw new Error(await parseApiError(response));
   return response.json();
 }
 
 export async function getEmployeeChecklist(employeeId: number): Promise<ChecklistItem[]> {
-  const response = await fetch(`${API_URL}/api/daily-checklist/team/${employeeId}`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/daily-checklist/team/${employeeId}`, {
+    
   });
   if (!response.ok) throw new Error(await parseApiError(response));
   return response.json();
 }
 
 export async function getTeamChecklistMembers(): Promise<ChecklistTeamMember[]> {
-  const response = await fetch(`${API_URL}/api/daily-checklist/team`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/daily-checklist/team`, {
+    
   });
   if (!response.ok) throw new Error(await parseApiError(response));
   return response.json();
@@ -1200,9 +1289,9 @@ export async function createChecklistItem(
   employeeId: number,
   data: ChecklistItemCreate
 ): Promise<ChecklistItem> {
-  const response = await fetch(`${API_URL}/api/daily-checklist/team/${employeeId}/items`, {
+  const response = await fetchWithAuth(`${API_URL}/api/daily-checklist/team/${employeeId}/items`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error(await parseApiError(response));
@@ -1213,9 +1302,9 @@ export async function updateChecklistItem(
   itemId: number,
   data: Partial<ChecklistItemCreate> & { is_active?: boolean }
 ): Promise<ChecklistItem> {
-  const response = await fetch(`${API_URL}/api/daily-checklist/items/${itemId}`, {
+  const response = await fetchWithAuth(`${API_URL}/api/daily-checklist/items/${itemId}`, {
     method: 'PUT',
-    headers: getAuthHeaders(),
+    
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error(await parseApiError(response));
@@ -1223,9 +1312,9 @@ export async function updateChecklistItem(
 }
 
 export async function deleteChecklistItem(itemId: number): Promise<void> {
-  const response = await fetch(`${API_URL}/api/daily-checklist/items/${itemId}`, {
+  const response = await fetchWithAuth(`${API_URL}/api/daily-checklist/items/${itemId}`, {
     method: 'DELETE',
-    headers: getAuthHeaders(),
+    
   });
   if (!response.ok) throw new Error(await parseApiError(response));
 }
@@ -1244,8 +1333,8 @@ export interface AppTourStatus {
  * Récupère le statut du tour applicatif pour l'utilisateur connecté
  */
 export async function getAppTourStatus(): Promise<AppTourStatus> {
-  const response = await fetch(`${API_URL}/api/app-tour/status`, {
-    headers: getAuthHeaders(),
+  const response = await fetchWithAuth(`${API_URL}/api/app-tour/status`, {
+    
   });
 
   if (!response.ok) {
@@ -1260,9 +1349,9 @@ export async function getAppTourStatus(): Promise<AppTourStatus> {
  * Marque le tour applicatif comme complété
  */
 export async function completeAppTour(): Promise<{ success: boolean; message: string }> {
-  const response = await fetch(`${API_URL}/api/app-tour/complete`, {
+  const response = await fetchWithAuth(`${API_URL}/api/app-tour/complete`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    
     body: JSON.stringify({ force_reset: false }),
   });
 
@@ -1278,9 +1367,9 @@ export async function completeAppTour(): Promise<{ success: boolean; message: st
  * Réinitialise le tour applicatif pour le revoir
  */
 export async function resetAppTour(): Promise<{ success: boolean; message: string }> {
-  const response = await fetch(`${API_URL}/api/app-tour/reset`, {
+  const response = await fetchWithAuth(`${API_URL}/api/app-tour/reset`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    
   });
 
   if (!response.ok) {
@@ -1343,9 +1432,9 @@ export interface ChatbotStatus {
  * Récupère toutes les conversations de l'utilisateur
  */
 export async function getChatConversations(): Promise<ChatConversation[]> {
-  const response = await fetch(`${API_URL}/api/ai-chat/conversations`, {
+  const response = await fetchWithAuth(`${API_URL}/api/ai-chat/conversations`, {
     method: 'GET',
-    headers: getAuthHeaders(),
+    
   });
 
   if (!response.ok) {
@@ -1360,9 +1449,9 @@ export async function getChatConversations(): Promise<ChatConversation[]> {
  * Récupère une conversation avec tous ses messages
  */
 export async function getChatConversation(conversationId: number): Promise<ChatConversationWithMessages> {
-  const response = await fetch(`${API_URL}/api/ai-chat/conversations/${conversationId}`, {
+  const response = await fetchWithAuth(`${API_URL}/api/ai-chat/conversations/${conversationId}`, {
     method: 'GET',
-    headers: getAuthHeaders(),
+    
   });
 
   if (!response.ok) {
@@ -1377,9 +1466,9 @@ export async function getChatConversation(conversationId: number): Promise<ChatC
  * Crée une nouvelle conversation
  */
 export async function createChatConversation(title?: string, initialMessage?: string): Promise<ChatConversation> {
-  const response = await fetch(`${API_URL}/api/ai-chat/conversations`, {
+  const response = await fetchWithAuth(`${API_URL}/api/ai-chat/conversations`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    
     body: JSON.stringify({ title, initial_message: initialMessage }),
   });
 
@@ -1395,9 +1484,9 @@ export async function createChatConversation(title?: string, initialMessage?: st
  * Archive une conversation
  */
 export async function deleteChatConversation(conversationId: number): Promise<{ message: string }> {
-  const response = await fetch(`${API_URL}/api/ai-chat/conversations/${conversationId}`, {
+  const response = await fetchWithAuth(`${API_URL}/api/ai-chat/conversations/${conversationId}`, {
     method: 'DELETE',
-    headers: getAuthHeaders(),
+    
   });
 
   if (!response.ok) {
@@ -1412,9 +1501,9 @@ export async function deleteChatConversation(conversationId: number): Promise<{ 
  * Envoie un message au chatbot et obtient une réponse
  */
 export async function sendChatMessage(data: SendMessageRequest): Promise<ChatMessage> {
-  const response = await fetch(`${API_URL}/api/ai-chat/message`, {
+  const response = await fetchWithAuth(`${API_URL}/api/ai-chat/message`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    
     body: JSON.stringify(data),
   });
 
@@ -1430,9 +1519,9 @@ export async function sendChatMessage(data: SendMessageRequest): Promise<ChatMes
  * Vérifie le statut du chatbot (activé/configuré)
  */
 export async function getChatbotStatus(): Promise<ChatbotStatus> {
-  const response = await fetch(`${API_URL}/api/ai-chat/status`, {
+  const response = await fetchWithAuth(`${API_URL}/api/ai-chat/status`, {
     method: 'GET',
-    headers: getAuthHeaders(),
+    
   });
 
   if (!response.ok) {

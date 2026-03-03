@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { careerTips } from '@/config/pageTips';
 import {
   Briefcase, TrendingUp, GraduationCap, Award, MapPin, Calendar,
   AlertCircle, ChevronDown, ChevronUp, DollarSign, Star, Users,
@@ -511,6 +514,8 @@ export default function MyCareerPage() {
   const [evaluationCount, setEvaluationCount] = useState(0);
   const [avgScore, setAvgScore] = useState<number | null>(null);
 
+  const { showTips, dismissTips, resetTips } = usePageTour('career');
+
   const loadData = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -611,7 +616,12 @@ export default function MyCareerPage() {
   if (!employee) return null;
 
   return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8">
+    <>
+      {showTips && (
+        <PageTourTips tips={careerTips} onDismiss={dismissTips} pageTitle="Ma Carrière" />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
+      <div className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
 
         {/* Header - Profile Summary */}
@@ -839,6 +849,6 @@ export default function MyCareerPage() {
         </div>
 
       </div>
-    </div>
+    </>
   );
 }

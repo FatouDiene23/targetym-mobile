@@ -8,6 +8,9 @@
 import Header from '@/components/Header';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { talentsDashboardTips } from '@/config/pageTips';
 import {
   Users, Star, TrendingUp, AlertTriangle, Crown, Target,
   ArrowUpRight, Award, BarChart3, UserCheck, Briefcase
@@ -18,6 +21,8 @@ import { QUADRANT_LABELS, ELIGIBILITY_LABELS, formatDate, getInitials, getUserRo
 export default function TalentsDashboard() {
   const { dashboard, loadDashboard } = useTalents();
   const router = useRouter();
+
+  const { showTips, dismissTips, resetTips } = usePageTour('talentsDashboard');
 
   useEffect(() => {
     const role = getUserRole();
@@ -36,6 +41,10 @@ export default function TalentsDashboard() {
 
   return (
     <>
+      {showTips && (
+        <PageTourTips tips={talentsDashboardTips} onDismiss={dismissTips} pageTitle="Talents & Carrière" />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
       <Header title="Talents & Carrière" subtitle="Vue d'ensemble des talents, carrières et plans de succession" />
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
         {/* Stats Cards */}

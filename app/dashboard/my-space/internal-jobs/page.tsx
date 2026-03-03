@@ -2,6 +2,9 @@
 
 import Header from '@/components/Header';
 import { useState, useEffect, useCallback } from 'react';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { internalJobsTips } from '@/config/pageTips';
 import { 
   Briefcase, MapPin, Clock, Building2, Users, Search,
   ChevronRight, Check, Send, FileText, Calendar, DollarSign,
@@ -169,6 +172,9 @@ export default function CareersPage() {
   const [applying, setApplying] = useState(false);
   const [applyResult, setApplyResult] = useState<{ success: boolean; message: string } | null>(null);
 
+  // Tour tips
+  const { showTips, dismissTips, resetTips } = usePageTour('internalJobs');
+
   const loadData = useCallback(async () => {
     setLoading(true);
     const [jobsData, applicationsData, employeeData] = await Promise.all([
@@ -268,6 +274,14 @@ export default function CareersPage() {
 
   return (
     <>
+      {showTips && (
+        <PageTourTips
+          tips={internalJobsTips}
+          onTipDismiss={dismissTips}
+        />
+      )}
+      <RestartPageTipsButton onRestart={resetTips} />
+      
       <Header title="Offres Internes" subtitle="Postulez aux opportunités et suivez vos candidatures" />
       
       <main className="flex-1 p-6 overflow-auto bg-gray-50">

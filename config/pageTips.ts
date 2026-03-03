@@ -485,6 +485,470 @@ export const settingsTips: PageTip[] = [
 ];
 
 /**
+ * Suggestions pour My-space > Offres internes
+ */
+export const internalJobsTips: PageTip[] = [
+  {
+    id: 'browse-jobs',
+    title: 'Explorez les opportunités internes',
+    description: 'Consultez les postes ouverts dans votre organisation et postulez directement depuis cette page.',
+    action: {
+      label: 'Voir les offres',
+      element: '[data-tour="jobs-list"]',
+    },
+  },
+  {
+    id: 'my-applications',
+    title: 'Suivez vos candidatures',
+    description: 'Retrouvez l\'état de toutes vos candidatures : en cours, acceptées ou refusées.',
+    action: {
+      label: 'Voir mes candidatures',
+      element: '[data-tour="applications-tab"]',
+    },
+  },
+  {
+    id: 'apply-job',
+    title: 'Postulez en un clic',
+    description: 'Ajoutez une lettre de motivation personnalisée et postulez directement en ligne.',
+  },
+];
+
+/**
+ * Suggestions pour My-space > Mes objectifs
+ */
+export const objectivesTips: PageTip[] = [
+  {
+    id: 'view-objectives',
+    title: 'Visualisez vos objectifs',
+    description: 'Consultez vos objectifs personnels et ceux de votre département pour l\'année en cours.',
+    action: {
+      label: 'Voir mes objectifs',
+      element: '[data-tour="objectives-list"]',
+    },
+  },
+  {
+    id: 'update-progress',
+    title: 'Mettez à jour votre progression',
+    description: 'Suivez vos key results et actualisez régulièrement vos indicateurs pour mesurer votre avancement.',
+    action: {
+      label: 'Voir les indicateurs',
+      element: '[data-tour="key-results"]',
+    },
+  },
+  {
+    id: 'align-team',
+    title: 'Alignez-vous avec votre équipe',
+    description: 'Vos objectifs individuels sont alignés avec ceux de votre département et de l\'entreprise.',
+  },
+];
+
+/**
+ * Suggestions pour My-space > Ma carrière
+ */
+export const careerTips: PageTip[] = [
+  {
+    id: 'career-path',
+    title: 'Découvrez votre parcours de carrière',
+    description: 'Consultez les étapes de progression définies pour votre poste et les compétences à développer.',
+    action: {
+      label: 'Voir mon parcours',
+      element: '[data-tour="career-path"]',
+    },
+  },
+  {
+    id: 'skills-gap',
+    title: 'Identifiez vos axes de développement',
+    description: 'Comparez vos compétences actuelles avec celles requises pour évoluer vers le niveau supérieur.',
+    action: {
+      label: 'Voir l\'analyse',
+      element: '[data-tour="skills-analysis"]',
+    },
+  },
+  {
+    id: 'next-steps',
+    title: 'Planifiez votre évolution',
+    description: 'Travaillez avec votre manager pour définir un plan d\'action concret vers votre prochaine promotion.',
+  },
+];
+
+/**
+ * Suggestions pour My-space > Mon équipe
+ */
+export const teamTips: PageTip[] = [
+  {
+    id: 'team-overview',
+    title: 'Vue d\'ensemble de votre équipe',
+    description: 'Consultez les informations de vos collaborateurs directs : contacts, performances et objectifs.',
+    action: {
+      label: 'Voir l\'équipe',
+      element: '[data-tour="team-list"]',
+    },
+  },
+  {
+    id: 'team-performance',
+    title: 'Suivez les performances',
+    description: 'Accédez aux indicateurs clés de votre équipe : objectifs, évaluations et formations en cours.',
+    action: {
+      label: 'Voir les indicateurs',
+      element: '[data-tour="team-stats"]',
+    },
+  },
+  {
+    id: 'team-actions',
+    title: 'Actions rapides',
+    description: 'Validez les congés, assignez des tâches ou planifiez des entretiens individuels depuis cette page.',
+  },
+];
+
+/**
+ * Suggestions pour My-space > Mon calendrier
+ */
+export const calendarTips: PageTip[] = [
+  {
+    id: 'view-calendar',
+    title: 'Votre agenda centralisé',
+    description: 'Retrouvez tous vos événements : congés, formations, entretiens et réunions importantes.',
+    action: {
+      label: 'Voir le calendrier',
+      element: '[data-tour="calendar-view"]',
+    },
+  },
+  {
+    id: 'add-event',
+    title: 'Ajoutez des événements',
+    description: 'Planifiez vos entretiens individuels, vos formations ou bloquez du temps pour des projets spécifiques.',
+    action: {
+      label: 'Voir le bouton',
+      element: '[data-tour="add-event"]',
+    },
+  },
+  {
+    id: 'sync-calendar',
+    title: 'Synchronisez vos outils',
+    description: 'Exportez votre calendrier vers Outlook, Google Calendar ou d\'autres applications.',
+  },
+];
+
+/**
+ * Suggestions pour My-space > Mes congés
+ */
+export const myLeavesTips: PageTip[] = [
+  {
+    id: 'request-leave',
+    title: 'Demandez vos congés',
+    description: 'Créez une nouvelle demande de congé en quelques clics et suivez son statut en temps réel.',
+    action: {
+      label: 'Nouvelle demande',
+      element: '[data-tour="request-leave"]',
+    },
+  },
+  {
+    id: 'leave-balance',
+    title: 'Consultez vos soldes',
+    description: 'Visualisez vos jours de congés disponibles par type : payés, maladie, RTT, etc.',
+    action: {
+      label: 'Voir les soldes',
+      element: '[data-tour="leave-balance"]',
+    },
+  },
+  {
+    id: 'leave-history',
+    title: 'Historique de vos absences',
+    description: 'Retrouvez toutes vos demandes passées et planifiées pour mieux organiser votre année.',
+  },
+];
+
+/**
+ * Suggestions pour My-space > Mes documents
+ */
+export const documentsTips: PageTip[] = [
+  {
+    id: 'access-documents',
+    title: 'Accédez à vos documents RH',
+    description: 'Consultez vos fiches de paie, certificats de travail et autres documents administratifs.',
+    action: {
+      label: 'Voir les documents',
+      element: '[data-tour="documents-list"]',
+    },
+  },
+  {
+    id: 'request-certificate',
+    title: 'Demandez un certificat',
+    description: 'Générez instantanément un certificat de travail ou une attestation d\'emploi.',
+    action: {
+      label: 'Demander',
+      element: '[data-tour="request-certificate"]',
+    },
+  },
+  {
+    id: 'upload-docs',
+    title: 'Téléversez vos documents',
+    description: 'Ajoutez vos diplômes, certifications ou autres pièces justificatives à votre dossier.',
+  },
+];
+
+/**
+ * Suggestions pour My-space > Mes tâches
+ */
+export const tasksTips: PageTip[] = [
+  {
+    id: 'view-tasks',
+    title: 'Gérez vos tâches',
+    description: 'Visualisez toutes vos tâches assignées : objectifs, formations, onboarding et projets.',
+    action: {
+      label: 'Voir les tâches',
+      element: '[data-tour="tasks-list"]',
+    },
+  },
+  {
+    id: 'task-priority',
+    title: 'Priorisez votre travail',
+    description: 'Filtrez par priorité ou deadline pour vous concentrer sur ce qui est urgent.',
+    action: {
+      label: 'Voir les filtres',
+      element: '[data-tour="task-filters"]',
+    },
+  },
+  {
+    id: 'complete-tasks',
+    title: 'Marquez comme complété',
+    description: 'Cochez vos tâches terminées pour suivre votre progression et informer votre équipe.',
+  },
+];
+
+/**
+ * Suggestions pour Talents > Dashboard (RH)
+ */
+export const talentsDashboardTips: PageTip[] = [
+  {
+    id: 'talent-overview',
+    title: 'Vue d\'ensemble des talents',
+    description: 'Consultez les KPIs de votre vivier de talents : évaluations 9-Box, hauts potentiels et plans de succession.',
+    action: {
+      label: 'Voir les indicateurs',
+      element: '[data-tour="talent-stats"]',
+    },
+  },
+  {
+    id: 'ninebox-distribution',
+    title: 'Distribution 9-Box',
+    description: 'Analysez la répartition de vos talents selon leur performance et leur potentiel.',
+    action: {
+      label: 'Voir la matrice',
+      element: '[data-tour="ninebox-chart"]',
+    },
+  },
+  {
+    id: 'succession-planning',
+    title: 'Planification de la succession',
+    description: 'Identifiez les postes critiques et préparez vos successeurs pour assurer la continuité.',
+  },
+];
+
+/**
+ * Suggestions pour Talents > Promotions
+ */
+export const promotionsTips: PageTip[] = [
+  {
+    id: 'manage-promotions',
+    title: 'Gérez les promotions',
+    description: 'Validez ou créez des promotions pour récompenser les performances exceptionnelles.',
+    action: {
+      label: 'Voir les promotions',
+      element: '[data-tour="promotions-list"]',
+    },
+  },
+  {
+    id: 'eligibility-criteria',
+    title: 'Critères d\'éligibilité',
+    description: 'Consultez les employés éligibles selon l\'ancienneté, la performance et les compétences.',
+    action: {
+      label: 'Voir les critères',
+      element: '[data-tour="eligibility-filters"]',
+    },
+  },
+  {
+    id: 'promotion-impact',
+    title: 'Analysez l\'impact',
+    description: 'Visualisez l\'impact budgétaire et organisationnel des promotions planifiées.',
+  },
+];
+
+/**
+ * Suggestions pour Talents > Employés
+ */
+export const talentsEmployeesTips: PageTip[] = [
+  {
+    id: 'talent-profiles',
+    title: 'Fiches talents',
+    description: 'Accédez aux profils détaillés : évaluations, compétences, formations et parcours de carrière.',
+    action: {
+      label: 'Voir les profils',
+      element: '[data-tour="talent-list"]',
+    },
+  },
+  {
+    id: 'talent-filters',
+    title: 'Filtrez par critères',
+    description: 'Recherchez des talents selon la performance, le potentiel, les compétences ou le département.',
+    action: {
+      label: 'Voir les filtres',
+      element: '[data-tour="talent-filters"]',
+    },
+  },
+  {
+    id: 'talent-actions',
+    title: 'Actions RH',
+    description: 'Assignez des formations, planifiez des promotions ou créez des plans de développement.',
+  },
+];
+
+/**
+ * Suggestions pour Talents > Mon équipe (Manager)
+ */
+export const talentsTeamTips: PageTip[] = [
+  {
+    id: 'team-talents',
+    title: 'Talents de votre équipe',
+    description: 'Évaluez et développez les talents de vos collaborateurs directs.',
+    action: {
+      label: 'Voir l\'équipe',
+      element: '[data-tour="team-talents"]',
+    },
+  },
+  {
+    id: 'performance-matrix',
+    title: 'Matrice de performance',
+    description: 'Positionnez vos collaborateurs dans la 9-Box pour identifier les hauts potentiels.',
+    action: {
+      label: 'Voir la matrice',
+      element: '[data-tour="performance-matrix"]',
+    },
+  },
+  {
+    id: 'development-plans',
+    title: 'Plans de développement',
+    description: 'Créez des plans personnalisés pour faire évoluer chaque membre de votre équipe.',
+  },
+];
+
+/**
+ * Suggestions pour Talents > Parcours
+ */
+export const pathsTips: PageTip[] = [
+  {
+    id: 'career-paths',
+    title: 'Parcours de carrière',
+    description: 'Définissez les parcours d\'évolution pour chaque famille de métiers de votre organisation.',
+    action: {
+      label: 'Voir les parcours',
+      element: '[data-tour="paths-list"]',
+    },
+  },
+  {
+    id: 'create-path',
+    title: 'Créez un nouveau parcours',
+    description: 'Structurez les étapes de progression avec les compétences et formations requises.',
+    action: {
+      label: 'Créer un parcours',
+      element: '[data-tour="create-path"]',
+    },
+  },
+  {
+    id: 'assign-employees',
+    title: 'Assignez des collaborateurs',
+    description: 'Associez vos employés aux parcours correspondant à leur poste et ambitions.',
+  },
+];
+
+/**
+ * Suggestions pour Talents > Ma carrière (Employé)
+ */
+export const myCareerTips: PageTip[] = [
+  {
+    id: 'my-position',
+    title: 'Ma position actuelle',
+    description: 'Consultez votre évaluation 9-Box et vos performances récentes.',
+    action: {
+      label: 'Voir mon évaluation',
+      element: '[data-tour="my-evaluation"]',
+    },
+  },
+  {
+    id: 'development-plan',
+    title: 'Mon plan de développement',
+    description: 'Découvrez les compétences à acquérir et les formations recommandées pour progresser.',
+    action: {
+      label: 'Voir le plan',
+      element: '[data-tour="development-plan"]',
+    },
+  },
+  {
+    id: 'next-level',
+    title: 'Prochaine étape',
+    description: 'Visualisez les opportunités d\'évolution et les prérequis pour accéder au niveau suivant.',
+  },
+];
+
+/**
+ * Suggestions pour Talents > Mes promotions (Employé)
+ */
+export const myPromotionsTips: PageTip[] = [
+  {
+    id: 'promotion-status',
+    title: 'Statut de vos promotions',
+    description: 'Suivez l\'état de vos demandes de promotion en cours et leur progression.',
+    action: {
+      label: 'Voir le statut',
+      element: '[data-tour="promotion-status"]',
+    },
+  },
+  {
+    id: 'eligibility-check',
+    title: 'Vérifiez votre éligibilité',
+    description: 'Consultez les critères requis et votre niveau d\'adéquation pour une promotion.',
+    action: {
+      label: 'Voir les critères',
+      element: '[data-tour="eligibility-criteria"]',
+    },
+  },
+  {
+    id: 'promotion-history',
+    title: 'Historique de carrière',
+    description: 'Retrouvez toutes vos promotions passées et les évolutions de votre poste.',
+  },
+];
+
+/**
+ * Suggestions pour Performance (v1)
+ */
+export const performance1Tips: PageTip[] = [
+  {
+    id: 'performance-overview',
+    title: 'Tableau de bord performance',
+    description: 'Suivez les évaluations de performance de votre organisation en temps réel.',
+    action: {
+      label: 'Voir les indicateurs',
+      element: '[data-tour="performance-stats"]',
+    },
+  },
+  {
+    id: 'evaluations',
+    title: 'Campagnes d\'évaluation',
+    description: 'Lancez et gérez vos campagnes d\'évaluation annuelles ou trimestrielles.',
+    action: {
+      label: 'Voir les campagnes',
+      element: '[data-tour="evaluation-campaigns"]',
+    },
+  },
+  {
+    id: 'feedback-360',
+    title: 'Feedback 360°',
+    description: 'Collectez des retours multi-sources pour une évaluation complète de vos collaborateurs.',
+  },
+];
+
+/**
  * Obtenir les tips selon l'ID de la page
  */
 export function getPageTips(pageId: string): PageTip[] {
@@ -500,10 +964,29 @@ export function getPageTips(pageId: string): PageTip[] {
     analytics: analyticsTips,
     certificates: certificatesTips,
     missions: missionsTips,
-    myspace: mySpaceTips,
+    mySpace: mySpaceTips,
     notifications: notificationsTips,
     onboarding: onboardingTips,
     settings: settingsTips,
+    // My-space pages
+    internalJobs: internalJobsTips,
+    objectives: objectivesTips,
+    career: careerTips,
+    team: teamTips,
+    calendar: calendarTips,
+    myLeaves: myLeavesTips,
+    documents: documentsTips,
+    tasks: tasksTips,
+    // Talents pages
+    talentsDashboard: talentsDashboardTips,
+    promotions: promotionsTips,
+    talentsEmployees: talentsEmployeesTips,
+    talentsTeam: talentsTeamTips,
+    paths: pathsTips,
+    myCareer: myCareerTips,
+    myPromotions: myPromotionsTips,
+    // Others
+    performance1: performance1Tips,
   };
 
   return tipsMap[pageId] || [];

@@ -7,6 +7,9 @@
 
 import { useEffect, useState } from 'react';
 import Header from '@/components/Header';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { talentsTeamTips } from '@/config/pageTips';
 import {
   Search, RefreshCw, ChevronRight, CheckCircle2, Circle,
   TrendingUp, BookOpen, Heart, ArrowUpRight, Users, AlertCircle
@@ -28,6 +31,8 @@ export default function TeamCareerPage() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [syncing, setSyncing] = useState<number | null>(null);
   const [promoting, setPromoting] = useState<number | null>(null);
+
+  const { showTips, dismissTips, resetTips } = usePageTour('talentsTeam');
 
   useEffect(() => {
     // Always filter by N-1 (current user's direct reports)
@@ -93,6 +98,10 @@ export default function TeamCareerPage() {
 
   return (
     <>
+      {showTips && (
+        <PageTourTips tips={talentsTeamTips} onDismiss={dismissTips} pageTitle="Mon Équipe" />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
       <Header
         title="Mon Équipe"
         subtitle={`${employeeCareers.length} collaborateur(s) · ${eligibleCount} éligible(s) à la promotion`}

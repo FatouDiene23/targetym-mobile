@@ -7,6 +7,9 @@
 
 import Header from '@/components/Header';
 import { useEffect, useState } from 'react';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { pathsTips } from '@/config/pageTips';
 import {
   Plus, Edit, Trash2, Copy, ChevronDown, ChevronRight, X,
   GraduationCap, Target, Award, Settings, Users, Layers
@@ -35,6 +38,8 @@ export default function PathsPage() {
   const [addFactorForLevel, setAddFactorForLevel] = useState<number | null>(null);
   const canEdit = isRH();
 
+  const { showTips, dismissTips, resetTips } = usePageTour('paths');
+
   useEffect(() => { loadPaths(); loadAttitudes(); }, [loadPaths, loadAttitudes]);
 
   useEffect(() => {
@@ -46,6 +51,10 @@ export default function PathsPage() {
 
   return (
     <>
+      {showTips && (
+        <PageTourTips tips={pathsTips} onDismiss={dismissTips} pageTitle="Parcours de Carrière" />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
       <Header title="Parcours de Carrière" subtitle="Configuration des filières et niveaux" />
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
         <div className="grid lg:grid-cols-3 gap-6">

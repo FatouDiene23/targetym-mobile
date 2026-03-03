@@ -7,6 +7,9 @@
 
 import { useEffect, useState } from 'react';
 import Header from '@/components/Header';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { talentsEmployeesTips } from '@/config/pageTips';
 import {
   Search, RefreshCw, ChevronRight, CheckCircle2, Circle,
   TrendingUp, BookOpen, Heart, ArrowUpRight, Users, AlertCircle,
@@ -30,6 +33,8 @@ export default function AllEmployeesCareerPage() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [syncing, setSyncing] = useState<number | null>(null);
   const [promoting, setPromoting] = useState<number | null>(null);
+
+  const { showTips, dismissTips, resetTips } = usePageTour('talentsEmployees');
 
   useEffect(() => {
     loadEmployeeCareers(); // No manager_id = tous les employés
@@ -95,6 +100,10 @@ export default function AllEmployeesCareerPage() {
 
   return (
     <>
+      {showTips && (
+        <PageTourTips tips={talentsEmployeesTips} onDismiss={dismissTips} pageTitle="Collaborateurs" />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
       <Header
         title="Collaborateurs"
         subtitle={`${employeeCareers.length} collaborateur(s) assigné(s) · ${eligibleCount} éligible(s) à la promotion`}

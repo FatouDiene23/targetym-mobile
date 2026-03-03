@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { objectivesTips } from '@/config/pageTips';
 import { 
   Target, ChevronDown, ChevronRight, Edit2, Check, X, 
   TrendingUp, AlertCircle, Clock, CheckCircle, Loader2,
@@ -293,7 +296,7 @@ function KeyResultItem({
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -396,6 +399,8 @@ export default function MyObjectivesPage() {
   const [objectives, setObjectives] = useState<Objective[]>([]);
   const [employeeId, setEmployeeId] = useState<number | null>(null);
 
+  const { showTips, dismissTips, resetTips } = usePageTour('objectives');
+
   const loadObjectives = useCallback(async () => {
     if (!employeeId) return;
     setLoading(true);
@@ -449,7 +454,12 @@ export default function MyObjectivesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
+      {showTips && (
+        <PageTourTips tips={objectivesTips} onDismiss={dismissTips} pageTitle="Mes Objectifs" />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
+      <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-5">
         <h1 className="text-2xl font-bold text-gray-900">Mes Objectifs</h1>

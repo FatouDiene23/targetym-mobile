@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { tasksTips } from '@/config/pageTips';
 import { 
   ClipboardList, Clock, Plus, CheckCircle2, Circle, AlertTriangle,
   Play, Check, X, Send, Calendar, Flag, MoreVertical, Loader2,
@@ -2163,6 +2166,8 @@ export default function MyTasksPage() {
   const [hasManager, setHasManager] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  const { showTips, dismissTips, resetTips } = usePageTour('tasks');
+
   useEffect(() => {
     async function loadInitialData() {
       const userStr = localStorage.getItem('user');
@@ -2210,7 +2215,12 @@ export default function MyTasksPage() {
   }
 
   return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8">
+    <>
+      {showTips && (
+        <PageTourTips tips={tasksTips} onDismiss={dismissTips} pageTitle="Mes Tâches" />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
+      <div className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -2313,6 +2323,6 @@ export default function MyTasksPage() {
           teamMembers={teamMembers}
         />
       </div>
-    </div>
+    </>
   );
 }

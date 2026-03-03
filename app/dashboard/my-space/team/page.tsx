@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { teamTips } from '@/config/pageTips';
 import { 
   Users, CheckCircle, XCircle, Clock, AlertCircle, Calendar,
   ChevronDown, ChevronUp, User
@@ -255,6 +258,8 @@ export default function MyTeamPage() {
   const [processingId, setProcessingId] = useState<number | null>(null);
   const [showTeam, setShowTeam] = useState(true);
 
+  const { showTips, dismissTips, resetTips } = usePageTour('team');
+
   const loadData = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -341,7 +346,12 @@ export default function MyTeamPage() {
   }
 
   return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8">
+    <>
+      {showTips && (
+        <PageTourTips tips={teamTips} onDismiss={dismissTips} pageTitle="Mon Équipe" />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
+      <div className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -449,6 +459,6 @@ export default function MyTeamPage() {
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 }

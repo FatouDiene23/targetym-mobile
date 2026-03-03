@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { documentsTips } from '@/config/pageTips';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import {
@@ -122,6 +125,8 @@ export default function MyDocumentsPage() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState('');
   const [employeeId, setEmployeeId] = useState<number | null>(null);
+
+  const { showTips, dismissTips, resetTips } = usePageTour('documents');
 
   const EMPLOYEE_TYPES = [
     { value: 'cni', label: 'Carte nationale d\'identité', icon: '🪪' },
@@ -285,6 +290,10 @@ export default function MyDocumentsPage() {
 
   return (
     <>
+      {showTips && (
+        <PageTourTips tips={documentsTips} onDismiss={dismissTips} pageTitle="Mes Documents" />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
       <Header title="Mes Documents" subtitle="Vos documents RH et administratifs" />
 
       <div className="p-6 max-w-5xl mx-auto">

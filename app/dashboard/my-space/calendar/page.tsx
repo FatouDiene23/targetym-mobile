@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { calendarTips } from '@/config/pageTips';
 import {
   Calendar as CalendarIcon, ChevronLeft, ChevronRight, List, Grid3X3, LayoutGrid,
   AlertCircle, Filter, Cake, Plane, GraduationCap, Users, Coffee,
@@ -494,7 +497,7 @@ function EventDetailModal({ event, onClose }: { event: CalendarEvent | null; onC
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -787,6 +790,8 @@ export default function MyCalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
+  const { showTips, dismissTips, resetTips } = usePageTour('calendar');
+
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
 
@@ -971,7 +976,12 @@ export default function MyCalendarPage() {
   }
 
   return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8">
+    <>
+      {showTips && (
+        <PageTourTips tips={calendarTips} onDismiss={dismissTips} pageTitle="Mon Calendrier" />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
+      <div className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">

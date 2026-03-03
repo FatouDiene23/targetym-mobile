@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { myLeavesTips } from '@/config/pageTips';
 import { 
   Calendar, Plus, X, AlertCircle, Clock, CheckCircle, XCircle
 } from 'lucide-react';
@@ -334,7 +337,7 @@ function NewLeaveRequestModal({
           </form>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -351,6 +354,8 @@ export default function MyLeavesPage() {
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+
+  const { showTips, dismissTips, resetTips } = usePageTour('myLeaves');
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -421,7 +426,12 @@ export default function MyLeavesPage() {
   }
 
   return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8">
+    <>
+      {showTips && (
+        <PageTourTips tips={myLeavesTips} onDismiss={dismissTips} pageTitle="Mes Congés" />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
+      <div className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

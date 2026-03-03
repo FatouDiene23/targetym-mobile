@@ -8,6 +8,9 @@
 import Header from '@/components/Header';
 import { useEffect, useState } from 'react';
 import { ArrowUpRight, Check, X, Clock, Filter, RefreshCw, AlertTriangle } from 'lucide-react';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { promotionsTips } from '@/config/pageTips';
 import { useTalents } from '../TalentsContext';
 import { ELIGIBILITY_LABELS, getInitials, formatDate, isRH } from '../shared';
 
@@ -24,6 +27,8 @@ export default function PromotionsPage() {
   const [decidingId, setDecidingId] = useState<number | null>(null);
   const [decisionForm, setDecisionForm] = useState({ comments: '', committee: '' });
   const canApprove = isRH();
+
+  const { showTips, dismissTips, resetTips } = usePageTour('promotions');
 
   useEffect(() => {
     loadPromotions();
@@ -63,6 +68,10 @@ export default function PromotionsPage() {
 
   return (
     <>
+      {showTips && (
+        <PageTourTips tips={promotionsTips} onDismiss={dismissTips} pageTitle="Promotions" />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
       <Header title="Promotions" subtitle="Demandes, éligibilités et approbations" />
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
         {/* Tabs */}

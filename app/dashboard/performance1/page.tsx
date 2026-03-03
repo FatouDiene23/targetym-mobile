@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
+import { performance1Tips } from '@/config/pageTips';
 import { 
   Star, Users, ChevronRight, ChevronLeft, Plus, MessageSquare, Target, CheckCircle,
   Send, ThumbsUp, Eye, Edit, X, Loader2, AlertCircle, RotateCcw, Search, Calendar,
@@ -1066,6 +1069,8 @@ export default function PerformancePage() {
   const [showEvalEditModal, setShowEvalEditModal] = useState(false);
   const [selectedEvaluation, setSelectedEvaluation] = useState<Evaluation | null>(null);
 
+  const { showTips, dismissTips, resetTips } = usePageTour('performance1');
+
   const loadData = useCallback(async () => {
     setLoading(true);
     const user = await fetchCurrentUser();
@@ -1123,7 +1128,12 @@ export default function PerformancePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
+      {showTips && (
+        <PageTourTips tips={performance1Tips} onDismiss={dismissTips} pageTitle="Performance" />
+      )}
+      <RestartPageTipsButton onClick={resetTips} />
+      <div className="min-h-screen bg-gray-50">
       <div className="flex">
         {/* Secondary Sidebar Menu - Style Mon Espace (Dark) */}
         <div className="w-56 bg-[#1e2a3b] min-h-screen sticky top-0">
@@ -1461,6 +1471,6 @@ export default function PerformancePage() {
       <CreateOneOnOneModal isOpen={showOneOnOneModal} onClose={() => setShowOneOnOneModal(false)} employees={employees} onSuccess={loadData} />
       <EvaluationViewModal isOpen={showEvalViewModal} onClose={() => setShowEvalViewModal(false)} evaluation={selectedEvaluation} />
       <EvaluationEditModal isOpen={showEvalEditModal} onClose={() => setShowEvalEditModal(false)} evaluation={selectedEvaluation} onSave={loadData} userRole={userRole} currentEmployeeId={currentUser?.employee_id} />
-    </div>
+    </>
   );
 }

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import Header from '@/components/Header';
 import PageTourTips, { RestartPageTipsButton } from '@/components/PageTourTips';
+import { usePageTour } from '@/hooks/usePageTour';
 import { certificatesTips } from '@/config/pageTips';
 
 // ============================================
@@ -251,6 +252,8 @@ export default function CertificatesPage() {
   const [historyPage, setHistoryPage] = useState(1);
   const [historyTotal, setHistoryTotal] = useState(0);
 
+  const { showTips, dismissTips, resetTips } = usePageTour('certificates');
+
   const loadEmployees = useCallback(async () => {
     setLoadingEmployees(true);
     try {
@@ -319,8 +322,8 @@ export default function CertificatesPage() {
   return (
     <>
       {showTips && (
-        <PageTourTips
-          tips={certificatesTips}
+        <PageTourTips 
+          tips={certificatesTips} 
           onDismiss={dismissTips}
           pageTitle="Documents RH"
         />

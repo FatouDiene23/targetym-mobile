@@ -1464,6 +1464,7 @@ export default function PerformancePage() {
           )}
         </div>
       </div>
+      </div>
 
       {/* Modals */}
       <CreateFeedbackModal isOpen={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} employees={employees} onSuccess={loadData} />

@@ -296,6 +296,7 @@ function KeyResultItem({
           )}
         </div>
       </div>
+    </div>
   );
 }
 

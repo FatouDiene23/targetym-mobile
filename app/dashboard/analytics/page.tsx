@@ -237,6 +237,22 @@ export default function PeopleAnalyticsPage() {
   const [salaireDistribution, setSalaireDistribution] = useState<any[]>([]);
   const [salaireByContract, setSalaireByContract] = useState<any[]>([]);
 
+  // Performance
+  const [perfOverview, setPerfOverview] = useState<any>(null);
+  const [perfByManager, setPerfByManager] = useState<any[]>([]);
+
+  // Formation
+  const [formationOverview, setFormationOverview] = useState<any>(null);
+  const [formationByCategory, setFormationByCategory] = useState<any[]>([]);
+  const [formationEvolution, setFormationEvolution] = useState<any[]>([]);
+
+  // Talents
+  const [nineboxData, setNineboxData] = useState<any[]>([]);
+  const [successionData, setSuccessionData] = useState<any>(null);
+
+  // Recrutement
+  const [recrutementData, setRecrutementData] = useState<any>(null);
+
   // --- Fetch données réelles ---
   const fetchRealData = useCallback(async () => {
     setLoading(true);
@@ -258,6 +274,14 @@ export default function PeopleAnalyticsPage() {
         salaireDeptRes,
         salaireDistRes,
         salaireContractRes,
+        perfOvRes,
+        perfManagerRes,
+        formOvRes,
+        formCatRes,
+        formEvolRes,
+        nineboxRes,
+        successionRes,
+        recrutRes,
       ] = await Promise.allSettled([
         fetchAPI("/api/analytics/overview", params),
         fetchAPI("/api/analytics/effectifs/evolution", params),
@@ -272,6 +296,14 @@ export default function PeopleAnalyticsPage() {
         fetchAPI("/api/analytics/salaires/by-department"),
         fetchAPI("/api/analytics/salaires/distribution"),
         fetchAPI("/api/analytics/salaires/by-contract"),
+        fetchAPI("/api/analytics/performance/overview", params),
+        fetchAPI("/api/analytics/performance/by-manager", { period }),
+        fetchAPI("/api/analytics/formation/overview", params),
+        fetchAPI("/api/analytics/formation/by-category", { period }),
+        fetchAPI("/api/analytics/formation/evolution", { period }),
+        fetchAPI("/api/analytics/talents/ninebox"),
+        fetchAPI("/api/analytics/talents/succession"),
+        fetchAPI("/api/recruitment/analytics"),
       ]);
 
       if (overviewRes.status === "fulfilled") setOverview(overviewRes.value);
@@ -287,6 +319,14 @@ export default function PeopleAnalyticsPage() {
       if (salaireDeptRes.status === "fulfilled") setSalaireByDept(salaireDeptRes.value);
       if (salaireDistRes.status === "fulfilled") setSalaireDistribution(salaireDistRes.value);
       if (salaireContractRes.status === "fulfilled") setSalaireByContract(salaireContractRes.value);
+      if (perfOvRes.status === "fulfilled") setPerfOverview(perfOvRes.value);
+      if (perfManagerRes.status === "fulfilled") setPerfByManager(perfManagerRes.value);
+      if (formOvRes.status === "fulfilled") setFormationOverview(formOvRes.value);
+      if (formCatRes.status === "fulfilled") setFormationByCategory(formCatRes.value);
+      if (formEvolRes.status === "fulfilled") setFormationEvolution(formEvolRes.value);
+      if (nineboxRes.status === "fulfilled") setNineboxData(nineboxRes.value);
+      if (successionRes.status === "fulfilled") setSuccessionData(successionRes.value);
+      if (recrutRes.status === "fulfilled") setRecrutementData(recrutRes.value);
     } catch (err) {
       console.error("Erreur fetch analytics:", err);
     } finally {
@@ -614,31 +654,65 @@ export default function PeopleAnalyticsPage() {
   // TAB 2 - PERFORMANCE
   // ============================================
 
-  const renderPerformance = () => (
+  const renderPerformance = () => {
+    const okr = perfOverview?.okr;
+    const dist = perfOverview?.score_distribution ?? [];
+    const byDept = perfOverview?.by_department ?? [];
+    const hasEvals = perfOverview?.total_evals > 0;
+    const hasOkr = okr?.total > 0;
+
+    return (
     <div className="space-y-6">
-      {renderBadge("hardcoded")}
+      {renderBadge("real")}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
-        {renderKPICard("Objectifs atteints", "85%", <Target size={20} className="text-green-600" />, "bg-green-50")}
-        {renderKPICard("Score moyen", "4.1 / 5", <Award size={20} className="text-blue-600" />, "bg-blue-50")}
-        {renderKPICard("Évolution", "+8%", <TrendingUp size={20} className="text-emerald-600" />, "bg-emerald-50", "vs trimestre précédent")}
-        {renderKPICard("Top Performers", "95", <Star size={20} className="text-purple-600" />, "bg-purple-50", "Score ≥ 4/5")}
+        {renderKPICard(
+          "OKR — Avancement moyen",
+          okr ? `${okr.avg_progress}%` : "—",
+          <Target size={20} className="text-green-600" />,
+          "bg-green-50",
+          okr ? `${okr.on_track} on track • ${okr.at_risk} à risque` : undefined
+        )}
+        {renderKPICard(
+          "Score moyen (évals)",
+          hasEvals ? `${perfOverview.avg_score} / 5` : "—",
+          <Award size={20} className="text-blue-600" />,
+          "bg-blue-50",
+          hasEvals ? `${perfOverview.total_evals} évaluations` : "Aucune évaluation"
+        )}
+        {renderKPICard(
+          "OKR complétés",
+          okr ? okr.completed : "—",
+          <TrendingUp size={20} className="text-emerald-600" />,
+          "bg-emerald-50",
+          okr ? `sur ${okr.total} objectifs` : undefined
+        )}
+        {renderKPICard(
+          "Top Performers",
+          hasEvals ? perfOverview.top_performers : "—",
+          <Star size={20} className="text-purple-600" />,
+          "bg-purple-50",
+          "Score ≥ 4 / 5"
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Performance par équipe */}
+        {/* Score moyen par département */}
         <div className="bg-white rounded-xl border p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Performance par équipe</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900">Score moyen par département</h3>
+            {renderBadge(byDept.length > 0 ? "real" : "hardcoded")}
+          </div>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={performanceByTeam} layout="vertical">
+            <BarChart data={byDept.length > 0 ? byDept : performanceByTeam} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis type="number" domain={[0, 5]} tick={{ fontSize: 11 }} />
-              <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={100} />
-              <Tooltip />
+              <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={110} />
+              <Tooltip formatter={(v: number) => [`${v} / 5`, "Score"]} />
               <Bar dataKey="score" name="Score" fill="#3b82f6" radius={[0, 4, 4, 0]}>
-                {performanceByTeam.map((entry, i) => (
-                  <Cell key={i} fill={entry.score >= 4.2 ? "#10b981" : entry.score >= 3.8 ? "#3b82f6" : "#f59e0b"} />
+                {(byDept.length > 0 ? byDept : performanceByTeam).map((entry: any, i: number) => (
+                  <Cell key={i} fill={entry.score >= 4 ? "#10b981" : entry.score >= 3 ? "#3b82f6" : "#f59e0b"} />
                 ))}
               </Bar>
             </BarChart>
@@ -647,15 +721,18 @@ export default function PeopleAnalyticsPage() {
 
         {/* Distribution des notes */}
         <div className="bg-white rounded-xl border p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Distribution des évaluations</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900">Distribution des évaluations</h3>
+            {renderBadge(dist.some((d: any) => d.count > 0) ? "real" : "hardcoded")}
+          </div>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={performanceDistribution}>
+            <BarChart data={dist.some((d: any) => d.count > 0) ? dist : performanceDistribution}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="note" tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip />
               <Bar dataKey="count" name="Employés" radius={[4, 4, 0, 0]}>
-                {performanceDistribution.map((entry, i) => (
+                {(dist.some((d: any) => d.count > 0) ? dist : performanceDistribution).map((entry: any, i: number) => (
                   <Cell key={i} fill={entry.color} />
                 ))}
               </Bar>
@@ -664,9 +741,35 @@ export default function PeopleAnalyticsPage() {
         </div>
       </div>
 
+      {/* OKR — répartition par statut */}
+      {hasOkr && (
+        <div className="bg-white rounded-xl border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900">Statut des OKR</h3>
+            {renderBadge("real")}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: "On Track", value: okr.on_track, color: "text-green-600 bg-green-50", border: "border-green-200" },
+              { label: "Complétés", value: okr.completed, color: "text-blue-600 bg-blue-50", border: "border-blue-200" },
+              { label: "À risque", value: okr.at_risk, color: "text-amber-600 bg-amber-50", border: "border-amber-200" },
+              { label: "Total actifs", value: okr.total, color: "text-gray-600 bg-gray-50", border: "border-gray-200" },
+            ].map((item, i) => (
+              <div key={i} className={`rounded-xl border p-4 text-center ${item.color} ${item.border}`}>
+                <p className="text-3xl font-bold">{item.value}</p>
+                <p className="text-sm mt-1 font-medium">{item.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Tableau managers */}
       <div className="bg-white rounded-xl border p-6">
-        <h3 className="font-semibold text-gray-900 mb-4">Performance par manager</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-900">Performance par manager</h3>
+          {renderBadge(perfByManager.length > 0 ? "real" : "hardcoded")}
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -675,75 +778,104 @@ export default function PeopleAnalyticsPage() {
                 <th className="pb-3 font-medium">Équipe</th>
                 <th className="pb-3 font-medium text-center">Taille</th>
                 <th className="pb-3 font-medium text-center">Score moy.</th>
-                <th className="pb-3 font-medium text-center">Tendance</th>
               </tr>
             </thead>
             <tbody>
-              {performanceByManager.map((m, i) => (
+              {(perfByManager.length > 0 ? perfByManager : performanceByManager).map((m: any, i: number) => (
                 <tr key={i} className="border-b last:border-0 hover:bg-gray-50">
                   <td className="py-3 font-medium text-gray-900">{m.manager}</td>
                   <td className="py-3 text-gray-600">{m.equipe}</td>
                   <td className="py-3 text-center">{m.taille}</td>
                   <td className="py-3 text-center">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      m.score >= 4.2 ? "bg-green-100 text-green-700" :
-                      m.score >= 3.8 ? "bg-blue-100 text-blue-700" :
+                      m.score >= 4 ? "bg-green-100 text-green-700" :
+                      m.score >= 3 ? "bg-blue-100 text-blue-700" :
                       "bg-amber-100 text-amber-700"
                     }`}>
-                      {m.score}/5
-                    </span>
-                  </td>
-                  <td className="py-3 text-center">
-                    <span className={`flex items-center justify-center gap-1 text-xs font-medium ${
-                      m.trend.startsWith("+") ? "text-green-600" : "text-red-600"
-                    }`}>
-                      {m.trend.startsWith("+") ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                      {m.trend}
+                      {m.score} / 5
                     </span>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {perfByManager.length === 0 && (
+            <p className="text-center text-gray-400 text-sm py-4">Aucune évaluation manager soumise sur la période</p>
+          )}
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
 
   // ============================================
   // TAB 3 - TALENTS
   // ============================================
 
-  const renderTalents = () => (
+  const renderTalents = () => {
+    const hasNinebox = nineboxData.some((q: any) => q.value > 0);
+    const totalNinebox = nineboxData.reduce((s: number, q: any) => s + q.value, 0);
+    const stars = nineboxData.find((q: any) => q.quadrant === 9)?.value ?? 0;
+    const highPotential = (nineboxData.find((q: any) => q.quadrant === 8)?.value ?? 0) + (nineboxData.find((q: any) => q.quadrant === 7)?.value ?? 0);
+    const piliers = (nineboxData.find((q: any) => q.quadrant === 6)?.value ?? 0) + (nineboxData.find((q: any) => q.quadrant === 5)?.value ?? 0);
+    const atRisk = (nineboxData.find((q: any) => q.quadrant === 1)?.value ?? 0) + (nineboxData.find((q: any) => q.quadrant === 2)?.value ?? 0);
+    const plans = successionData?.plans ?? [];
+    const coveredPct = successionData?.covered_pct ?? 0;
+
+    return (
     <div className="space-y-6">
-      {renderBadge("hardcoded")}
+      {renderBadge(hasNinebox ? "real" : "hardcoded")}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-3">
-        {renderKPICard("Stars", "18 (7%)", <Star size={20} className="text-green-600" />, "bg-green-50")}
-        {renderKPICard("Futurs Leaders", "32", <Zap size={20} className="text-blue-600" />, "bg-blue-50")}
-        {renderKPICard("Piliers", "45", <Shield size={20} className="text-purple-600" />, "bg-purple-50")}
-        {renderKPICard("Postes clés couverts", "80%", <Target size={20} className="text-emerald-600" />, "bg-emerald-50")}
-        {renderKPICard("Talents à risque", "3", <AlertTriangle size={20} className="text-red-600" />, "bg-red-50")}
+        {renderKPICard(
+          "Stars",
+          hasNinebox ? `${stars} (${totalNinebox > 0 ? Math.round(stars / totalNinebox * 100) : 0}%)` : "18 (7%)",
+          <Star size={20} className="text-green-600" />, "bg-green-50"
+        )}
+        {renderKPICard(
+          "Hauts potentiels",
+          hasNinebox ? highPotential : "32",
+          <Zap size={20} className="text-blue-600" />, "bg-blue-50"
+        )}
+        {renderKPICard(
+          "Piliers",
+          hasNinebox ? piliers : "45",
+          <Shield size={20} className="text-purple-600" />, "bg-purple-50"
+        )}
+        {renderKPICard(
+          "Postes clés couverts",
+          successionData ? `${coveredPct}%` : "80%",
+          <Target size={20} className="text-emerald-600" />, "bg-emerald-50",
+          successionData ? `${successionData.total_plans} plans` : undefined
+        )}
+        {renderKPICard(
+          "À risque (9-box)",
+          hasNinebox ? atRisk : "3",
+          <AlertTriangle size={20} className="text-red-600" />, "bg-red-50"
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 9-Box */}
         <div className="bg-white rounded-xl border p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Distribution 9-Box</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900">Distribution 9-Box</h3>
+            {renderBadge(hasNinebox ? "real" : "hardcoded")}
+          </div>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
-                data={talentDistribution}
+                data={hasNinebox ? nineboxData.filter((q: any) => q.value > 0) : talentDistribution}
                 dataKey="value"
                 nameKey="name"
                 cx="50%"
                 cy="50%"
                 outerRadius={100}
-                label={({ name, payload }: any) => `${name}: ${payload?.pct ?? ""}%`}
+                label={({ name, value }: any) => totalNinebox > 0 ? `${name}: ${Math.round(value / totalNinebox * 100)}%` : `${name}`}
               >
-                {talentDistribution.map((entry, i) => (
+                {(hasNinebox ? nineboxData.filter((q: any) => q.value > 0) : talentDistribution).map((entry: any, i: number) => (
                   <Cell key={i} fill={entry.color} />
                 ))}
               </Pie>
@@ -754,16 +886,19 @@ export default function PeopleAnalyticsPage() {
 
         {/* Couverture succession */}
         <div className="bg-white rounded-xl border p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Couverture de succession</h3>
-          <div className="space-y-4">
-            {successionCoverage.map((s, i) => (
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900">Couverture de succession</h3>
+            {renderBadge(plans.length > 0 ? "real" : "hardcoded")}
+          </div>
+          <div className="space-y-4 overflow-y-auto max-h-72">
+            {(plans.length > 0 ? plans : successionCoverage).map((s: any, i: number) => (
               <div key={i} className="flex items-center gap-4">
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm text-gray-900">{s.poste}</p>
                   <p className="text-xs text-gray-500">{s.titulaire}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium">{s.successeurs}</p>
+                  <p className="text-sm font-medium">{s.successeurs ?? s.successeurs}</p>
                   <p className="text-[10px] text-gray-400">successeurs</p>
                 </div>
                 <div className="text-center">
@@ -786,119 +921,128 @@ export default function PeopleAnalyticsPage() {
                 </div>
               </div>
             ))}
+            {plans.length === 0 && successionCoverage.length === 0 && (
+              <p className="text-center text-gray-400 text-sm py-4">Aucun plan de succession configuré</p>
+            )}
           </div>
         </div>
       </div>
-
-      {/* Risques talents */}
-      <div className="bg-white rounded-xl border p-6">
-        <h3 className="font-semibold text-gray-900 mb-4">Talents à risque de départ</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-gray-500">
-                <th className="pb-3 font-medium">Nom</th>
-                <th className="pb-3 font-medium">Poste</th>
-                <th className="pb-3 font-medium">Département</th>
-                <th className="pb-3 font-medium text-center">Risque</th>
-                <th className="pb-3 font-medium">Raison</th>
-              </tr>
-            </thead>
-            <tbody>
-              {talentRisks.map((t, i) => (
-                <tr key={i} className="border-b last:border-0 hover:bg-gray-50">
-                  <td className="py-3 font-medium text-gray-900">{t.nom}</td>
-                  <td className="py-3 text-gray-600">{t.poste}</td>
-                  <td className="py-3 text-gray-600">{t.departement}</td>
-                  <td className="py-3 text-center">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      t.risque === "Élevé" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
-                    }`}>
-                      {t.risque}
-                    </span>
-                  </td>
-                  <td className="py-3 text-gray-600">{t.raison}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
-  );
+    );
+  };
 
 
   // ============================================
   // TAB 4 - FORMATION
   // ============================================
 
-  const renderFormation = () => (
+  const renderFormation = () => {
+    const fo = formationOverview;
+    const hasCat = formationByCategory.length > 0;
+    const hasEvol = formationEvolution.length > 0;
+
+    return (
     <div className="space-y-6">
-      {renderBadge("hardcoded")}
+      {renderBadge("real")}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
-        {renderKPICard("Plan exécuté", `${budgetFormation.pct}%`, <Target size={20} className="text-blue-600" />, "bg-blue-50")}
-        {renderKPICard("Formations réalisées", "246", <GraduationCap size={20} className="text-green-600" />, "bg-green-50")}
-        {renderKPICard("Heures totales", "1 248h", <Clock size={20} className="text-purple-600" />, "bg-purple-50")}
-        {renderKPICard("Budget consommé", `${formatXOF(budgetFormation.consomme)} XOF`, <Briefcase size={20} className="text-amber-600" />, "bg-amber-50", `sur ${formatXOF(budgetFormation.total)} XOF`)}
+        {renderKPICard(
+          "Taux de complétion",
+          fo ? `${fo.completion_rate}%` : "—",
+          <Target size={20} className="text-blue-600" />,
+          "bg-blue-50",
+          fo ? `${fo.completed} / ${fo.total_assigned} formations` : undefined
+        )}
+        {renderKPICard(
+          "Formations complétées",
+          fo?.completed ?? "—",
+          <GraduationCap size={20} className="text-green-600" />,
+          "bg-green-50",
+          fo ? `${fo.in_progress} en cours` : undefined
+        )}
+        {renderKPICard(
+          "Heures de formation",
+          fo ? `${Math.round(fo.total_heures)}h` : "—",
+          <Clock size={20} className="text-purple-600" />,
+          "bg-purple-50",
+          "Formations complétées"
+        )}
+        {renderKPICard(
+          "Apprenants actifs",
+          fo?.nb_apprenants ?? "—",
+          <Users size={20} className="text-amber-600" />,
+          "bg-amber-50",
+          fo ? `${fo.overdue} en retard` : undefined
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Plan exécution */}
+        {/* Exécution par catégorie */}
         <div className="bg-white rounded-xl border p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Exécution du plan de formation</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900">Formations par catégorie</h3>
+            {renderBadge(hasCat ? "real" : "hardcoded")}
+          </div>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={formationExecution}>
+            <BarChart data={hasCat ? formationByCategory : formationExecution}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="name" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip />
               <Legend />
-              <Bar dataKey="prevu" name="Prévu" fill="#93c5fd" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="realise" name="Réalisé" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="prevu" name="Assignées" fill="#93c5fd" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="realise" name="Complétées" fill="#3b82f6" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Radar compétences */}
+        {/* Évolution mensuelle */}
         <div className="bg-white rounded-xl border p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Couverture des compétences</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900">Évolution mensuelle</h3>
+            {renderBadge(hasEvol ? "real" : "hardcoded")}
+          </div>
           <ResponsiveContainer width="100%" height={300}>
-            <RadarChart data={competencesCoverage}>
-              <PolarGrid />
-              <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11 }} />
-              <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} />
-              <Radar name="Couverture" dataKey="A" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
+            <AreaChart data={hasEvol ? formationEvolution : formationExecution}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} />
               <Tooltip />
-            </RadarChart>
+              <Legend />
+              <Area type="monotone" dataKey="assignees" name="Assignées" stroke="#93c5fd" fill="#93c5fd20" strokeWidth={2} />
+              <Area type="monotone" dataKey="completes" name="Complétées" stroke="#3b82f6" fill="#3b82f620" strokeWidth={2} />
+            </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Budget */}
-      <div className="bg-white rounded-xl border p-6">
-        <h3 className="font-semibold text-gray-900 mb-4">Budget formation</h3>
-        <div className="grid grid-cols-3 gap-6">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-gray-900">{formatXOF(budgetFormation.total)} XOF</p>
-            <p className="text-sm text-gray-500 mt-1">Budget total</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-blue-600">{formatXOF(budgetFormation.consomme)} XOF</p>
-            <p className="text-sm text-gray-500 mt-1">Consommé ({budgetFormation.pct}%)</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-green-600">{formatXOF(budgetFormation.restant)} XOF</p>
-            <p className="text-sm text-gray-500 mt-1">Restant</p>
+      {/* Statut global */}
+      {fo && (
+        <div className="bg-white rounded-xl border p-6">
+          <h3 className="font-semibold text-gray-900 mb-4">Répartition par statut</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: "Complétées", value: fo.completed, color: "bg-green-500", pct: fo.total_assigned > 0 ? Math.round(fo.completed / fo.total_assigned * 100) : 0 },
+              { label: "En cours", value: fo.in_progress, color: "bg-blue-500", pct: fo.total_assigned > 0 ? Math.round(fo.in_progress / fo.total_assigned * 100) : 0 },
+              { label: "En retard", value: fo.overdue, color: "bg-red-500", pct: fo.total_assigned > 0 ? Math.round(fo.overdue / fo.total_assigned * 100) : 0 },
+              { label: "Total assignées", value: fo.total_assigned, color: "bg-gray-400", pct: 100 },
+            ].map((item, i) => (
+              <div key={i} className="p-4 rounded-xl border">
+                <p className="text-2xl font-bold text-gray-900">{item.value}</p>
+                <p className="text-sm text-gray-500 mt-1">{item.label}</p>
+                <div className="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${item.color}`} style={{ width: `${Math.min(item.pct, 100)}%` }} />
+                </div>
+                <p className="text-xs text-gray-400 mt-1">{item.pct}%</p>
+              </div>
+            ))}
           </div>
         </div>
-        <div className="mt-4 h-4 bg-gray-100 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full" style={{ width: `${budgetFormation.pct}%` }} />
-        </div>
-      </div>
+      )}
     </div>
-  );
+    );
+  };
 
 
   // ============================================
@@ -980,76 +1124,144 @@ export default function PeopleAnalyticsPage() {
   // TAB 6 - RECRUTEMENT
   // ============================================
 
-  const renderRecrutement = () => (
+  const renderRecrutement = () => {
+    const rd = recrutementData;
+    const stats = rd?.stats;
+    const pipeline = rd?.pipeline ?? [];
+    const sources = rd?.sources ?? [];
+    const trend = (rd?.hiring_trend ?? []).map((t: any) => ({
+      name: t.month,
+      candidatures: t.applications,
+      embauches: t.hires,
+    }));
+    const hasReal = !!rd;
+
+    return (
     <div className="space-y-6">
-      {renderBadge("hardcoded")}
+      {renderBadge(hasReal ? "real" : "hardcoded")}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-3">
-        {renderKPICard("Postes ouverts", "8", <Briefcase size={20} className="text-blue-600" />, "bg-blue-50")}
-        {renderKPICard("Candidatures (6M)", "916", <FileText size={20} className="text-purple-600" />, "bg-purple-50")}
-        {renderKPICard("Embauches (6M)", "50", <UserPlus size={20} className="text-green-600" />, "bg-green-50")}
-        {renderKPICard("Délai moyen", "32 jours", <Clock size={20} className="text-amber-600" />, "bg-amber-50")}
-        {renderKPICard("Coût / embauche", "850K XOF", <Activity size={20} className="text-red-600" />, "bg-red-50")}
+        {renderKPICard(
+          "Postes ouverts",
+          stats?.open_positions ?? "8",
+          <Briefcase size={20} className="text-blue-600" />, "bg-blue-50"
+        )}
+        {renderKPICard(
+          "Candidats actifs",
+          stats?.total_candidates ?? "916",
+          <FileText size={20} className="text-purple-600" />, "bg-purple-50",
+          stats ? `${stats.in_interview} en entretien` : undefined
+        )}
+        {renderKPICard(
+          "Embauches (année)",
+          stats?.hires_this_year ?? "50",
+          <UserPlus size={20} className="text-green-600" />, "bg-green-50",
+          stats ? `${stats.hires_this_month} ce mois` : undefined
+        )}
+        {renderKPICard(
+          "Délai moyen d'embauche",
+          stats?.avg_time_to_hire != null ? `${stats.avg_time_to_hire} jours` : "32 jours",
+          <Clock size={20} className="text-amber-600" />, "bg-amber-50"
+        )}
+        {renderKPICard(
+          "En entretien",
+          stats?.in_interview ?? "—",
+          <Activity size={20} className="text-red-600" />, "bg-red-50"
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pipeline recrutement */}
+        {/* Pipeline funnel */}
         <div className="bg-white rounded-xl border p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Pipeline de recrutement</h3>
+          <h3 className="font-semibold text-gray-900 mb-4">Funnel de recrutement</h3>
+          {pipeline.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={pipeline} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis type="number" tick={{ fontSize: 11 }} />
+                <YAxis dataKey="stage_label" type="category" tick={{ fontSize: 11 }} width={110} />
+                <Tooltip />
+                <Bar dataKey="count" name="Candidats" radius={[0, 4, 4, 0]}>
+                  {pipeline.map((entry: any, i: number) => (
+                    <Cell key={i} fill={entry.color || "#3b82f6"} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={recrutementMetrics}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Legend />
+                <Area type="monotone" dataKey="candidatures" name="Candidatures" stroke="#8b5cf6" fill="#8b5cf620" strokeWidth={2} />
+                <Area type="monotone" dataKey="entretiens" name="Entretiens" stroke="#3b82f6" fill="#3b82f620" strokeWidth={2} />
+                <Area type="monotone" dataKey="embauches" name="Embauches" stroke="#10b981" fill="#10b98120" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Tendance mensuelle */}
+        <div className="bg-white rounded-xl border p-6">
+          <h3 className="font-semibold text-gray-900 mb-4">Tendance mensuelle</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={recrutementMetrics}>
+            <AreaChart data={trend.length > 0 ? trend : recrutementMetrics}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="name" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip />
               <Legend />
               <Area type="monotone" dataKey="candidatures" name="Candidatures" stroke="#8b5cf6" fill="#8b5cf620" strokeWidth={2} />
-              <Area type="monotone" dataKey="entretiens" name="Entretiens" stroke="#3b82f6" fill="#3b82f620" strokeWidth={2} />
               <Area type="monotone" dataKey="embauches" name="Embauches" stroke="#10b981" fill="#10b98120" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
+      </div>
 
-        {/* Sources */}
-        <div className="bg-white rounded-xl border p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Qualité des sources</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-gray-500">
-                  <th className="pb-3 font-medium">Source</th>
-                  <th className="pb-3 font-medium text-center">Candidatures</th>
-                  <th className="pb-3 font-medium text-center">Embauches</th>
-                  <th className="pb-3 font-medium text-center">Qualité</th>
-                  <th className="pb-3 font-medium text-right">Coût</th>
+      {/* Sources */}
+      <div className="bg-white rounded-xl border p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-900">Sources de recrutement</h3>
+          {renderBadge(sources.length > 0 ? "real" : "hardcoded")}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left text-gray-500">
+                <th className="pb-3 font-medium">Source</th>
+                <th className="pb-3 font-medium text-center">Candidatures</th>
+                <th className="pb-3 font-medium text-center">% du total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(sources.length > 0 ? sources : sourcesRecrutement.map((s) => ({ source: s.source, count: s.candidatures, percentage: s.qualite }))).map((s: any, i: number) => (
+                <tr key={i} className="border-b last:border-0 hover:bg-gray-50">
+                  <td className="py-3 font-medium text-gray-900 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: s.color || "#3b82f6" }} />
+                    {s.source}
+                  </td>
+                  <td className="py-3 text-center">{s.count ?? s.candidatures}</td>
+                  <td className="py-3 text-center">
+                    <div className="flex items-center gap-2 justify-center">
+                      <div className="w-16 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full bg-blue-500" style={{ width: `${Math.min(s.percentage ?? s.qualite, 100)}%` }} />
+                      </div>
+                      <span className="text-xs">{s.percentage ?? s.qualite}%</span>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {sourcesRecrutement.map((s, i) => (
-                  <tr key={i} className="border-b last:border-0 hover:bg-gray-50">
-                    <td className="py-3 font-medium text-gray-900">{s.source}</td>
-                    <td className="py-3 text-center">{s.candidatures}</td>
-                    <td className="py-3 text-center">{s.embauches}</td>
-                    <td className="py-3 text-center">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        s.qualite >= 85 ? "bg-green-100 text-green-700" :
-                        s.qualite >= 75 ? "bg-blue-100 text-blue-700" :
-                        "bg-amber-100 text-amber-700"
-                      }`}>
-                        {s.qualite}%
-                      </span>
-                    </td>
-                    <td className="py-3 text-right text-gray-600">{s.cout} XOF</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
 
   // ============================================

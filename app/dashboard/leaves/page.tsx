@@ -6,6 +6,7 @@ import {
   Download, RefreshCw, Users, Settings, BarChart3, CalendarDays,
   ChevronLeft, ChevronRight, X, Search, Plus
 } from 'lucide-react';
+import Header from '@/components/Header';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { leavesTips } from '@/config/pageTips';
@@ -809,6 +810,30 @@ export default function LeavesManagementPage() {
     }
   };
 
+  const exportToCSV = () => {
+    const rows = requests.map(r => [
+      r.employee_name ?? '',
+      r.department ?? '',
+      r.leave_type_name ?? '',
+      r.start_date ?? '',
+      r.end_date ?? '',
+      r.days_requested ?? '',
+      r.status ?? '',
+      r.reason ?? '',
+    ]);
+    const header = ['Employé', 'Département', 'Type', 'Début', 'Fin', 'Jours', 'Statut', 'Motif'];
+    const csv = [header, ...rows]
+      .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `conges_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const filteredRequests = requests.filter(r => {
     if (!searchTerm) return true;
     return r.employee_name?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -816,14 +841,18 @@ export default function LeavesManagementPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
-      </div>
+      <>
+        <Header title="Gestion des Congés" subtitle="Administration des congés et absences" />
+        <div className="flex-1 flex items-center justify-center p-20">
+          <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8">
+    <>
+      <Header title="Gestion des Congés" subtitle="Administration des congés et absences" />
       {showTips && (
         <PageTourTips
           tips={leavesTips}
@@ -831,14 +860,10 @@ export default function LeavesManagementPage() {
           pageTitle="Gestion des Congés"
         />
       )}
+      <div className="py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Gestion des Congés</h1>
-            <p className="text-gray-500 mt-1">Administration des congés et absences</p>
-          </div>
-          <div className="flex gap-3">
+        {/* Actions */}
+        <div className="flex justify-end gap-3 mb-6">
             <button
               onClick={() => setShowInitModal(true)}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2"
@@ -847,14 +872,13 @@ export default function LeavesManagementPage() {
               Initialiser soldes
             </button>
             <button
-              onClick={() => {/* Export */}}
+              onClick={exportToCSV}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2"
             >
               <Download className="w-4 h-4" />
               Exporter
             </button>
           </div>
-        </div>
 
         {/* Stats */}
         {stats && (
@@ -1082,5 +1106,7 @@ export default function LeavesManagementPage() {
         onSuccess={() => { loadRequests(); loadData(); }}
       />
     </div>
+    </div>
+    </>
   );
 }

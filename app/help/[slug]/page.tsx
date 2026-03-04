@@ -33,6 +33,7 @@ interface Category {
 
 interface RelatedArticle {
   id: number;
+  category_id: number;
   title: string;
   slug: string;
   excerpt: string | null;
@@ -54,6 +55,7 @@ export default function ArticleDetailPageKartra() {
   const [article, setArticle] = useState<ArticleDetail | null>(null);
   const [category, setCategory] = useState<Category | null>(null);
   const [relatedArticles, setRelatedArticles] = useState<RelatedArticle[]>([]);
+  const [allCategoryArticles, setAllCategoryArticles] = useState<RelatedArticle[]>([]);
   const [toc, setToc] = useState<TocItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedbackSent, setFeedbackSent] = useState(false);
@@ -95,10 +97,14 @@ export default function ArticleDetailPageKartra() {
           fetch(`${API_URL}/api/help/articles`)
             .then(res => res.json())
             .then((articles: RelatedArticle[]) => {
-              const sameCategory = articles.filter(a => 
-                a.id !== article.id // Exclure l'article actuel
-              );
-              setRelatedArticles(sameCategory.slice(0, 15));
+              const sameCategory = articles.filter(a => a.category_id === article.category_id);
+              
+              // Tous les articles de la catégorie (pour navigation prev/next)
+              setAllCategoryArticles(sameCategory);
+              
+              // Articles liés sans l'article actuel (pour sidebar)
+              const relatedWithoutCurrent = sameCategory.filter(a => a.id !== article.id);
+              setRelatedArticles(relatedWithoutCurrent.slice(0, 15));
             });
         }
       });
@@ -205,10 +211,10 @@ export default function ArticleDetailPageKartra() {
     );
   }
 
-  // TODO: Implémenter navigation suivant/précédent correctement
-  // const currentIndex = relatedArticles.findIndex(a => a.id === article.id);
-  // const nextArticle = currentIndex < relatedArticles.length - 1 ? relatedArticles[currentIndex + 1] : null;
-  // const prevArticle = currentIndex > 0 ? relatedArticles[currentIndex - 1] : null;
+  // Calculer les articles précédent/suivant
+  const currentIndex = allCategoryArticles.findIndex(a => a.id === article.id);
+  const nextArticle = currentIndex !== -1 && currentIndex < allCategoryArticles.length - 1 ? allCategoryArticles[currentIndex + 1] : null;
+  const prevArticle = currentIndex !== -1 && currentIndex > 0 ? allCategoryArticles[currentIndex - 1] : null;
 
   return (
     <div className="min-h-screen bg-white">
@@ -390,11 +396,11 @@ export default function ArticleDetailPageKartra() {
                 )}
               </div>
 
-              {/* TODO: Navigation suivant/précédent - À implémenter correctement
+              {/* Navigation suivant/précédent */}
               {(prevArticle || nextArticle) && (
                 <div className="border-t border-gray-200 pt-6 mt-6">
                   <div className="grid grid-cols-2 gap-4">
-                    {prevArticle && (
+                    {prevArticle ? (
                       <Link
                         href={`/help/${prevArticle.slug}`}
                         className="text-left p-4 border border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all"
@@ -402,6 +408,8 @@ export default function ArticleDetailPageKartra() {
                         <div className="text-xs text-gray-500 mb-1">Précédent</div>
                         <div className="text-sm font-medium text-gray-900">{prevArticle.title}</div>
                       </Link>
+                    ) : (
+                      <div></div>
                     )}
                     {nextArticle && (
                       <Link
@@ -415,7 +423,6 @@ export default function ArticleDetailPageKartra() {
                   </div>
                 </div>
               )}
-              */}
             </article>
           </main>
 

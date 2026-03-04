@@ -1017,7 +1017,7 @@ export default function PeopleAnalyticsPage() {
           fo ? `${fo.completion_rate}%` : "—",
           <Target size={20} className="text-blue-600" />,
           "bg-blue-50",
-          fo ? `${fo.completed} / ${fo.total_assigned} formations` : undefined
+          fo ? `${fo.completed} / ${fo.total_assignments} formations` : undefined
         )}
         {renderKPICard(
           "Formations complétées",
@@ -1027,18 +1027,18 @@ export default function PeopleAnalyticsPage() {
           fo ? `${fo.in_progress} en cours` : undefined
         )}
         {renderKPICard(
-          "Heures de formation",
-          fo ? `${Math.round(fo.total_heures)}h` : "—",
+          "Cours disponibles",
+          fo?.total_courses ?? "—",
           <Clock size={20} className="text-purple-600" />,
           "bg-purple-50",
-          "Formations complétées"
+          "Catalogue de formation"
         )}
         {renderKPICard(
-          "Apprenants actifs",
-          fo?.nb_apprenants ?? "—",
+          "Total assignées",
+          fo?.total_assignments ?? "—",
           <Users size={20} className="text-amber-600" />,
           "bg-amber-50",
-          fo ? `${fo.overdue} en retard` : undefined
+          fo ? `${fo.in_progress} en cours` : undefined
         )}
       </div>
 
@@ -1047,38 +1047,54 @@ export default function PeopleAnalyticsPage() {
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Formations par catégorie</h3>
-            {renderBadge(hasCat ? "real" : "hardcoded")}
+            {renderBadge("real")}
           </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={hasCat ? formationByCategory : formationExecution}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="prevu" name="Assignées" fill="#93c5fd" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="realise" name="Complétées" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {hasCat ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={formationByCategory}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="category" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="nb_assignments" name="Assignées" fill="#93c5fd" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="nb_completed" name="Complétées" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
+              <GraduationCap size={40} className="mb-3 opacity-30" />
+              <p className="text-sm font-medium">Aucune formation par catégorie</p>
+              <p className="text-xs mt-1">Assignez des formations pour voir la répartition</p>
+            </div>
+          )}
         </div>
 
         {/* Évolution mensuelle */}
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Évolution mensuelle</h3>
-            {renderBadge(hasEvol ? "real" : "hardcoded")}
+            {renderBadge("real")}
           </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={hasEvol ? formationEvolution : formationExecution}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Legend />
-              <Area type="monotone" dataKey="assignees" name="Assignées" stroke="#93c5fd" fill="#93c5fd20" strokeWidth={2} />
-              <Area type="monotone" dataKey="completes" name="Complétées" stroke="#3b82f6" fill="#3b82f620" strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
+          {hasEvol ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={formationEvolution}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Legend />
+                <Area type="monotone" dataKey="assignees" name="Assignées" stroke="#93c5fd" fill="#93c5fd20" strokeWidth={2} />
+                <Area type="monotone" dataKey="completes" name="Complétées" stroke="#3b82f6" fill="#3b82f620" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
+              <TrendingUp size={40} className="mb-3 opacity-30" />
+              <p className="text-sm font-medium">Aucune évolution à afficher</p>
+              <p className="text-xs mt-1">Les données apparaîtront au fil des mois</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1088,10 +1104,10 @@ export default function PeopleAnalyticsPage() {
           <h3 className="font-semibold text-gray-900 mb-4">Répartition par statut</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: "Complétées", value: fo.completed, color: "bg-green-500", pct: fo.total_assigned > 0 ? Math.round(fo.completed / fo.total_assigned * 100) : 0 },
-              { label: "En cours", value: fo.in_progress, color: "bg-blue-500", pct: fo.total_assigned > 0 ? Math.round(fo.in_progress / fo.total_assigned * 100) : 0 },
-              { label: "En retard", value: fo.overdue, color: "bg-red-500", pct: fo.total_assigned > 0 ? Math.round(fo.overdue / fo.total_assigned * 100) : 0 },
-              { label: "Total assignées", value: fo.total_assigned, color: "bg-gray-400", pct: 100 },
+              { label: "Complétées", value: fo.completed, color: "bg-green-500", pct: fo.total_assignments > 0 ? Math.round(fo.completed / fo.total_assignments * 100) : 0 },
+              { label: "En cours", value: fo.in_progress, color: "bg-blue-500", pct: fo.total_assignments > 0 ? Math.round(fo.in_progress / fo.total_assignments * 100) : 0 },
+              { label: "Cours disponibles", value: fo.total_courses, color: "bg-purple-500", pct: 100 },
+              { label: "Total assignées", value: fo.total_assignments, color: "bg-gray-400", pct: 100 },
             ].map((item, i) => (
               <div key={i} className="p-4 rounded-xl border">
                 <p className="text-2xl font-bold text-gray-900">{item.value}</p>

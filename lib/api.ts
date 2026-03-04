@@ -1531,3 +1531,214 @@ export async function getChatbotStatus(): Promise<ChatbotStatus> {
 
   return response.json();
 }
+// ============================================
+// PLATFORM ADMIN (SUPER_ADMIN ONLY)
+// ============================================
+
+export interface PlatformStats {
+  total_tenants: number;
+  active_tenants: number;
+  trial_tenants: number;
+  total_users: number;
+  active_users: number;
+  total_employees: number;
+  total_messages_today: number;
+  total_leave_requests_pending: number;
+  new_tenants_this_month: number;
+  new_users_this_month: number;
+}
+
+export interface TenantListItem {
+  id: number;
+  name: string;
+  slug: string;
+  email?: string;
+  plan: string;
+  is_trial: boolean;
+  is_active: boolean;
+  trial_ends_at?: string;
+  max_employees: number;
+  created_at: string;
+  users_count: number;
+  employees_count: number;
+}
+
+export interface UserListItem {
+  id: number;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  role: string;
+  tenant_id?: number;
+  tenant_name?: string;
+  employee_id?: number;
+  is_active: boolean;
+  is_verified: boolean;
+  created_at: string;
+  last_login?: string;
+}
+
+export interface UserCreateData {
+  email: string;
+  password: string;
+  first_name?: string;
+  last_name?: string;
+  role?: string;
+  tenant_id?: number;
+  employee_id?: number;
+  is_active?: boolean;
+}
+
+export interface UserUpdateData {
+  email?: string;
+  password?: string;
+  first_name?: string;
+  last_name?: string;
+  role?: string;
+  tenant_id?: number;
+  employee_id?: number;
+  is_active?: boolean;
+  is_verified?: boolean;
+}
+
+/**
+ * Récupère les statistiques globales de la plateforme
+ */
+export async function getPlatformStats(): Promise<PlatformStats> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/stats`, {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+/**
+ * Récupère la liste de tous les tenants
+ */
+export async function getAllTenants(params?: {
+  skip?: number;
+  limit?: number;
+  search?: string;
+  plan?: string;
+  is_active?: boolean;
+}): Promise<TenantListItem[]> {
+  const searchParams = new URLSearchParams();
+  if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+  if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+  if (params?.search) searchParams.append('search', params.search);
+  if (params?.plan) searchParams.append('plan', params.plan);
+  if (params?.is_active !== undefined) searchParams.append('is_active', params.is_active.toString());
+
+  const response = await fetchWithAuth(`${API_URL}/api/platform/tenants?${searchParams}`, {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+/**
+ * Récupère la liste de tous les users (cross-tenant)
+ */
+export async function getAllUsers(params?: {
+  skip?: number;
+  limit?: number;
+  search?: string;
+  role?: string;
+  tenant_id?: number;
+  is_active?: boolean;
+}): Promise<UserListItem[]> {
+  const searchParams = new URLSearchParams();
+  if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+  if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+  if (params?.search) searchParams.append('search', params.search);
+  if (params?.role) searchParams.append('role', params.role);
+  if (params?.tenant_id !== undefined) searchParams.append('tenant_id', params.tenant_id.toString());
+  if (params?.is_active !== undefined) searchParams.append('is_active', params.is_active.toString());
+
+  const response = await fetchWithAuth(`${API_URL}/api/platform/users?${searchParams}`, {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+/**
+ * Récupère un user par son ID
+ */
+export async function getUserById(userId: number): Promise<UserListItem> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/users/${userId}`, {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+/**
+ * Crée un nouveau user
+ */
+export async function createPlatformUser(data: UserCreateData): Promise<UserListItem> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/users`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+/**
+ * Met à jour un user
+ */
+export async function updatePlatformUser(userId: number, data: UserUpdateData): Promise<UserListItem> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/users/${userId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+/**
+ * Supprime un user
+ */
+export async function deletePlatformUser(userId: number): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/users/${userId}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}

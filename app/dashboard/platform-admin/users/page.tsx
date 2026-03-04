@@ -1,0 +1,555 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import {
+  Users, Search, Plus, Edit2, Trash2, Eye, EyeOff,
+  CheckCircle2, XCircle, Building2, Shield, Mail
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import {
+  getAllUsers,
+  getAllTenants,
+  createPlatformUser,
+  updatePlatformUser,
+  deletePlatformUser,
+  type UserListItem,
+  type TenantListItem,
+  type UserCreateData,
+  type UserUpdateData
+} from '@/lib/api';
+
+export default function PlatformUsersManagement() {
+  const router = useRouter();
+  const [users, setUsers] = useState<UserListItem[]>([]);
+  const [tenants, setTenants] = useState<TenantListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterRole, setFilterRole] = useState('');
+  const [filterTenant, setFilterTenant] = useState<number | ''>('');
+  const [filterActive, setFilterActive] = useState<boolean | undefined>(undefined);
+  
+  // Helper pour les couleurs de rôle
+  const getRoleBadgeClass = (role: string) => {
+    if (role === 'SUPER_ADMIN' || role === 'super_admin') return 'bg-purple-100 text-purple-800';
+    if (role === 'admin') return 'bg-blue-100 text-blue-800';
+    if (role === 'rh') return 'bg-green-100 text-green-800';
+    if (role === 'manager') return 'bg-yellow-100 text-yellow-800';
+    return 'bg-gray-100 text-gray-800';
+  };
+  
+  // Modal state
+  const [showModal, setShowModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserListItem | null>(null);
+  const [formData, setFormData] = useState<UserCreateData & { id?: number }>({
+    email: '',
+    password: '',
+    first_name: '',
+    last_name: '',
+    role: 'employee',
+    is_active: true
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  
+  // Vérifier si user est SUPER_ADMIN
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+      router.push('/');
+      return;
+    }
+    
+    const user = JSON.parse(userStr);
+    if (user.role !== 'SUPER_ADMIN' && user.role !== 'super_admin') {
+      router.push('/dashboard');
+      return;
+    }
+    
+    loadData();
+  }, [router]);
+  
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [usersData, tenantsData] = await Promise.all([
+        getAllUsers({ limit: 500 }),
+        getAllTenants({ limit: 500 })
+      ]);
+      
+      setUsers(usersData);
+      setTenants(tenantsData);
+    } catch (error) {
+      console.error('Erreur chargement données:', error);
+      alert('Erreur lors du chargement des données');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleOpenCreate = () => {
+    setEditingUser(null);
+    setFormData({
+      email: '',
+      password: '',
+      first_name: '',
+      last_name: '',
+      role: 'employee',
+      is_active: true
+    });
+    setShowModal(true);
+    setShowPassword(false);
+  };
+  
+  const handleOpenEdit = (user: UserListItem) => {
+    setEditingUser(user);
+    setFormData({
+      id: user.id,
+      email: user.email,
+      password: '', // Ne pas préremplir le mot de passe
+      first_name: user.first_name || '',
+      last_name: user.last_name || '',
+      role: user.role,
+      tenant_id: user.tenant_id,
+      is_active: user.is_active
+    });
+    setShowModal(true);
+    setShowPassword(false);
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      if (editingUser) {
+        // Update
+        const updateData: UserUpdateData = {
+          email: formData.email,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          role: formData.role,
+          tenant_id: formData.tenant_id,
+          is_active: formData.is_active
+        };
+        
+        // Ajouter le mot de passe seulement s'il est fourni
+        if (formData.password) {
+          updateData.password = formData.password;
+        }
+        
+        await updatePlatformUser(editingUser.id, updateData);
+        alert('Utilisateur mis à jour avec succès');
+      } else {
+        // Create
+        if (!formData.password) {
+          alert('Le mot de passe est obligatoire pour la création');
+          return;
+        }
+        
+        await createPlatformUser(formData as UserCreateData);
+        alert('Utilisateur créé avec succès');
+      }
+      
+      setShowModal(false);
+      loadData();
+    } catch (error: unknown) {
+      console.error('Erreur:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de l\'opération';
+      alert(errorMessage);
+    }
+  };
+  
+  const handleDelete = async (user: UserListItem) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur ${user.email} ?`)) {
+      return;
+    }
+    
+    try {
+      await deletePlatformUser(user.id);
+      alert('Utilisateur supprimé avec succès');
+      loadData();
+    } catch (error: unknown) {
+      console.error('Erreur:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la suppression';
+      alert(errorMessage);
+    }
+  };
+  
+  const filteredUsers = users.filter(user => {
+    let match = true;
+    
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      const emailMatch = user.email.toLowerCase().includes(search);
+      const firstNameMatch = user.first_name?.toLowerCase().includes(search) || false;
+      const lastNameMatch = user.last_name?.toLowerCase().includes(search) || false;
+      const tenantMatch = user.tenant_name?.toLowerCase().includes(search) || false;
+      
+      match = match && (emailMatch || firstNameMatch || lastNameMatch || tenantMatch);
+    }
+    
+    if (filterRole) {
+      match = match && user.role === filterRole;
+    }
+    
+    if (filterTenant !== '') {
+      match = match && user.tenant_id === filterTenant;
+    }
+    
+    if (filterActive !== undefined) {
+      const isActiveMatch = user.is_active === filterActive;
+      match = match && isActiveMatch;
+    }
+    
+    return match;
+  });
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <Users className="w-8 h-8 text-blue-600" />
+            Gestion des Utilisateurs
+          </h1>
+          <p className="text-gray-600 mt-1">Administration cross-tenant de tous les users</p>
+        </div>
+        <button
+          onClick={handleOpenCreate}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Créer un User
+        </button>
+      </div>
+      
+      {/* Filtres */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="flex flex-wrap gap-4">
+          <div className="flex-1 min-w-[250px]">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Rechercher par nom, email, entreprise..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          
+          <select
+            value={filterRole}
+            onChange={(e) => setFilterRole(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Tous les rôles</option>
+            <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+            <option value="super_admin">super_admin</option>
+            <option value="admin">Admin</option>
+            <option value="rh">RH</option>
+            <option value="manager">Manager</option>
+            <option value="employee">Employee</option>
+          </select>
+          
+          <select
+            value={filterTenant}
+            onChange={(e) => setFilterTenant(e.target.value === '' ? '' : Number.parseInt(e.target.value, 10))}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-xs"
+          >
+            <option value="">Toutes les entreprises</option>
+            <option value="0">Sans entreprise</option>
+            {tenants.map(tenant => (
+              <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
+            ))}
+          </select>
+          
+          <select
+            value={filterActive === undefined ? '' : filterActive.toString()}
+            onChange={(e) => setFilterActive(e.target.value === '' ? undefined : e.target.value === 'true')}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Tous les statuts</option>
+            <option value="true">Actifs</option>
+            <option value="false">Inactifs</option>
+          </select>
+        </div>
+      </div>
+      
+      {/* Stats rapides */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+          <p className="text-sm text-gray-600">Total Users</p>
+          <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+        </div>
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+          <p className="text-sm text-gray-600">Actifs</p>
+          <p className="text-2xl font-bold text-green-600">{users.filter(u => u.is_active).length}</p>
+        </div>
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+          <p className="text-sm text-gray-600">Inactifs</p>
+          <p className="text-2xl font-bold text-red-600">{users.filter(u => !u.is_active).length}</p>
+        </div>
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+          <p className="text-sm text-gray-600">SUPER_ADMIN</p>
+          <p className="text-2xl font-bold text-purple-600">
+            {users.filter(u => u.role === 'SUPER_ADMIN' || u.role === 'super_admin').length}
+          </p>
+        </div>
+      </div>
+      
+      {/* Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Utilisateur</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rôle</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entreprise</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dernière connexion</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    Aucun utilisateur trouvé
+                  </td>
+                </tr>
+              ) : (
+                filteredUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div>
+                        <p className="font-semibold text-gray-900">
+                          {user.first_name} {user.last_name}
+                        </p>
+                        <p className="text-sm text-gray-500 flex items-center gap-1">
+                          <Mail className="w-3 h-3" />
+                          {user.email}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeClass(user.role)}`}>
+                        {user.role === 'SUPER_ADMIN' || user.role === 'super_admin' ? (
+                          <><Shield className="w-3 h-3 mr-1" />{user.role}</>
+                        ) : user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {user.tenant_name ? (
+                        <div className="flex items-center gap-1 text-sm text-gray-900">
+                          <Building2 className="w-4 h-4 text-gray-400" />
+                          {user.tenant_name}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {user.is_active ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <CheckCircle2 className="w-3 h-3 mr-1" />
+                          Actif
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          <XCircle className="w-3 h-3 mr-1" />
+                          Inactif
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {user.last_login ? new Date(user.last_login).toLocaleString('fr-FR') : 'Jamais'}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleOpenEdit(user)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Modifier"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(user)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      {/* Modal Create/Edit */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {editingUser ? 'Modifier l\'utilisateur' : 'Créer un utilisateur'}
+              </h2>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              {/* Email */}
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  Email *
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              {/* Mot de passe */}
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                  Mot de passe {editingUser ? '(laisser vide pour ne pas changer)' : '*'}
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    required={!editingUser}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              
+              {/* Prénom / Nom */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">
+                    Prénom
+                  </label>
+                  <input
+                    id="first_name"
+                    type="text"
+                    value={formData.first_name}
+                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-1">
+                    Nom
+                  </label>
+                  <input
+                    id="last_name"
+                    type="text"
+                    value={formData.last_name}
+                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              
+              {/* Rôle */}
+              <div>
+                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+                  Rôle *
+                </label>
+                <select
+                  id="role"
+                  required
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="employee">Employee</option>
+                  <option value="manager">Manager</option>
+                  <option value="rh">RH</option>
+                  <option value="admin">Admin</option>
+                  <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                </select>
+              </div>
+              
+              {/* Tenant */}
+              <div>
+                <label htmlFor="tenant_id" className="block text-sm font-medium text-gray-700 mb-1">
+                  Entreprise
+                </label>
+                <select
+                  id="tenant_id"
+                  value={formData.tenant_id || ''}
+                  onChange={(e) => setFormData({ ...formData, tenant_id: e.target.value ? Number.parseInt(e.target.value, 10) : undefined })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Aucune (cross-tenant)</option>
+                  {tenants.map(tenant => (
+                    <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Actif */}
+              <div className="flex items-center gap-2">
+                <input
+                  id="is_active"
+                  type="checkbox"
+                  checked={formData.is_active}
+                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
+                  Compte actif
+                </label>
+              </div>
+              
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  {editingUser ? 'Mettre à jour' : 'Créer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -39,6 +39,7 @@ import {
   Layers,
   ArrowUpRight,
   HelpCircle,
+  Shield,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -646,6 +647,18 @@ function SidebarInner() {
             <div className={`${collapsed ? '' : 'px-3 mb-2'}`}>
               {!collapsed && <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Administration</div>}
             </div>
+            <Link 
+              href="/dashboard/platform-admin" 
+              className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+                pathname.startsWith('/dashboard/platform-admin') 
+                  ? 'bg-primary-500 text-white' 
+                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+              }`} 
+              title={collapsed ? 'Dashboard Plateforme' : undefined}
+            >
+              <Shield className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
+              {!collapsed && <span className="text-sm font-medium">Dashboard Plateforme</span>}
+            </Link>
             <Link 
               href="/dashboard/help-admin" 
               className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${

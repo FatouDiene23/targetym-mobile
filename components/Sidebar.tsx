@@ -38,6 +38,7 @@ import {
   Crown,
   Layers,
   ArrowUpRight,
+  HelpCircle,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -653,22 +654,42 @@ function SidebarInner() {
           )}
         </div>
         {!collapsed && (
-          <button 
-            onClick={handleLogout} 
-            className="mt-4 w-full flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Déconnexion
-          </button>
+          <>
+            <Link
+              href="/help"
+              target="_blank"
+              className="mt-4 w-full flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <HelpCircle className="w-4 h-4 mr-2" />
+              Aide & Support
+            </Link>
+            <button 
+              onClick={handleLogout} 
+              className="mt-2 w-full flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Déconnexion
+            </button>
+          </>
         )}
         {collapsed && (
-          <button 
-            onClick={handleLogout} 
-            className="mt-4 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" 
-            title="Déconnexion"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
+          <>
+            <Link
+              href="/help"
+              target="_blank"
+              className="mt-4 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+              title="Aide & Support"
+            >
+              <HelpCircle className="w-5 h-5" />
+            </Link>
+            <button 
+              onClick={handleLogout} 
+              className="mt-2 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" 
+              title="Déconnexion"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </>
         )}
       </div>
     </aside>

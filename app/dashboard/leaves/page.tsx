@@ -813,7 +813,7 @@ export default function LeavesManagementPage() {
   const exportToCSV = () => {
     const rows = requests.map(r => [
       r.employee_name ?? '',
-      r.department ?? '',
+      r.department_name ?? '',
       r.leave_type_name ?? '',
       r.start_date ?? '',
       r.end_date ?? '',

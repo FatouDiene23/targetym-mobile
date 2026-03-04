@@ -657,7 +657,9 @@ function RequestActionModal({
         
         <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Traiter la demande</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              {request.status === 'pending' ? 'Traiter la demande' : 'Détail de la demande'}
+            </h3>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
               <X className="w-5 h-5" />
             </button>
@@ -673,39 +675,60 @@ function RequestActionModal({
             {request.reason && (
               <p className="text-sm text-gray-500 mt-2 italic">&quot;{request.reason}&quot;</p>
             )}
+            {request.status !== 'pending' && (
+              <div className="mt-3 pt-3 border-t border-gray-200">
+                <StatusBadge status={request.status} />
+                {request.approved_by_name && (
+                  <p className="text-xs text-gray-500 mt-1">Par {request.approved_by_name}</p>
+                )}
+                {request.rejection_reason && (
+                  <p className="text-xs text-red-600 mt-1">Motif : {request.rejection_reason}</p>
+                )}
+              </div>
+            )}
           </div>
 
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Motif de refus (si refusé)
-            </label>
-            <textarea
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              rows={3}
-              placeholder="Indiquez le motif du refus..."
-            />
-          </div>
-
-          <div className="flex gap-3">
+          {request.status === 'pending' ? (
+            <>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Motif de refus (si refusé)
+                </label>
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  rows={3}
+                  placeholder="Indiquez le motif du refus..."
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleAction(false)}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <XCircle className="w-4 h-4" />
+                  Refuser
+                </button>
+                <button
+                  onClick={() => handleAction(true)}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Approuver
+                </button>
+              </div>
+            </>
+          ) : (
             <button
-              onClick={() => handleAction(false)}
-              disabled={loading}
-              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
+              onClick={onClose}
+              className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
             >
-              <XCircle className="w-4 h-4" />
-              Refuser
+              Fermer
             </button>
-            <button
-              onClick={() => handleAction(true)}
-              disabled={loading}
-              className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              <CheckCircle className="w-4 h-4" />
-              Approuver
-            </button>
-          </div>
+          )}
         </div>
       </div>
     </div>

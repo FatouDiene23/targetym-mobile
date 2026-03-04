@@ -162,6 +162,9 @@ interface LearningContextType {
   fetchCertificationHolders: (certId: number) => Promise<void>;
   getVisiblePlans: () => DevelopmentPlan[];
 
+  // Path actions
+  refreshPaths: () => Promise<void>;
+
   // EPF actions
   openEvalModal: (epf: PostTrainingEval) => void;
   computeWeightedScore: (criteria: CriteriaScore[]) => number;
@@ -735,6 +738,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     createCertificationType, createSkill, createDevelopmentPlan,
     openEditPlanModal, updateDevelopmentPlan, cancelDevelopmentPlan, archiveDevelopmentPlan,
     submitCourseRequest, reviewCourseRequest, fetchCertificationHolders, getVisiblePlans,
+    refreshPaths: fetchLearningPaths,
     openEvalModal, computeWeightedScore, submitEvaluation, assignEvaluator,
     syncCareer, fetchEmployeeHistory, fetchEpfSettings: fetchEpfSettingsFn, fetchEpfStats,
   };

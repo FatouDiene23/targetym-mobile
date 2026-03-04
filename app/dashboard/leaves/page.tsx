@@ -97,7 +97,17 @@ async function getLeaveStats(): Promise<LeaveStats> {
   try {
     const response = await fetch(`${API_URL}/api/leaves/stats`, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error();
-    return response.json();
+    const data = await response.json();
+    const total = data.total_requests || 0;
+    const days = data.total_days_taken || 0;
+    return {
+      total_requests: total,
+      pending: data.pending_requests ?? data.pending ?? 0,
+      approved: data.approved_requests ?? data.approved ?? 0,
+      rejected: data.rejected_requests ?? data.rejected ?? 0,
+      on_leave_today: data.on_leave_today ?? 0,
+      avg_days_per_request: total > 0 ? Math.round((days / total) * 10) / 10 : 0,
+    };
   } catch {
     return {
       total_requests: 0,

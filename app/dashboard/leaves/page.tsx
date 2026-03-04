@@ -990,14 +990,12 @@ export default function LeavesManagementPage() {
                       <td className="px-4 py-4 text-sm font-medium text-gray-900">{request.days_requested}</td>
                       <td className="px-4 py-4"><StatusBadge status={request.status} /></td>
                       <td className="px-4 py-4">
-                        {request.status === 'pending' && (
-                          <button
-                            onClick={() => setSelectedRequest(request)}
-                            className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-                          >
-                            Traiter
-                          </button>
-                        )}
+                        <button
+                          onClick={() => setSelectedRequest(request)}
+                          className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                        >
+                          {request.status === 'pending' ? 'Traiter' : 'Voir'}
+                        </button>
                       </td>
                     </tr>
                   ))}

@@ -1161,7 +1161,18 @@ export default function PeopleAnalyticsPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="department" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} unit="%" />
-              <Tooltip formatter={(v: number) => `${v}%`} />
+              <Tooltip content={({ active, payload }: any) => {
+                if (!active || !payload?.length) return null;
+                const d = payload[0].payload;
+                return (
+                  <div className="bg-white border rounded-lg shadow p-3 text-xs">
+                    <p className="font-semibold text-gray-900 mb-1">{d.department}</p>
+                    <p>Taux : <span className="font-medium">{d.taux}%</span></p>
+                    <p>Jours d&apos;absence : <span className="font-medium">{d.jours}j</span></p>
+                    <p>Employés : <span className="font-medium">{d.employes}</span></p>
+                  </div>
+                );
+              }} />
               <Bar dataKey="taux" name="Taux d'absentéisme" radius={[4, 4, 0, 0]}>
                 {absenteismeByDept.map((entry, i) => (
                   <Cell key={i} fill={entry.taux > 5 ? "#ef4444" : entry.taux > 3 ? "#f59e0b" : "#10b981"} />

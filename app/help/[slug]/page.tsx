@@ -47,7 +47,7 @@ interface TocItem {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app';
 
-export default function ArticleDetailPageKartra() {
+export default function ArticleDetailPage() {
   const params = useParams();
   const slug = params?.slug as string;
   const contentRef = useRef<HTMLDivElement>(null);
@@ -62,7 +62,6 @@ export default function ArticleDetailPageKartra() {
   const [feedbackType, setFeedbackType] = useState<'helpful' | 'not_helpful' | null>(null);
   const [activeSection, setActiveSection] = useState<string>('');
 
-  // Charger l'article
   useEffect(() => {
     if (!slug) return;
 
@@ -81,28 +80,21 @@ export default function ArticleDetailPageKartra() {
       });
   }, [slug]);
 
-  // Charger la catégorie et articles liés
   useEffect(() => {
     if (!article) return;
 
-    // Charger la catégorie
     fetch(`${API_URL}/api/help/categories`)
       .then(res => res.json())
       .then(categories => {
         const cat = categories.find((c: Category) => c.id === article.category_id);
         if (cat) setCategory(cat);
 
-        // Charger les articles de la même catégorie
         if (cat) {
           fetch(`${API_URL}/api/help/articles`)
             .then(res => res.json())
             .then((articles: RelatedArticle[]) => {
               const sameCategory = articles.filter(a => a.category_id === article.category_id);
-              
-              // Tous les articles de la catégorie (pour navigation prev/next)
               setAllCategoryArticles(sameCategory);
-              
-              // Articles liés sans l'article actuel (pour sidebar)
               const relatedWithoutCurrent = sameCategory.filter(a => a.id !== article.id);
               setRelatedArticles(relatedWithoutCurrent.slice(0, 15));
             });
@@ -110,7 +102,6 @@ export default function ArticleDetailPageKartra() {
       });
   }, [article]);
 
-  // Générer la table des matières
   useEffect(() => {
     if (!article || !contentRef.current) return;
 
@@ -130,7 +121,6 @@ export default function ArticleDetailPageKartra() {
     setToc(tocItems);
   }, [article]);
 
-  // Observer pour l'active section
   useEffect(() => {
     if (toc.length === 0) return;
 
@@ -211,61 +201,61 @@ export default function ArticleDetailPageKartra() {
     );
   }
 
-  // Calculer les articles précédent/suivant
   const currentIndex = allCategoryArticles.findIndex(a => a.id === article.id);
   const nextArticle = currentIndex !== -1 && currentIndex < allCategoryArticles.length - 1 ? allCategoryArticles[currentIndex + 1] : null;
   const prevArticle = currentIndex !== -1 && currentIndex > 0 ? allCategoryArticles[currentIndex - 1] : null;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header avec Breadcrumb */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          {/* Breadcrumb */}
-          <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-4">
-            <Link href="/help" className="hover:text-primary-600 flex items-center">
+      <div className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+          <nav className="flex items-center space-x-2 text-sm">
+            <Link href="/help" className="text-gray-500 hover:text-primary-600 transition-colors flex items-center">
               <Home className="w-4 h-4" />
             </Link>
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-4 h-4 text-gray-400" />
             {category && (
               <>
-                <Link href="/help" className="hover:text-primary-600">
+                <Link href="/help" className="text-gray-600 hover:text-primary-600 transition-colors font-medium">
                   {category.name}
                 </Link>
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4 text-gray-400" />
               </>
             )}
-            <span className="text-gray-900 font-medium truncate">{article.title}</span>
+            <span className="text-gray-900 font-semibold truncate max-w-sm">{article.title}</span>
           </nav>
         </div>
       </div>
 
       {/* Layout 3 colonnes */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Sidebar gauche - Catégories et articles */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Sidebar gauche - Articles liés */}
           <aside className="lg:col-span-3">
-            <div className="sticky top-4">
+            <div className="sticky top-4 space-y-4">
               <Link
                 href="/help"
-                className="inline-flex items-center text-sm text-primary-600 hover:text-primary-700 mb-4"
+                className="inline-flex items-center text-sm font-semibold text-primary-600 hover:text-primary-700 transition-colors mb-2"
               >
-                <ArrowLeft className="w-4 h-4 mr-1" />
+                <ArrowLeft className="w-4 h-4 mr-1.5" />
                 Retour au centre d'aide
               </Link>
 
-              {category && (
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">{category.name}</h3>
-                  <nav className="space-y-1">
+              {category && category.name && relatedArticles.length > 0 && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-4 py-3">
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">{category.name}</h3>
+                  </div>
+                  <nav className="p-3 space-y-0.5">
                     {relatedArticles.map(relArticle => (
                       <Link
                         key={relArticle.id}
                         href={`/help/${relArticle.slug}`}
-                        className={`block px-3 py-2 text-sm rounded-lg transition-colors ${
+                        className={`block px-3 py-2.5 text-sm rounded-lg transition-all ${
                           relArticle.slug === slug
-                            ? 'bg-primary-50 text-primary-700 font-medium'
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                            ? 'bg-primary-600 text-white font-semibold shadow-md'
+                            : 'text-gray-700 hover:bg-gray-100 font-medium'
                         }`}
                       >
                         {relArticle.title}
@@ -279,35 +269,41 @@ export default function ArticleDetailPageKartra() {
 
           {/* Contenu principal */}
           <main className="lg:col-span-6">
-            <article>
-              {/* Titre et métadonnées */}
-              <header className="mb-8">
-                <h1 className="text-4xl font-bold text-gray-900 mb-4">{article.title}</h1>
-                <div className="flex items-center text-sm text-gray-500 space-x-4">
-                  <span>Modifié le {new Date(article.updated_at).toLocaleDateString('fr-FR', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}</span>
+            <article className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+              {/* En-tête de l'article */}
+              <div className="bg-gradient-to-r from-primary-500 via-primary-600 to-indigo-600 px-8 py-10">
+                <h1 className="text-4xl font-extrabold text-white mb-4 leading-tight">{article.title}</h1>
+                <div className="flex items-center text-sm text-primary-100 space-x-4">
+                  <div className="flex items-center">
+                    <Clock className="w-4 h-4 mr-1.5" />
+                    <span>Modifié le {new Date(article.updated_at).toLocaleDateString('fr-FR')}</span>
+                  </div>
+                  <span>•</span>
+                  <div className="flex items-center">
+                    <Eye className="w-4 h-4 mr-1.5" />
+                    <span>{article.views_count} vues</span>
+                  </div>
                 </div>
-              </header>
+              </div>
 
               {/* Image de couverture */}
               {article.cover_image_url && (
-                <img
-                  src={article.cover_image_url}
-                  alt={article.title}
-                  className="w-full h-64 object-cover rounded-lg mb-8"
-                />
+                <div className="px-8 pt-8">
+                  <img
+                    src={article.cover_image_url}
+                    alt={article.title}
+                    className="w-full h-72 object-cover rounded-lg shadow-md"
+                  />
+                </div>
               )}
 
               {/* Vidéo */}
               {article.video_url && (
-                <div className="mb-8">
+                <div className="px-8 pt-8">
                   <div className="aspect-video">
                     <iframe
                       src={article.video_url}
-                      className="w-full h-full rounded-lg"
+                      className="w-full h-full rounded-lg shadow-md"
                       allowFullScreen
                       title="Vidéo explicative"
                     />
@@ -315,47 +311,57 @@ export default function ArticleDetailPageKartra() {
                 </div>
               )}
 
-              {/* Contenu de l'article */}
-              <div ref={contentRef} className="prose prose-lg max-w-none mb-12">
+              {/* Contenu markdown */}
+              <div ref={contentRef} className="prose prose-lg max-w-none px-8 py-8">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
                     h2: ({ children, ...props }) => (
-                      <h2 className="text-2xl font-bold mt-8 mb-4 text-gray-900" {...props}>
+                      <h2 className="text-3xl font-bold mt-10 mb-5 text-gray-900 border-b-2 border-gray-200 pb-3" {...props}>
                         {children}
                       </h2>
                     ),
                     h3: ({ children, ...props }) => (
-                      <h3 className="text-xl font-semibold mt-6 mb-3 text-gray-900" {...props}>
+                      <h3 className="text-2xl font-semibold mt-8 mb-4 text-gray-800" {...props}>
                         {children}
                       </h3>
                     ),
                     p: ({ children, ...props }) => (
-                      <p className="text-gray-700 leading-relaxed mb-4" {...props}>
+                      <p className="text-gray-700 leading-relaxed mb-5 text-lg" {...props}>
                         {children}
                       </p>
                     ),
                     a: ({ children, ...props }) => (
-                      <a className="text-primary-600 hover:underline font-medium" target="_blank" rel="noopener noreferrer" {...props}>
+                      <a className="text-primary-600 hover:text-primary-700 underline font-medium" target="_blank" rel="noopener noreferrer" {...props}>
                         {children}
                       </a>
                     ),
                     ul: ({ children, ...props }) => (
-                      <ul className="list-disc list-inside space-y-2 mb-4" {...props}>
+                      <ul className="list-disc ml-6 space-y-2 mb-5 text-gray-700" {...props}>
                         {children}
                       </ul>
                     ),
                     ol: ({ children, ...props }) => (
-                      <ol className="list-decimal list-inside space-y-2 mb-4" {...props}>
+                      <ol className="list-decimal ml-6 space-y-2 mb-5 text-gray-700" {...props}>
                         {children}
                       </ol>
                     ),
+                    li: ({ children, ...props }) => (
+                      <li className="leading-relaxed" {...props}>
+                        {children}
+                      </li>
+                    ),
                     code: ({ inline, ...props }: any) =>
                       inline ? (
-                        <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono text-gray-800" {...props} />
+                        <code className="bg-gray-100 px-2 py-0.5 rounded text-sm font-mono text-red-600 font-semibold" {...props} />
                       ) : (
-                        <code className="block bg-gray-900 text-gray-100 p-4 rounded my-4 overflow-x-auto font-mono text-sm" {...props} />
+                        <code className="block bg-gray-900 text-gray-100 p-5 rounded-lg my-6 overflow-x-auto font-mono text-sm shadow-inner" {...props} />
                       ),
+                    blockquote: ({ children, ...props }) => (
+                      <blockquote className="border-l-4 border-primary-500 bg-primary-50 pl-6 py-4 my-6 italic text-gray-700" {...props}>
+                        {children}
+                      </blockquote>
+                    ),
                   }}
                 >
                   {article.content}
@@ -363,23 +369,23 @@ export default function ArticleDetailPageKartra() {
               </div>
 
               {/* Feedback */}
-              <div className="border-t border-gray-200 pt-8 mb-8">
+              <div className="border-t-2 border-gray-100 px-8 py-6 bg-gradient-to-r from-gray-50 to-white">
                 {!feedbackSent ? (
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">
                       Cet article vous a-t-il été utile ?
                     </h3>
                     <div className="flex items-center space-x-4">
                       <button
                         onClick={() => handleFeedback(true)}
-                        className="flex items-center px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all"
+                        className="flex items-center px-8 py-3 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:border-green-500 hover:bg-green-50 hover:text-green-700 transition-all shadow-sm font-semibold"
                       >
                         <ThumbsUp className="w-5 h-5 mr-2" />
                         Oui
                       </button>
                       <button
                         onClick={() => handleFeedback(false)}
-                        className="flex items-center px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:border-red-500 hover:bg-red-50 transition-all"
+                        className="flex items-center px-8 py-3 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:border-red-500 hover:bg-red-50 hover:text-red-700 transition-all shadow-sm font-semibold"
                       >
                         <ThumbsDown className="w-5 h-5 mr-2" />
                         Non
@@ -387,9 +393,9 @@ export default function ArticleDetailPageKartra() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center space-x-3 text-green-700 bg-green-50 p-4 rounded-lg">
+                  <div className="flex items-center space-x-3 text-green-700 bg-green-100 border border-green-200 p-4 rounded-lg">
                     <CheckCircle className="w-6 h-6" />
-                    <span className="font-medium">
+                    <span className="font-semibold text-lg">
                       Merci pour votre retour !
                     </span>
                   </div>
@@ -398,15 +404,15 @@ export default function ArticleDetailPageKartra() {
 
               {/* Navigation suivant/précédent */}
               {(prevArticle || nextArticle) && (
-                <div className="border-t border-gray-200 pt-6 mt-6">
+                <div className="border-t border-gray-200 px-8 py-6 bg-white">
                   <div className="grid grid-cols-2 gap-4">
                     {prevArticle ? (
                       <Link
                         href={`/help/${prevArticle.slug}`}
-                        className="text-left p-4 border border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all"
+                        className="group text-left p-5 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all shadow-sm"
                       >
-                        <div className="text-xs text-gray-500 mb-1">Précédent</div>
-                        <div className="text-sm font-medium text-gray-900">{prevArticle.title}</div>
+                        <div className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-2">Précédent</div>
+                        <div className="text-sm font-semibold text-gray-900 group-hover:text-primary-700 line-clamp-2">{prevArticle.title}</div>
                       </Link>
                     ) : (
                       <div></div>
@@ -414,10 +420,10 @@ export default function ArticleDetailPageKartra() {
                     {nextArticle && (
                       <Link
                         href={`/help/${nextArticle.slug}`}
-                        className="text-right p-4 border border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all"
+                        className="group text-right p-5 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all shadow-sm"
                       >
-                        <div className="text-xs text-gray-500 mb-1">Suivant</div>
-                        <div className="text-sm font-medium text-gray-900">{nextArticle.title}</div>
+                        <div className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-2">Suivant</div>
+                        <div className="text-sm font-semibold text-gray-900 group-hover:text-primary-700 line-clamp-2">{nextArticle.title}</div>
                       </Link>
                     )}
                   </div>
@@ -429,19 +435,21 @@ export default function ArticleDetailPageKartra() {
           {/* Sidebar droite - Table des matières */}
           <aside className="lg:col-span-3">
             {toc.length > 0 && (
-              <div className="sticky top-4">
-                <h3 className="text-sm font-semibold text-gray-900 mb-4">Table des matières</h3>
-                <nav className="space-y-2">
+              <div className="sticky top-4 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="bg-gradient-to-r from-gray-700 to-gray-800 px-4 py-3">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wide">Table des matières</h3>
+                </div>
+                <nav className="p-4 space-y-1 max-h-[calc(100vh-200px)] overflow-y-auto">
                   {toc.map(item => (
                     <a
                       key={item.id}
                       href={`#${item.id}`}
-                      className={`block text-sm transition-colors ${
-                        item.level === 3 ? 'pl-4' : ''
+                      className={`block text-sm py-2 px-3 rounded-lg transition-all ${
+                        item.level === 3 ? 'ml-4 text-xs' : 'font-medium'
                       } ${
                         activeSection === item.id
-                          ? 'text-primary-600 font-medium'
-                          : 'text-gray-600 hover:text-gray-900'
+                          ? 'bg-primary-600 text-white shadow-md'
+                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                       }`}
                     >
                       {item.text}

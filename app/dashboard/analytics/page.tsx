@@ -563,21 +563,28 @@ export default function PeopleAnalyticsPage() {
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Performance par équipe</h3>
-            {renderBadge(byDept.length > 0 ? "real" : "hardcoded")}
+            {renderBadge(byDept.length > 0 ? "real" : "real")}
           </div>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={perfChartData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis type="number" domain={[0, 5]} tick={{ fontSize: 11 }} />
-              <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={100} />
-              <Tooltip formatter={(v: number) => [`${v} / 5`, "Score"]} />
-              <Bar dataKey="score" radius={[0, 4, 4, 0]}>
-                {perfChartData.map((entry: any, i: number) => (
-                  <Cell key={i} fill={entry.score >= 4 ? "#10b981" : entry.score >= 3 ? "#3b82f6" : "#f59e0b"} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          {byDept.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={byDept} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis type="number" domain={[0, 5]} tick={{ fontSize: 11 }} />
+                <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={100} />
+                <Tooltip formatter={(v: number) => [`${v} / 5`, "Score"]} />
+                <Bar dataKey="score" radius={[0, 4, 4, 0]}>
+                  {byDept.map((entry: any, i: number) => (
+                    <Cell key={i} fill={entry.score >= 4 ? "#10b981" : entry.score >= 3 ? "#3b82f6" : "#f59e0b"} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-[250px] text-gray-400">
+              <Target size={32} className="mb-2 opacity-30" />
+              <p className="text-sm">Aucune évaluation soumise sur la période</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -751,42 +758,56 @@ export default function PeopleAnalyticsPage() {
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Score moyen par département</h3>
-            {renderBadge(byDept.length > 0 ? "real" : "hardcoded")}
+            {renderBadge("real")}
           </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={byDept.length > 0 ? byDept : performanceByTeam} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis type="number" domain={[0, 5]} tick={{ fontSize: 11 }} />
-              <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={110} />
-              <Tooltip formatter={(v: number) => [`${v} / 5`, "Score"]} />
-              <Bar dataKey="score" name="Score" fill="#3b82f6" radius={[0, 4, 4, 0]}>
-                {(byDept.length > 0 ? byDept : performanceByTeam).map((entry: any, i: number) => (
-                  <Cell key={i} fill={entry.score >= 4 ? "#10b981" : entry.score >= 3 ? "#3b82f6" : "#f59e0b"} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          {byDept.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={byDept} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis type="number" domain={[0, 5]} tick={{ fontSize: 11 }} />
+                <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={110} />
+                <Tooltip formatter={(v: number) => [`${v} / 5`, "Score"]} />
+                <Bar dataKey="score" name="Score" fill="#3b82f6" radius={[0, 4, 4, 0]}>
+                  {byDept.map((entry: any, i: number) => (
+                    <Cell key={i} fill={entry.score >= 4 ? "#10b981" : entry.score >= 3 ? "#3b82f6" : "#f59e0b"} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
+              <Target size={32} className="mb-2 opacity-30" />
+              <p className="text-sm">Aucune évaluation soumise sur la période</p>
+            </div>
+          )}
         </div>
 
         {/* Distribution des notes */}
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Distribution des évaluations</h3>
-            {renderBadge(dist.some((d: any) => d.count > 0) ? "real" : "hardcoded")}
+            {renderBadge("real")}
           </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={dist.some((d: any) => d.count > 0) ? dist : performanceDistribution}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="note" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Bar dataKey="count" name="Employés" radius={[4, 4, 0, 0]}>
-                {(dist.some((d: any) => d.count > 0) ? dist : performanceDistribution).map((entry: any, i: number) => (
-                  <Cell key={i} fill={entry.color} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          {dist.some((d: any) => d.count > 0) ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={dist}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="note" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Bar dataKey="count" name="Employés" radius={[4, 4, 0, 0]}>
+                  {dist.map((entry: any, i: number) => (
+                    <Cell key={i} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
+              <Award size={32} className="mb-2 opacity-30" />
+              <p className="text-sm">Aucune évaluation soumise sur la période</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -817,41 +838,42 @@ export default function PeopleAnalyticsPage() {
       <div className="bg-white rounded-xl border p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-900">Performance par manager</h3>
-          {renderBadge(perfByManager.length > 0 ? "real" : "hardcoded")}
+          {renderBadge("real")}
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-gray-500">
-                <th className="pb-3 font-medium">Manager</th>
-                <th className="pb-3 font-medium">Équipe</th>
-                <th className="pb-3 font-medium text-center">Taille</th>
-                <th className="pb-3 font-medium text-center">Score moy.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(perfByManager.length > 0 ? perfByManager : performanceByManager).map((m: any, i: number) => (
-                <tr key={i} className="border-b last:border-0 hover:bg-gray-50">
-                  <td className="py-3 font-medium text-gray-900">{m.manager}</td>
-                  <td className="py-3 text-gray-600">{m.equipe}</td>
-                  <td className="py-3 text-center">{m.taille}</td>
-                  <td className="py-3 text-center">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      m.score >= 4 ? "bg-green-100 text-green-700" :
-                      m.score >= 3 ? "bg-blue-100 text-blue-700" :
-                      "bg-amber-100 text-amber-700"
-                    }`}>
-                      {m.score} / 5
-                    </span>
-                  </td>
+        {perfByManager.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-gray-500">
+                  <th className="pb-3 font-medium">Manager</th>
+                  <th className="pb-3 font-medium">Équipe</th>
+                  <th className="pb-3 font-medium text-center">Taille</th>
+                  <th className="pb-3 font-medium text-center">Score moy.</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {perfByManager.length === 0 && (
-            <p className="text-center text-gray-400 text-sm py-4">Aucune évaluation manager soumise sur la période</p>
-          )}
-        </div>
+              </thead>
+              <tbody>
+                {perfByManager.map((m: any, i: number) => (
+                  <tr key={i} className="border-b last:border-0 hover:bg-gray-50">
+                    <td className="py-3 font-medium text-gray-900">{m.manager}</td>
+                    <td className="py-3 text-gray-600">{m.equipe}</td>
+                    <td className="py-3 text-center">{m.taille}</td>
+                    <td className="py-3 text-center">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        m.score >= 4 ? "bg-green-100 text-green-700" :
+                        m.score >= 3 ? "bg-blue-100 text-blue-700" :
+                        "bg-amber-100 text-amber-700"
+                      }`}>
+                        {m.score} / 5
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-center text-gray-400 text-sm py-8">Aucune évaluation manager soumise sur la période</p>
+        )}
       </div>
     </div>
     );
@@ -880,28 +902,28 @@ export default function PeopleAnalyticsPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-3">
         {renderKPICard(
           "Stars",
-          hasNinebox ? `${stars} (${totalNinebox > 0 ? Math.round(stars / totalNinebox * 100) : 0}%)` : "18 (7%)",
+          hasNinebox ? `${stars} (${totalNinebox > 0 ? Math.round(stars / totalNinebox * 100) : 0}%)` : "—",
           <Star size={20} className="text-green-600" />, "bg-green-50"
         )}
         {renderKPICard(
           "Hauts potentiels",
-          hasNinebox ? highPotential : "32",
+          hasNinebox ? highPotential : "—",
           <Zap size={20} className="text-blue-600" />, "bg-blue-50"
         )}
         {renderKPICard(
           "Piliers",
-          hasNinebox ? piliers : "45",
+          hasNinebox ? piliers : "—",
           <Shield size={20} className="text-purple-600" />, "bg-purple-50"
         )}
         {renderKPICard(
           "Postes clés couverts",
-          successionData ? `${coveredPct}%` : "80%",
+          successionData ? `${coveredPct}%` : "—",
           <Target size={20} className="text-emerald-600" />, "bg-emerald-50",
           successionData ? `${successionData.total_plans} plans` : undefined
         )}
         {renderKPICard(
           "À risque (9-box)",
-          hasNinebox ? atRisk : "3",
+          hasNinebox ? atRisk : "—",
           <AlertTriangle size={20} className="text-red-600" />, "bg-red-50"
         )}
       </div>

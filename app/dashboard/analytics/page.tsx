@@ -164,13 +164,7 @@ const sourcesRecrutement = [
   { source: "Indeed", candidatures: 186, embauches: 5, qualite: 65, cout: "180K" },
 ];
 
-const alertesIA = [
-  { type: "critical", icon: "AlertTriangle", title: "Risque de départ élevé", message: "3 talents clés en Tech montrent des signes de désengagement", action: "Voir les profils", tab: 3 },
-  { type: "warning", icon: "TrendingDown", title: "Turnover en hausse", message: "Le département Commercial a un turnover de 15% (+5pts vs trimestre précédent)", action: "Analyser", tab: 1 },
-  { type: "warning", icon: "Clock", title: "Postes vacants critiques", message: "8 postes ouverts depuis plus de 60 jours sans candidat retenu", action: "Voir recrutement", tab: 6 },
-  { type: "info", icon: "Award", title: "Excellence détectée", message: "L'équipe Tech & Dev affiche les meilleurs scores de performance (4.3/5)", action: "Détails", tab: 2 },
-  { type: "info", icon: "TrendingUp", title: "Engagement en progression", message: "L'index d'engagement a gagné +3pts sur les 3 derniers mois", action: "Voir tendance", tab: 5 },
-];
+// alertesIA est désormais calculé dynamiquement dans renderOverview()
 
 
 // ============================================
@@ -420,11 +414,35 @@ export default function PeopleAnalyticsPage() {
                   + (nineboxData.find((q: any) => q.quadrant === 7)?.value ?? 0);
     const talentsSubtitle = totalTalents > 0
       ? `${stars} stars • ${highPot} hauts potentiels`
-      : "18 stars • 32 futurs leaders";
+      : "Aucun placement 9-Box";
 
     // Graphique performance par département
     const byDept = perfOverview?.by_department ?? [];
     const perfChartData = byDept.length > 0 ? byDept : performanceByTeam;
+
+    // Alertes dynamiques basées sur les données réelles
+    type AlertItem = { type: string; icon: string; title: string; message: string; action: string; tab: number };
+    const alertesIA: AlertItem[] = [];
+    const nbAtRisk = (nineboxData.find((q: any) => q.quadrant === 1)?.value ?? 0)
+                   + (nineboxData.find((q: any) => q.quadrant === 2)?.value ?? 0);
+    if (nbAtRisk > 0) {
+      alertesIA.push({ type: "critical", icon: "AlertTriangle", title: "Collaborateurs à risque", message: `${nbAtRisk} collaborateur(s) identifié(s) à risque dans la matrice 9-Box`, action: "Voir talents", tab: 3 });
+    }
+    if (overview && overview.turnover >= 10) {
+      alertesIA.push({ type: "warning", icon: "TrendingDown", title: "Turnover élevé", message: `Taux de turnover à ${overview.turnover}% sur la période sélectionnée`, action: "Analyser", tab: 1 });
+    }
+    if (overview && overview.absenteeism > 5) {
+      alertesIA.push({ type: "warning", icon: "Clock", title: "Absentéisme élevé", message: `Taux d'absentéisme de ${overview.absenteeism}% sur la période`, action: "Voir détails", tab: 1 });
+    }
+    if (perfOverview?.okr?.at_risk > 0) {
+      alertesIA.push({ type: "warning", icon: "AlertTriangle", title: "OKR à risque", message: `${perfOverview.okr.at_risk} objectif(s) à risque ou en retard`, action: "Voir OKR", tab: 2 });
+    }
+    if (perfOverview?.top_performers > 0) {
+      alertesIA.push({ type: "info", icon: "Award", title: "Excellence détectée", message: `${perfOverview.top_performers} collaborateur(s) avec un score d'évaluation ≥ 4/5`, action: "Détails", tab: 2 });
+    }
+    if (perfOverview?.okr?.on_track > 0) {
+      alertesIA.push({ type: "info", icon: "TrendingUp", title: "OKR en bonne progression", message: `${perfOverview.okr.on_track} objectif(s) on track sur ${perfOverview.okr.total} actifs`, action: "Voir OKR", tab: 2 });
+    }
 
     return (
     <div className="space-y-6">
@@ -484,35 +502,40 @@ export default function PeopleAnalyticsPage() {
       <div data-tour="analytics-charts" className="bg-white rounded-xl border p-6">
         <div className="flex items-center gap-2 mb-4">
           <Brain size={20} className="text-purple-600" />
-          <h3 className="font-semibold text-gray-900">Alertes & Recommandations IA</h3>
+          <h3 className="font-semibold text-gray-900">Alertes & Recommandations</h3>
+          {renderBadge("real")}
         </div>
-        <div className="space-y-3">
-          {alertesIA.map((alerte, i) => (
-            <div
-              key={i}
-              className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:shadow-sm transition-all ${
-                alerte.type === "critical" ? "bg-red-50 border-red-200" :
-                alerte.type === "warning" ? "bg-amber-50 border-amber-200" :
-                "bg-blue-50 border-blue-200"
-              }`}
-              onClick={() => setActiveTab(alerte.tab)}
-            >
-              <div className={`mt-0.5 ${
-                alerte.type === "critical" ? "text-red-600" :
-                alerte.type === "warning" ? "text-amber-600" : "text-blue-600"
-              }`}>
-                <AlertIcon type={alerte.icon} />
+        {alertesIA.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-4">Aucune alerte — tous les indicateurs sont dans la norme.</p>
+        ) : (
+          <div className="space-y-3">
+            {alertesIA.map((alerte, i) => (
+              <div
+                key={i}
+                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:shadow-sm transition-all ${
+                  alerte.type === "critical" ? "bg-red-50 border-red-200" :
+                  alerte.type === "warning" ? "bg-amber-50 border-amber-200" :
+                  "bg-blue-50 border-blue-200"
+                }`}
+                onClick={() => setActiveTab(alerte.tab)}
+              >
+                <div className={`mt-0.5 ${
+                  alerte.type === "critical" ? "text-red-600" :
+                  alerte.type === "warning" ? "text-amber-600" : "text-blue-600"
+                }`}>
+                  <AlertIcon type={alerte.icon} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm text-gray-900">{alerte.title}</p>
+                  <p className="text-xs text-gray-600 mt-0.5">{alerte.message}</p>
+                </div>
+                <span className="text-xs text-blue-600 font-medium whitespace-nowrap flex items-center gap-1">
+                  {alerte.action} <ChevronRight size={12} />
+                </span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm text-gray-900">{alerte.title}</p>
-                <p className="text-xs text-gray-600 mt-0.5">{alerte.message}</p>
-              </div>
-              <span className="text-xs text-blue-600 font-medium whitespace-nowrap flex items-center gap-1">
-                {alerte.action} <ChevronRight size={12} />
-              </span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Graphiques résumés */}

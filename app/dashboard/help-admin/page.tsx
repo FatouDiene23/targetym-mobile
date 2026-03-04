@@ -64,15 +64,32 @@ export default function HelpAdminPage() {
   const loadArticles = async () => {
     try {
       setLoading(true);
+      const token = getToken();
+      console.log('[Help Admin] Loading articles with token:', token ? 'EXISTS' : 'NULL');
+      
       const res = await fetch(`${API_URL}/api/help/admin/articles`, {
         headers: {
-          'Authorization': `Bearer ${getToken()}`
+          'Authorization': `Bearer ${token}`
         }
       });
+      
+      console.log('[Help Admin] Response status:', res.status);
+      
+      if (!res.ok) {
+        if (res.status === 401) {
+          console.error('[Help Admin] 401 Unauthorized - Token invalide ou expiré');
+          alert('Accès non autorisé. Veuillez vous reconnecter.');
+          return;
+        }
+        throw new Error(`HTTP ${res.status}`);
+      }
+      
       const data = await res.json();
-      setArticles(data);
+      console.log('[Help Admin] Articles loaded:', data.length);
+      setArticles(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Erreur chargement articles:', err);
+      setArticles([]);
     } finally {
       setLoading(false);
     }

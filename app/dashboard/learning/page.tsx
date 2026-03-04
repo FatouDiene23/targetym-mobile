@@ -16,6 +16,8 @@ export default function CatalogPage() {
     setShowAssignModal, setShowRequestCourse
   } = useLearning();
 
+  const totalCatalogHours = courses.reduce((s, c) => s + (c.duration_hours || 0), 0);
+
   const { showTips, dismissTips, resetTips } = usePageTour('learning');
 
   return (
@@ -51,8 +53,8 @@ export default function CatalogPage() {
             <p className="text-xs text-gray-500 mt-0.5">Complétées ce mois</p>
           </div>
           <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
-            <p className="text-2xl font-bold text-indigo-600">{stats?.hours_this_month ?? 0}h</p>
-            <p className="text-xs text-gray-500 mt-0.5">Heures de formation</p>
+            <p className="text-2xl font-bold text-indigo-600">{totalCatalogHours}h</p>
+            <p className="text-xs text-gray-500 mt-0.5">Heures de contenu</p>
           </div>
           <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
             <p className="text-2xl font-bold text-purple-600">{stats?.total_certifications ?? 0}</p>

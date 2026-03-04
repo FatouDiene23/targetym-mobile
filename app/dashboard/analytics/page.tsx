@@ -75,23 +75,6 @@ const performanceByManager = [
   { manager: "Mariama Fall", equipe: "Opérations", taille: 14, score: 3.7, trend: "-0.1" },
 ];
 
-const talentDistribution = [
-  { name: "Stars (A1)", value: 18, pct: 7, color: "#10b981" },
-  { name: "Futurs Leaders (A2)", value: 32, pct: 12.5, color: "#3b82f6" },
-  { name: "Piliers (B1)", value: 45, pct: 17.6, color: "#8b5cf6" },
-  { name: "À développer (B2)", value: 98, pct: 38.3, color: "#f59e0b" },
-  { name: "À surveiller (C1)", value: 42, pct: 16.4, color: "#f97316" },
-  { name: "Risque (C2)", value: 21, pct: 8.2, color: "#ef4444" },
-];
-
-const successionCoverage = [
-  { poste: "Directeur Général", titulaire: "Ibrahima Diop", successeurs: 2, pret: 1, couverture: 100 },
-  { poste: "CTO", titulaire: "Amadou Diallo", successeurs: 1, pret: 0, couverture: 50 },
-  { poste: "DRH", titulaire: "Fatou Sow", successeurs: 2, pret: 1, couverture: 100 },
-  { poste: "DAF", titulaire: "Moussa Ndiaye", successeurs: 1, pret: 1, couverture: 100 },
-  { poste: "Dir. Commercial", titulaire: "Aïssatou Ba", successeurs: 0, pret: 0, couverture: 0 },
-];
-
 const talentRisks = [
   { nom: "Cheikh Mbaye", poste: "Lead Developer", risque: "Élevé", raison: "Offre concurrente", departement: "Tech" },
   { nom: "Ndeye Diagne", poste: "Chef de projet", risque: "Moyen", raison: "Insatisfaction salariale", departement: "Opérations" },
@@ -896,7 +879,7 @@ export default function PeopleAnalyticsPage() {
 
     return (
     <div className="space-y-6">
-      {renderBadge(hasNinebox ? "real" : "hardcoded")}
+      {renderBadge("real")}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-3">
@@ -933,43 +916,51 @@ export default function PeopleAnalyticsPage() {
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Distribution 9-Box</h3>
-            {renderBadge(hasNinebox ? "real" : "hardcoded")}
+            {renderBadge("real")}
           </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={hasNinebox ? nineboxData.filter((q: any) => q.value > 0) : talentDistribution}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                label={({ name, value }: any) => totalNinebox > 0 ? `${name}: ${Math.round(value / totalNinebox * 100)}%` : `${name}`}
-              >
-                {(hasNinebox ? nineboxData.filter((q: any) => q.value > 0) : talentDistribution).map((entry: any, i: number) => (
-                  <Cell key={i} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(v: number, name: string) => [`${v} employés`, name]} />
-            </PieChart>
-          </ResponsiveContainer>
+          {hasNinebox ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={nineboxData.filter((q: any) => q.value > 0)}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  label={({ name, value }: any) => totalNinebox > 0 ? `${name}: ${Math.round(value / totalNinebox * 100)}%` : `${name}`}
+                >
+                  {nineboxData.filter((q: any) => q.value > 0).map((entry: any, i: number) => (
+                    <Cell key={i} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(v: number, name: string) => [`${v} employés`, name]} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
+              <Star size={40} className="mb-3 opacity-30" />
+              <p className="text-sm font-medium">Aucun placement 9-Box</p>
+              <p className="text-xs mt-1">Évaluez vos collaborateurs dans Talents & Carrière</p>
+            </div>
+          )}
         </div>
 
         {/* Couverture succession */}
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Couverture de succession</h3>
-            {renderBadge(plans.length > 0 ? "real" : "hardcoded")}
+            {renderBadge("real")}
           </div>
           <div className="space-y-4 overflow-y-auto max-h-72">
-            {(plans.length > 0 ? plans : successionCoverage).map((s: any, i: number) => (
+            {plans.length > 0 ? plans.map((s: any, i: number) => (
               <div key={i} className="flex items-center gap-4">
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm text-gray-900">{s.poste}</p>
                   <p className="text-xs text-gray-500">{s.titulaire}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium">{s.successeurs ?? s.successeurs}</p>
+                  <p className="text-sm font-medium">{s.successeurs}</p>
                   <p className="text-[10px] text-gray-400">successeurs</p>
                 </div>
                 <div className="text-center">
@@ -991,9 +982,12 @@ export default function PeopleAnalyticsPage() {
                   </div>
                 </div>
               </div>
-            ))}
-            {plans.length === 0 && successionCoverage.length === 0 && (
-              <p className="text-center text-gray-400 text-sm py-4">Aucun plan de succession configuré</p>
+            )) : (
+              <div className="flex flex-col items-center justify-center h-48 text-gray-400">
+                <Shield size={36} className="mb-3 opacity-30" />
+                <p className="text-sm font-medium">Aucun plan de succession</p>
+                <p className="text-xs mt-1">Configurez vos plans dans Talents & Carrière</p>
+              </div>
             )}
           </div>
         </div>

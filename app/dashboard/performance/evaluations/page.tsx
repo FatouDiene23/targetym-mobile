@@ -550,17 +550,15 @@ export default function EvaluationsPage() {
 
   // ✅ FILTRER LES ÉVALUATIONS - EXCLURE CANCELLED PAR DÉFAUT
   const filteredEvaluations = evaluations.filter(e => {
-    // Exclure les annulées si checkbox non cochée
     if (!showCancelled && e.status === 'cancelled') return false;
-    
-    // Filtre de recherche
-    const matchesSearch = (e.employee_name?.toLowerCase().includes(search.toLowerCase()) ||
-                          e.employee_department?.toLowerCase().includes(search.toLowerCase()));
-    
-    // Filtre de statut
-    const matchesStatus = filterStatus === 'all' || e.status === filterStatus;
-    
-    return matchesSearch && matchesStatus;
+    if (filterStatus !== 'all' && e.status !== filterStatus) return false;
+    if (search) {
+      const s = search.toLowerCase();
+      const matchesSearch = (e.employee_name?.toLowerCase().includes(s) ?? false) ||
+                            (e.employee_department?.toLowerCase().includes(s) ?? false);
+      if (!matchesSearch) return false;
+    }
+    return true;
   });
   
   const paginatedEvaluations = filteredEvaluations.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);

@@ -32,6 +32,13 @@ export default function HelpCenterPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Vérifier si l'utilisateur est connecté
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    setIsLoggedIn(!!token);
+  }, []);
 
   // Charger les catégories
   useEffect(() => {
@@ -110,11 +117,11 @@ export default function HelpCenterPage() {
               </div>
             </div>
             <Link
-              href="/dashboard"
+              href={isLoggedIn ? "/dashboard" : "/login"}
               className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Retour au tableau de bord
+              {isLoggedIn ? "Retour au tableau de bord" : "Connexion"}
             </Link>
           </div>
 

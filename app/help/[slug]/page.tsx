@@ -444,12 +444,19 @@ export default function ArticleDetailPage() {
                     <a
                       key={item.id}
                       href={`#${item.id}`}
-                      className={`block text-sm py-2 px-3 rounded-lg transition-all ${
-                        item.level === 3 ? 'ml-4 text-xs' : 'font-medium'
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const element = document.getElementById(item.id);
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                      }}
+                      className={`block text-sm py-2.5 px-3 rounded-md transition-colors cursor-pointer ${
+                        item.level === 3 ? 'ml-4 text-xs' : ''
                       } ${
                         activeSection === item.id
-                          ? 'bg-primary-600 text-white shadow-md'
-                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                          ? 'bg-primary-600 text-white font-semibold'
+                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                       }`}
                     >
                       {item.text}

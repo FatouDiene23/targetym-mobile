@@ -1085,6 +1085,7 @@ export default function LeavesManagementPage() {
           </div>
         )}
       </div>
+    </div>
 
       {/* Modals */}
       <LeaveTypesModal
@@ -1105,8 +1106,6 @@ export default function LeavesManagementPage() {
         onClose={() => setSelectedRequest(null)}
         onSuccess={() => { loadRequests(); loadData(); }}
       />
-    </div>
-    </div>
     </>
   );
 }

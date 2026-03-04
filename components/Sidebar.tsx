@@ -594,7 +594,137 @@ function SidebarInner() {
   }
 
   // ============================================
-  // MODE NORMAL
+  // MODE SUPER_ADMIN UNIQUEMENT
+  // ============================================
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'super_admin';
+  
+  if (isSuperAdmin) {
+    return (
+      <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-dark h-screen flex flex-col transition-all duration-300 sticky top-0 overflow-hidden`}>
+        {/* Header */}
+        <div className="h-16 flex items-center justify-between px-4 border-b border-gray-700 flex-shrink-0">
+          {!collapsed && (
+            <Link href="/dashboard/platform-admin" className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">T</span>
+              </div>
+              <span className="font-bold text-white">Targetym AI</span>
+            </Link>
+          )}
+          {collapsed && (
+            <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center mx-auto">
+              <span className="text-white font-bold text-sm">T</span>
+            </div>
+          )}
+          <button 
+            onClick={() => setCollapsed(!collapsed)} 
+            className="text-gray-400 hover:text-white p-1"
+          >
+            {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+          </button>
+        </div>
+
+        {/* Navigation SUPER_ADMIN */}
+        <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
+          <div className={`${collapsed ? '' : 'px-3 mb-2'}`}>
+            {!collapsed && <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Administration</div>}
+          </div>
+          <Link 
+            href="/dashboard/platform-admin" 
+            className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+              pathname === '/dashboard/platform-admin'
+                ? 'bg-primary-500 text-white' 
+                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+            }`} 
+            title={collapsed ? 'Dashboard Plateforme' : undefined}
+          >
+            <Shield className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
+            {!collapsed && <span className="text-sm font-medium">Dashboard Plateforme</span>}
+          </Link>
+          <Link 
+            href="/dashboard/platform-admin/users" 
+            className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+              pathname.startsWith('/dashboard/platform-admin/users')
+                ? 'bg-primary-500 text-white' 
+                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+            }`} 
+            title={collapsed ? 'Gestion des Utilisateurs' : undefined}
+          >
+            <Users className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
+            {!collapsed && <span className="text-sm font-medium">Gestion des Utilisateurs</span>}
+          </Link>
+          <Link 
+            href="/dashboard/help-admin" 
+            className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+              pathname.startsWith('/dashboard/help-admin')
+                ? 'bg-primary-500 text-white' 
+                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+            }`} 
+            title={collapsed ? 'Centre d\'Aide Admin' : undefined}
+          >
+            <Settings className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
+            {!collapsed && <span className="text-sm font-medium">Centre d'Aide</span>}
+          </Link>
+        </nav>
+
+        {/* Footer User */}
+        <div className="p-4 border-t border-gray-700 flex-shrink-0">
+          <div className={`flex items-center ${collapsed ? 'justify-center' : ''}`} data-tour="user-menu">
+            <div className="w-9 h-9 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
+              {initials}
+            </div>
+            {!collapsed && (
+              <div className="ml-3 flex-1">
+                <div className="text-sm font-medium text-white truncate">{displayName}</div>
+                <div className="text-xs text-gray-400 capitalize">{userRole}</div>
+              </div>
+            )}
+          </div>
+          {!collapsed && (
+            <>
+              <Link
+                href="/help"
+                target="_blank"
+                className="mt-4 w-full flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                <HelpCircle className="w-4 h-4 mr-2" />
+                Aide & Support
+              </Link>
+              <button 
+                onClick={handleLogout} 
+                className="mt-2 w-full flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Déconnexion
+              </button>
+            </>
+          )}
+          {collapsed && (
+            <>
+              <Link
+                href="/help"
+                target="_blank"
+                className="mt-4 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+                title="Aide & Support"
+              >
+                <HelpCircle className="w-5 h-5" />
+              </Link>
+              <button 
+                onClick={handleLogout} 
+                className="mt-2 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" 
+                title="Déconnexion"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </>
+          )}
+        </div>
+      </aside>
+    );
+  }
+
+  // ============================================
+  // MODE NORMAL (utilisateurs entreprise)
   // ============================================
   return (
     <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-dark h-screen flex flex-col transition-all duration-300 sticky top-0 overflow-hidden`}>
@@ -639,40 +769,6 @@ function SidebarInner() {
           <User className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
           {!collapsed && <span className="text-sm font-medium">Mon Espace</span>}
         </Link>
-        
-        {/* Admin du Centre d'Aide - SUPER_ADMIN uniquement */}
-        {(user?.role === 'SUPER_ADMIN' || user?.role === 'super_admin') && (
-          <>
-            <div className="border-t border-gray-700 my-4" />
-            <div className={`${collapsed ? '' : 'px-3 mb-2'}`}>
-              {!collapsed && <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Administration</div>}
-            </div>
-            <Link 
-              href="/dashboard/platform-admin" 
-              className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
-                pathname.startsWith('/dashboard/platform-admin') 
-                  ? 'bg-primary-500 text-white' 
-                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-              }`} 
-              title={collapsed ? 'Dashboard Plateforme' : undefined}
-            >
-              <Shield className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
-              {!collapsed && <span className="text-sm font-medium">Dashboard Plateforme</span>}
-            </Link>
-            <Link 
-              href="/dashboard/help-admin" 
-              className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
-                pathname.startsWith('/dashboard/help-admin') 
-                  ? 'bg-primary-500 text-white' 
-                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-              }`} 
-              title={collapsed ? 'Centre d\'Aide Admin' : undefined}
-            >
-              <Settings className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
-              {!collapsed && <span className="text-sm font-medium">Centre d'Aide</span>}
-            </Link>
-          </>
-        )}
       </nav>
 
       {/* Footer User */}

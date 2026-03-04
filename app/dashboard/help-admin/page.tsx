@@ -138,31 +138,6 @@ export default function HelpAdminPage() {
     }
   };
 
-  const runSeed = async () => {
-    if (!confirm('Cela va créer 13 articles de démonstration. Continuer ?')) return;
-
-    try {
-      const res = await fetch(`${API_URL}/api/help/admin/seed`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${getToken()}`
-        }
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        alert(data.message);
-        loadCategories();
-        loadArticles();
-      } else {
-        alert('Erreur: ' + data.detail);
-      }
-    } catch (err) {
-      console.error('Erreur seed:', err);
-      alert('Erreur lors du seed');
-    }
-  };
-
   const filteredArticles = articles.filter(article => {
     const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === null || article.category_id === selectedCategory;
@@ -325,7 +300,7 @@ export default function HelpAdminPage() {
                 {!loading && filteredArticles.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                      Aucun article trouvé. Cliquez sur "Peupler avec données démo" pour commencer.
+                      Aucun article trouvé.
                     </td>
                   </tr>
                 )}

@@ -18,7 +18,7 @@ export default function CatalogPage() {
 
   const totalCatalogHours = courses.reduce((s, c) => s + (c.duration_hours || 0), 0);
 
-  const { showTips, dismissTips, resetTips } = usePageTour('learning');
+  const { showTips, dismissTips } = usePageTour('learning');
 
   return (
     <div>
@@ -29,16 +29,8 @@ export default function CatalogPage() {
           pageTitle="Catalogue de Formations"
         />
       )}
-      {/* Header enrichi */}
+      {/* Stats pleine largeur */}
       <div className="mb-6">
-        <div className="mb-4">
-          <h2 className="text-2xl font-bold text-gray-900">Catalogue de Formations</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Explorez l'ensemble des formations disponibles, assignez des cours à vos collaborateurs et suivez leur progression en temps réel.
-          </p>
-        </div>
-
-        {/* Stats pleine largeur */}
         <div data-tour="learning-stats" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
             <p className="text-2xl font-bold text-primary-600">{stats?.total_courses ?? 0}</p>

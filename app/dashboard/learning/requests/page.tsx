@@ -2,24 +2,62 @@
 
 import { useLearning } from '../LearningContext';
 import { getStatusColor, getStatusLabel } from '../shared';
-import { MessageSquarePlus, Check, XCircle, ExternalLink } from 'lucide-react';
+import { MessageSquarePlus, Check, XCircle, ExternalLink, Clock } from 'lucide-react';
 
 export default function RequestsPage() {
   const { courseRequests, reviewCourseRequest } = useLearning();
 
+  const pendingCount = courseRequests.filter(r => r.status === 'pending').length;
+  const approvedCount = courseRequests.filter(r => r.status === 'approved').length;
+  const rejectedCount = courseRequests.filter(r => r.status === 'rejected').length;
+
   return (
           <div className="space-y-6">
-            <div className="flex flex-wrap gap-3 mb-2">
-                <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-                  <p className="text-lg font-bold text-gray-700">{courseRequests.length}</p>
-                  <p className="text-xs text-gray-500">Total</p>
-                </div>
-                {courseRequests.filter(r => r.status === 'pending').length > 0 && (
-                  <div className="bg-amber-50 rounded-xl px-4 py-2.5 border border-amber-200 text-center">
-                    <p className="text-lg font-bold text-amber-600">{courseRequests.filter(r => r.status === 'pending').length}</p>
-                    <p className="text-xs text-amber-600">En attente</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500">Total demandes</p>
+                    <p className="text-2xl font-bold text-gray-700">{courseRequests.length}</p>
                   </div>
-                )}
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <MessageSquarePlus className="w-5 h-5 text-gray-600" />
+                  </div>
+                </div>
+              </div>
+              <div className={`rounded-xl p-4 shadow-sm border ${pendingCount > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'}`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`text-xs ${pendingCount > 0 ? 'text-amber-600' : 'text-gray-500'}`}>En attente</p>
+                    <p className={`text-2xl font-bold ${pendingCount > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{pendingCount}</p>
+                  </div>
+                  <div className={`w-10 h-10 ${pendingCount > 0 ? 'bg-amber-100' : 'bg-gray-100'} rounded-lg flex items-center justify-center`}>
+                    <Clock className={`w-5 h-5 ${pendingCount > 0 ? 'text-amber-600' : 'text-gray-400'}`} />
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500">Approuvées</p>
+                    <p className="text-2xl font-bold text-green-600">{approvedCount}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <Check className="w-5 h-5 text-green-600" />
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500">Rejetées</p>
+                    <p className="text-2xl font-bold text-red-600">{rejectedCount}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                    <XCircle className="w-5 h-5 text-red-600" />
+                  </div>
+                </div>
+              </div>
             </div>
             {courseRequests.length === 0 ? (
               <div className="bg-white rounded-xl p-12 text-center">

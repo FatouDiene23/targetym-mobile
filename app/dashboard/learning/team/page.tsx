@@ -2,28 +2,62 @@
 
 import { useLearning } from '../LearningContext';
 import { getStatusColor, getStatusLabel } from '../shared';
-import { UsersRound } from 'lucide-react';
+import { UsersRound, Play, CheckCircle, Clock } from 'lucide-react';
 
 export default function TeamPage() {
   const { employees, teamAssignments, setSelectedAssignment, setShowValidationModal } = useLearning();
 
+  const inProgressCount = teamAssignments.filter(a => a.status === 'in_progress' || a.status === 'assigned').length;
+  const completedCount = teamAssignments.filter(a => a.status === 'completed').length;
+  const pendingValCount = teamAssignments.filter(a => a.status === 'pending_validation').length;
+
   return (
           <div className="space-y-6">
-            <div className="flex flex-wrap gap-3 mb-2">
-                <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-                  <p className="text-lg font-bold text-gray-600">{employees.length}</p>
-                  <p className="text-xs text-gray-500">Membres</p>
-                </div>
-                <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-                  <p className="text-lg font-bold text-blue-600">{teamAssignments.filter(a => a.status === 'in_progress' || a.status === 'assigned').length}</p>
-                  <p className="text-xs text-gray-500">En cours</p>
-                </div>
-                {teamAssignments.filter(a => a.status === 'pending_validation').length > 0 && (
-                  <div className="bg-amber-50 rounded-xl px-4 py-2.5 border border-amber-200 text-center">
-                    <p className="text-lg font-bold text-amber-600">{teamAssignments.filter(a => a.status === 'pending_validation').length}</p>
-                    <p className="text-xs text-amber-600">À valider</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500">Membres</p>
+                    <p className="text-2xl font-bold text-gray-700">{employees.length}</p>
                   </div>
-                )}
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <UsersRound className="w-5 h-5 text-gray-600" />
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500">En cours</p>
+                    <p className="text-2xl font-bold text-blue-600">{inProgressCount}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Play className="w-5 h-5 text-blue-600" />
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500">Terminées</p>
+                    <p className="text-2xl font-bold text-green-600">{completedCount}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  </div>
+                </div>
+              </div>
+              <div className={`rounded-xl p-4 shadow-sm border ${pendingValCount > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'}`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`text-xs ${pendingValCount > 0 ? 'text-amber-600' : 'text-gray-500'}`}>À valider</p>
+                    <p className={`text-2xl font-bold ${pendingValCount > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{pendingValCount}</p>
+                  </div>
+                  <div className={`w-10 h-10 ${pendingValCount > 0 ? 'bg-amber-100' : 'bg-gray-100'} rounded-lg flex items-center justify-center`}>
+                    <Clock className={`w-5 h-5 ${pendingValCount > 0 ? 'text-amber-600' : 'text-gray-400'}`} />
+                  </div>
+                </div>
+              </div>
             </div>
             {teamAssignments.length === 0 ? (
               <div className="bg-white rounded-xl p-12 text-center">

@@ -26,23 +26,40 @@ export default function PostEvalPage() {
 
     return (
       <div className="space-y-6">
-        <div className="flex flex-wrap gap-3 mb-2">
-            <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-              <p className="text-lg font-bold text-primary-600">{myCompleted.length}</p>
-              <p className="text-xs text-gray-500">Évaluées</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500">Évaluations</p>
+                <p className="text-2xl font-bold text-primary-600">{myCompleted.length}</p>
+              </div>
+              <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                <ClipboardCheck className="w-5 h-5 text-primary-600" />
+              </div>
             </div>
-            {myCompleted.length > 0 && (
-              <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-                <p className={`text-lg font-bold ${getScoreColor(avgScore, threshold)}`}>{avgScore}/100</p>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-xs text-gray-500">Score moyen</p>
+                <p className={`text-2xl font-bold ${myCompleted.length > 0 ? getScoreColor(avgScore, threshold) : 'text-gray-400'}`}>{myCompleted.length > 0 ? `${avgScore}/100` : '—'}</p>
               </div>
-            )}
-            {myCompleted.length > 0 && (
-              <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-                <p className="text-lg font-bold text-green-600">{Math.round(validatedCount / myCompleted.length * 100)}%</p>
-                <p className="text-xs text-gray-500">Validées</p>
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Star className="w-5 h-5 text-purple-600" />
               </div>
-            )}
+            </div>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500">Taux de validation</p>
+                <p className="text-2xl font-bold text-green-600">{myCompleted.length > 0 ? Math.round(validatedCount / myCompleted.length * 100) : 0}%</p>
+              </div>
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <Award className="w-5 h-5 text-green-600" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {myCompleted.length === 0 ? (

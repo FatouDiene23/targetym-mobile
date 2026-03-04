@@ -1,7 +1,7 @@
 'use client';
 
 import { useLearning } from '../LearningContext';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Clock, CheckCircle, BookOpen } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
 export default function AnalyticsPage() {
@@ -9,19 +9,51 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-3 mb-2">
-          <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-            <p className="text-lg font-bold text-primary-600">{stats?.completed_this_month ?? 0}</p>
-            <p className="text-xs text-gray-500">Ce mois</p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-500">Complétées ce mois</p>
+              <p className="text-2xl font-bold text-primary-600">{stats?.completed_this_month ?? 0}</p>
+            </div>
+            <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-primary-600" />
+            </div>
           </div>
-          <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-            <p className="text-lg font-bold text-blue-600">{stats?.hours_this_month ?? 0}h</p>
-            <p className="text-xs text-gray-500">Heures</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-500">Heures ce mois</p>
+              <p className="text-2xl font-bold text-blue-600">{stats?.hours_this_month ?? 0}h</p>
+            </div>
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Clock className="w-5 h-5 text-blue-600" />
+            </div>
           </div>
-          <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-            <p className="text-lg font-bold text-green-600">{stats?.completion_rate ?? 0}%</p>
-            <p className="text-xs text-gray-500">Taux global</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-500">Taux de complétion</p>
+              <p className="text-2xl font-bold text-green-600">{stats?.completion_rate ?? 0}%</p>
+            </div>
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+            </div>
           </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-500">Total formations</p>
+              <p className="text-2xl font-bold text-indigo-600">{stats?.total_courses ?? 0}</p>
+            </div>
+            <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-indigo-600" />
+            </div>
+          </div>
+        </div>
       </div>
           <div className="grid lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">

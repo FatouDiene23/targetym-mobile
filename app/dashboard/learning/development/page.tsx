@@ -14,21 +14,48 @@ export default function DevelopmentPage() {
 
   return (
           <div className="space-y-6">
-            <div className="flex items-center flex-wrap gap-3 mb-2">
-                <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-                  <p className="text-lg font-bold text-primary-600">{visiblePlans.filter(p => !p.status || p.status === 'active').length}</p>
-                  <p className="text-xs text-gray-500">Actifs</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500">Plans actifs</p>
+                    <p className="text-2xl font-bold text-primary-600">{visiblePlans.filter(p => !p.status || p.status === 'active').length}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                    <Target className="w-5 h-5 text-primary-600" />
+                  </div>
                 </div>
-                <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-                  <p className="text-lg font-bold text-gray-600">{visiblePlans.length}</p>
-                  <p className="text-xs text-gray-500">Total</p>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500">Total plans</p>
+                    <p className="text-2xl font-bold text-gray-700">{visiblePlans.length}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <GraduationCap className="w-5 h-5 text-gray-600" />
+                  </div>
                 </div>
-                {hasPermission(userRole, 'create_plan') && (
-                  <button onClick={() => setShowCreatePlan(true)} className="ml-auto flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
-                    <Plus className="w-4 h-4 mr-2" />Créer un Plan
-                  </button>
-                )}
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500">Progression moy.</p>
+                    <p className="text-2xl font-bold text-purple-600">{visiblePlans.length ? Math.round(visiblePlans.reduce((s, p) => s + (p.progress || 0), 0) / visiblePlans.length) : 0}%</p>
+                  </div>
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-purple-600" />
+                  </div>
+                </div>
+              </div>
             </div>
+            {hasPermission(userRole, 'create_plan') && (
+              <div className="flex justify-end mb-2">
+                <button onClick={() => setShowCreatePlan(true)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
+                  <Plus className="w-4 h-4 mr-2" />Créer un Plan
+                </button>
+              </div>
+            )}
             {/* Info banner */}
             <div className="flex items-start gap-3 p-4 bg-purple-50 border border-purple-100 rounded-xl text-sm text-purple-800">
               <GraduationCap className="w-5 h-5 text-purple-500 flex-shrink-0 mt-0.5" />

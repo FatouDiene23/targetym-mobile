@@ -9,23 +9,48 @@ export default function CertificationsPage() {
 
   return (
           <div className="space-y-6">
-            <div className="flex items-center flex-wrap gap-3 mb-2">
-                <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-                  <p className="text-lg font-bold text-primary-600">{certifications.length}</p>
-                  <p className="text-xs text-gray-500">Certifications</p>
-                </div>
-                {(stats?.expiring_certifications ?? 0) > 0 && (
-                  <div className="bg-orange-50 rounded-xl px-4 py-2.5 border border-orange-200 text-center">
-                    <p className="text-lg font-bold text-orange-600">{stats!.expiring_certifications}</p>
-                    <p className="text-xs text-orange-600">Expirent bientôt</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500">Certifications</p>
+                    <p className="text-2xl font-bold text-primary-600">{certifications.length}</p>
                   </div>
-                )}
-                {hasPermission(userRole, 'create_certification') && (
-                  <button onClick={() => setShowCreateCertification(true)} className="ml-auto flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
-                    <Plus className="w-4 h-4 mr-2" />Ajouter Certification
-                  </button>
-                )}
+                  <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                    <Award className="w-5 h-5 text-primary-600" />
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500">Titulaires total</p>
+                    <p className="text-2xl font-bold text-blue-600">{certifications.reduce((s, c) => s + (c.total_holders || 0), 0)}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Users className="w-5 h-5 text-blue-600" />
+                  </div>
+                </div>
+              </div>
+              <div className={`rounded-xl p-4 shadow-sm border ${(stats?.expiring_certifications ?? 0) > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-100'}`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`text-xs ${(stats?.expiring_certifications ?? 0) > 0 ? 'text-orange-600' : 'text-gray-500'}`}>Expirent bientôt</p>
+                    <p className={`text-2xl font-bold ${(stats?.expiring_certifications ?? 0) > 0 ? 'text-orange-600' : 'text-gray-400'}`}>{stats?.expiring_certifications ?? 0}</p>
+                  </div>
+                  <div className={`w-10 h-10 ${(stats?.expiring_certifications ?? 0) > 0 ? 'bg-orange-100' : 'bg-gray-100'} rounded-lg flex items-center justify-center`}>
+                    <AlertTriangle className={`w-5 h-5 ${(stats?.expiring_certifications ?? 0) > 0 ? 'text-orange-600' : 'text-gray-400'}`} />
+                  </div>
+                </div>
+              </div>
             </div>
+            {hasPermission(userRole, 'create_certification') && (
+              <div className="flex justify-end mb-2">
+                <button onClick={() => setShowCreateCertification(true)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
+                  <Plus className="w-4 h-4 mr-2" />Ajouter Certification
+                </button>
+              </div>
+            )}
             {stats?.expiring_certifications && stats.expiring_certifications > 0 && (
               <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center gap-3">
                 <AlertTriangle className="w-5 h-5 text-orange-600" />

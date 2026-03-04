@@ -160,21 +160,48 @@ export default function PathsPage() {
     <>
       <div className="space-y-4">
         {/* Stats */}
-        <div className="flex flex-wrap items-center gap-3 mb-2">
-          <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-            <p className="text-lg font-bold text-primary-600">{learningPaths.length}</p>
-            <p className="text-xs text-gray-500">Parcours</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500">Parcours actifs</p>
+                <p className="text-2xl font-bold text-primary-600">{learningPaths.filter(p => p.is_active !== false).length}</p>
+              </div>
+              <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                <Target className="w-5 h-5 text-primary-600" />
+              </div>
+            </div>
           </div>
-          <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-            <p className="text-lg font-bold text-blue-600">{learningPaths.reduce((s, p) => s + (p.duration_hours || 0), 0)}h</p>
-            <p className="text-xs text-gray-500">Heures totales</p>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500">Heures de contenu</p>
+                <p className="text-2xl font-bold text-blue-600">{learningPaths.reduce((s, p) => s + (p.duration_hours || 0), 0)}h</p>
+              </div>
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Clock className="w-5 h-5 text-blue-600" />
+              </div>
+            </div>
           </div>
-          {hasPermission(userRole, 'create_path') && (
-            <button onClick={() => setShowCreatePath(true)} className="ml-auto flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500">Cours au total</p>
+                <p className="text-2xl font-bold text-indigo-600">{learningPaths.reduce((s, p) => s + (p.course_count || 0), 0)}</p>
+              </div>
+              <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                <BookOpen className="w-5 h-5 text-indigo-600" />
+              </div>
+            </div>
+          </div>
+        </div>
+        {hasPermission(userRole, 'create_path') && (
+          <div className="flex justify-end mb-2">
+            <button onClick={() => setShowCreatePath(true)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
               <Plus className="w-4 h-4 mr-2" />Créer un Parcours
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Info banner */}
         <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-800">

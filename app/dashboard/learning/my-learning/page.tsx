@@ -3,7 +3,7 @@
 import { useLearning } from '../LearningContext';
 import { getStatusColor, getStatusLabel, hasPermission } from '../shared';
 import {
-  Clock, CheckCircle, Play, ExternalLink, Edit, XCircle, RefreshCw, AlertTriangle
+  Clock, CheckCircle, Play, ExternalLink, Edit, XCircle, RefreshCw, AlertTriangle, BookOpen
 } from 'lucide-react';
 
 export default function MyLearningPage() {
@@ -55,21 +55,51 @@ export default function MyLearningPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-3 mb-2">
-          <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-            <p className="text-lg font-bold text-blue-600">{inProgress.length + assigned.length}</p>
-            <p className="text-xs text-gray-500">En cours</p>
-          </div>
-          <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-            <p className="text-lg font-bold text-green-600">{completed.length}</p>
-            <p className="text-xs text-gray-500">Terminées</p>
-          </div>
-          {pendingValidation.length > 0 && (
-            <div className="bg-amber-50 rounded-xl px-4 py-2.5 border border-amber-200 text-center">
-              <p className="text-lg font-bold text-amber-600">{pendingValidation.length}</p>
-              <p className="text-xs text-amber-600">En attente</p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-500">À commencer</p>
+              <p className="text-2xl font-bold text-gray-700">{assigned.length}</p>
             </div>
-          )}
+            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-gray-600" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-500">En cours</p>
+              <p className="text-2xl font-bold text-blue-600">{inProgress.length}</p>
+            </div>
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Play className="w-5 h-5 text-blue-600" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-500">Terminées</p>
+              <p className="text-2xl font-bold text-green-600">{completed.length}</p>
+            </div>
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+            </div>
+          </div>
+        </div>
+        <div className={`rounded-xl p-4 shadow-sm border ${pendingValidation.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`text-xs ${pendingValidation.length > 0 ? 'text-amber-600' : 'text-gray-500'}`}>En attente</p>
+              <p className={`text-2xl font-bold ${pendingValidation.length > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{pendingValidation.length}</p>
+            </div>
+            <div className={`w-10 h-10 ${pendingValidation.length > 0 ? 'bg-amber-100' : 'bg-gray-100'} rounded-lg flex items-center justify-center`}>
+              <Clock className={`w-5 h-5 ${pendingValidation.length > 0 ? 'text-amber-600' : 'text-gray-400'}`} />
+            </div>
+          </div>
+        </div>
       </div>
       {pendingValidation.length > 0 && (
         <div><h3 className="text-sm font-semibold text-orange-700 mb-3 flex items-center gap-2"><Clock className="w-4 h-4" />En attente de validation ({pendingValidation.length})</h3><div className="space-y-3">{pendingValidation.map(renderAssignment)}</div></div>

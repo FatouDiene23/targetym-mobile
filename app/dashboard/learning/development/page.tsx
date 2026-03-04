@@ -16,8 +16,8 @@ export default function DevelopmentPage() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Plans de Développement</h2>
-                <p className="text-sm text-gray-500">Suivi des plans de montée en compétences</p>
+                <h2 className="text-xl font-bold text-gray-900">Plans Individuels de Développement</h2>
+                <p className="text-sm text-gray-500">Feuilles de route personnalisées — poste actuel → poste cible, compétences et cours par employé</p>
               </div>
               <div className="flex gap-3">
                 <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
@@ -35,6 +35,15 @@ export default function DevelopmentPage() {
                 )}
               </div>
             </div>
+            {/* Info banner */}
+            <div className="flex items-start gap-3 p-4 bg-purple-50 border border-purple-100 rounded-xl text-sm text-purple-800">
+              <GraduationCap className="w-5 h-5 text-purple-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">Plans personnalisés par employé</p>
+                <p className="text-purple-600 mt-0.5">Un plan individuel définit la progression d'un employé spécifique : poste actuel → poste cible, compétences à développer et cours associés. Différent des <span className="font-semibold">Parcours Formation</span> qui sont des curriculums collectifs.</p>
+              </div>
+            </div>
+
             {getVisiblePlans().length === 0 ? (
               <div className="bg-white rounded-xl p-12 text-center">
                 <GraduationCap className="w-12 h-12 text-gray-300 mx-auto mb-4" />

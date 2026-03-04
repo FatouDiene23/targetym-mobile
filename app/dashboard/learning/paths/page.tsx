@@ -12,7 +12,7 @@ export default function PathsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Parcours de Formation</h2>
-                <p className="text-sm text-gray-500">Parcours structurés de montée en compétences</p>
+                <p className="text-sm text-gray-500">Curriculums collectifs — regroupent des cours assignables à des groupes d'employés</p>
               </div>
               <div className="flex gap-3">
                 <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
@@ -30,6 +30,15 @@ export default function PathsPage() {
                 )}
               </div>
             </div>
+            {/* Info banner */}
+            <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-800">
+              <Target className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">Parcours collectifs de formation</p>
+                <p className="text-blue-600 mt-0.5">Un parcours regroupe plusieurs cours autour d'un thème (ex: "Développeur Fullstack"). Il peut être assigné à plusieurs employés à la fois. Pour un plan personnalisé lié à la carrière d'un employé, utilisez <span className="font-semibold">Plans Individuels</span>.</p>
+              </div>
+            </div>
+
             {learningPaths.length === 0 ? (
               <div className="bg-white rounded-xl p-12 text-center">
                 <Target className="w-12 h-12 text-gray-300 mx-auto mb-4" />

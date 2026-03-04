@@ -514,8 +514,8 @@ function SidebarInner() {
         <IconSidebar activeModule="learning" />
         <aside className="w-56 bg-gray-900 h-screen flex flex-col overflow-hidden">
           <div className="h-16 flex items-center px-4 border-b border-gray-700 flex-shrink-0">
-            <GraduationCap className="w-5 h-5 text-primary-400 mr-3" />
-            <span className="font-semibold text-white">Formation</span>
+            <GraduationCap className="w-5 h-5 text-primary-400 mr-3 flex-shrink-0" />
+            <span className="font-semibold text-white text-sm truncate">Formation & Dév.</span>
           </div>
           <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
             {filteredLearningNav.map((item) => {

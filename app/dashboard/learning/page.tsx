@@ -27,26 +27,41 @@ export default function CatalogPage() {
           pageTitle="Catalogue de Formations"
         />
       )}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">Catalogue de Formations</h2>
-          <p className="text-sm text-gray-500">Toutes les formations disponibles</p>
+      {/* Header enrichi */}
+      <div className="mb-6">
+        <div className="mb-4">
+          <h2 className="text-2xl font-bold text-gray-900">Catalogue de Formations</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Explorez l'ensemble des formations disponibles, assignez des cours à vos collaborateurs et suivez leur progression en temps réel.
+          </p>
         </div>
-        <div data-tour="learning-stats" className="flex gap-3">
-          <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-            <p className="text-lg font-bold text-primary-600">{stats?.total_courses ?? 0}</p>
-            <p className="text-xs text-gray-500">Formations</p>
+
+        {/* Stats pleine largeur */}
+        <div data-tour="learning-stats" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
+            <p className="text-2xl font-bold text-primary-600">{stats?.total_courses ?? 0}</p>
+            <p className="text-xs text-gray-500 mt-0.5">Formations disponibles</p>
           </div>
-          <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-            <p className="text-lg font-bold text-green-600">{stats?.completion_rate ?? 0}%</p>
-            <p className="text-xs text-gray-500">Complétion</p>
+          <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
+            <p className="text-2xl font-bold text-green-600">{stats?.completion_rate ?? 0}%</p>
+            <p className="text-xs text-gray-500 mt-0.5">Taux de complétion</p>
           </div>
-          {(stats?.pending_validation ?? 0) > 0 && (
-            <div className="bg-amber-50 rounded-xl px-4 py-2.5 border border-amber-200 text-center">
-              <p className="text-lg font-bold text-amber-600">{stats!.pending_validation}</p>
-              <p className="text-xs text-amber-600">À valider</p>
-            </div>
-          )}
+          <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
+            <p className="text-2xl font-bold text-blue-600">{stats?.completed_this_month ?? 0}</p>
+            <p className="text-xs text-gray-500 mt-0.5">Complétées ce mois</p>
+          </div>
+          <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
+            <p className="text-2xl font-bold text-indigo-600">{stats?.hours_this_month ?? 0}h</p>
+            <p className="text-xs text-gray-500 mt-0.5">Heures de formation</p>
+          </div>
+          <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
+            <p className="text-2xl font-bold text-purple-600">{stats?.total_certifications ?? 0}</p>
+            <p className="text-xs text-gray-500 mt-0.5">Certifications</p>
+          </div>
+          <div className={`rounded-xl px-4 py-3 shadow-sm border ${(stats?.pending_validation ?? 0) > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'}`}>
+            <p className={`text-2xl font-bold ${(stats?.pending_validation ?? 0) > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{stats?.pending_validation ?? 0}</p>
+            <p className={`text-xs mt-0.5 ${(stats?.pending_validation ?? 0) > 0 ? 'text-amber-600' : 'text-gray-500'}`}>En attente de validation</p>
+          </div>
         </div>
       </div>
       <div data-tour="learning-filters" className="flex flex-wrap gap-4 mb-6">

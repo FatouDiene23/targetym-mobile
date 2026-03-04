@@ -641,7 +641,7 @@ function SidebarInner() {
         </Link>
         
         {/* Admin du Centre d'Aide - SUPER_ADMIN uniquement */}
-        {user?.role === 'SUPER_ADMIN' && (
+        {(user?.role === 'SUPER_ADMIN' || user?.role === 'super_admin') && (
           <>
             <div className="border-t border-gray-700 my-4" />
             <div className={`${collapsed ? '' : 'px-3 mb-2'}`}>

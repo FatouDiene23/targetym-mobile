@@ -26,12 +26,7 @@ export default function PostEvalPage() {
 
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Mes Évaluations Post-Formation</h2>
-            <p className="text-sm text-gray-500">Résultats de vos évaluations après formation</p>
-          </div>
-          <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3 mb-2">
             <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
               <p className="text-lg font-bold text-primary-600">{myCompleted.length}</p>
               <p className="text-xs text-gray-500">Évaluées</p>
@@ -44,11 +39,10 @@ export default function PostEvalPage() {
             )}
             {myCompleted.length > 0 && (
               <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-                <p className="text-lg font-bold text-green-600">{myCompleted.length > 0 ? Math.round(validatedCount / myCompleted.length * 100) : 0}%</p>
+                <p className="text-lg font-bold text-green-600">{Math.round(validatedCount / myCompleted.length * 100)}%</p>
                 <p className="text-xs text-gray-500">Validées</p>
               </div>
             )}
-          </div>
         </div>
 
         {myCompleted.length === 0 ? (
@@ -90,13 +84,6 @@ export default function PostEvalPage() {
   // Vue Manager / RH / Admin
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">Évaluations Post-Formation</h2>
-          <p className="text-sm text-gray-500">Suivi de l'efficacité des formations</p>
-        </div>
-      </div>
 
       {/* Stats EPF */}
       {epfStats && (

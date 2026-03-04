@@ -9,12 +9,11 @@ export default function TeamPage() {
 
   return (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Mon Équipe</h2>
-                <p className="text-sm text-gray-500">{employees.length} membre(s)</p>
-              </div>
-              <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3 mb-2">
+                <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
+                  <p className="text-lg font-bold text-gray-600">{employees.length}</p>
+                  <p className="text-xs text-gray-500">Membres</p>
+                </div>
                 <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
                   <p className="text-lg font-bold text-blue-600">{teamAssignments.filter(a => a.status === 'in_progress' || a.status === 'assigned').length}</p>
                   <p className="text-xs text-gray-500">En cours</p>
@@ -25,7 +24,6 @@ export default function TeamPage() {
                     <p className="text-xs text-amber-600">À valider</p>
                   </div>
                 )}
-              </div>
             </div>
             {teamAssignments.length === 0 ? (
               <div className="bg-white rounded-xl p-12 text-center">

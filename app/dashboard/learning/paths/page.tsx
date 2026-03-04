@@ -159,27 +159,21 @@ export default function PathsPage() {
   return (
     <>
       <div className="space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Parcours de Formation</h2>
-            <p className="text-sm text-gray-500">Curriculums collectifs — regroupent des cours assignables à des groupes d'employés</p>
+        {/* Stats */}
+        <div className="flex flex-wrap items-center gap-3 mb-2">
+          <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
+            <p className="text-lg font-bold text-primary-600">{learningPaths.length}</p>
+            <p className="text-xs text-gray-500">Parcours</p>
           </div>
-          <div className="flex gap-3">
-            <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-              <p className="text-lg font-bold text-primary-600">{learningPaths.length}</p>
-              <p className="text-xs text-gray-500">Parcours</p>
-            </div>
-            <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
-              <p className="text-lg font-bold text-blue-600">{learningPaths.reduce((s, p) => s + (p.duration_hours || 0), 0)}h</p>
-              <p className="text-xs text-gray-500">Heures totales</p>
-            </div>
-            {hasPermission(userRole, 'create_path') && (
-              <button onClick={() => setShowCreatePath(true)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
-                <Plus className="w-4 h-4 mr-2" />Créer un Parcours
-              </button>
-            )}
+          <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
+            <p className="text-lg font-bold text-blue-600">{learningPaths.reduce((s, p) => s + (p.duration_hours || 0), 0)}h</p>
+            <p className="text-xs text-gray-500">Heures totales</p>
           </div>
+          {hasPermission(userRole, 'create_path') && (
+            <button onClick={() => setShowCreatePath(true)} className="ml-auto flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
+              <Plus className="w-4 h-4 mr-2" />Créer un Parcours
+            </button>
+          )}
         </div>
 
         {/* Info banner */}

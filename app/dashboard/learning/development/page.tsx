@@ -14,12 +14,7 @@ export default function DevelopmentPage() {
 
   return (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Plans Individuels de Développement</h2>
-                <p className="text-sm text-gray-500">Feuilles de route personnalisées — poste actuel → poste cible, compétences et cours par employé</p>
-              </div>
-              <div className="flex gap-3">
+            <div className="flex items-center flex-wrap gap-3 mb-2">
                 <div className="bg-white rounded-xl px-4 py-2.5 shadow-sm border border-gray-100 text-center">
                   <p className="text-lg font-bold text-primary-600">{visiblePlans.filter(p => !p.status || p.status === 'active').length}</p>
                   <p className="text-xs text-gray-500">Actifs</p>
@@ -29,11 +24,10 @@ export default function DevelopmentPage() {
                   <p className="text-xs text-gray-500">Total</p>
                 </div>
                 {hasPermission(userRole, 'create_plan') && (
-                  <button onClick={() => setShowCreatePlan(true)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
+                  <button onClick={() => setShowCreatePlan(true)} className="ml-auto flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
                     <Plus className="w-4 h-4 mr-2" />Créer un Plan
                   </button>
                 )}
-              </div>
             </div>
             {/* Info banner */}
             <div className="flex items-start gap-3 p-4 bg-purple-50 border border-purple-100 rounded-xl text-sm text-purple-800">

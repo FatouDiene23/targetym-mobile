@@ -12,15 +12,15 @@ import Header from '@/components/Header';
 import { RefreshCw } from 'lucide-react';
 
 const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
-  '/dashboard/learning':              { title: 'Catalogue de Formations',    subtitle: 'Explorez les formations disponibles et suivez la progression de vos collaborateurs' },
-  '/dashboard/learning/my-learning':  { title: 'Mes Formations',             subtitle: 'Vos formations assignées et votre historique de complétion' },
-  '/dashboard/learning/team':         { title: 'Mon Équipe',                 subtitle: 'Suivi des formations de vos collaborateurs' },
-  '/dashboard/learning/paths':        { title: 'Parcours de Formation',      subtitle: 'Curriculums collectifs — regroupez des cours et assignez-les à des groupes' },
-  '/dashboard/learning/certifications': { title: 'Certifications',           subtitle: 'Gérez les certifications et suivez les dates d\'expiration' },
-  '/dashboard/learning/development':  { title: 'Plans Individuels',          subtitle: 'Plans de développement personnalisés — poste actuel vers poste cible' },
-  '/dashboard/learning/requests':     { title: 'Demandes de Formation',      subtitle: 'Demandes soumises par les employés et managers' },
-  '/dashboard/learning/post-eval':    { title: 'Éval. Post-Formation',       subtitle: 'Évaluations de compétences après formation' },
-  '/dashboard/learning/analytics':    { title: 'Analytics Formation',        subtitle: 'Statistiques et tendances de l\'activité de formation' },
+  '/dashboard/learning':              { title: 'Catalogue de Formations',          subtitle: 'Toutes les formations disponibles' },
+  '/dashboard/learning/my-learning':  { title: 'Mon Apprentissage',               subtitle: 'Mes formations assignées et leur avancement' },
+  '/dashboard/learning/team':         { title: 'Mon Équipe',                       subtitle: 'Formations de votre équipe' },
+  '/dashboard/learning/paths':        { title: 'Parcours de Formation',            subtitle: 'Curriculums collectifs — regroupent des cours assignables à des groupes d\'employés' },
+  '/dashboard/learning/certifications': { title: 'Certifications',                 subtitle: 'Certifications et habilitations de l\'équipe' },
+  '/dashboard/learning/development':  { title: 'Plans Individuels de Développement', subtitle: 'Feuilles de route personnalisées — poste actuel → poste cible, compétences et cours par employé' },
+  '/dashboard/learning/requests':     { title: 'Demandes de Formation',            subtitle: 'Demandes soumises par les collaborateurs' },
+  '/dashboard/learning/post-eval':    { title: 'Éval. Post-Formation',             subtitle: 'Suivi de l\'efficacité des formations' },
+  '/dashboard/learning/analytics':    { title: 'Analytics Formation',              subtitle: 'Suivi des formations et performances' },
 };
 
 function LearningContent({ children }: { children: React.ReactNode }) {

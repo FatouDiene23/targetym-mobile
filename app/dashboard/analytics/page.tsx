@@ -106,29 +106,6 @@ const budgetFormation = {
   pct: 75,
 };
 
-const engagementTrend = [
-  { name: "Jan", engagement: 75, satisfaction: 78 },
-  { name: "Fév", engagement: 76, satisfaction: 79 },
-  { name: "Mar", engagement: 74, satisfaction: 77 },
-  { name: "Avr", engagement: 78, satisfaction: 80 },
-  { name: "Mai", engagement: 79, satisfaction: 82 },
-  { name: "Jun", engagement: 77, satisfaction: 81 },
-  { name: "Jul", engagement: 80, satisfaction: 83 },
-  { name: "Aoû", engagement: 78, satisfaction: 80 },
-  { name: "Sep", engagement: 81, satisfaction: 84 },
-  { name: "Oct", engagement: 79, satisfaction: 82 },
-  { name: "Nov", engagement: 82, satisfaction: 85 },
-  { name: "Déc", engagement: 78, satisfaction: 82 },
-];
-
-const satisfactionFactors = [
-  { subject: "Rémunération", A: 72, fullMark: 100 },
-  { subject: "Ambiance", A: 88, fullMark: 100 },
-  { subject: "Management", A: 80, fullMark: 100 },
-  { subject: "Évolution", A: 65, fullMark: 100 },
-  { subject: "Équilibre vie", A: 75, fullMark: 100 },
-  { subject: "Conditions", A: 82, fullMark: 100 },
-];
 
 const recrutementMetrics = [
   { name: "Jan", candidatures: 120, entretiens: 35, embauches: 8 },
@@ -1130,75 +1107,79 @@ export default function PeopleAnalyticsPage() {
   // TAB 5 - ENGAGEMENT
   // ============================================
 
-  const renderEngagement = () => (
+  const renderEngagement = () => {
+    const hasAbsence = absenteismeByDept.length > 0;
+    return (
     <div className="space-y-6">
-      <div className="flex gap-2">
-        {renderBadge("hardcoded")}
-        <span className="text-xs text-gray-400">Absentéisme: données réelles</span>
-      </div>
+      {renderBadge("real")}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
-        {renderKPICard("Index engagement", "78%", <Heart size={20} className="text-pink-600" />, "bg-pink-50", "+3pts")}
-        {renderKPICard("Satisfaction", "82%", <Star size={20} className="text-green-600" />, "bg-green-50")}
-        {renderKPICard("Absentéisme", `${overview?.absenteeism ?? "3.4"}%`, <Clock size={20} className="text-amber-600" />, "bg-amber-50")}
-        {renderKPICard("Alertes RPS", "12", <AlertTriangle size={20} className="text-red-600" />, "bg-red-50")}
+        {renderKPICard("Index engagement", "—", <Heart size={20} className="text-pink-600" />, "bg-pink-50", "Fonctionnalité à venir")}
+        {renderKPICard("Satisfaction", "—", <Star size={20} className="text-green-600" />, "bg-green-50", "Fonctionnalité à venir")}
+        {renderKPICard("Absentéisme", overview?.absenteeism != null ? `${overview.absenteeism}%` : "—", <Clock size={20} className="text-amber-600" />, "bg-amber-50")}
+        {renderKPICard("Alertes RPS", "—", <AlertTriangle size={20} className="text-red-600" />, "bg-red-50", "Fonctionnalité à venir")}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Tendance engagement */}
         <div className="bg-white rounded-xl border p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Tendance engagement & satisfaction</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={engagementTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis domain={[60, 100]} tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="engagement" name="Engagement" stroke="#ec4899" strokeWidth={2} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="satisfaction" name="Satisfaction" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
-            </LineChart>
-          </ResponsiveContainer>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900">Tendance engagement & satisfaction</h3>
+            {renderBadge("real")}
+          </div>
+          <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
+            <Heart size={40} className="mb-3 opacity-30" />
+            <p className="text-sm font-medium">Données non disponibles</p>
+            <p className="text-xs mt-1">Les enquêtes d&apos;engagement seront disponibles prochainement</p>
+          </div>
         </div>
 
         {/* Radar satisfaction */}
         <div className="bg-white rounded-xl border p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Facteurs de satisfaction</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <RadarChart data={satisfactionFactors}>
-              <PolarGrid />
-              <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11 }} />
-              <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} />
-              <Radar name="Score" dataKey="A" stroke="#ec4899" fill="#ec4899" fillOpacity={0.3} />
-              <Tooltip />
-            </RadarChart>
-          </ResponsiveContainer>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900">Facteurs de satisfaction</h3>
+            {renderBadge("real")}
+          </div>
+          <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
+            <Star size={40} className="mb-3 opacity-30" />
+            <p className="text-sm font-medium">Données non disponibles</p>
+            <p className="text-xs mt-1">Configurez des enquêtes de satisfaction pour voir les résultats</p>
+          </div>
         </div>
       </div>
 
-      {/* Absentéisme par département - DONNÉES RÉELLES */}
+      {/* Absentéisme par département */}
       <div className="bg-white rounded-xl border p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-900">Absentéisme par département</h3>
           {renderBadge("real")}
         </div>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={absenteismeByDept}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="department" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} unit="%" />
-            <Tooltip formatter={(v: number) => `${v}%`} />
-            <Bar dataKey="taux" name="Taux d'absentéisme" radius={[4, 4, 0, 0]}>
-              {absenteismeByDept.map((entry, i) => (
-                <Cell key={i} fill={entry.taux > 5 ? "#ef4444" : entry.taux > 3 ? "#f59e0b" : "#10b981"} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        {hasAbsence ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={absenteismeByDept}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="department" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} unit="%" />
+              <Tooltip formatter={(v: number) => `${v}%`} />
+              <Bar dataKey="taux" name="Taux d'absentéisme" radius={[4, 4, 0, 0]}>
+                {absenteismeByDept.map((entry, i) => (
+                  <Cell key={i} fill={entry.taux > 5 ? "#ef4444" : entry.taux > 3 ? "#f59e0b" : "#10b981"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
+            <Clock size={40} className="mb-3 opacity-30" />
+            <p className="text-sm font-medium">Aucune absence enregistrée</p>
+            <p className="text-xs mt-1">Les congés approuvés apparaîtront ici</p>
+          </div>
+        )}
       </div>
     </div>
-  );
+    );
+  };
 
 
   // ============================================

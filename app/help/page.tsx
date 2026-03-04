@@ -36,7 +36,7 @@ export default function HelpCenterPage() {
 
   // Vérifier si l'utilisateur est connecté
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('access_token');
     setIsLoggedIn(!!token);
   }, []);
 

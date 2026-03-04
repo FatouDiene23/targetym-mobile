@@ -43,7 +43,7 @@ export default function HelpAdminPage() {
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
-  const getToken = () => localStorage.getItem('token');
+  const getToken = () => localStorage.getItem('access_token');
 
   // Charger les catégories
   useEffect(() => {

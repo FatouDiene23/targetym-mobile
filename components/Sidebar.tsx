@@ -14,6 +14,8 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  MoreVertical,
   Sparkles,
   GraduationCap,
   Calendar,
@@ -248,6 +250,7 @@ function SidebarInner() {
   const [inLearning, setInLearning] = useState(false);
   const [inTalents, setInTalents] = useState(false);
   const [isManager, setIsManager] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     setInMySpace(pathname.startsWith('/dashboard/my-space'));
@@ -681,42 +684,67 @@ function SidebarInner() {
             )}
           </div>
           {!collapsed && (
-            <>
-              <Link
-                href="/help"
-                target="_blank"
-                className="mt-4 w-full flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            <div className="mt-4 relative">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
               >
-                <HelpCircle className="w-4 h-4 mr-2" />
-                Aide & Support
-              </Link>
-              <button 
-                onClick={handleLogout} 
-                className="mt-2 w-full flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Déconnexion
+                <div className="flex items-center">
+                  <MoreVertical className="w-4 h-4 mr-2" />
+                  Menu
+                </div>
+                <ChevronDown className={`w-4 h-4 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
               </button>
-            </>
+              {menuOpen && (
+                <div className="mt-1 bg-gray-800 rounded-lg overflow-hidden">
+                  <Link
+                    href="/help"
+                    target="_blank"
+                    className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                  >
+                    <HelpCircle className="w-4 h-4 mr-2" />
+                    Aide & Support
+                  </Link>
+                  <button 
+                    onClick={handleLogout} 
+                    className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Déconnexion
+                  </button>
+                </div>
+              )}
+            </div>
           )}
           {collapsed && (
-            <>
-              <Link
-                href="/help"
-                target="_blank"
-                className="mt-4 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-                title="Aide & Support"
+            <div className="mt-4 relative">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+                title="Menu"
               >
-                <HelpCircle className="w-5 h-5" />
-              </Link>
-              <button 
-                onClick={handleLogout} 
-                className="mt-2 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" 
-                title="Déconnexion"
-              >
-                <LogOut className="w-5 h-5" />
+                <MoreVertical className="w-5 h-5" />
               </button>
-            </>
+              {menuOpen && (
+                <div className="absolute bottom-0 left-full ml-2 bg-gray-800 rounded-lg overflow-hidden shadow-lg z-50 min-w-[180px]">
+                  <Link
+                    href="/help"
+                    target="_blank"
+                    className="w-full flex items-center px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                  >
+                    <HelpCircle className="w-4 h-4 mr-2" />
+                    Aide & Support
+                  </Link>
+                  <button 
+                    onClick={handleLogout} 
+                    className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Déconnexion
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </aside>
@@ -785,42 +813,67 @@ function SidebarInner() {
           )}
         </div>
         {!collapsed && (
-          <>
-            <Link
-              href="/help"
-              target="_blank"
-              className="mt-4 w-full flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+          <div className="mt-4 relative">
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
             >
-              <HelpCircle className="w-4 h-4 mr-2" />
-              Aide & Support
-            </Link>
-            <button 
-              onClick={handleLogout} 
-              className="mt-2 w-full flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Déconnexion
+              <div className="flex items-center">
+                <MoreVertical className="w-4 h-4 mr-2" />
+                Menu
+              </div>
+              <ChevronDown className={`w-4 h-4 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
             </button>
-          </>
+            {menuOpen && (
+              <div className="mt-1 bg-gray-800 rounded-lg overflow-hidden">
+                <Link
+                  href="/help"
+                  target="_blank"
+                  className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                >
+                  <HelpCircle className="w-4 h-4 mr-2" />
+                  Aide & Support
+                </Link>
+                <button 
+                  onClick={handleLogout} 
+                  className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Déconnexion
+                </button>
+              </div>
+            )}
+          </div>
         )}
         {collapsed && (
-          <>
-            <Link
-              href="/help"
-              target="_blank"
-              className="mt-4 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-              title="Aide & Support"
+          <div className="mt-4 relative">
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+              title="Menu"
             >
-              <HelpCircle className="w-5 h-5" />
-            </Link>
-            <button 
-              onClick={handleLogout} 
-              className="mt-2 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" 
-              title="Déconnexion"
-            >
-              <LogOut className="w-5 h-5" />
+              <MoreVertical className="w-5 h-5" />
             </button>
-          </>
+            {menuOpen && (
+              <div className="absolute bottom-0 left-full ml-2 bg-gray-800 rounded-lg overflow-hidden shadow-lg z-50 min-w-[180px]">
+                <Link
+                  href="/help"
+                  target="_blank"
+                  className="w-full flex items-center px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                >
+                  <HelpCircle className="w-4 h-4 mr-2" />
+                  Aide & Support
+                </Link>
+                <button 
+                  onClick={handleLogout} 
+                  className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Déconnexion
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </aside>

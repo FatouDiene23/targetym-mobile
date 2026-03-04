@@ -15,7 +15,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  MoreVertical,
   Sparkles,
   GraduationCap,
   Calendar,
@@ -690,8 +689,8 @@ function SidebarInner() {
                 className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
               >
                 <div className="flex items-center">
-                  <MoreVertical className="w-4 h-4 mr-2" />
-                  Menu
+                  <Settings className="w-4 h-4 mr-2" />
+                  Options
                 </div>
                 <ChevronDown className={`w-4 h-4 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -721,9 +720,9 @@ function SidebarInner() {
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-                title="Menu"
+                title="Options"
               >
-                <MoreVertical className="w-5 h-5" />
+                <Settings className="w-5 h-5" />
               </button>
               {menuOpen && (
                 <div className="absolute bottom-0 left-full ml-2 bg-gray-800 rounded-lg overflow-hidden shadow-lg z-50 min-w-[180px]">
@@ -819,8 +818,8 @@ function SidebarInner() {
               className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
             >
               <div className="flex items-center">
-                <MoreVertical className="w-4 h-4 mr-2" />
-                Menu
+                <Settings className="w-4 h-4 mr-2" />
+                Options
               </div>
               <ChevronDown className={`w-4 h-4 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -850,9 +849,9 @@ function SidebarInner() {
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               className="w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-              title="Menu"
+              title="Options"
             >
-              <MoreVertical className="w-5 h-5" />
+              <Settings className="w-5 h-5" />
             </button>
             {menuOpen && (
               <div className="absolute bottom-0 left-full ml-2 bg-gray-800 rounded-lg overflow-hidden shadow-lg z-50 min-w-[180px]">

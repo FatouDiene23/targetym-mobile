@@ -228,7 +228,7 @@ export default function ArticleDetailPage() {
         </div>
       </div>
 
-      {/* Layout 3 colonnes */}
+      {/* Layout 2 colonnes (sans TOC) */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Sidebar gauche - Articles liés */}
@@ -268,7 +268,7 @@ export default function ArticleDetailPage() {
           </aside>
 
           {/* Contenu principal */}
-          <main className="lg:col-span-6">
+          <main className="lg:col-span-9">
             <article className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
               {/* En-tête de l'article */}
               <div className="bg-gradient-to-r from-primary-500 via-primary-600 to-indigo-600 px-8 py-10">
@@ -431,41 +431,6 @@ export default function ArticleDetailPage() {
               )}
             </article>
           </main>
-
-          {/* Sidebar droite - Table des matières */}
-          <aside className="lg:col-span-3">
-            {toc.length > 0 && (
-              <div className="sticky top-4 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="bg-gradient-to-r from-gray-700 to-gray-800 px-4 py-3">
-                  <h3 className="text-sm font-bold text-white uppercase tracking-wide">Table des matières</h3>
-                </div>
-                <nav className="p-4 space-y-1 max-h-[calc(100vh-200px)] overflow-y-auto">
-                  {toc.map(item => (
-                    <a
-                      key={item.id}
-                      href={`#${item.id}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        const element = document.getElementById(item.id);
-                        if (element) {
-                          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
-                      }}
-                      className={`block text-sm py-2.5 px-3 rounded-md transition-colors cursor-pointer ${
-                        item.level === 3 ? 'ml-4 text-xs' : ''
-                      } ${
-                        activeSection === item.id
-                          ? 'bg-primary-600 text-white font-semibold'
-                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                      }`}
-                    >
-                      {item.text}
-                    </a>
-                  ))}
-                </nav>
-              </div>
-            )}
-          </aside>
         </div>
       </div>
     </div>

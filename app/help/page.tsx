@@ -117,7 +117,7 @@ export default function HelpCenterPage() {
               </div>
             </div>
             <Link
-              href={isLoggedIn ? "/dashboard" : "/login"}
+              href={isLoggedIn ? "/dashboard" : "https://targetym-website.vercel.app/login"}
               className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />

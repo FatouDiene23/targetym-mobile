@@ -1080,7 +1080,7 @@ export default function PeopleAnalyticsPage() {
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={formationEvolution}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Legend />

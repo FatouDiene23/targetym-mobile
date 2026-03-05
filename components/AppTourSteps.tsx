@@ -343,13 +343,45 @@ export const adminTourSteps: TourStep[] = [
 /**
  * Fonction pour obtenir le tour approprié selon le rôle
  */
+/**
+ * Tour pour les Super Admins (platform-admin)
+ * Cible les éléments de la sidebar platform-admin
+ */
+export const superAdminTourSteps: TourStep[] = [
+  {
+    target: '[data-tour="super-admin-dashboard"]',
+    title: 'Dashboard Plateforme 🔐',
+    content: 'Vue d\'ensemble de toute la plateforme : tenants, utilisateurs actifs, statistiques globales.',
+    position: 'right',
+  },
+  {
+    target: '[data-tour="super-admin-users"]',
+    title: 'Gestion des Utilisateurs',
+    content: 'Créez, modifiez et gérez tous les comptes utilisateurs de la plateforme.',
+    position: 'right',
+  },
+  {
+    target: '[data-tour="super-admin-help"]',
+    title: 'Centre d\'Aide',
+    content: 'Gérez les articles d\'aide, les FAQs et le contenu de support pour tous les utilisateurs.',
+    position: 'right',
+  },
+  {
+    target: '[data-tour="user-menu"]',
+    title: 'Votre profil',
+    content: 'Accédez à votre profil et options. Le tour est terminé ! 🎉',
+    position: 'top',
+  },
+];
+
 export function getTourStepsByRole(role: string): TourStep[] {
   const normalizedRole = role?.toLowerCase() || 'employee';
 
   switch (normalizedRole) {
+    case 'super_admin':
+      return superAdminTourSteps;
     case 'admin':
     case 'dg':
-    case 'super_admin':
       return adminTourSteps;
     
     case 'rh':

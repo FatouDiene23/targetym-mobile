@@ -948,6 +948,42 @@ export const performance1Tips: PageTip[] = [
   },
 ];
 
+export const platformAdminTips: PageTip[] = [
+  {
+    id: 'platform-overview',
+    title: 'Vue d\'ensemble Plateforme',
+    description: 'Ce dashboard affiche les statistiques globales de tous les tenants : nombre d\'entreprises, utilisateurs actifs et abonnements.',
+  },
+  {
+    id: 'platform-tenants',
+    title: 'Liste des Tenants',
+    description: 'Chaque ligne représente une entreprise cliente. Vous pouvez voir leur plan d\'abonnement, le nombre d\'utilisateurs et leur statut.',
+  },
+  {
+    id: 'platform-search',
+    title: 'Recherche & Filtres',
+    description: 'Utilisez la barre de recherche pour trouver un tenant par nom, et filtrez par plan ou statut.',
+  },
+];
+
+export const platformAdminUsersTips: PageTip[] = [
+  {
+    id: 'users-overview',
+    title: 'Gestion des Utilisateurs Plateforme',
+    description: 'Cette page liste tous les utilisateurs de la plateforme, toutes entreprises confondues.',
+  },
+  {
+    id: 'users-create',
+    title: 'Créer un utilisateur',
+    description: 'Cliquez sur "Nouvel Utilisateur" pour créer un compte. Vous pouvez lui assigner un rôle et un tenant (entreprise).',
+  },
+  {
+    id: 'users-roles',
+    title: 'Rôles & Permissions',
+    description: 'SUPER_ADMIN a accès à tout. Les autres rôles (admin, rh, manager, employee) sont limités à leur tenant.',
+  },
+];
+
 /**
  * Obtenir les tips selon l'ID de la page
  */
@@ -983,6 +1019,8 @@ export function getPageTips(pageId: string): PageTip[] {
     talentsEmployees: talentsEmployeesTips,
     talentsTeam: talentsTeamTips,
     paths: pathsTips,
+    platformAdmin: platformAdminTips,
+    platformAdminUsers: platformAdminUsersTips,
     myCareer: myCareerTips,
     myPromotions: myPromotionsTips,
     // Others

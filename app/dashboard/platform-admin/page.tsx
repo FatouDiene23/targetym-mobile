@@ -13,9 +13,13 @@ import {
   type PlatformStats,
   type TenantListItem
 } from '@/lib/api';
+import { usePageTour } from '@/hooks/usePageTour';
+import PageTourTips from '@/components/PageTourTips';
+import { platformAdminTips } from '@/config/pageTips';
 
 export default function PlatformAdminDashboard() {
   const router = useRouter();
+  const { showTips, dismissTips } = usePageTour('platformAdmin');
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [tenants, setTenants] = useState<TenantListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -286,6 +290,14 @@ export default function PlatformAdminDashboard() {
           </table>
         </div>
       </div>
+
+      {showTips && (
+        <PageTourTips
+          tips={platformAdminTips}
+          onDismiss={dismissTips}
+          pageTitle="Dashboard Plateforme"
+        />
+      )}
     </div>
   );
 }

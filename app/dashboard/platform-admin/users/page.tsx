@@ -8,6 +8,9 @@ import {
 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useRouter } from 'next/navigation';
+import { usePageTour } from '@/hooks/usePageTour';
+import PageTourTips from '@/components/PageTourTips';
+import { platformAdminUsersTips } from '@/config/pageTips';
 import {
   getAllUsers,
   getAllTenants,
@@ -22,6 +25,7 @@ import {
 
 export default function PlatformUsersManagement() {
   const router = useRouter();
+  const { showTips, dismissTips } = usePageTour('platformAdminUsers');
   const [users, setUsers] = useState<UserListItem[]>([]);
   const [tenants, setTenants] = useState<TenantListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -573,6 +577,14 @@ export default function PlatformUsersManagement() {
           onConfirm={confirmDialog.onConfirm}
           onClose={() => setConfirmDialog(null)}
           danger={confirmDialog.danger}
+        />
+      )}
+
+      {showTips && (
+        <PageTourTips
+          tips={platformAdminUsersTips}
+          onDismiss={dismissTips}
+          pageTitle="Gestion des Utilisateurs"
         />
       )}
     </div>

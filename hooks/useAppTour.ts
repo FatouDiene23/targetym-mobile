@@ -67,8 +67,10 @@ export function useAppTour() {
       await resetAppTour();
       setTourCompleted(false);
       
-      // Rediriger vers le dashboard avant de démarrer le tour
-      router.push('/dashboard');
+      // Rediriger vers le bon dashboard selon le rôle
+      const normalized = userRole?.toLowerCase() || '';
+      const targetPath = normalized === 'super_admin' ? '/dashboard/platform-admin' : '/dashboard';
+      router.push(targetPath);
       
       // Laisser le temps à la page de charger avant de démarrer le tour
       setTimeout(() => {

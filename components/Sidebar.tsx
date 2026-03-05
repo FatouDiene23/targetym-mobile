@@ -645,6 +645,7 @@ function SidebarInner() {
                 : 'text-gray-400 hover:bg-gray-800 hover:text-white'
             }`} 
             title={collapsed ? 'Dashboard Plateforme' : undefined}
+            data-tour="super-admin-dashboard"
           >
             <Shield className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
             {!collapsed && <span className="text-sm font-medium">Dashboard Plateforme</span>}
@@ -657,6 +658,7 @@ function SidebarInner() {
                 : 'text-gray-400 hover:bg-gray-800 hover:text-white'
             }`} 
             title={collapsed ? 'Gestion des Utilisateurs' : undefined}
+            data-tour="super-admin-users"
           >
             <Users className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
             {!collapsed && <span className="text-sm font-medium">Gestion des Utilisateurs</span>}
@@ -669,6 +671,7 @@ function SidebarInner() {
                 : 'text-gray-400 hover:bg-gray-800 hover:text-white'
             }`} 
             title={collapsed ? 'Centre d\'Aide Admin' : undefined}
+            data-tour="super-admin-help"
           >
             <Settings className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
             {!collapsed && <span className="text-sm font-medium">Centre d'Aide</span>}

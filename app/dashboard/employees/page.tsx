@@ -11,6 +11,7 @@ import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { employeesTips } from '@/config/pageTips';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { 
   Search, Plus, Mail, Phone, MapPin, Calendar, Building2, Download,
   Edit2, Eye, Users, UserCheck, UserPlus, TrendingDown,
@@ -636,20 +637,20 @@ export default function EmployeesPage() {
   // ============================================
   // HANDLERS
   // ============================================
-  const handleApproveLeave = async (id: number) => { try { await approveLeaveRequest(id); setLeaveRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'approved' as const } : req)); if (showLeaveModal && selectedLeaveRequest?.id === id) { setShowLeaveModal(false); setSelectedLeaveRequest(null); } } catch { alert('Erreur'); } };
-  const handleRejectLeave = async (id: number, reason: string) => { try { await rejectLeaveRequest(id, reason); setLeaveRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'rejected' as const, rejection_reason: reason } : req)); setShowLeaveModal(false); setSelectedLeaveRequest(null); } catch { alert('Erreur'); } };
+  const handleApproveLeave = async (id: number) => { try { await approveLeaveRequest(id); setLeaveRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'approved' as const } : req)); if (showLeaveModal && selectedLeaveRequest?.id === id) { setShowLeaveModal(false); setSelectedLeaveRequest(null); } } catch { toast.error('Erreur'); } };
+  const handleRejectLeave = async (id: number, reason: string) => { try { await rejectLeaveRequest(id, reason); setLeaveRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'rejected' as const, rejection_reason: reason } : req)); setShowLeaveModal(false); setSelectedLeaveRequest(null); } catch { toast.error('Erreur'); } };
 
   const handleSendInvitation = async (employee: InvitationEmployee) => {
     setSendingInvitation(employee.id);
     try { const result = await sendInvitation(employee.id); if (result.temp_password) { setTempPasswordData({ employeeName: `${employee.first_name} ${employee.last_name}`, email: employee.email, tempPassword: result.temp_password, emailSent: result.email_sent }); setShowTempPasswordModal(true); } await fetchInvitations(); }
-    catch (err) { alert(err instanceof Error ? err.message : 'Erreur'); }
+    catch (err) { toast.error(err instanceof Error ? err.message : 'Erreur'); }
     finally { setSendingInvitation(null); }
   };
 
   const handleResendInvitation = async (employee: InvitationEmployee) => {
     setSendingInvitation(employee.id);
     try { const result = await resendInvitation(employee.id); if (result.temp_password) { setTempPasswordData({ employeeName: `${employee.first_name} ${employee.last_name}`, email: employee.email, tempPassword: result.temp_password, emailSent: result.email_sent }); setShowTempPasswordModal(true); } await fetchInvitations(); }
-    catch (err) { alert(err instanceof Error ? err.message : 'Erreur'); }
+    catch (err) { toast.error(err instanceof Error ? err.message : 'Erreur'); }
     finally { setSendingInvitation(null); }
   };
 

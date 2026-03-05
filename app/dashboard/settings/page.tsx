@@ -2,6 +2,7 @@
 
 import Header from '@/components/Header';
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { 
   User, 
   Building2, 
@@ -183,11 +184,11 @@ export default function SettingsPage() {
         setTimeout(() => setSavedProfile(false), 2000);
       } else {
         const err = await res.json();
-        alert(err.detail || 'Erreur lors de la sauvegarde');
+        toast.error(err.detail || 'Erreur lors de la sauvegarde');
       }
     } catch (error) {
       console.error('Erreur:', error);
-      alert('Erreur de connexion');
+      toast.error('Erreur de connexion');
     } finally {
       setSavingProfile(false);
     }
@@ -215,11 +216,11 @@ export default function SettingsPage() {
         setTimeout(() => setSavedTenant(false), 2000);
       } else {
         const err = await res.json();
-        alert(err.detail || 'Erreur lors de la sauvegarde');
+        toast.error(err.detail || 'Erreur lors de la sauvegarde');
       }
     } catch (error) {
       console.error('Erreur:', error);
-      alert('Erreur de connexion');
+      toast.error('Erreur de connexion');
     } finally {
       setSavingTenant(false);
     }
@@ -271,11 +272,11 @@ export default function SettingsPage() {
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
       } else {
-        alert('Erreur lors de la sauvegarde');
+        toast.error('Erreur lors de la sauvegarde');
       }
     } catch (error) {
       console.error('Erreur:', error);
-      alert('Erreur de connexion');
+      toast.error('Erreur de connexion');
     } finally {
       setSavingCertSettings(false);
     }
@@ -302,11 +303,11 @@ export default function SettingsPage() {
         }));
       } else {
         const error = await response.json();
-        alert(error.detail || 'Erreur lors de l\'upload');
+        toast.error(error.detail || 'Erreur lors de l\'upload');
       }
     } catch (error) {
       console.error('Erreur upload:', error);
-      alert('Erreur de connexion');
+      toast.error('Erreur de connexion');
     } finally {
       setUploadingFile(null);
     }

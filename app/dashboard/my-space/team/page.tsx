@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { teamTips } from '@/config/pageTips';
@@ -156,7 +157,7 @@ function LeaveRequestCard({
 
   const handleReject = () => {
     if (!rejectReason.trim()) {
-      alert('Veuillez indiquer un motif de refus');
+      toast.error('Veuillez indiquer un motif de refus');
       return;
     }
     onReject(rejectReason);
@@ -304,7 +305,7 @@ export default function MyTeamPage() {
       await loadData();
     } catch (err) {
       console.error(err);
-      alert('Erreur lors de l\'approbation');
+      toast.error('Erreur lors de l\'approbation');
     } finally {
       setProcessingId(null);
     }
@@ -317,7 +318,7 @@ export default function MyTeamPage() {
       await loadData();
     } catch (err) {
       console.error(err);
-      alert('Erreur lors du refus');
+      toast.error('Erreur lors du refus');
     } finally {
       setProcessingId(null);
     }

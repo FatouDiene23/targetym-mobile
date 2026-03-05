@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { 
   User, Edit2, Save, X, AlertCircle,
   Briefcase, MapPin, Phone, Mail, Building, CalendarDays, Building2,
@@ -609,7 +610,7 @@ export default function MyProfilePage() {
       
       if (!response.ok) {
         const error = await response.json();
-        alert(error.detail || 'Erreur lors de la génération de votre attestation de travail');
+        toast.error(error.detail || 'Erreur lors de la génération de votre attestation de travail');
         return;
       }
       
@@ -626,7 +627,7 @@ export default function MyProfilePage() {
       
     } catch (error) {
       console.error('Error generating certificate:', error);
-      alert('Erreur de connexion');
+      toast.error('Erreur de connexion');
     } finally {
       setIsGeneratingCertificate(false);
     }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import Header from '@/components/Header';
 import {
   Plane, MapPin, Calendar, Clock, Users, FileText, Plus, Search,
@@ -349,7 +350,7 @@ export default function MissionsPage() {
       setSelectedMission(data);
       setShowDetailModal(true);
     } catch (err: any) {
-      alert('Erreur: ' + err.message);
+      toast.error('Erreur: ' + err.message);
     }
   };
 
@@ -359,7 +360,7 @@ export default function MissionsPage() {
       setSelectedMission(data);
       setShowEditModal(true);
     } catch (err: any) {
-      alert('Erreur: ' + err.message);
+      toast.error('Erreur: ' + err.message);
     }
   };
 
@@ -372,9 +373,9 @@ export default function MissionsPage() {
     try {
       await apiFetch(`/api/missions/${missionId}/submit`, { method: 'POST' });
       fetchAll();
-      alert('Mission soumise avec succès');
+      toast.success('Mission soumise avec succès');
     } catch (err: any) {
-      alert('Erreur: ' + err.message);
+      toast.error('Erreur: ' + err.message);
     }
   };
 
@@ -382,9 +383,9 @@ export default function MissionsPage() {
     try {
       await apiFetch(`/api/missions/${missionId}/start`, { method: 'POST' });
       fetchAll();
-      alert('Mission démarrée');
+      toast.success('Mission démarrée');
     } catch (err: any) {
-      alert('Erreur: ' + err.message);
+      toast.error('Erreur: ' + err.message);
     }
   };
 
@@ -394,7 +395,7 @@ export default function MissionsPage() {
       await apiFetch(`/api/missions/${missionId}`, { method: 'DELETE' });
       fetchAll();
     } catch (err: any) {
-      alert('Erreur: ' + err.message);
+      toast.error('Erreur: ' + err.message);
     }
   };
 
@@ -410,7 +411,7 @@ export default function MissionsPage() {
 
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
-        alert('Veuillez autoriser les popups pour télécharger le PDF');
+        toast.error('Veuillez autoriser les popups pour télécharger le PDF');
         return;
       }
 
@@ -573,7 +574,7 @@ export default function MissionsPage() {
       `);
       printWindow.document.close();
     } catch (err: any) {
-      alert('Erreur lors de la génération: ' + err.message);
+      toast.error('Erreur lors de la génération: ' + err.message);
     }
   };
 
@@ -1026,7 +1027,7 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
 
   const handleSubmit = async () => {
     if (!formData.subject || !formData.departure_location || !formData.destination || !formData.start_date || !formData.end_date) {
-      alert('Veuillez remplir tous les champs obligatoires');
+      toast.error('Veuillez remplir tous les champs obligatoires');
       return;
     }
 
@@ -1043,7 +1044,7 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
       });
       onSuccess();
     } catch (err: any) {
-      alert('Erreur: ' + err.message);
+      toast.error('Erreur: ' + err.message);
     } finally {
       setSubmitting(false);
     }
@@ -1443,7 +1444,7 @@ function EditMissionModal({ mission, onClose, onSuccess }: {
       });
       onSuccess();
     } catch (err: any) {
-      alert('Erreur: ' + err.message);
+      toast.error('Erreur: ' + err.message);
     } finally {
       setSubmitting(false);
     }
@@ -1557,7 +1558,7 @@ function ValidateMissionModal({ mission, role, onClose, onSuccess }: {
 
   const handleValidate = async (approved: boolean) => {
     if (!approved && !rejectionReason) {
-      alert('Veuillez indiquer la raison du rejet');
+      toast.error('Veuillez indiquer la raison du rejet');
       return;
     }
 
@@ -1575,7 +1576,7 @@ function ValidateMissionModal({ mission, role, onClose, onSuccess }: {
       });
       onSuccess();
     } catch (err: any) {
-      alert('Erreur: ' + err.message);
+      toast.error('Erreur: ' + err.message);
     } finally {
       setSubmitting(false);
     }

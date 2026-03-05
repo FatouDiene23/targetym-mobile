@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useLearning } from '../LearningContext';
 import { hasPermission, API_URL, getAuthHeaders, categories } from '../shared';
 import { Target, Plus, Clock, Users, BookOpen, ChevronRight, X, Edit2, Archive, UserPlus, Check, Loader2, Search, ArrowLeft } from 'lucide-react';
@@ -107,7 +108,7 @@ export default function PathsPage() {
     }
     setIsAssigning(false);
     setModalView('detail');
-    alert(`${success}/${selectedEmpIds.length} employé(s) assigné(s) avec succès`);
+    toast.success(`${success}/${selectedEmpIds.length} employé(s) assigné(s) avec succès`);
     await refreshPaths();
     openModal(selectedPath.id);
   };
@@ -127,7 +128,7 @@ export default function PathsPage() {
         openModal(selectedPath.id);
       } else {
         const err = await res.json();
-        alert('Erreur: ' + (err.detail || 'Impossible de modifier'));
+        toast.error('Erreur: ' + (err.detail || 'Impossible de modifier'));
       }
     } catch (e) {
       console.error(e);
@@ -149,7 +150,7 @@ export default function PathsPage() {
         await refreshPaths();
       } else {
         const err = await res.json();
-        alert('Erreur: ' + (err.detail || "Impossible d'archiver"));
+        toast.error('Erreur: ' + (err.detail || "Impossible d'archiver"));
       }
     } catch (e) {
       console.error(e);

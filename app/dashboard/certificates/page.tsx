@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import {
   FileText, Download, Search, Loader2,
   Calendar, User, Clock, ChevronLeft, ChevronRight,
@@ -310,7 +311,7 @@ export default function CertificatesPage() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Erreur lors de la génération');
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la génération');
     } finally {
       setGeneratingFor(null);
     }

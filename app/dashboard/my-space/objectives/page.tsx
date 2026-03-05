@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { objectivesTips } from '@/config/pageTips';
@@ -183,7 +184,7 @@ function KeyResultEditor({
   const handleSave = async () => {
     const numValue = parseFloat(value);
     if (isNaN(numValue) || numValue < 0) {
-      alert('Veuillez entrer une valeur valide');
+      toast.error('Veuillez entrer une valeur valide');
       return;
     }
     setSaving(true);
@@ -236,7 +237,7 @@ function KeyResultItem({
       setEditing(false);
       onUpdate();
     } else {
-      alert('Erreur lors de la mise à jour');
+      toast.error('Erreur lors de la mise à jour');
     }
   };
 

@@ -6,6 +6,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import Header from '@/components/Header';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
@@ -71,7 +72,7 @@ export default function TeamCareerPage() {
         setDetail(res);
       }
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     } finally {
       setSyncing(null);
     }
@@ -88,7 +89,7 @@ export default function TeamCareerPage() {
         await loadEmployeeCareers();
       }
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     } finally {
       setPromoting(null);
     }

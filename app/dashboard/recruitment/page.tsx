@@ -5,6 +5,7 @@ import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { recruitmentTips } from '@/config/pageTips';
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { 
   UserPlus, Briefcase, Users, Clock, Mail, Phone, MapPin, Plus, XCircle,
   FileText, Linkedin, GraduationCap, Building2, TrendingUp, Edit,
@@ -405,16 +406,16 @@ export default function RecruitmentPage() {
   const handleReject = async (application: Application) => {
     const reason = prompt('Raison du refus (optionnel):');
     const success = await rejectApplication(application.id, reason || undefined);
-    if (success) { setShowCandidateModal(false); loadData(); } else { alert('Erreur lors du refus'); }
+    if (success) { setShowCandidateModal(false); loadData(); } else { toast.error('Erreur lors du refus'); }
   };
 
   const handleSendOffer = async (application: Application) => {
     const salaryStr = prompt('Salaire proposé (XOF):', application.candidate_expected_salary?.toString() || '');
     if (!salaryStr) return;
     const salary = parseFloat(salaryStr);
-    if (isNaN(salary)) { alert('Salaire invalide'); return; }
+    if (isNaN(salary)) { toast.error('Salaire invalide'); return; }
     const success = await sendOffer(application.id, salary);
-    if (success) { setShowCandidateModal(false); loadData(); } else { alert('Erreur lors de l\'envoi de l\'offre'); }
+    if (success) { setShowCandidateModal(false); loadData(); } else { toast.error('Erreur lors de l\'envoi de l\'offre'); }
   };
 
   const handleNextStage = async (application: Application) => {
@@ -422,17 +423,17 @@ export default function RecruitmentPage() {
     if (currentIndex < pipelineStages.length - 1) {
       const nextStage = pipelineStages[currentIndex + 1].id;
       const success = await updateApplicationStage(application.id, nextStage);
-      if (success) { setShowCandidateModal(false); loadData(); } else { alert('Erreur lors du changement d\'étape'); }
+      if (success) { setShowCandidateModal(false); loadData(); } else { toast.error('Erreur lors du changement d\'étape'); }
     }
   };
 
-  const handlePublishJob = async (jobId: number) => { const success = await publishJob(jobId); if (success) loadData(); else alert('Erreur lors de la publication'); };
-  const handleCloseJob = async (jobId: number) => { const success = await closeJob(jobId); if (success) loadData(); else alert('Erreur lors de la fermeture'); };
+  const handlePublishJob = async (jobId: number) => { const success = await publishJob(jobId); if (success) loadData(); else toast.error('Erreur lors de la publication'); };
+  const handleCloseJob = async (jobId: number) => { const success = await closeJob(jobId); if (success) loadData(); else toast.error('Erreur lors de la fermeture'); };
 
   const handleDeleteInterview = async (interviewId: number) => {
     if (!confirm('Supprimer cet entretien ?')) return;
     const success = await deleteInterview(interviewId);
-    if (success) loadData(); else alert('Erreur lors de la suppression');
+    if (success) loadData(); else toast.error('Erreur lors de la suppression');
   };
 
   // Page Tour Hook
@@ -886,9 +887,9 @@ export default function RecruitmentPage() {
         )}
 
         {/* Modals */}
-        {showJobModal && <JobModal job={editingJob} departments={departments} employees={employees} onClose={() => setShowJobModal(false)} onSave={async (data) => { const success = editingJob ? await updateJob(editingJob.id, data) : await createJob(data); if (success) { setShowJobModal(false); loadData(); } else { alert('Erreur lors de la sauvegarde'); } }} />}
-        {showAddCandidateModal && <AddCandidateModal jobs={jobs.filter(j => j.status === 'active')} onClose={() => setShowAddCandidateModal(false)} onSave={async (data) => { const success = await createCandidate(data); if (success) { setShowAddCandidateModal(false); loadData(); } else { alert('Erreur lors de la création'); } }} />}
-        {showInterviewModal && selectedApplication && <InterviewModal application={selectedApplication} employees={employees} onClose={() => setShowInterviewModal(false)} onSave={async (data) => { const success = await createInterview(data); if (success) { setShowInterviewModal(false); setShowCandidateModal(false); loadData(); } else { alert('Erreur lors de la planification'); } }} />}
+        {showJobModal && <JobModal job={editingJob} departments={departments} employees={employees} onClose={() => setShowJobModal(false)} onSave={async (data) => { const success = editingJob ? await updateJob(editingJob.id, data) : await createJob(data); if (success) { setShowJobModal(false); loadData(); } else { toast.error('Erreur lors de la sauvegarde'); } }} />}
+        {showAddCandidateModal && <AddCandidateModal jobs={jobs.filter(j => j.status === 'active')} onClose={() => setShowAddCandidateModal(false)} onSave={async (data) => { const success = await createCandidate(data); if (success) { setShowAddCandidateModal(false); loadData(); } else { toast.error('Erreur lors de la création'); } }} />}
+        {showInterviewModal && selectedApplication && <InterviewModal application={selectedApplication} employees={employees} onClose={() => setShowInterviewModal(false)} onSave={async (data) => { const success = await createInterview(data); if (success) { setShowInterviewModal(false); setShowCandidateModal(false); loadData(); } else { toast.error('Erreur lors de la planification'); } }} />}
       </main>
     </>
   );
@@ -1019,7 +1020,7 @@ function InterviewModal({ application, employees, onClose, onSave }: { applicati
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.date || !formData.time) { alert('Veuillez sélectionner une date et une heure'); return; }
+    if (!formData.date || !formData.time) { toast.error('Veuillez sélectionner une date et une heure'); return; }
     setSaving(true);
     const scheduled_at = new Date(`${formData.date}T${formData.time}:00`).toISOString();
     await onSave({ application_id: application.id, interview_type: formData.interview_type, scheduled_at, duration_minutes: parseInt(formData.duration_minutes), location: formData.location || undefined, meeting_link: formData.meeting_link || undefined, interviewer_ids: formData.interviewer_ids.length > 0 ? formData.interviewer_ids : undefined });

@@ -7,6 +7,7 @@
 
 import Header from '@/components/Header';
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { ArrowUpRight, Check, X, Clock, Filter, RefreshCw, AlertTriangle } from 'lucide-react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
@@ -59,7 +60,7 @@ export default function PromotionsPage() {
       await requestPromotion(ecId);
       await loadPromotions();
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     }
   };
 

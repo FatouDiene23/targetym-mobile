@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import {
   Users, Search, Plus, Edit2, Trash2, Eye, EyeOff,
   CheckCircle2, XCircle, Building2, Shield, Mail
@@ -79,7 +80,7 @@ export default function PlatformUsersManagement() {
       setTenants(tenantsData);
     } catch (error) {
       console.error('Erreur chargement données:', error);
-      alert('Erreur lors du chargement des données');
+      toast.error('Erreur lors du chargement des données');
     } finally {
       setLoading(false);
     }
@@ -136,16 +137,16 @@ export default function PlatformUsersManagement() {
         }
         
         await updatePlatformUser(editingUser.id, updateData);
-        alert('Utilisateur mis à jour avec succès');
+        toast.success('Utilisateur mis à jour avec succès');
       } else {
         // Create
         if (!formData.password) {
-          alert('Le mot de passe est obligatoire pour la création');
+          toast.error('Le mot de passe est obligatoire pour la création');
           return;
         }
         
         await createPlatformUser(formData as UserCreateData);
-        alert('Utilisateur créé avec succès');
+        toast.success('Utilisateur créé avec succès');
       }
       
       setShowModal(false);
@@ -153,7 +154,7 @@ export default function PlatformUsersManagement() {
     } catch (error: unknown) {
       console.error('Erreur:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors de l\'opération';
-      alert(errorMessage);
+      toast.error(errorMessage);
     }
   };
   
@@ -164,12 +165,12 @@ export default function PlatformUsersManagement() {
     
     try {
       await deletePlatformUser(user.id);
-      alert('Utilisateur supprimé avec succès');
+      toast.success('Utilisateur supprimé avec succès');
       loadData();
     } catch (error: unknown) {
       console.error('Erreur:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la suppression';
-      alert(errorMessage);
+      toast.error(errorMessage);
     }
   };
   

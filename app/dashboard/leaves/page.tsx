@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { 
   Calendar, Clock, CheckCircle, XCircle, AlertCircle,
   Download, RefreshCw, Users, Settings, BarChart3, CalendarDays,
@@ -632,7 +633,7 @@ function RequestActionModal({
   const handleAction = async (approved: boolean) => {
     if (!request) return;
     if (!approved && !rejectionReason.trim()) {
-      alert('Veuillez indiquer un motif de refus');
+      toast.error('Veuillez indiquer un motif de refus');
       return;
     }
     

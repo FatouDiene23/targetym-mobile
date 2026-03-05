@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import {
   Plus, ChevronDown, ChevronRight, Trash2, Edit, X,
   Building2, Users, User, Download, Link2, BarChart3, GitBranch, Layers, Loader2
@@ -369,7 +370,7 @@ function ObjectiveModal({
       onClose();
     } catch (error) {
       console.error('Erreur:', error);
-      alert(error instanceof Error ? error.message : 'Erreur lors de la sauvegarde');
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de la sauvegarde');
     } finally {
       setSaving(false);
     }
@@ -606,7 +607,7 @@ function KeyResultModal({
       await onSave(objectiveId, formData);
       onClose();
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Erreur');
+      toast.error(error instanceof Error ? error.message : 'Erreur');
     } finally {
       setSaving(false);
     }

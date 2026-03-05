@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import {
   Plus, X, Loader2, AlertCircle, Search, ChevronLeft, ChevronRight,
   XCircle, Archive, RotateCcw, MoreVertical
@@ -377,10 +378,10 @@ export default function CampaignsPage() {
     setActionLoading(null);
     
     if (result.success) {
-      alert(`Campagne annulée. ${result.data?.evaluations_cancelled || 0} évaluation(s) annulée(s).`);
+      toast.success(`Campagne annulée. ${result.data?.evaluations_cancelled || 0} évaluation(s) annulée(s).`);
       loadData();
     } else {
-      alert(result.error || 'Erreur lors de l\'annulation');
+      toast.error(result.error || 'Erreur lors de l\'annulation');
     }
   };
 
@@ -393,10 +394,10 @@ export default function CampaignsPage() {
     setActionLoading(null);
     
     if (result.success) {
-      alert('Campagne archivée avec succès');
+      toast.success('Campagne archivée avec succès');
       loadData();
     } else {
-      alert(result.error || 'Erreur lors de l\'archivage');
+      toast.error(result.error || 'Erreur lors de l\'archivage');
     }
   };
 
@@ -409,10 +410,10 @@ export default function CampaignsPage() {
     setActionLoading(null);
     
     if (result.success) {
-      alert('Campagne restaurée avec succès');
+      toast.success('Campagne restaurée avec succès');
       loadData();
     } else {
-      alert(result.error || 'Erreur lors de la restauration');
+      toast.error(result.error || 'Erreur lors de la restauration');
     }
   };
 

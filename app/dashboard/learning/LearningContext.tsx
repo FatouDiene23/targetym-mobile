@@ -6,6 +6,7 @@
 // ============================================
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import toast from 'react-hot-toast';
 import {
   API_URL, getAuthHeaders, hasPermission,
   Course, LearningPath, Assignment, Certification, CertificationHolder, Skill,
@@ -475,7 +476,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     try {
       const response = await fetch(`${API_URL}/api/learning/assignments/${assignmentId}/start`, { method: 'POST', headers: getAuthHeaders() });
       if (response.ok) { fetchMyAssignments(); fetchTeamAssignments(); }
-      else { const error = await response.json(); alert('Erreur: ' + (error.detail || 'Impossible de commencer')); }
+      else { const error = await response.json(); toast.error('Erreur: ' + (error.detail || 'Impossible de commencer')); }
     } catch (error) { console.error('Error starting assignment:', error); }
   };
 
@@ -498,10 +499,10 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     try {
       if (completionFile) {
         const uploaded = await uploadCertificateFile(assignmentToComplete.id, completionFile);
-        if (!uploaded) { alert('Erreur lors de l\'upload du certificat'); setIsSubmitting(false); return; }
+        if (!uploaded) { toast.error('Erreur lors de l\'upload du certificat'); setIsSubmitting(false); return; }
       }
       if (assignmentToComplete.requires_certificate && !completionFile && !assignmentToComplete.certificate_file) {
-        alert('Un certificat est requis pour cette formation'); setIsSubmitting(false); return;
+        toast.error('Un certificat est requis pour cette formation'); setIsSubmitting(false); return;
       }
       const response = await fetch(`${API_URL}/api/learning/assignments/${assignmentToComplete.id}/complete`, {
         method: 'POST', headers: getAuthHeaders(),
@@ -510,8 +511,8 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         setShowCompleteModal(false); setAssignmentToComplete(null); setCompletionNote(''); setCompletionFile(null);
         fetchMyAssignments(); fetchTeamAssignments(); fetchPendingValidations();
-      } else { const error = await response.json(); alert('Erreur: ' + (error.detail || 'Impossible de soumettre')); }
-    } catch (error) { console.error('Error completing assignment:', error); alert('Erreur de connexion'); }
+      } else { const error = await response.json(); toast.error('Erreur: ' + (error.detail || 'Impossible de soumettre')); }
+    } catch (error) { console.error('Error completing assignment:', error); toast.error('Erreur de connexion'); }
     finally { setIsSubmitting(false); }
   };
 
@@ -547,7 +548,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ employee_id: parseInt(assignData.employee_id), course_id: parseInt(assignData.course_id), deadline: assignData.deadline || null })
       });
       if (response.ok) { setShowAssignModal(false); setAssignData({ employee_id: '', course_id: '', deadline: '' }); fetchPendingValidations(); fetchCourses(); fetchTeamAssignments(); }
-      else { const error = await response.json(); alert('Erreur: ' + (error.detail || 'Erreur')); }
+      else { const error = await response.json(); toast.error('Erreur: ' + (error.detail || 'Erreur')); }
     } catch (error) { console.error('Error assigning course:', error); }
   };
 
@@ -584,7 +585,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
         method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ ...newPlan, employee_id: parseInt(newPlan.employee_id) })
       });
       if (response.ok) { setShowCreatePlan(false); setNewPlan({ employee_id: '', current_role: '', target_role: '', target_date: '', skill_ids: [], course_ids: [] }); fetchDevelopmentPlans(); fetchTeamAssignments(); fetchCourses(); }
-      else { const error = await response.json(); alert('Erreur: ' + (error.detail || 'Erreur')); }
+      else { const error = await response.json(); toast.error('Erreur: ' + (error.detail || 'Erreur')); }
     } catch (error) { console.error('Error creating plan:', error); }
   };
 
@@ -604,7 +605,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ target_role: editPlanData.target_role, target_date: editPlanData.target_date || null, skill_ids: editPlanData.skill_ids, course_ids: editPlanData.course_ids })
       });
       if (response.ok) { setShowEditPlan(false); setSelectedPlan(null); setEditPlanData({ target_role: '', target_date: '', skill_ids: [], course_ids: [] }); fetchDevelopmentPlans(); fetchTeamAssignments(); fetchCourses(); }
-      else { const errorData = await response.json(); alert('Erreur: ' + (errorData.detail || 'Erreur inconnue')); }
+      else { const errorData = await response.json(); toast.error('Erreur: ' + (errorData.detail || 'Erreur inconnue')); }
     } catch (error) { console.error('Error updating plan:', error); }
   };
 
@@ -615,7 +616,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
         method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ reason: cancelReason })
       });
       if (response.ok) { setShowCancelPlan(false); setPlanToCancel(null); setCancelReason(''); fetchDevelopmentPlans(); }
-      else { const errorData = await response.json(); alert('Erreur: ' + (errorData.detail || 'Impossible d\'annuler')); }
+      else { const errorData = await response.json(); toast.error('Erreur: ' + (errorData.detail || 'Impossible d\'annuler')); }
     } catch (error) { console.error('Error cancelling plan:', error); }
   };
 
@@ -624,7 +625,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     try {
       const response = await fetch(`${API_URL}/api/learning/development-plans/${planId}/archive`, { method: 'POST', headers: getAuthHeaders() });
       if (response.ok) { fetchDevelopmentPlans(); }
-      else { const errorData = await response.json(); alert('Erreur: ' + (errorData.detail || 'Impossible d\'archiver')); }
+      else { const errorData = await response.json(); toast.error('Erreur: ' + (errorData.detail || 'Impossible d\'archiver')); }
     } catch (error) { console.error('Error archiving plan:', error); }
   };
 
@@ -675,8 +676,8 @@ export function LearningProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ criteria_scores: evalCriteria, comments: evalComments || null, strengths: evalStrengths || null, improvements: evalImprovements || null })
       });
       if (response.ok) { setShowEvalModal(false); setSelectedEpf(null); fetchEpfPending(); fetchEpfAll(); fetchEpfStats(); }
-      else { const error = await response.json(); alert('Erreur: ' + (error.detail || 'Impossible de soumettre')); }
-    } catch (error) { console.error('Error submitting evaluation:', error); alert('Erreur de connexion'); }
+      else { const error = await response.json(); toast.error('Erreur: ' + (error.detail || 'Impossible de soumettre')); }
+    } catch (error) { console.error('Error submitting evaluation:', error); toast.error('Erreur de connexion'); }
     finally { setIsSubmitting(false); }
   };
 
@@ -688,7 +689,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ evaluator_id: parseInt(selectedEvaluatorId), evaluator_type: 'internal' })
       });
       if (response.ok) { setShowAssignEvaluator(null); setSelectedEvaluatorId(''); fetchEpfPending(); fetchEpfAll(); }
-      else { const error = await response.json(); alert('Erreur: ' + (error.detail || 'Erreur')); }
+      else { const error = await response.json(); toast.error('Erreur: ' + (error.detail || 'Erreur')); }
     } catch (error) { console.error('Error assigning evaluator:', error); }
   };
 
@@ -696,8 +697,8 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     if (!confirm('Synchroniser ce score avec le module Carrière ?')) return;
     try {
       const response = await fetch(`${API_URL}/api/learning/post-eval/${evalId}/sync-career`, { method: 'POST', headers: getAuthHeaders() });
-      if (response.ok) { fetchEpfAll(); alert('Score synchronisé avec le module Carrière'); }
-      else { const error = await response.json(); alert('Erreur: ' + (error.detail || 'Erreur')); }
+      if (response.ok) { fetchEpfAll(); toast.success('Score synchronisé avec le module Carrière'); }
+      else { const error = await response.json(); toast.error('Erreur: ' + (error.detail || 'Erreur')); }
     } catch (error) { console.error('Error syncing career:', error); }
   };
 

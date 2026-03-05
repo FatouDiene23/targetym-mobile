@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { documentsTips } from '@/config/pageTips';
@@ -264,7 +265,7 @@ export default function MyDocumentsPage() {
         fetchDocuments();
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(err.detail || 'Erreur lors de la suppression');
+        toast.error(err.detail || 'Erreur lors de la suppression');
       }
     } catch (e) {
       console.error('Delete error:', e);

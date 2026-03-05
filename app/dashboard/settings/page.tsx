@@ -4,8 +4,7 @@ import Header from '@/components/Header';
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { 
-  User, 
-  Building2, 
+  Building2,
   Bell, 
   Shield, 
   Link2,
@@ -46,15 +45,6 @@ const integrations = [
 ];
 
 // Types
-interface UserData {
-  id: number;
-  email: string;
-  first_name: string;
-  last_name: string;
-  role: string;
-  phone?: string;
-}
-
 interface TenantData {
   id: number;
   name: string;
@@ -83,8 +73,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   
-  // Données utilisateur et tenant (chargées depuis l'API)
-  const [userData, setUserData] = useState<UserData | null>(null);
+  // Données tenant (chargées depuis l'API)
   const [tenantData, setTenantData] = useState<TenantData | null>(null);
   
   // Formulaires éditables
@@ -133,13 +122,6 @@ export default function SettingsPage() {
   async function loadUserAndTenant() {
     setLoading(true);
     try {
-      // Charger le profil utilisateur
-      const meRes = await fetch(`${API_URL}/api/auth/me`, { headers: getAuthHeaders() });
-      if (meRes.ok) {
-        const me = await meRes.json();
-        setUserData(me);
-      }
-
       // Charger les paramètres tenant
       const tenantRes = await fetch(`${API_URL}/api/auth/tenant-settings`, { headers: getAuthHeaders() });
       if (tenantRes.ok) {
@@ -360,18 +342,13 @@ export default function SettingsPage() {
 
   const tabs = [
     { id: 'general', name: 'Général', icon: Building2 },
-    { id: 'certificates', name: 'Certificats', icon: FileText },
+    { id: 'certificates', name: 'Signatures & Cachets', icon: FileText },
     { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'security', name: 'Sécurité', icon: Shield },
     { id: 'integrations', name: 'Intégrations', icon: Link2 },
     { id: 'team', name: 'Équipe', icon: Users },
     { id: 'billing', name: 'Facturation', icon: CreditCard },
   ];
-
-  // Initiales pour l'avatar
-  const initials = userData 
-    ? `${(userData.first_name || '')[0] || ''}${(userData.last_name || '')[0] || ''}`.toUpperCase()
-    : '??';
 
   if (loading) {
     return (

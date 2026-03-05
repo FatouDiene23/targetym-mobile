@@ -33,11 +33,37 @@ export default function HelpCenterPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [dashboardUrl, setDashboardUrl] = useState('/dashboard');
 
-  // Vérifier si l'utilisateur est connecté
+  // Déterminer le bon dashboard URL selon le rôle
+  const getDashboardUrl = () => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (!userStr) return '/dashboard';
+      
+      const userData = JSON.parse(userStr);
+      const role = userData.role?.toLowerCase().replace('_', '') || '';
+      
+      // Admin et DG vont sur platform-admin
+      if (role === 'admin' || role === 'administrator' || role === 'superadmin' || 
+          role === 'dg' || role === 'director' || role === 'directeur') {
+        return '/dashboard/platform-admin';
+      }
+      
+      // Autres rôles (RH, Manager, Employee) vont sur le dashboard principal
+      return '/dashboard';
+    } catch {
+      return '/dashboard';
+    }
+  };
+
+  // Vérifier si l'utilisateur est connecté et déterminer son dashboard
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     setIsLoggedIn(!!token);
+    if (token) {
+      setDashboardUrl(getDashboardUrl());
+    }
   }, []);
 
   // Charger les catégories
@@ -117,7 +143,7 @@ export default function HelpCenterPage() {
               </div>
             </div>
             <Link
-              href={isLoggedIn ? "/dashboard" : "https://targetym-website.vercel.app/login"}
+              href={isLoggedIn ? dashboardUrl : "https://targetym-website.vercel.app/login"}
               className="flex items-center px-6 py-3 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white rounded-lg transition-all shadow-md border border-white/20 font-semibold"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />

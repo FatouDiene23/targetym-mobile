@@ -111,6 +111,11 @@ export default function SettingsPage() {
   // Tour tips
   const { showTips, dismissTips, resetTips } = usePageTour('settings');
 
+  // États pour les préférences de notifications
+  const [notifPrefs, setNotifPrefs] = useState<{ key: string; label: string; description: string; enabled: boolean }[]>([]);
+  const [loadingNotifPrefs, setLoadingNotifPrefs] = useState(false);
+  const [savingNotifPrefs, setSavingNotifPrefs] = useState(false);
+
   // ============================================
   // CHARGEMENT DES DONNÉES
   // ============================================
@@ -193,11 +198,56 @@ export default function SettingsPage() {
     }
   }, []);
 
+  const loadNotifPreferences = useCallback(async () => {
+    setLoadingNotifPrefs(true);
+    try {
+      const res = await fetch(`${API_URL}/api/notifications/preferences`, { headers: getAuthHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        setNotifPrefs(data.categories);
+      }
+    } catch (error) {
+      console.error('Erreur chargement préférences notifications:', error);
+    } finally {
+      setLoadingNotifPrefs(false);
+    }
+  }, []);
+
+  const saveNotifPreferences = async () => {
+    setSavingNotifPrefs(true);
+    try {
+      const preferences: Record<string, boolean> = {};
+      notifPrefs.forEach(p => { preferences[p.key] = p.enabled; });
+      const res = await fetch(`${API_URL}/api/notifications/preferences`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ preferences }),
+      });
+      if (res.ok) {
+        toast.success('Préférences enregistrées');
+      } else {
+        toast.error('Erreur lors de la sauvegarde');
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      toast.error('Erreur de connexion');
+    } finally {
+      setSavingNotifPrefs(false);
+    }
+  };
+
+  const toggleNotifPref = (key: string) => {
+    setNotifPrefs(prev => prev.map(p => p.key === key ? { ...p, enabled: !p.enabled } : p));
+  };
+
   useEffect(() => {
     if (activeTab === 'certificates') {
       loadCertificateSettings();
     }
-  }, [activeTab, loadCertificateSettings]);
+    if (activeTab === 'notifications') {
+      loadNotifPreferences();
+    }
+  }, [activeTab, loadCertificateSettings, loadNotifPreferences]);
 
   const saveCertificateSettings = async () => {
     setSavingCertSettings(true);
@@ -585,28 +635,45 @@ export default function SettingsPage() {
             {/* ============================== */}
             {activeTab === 'notifications' && (
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">Préférences de Notifications</h3>
-                
-                <div className="space-y-6">
-                  {[
-                    { title: 'Nouvelles candidatures', description: 'Recevoir une alerte pour chaque nouvelle candidature' },
-                    { title: 'Évaluations en attente', description: 'Rappel pour les évaluations à compléter' },
-                    { title: 'Objectifs OKR', description: 'Mises à jour sur les objectifs de l\'équipe' },
-                    { title: 'Alertes IA', description: 'Insights et recommandations de l\'IA' },
-                    { title: 'Rapports hebdomadaires', description: 'Résumé hebdomadaire par email' },
-                  ].map((item, index) => (
-                    <div key={index} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-                      <div>
-                        <p className="font-medium text-gray-900">{item.title}</p>
-                        <p className="text-sm text-gray-500">{item.description}</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" defaultChecked={index < 3} className="sr-only peer" />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
-                      </label>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Préférences de Notifications</h3>
+                <p className="text-sm text-gray-500 mb-6">Choisissez les notifications que vous souhaitez recevoir pour chaque module.</p>
+
+                {loadingNotifPrefs ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-1">
+                      {notifPrefs.map((pref) => (
+                        <div key={pref.key} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                          <div>
+                            <p className="font-medium text-gray-900">{pref.label}</p>
+                            <p className="text-sm text-gray-500">{pref.description}</p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" checked={pref.enabled} onChange={() => toggleNotifPref(pref.key)} className="sr-only peer" />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                          </label>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+
+                    <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end">
+                      <button
+                        onClick={saveNotifPreferences}
+                        disabled={savingNotifPrefs}
+                        className="flex items-center px-6 py-2.5 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50"
+                      >
+                        {savingNotifPrefs ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enregistrement...</>
+                        ) : (
+                          <><Save className="w-4 h-4 mr-2" /> Enregistrer</>
+                        )}
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 

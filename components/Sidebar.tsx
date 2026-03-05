@@ -43,6 +43,7 @@ import {
   Shield,
   RotateCcw,
   Lightbulb,
+  UserMinus,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
@@ -107,6 +108,12 @@ const navigation: NavItem[] = [
     icon: Handshake,
     roles: ['rh', 'admin', 'dg'],
     dataTour: 'sidebar-onboarding'
+  },
+  {
+    name: 'Départs',
+    href: '/dashboard/departures',
+    icon: UserMinus,
+    roles: ['rh', 'admin', 'dg'],
   },
   {
     name: 'Talents & Carrière',
@@ -183,6 +190,7 @@ const mySpaceNavigation: NavItem[] = [
   { name: 'Daily Checklist', href: '/dashboard/my-space/daily-checklist', icon: CheckSquare, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Offres Internes', href: '/dashboard/my-space/internal-jobs', icon: Briefcase, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Mes Documents', href: '/dashboard/my-space/documents', icon: FileText, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-documents' },
+  { name: 'Ma Démission', href: '/dashboard/my-space/resignation', icon: UserMinus, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
 ];
 
 // Sous-menu Performance

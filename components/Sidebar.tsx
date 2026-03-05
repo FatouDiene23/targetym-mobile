@@ -110,12 +110,6 @@ const navigation: NavItem[] = [
     dataTour: 'sidebar-onboarding'
   },
   {
-    name: 'Départs',
-    href: '/dashboard/departures',
-    icon: UserMinus,
-    roles: ['rh', 'admin', 'dg'],
-  },
-  {
     name: 'Talents & Carrière',
     href: '/dashboard/talents',
     icon: Sparkles,
@@ -162,6 +156,12 @@ const navigation: NavItem[] = [
     href: '/dashboard/missions', 
     icon: Plane,
     roles: ['employee', 'manager', 'rh', 'admin', 'dg']
+  },
+  {
+    name: 'Départs',
+    href: '/dashboard/departures',
+    icon: UserMinus,
+    roles: ['rh', 'admin', 'dg'],
   },
   {
     name: 'Certificats',

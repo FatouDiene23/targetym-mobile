@@ -1,4 +1,5 @@
 import './globals.css'
+import ToastProvider from '@/components/ToastProvider'
 
 export const metadata = {
   title: 'Targetym AI - Dashboard',
@@ -12,7 +13,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr">
-      <body>{children}</body>
+      <body>
+        {children}
+        <ToastProvider />
+      </body>
     </html>
   )
 }

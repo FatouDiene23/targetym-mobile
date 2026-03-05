@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Eye, EyeOff, Search, FolderOpen, BarChart3 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import ArticleFormModal from '@/components/ArticleFormModal';
 import CategoryFormModal from '@/components/CategoryFormModal';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 interface Category {
   id: number;
@@ -42,6 +44,21 @@ export default function HelpAdminPage() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  
+  // Dialogue de confirmation
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    danger: false
+  });
 
   const getToken = () => localStorage.getItem('access_token');
 
@@ -61,29 +78,36 @@ export default function HelpAdminPage() {
     }
   };
 
-  const deleteCategory = async (id: number) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ? Tous les articles associés seront également supprimés.')) return;
+  const deleteCategory = (id: number) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Supprimer la catégorie',
+      message: 'Êtes-vous sûr de vouloir supprimer cette catégorie ? Tous les articles associés seront également supprimés. Cette action est irréversible.',
+      danger: true,
+      onConfirm: async () => {
+        const loadingToast = toast.loading('Suppression en cours...');
+        try {
+          const res = await fetch(`${API_URL}/api/help/admin/categories/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${getToken()}`
+            }
+          });
 
-    try {
-      const res = await fetch(`${API_URL}/api/help/admin/categories/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${getToken()}`
+          if (res.ok) {
+            loadCategories();
+            loadArticles();
+            toast.success('Catégorie supprimée avec succès', { id: loadingToast });
+          } else {
+            const data = await res.json();
+            toast.error(data.detail || 'Impossible de supprimer la catégorie', { id: loadingToast });
+          }
+        } catch (err) {
+          console.error('Erreur suppression:', err);
+          toast.error('Erreur lors de la suppression', { id: loadingToast });
         }
-      });
-
-      if (res.ok) {
-        loadCategories();
-        loadArticles(); // Recharger les articles car certains ont peut-être été supprimés
-        alert('Catégorie supprimée avec succès');
-      } else {
-        const data = await res.json();
-        alert('Erreur: ' + (data.detail || 'Impossible de supprimer la catégorie'));
       }
-    } catch (err) {
-      console.error('Erreur suppression:', err);
-      alert('Erreur lors de la suppression');
-    }
+    });
   };
 
   const loadArticles = async () => {
@@ -103,7 +127,7 @@ export default function HelpAdminPage() {
       if (!res.ok) {
         if (res.status === 401) {
           console.error('[Help Admin] 401 Unauthorized - Token invalide ou expiré');
-          alert('Accès non autorisé. Veuillez vous reconnecter.');
+          toast.error('Accès non autorisé. Veuillez vous reconnecter.');
           return;
         }
         throw new Error(`HTTP ${res.status}`);
@@ -120,25 +144,34 @@ export default function HelpAdminPage() {
     }
   };
 
-  const deleteArticle = async (id: number) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cet article ?')) return;
+  const deleteArticle = (id: number) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Supprimer l\'article',
+      message: 'Êtes-vous sûr de vouloir supprimer cet article ? Cette action est irréversible.',
+      danger: true,
+      onConfirm: async () => {
+        const loadingToast = toast.loading('Suppression en cours...');
+        try {
+          const res = await fetch(`${API_URL}/api/help/admin/articles/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${getToken()}`
+            }
+          });
 
-    try {
-      const res = await fetch(`${API_URL}/api/help/admin/articles/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${getToken()}`
+          if (res.ok) {
+            loadArticles();
+            toast.success('Article supprimé avec succès', { id: loadingToast });
+          } else {
+            toast.error('Erreur lors de la suppression', { id: loadingToast });
+          }
+        } catch (err) {
+          console.error('Erreur suppression:', err);
+          toast.error('Erreur lors de la suppression', { id: loadingToast });
         }
-      });
-
-      if (res.ok) {
-        loadArticles();
-        alert('Article supprimé avec succès');
       }
-    } catch (err) {
-      console.error('Erreur suppression:', err);
-      alert('Erreur lors de la suppression');
-    }
+    });
   };
 
   const togglePublish = async (article: Article) => {
@@ -499,6 +532,18 @@ export default function HelpAdminPage() {
           onSave={handleSaveCategory}
         />
       )}
+      
+      {/* Dialogue de confirmation */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        danger={confirmDialog.danger}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+      />
     </div>
   );
 }

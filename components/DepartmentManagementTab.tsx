@@ -630,7 +630,8 @@ function EditDepartmentModal({
   const availableParents = departments.filter(d => d.id !== department.id);
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <>
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
           <h3 className="text-lg font-bold text-gray-900">Modifier l&apos;unité</h3>
@@ -783,5 +784,6 @@ function EditDepartmentModal({
         danger={confirmDialog.danger}
       />
     )}
+    </>
   );
 }

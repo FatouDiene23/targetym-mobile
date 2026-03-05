@@ -139,9 +139,6 @@ export default function DevelopmentPage() {
                 </div>
               ))
             )}
-          </div>
-        </div>
-      </div>
 
       {confirmDialog && (
         <ConfirmDialog

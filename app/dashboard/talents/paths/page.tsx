@@ -1035,6 +1035,8 @@ function AddFactorModal({ levelId, onClose, onAdd }: {
     </div>
   );
 }
+
+function AddFactorModalNew({ levelId, onClose, onAdd }: {
   levelId: number;
   onClose: () => void;
   onAdd: (data: any) => Promise<void>;

@@ -140,6 +140,8 @@ export default function DevelopmentPage() {
               ))
             )}
           </div>
+        </div>
+      </div>
 
       {confirmDialog && (
         <ConfirmDialog
@@ -151,5 +153,6 @@ export default function DevelopmentPage() {
           danger={confirmDialog.danger}
         />
       )}
+    </div>
   );
 }

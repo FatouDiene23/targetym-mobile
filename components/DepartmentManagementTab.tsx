@@ -210,13 +210,6 @@ export default function DepartmentManagementTab() {
       },
     });
   };
-      loadData();
-    } catch (err) {
-      setError('Erreur lors de la suppression groupée');
-      console.error(err);
-    }
-    setBulkLoading(false);
-  };
 
   const handleBulkExport = () => {
     const selected = departments.filter(d => selectedIds.has(d.id));

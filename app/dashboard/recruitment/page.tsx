@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import ConfirmDialog from '@/components/ConfirmDialog';
 
 // ============================================
 // TYPES

@@ -283,11 +283,13 @@ export default function MyDocumentsPage() {
             toast.error(err.detail || 'Erreur lors de la suppression');
           }
         } catch (e) {
-      console.error('Delete error:', e);
-    } finally {
-      setDeleting(null);
-    }
-  }
+          console.error('Delete error:', e);
+        } finally {
+          setDeleting(null);
+        }
+      },
+    });
+  };
 
   // Filtrage
   const filtered = documents.filter(doc => {

@@ -108,8 +108,10 @@ export default function AllEmployeesCareerPage() {
         } catch (e: any) {
           toast.error(e.message);
         } finally {
-      setPromoting(null);
-    }
+          setPromoting(null);
+        }
+      },
+    });
   };
 
   const eligibleCount = employeeCareers.filter(e => e.eligibility_status === 'eligible').length;

@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import AppTour from '@/components/AppTour';
 import AIChatBox from '@/components/AIChatBox';
-import HelpMenu from '@/components/HelpMenu';
 import { getTourStepsByRole } from '@/components/AppTourSteps';
 import { useAppTour } from '@/hooks/useAppTour';
 import { HelpMenuProvider, useHelpMenu } from '@/hooks/useHelpMenu';
@@ -153,9 +152,6 @@ function DashboardContent({
         onComplete={handleCompleteTour}
         onSkip={handleSkipTour}
       />
-
-      {/* Menu d'aide unifié */}
-      <HelpMenu />
 
       {/* Chatbot AI */}
       <AIChatBox />

@@ -271,9 +271,18 @@ export default function PeopleAnalyticsPage() {
       if (deptsRes.status === "fulfilled") setDepartments(deptsRes.value);
       if (salaireOvRes.status === "fulfilled") setSalaireOverview(salaireOvRes.value);
       if (salaireEvolRes.status === "fulfilled") setSalaireEvolution(salaireEvolRes.value);
-      if (salaireDeptRes.status === "fulfilled") setSalaireByDept(salaireDeptRes.value);
-      if (salaireDistRes.status === "fulfilled") setSalaireDistribution(salaireDistRes.value);
-      if (salaireContractRes.status === "fulfilled") setSalaireByContract(salaireContractRes.value);
+      if (salaireDeptRes.status === "fulfilled") {
+        const deptColors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
+        setSalaireByDept(salaireDeptRes.value.map((d: any, i: number) => ({ ...d, name: d.department, color: deptColors[i % deptColors.length] })));
+      }
+      if (salaireDistRes.status === "fulfilled") {
+        const distColors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+        setSalaireDistribution(salaireDistRes.value.map((d: any, i: number) => ({ ...d, color: distColors[i % distColors.length] })));
+      }
+      if (salaireContractRes.status === "fulfilled") {
+        const contractColors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+        setSalaireByContract(salaireContractRes.value.map((d: any, i: number) => ({ ...d, name: d.contract_type, color: contractColors[i % contractColors.length] })));
+      }
       if (perfOvRes.status === "fulfilled") setPerfOverview(perfOvRes.value);
       if (perfManagerRes.status === "fulfilled") setPerfByManager(perfManagerRes.value);
       if (formOvRes.status === "fulfilled") setFormationOverview(formOvRes.value);
@@ -1456,10 +1465,17 @@ export default function PeopleAnalyticsPage() {
               <XAxis dataKey="tranche" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip
-                formatter={(v: number, name: string) => [
-                  name === "nb_employes" ? `${v} employés` : `${formatXOF(v)} XOF`,
-                  name === "nb_employes" ? "Effectif" : "Salaire moyen",
-                ]}
+                content={({ active, payload, label }: any) => {
+                  if (!active || !payload?.length) return null;
+                  const data = payload[0]?.payload;
+                  return (
+                    <div className="bg-white border rounded-lg shadow-lg p-3 text-sm">
+                      <p className="font-medium text-gray-900 mb-1">{label}</p>
+                      <p className="text-gray-600">Effectif : {data?.nb_employes} employés</p>
+                      <p className="text-gray-600">Salaire moyen : {formatXOF(data?.salaire_moyen)} XOF</p>
+                    </div>
+                  );
+                }}
               />
               <Bar dataKey="nb_employes" name="Effectif" radius={[4, 4, 0, 0]}>
                 {salaireDistribution.map((entry, i) => (

@@ -349,6 +349,10 @@ export default function CampaignsPage() {
   const [showModal, setShowModal] = useState(false);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [openMenu, setOpenMenu] = useState<number | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean; title: string; message: string;
+    onConfirm: () => void; danger?: boolean;
+  } | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);

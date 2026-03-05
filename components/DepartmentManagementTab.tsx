@@ -555,6 +555,17 @@ export default function DepartmentManagementTab() {
           onSave={handleSaveEdit}
         />
       )}
+
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
+        />
+      )}
     </div>
   );
 }
@@ -774,16 +785,6 @@ function EditDepartmentModal({
       </div>
     </div>
 
-    {confirmDialog && (
-      <ConfirmDialog
-        isOpen={confirmDialog.isOpen}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        onConfirm={confirmDialog.onConfirm}
-        onClose={() => setConfirmDialog(null)}
-        danger={confirmDialog.danger}
-      />
-    )}
     </>
   );
 }

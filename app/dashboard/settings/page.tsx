@@ -88,20 +88,13 @@ export default function SettingsPage() {
   const [tenantData, setTenantData] = useState<TenantData | null>(null);
   
   // Formulaires éditables
-  const [profileForm, setProfileForm] = useState({
-    first_name: '',
-    last_name: '',
-    phone: '',
-  });
   const [tenantForm, setTenantForm] = useState({
     name: '',
     email: '',
     phone: '',
   });
   
-  const [savingProfile, setSavingProfile] = useState(false);
   const [savingTenant, setSavingTenant] = useState(false);
-  const [savedProfile, setSavedProfile] = useState(false);
   const [savedTenant, setSavedTenant] = useState(false);
 
   // États pour les paramètres de certificat
@@ -145,13 +138,8 @@ export default function SettingsPage() {
       if (meRes.ok) {
         const me = await meRes.json();
         setUserData(me);
-        setProfileForm({
-          first_name: me.first_name || '',
-          last_name: me.last_name || '',
-          phone: me.phone || '',
-        });
       }
-      
+
       // Charger les paramètres tenant
       const tenantRes = await fetch(`${API_URL}/api/auth/tenant-settings`, { headers: getAuthHeaders() });
       if (tenantRes.ok) {
@@ -169,38 +157,6 @@ export default function SettingsPage() {
       setLoading(false);
     }
   }
-
-  // ============================================
-  // SAUVEGARDE PROFIL
-  // ============================================
-
-  const saveProfile = async () => {
-    setSavingProfile(true);
-    try {
-      const res = await fetch(`${API_URL}/api/auth/profile`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(profileForm),
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        if (data.user) {
-          setUserData(prev => prev ? { ...prev, ...data.user } : prev);
-        }
-        setSavedProfile(true);
-        setTimeout(() => setSavedProfile(false), 2000);
-      } else {
-        const err = await res.json();
-        toast.error(err.detail || 'Erreur lors de la sauvegarde');
-      }
-    } catch (error) {
-      console.error('Erreur:', error);
-      toast.error('Erreur de connexion');
-    } finally {
-      setSavingProfile(false);
-    }
-  };
 
   // ============================================
   // SAUVEGARDE PARAMÈTRES ENTREPRISE
@@ -404,7 +360,6 @@ export default function SettingsPage() {
 
   const tabs = [
     { id: 'general', name: 'Général', icon: Building2 },
-    { id: 'profile', name: 'Mon Profil', icon: User },
     { id: 'certificates', name: 'Certificats', icon: FileText },
     { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'security', name: 'Sécurité', icon: Shield },
@@ -542,85 +497,6 @@ export default function SettingsPage() {
                     {savingTenant ? (
                       <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enregistrement...</>
                     ) : savedTenant ? (
-                      <><Check className="w-4 h-4 mr-2" /> Enregistré !</>
-                    ) : (
-                      <><Save className="w-4 h-4 mr-2" /> Enregistrer</>
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* ============================== */}
-            {/* ONGLET: MON PROFIL             */}
-            {/* ============================== */}
-            {activeTab === 'profile' && (
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">Mon Profil</h3>
-                
-                <div className="flex items-center mb-8">
-                  <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 text-2xl font-bold">
-                    {initials}
-                  </div>
-                  <div className="ml-6">
-                    <p className="text-lg font-semibold text-gray-900">{userData?.first_name} {userData?.last_name}</p>
-                    <p className="text-sm text-gray-500">{userData?.email}</p>
-                    <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-primary-100 text-primary-700 rounded-full capitalize">
-                      {userData?.role}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Prénom</label>
-                    <input
-                      type="text"
-                      value={profileForm.first_name}
-                      onChange={(e) => setProfileForm(prev => ({ ...prev, first_name: e.target.value }))}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Nom</label>
-                    <input
-                      type="text"
-                      value={profileForm.last_name}
-                      onChange={(e) => setProfileForm(prev => ({ ...prev, last_name: e.target.value }))}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                    <input
-                      type="email"
-                      value={userData?.email || ''}
-                      disabled
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
-                    />
-                    <p className="text-xs text-gray-400 mt-1">L&apos;email ne peut pas être modifié</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Téléphone</label>
-                    <input
-                      type="tel"
-                      value={profileForm.phone}
-                      onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                      placeholder="+221 77 xxx xx xx"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end">
-                  <button 
-                    onClick={saveProfile}
-                    disabled={savingProfile}
-                    className="flex items-center px-6 py-2.5 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50"
-                  >
-                    {savingProfile ? (
-                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enregistrement...</>
-                    ) : savedProfile ? (
                       <><Check className="w-4 h-4 mr-2" /> Enregistré !</>
                     ) : (
                       <><Save className="w-4 h-4 mr-2" /> Enregistrer</>

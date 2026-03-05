@@ -165,6 +165,10 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Sélection multiple
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
+
   // ============================================
   // FETCH DATA
   // ============================================
@@ -379,6 +383,67 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
   }
 
   const hasFilters = searchTerm || typeFilter !== 'all' || employeeFilter || expiredFilter;
+
+  // Sélection multiple — helpers
+  const allDocsSelected = documents.length > 0 && documents.every(d => selectedIds.has(d.id));
+  const someDocsSelected = selectedIds.size > 0;
+
+  const toggleSelectAllDocs = () => {
+    if (allDocsSelected) setSelectedIds(new Set());
+    else setSelectedIds(new Set(documents.map(d => d.id)));
+  };
+
+  const toggleSelectDoc = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkDownload = async () => {
+    if (!someDocsSelected) return;
+    setBulkLoading(true);
+    try {
+      for (const id of Array.from(selectedIds)) {
+        const doc = documents.find(d => d.id === id);
+        if (doc) await handleDownload(doc);
+      }
+    } catch (e) { console.error(e); }
+    setBulkLoading(false);
+  };
+
+  const handleBulkDeleteDocs = async () => {
+    if (!someDocsSelected) return;
+    if (!confirm(`Supprimer ${selectedIds.size} document(s) ? Cette action est irréversible.`)) return;
+    setBulkLoading(true);
+    try {
+      for (const id of Array.from(selectedIds)) {
+        await fetch(`${API_URL}/api/documents/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+      }
+      setSelectedIds(new Set());
+      fetchDocuments(page);
+      fetchStats();
+    } catch (e) { console.error(e); }
+    setBulkLoading(false);
+  };
+
+  const handleBulkExportDocs = () => {
+    const selected = documents.filter(d => selectedIds.has(d.id));
+    const headers = ['Titre', 'Fichier', 'Employé', 'Type', 'Date', 'Expiration', 'Confidentiel', 'Visible'];
+    const rows = selected.map(d => [
+      d.title, d.file_name, d.employee_name, getDocInfo(d.document_type).label,
+      formatDate(d.created_at), formatDate(d.expiry_date),
+      d.is_confidential ? 'Oui' : 'Non', d.visible_to_employee ? 'Oui' : 'Non'
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(c => `"${(c || '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `documents_selection_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
 
   const filteredEmployeesForDropdown = employees.filter(e => {
     if (!employeeSearch) return true;
@@ -766,9 +831,34 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
               </div>
             ) : (
               <>
+                {/* Barre d'actions groupées */}
+                {someDocsSelected && (
+                  <div className="mx-4 mt-3 mb-1 flex items-center gap-3 bg-primary-50 border border-primary-200 rounded-xl px-4 py-3">
+                    <span className="text-sm font-medium text-primary-700">{selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}</span>
+                    <div className="h-5 w-px bg-primary-200" />
+                    <button onClick={handleBulkExportDocs} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                      <Download className="w-3.5 h-3.5" />Exporter CSV
+                    </button>
+                    <button onClick={handleBulkDownload} disabled={bulkLoading} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors">
+                      <Download className="w-3.5 h-3.5" />Télécharger
+                    </button>
+                    <button onClick={handleBulkDeleteDocs} disabled={bulkLoading} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
+                      <Trash2 className="w-3.5 h-3.5" />Supprimer
+                    </button>
+                    <div className="flex-1" />
+                    <button onClick={() => setSelectedIds(new Set())} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors">
+                      <X className="w-4 h-4" />
+                    </button>
+                    {bulkLoading && <Loader2 className="w-4 h-4 animate-spin text-primary-500" />}
+                  </div>
+                )}
+
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-100">
                     <tr>
+                      <th className="w-10 px-3 py-3">
+                        <input type="checkbox" checked={allDocsSelected} onChange={toggleSelectAllDocs} className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer" />
+                      </th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Document</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Employé</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Type</th>
@@ -785,7 +875,10 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
                       const expiresSoon = doc.expiry_date && !isExpired && daysUntil(doc.expiry_date) <= 30;
 
                       return (
-                        <tr key={doc.id} className="hover:bg-gray-50 transition-colors">
+                        <tr key={doc.id} className={`hover:bg-gray-50 transition-colors ${selectedIds.has(doc.id) ? 'bg-primary-50/50' : ''}`}>
+                          <td className="w-10 px-3 py-3">
+                            <input type="checkbox" checked={selectedIds.has(doc.id)} onChange={() => toggleSelectDoc(doc.id)} className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer" />
+                          </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
                               <span className="text-lg flex-shrink-0">{info.icon}</span>

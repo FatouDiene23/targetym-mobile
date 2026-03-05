@@ -654,6 +654,60 @@ export default function EmployeesPage() {
     finally { setSendingInvitation(null); }
   };
 
+  // Sélection multiple — Invitations
+  const [selectedInvIds, setSelectedInvIds] = useState<Set<number>>(new Set());
+  const [bulkInvLoading, setBulkInvLoading] = useState(false);
+
+  const allInvSelected = invitations.length > 0 && invitations.every(i => selectedInvIds.has(i.id));
+  const someInvSelected = selectedInvIds.size > 0;
+
+  const toggleSelectAllInv = () => {
+    if (allInvSelected) setSelectedInvIds(new Set());
+    else setSelectedInvIds(new Set(invitations.map(i => i.id)));
+  };
+
+  const toggleSelectInv = (id: number) => {
+    setSelectedInvIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkInvite = async () => {
+    const toInvite = invitations.filter(i => selectedInvIds.has(i.id) && i.invitation_status === 'not_invited');
+    const toResend = invitations.filter(i => selectedInvIds.has(i.id) && i.invitation_status === 'pending');
+    const count = toInvite.length + toResend.length;
+    if (count === 0) { alert('Aucun employé à inviter/relancer dans la sélection.'); return; }
+    if (!confirm(`Envoyer ${toInvite.length} invitation(s) et ${toResend.length} relance(s) ?`)) return;
+    setBulkInvLoading(true);
+    try {
+      for (const inv of toInvite) { await sendInvitation(inv.id); }
+      for (const inv of toResend) { await resendInvitation(inv.id); }
+      setSelectedInvIds(new Set());
+      await fetchInvitations();
+    } catch (err) { console.error('Bulk invite failed', err); }
+    setBulkInvLoading(false);
+  };
+
+  const handleBulkExportInv = () => {
+    const selected = invitations.filter(i => selectedInvIds.has(i.id));
+    const headers = ['Prénom', 'Nom', 'Email', 'Poste', 'Département', 'Statut', 'Invité le', 'Dernière connexion'];
+    const statusLabels: Record<string, string> = { not_invited: 'Non invité', pending: 'En attente', accepted: 'Acceptée' };
+    const rows = selected.map(i => [
+      i.first_name, i.last_name, i.email, i.job_title || '', i.department_name || '',
+      statusLabels[i.invitation_status] || i.invitation_status,
+      i.invitation_sent_at ? formatDateTime(i.invitation_sent_at) : '', i.last_login ? formatDateTime(i.last_login) : ''
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(c => `"${(c || '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `invitations_selection_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
   const handleExport = () => exportEmployeesToCSV(filteredEmployees);
   const handleSuccess = () => { loadAllData(); setSelectedEmployee(null); };
   const hasActiveFilter = selectedDepartment !== 'Tous' || selectedLocation !== 'Tous' || searchTerm !== '' || cardFilter !== null;
@@ -970,21 +1024,50 @@ export default function EmployeesPage() {
                   <button onClick={fetchInvitations} className="flex items-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"><RefreshCw className={`w-4 h-4 mr-2 ${isLoadingInvitations ? 'animate-spin' : ''}`} />Actualiser</button>
                 </div>
               </div>
+              {/* Barre d'actions groupées — Invitations */}
+              {someInvSelected && (
+                <div className="flex items-center gap-3 bg-primary-50 border border-primary-200 rounded-xl px-4 py-3">
+                  <span className="text-sm font-medium text-primary-700">{selectedInvIds.size} sélectionné{selectedInvIds.size > 1 ? 's' : ''}</span>
+                  <div className="h-5 w-px bg-primary-200" />
+                  <button onClick={handleBulkInvite} disabled={bulkInvLoading} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 disabled:opacity-50 transition-colors">
+                    <Send className="w-3.5 h-3.5" />Inviter / Relancer
+                  </button>
+                  <button onClick={handleBulkExportInv} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <Download className="w-3.5 h-3.5" />Exporter
+                  </button>
+                  <div className="flex-1" />
+                  <button onClick={() => setSelectedInvIds(new Set())} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                  {bulkInvLoading && <Loader2 className="w-4 h-4 animate-spin text-primary-500" />}
+                </div>
+              )}
+
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100"><h3 className="font-semibold text-gray-900">Invitations ({invitations.length})</h3></div>
+                <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900">Invitations ({invitations.length})</h3>
+                  {invitations.length > 0 && (
+                    <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
+                      <input type="checkbox" checked={allInvSelected} onChange={toggleSelectAllInv} className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer" />
+                      Tout sélectionner
+                    </label>
+                  )}
+                </div>
                 <div className="divide-y divide-gray-100">
                   {isLoadingInvitations ? (<div className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>) : invitations.length === 0 ? (<div className="p-8 text-center text-gray-500"><Send className="w-12 h-12 mx-auto mb-4 text-gray-300" /><p>Aucune invitation</p></div>) : (
                     invitations.map((inv) => (
-                      <div key={inv.id} className="px-5 py-4 hover:bg-gray-50 transition-colors">
+                      <div key={inv.id} className={`px-5 py-4 hover:bg-gray-50 transition-colors ${selectedInvIds.has(inv.id) ? 'bg-primary-50/50' : ''}`}>
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center"><div className={`w-10 h-10 rounded-full flex items-center justify-center font-medium ${inv.invitation_status === 'accepted' ? 'bg-green-100 text-green-700' : inv.invitation_status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>{getInitials(inv.first_name, inv.last_name)}</div><div className="ml-3"><p className="font-medium text-gray-900">{inv.first_name} {inv.last_name}</p><p className="text-sm text-gray-500">{inv.email}</p></div></div>
+                          <div className="flex items-center">
+                            <input type="checkbox" checked={selectedInvIds.has(inv.id)} onChange={() => toggleSelectInv(inv.id)} className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer mr-3 flex-shrink-0" />
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-medium ${inv.invitation_status === 'accepted' ? 'bg-green-100 text-green-700' : inv.invitation_status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>{getInitials(inv.first_name, inv.last_name)}</div><div className="ml-3"><p className="font-medium text-gray-900">{inv.first_name} {inv.last_name}</p><p className="text-sm text-gray-500">{inv.email}</p></div></div>
                           <div className="flex items-center gap-3">
                             {getInvitationStatusBadge(inv.invitation_status)}
                             {inv.invitation_status === 'not_invited' && (<button onClick={() => handleSendInvitation(inv)} disabled={sendingInvitation === inv.id} className="flex items-center px-3 py-1.5 bg-primary-500 text-white text-xs font-medium rounded-lg hover:bg-primary-600 disabled:opacity-50">{sendingInvitation === inv.id ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}Inviter</button>)}
                             {inv.invitation_status === 'pending' && (<button onClick={() => handleResendInvitation(inv)} disabled={sendingInvitation === inv.id} className="flex items-center px-3 py-1.5 bg-yellow-500 text-white text-xs font-medium rounded-lg hover:bg-yellow-600 disabled:opacity-50">{sendingInvitation === inv.id ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}Relancer</button>)}
                           </div>
                         </div>
-                        <div className="mt-2 ml-[52px] flex items-center gap-4 text-xs text-gray-500">{inv.job_title && <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" />{inv.job_title}</span>}{inv.department_name && <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{inv.department_name}</span>}{inv.invitation_sent_at && <span className="flex items-center gap-1"><Mail className="w-3 h-3" />Invité le {formatDateTime(inv.invitation_sent_at)}</span>}{inv.last_login && <span className="flex items-center gap-1 text-green-600"><CheckCircle className="w-3 h-3" />Connecté le {formatDateTime(inv.last_login)}</span>}</div>
+                        <div className="mt-2 ml-[66px] flex items-center gap-4 text-xs text-gray-500">{inv.job_title && <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" />{inv.job_title}</span>}{inv.department_name && <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{inv.department_name}</span>}{inv.invitation_sent_at && <span className="flex items-center gap-1"><Mail className="w-3 h-3" />Invité le {formatDateTime(inv.invitation_sent_at)}</span>}{inv.last_login && <span className="flex items-center gap-1 text-green-600"><CheckCircle className="w-3 h-3" />Connecté le {formatDateTime(inv.last_login)}</span>}</div>
                       </div>
                     ))
                   )}

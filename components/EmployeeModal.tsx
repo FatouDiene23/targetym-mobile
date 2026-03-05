@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { getEmployeeAccessStatus, activateEmployeeAccess, deactivateEmployeeAccess, type AccessStatus } from '@/lib/api';
 import EmployeeDocuments from '@/components/EmployeeDocuments';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app';
 
@@ -342,6 +343,11 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
   const [isLoadingSalaryHistory, setIsLoadingSalaryHistory] = useState(false);
   const [showAllSalaryHistory, setShowAllSalaryHistory] = useState(false);
 
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean; title: string; message: string;
+    onConfirm: () => void; danger?: boolean;
+  } | null>(null);
+
   // ---- Derived data ----
   const displayName = employee.name || `${employee.first_name || ''} ${employee.last_name || ''}`.trim();
   const displayPosition = employee.position || employee.job_title || 'Poste non défini';
@@ -494,11 +500,19 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
   }
 
   async function handleDeactivateAccess() {
-    if (!confirm("Êtes-vous sûr de vouloir désactiver l'accès de cet employé ?")) return;
-    setIsDeactivating(true); setError('');
-    try { await deactivateEmployeeAccess(employee.id); setAccessStatus(prev => prev ? { ...prev, is_active: false } : null); }
-    catch (err) { setError(err instanceof Error ? err.message : "Erreur lors de la désactivation"); }
-    finally { setIsDeactivating(false); }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Désactiver l\'accès',
+      message: 'Êtes-vous sûr de vouloir désactiver l\'accès de cet employé ?',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setIsDeactivating(true); setError('');
+        try { await deactivateEmployeeAccess(employee.id); setAccessStatus(prev => prev ? { ...prev, is_active: false } : null); }
+        catch (err) { setError(err instanceof Error ? err.message : "Erreur lors de la désactivation"); }
+        finally { setIsDeactivating(false); }
+      },
+    });
   }
 
   const handleAddSanction = async () => {
@@ -520,9 +534,17 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
   };
 
   const handleDeleteSanction = async (sanctionId: number) => {
-    if (!confirm('Supprimer cette sanction ?')) return;
-    try { await apiFetch(`/api/employees/${employee.id}/sanctions/${sanctionId}`, { method: 'DELETE' }); } catch {}
-    setSanctions(prev => prev.filter(s => s.id !== sanctionId));
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Supprimer la sanction',
+      message: 'Voulez-vous vraiment supprimer cette sanction ?',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try { await apiFetch(`/api/employees/${employee.id}/sanctions/${sanctionId}`, { method: 'DELETE' }); } catch {}
+        setSanctions(prev => prev.filter(s => s.id !== sanctionId));
+      },
+    });
   };
 
   function handleExportPDF() {
@@ -1209,6 +1231,17 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
         </div>
       </div>
     </div>
+
+    {confirmDialog && (
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onClose={() => setConfirmDialog(null)}
+        danger={confirmDialog.danger}
+      />
+    )}
   );
 }
 

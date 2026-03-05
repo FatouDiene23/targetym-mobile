@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useTalents } from '../TalentsContext';
 import { getInitials, ELIGIBILITY_LABELS, formatDate } from '../shared';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 export default function AllEmployeesCareerPage() {
   const {
@@ -34,6 +35,13 @@ export default function AllEmployeesCareerPage() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [syncing, setSyncing] = useState<number | null>(null);
   const [promoting, setPromoting] = useState<number | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  } | null>(null);
 
   const { showTips, dismissTips, resetTips } = usePageTour('talentsEmployees');
 
@@ -81,18 +89,25 @@ export default function AllEmployeesCareerPage() {
   };
 
   const handlePromotion = async (ecId: number) => {
-    if (!confirm('Envoyer une demande de promotion pour cet employé ?')) return;
-    setPromoting(ecId);
-    try {
-      await requestPromotion(ecId);
-      if (selected) {
-        const res = await loadEmployeeCareerDetail(selected.employee_id);
-        setDetail(res);
-        await loadEmployeeCareers();
-      }
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Demande de promotion',
+      message: 'Envoyer une demande de promotion pour cet employé ?',
+      danger: false,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setPromoting(ecId);
+        try {
+          await requestPromotion(ecId);
+          if (selected) {
+            const res = await loadEmployeeCareerDetail(selected.employee_id);
+            setDetail(res);
+            await loadEmployeeCareers();
+          }
+          toast.success('Demande envoyée');
+        } catch (e: any) {
+          toast.error(e.message);
+        } finally {
       setPromoting(null);
     }
   };
@@ -379,6 +394,17 @@ export default function AllEmployeesCareerPage() {
         </div>
 
       </main>
+      
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
+        />
+      )}
     </>
   );
 }

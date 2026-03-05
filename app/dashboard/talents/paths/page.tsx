@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useTalents } from '../TalentsContext';
 import { CareerPath, CareerLevel, isRH, getInitials, apiFetch, ELIGIBILITY_LABELS } from '../shared';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 export default function PathsPage() {
   const {
@@ -37,6 +38,13 @@ export default function PathsPage() {
   const [addAttForLevel, setAddAttForLevel] = useState<number | null>(null);
   const [addFactorForLevel, setAddFactorForLevel] = useState<number | null>(null);
   const canEdit = isRH();
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  } | null>(null);
 
   const { showTips, dismissTips, resetTips } = usePageTour('paths');
 
@@ -124,7 +132,15 @@ export default function PathsPage() {
                           className="p-2 text-gray-400 hover:text-primary-500" title="Dupliquer">
                           <Copy className="w-4 h-4" />
                         </button>
-                        <button onClick={() => { if (confirm('Supprimer ce parcours ?')) deletePath(selectedPath.id); }}
+                        <button onClick={() => {
+                          setConfirmDialog({
+                            isOpen: true,
+                            title: 'Supprimer le parcours',
+                            message: 'Supprimer ce parcours ?',
+                            danger: true,
+                            onConfirm: () => { setConfirmDialog(null); deletePath(selectedPath.id); },
+                          });
+                        }}
                           className="p-2 text-gray-400 hover:text-red-500" title="Supprimer">
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -330,7 +346,15 @@ export default function PathsPage() {
                           {/* Actions */}
                           {canEdit && (
                             <div className="flex gap-2 pt-2 border-t border-gray-200">
-                              <button onClick={() => { if (confirm('Supprimer ce niveau ?')) deleteLevel(level.id); }}
+                              <button onClick={() => {
+                                setConfirmDialog({
+                                  isOpen: true,
+                                  title: 'Supprimer le niveau',
+                                  message: 'Supprimer ce niveau ?',
+                                  danger: true,
+                                  onConfirm: () => { setConfirmDialog(null); deleteLevel(level.id); },
+                                });
+                              }}
                                 className="text-xs text-red-500 hover:text-red-700">Supprimer le niveau</button>
                             </div>
                           )}
@@ -412,10 +436,17 @@ export default function PathsPage() {
                                 {canEdit && (
                                   <button
                                     onClick={async () => {
-                                      if (confirm(`Retirer ${ec.first_name} ${ec.last_name} de ce parcours ?`)) {
-                                        await unassignCareer(ec.employee_id, selectedPath.id);
-                                        loadEmployeeCareers(selectedPath.id);
-                                      }
+                                      setConfirmDialog({
+                                        isOpen: true,
+                                        title: 'Retirer du parcours',
+                                        message: `Retirer ${ec.first_name} ${ec.last_name} de ce parcours ?`,
+                                        danger: true,
+                                        onConfirm: async () => {
+                                          setConfirmDialog(null);
+                                          await unassignCareer(ec.employee_id, selectedPath.id);
+                                          loadEmployeeCareers(selectedPath.id);
+                                        },
+                                      });
                                     }}
                                     className="p-1.5 text-gray-400 hover:text-red-500 rounded"
                                     title="Retirer du parcours"
@@ -512,6 +543,18 @@ export default function PathsPage() {
               await loadEmployeeCareers(selectedPath.id);
               setShowAssign(false);
             }}
+          />
+        )}
+        
+        {/* Confirm Dialog */}
+        {confirmDialog && (
+          <ConfirmDialog
+            isOpen={confirmDialog.isOpen}
+            title={confirmDialog.title}
+            message={confirmDialog.message}
+            onConfirm={confirmDialog.onConfirm}
+            onClose={() => setConfirmDialog(null)}
+            danger={confirmDialog.danger}
           />
         )}
       </main>
@@ -942,6 +985,56 @@ function LinkAttitudesModal({ levelId, currentAttitudes, availableAttitudes, onC
 // ============================================
 
 function AddFactorModal({ levelId, onClose, onAdd }: {
+  levelId: number;
+  onClose: () => void;
+  onAdd: (data: { name: string; is_blocking: boolean }) => Promise<void>;
+}) {
+  const [name, setName] = useState('');
+  const [isBlocking, setIsBlocking] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  async function handleSubmit() {
+    setSaving(true);
+    await onAdd({ name, is_blocking: isBlocking });
+    setSaving(false);
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
+      <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Ajouter un Facteur d'Évolution</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nom du facteur d'évolution</label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+              placeholder="ex: Certification obtenue"
+            />
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={isBlocking} onChange={e => setIsBlocking(e.target.checked)}
+              className="rounded border-gray-300 text-red-500" />
+            <span className="text-sm text-gray-700">Facteur bloquant</span>
+            <span className="text-xs text-gray-400">(la promotion est impossible sans ce critère)</span>
+          </label>
+        </div>
+        <div className="flex gap-3 mt-6">
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">Annuler</button>
+          <button onClick={handleSubmit} disabled={saving || !name.trim()}
+            className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
+            {saving ? 'Ajout...' : 'Ajouter'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
   levelId: number;
   onClose: () => void;
   onAdd: (data: any) => Promise<void>;

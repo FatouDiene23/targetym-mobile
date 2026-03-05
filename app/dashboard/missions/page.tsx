@@ -13,6 +13,7 @@ import {
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { missionsTips } from '@/config/pageTips';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 // ============================================
 // TYPES
@@ -246,6 +247,13 @@ export default function MissionsPage() {
 
   // Tour tips
   const { showTips, dismissTips, resetTips } = usePageTour('missions');
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  } | null>(null);
 
   useEffect(() => {
     const userInfo = getUserFromStorage();
@@ -394,13 +402,22 @@ export default function MissionsPage() {
   };
 
   const handleDeleteMission = async (missionId: number) => {
-    if (!confirm('Supprimer cette mission ?')) return;
-    try {
-      await apiFetch(`/api/missions/${missionId}`, { method: 'DELETE' });
-      fetchAll();
-    } catch (err: any) {
-      toast.error('Erreur: ' + err.message);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Supprimer la mission',
+      message: 'Êtes-vous sûr de vouloir supprimer cette mission ?',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await apiFetch(`/api/missions/${missionId}`, { method: 'DELETE' });
+          fetchAll();
+          toast.success('Mission supprimée');
+        } catch (err: any) {
+          toast.error('Erreur: ' + err.message);
+        }
+      },
+    });
   };
 
   // ============================================
@@ -1102,6 +1119,17 @@ export default function MissionsPage() {
             setMissionToValidate(null);
             fetchAll();
           }}
+        />
+      )}
+      
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
         />
       )}
     </div>

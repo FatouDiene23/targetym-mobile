@@ -5,6 +5,7 @@ import {
   FileText, Upload, Download, Trash2, Loader2, Plus,
   AlertTriangle, Clock, X, Eye, File, Image, FileSpreadsheet, Shield
 } from 'lucide-react';
+import ConfirmDialog from './ConfirmDialog';
 
 // ============================================
 // CONFIG
@@ -94,6 +95,11 @@ export default function EmployeeDocuments({ employeeId, employeeName, readOnly =
   const [uploadVisible, setUploadVisible] = useState(true);
   const [uploadConfidential, setUploadConfidential] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean; title: string; message: string;
+    onConfirm: () => void; danger?: boolean;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -196,19 +202,27 @@ export default function EmployeeDocuments({ employeeId, employeeName, readOnly =
   }
 
   async function handleDelete(docId: number) {
-    if (!confirm('Supprimer ce document ?')) return;
-    setDeleting(docId);
-    try {
-      await fetch(`${API_URL}/api/documents/${docId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
-      });
-      setDocuments(prev => prev.filter(d => d.id !== docId));
-    } catch (e) {
-      console.error('Delete error:', e);
-    } finally {
-      setDeleting(null);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Supprimer le document',
+      message: 'Voulez-vous vraiment supprimer ce document ?',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setDeleting(docId);
+        try {
+          await fetch(`${API_URL}/api/documents/${docId}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+          });
+          setDocuments(prev => prev.filter(d => d.id !== docId));
+        } catch (e) {
+          console.error('Delete error:', e);
+        } finally {
+          setDeleting(null);
+        }
+      },
+    });
   }
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -410,6 +424,17 @@ export default function EmployeeDocuments({ employeeId, employeeName, readOnly =
             );
           })}
         </div>
+      )}
+
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
+        />
       )}
     </div>
   );

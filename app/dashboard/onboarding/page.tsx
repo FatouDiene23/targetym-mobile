@@ -15,6 +15,7 @@ import {
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { onboardingTips } from '@/config/pageTips';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 // ============================================
 // TYPES
@@ -479,6 +480,13 @@ export default function OnboardingPage() {
 
   // Tour tips
   const { showTips, dismissTips, resetTips } = usePageTour('onboarding');
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  } | null>(null);
 
   // Init
   useEffect(() => {
@@ -801,10 +809,17 @@ export default function OnboardingPage() {
                             className="text-gray-300 hover:text-blue-500"><Edit size={14} /></button>
                           <button onClick={async (e) => {
                             e.stopPropagation();
-                            if (confirm('Supprimer cette tâche ?')) {
-                              await apiFetch(`/api/onboarding/tasks/${t.id}`, { method: 'DELETE' });
-                              fetchProgramDetail(p.id);
-                            }
+                            setConfirmDialog({
+                              isOpen: true,
+                              title: 'Supprimer la tâche',
+                              message: 'Êtes-vous sûr de vouloir supprimer cette tâche ?',
+                              danger: true,
+                              onConfirm: async () => {
+                                setConfirmDialog(null);
+                                await apiFetch(`/api/onboarding/tasks/${t.id}`, { method: 'DELETE' });
+                                fetchProgramDetail(p.id);
+                              },
+                            });
                           }} className="text-gray-300 hover:text-red-500"><Trash2 size={14} /></button>
                         </div>
                       )}
@@ -1608,6 +1623,17 @@ export default function OnboardingPage() {
       {showTaskModal && <TaskModal />}
       {showAssignModal && <AssignModal />}
       {showGTKModal && <GTKModal />}
+      
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
+        />
+      )}
     </div>
   );
 }

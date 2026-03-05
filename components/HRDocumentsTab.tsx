@@ -7,6 +7,8 @@ import {
   ChevronDown, ChevronUp, RefreshCw, Users, TrendingUp,
   Calendar, BarChart3, Bell, ExternalLink, File
 } from 'lucide-react';
+import ConfirmDialog from './ConfirmDialog';
+import toast from 'react-hot-toast';
 
 // ============================================
 // CONFIG
@@ -150,6 +152,11 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
   // Upload
   const [showUpload, setShowUpload] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean; title: string; message: string;
+    onConfirm: () => void; danger?: boolean;
+  } | null>(null);
   const [uploadEmployeeId, setUploadEmployeeId] = useState<number | null>(null);
   const [uploadType, setUploadType] = useState('contrat_travail');
   const [uploadTitle, setUploadTitle] = useState('');
@@ -354,25 +361,35 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
   }
 
   async function handleDelete(doc: DocItem) {
-    if (!confirm(`Supprimer "${doc.title}" du dossier de ${doc.employee_name} ?`)) return;
-    setDeleting(doc.id);
-    try {
-      const res = await fetch(`${API_URL}/api/documents/${doc.id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-      if (res.ok) {
-        fetchDocuments(page);
-        fetchStats();
-      } else {
-        const err = await res.json().catch(() => ({}));
-        alert(err.detail || 'Erreur');
-      }
-    } catch (e) {
-      console.error('Delete error:', e);
-    } finally {
-      setDeleting(null);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Supprimer le document',
+      message: `Voulez-vous vraiment supprimer "${doc.title}" du dossier de ${doc.employee_name} ?`,
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setDeleting(doc.id);
+        try {
+          const res = await fetch(`${API_URL}/api/documents/${doc.id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+          });
+          if (res.ok) {
+            fetchDocuments(page);
+            fetchStats();
+            toast.success('Document supprimé');
+          } else {
+            const err = await res.json().catch(() => ({}));
+            toast.error(err.detail || 'Erreur lors de la suppression');
+          }
+        } catch (e) {
+          console.error('Delete error:', e);
+          toast.error('Erreur lors de la suppression');
+        } finally {
+          setDeleting(null);
+        }
+      },
+    });
   }
 
   function resetFilters() {
@@ -1087,6 +1104,17 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
       {/* Click outside to close employee dropdown */}
       {showEmployeeDropdown && (
         <div className="fixed inset-0 z-10" onClick={() => setShowEmployeeDropdown(false)} />
+      )}
+
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
+        />
       )}
     </div>
   );

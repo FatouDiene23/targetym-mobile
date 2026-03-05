@@ -16,6 +16,7 @@ import {
   Trophy, ChevronRight, MessageSquare
 } from 'lucide-react';
 import { apiFetch, formatDate, ELIGIBILITY_LABELS } from '../shared';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 export default function MyPromotionsPage() {
   const [data, setData] = useState<any>(null);
@@ -23,6 +24,13 @@ export default function MyPromotionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [requesting, setRequesting] = useState(false);
   const [requestSuccess, setRequestSuccess] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  } | null>(null);
 
   const { showTips, dismissTips, resetTips } = usePageTour('myPromotions');
 
@@ -40,21 +48,30 @@ export default function MyPromotionsPage() {
   useEffect(() => { load(); }, []);
 
   const handleRequestPromotion = async (ecId: number) => {
-    if (!confirm('Envoyer une demande de promotion ?')) return;
-    setRequesting(true);
-    setRequestSuccess(false);
-    try {
-      await apiFetch('/api/careers/promotions/request', {
-        method: 'POST',
-        body: JSON.stringify({ employee_career_id: ecId }),
-      });
-      setRequestSuccess(true);
-      await load();
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setRequesting(false);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Demande de promotion',
+      message: 'Envoyer une demande de promotion ?',
+      danger: false,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setRequesting(true);
+        setRequestSuccess(false);
+        try {
+          await apiFetch('/api/careers/promotions/request', {
+            method: 'POST',
+            body: JSON.stringify({ employee_career_id: ecId }),
+          });
+          setRequestSuccess(true);
+          await load();
+          toast.success('Demande envoyée');
+        } catch (e: any) {
+          toast.error(e.message);
+        } finally {
+          setRequesting(false);
+        }
+      },
+    });
   };
 
   if (loading) {
@@ -281,6 +298,17 @@ export default function MyPromotionsPage() {
         </div>
 
       </main>
+      
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
+        />
+      )}
     </>
   );
 }

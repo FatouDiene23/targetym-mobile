@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { useLearning } from '../LearningContext';
 import { hasPermission, API_URL, getAuthHeaders, categories } from '../shared';
 import { Target, Plus, Clock, Users, BookOpen, ChevronRight, X, Edit2, Archive, UserPlus, Check, Loader2, Search, ArrowLeft } from 'lucide-react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 interface PathDetail {
   id: number;
@@ -36,6 +37,13 @@ export default function PathsPage() {
   // Edit state
   const [editData, setEditData] = useState({ title: '', description: '', category: '', course_ids: [] as number[] });
   const [isEditing, setIsEditing] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  } | null>(null);
 
   const openModal = async (pathId: number) => {
     setIsLoadingDetail(true);
@@ -139,22 +147,32 @@ export default function PathsPage() {
 
   const handleArchive = async () => {
     if (!selectedPath) return;
-    if (!confirm(`Archiver le parcours "${selectedPath.title}" ?`)) return;
-    try {
-      const res = await fetch(`${API_URL}/api/learning/paths/${selectedPath.id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-      if (res.ok) {
-        closeModal();
-        await refreshPaths();
-      } else {
-        const err = await res.json();
-        toast.error('Erreur: ' + (err.detail || "Impossible d'archiver"));
-      }
-    } catch (e) {
-      console.error(e);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Archiver le parcours',
+      message: `Êtes-vous sûr de vouloir archiver le parcours "${selectedPath.title}" ?`,
+      danger: false,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          const res = await fetch(`${API_URL}/api/learning/paths/${selectedPath.id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+          });
+          if (res.ok) {
+            closeModal();
+            await refreshPaths();
+            toast.success('Parcours archivé');
+          } else {
+            const err = await res.json();
+            toast.error('Erreur: ' + (err.detail || "Impossible d'archiver"));
+          }
+        } catch (e) {
+          console.error(e);
+          toast.error('Erreur réseau');
+        }
+      },
+    });
   };
 
   return (
@@ -501,6 +519,17 @@ export default function PathsPage() {
             )}
           </div>
         </div>
+      )}
+      
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
+        />
       )}
     </>
   );

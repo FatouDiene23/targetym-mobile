@@ -20,6 +20,7 @@ import {
   type Task, type TaskStats, type TaskPriority, type PendingValidation, type TeamMember,
   type DailyValidation, type ObjectiveForLinking
 } from '@/lib/api';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 // Couleurs par priorité
 const PRIORITY_COLORS: Record<TaskPriority, { bg: string; text: string; label: string }> = {
@@ -1072,17 +1073,27 @@ function MyTasksTab({
   }
 
   async function handleDeleteTask(taskId: number) {
-    if (!confirm('Annuler cette tâche ?')) return;
-    setActionLoading(true);
-    try {
-      await deleteTask(taskId);
-      await loadData();
-      onRefresh();
-    } catch (err) {
-      console.error('Error deleting task:', err);
-    } finally {
-      setActionLoading(false);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Annuler la tâche',
+      message: 'Annuler cette tâche ?',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setActionLoading(true);
+        try {
+          await deleteTask(taskId);
+          await loadData();
+          onRefresh();
+          toast.success('Tâche annulée');
+        } catch (err) {
+          console.error('Error deleting task:', err);
+          toast.error('Erreur lors de l\'annulation');
+        } finally {
+          setActionLoading(false);
+        }
+      },
+    });
   }
 
   async function handleValidateDay(validationId: number, approved: boolean, comment?: string) {
@@ -2166,6 +2177,13 @@ export default function MyTasksPage() {
   const [isManager, setIsManager] = useState(false);
   const [hasManager, setHasManager] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  } | null>(null);
 
   const { showTips, dismissTips, resetTips } = usePageTour('tasks');
 
@@ -2322,6 +2340,17 @@ export default function MyTasksPage() {
           currentEmployeeId={currentEmployeeId}
           teamMembers={teamMembers}
         />
+        
+        {confirmDialog && (
+          <ConfirmDialog
+            isOpen={confirmDialog.isOpen}
+            title={confirmDialog.title}
+            message={confirmDialog.message}
+            onConfirm={confirmDialog.onConfirm}
+            onClose={() => setConfirmDialog(null)}
+            danger={confirmDialog.danger}
+          />
+        )}
       </div>
     </div>
     </>

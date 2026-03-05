@@ -3,12 +3,19 @@
 import { useLearning } from '../LearningContext';
 import { hasPermission, getPlanStatusColor, getStatusColor, getStatusLabel } from '../shared';
 import { GraduationCap, Plus, Edit, Ban, Archive, Target, TrendingUp, ArrowRight } from 'lucide-react';
+import { useState } from 'react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 export default function DevelopmentPage() {
   const {
     userRole, getVisiblePlans, setShowCreatePlan, setShowCreateSkill,
     openEditPlanModal, setPlanToCancel, setShowCancelPlan, archiveDevelopmentPlan, setCancelReason
   } = useLearning();
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean; title: string; message: string;
+    onConfirm: () => void; danger?: boolean;
+  } | null>(null);
 
   const visiblePlans = getVisiblePlans();
 
@@ -94,7 +101,7 @@ export default function DevelopmentPage() {
                         {hasPermission(userRole, 'create_plan') && plan.status !== 'cancelled' && plan.status !== 'archived' && (
                           <div className="flex items-center gap-1">
                             <button onClick={(e) => { e.stopPropagation(); openEditPlanModal(plan); }} className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="Modifier"><Edit className="w-5 h-5" /></button>
-                            <button onClick={(e) => { e.stopPropagation(); archiveDevelopmentPlan(plan.id); }} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="Archiver"><Archive className="w-5 h-5" /></button>
+                            <button onClick={(e) => { e.stopPropagation(); setConfirmDialog({ isOpen: true, title: 'Archiver le plan', message: 'Voulez-vous archiver ce plan de développement ?', danger: false, onConfirm: async () => { setConfirmDialog(null); await archiveDevelopmentPlan(plan.id); } }); }} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="Archiver"><Archive className="w-5 h-5" /></button>
                             <button onClick={(e) => { e.stopPropagation(); setPlanToCancel(plan); setCancelReason(''); setShowCancelPlan(true); }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Annuler"><Ban className="w-5 h-5" /></button>
                           </div>
                         )}
@@ -134,5 +141,15 @@ export default function DevelopmentPage() {
             )}
           </div>
 
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
+        />
+      )}
   );
 }

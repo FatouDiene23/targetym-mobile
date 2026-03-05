@@ -24,6 +24,7 @@ import {
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { settingsTips } from '@/config/pageTips';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app';
 
@@ -117,6 +118,13 @@ export default function SettingsPage() {
   const [loadingCertSettings, setLoadingCertSettings] = useState(false);
   const [savingCertSettings, setSavingCertSettings] = useState(false);
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  } | null>(null);
 
   // Tour tips
   const { showTips, dismissTips, resetTips } = usePageTour('settings');
@@ -314,24 +322,36 @@ export default function SettingsPage() {
   };
 
   const handleFileDelete = async (fileType: 'logo' | 'signature' | 'stamp') => {
-    if (!confirm(`Supprimer ${fileType === 'logo' ? 'le logo' : fileType === 'signature' ? 'la signature' : 'le cachet'} ?`)) return;
-    
-    try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`${API_URL}/api/settings/certificate/upload/${fileType}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      
-      if (response.ok) {
-        setCertificateSettings(prev => ({
-          ...prev,
-          [`certificate_${fileType}`]: null,
-        }));
-      }
-    } catch (error) {
-      console.error('Erreur suppression:', error);
-    }
+    const fileLabel = fileType === 'logo' ? 'le logo' : fileType === 'signature' ? 'la signature' : 'le cachet';
+    setConfirmDialog({
+      isOpen: true,
+      title: `Supprimer ${fileLabel}`,
+      message: `Êtes-vous sûr de vouloir supprimer ${fileLabel} ?`,
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          const token = localStorage.getItem('access_token');
+          const response = await fetch(`${API_URL}/api/settings/certificate/upload/${fileType}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          
+          if (response.ok) {
+            setCertificateSettings(prev => ({
+              ...prev,
+              [`certificate_${fileType}`]: null,
+            }));
+            toast.success('Fichier supprimé');
+          } else {
+            toast.error('Erreur lors de la suppression');
+          }
+        } catch (error) {
+          console.error('Erreur suppression:', error);
+          toast.error('Erreur de connexion');
+        }
+      },
+    });
   };
 
   // Composant pour upload de fichier
@@ -838,6 +858,17 @@ export default function SettingsPage() {
           </div>
         </div>
       </main>
+      
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
+        />
+      )}
     </>
   );
 }

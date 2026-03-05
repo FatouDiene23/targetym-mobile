@@ -12,6 +12,7 @@ import {
   type Department, type DepartmentCreate, type Employee
 } from '@/lib/api';
 import AddOrganizationalUnitModal from './AddOrganizationalUnitModal';
+import ConfirmDialog from './ConfirmDialog';
 
 // ============================================
 // TYPES
@@ -46,6 +47,11 @@ export default function DepartmentManagementTab() {
   // Sélection multiple
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean; title: string; message: string;
+    onConfirm: () => void; danger?: boolean;
+  } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -185,13 +191,25 @@ export default function DepartmentManagementTab() {
     const count = selectedIds.size;
     const hasEmployees = Array.from(selectedIds).some(id => getEmployeeCount(id) > 0);
     const warning = hasEmployees ? '\n\nAttention : certaines unités contiennent des employés !' : '';
-    if (!confirm(`Supprimer ${count} unité(s) ?${warning}`)) return;
-    setBulkLoading(true);
-    try {
-      for (const id of Array.from(selectedIds)) {
-        await deleteDepartment(id);
-      }
-      setSelectedIds(new Set());
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Suppression en masse',
+      message: `Supprimer ${count} unité(s) ?${warning}`,
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setBulkLoading(true);
+        try {
+          for (const id of Array.from(selectedIds)) {
+            await deleteDepartment(id);
+          }
+          setSelectedIds(new Set());
+          loadData();
+        } catch {}
+        finally { setBulkLoading(false); }
+      },
+    });
+  };
       loadData();
     } catch (err) {
       setError('Erreur lors de la suppression groupée');
@@ -761,5 +779,16 @@ function EditDepartmentModal({
         </div>
       </div>
     </div>
+
+    {confirmDialog && (
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onClose={() => setConfirmDialog(null)}
+        danger={confirmDialog.danger}
+      />
+    )}
   );
 }

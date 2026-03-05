@@ -10,6 +10,7 @@ import Header from '@/components/Header';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { okrTips } from '@/config/pageTips';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 
 // ============================================
@@ -780,6 +781,13 @@ export default function OKRPage() {
   const [showKRModal, setShowKRModal] = useState(false);
   const [krObjectiveId, setKrObjectiveId] = useState<number>(0);
   const [editingKR, setEditingKR] = useState<KeyResult | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  } | null>(null);
 
   // Écouter le bouton "+ Ajouter" du Header
   useEffect(() => {
@@ -983,9 +991,17 @@ export default function OKRPage() {
   };
 
   const handleDeleteObjective = async (id: number) => {
-    if (!confirm('Supprimer cet objectif ?')) return;
-    await deleteObjective(id);
-    await loadData();
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Supprimer l\'objectif',
+      message: 'Êtes-vous sûr de vouloir supprimer cet objectif ?',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        await deleteObjective(id);
+        await loadData();
+      },
+    });
   };
 
   const handleSaveKR = async (objectiveId: number, data: Partial<KeyResult>) => {
@@ -998,9 +1014,17 @@ export default function OKRPage() {
   };
 
   const handleDeleteKR = async (krId: number) => {
-    if (!confirm('Supprimer ce Key Result ?')) return;
-    await deleteKeyResult(krId);
-    await loadData();
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Supprimer le Key Result',
+      message: 'Êtes-vous sûr de vouloir supprimer ce Key Result ?',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        await deleteKeyResult(krId);
+        await loadData();
+      },
+    });
   };
 
   const enterpriseOKRs = objectives.filter(o => o.level === 'enterprise');
@@ -1563,6 +1587,17 @@ export default function OKRPage() {
         objectiveId={krObjectiveId}
         keyResult={editingKR}
       />
+      
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
+        />
+      )}
     </>
   );
 }

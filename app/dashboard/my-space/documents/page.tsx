@@ -7,6 +7,7 @@ import { usePageTour } from '@/hooks/usePageTour';
 import { documentsTips } from '@/config/pageTips';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import {
   FileText, Download, Eye, Search, Filter, Loader2, Calendar,
   Clock, AlertTriangle, ChevronLeft, ChevronRight, File,
@@ -126,6 +127,13 @@ export default function MyDocumentsPage() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState('');
   const [employeeId, setEmployeeId] = useState<number | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  } | null>(null);
 
   const { showTips, dismissTips, resetTips } = usePageTour('documents');
 
@@ -254,20 +262,27 @@ export default function MyDocumentsPage() {
   const EMPLOYEE_DELETABLE_TYPES = ['cni', 'passeport', 'diplome', 'cv', 'photo_identite', 'rib', 'certificat_residence'];
 
   async function handleDelete(doc: Document) {
-    if (!confirm(`Supprimer "${doc.title}" ? Cette action est irréversible.`)) return;
-    setDeleting(doc.id);
-    try {
-      const res = await fetch(`${API_URL}/api/documents/${doc.id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-      if (res.ok) {
-        fetchDocuments();
-      } else {
-        const err = await res.json().catch(() => ({}));
-        toast.error(err.detail || 'Erreur lors de la suppression');
-      }
-    } catch (e) {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Supprimer le document',
+      message: `Supprimer "${doc.title}" ? Cette action est irréversible.`,
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setDeleting(doc.id);
+        try {
+          const res = await fetch(`${API_URL}/api/documents/${doc.id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+          });
+          if (res.ok) {
+            fetchDocuments();
+            toast.success('Document supprimé');
+          } else {
+            const err = await res.json().catch(() => ({}));
+            toast.error(err.detail || 'Erreur lors de la suppression');
+          }
+        } catch (e) {
       console.error('Delete error:', e);
     } finally {
       setDeleting(null);
@@ -653,6 +668,17 @@ export default function MyDocumentsPage() {
           </div>
         )}
       </div>
+      
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
+        />
+      )}
     </>
   );
 }

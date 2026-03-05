@@ -6,6 +6,7 @@ import {
   Users, Search, Plus, Edit2, Trash2, Eye, EyeOff,
   CheckCircle2, XCircle, Building2, Shield, Mail
 } from 'lucide-react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { useRouter } from 'next/navigation';
 import {
   getAllUsers,
@@ -28,6 +29,13 @@ export default function PlatformUsersManagement() {
   const [filterRole, setFilterRole] = useState('');
   const [filterTenant, setFilterTenant] = useState<number | ''>('');
   const [filterActive, setFilterActive] = useState<boolean | undefined>(undefined);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  } | null>(null);
   
   // Helper pour les couleurs de rôle
   const getRoleBadgeClass = (role: string) => {
@@ -159,19 +167,24 @@ export default function PlatformUsersManagement() {
   };
   
   const handleDelete = async (user: UserListItem) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur ${user.email} ?`)) {
-      return;
-    }
-    
-    try {
-      await deletePlatformUser(user.id);
-      toast.success('Utilisateur supprimé avec succès');
-      loadData();
-    } catch (error: unknown) {
-      console.error('Erreur:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la suppression';
-      toast.error(errorMessage);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Supprimer l\'utilisateur',
+      message: `Êtes-vous sûr de vouloir supprimer l'utilisateur ${user.email} ?`,
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await deletePlatformUser(user.id);
+          toast.success('Utilisateur supprimé avec succès');
+          loadData();
+        } catch (error: unknown) {
+          console.error('Erreur:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la suppression';
+          toast.error(errorMessage);
+        }
+      },
+    });
   };
   
   const filteredUsers = users.filter(user => {
@@ -550,6 +563,17 @@ export default function PlatformUsersManagement() {
             </form>
           </div>
         </div>
+      )}
+
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
+        />
       )}
     </div>
   );

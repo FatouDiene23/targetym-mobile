@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import PerformanceStats from '../components/PerformanceStats';
 import Header from '@/components/Header';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 // =============================================
 // TYPES
@@ -370,51 +371,72 @@ export default function CampaignsPage() {
   const canManageCampaigns = ['admin', 'super_admin', 'rh', 'dg'].includes(userRole);
 
   const handleCancel = async (campaignId: number, campaignName: string) => {
-    if (!confirm(`Êtes-vous sûr de vouloir annuler la campagne "${campaignName}" ?\n\nLes évaluations en attente seront également annulées.`)) return;
-    
-    setActionLoading(campaignId);
-    setOpenMenu(null);
-    const result = await cancelCampaign(campaignId);
-    setActionLoading(null);
-    
-    if (result.success) {
-      toast.success(`Campagne annulée. ${result.data?.evaluations_cancelled || 0} évaluation(s) annulée(s).`);
-      loadData();
-    } else {
-      toast.error(result.error || 'Erreur lors de l\'annulation');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Annuler la campagne',
+      message: `Êtes-vous sûr de vouloir annuler la campagne "${campaignName}" ?\n\nLes évaluations en attente seront également annulées.`,
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setActionLoading(campaignId);
+        setOpenMenu(null);
+        const result = await cancelCampaign(campaignId);
+        setActionLoading(null);
+        
+        if (result.success) {
+          toast.success(`Campagne annulée. ${result.data?.evaluations_cancelled || 0} évaluation(s) annulée(s).`);
+          loadData();
+        } else {
+          toast.error(result.error || 'Erreur lors de l\'annulation');
+        }
+      }
+    });
   };
 
   const handleArchive = async (campaignId: number, campaignName: string) => {
-    if (!confirm(`Êtes-vous sûr de vouloir archiver la campagne "${campaignName}" ?`)) return;
-    
-    setActionLoading(campaignId);
-    setOpenMenu(null);
-    const result = await archiveCampaign(campaignId);
-    setActionLoading(null);
-    
-    if (result.success) {
-      toast.success('Campagne archivée avec succès');
-      loadData();
-    } else {
-      toast.error(result.error || 'Erreur lors de l\'archivage');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Archiver la campagne',
+      message: `Êtes-vous sûr de vouloir archiver la campagne "${campaignName}" ?`,
+      danger: false,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setActionLoading(campaignId);
+        setOpenMenu(null);
+        const result = await archiveCampaign(campaignId);
+        setActionLoading(null);
+        
+        if (result.success) {
+          toast.success('Campagne archivée avec succès');
+          loadData();
+        } else {
+          toast.error(result.error || 'Erreur lors de l\'archivage');
+        }
+      }
+    });
   };
 
   const handleRestore = async (campaignId: number, campaignName: string) => {
-    if (!confirm(`Êtes-vous sûr de vouloir restaurer la campagne "${campaignName}" ?`)) return;
-    
-    setActionLoading(campaignId);
-    setOpenMenu(null);
-    const result = await restoreCampaign(campaignId);
-    setActionLoading(null);
-    
-    if (result.success) {
-      toast.success('Campagne restaurée avec succès');
-      loadData();
-    } else {
-      toast.error(result.error || 'Erreur lors de la restauration');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Restaurer la campagne',
+      message: `Êtes-vous sûr de vouloir restaurer la campagne "${campaignName}" ?`,
+      danger: false,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setActionLoading(campaignId);
+        setOpenMenu(null);
+        const result = await restoreCampaign(campaignId);
+        setActionLoading(null);
+        
+        if (result.success) {
+          toast.success('Campagne restaurée avec succès');
+          loadData();
+        } else {
+          toast.error(result.error || 'Erreur lors de la restauration');
+        }
+      }
+    });
   };
 
   // Filtrer les campagnes
@@ -577,6 +599,18 @@ export default function CampaignsPage() {
       {/* Fermer le menu si on clique ailleurs */}
       {openMenu && (
         <div className="fixed inset-0 z-0" onClick={() => setOpenMenu(null)} />
+      )}
+
+      {/* Confirm Dialog */}
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
+        />
       )}
       </main>
     </>

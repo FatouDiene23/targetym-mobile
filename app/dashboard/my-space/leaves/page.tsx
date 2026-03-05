@@ -8,6 +8,7 @@ import { myLeavesTips } from '@/config/pageTips';
 import { 
   Calendar, Plus, X, AlertCircle, Clock, CheckCircle, XCircle
 } from 'lucide-react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 // ============================================
 // TYPES
@@ -355,6 +356,13 @@ export default function MyLeavesPage() {
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  } | null>(null);
 
   const { showTips, dismissTips, resetTips } = usePageTour('myLeaves');
 
@@ -393,13 +401,23 @@ export default function MyLeavesPage() {
   }, [loadData]);
 
   const handleCancel = async (requestId: number) => {
-    if (!confirm('Voulez-vous vraiment annuler cette demande ?')) return;
-    try {
-      await cancelLeaveRequest(requestId);
-      await loadData();
-    } catch (err) {
-      console.error(err);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Annuler la demande',
+      message: 'Voulez-vous vraiment annuler cette demande ?',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await cancelLeaveRequest(requestId);
+          await loadData();
+          toast.success('Demande annulée');
+        } catch (err) {
+          console.error(err);
+          toast.error('Erreur lors de l\'annulation');
+        }
+      },
+    });
   };
 
   const filteredRequests = requests.filter(r => {
@@ -591,6 +609,17 @@ export default function MyLeavesPage() {
           leaveTypes={leaveTypes}
           employeeId={employeeId}
           onSuccess={loadData}
+        />
+      )}
+      
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
         />
       )}
     </div>    </>  );

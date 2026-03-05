@@ -11,6 +11,7 @@ import {
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { mySpaceTips } from '@/config/pageTips';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 // ============================================
 // TYPES
@@ -376,6 +377,13 @@ export default function MyProfilePage() {
 
   // Tour tips
   const { showTips, dismissTips, resetTips } = usePageTour('mySpace');
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  } | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -468,21 +476,28 @@ export default function MyProfilePage() {
 
   const handleSignatureDelete = async () => {
     if (!employee) return;
-    if (!confirm('Supprimer votre signature électronique ?')) return;
-    
-    setSignatureLoading(true);
-    setSignatureMessage(null);
-    
-    try {
-      await deleteSignature(employee.id);
-      setSignature({ employee_id: employee.id, employee_name: `${employee.first_name} ${employee.last_name}`, has_signature: false, signature_url: null });
-      setSignatureMessage({ type: 'success', text: 'Signature supprimée.' });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la suppression';
-      setSignatureMessage({ type: 'error', text: message });
-    } finally {
-      setSignatureLoading(false);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Supprimer la signature',
+      message: 'Êtes-vous sûr de vouloir supprimer votre signature électronique ?',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setSignatureLoading(true);
+        setSignatureMessage(null);
+        
+        try {
+          await deleteSignature(employee.id);
+          setSignature({ employee_id: employee.id, employee_name: `${employee.first_name} ${employee.last_name}`, has_signature: false, signature_url: null });
+          setSignatureMessage({ type: 'success', text: 'Signature supprimée.' });
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : 'Erreur lors de la suppression';
+          setSignatureMessage({ type: 'error', text: message });
+        } finally {
+          setSignatureLoading(false);
+        }
+      },
+    });
   };
 
   // Auto-clear signature message after 4 seconds
@@ -1074,6 +1089,17 @@ export default function MyProfilePage() {
         </div>
         </>)}
       </div>
+      
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
+        />
+      )}
     </div>
   );
 }

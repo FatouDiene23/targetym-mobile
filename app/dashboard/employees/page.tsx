@@ -25,6 +25,7 @@ import {
   getLeaveRequests, approveLeaveRequest, rejectLeaveRequest,
   type Employee, type EmployeeStats, type Department, type LeaveRequest
 } from '@/lib/api';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 const locations = ['Tous', 'Abidjan', 'Dakar', 'Bamako', 'Ouagadougou', 'Conakry', 'Remote'];
 
@@ -362,6 +363,11 @@ export default function EmployeesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean; title: string; message: string;
+    onConfirm: () => void; danger?: boolean;
+  } | null>(null);
+
   // Page Tour
   const { showTips, dismissTips, resetTips } = usePageTour('employees');
 
@@ -553,40 +559,66 @@ export default function EmployeesPage() {
     if (!someSelected) return;
     const count = selectedIds.size;
     const statusLabels: Record<string, string> = { active: 'Actif', inactive: 'Inactif', terminated: 'Terminé', suspended: 'Suspendu' };
-    if (!confirm(`Changer le statut de ${count} employé(s) en "${statusLabels[newStatus] || newStatus}" ?`)) return;
-    setBulkActionLoading(true);
-    try {
-      const token = localStorage.getItem('access_token');
-      await Promise.all(Array.from(selectedIds).map(id =>
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app'}/api/employees/${id}`, {
-          method: 'PATCH',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: newStatus })
-        })
-      ));
-      setSelectedIds(new Set());
-      loadAllData();
-    } catch (err) { console.error('Bulk status update failed', err); }
-    setBulkActionLoading(false);
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Changement de statut',
+      message: `Changer le statut de ${count} employé(s) en "${statusLabels[newStatus] || newStatus}" ?`,
+      danger: false,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setBulkActionLoading(true);
+        try {
+          const token = localStorage.getItem('access_token');
+          await Promise.all(Array.from(selectedIds).map(id =>
+            fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app'}/api/employees/${id}`, {
+              method: 'PATCH',
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: newStatus })
+            })
+          ));
+          setSelectedIds(new Set());
+          loadAllData();
+          toast.success(`Statut modifié pour ${count} employé(s)`);
+        } catch (err) {
+          console.error('Bulk status update failed', err);
+          toast.error('Échec du changement de statut');
+        } finally {
+          setBulkActionLoading(false);
+        }
+      },
+    });
   };
 
   const handleBulkDelete = async () => {
     if (!someSelected) return;
     const count = selectedIds.size;
-    if (!confirm(`Supprimer définitivement ${count} employé(s) ? Cette action est irréversible.`)) return;
-    setBulkActionLoading(true);
-    try {
-      const token = localStorage.getItem('access_token');
-      await Promise.all(Array.from(selectedIds).map(id =>
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app'}/api/employees/${id}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-      ));
-      setSelectedIds(new Set());
-      loadAllData();
-    } catch (err) { console.error('Bulk delete failed', err); }
-    setBulkActionLoading(false);
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Suppression en masse',
+      message: `Supprimer définitivement ${count} employé(s) ? Cette action est irréversible.`,
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setBulkActionLoading(true);
+        try {
+          const token = localStorage.getItem('access_token');
+          await Promise.all(Array.from(selectedIds).map(id =>
+            fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app'}/api/employees/${id}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${token}` }
+            })
+          ));
+          setSelectedIds(new Set());
+          loadAllData();
+          toast.success(`${count} employé(s) supprimé(s)`);
+        } catch (err) {
+          console.error('Bulk delete failed', err);
+          toast.error('Échec de la suppression');
+        } finally {
+          setBulkActionLoading(false);
+        }
+      },
+    });
   };
 
   const handleBulkExport = () => {
@@ -1099,6 +1131,16 @@ export default function EmployeesPage() {
       {showEditModal && selectedEmployee && <EditEmployeeModal employee={selectedEmployee} onClose={() => setShowEditModal(false)} onSuccess={handleSuccess} />}
       {showLeaveModal && selectedLeaveRequest && <LeaveRequestModal request={{ id: selectedLeaveRequest.id, employee_id: selectedLeaveRequest.employee_id, employee_name: selectedLeaveRequest.employee_name || 'Employé', leave_type_id: selectedLeaveRequest.leave_type_id, leave_type_name: selectedLeaveRequest.leave_type_name || 'Congé', leave_type_code: selectedLeaveRequest.leave_type_code, start_date: selectedLeaveRequest.start_date, end_date: selectedLeaveRequest.end_date, days_requested: selectedLeaveRequest.days_requested, start_half_day: selectedLeaveRequest.start_half_day, end_half_day: selectedLeaveRequest.end_half_day, status: selectedLeaveRequest.status, reason: selectedLeaveRequest.reason, department: selectedLeaveRequest.department, job_title: selectedLeaveRequest.job_title, manager_name: selectedLeaveRequest.manager_name, leave_balance: selectedLeaveRequest.leave_balance, approved_by_name: selectedLeaveRequest.approved_by_name, approved_at: selectedLeaveRequest.approved_at, rejection_reason: selectedLeaveRequest.rejection_reason, created_at: selectedLeaveRequest.created_at }} onClose={() => { setShowLeaveModal(false); setSelectedLeaveRequest(null); }} onApprove={handleApproveLeave} onReject={handleRejectLeave} />}
       {tempPasswordData && <TempPasswordModal isOpen={showTempPasswordModal} onClose={() => { setShowTempPasswordModal(false); setTempPasswordData(null); }} employeeName={tempPasswordData.employeeName} email={tempPasswordData.email} tempPassword={tempPasswordData.tempPassword} emailSent={tempPasswordData.emailSent} />}
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
+        />
+      )}
     </>
   );
 }

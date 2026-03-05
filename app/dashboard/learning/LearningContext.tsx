@@ -621,7 +621,6 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   };
 
   const archiveDevelopmentPlan = async (planId: number) => {
-    if (!confirm('Voulez-vous archiver ce plan ?')) return;
     try {
       const response = await fetch(`${API_URL}/api/learning/development-plans/${planId}/archive`, { method: 'POST', headers: getAuthHeaders() });
       if (response.ok) { fetchDevelopmentPlans(); }
@@ -694,7 +693,6 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   };
 
   const syncCareer = async (evalId: number) => {
-    if (!confirm('Synchroniser ce score avec le module Carrière ?')) return;
     try {
       const response = await fetch(`${API_URL}/api/learning/post-eval/${evalId}/sync-career`, { method: 'POST', headers: getAuthHeaders() });
       if (response.ok) { fetchEpfAll(); toast.success('Score synchronisé avec le module Carrière'); }

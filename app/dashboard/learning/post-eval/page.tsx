@@ -4,6 +4,8 @@ import { useLearning } from '../LearningContext';
 import { hasPermission, getEpfStatusColor, getEpfStatusLabel, getRecommendationColor, getRecommendationLabel, getScoreColor, getTrendIcon } from '../shared';
 import { ClipboardCheck, Clock, CheckCircle, Eye, UserPlus, Link, Settings, Zap, TrendingUp, Award, Star } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { useState } from 'react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 export default function PostEvalPage() {
   const {
@@ -13,6 +15,11 @@ export default function PostEvalPage() {
     syncCareer, fetchEmployeeHistory, setShowEpfSettings,
     fetchEpfSettings, setSelectedEvaluatorId
   } = useLearning();
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean; title: string; message: string;
+    onConfirm: () => void; danger?: boolean;
+  } | null>(null);
 
   const isEmployee = userRole === 'employee';
 
@@ -214,7 +221,7 @@ export default function PostEvalPage() {
                       <div className="flex items-center justify-center gap-1">
                         <button onClick={() => setShowEpfDetail(epf)} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded" title="Détail"><Eye className="w-4 h-4" /></button>
                         {epf.status === 'pending' && (<button onClick={() => openEvalModal(epf)} className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded" title="Évaluer"><ClipboardCheck className="w-4 h-4" /></button>)}
-                        {epf.status === 'completed' && !epf.career_synced && hasPermission(userRole, 'view_analytics') && (<button onClick={() => syncCareer(epf.id)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Sync Carrière"><Zap className="w-4 h-4" /></button>)}
+                        {epf.status === 'completed' && !epf.career_synced && hasPermission(userRole, 'view_analytics') && (<button onClick={() => setConfirmDialog({ isOpen: true, title: 'Synchroniser avec Carrière', message: 'Synchroniser ce score avec le module Carrière ?', danger: false, onConfirm: async () => { setConfirmDialog(null); await syncCareer(epf.id); } })} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Sync Carrière"><Zap className="w-4 h-4" /></button>)}
                         {epf.career_synced && (<span className="p-1.5 text-green-500" title="Synchronisé"><Link className="w-4 h-4" /></span>)}
                       </div>
                     </td>
@@ -293,5 +300,16 @@ export default function PostEvalPage() {
         </div>
       )}
     </div>
+
+    {confirmDialog && (
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onClose={() => setConfirmDialog(null)}
+        danger={confirmDialog.danger}
+      />
+    )}
   );
 }

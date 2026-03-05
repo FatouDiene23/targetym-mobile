@@ -10,6 +10,7 @@ import {
   type ChatConversation, type ChatMessage, type ChatConversationWithMessages
 } from '@/lib/api';
 import ChatMessageContent from './ChatMessageContent';
+import ConfirmDialog from './ConfirmDialog';
 
 export default function AIChatBox() {
   const [isOpen, setIsOpen] = useState(false);
@@ -21,6 +22,11 @@ export default function AIChatBox() {
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<ChatConversationWithMessages | null>(null);
   const [showConversationList, setShowConversationList] = useState(false);
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean; title: string; message: string;
+    onConfirm: () => void; danger?: boolean;
+  } | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -122,20 +128,27 @@ export default function AIChatBox() {
   const handleDeleteConversation = async (conversationId: number, e: React.MouseEvent) => {
     e.stopPropagation();
     
-    if (!confirm('Supprimer cette conversation ?')) return;
-
-    try {
-      await deleteChatConversation(conversationId);
-      
-      // Si c'était la conversation active, la désélectionner
-      if (activeConversation?.id === conversationId) {
-        setActiveConversation(null);
-      }
-      
-      await loadConversations();
-    } catch (error: any) {
-      alert(error.message || 'Erreur lors de la suppression');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Supprimer la conversation',
+      message: 'Voulez-vous vraiment supprimer cette conversation ?',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await deleteChatConversation(conversationId);
+          
+          // Si c'était la conversation active, la désélectionner
+          if (activeConversation?.id === conversationId) {
+            setActiveConversation(null);
+          }
+          
+          await loadConversations();
+        } catch (error: any) {
+          alert(error.message || 'Erreur lors de la suppression');
+        }
+      },
+    });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -366,6 +379,17 @@ export default function AIChatBox() {
             </div>
           </div>
         </div>
+      )}
+
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
+        />
       )}
     </>
   );

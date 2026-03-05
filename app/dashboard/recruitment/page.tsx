@@ -12,6 +12,8 @@ import {
   ArrowRight, MessageSquare, Video, Search, X, Check, Loader2, Calendar, Trash2
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 // ============================================
 // TYPES
@@ -315,6 +317,13 @@ export default function RecruitmentPage() {
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [showAddCandidateModal, setShowAddCandidateModal] = useState(false);
   const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  } | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -431,9 +440,17 @@ export default function RecruitmentPage() {
   const handleCloseJob = async (jobId: number) => { const success = await closeJob(jobId); if (success) loadData(); else toast.error('Erreur lors de la fermeture'); };
 
   const handleDeleteInterview = async (interviewId: number) => {
-    if (!confirm('Supprimer cet entretien ?')) return;
-    const success = await deleteInterview(interviewId);
-    if (success) loadData(); else toast.error('Erreur lors de la suppression');
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Supprimer l\'entretien',
+      message: 'Êtes-vous sûr de vouloir supprimer cet entretien ?',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        const success = await deleteInterview(interviewId);
+        if (success) loadData(); else toast.error('Erreur lors de la suppression');
+      },
+    });
   };
 
   // Page Tour Hook
@@ -890,6 +907,17 @@ export default function RecruitmentPage() {
         {showJobModal && <JobModal job={editingJob} departments={departments} employees={employees} onClose={() => setShowJobModal(false)} onSave={async (data) => { const success = editingJob ? await updateJob(editingJob.id, data) : await createJob(data); if (success) { setShowJobModal(false); loadData(); } else { toast.error('Erreur lors de la sauvegarde'); } }} />}
         {showAddCandidateModal && <AddCandidateModal jobs={jobs.filter(j => j.status === 'active')} onClose={() => setShowAddCandidateModal(false)} onSave={async (data) => { const success = await createCandidate(data); if (success) { setShowAddCandidateModal(false); loadData(); } else { toast.error('Erreur lors de la création'); } }} />}
         {showInterviewModal && selectedApplication && <InterviewModal application={selectedApplication} employees={employees} onClose={() => setShowInterviewModal(false)} onSave={async (data) => { const success = await createInterview(data); if (success) { setShowInterviewModal(false); setShowCandidateModal(false); loadData(); } else { toast.error('Erreur lors de la planification'); } }} />}
+        
+        {confirmDialog && (
+          <ConfirmDialog
+            isOpen={confirmDialog.isOpen}
+            title={confirmDialog.title}
+            message={confirmDialog.message}
+            onConfirm={confirmDialog.onConfirm}
+            onClose={() => setConfirmDialog(null)}
+            danger={confirmDialog.danger}
+          />
+        )}
       </main>
     </>
   );

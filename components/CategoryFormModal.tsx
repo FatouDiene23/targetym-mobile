@@ -20,7 +20,7 @@ export default function CategoryFormModal({ category, onClose, onSave }: Readonl
     display_order: category?.display_order || 1
   });
 
-  const getToken = () => localStorage.getItem('token');
+  const getToken = () => localStorage.getItem('access_token');
 
   const generateSlug = (name: string) => {
     return name

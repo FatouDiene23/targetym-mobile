@@ -34,7 +34,7 @@ export default function ArticleFormModal({ article, categories, onClose, onSave 
   const [uploading, setUploading] = useState(false);
   const [previewTab, setPreviewTab] = useState<'edit' | 'preview'>('edit');
 
-  const getToken = () => localStorage.getItem('token');
+  const getToken = () => localStorage.getItem('access_token');
 
   // Auto-générer le slug depuis le titre
   const generateSlug = (title: string) => {

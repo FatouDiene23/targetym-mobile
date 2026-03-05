@@ -948,6 +948,37 @@ export const performance1Tips: PageTip[] = [
   },
 ];
 
+export const helpAdminTips: PageTip[] = [
+  {
+    id: 'help-admin-articles',
+    title: 'Gérer les Articles',
+    description: 'Créez et publiez des articles d\'aide pour guider vos utilisateurs. Un article publié est visible dans le centre d\'aide public.',
+    action: {
+      label: 'Voir le bouton',
+      element: '[data-tour="help-admin-new-article"]',
+    },
+  },
+  {
+    id: 'help-admin-tabs',
+    title: 'Trois sections disponibles',
+    description: 'Naviguez entre Articles (liste + édition), Catégories (organisation) et Statistiques (vues & feedback).',
+    action: {
+      label: 'Voir les onglets',
+      element: '[data-tour="help-admin-tabs"]',
+    },
+  },
+  {
+    id: 'help-admin-publish',
+    title: 'Publier / Dépublier',
+    description: 'Utilisez l\'icône œil sur chaque article pour le publier ou le masquer immédiatement sans le supprimer.',
+    action: {
+      label: 'Voir la liste',
+      element: '[data-tour="help-admin-header"]',
+    },
+  },
+];
+
+
 export const platformAdminTips: PageTip[] = [
   {
     id: 'platform-overview',
@@ -1045,6 +1076,7 @@ export function getPageTips(pageId: string): PageTip[] {
     paths: pathsTips,
     platformAdmin: platformAdminTips,
     platformAdminUsers: platformAdminUsersTips,
+    helpAdmin: helpAdminTips,
     myCareer: myCareerTips,
     myPromotions: myPromotionsTips,
     // Others

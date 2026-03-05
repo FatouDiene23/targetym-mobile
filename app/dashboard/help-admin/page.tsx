@@ -6,6 +6,9 @@ import toast from 'react-hot-toast';
 import ArticleFormModal from '@/components/ArticleFormModal';
 import CategoryFormModal from '@/components/CategoryFormModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { usePageTour } from '@/hooks/usePageTour';
+import PageTourTips from '@/components/PageTourTips';
+import { helpAdminTips } from '@/config/pageTips';
 
 interface Category {
   id: number;
@@ -44,6 +47,7 @@ export default function HelpAdminPage() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const { showTips, dismissTips } = usePageTour('helpAdmin');
   
   // Dialogue de confirmation
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -238,7 +242,7 @@ export default function HelpAdminPage() {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6" data-tour="help-admin-header">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gestion du Centre d'Aide</h1>
           <p className="text-gray-600">Gérez les articles et catégories du centre d'aide</p>
@@ -249,6 +253,7 @@ export default function HelpAdminPage() {
             setShowArticleModal(true);
           }}
           className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
+          data-tour="help-admin-new-article"
         >
           <Plus className="w-4 h-4" />
           Nouvel Article
@@ -256,7 +261,7 @@ export default function HelpAdminPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b border-gray-200 mb-6" data-tour="help-admin-tabs">
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('articles')}
@@ -533,17 +538,26 @@ export default function HelpAdminPage() {
         />
       )}
       
-      {/* Dialogue de confirmation */}
-      <ConfirmDialog
-        isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
-        onConfirm={confirmDialog.onConfirm}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        danger={confirmDialog.danger}
-        confirmText="Supprimer"
-        cancelText="Annuler"
-      />
+      {confirmDialog.isOpen && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+          onConfirm={confirmDialog.onConfirm}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          danger={confirmDialog.danger}
+          confirmText="Supprimer"
+          cancelText="Annuler"
+        />
+      )}
+
+      {showTips && (
+        <PageTourTips
+          tips={helpAdminTips}
+          onDismiss={dismissTips}
+          pageTitle="Centre d'Aide"
+        />
+      )}
     </div>
   );
 }

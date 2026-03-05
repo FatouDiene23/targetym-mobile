@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { X, Upload } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface Category {
   id: number;
@@ -62,6 +63,7 @@ export default function ArticleFormModal({ article, categories, onClose, onSave 
     formDataUpload.append('file', file);
 
     setUploading(true);
+    const uploadToast = toast.loading('Upload en cours...');
     try {
       const res = await fetch(`${API_URL}/api/help/admin/upload-image`, {
         method: 'POST',
@@ -74,12 +76,13 @@ export default function ArticleFormModal({ article, categories, onClose, onSave 
       const data = await res.json();
       if (res.ok) {
         setFormData({ ...formData, cover_image_url: data.url });
+        toast.success('Image uploadée avec succès', { id: uploadToast });
       } else {
-        alert('Erreur lors de l\'upload: ' + data.detail);
+        toast.error(data.detail || 'Erreur lors de l\'upload', { id: uploadToast });
       }
     } catch (err) {
       console.error('Erreur upload:', err);
-      alert('Erreur lors de l\'upload');
+      toast.error('Erreur lors de l\'upload', { id: uploadToast });
     } finally {
       setUploading(false);
     }
@@ -105,15 +108,16 @@ export default function ArticleFormModal({ article, categories, onClose, onSave 
       });
 
       if (res.ok) {
+        toast.success(article ? 'Article modifié avec succès' : 'Article créé avec succès');
         onSave();
         onClose();
       } else {
         const data = await res.json();
-        alert('Erreur: ' + (data.detail || 'Une erreur est survenue'));
+        toast.error(data.detail || 'Une erreur est survenue');
       }
     } catch (err) {
       console.error('Erreur:', err);
-      alert('Erreur lors de la sauvegarde');
+      toast.error('Erreur lors de la sauvegarde');
     }
   };
 

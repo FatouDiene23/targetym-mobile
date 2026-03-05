@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface CategoryFormProps {
   category?: any;
@@ -59,15 +60,16 @@ export default function CategoryFormModal({ category, onClose, onSave }: Readonl
       });
 
       if (res.ok) {
+        toast.success(category ? 'Catégorie modifiée avec succès' : 'Catégorie créée avec succès');
         onSave();
         onClose();
       } else {
         const data = await res.json();
-        alert('Erreur: ' + (data.detail || 'Une erreur est survenue'));
+        toast.error(data.detail || 'Une erreur est survenue');
       }
     } catch (err) {
       console.error('Erreur:', err);
-      alert('Erreur lors de la sauvegarde');
+      toast.error('Erreur lors de la sauvegarde');
     }
   };
 

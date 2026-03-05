@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import {
   Building2, Plus, Edit2, Trash2, ChevronRight, ChevronDown,
-  Users, Loader2, X, Save, ArrowUpRight, Search, Network
+  Users, Loader2, X, Save, ArrowUpRight, Search, Network,
+  Download
 } from 'lucide-react';
 import {
   getDepartments, updateDepartment, deleteDepartment,
@@ -41,6 +42,10 @@ export default function DepartmentManagementTab() {
 
   // View mode
   const [viewMode, setViewMode] = useState<'list' | 'tree'>('list');
+
+  // Sélection multiple
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -154,6 +159,62 @@ export default function DepartmentManagementTab() {
 
   const tree = buildTree(filteredDepts);
 
+  // Sélection multiple — helpers
+  const allSelected = filteredDepts.length > 0 && filteredDepts.every(d => selectedIds.has(d.id));
+  const someSelected = selectedIds.size > 0;
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredDepts.map(d => d.id)));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (!someSelected) return;
+    const count = selectedIds.size;
+    const hasEmployees = Array.from(selectedIds).some(id => getEmployeeCount(id) > 0);
+    const warning = hasEmployees ? '\n\nAttention : certaines unités contiennent des employés !' : '';
+    if (!confirm(`Supprimer ${count} unité(s) ?${warning}`)) return;
+    setBulkLoading(true);
+    try {
+      for (const id of Array.from(selectedIds)) {
+        await deleteDepartment(id);
+      }
+      setSelectedIds(new Set());
+      loadData();
+    } catch (err) {
+      setError('Erreur lors de la suppression groupée');
+      console.error(err);
+    }
+    setBulkLoading(false);
+  };
+
+  const handleBulkExport = () => {
+    const selected = departments.filter(d => selectedIds.has(d.id));
+    const headers = ['Nom', 'Code', 'Niveau', 'Rattachement', 'Responsable', 'Effectif'];
+    const rows = selected.map(d => [
+      d.name, d.code || '', d.level || '', getParentName(d.parent_id),
+      getHeadName(d.id) || '', String(getEmployeeCount(d.id))
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(c => `"${(c || '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `unites_selection_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
   // ============================================
   // LEVEL BADGE
   // ============================================
@@ -259,7 +320,10 @@ export default function DepartmentManagementTab() {
     const headName = getHeadName(dept.id);
 
     return (
-      <tr className="hover:bg-gray-50 group">
+      <tr className={`hover:bg-gray-50 group ${selectedIds.has(dept.id) ? 'bg-primary-50/50' : ''}`}>
+        <td className="w-10 px-3 py-3">
+          <input type="checkbox" checked={selectedIds.has(dept.id)} onChange={() => toggleSelect(dept.id)} className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer" />
+        </td>
         <td className="px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: dept.color || '#6366f1' }} />
@@ -384,27 +448,51 @@ export default function DepartmentManagementTab() {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Unité</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Niveau</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Rattachement</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Responsable</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Effectif</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-24">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filteredDepts.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-10 text-gray-500 text-sm">Aucune unité trouvée</td></tr>
-              ) : (
-                filteredDepts.map(dept => <ListRow key={dept.id} dept={dept} />)
-              )}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {/* Barre d'actions groupées */}
+          {someSelected && (
+            <div className="mb-3 flex items-center gap-3 bg-primary-50 border border-primary-200 rounded-xl px-4 py-3">
+              <span className="text-sm font-medium text-primary-700">{selectedIds.size} sélectionnée{selectedIds.size > 1 ? 's' : ''}</span>
+              <div className="h-5 w-px bg-primary-200" />
+              <button onClick={handleBulkExport} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <Download className="w-3.5 h-3.5" />Exporter
+              </button>
+              <button onClick={handleBulkDelete} disabled={bulkLoading} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
+                <Trash2 className="w-3.5 h-3.5" />Supprimer
+              </button>
+              <div className="flex-1" />
+              <button onClick={() => setSelectedIds(new Set())} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+              {bulkLoading && <Loader2 className="w-4 h-4 animate-spin text-primary-500" />}
+            </div>
+          )}
+
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50">
+                  <th className="w-10 px-3 py-3">
+                    <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer" />
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Unité</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Niveau</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Rattachement</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Responsable</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Effectif</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-24">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filteredDepts.length === 0 ? (
+                  <tr><td colSpan={7} className="text-center py-10 text-gray-500 text-sm">Aucune unité trouvée</td></tr>
+                ) : (
+                  filteredDepts.map(dept => <ListRow key={dept.id} dept={dept} />)
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* DELETE CONFIRM */}

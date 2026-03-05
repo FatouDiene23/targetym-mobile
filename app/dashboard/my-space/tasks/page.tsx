@@ -972,6 +972,13 @@ function MyTasksTab({
   const [tasks, setTasks] = useState<Task[]>([]);
   const [upcomingTasks, setUpcomingTasks] = useState<Task[]>([]);
   const [stats, setStats] = useState<TaskStats | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    danger?: boolean;
+  } | null>(null);
   const [validationStatus, setValidationStatus] = useState<{
     validation: { status: string; validation_comment?: string } | null;
     can_submit: boolean;
@@ -1357,6 +1364,17 @@ function MyTasksTab({
         onSuccess={() => { loadData(); onRefresh(); }}
         incompleteTasks={incompleteTasks}
       />
+
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
+        />
+      )}
     </div>
   );
 }
@@ -2177,13 +2195,6 @@ export default function MyTasksPage() {
   const [isManager, setIsManager] = useState(false);
   const [hasManager, setHasManager] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [confirmDialog, setConfirmDialog] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void;
-    danger?: boolean;
-  } | null>(null);
 
   const { showTips, dismissTips, resetTips } = usePageTour('tasks');
 
@@ -2340,17 +2351,6 @@ export default function MyTasksPage() {
           currentEmployeeId={currentEmployeeId}
           teamMembers={teamMembers}
         />
-        
-        {confirmDialog && (
-          <ConfirmDialog
-            isOpen={confirmDialog.isOpen}
-            title={confirmDialog.title}
-            message={confirmDialog.message}
-            onConfirm={confirmDialog.onConfirm}
-            onClose={() => setConfirmDialog(null)}
-            danger={confirmDialog.danger}
-          />
-        )}
       </div>
     </div>
     </>

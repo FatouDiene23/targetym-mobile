@@ -953,16 +953,28 @@ export const platformAdminTips: PageTip[] = [
     id: 'platform-overview',
     title: 'Vue d\'ensemble Plateforme',
     description: 'Ce dashboard affiche les statistiques globales de tous les tenants : nombre d\'entreprises, utilisateurs actifs et abonnements.',
+    action: {
+      label: 'Voir les statistiques',
+      element: '[data-tour="platform-stats"]',
+    },
   },
   {
     id: 'platform-tenants',
     title: 'Liste des Tenants',
     description: 'Chaque ligne représente une entreprise cliente. Vous pouvez voir leur plan d\'abonnement, le nombre d\'utilisateurs et leur statut.',
+    action: {
+      label: 'Voir la liste',
+      element: '[data-tour="platform-tenants"]',
+    },
   },
   {
     id: 'platform-search',
     title: 'Recherche & Filtres',
     description: 'Utilisez la barre de recherche pour trouver un tenant par nom, et filtrez par plan ou statut.',
+    action: {
+      label: 'Voir les filtres',
+      element: '[data-tour="platform-search"]',
+    },
   },
 ];
 
@@ -971,16 +983,28 @@ export const platformAdminUsersTips: PageTip[] = [
     id: 'users-overview',
     title: 'Gestion des Utilisateurs Plateforme',
     description: 'Cette page liste tous les utilisateurs de la plateforme, toutes entreprises confondues.',
+    action: {
+      label: 'Voir la liste',
+      element: '[data-tour="platform-users-table"]',
+    },
   },
   {
     id: 'users-create',
     title: 'Créer un utilisateur',
-    description: 'Cliquez sur "Nouvel Utilisateur" pour créer un compte. Vous pouvez lui assigner un rôle et un tenant (entreprise).',
+    description: 'Cliquez sur "Créer un User" pour créer un compte. Vous pouvez lui assigner un rôle et un tenant (entreprise).',
+    action: {
+      label: 'Voir le bouton',
+      element: '[data-tour="platform-users-create"]',
+    },
   },
   {
     id: 'users-roles',
-    title: 'Rôles & Permissions',
-    description: 'SUPER_ADMIN a accès à tout. Les autres rôles (admin, rh, manager, employee) sont limités à leur tenant.',
+    title: 'Recherche & Filtres',
+    description: 'Filtrez par rôle, tenant ou statut pour retrouver rapidement un utilisateur.',
+    action: {
+      label: 'Voir les filtres',
+      element: '[data-tour="platform-users-search"]',
+    },
   },
 ];
 

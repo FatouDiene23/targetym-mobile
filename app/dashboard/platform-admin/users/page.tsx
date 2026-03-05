@@ -242,6 +242,7 @@ export default function PlatformUsersManagement() {
         <button
           onClick={handleOpenCreate}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          data-tour="platform-users-create"
         >
           <Plus className="w-4 h-4" />
           Créer un User
@@ -249,7 +250,7 @@ export default function PlatformUsersManagement() {
       </div>
       
       {/* Filtres */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100" data-tour="platform-users-search">
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-[250px]">
             <div className="relative">
@@ -325,7 +326,7 @@ export default function PlatformUsersManagement() {
       </div>
       
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" data-tour="platform-users-table">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">

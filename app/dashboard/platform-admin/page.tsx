@@ -121,7 +121,7 @@ export default function PlatformAdminDashboard() {
       
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" data-tour="platform-stats">
           {/* Tenants */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-4">
@@ -183,12 +183,12 @@ export default function PlatformAdminDashboard() {
       )}
       
       {/* Tenants List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100" data-tour="platform-tenants">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Entreprises Clientes</h2>
           
           {/* Filtres */}
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-4" data-tour="platform-search">
             <div className="flex-1 min-w-[250px]">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

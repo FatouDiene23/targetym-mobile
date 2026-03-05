@@ -111,6 +111,11 @@ export default function SettingsPage() {
   // Tour tips
   const { showTips, dismissTips, resetTips } = usePageTour('settings');
 
+  // États pour la sécurité tenant (2FA)
+  const [securitySettings, setSecuritySettings] = useState<{ require_2fa: boolean; total_users: number; users_with_2fa: number }>({ require_2fa: false, total_users: 0, users_with_2fa: 0 });
+  const [loadingSecurity, setLoadingSecurity] = useState(false);
+  const [savingSecurity, setSavingSecurity] = useState(false);
+
   // États pour les préférences de notifications
   const [notifPrefs, setNotifPrefs] = useState<{ key: string; label: string; description: string; enabled: boolean }[]>([]);
   const [loadingNotifPrefs, setLoadingNotifPrefs] = useState(false);
@@ -198,6 +203,42 @@ export default function SettingsPage() {
     }
   }, []);
 
+  const loadSecuritySettings = useCallback(async () => {
+    setLoadingSecurity(true);
+    try {
+      const res = await fetch(`${API_URL}/api/auth/tenant-security`, { headers: getAuthHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        setSecuritySettings(data);
+      }
+    } catch (error) {
+      console.error('Erreur chargement sécurité:', error);
+    } finally {
+      setLoadingSecurity(false);
+    }
+  }, []);
+
+  const saveSecuritySettings = async () => {
+    setSavingSecurity(true);
+    try {
+      const res = await fetch(`${API_URL}/api/auth/tenant-security`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ require_2fa: securitySettings.require_2fa }),
+      });
+      if (res.ok) {
+        toast.success('Paramètres de sécurité enregistrés');
+      } else {
+        toast.error('Erreur lors de la sauvegarde');
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      toast.error('Erreur de connexion');
+    } finally {
+      setSavingSecurity(false);
+    }
+  };
+
   const loadNotifPreferences = useCallback(async () => {
     setLoadingNotifPrefs(true);
     try {
@@ -247,7 +288,10 @@ export default function SettingsPage() {
     if (activeTab === 'notifications') {
       loadNotifPreferences();
     }
-  }, [activeTab, loadCertificateSettings, loadNotifPreferences]);
+    if (activeTab === 'security') {
+      loadSecuritySettings();
+    }
+  }, [activeTab, loadCertificateSettings, loadNotifPreferences, loadSecuritySettings]);
 
   const saveCertificateSettings = async () => {
     setSavingCertSettings(true);
@@ -681,31 +725,86 @@ export default function SettingsPage() {
             {/* ONGLET: SÉCURITÉ               */}
             {/* ============================== */}
             {activeTab === 'security' && (
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">Sécurité</h3>
-                
-                <div className="space-y-6">
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-2">Changer le mot de passe</h4>
-                    <div className="space-y-3">
-                      <input type="password" placeholder="Mot de passe actuel" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg" />
-                      <input type="password" placeholder="Nouveau mot de passe" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg" />
-                      <input type="password" placeholder="Confirmer le nouveau mot de passe" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg" />
-                      <button className="px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
-                        Mettre à jour
-                      </button>
-                    </div>
-                  </div>
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Authentification à deux facteurs (2FA)</h3>
+                  <p className="text-sm text-gray-500 mb-6">
+                    Renforcez la sécurité de votre entreprise en exigeant une vérification via une application d&apos;authentification
+                    (Google Authenticator, Authy, Microsoft Authenticator, etc.).
+                  </p>
 
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div>
-                      <h4 className="font-medium text-gray-900">Authentification à deux facteurs</h4>
-                      <p className="text-sm text-gray-500">Ajoutez une couche de sécurité supplémentaire</p>
+                  {loadingSecurity ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
                     </div>
-                    <button className="px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600">
-                      Activée
-                    </button>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between p-5 bg-gray-50 rounded-xl border border-gray-200">
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900">Exiger la 2FA pour tous les collaborateurs</h4>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Lorsque cette option est activée, chaque utilisateur devra scanner un QR code
+                            avec son application d&apos;authentification lors de sa prochaine connexion.
+                          </p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer ml-6">
+                          <input
+                            type="checkbox"
+                            checked={securitySettings.require_2fa}
+                            onChange={() => setSecuritySettings(prev => ({ ...prev, require_2fa: !prev.require_2fa }))}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                        </label>
+                      </div>
+
+                      {securitySettings.require_2fa && securitySettings.total_users > 0 && (
+                        <div className="mt-6 p-5 bg-blue-50 border border-blue-200 rounded-xl">
+                          <h4 className="font-semibold text-blue-900 mb-3">Adoption 2FA</h4>
+                          <div className="flex items-center gap-4">
+                            <div className="flex-1">
+                              <div className="w-full h-3 bg-blue-200 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-blue-600 rounded-full transition-all duration-500"
+                                  style={{ width: `${Math.round((securitySettings.users_with_2fa / securitySettings.total_users) * 100)}%` }}
+                                />
+                              </div>
+                            </div>
+                            <span className="text-sm font-semibold text-blue-900 whitespace-nowrap">
+                              {securitySettings.users_with_2fa}/{securitySettings.total_users} utilisateurs
+                            </span>
+                          </div>
+                          <p className="text-xs text-blue-700 mt-2">
+                            {securitySettings.users_with_2fa === securitySettings.total_users
+                              ? 'Tous les utilisateurs ont configuré leur 2FA.'
+                              : `${securitySettings.total_users - securitySettings.users_with_2fa} utilisateur(s) devront configurer leur 2FA à la prochaine connexion.`
+                            }
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="mt-6 pt-6 border-t border-gray-100 flex justify-end">
+                        <button
+                          onClick={saveSecuritySettings}
+                          disabled={savingSecurity}
+                          className="flex items-center px-6 py-2.5 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50"
+                        >
+                          {savingSecurity ? (
+                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enregistrement...</>
+                          ) : (
+                            <><Save className="w-4 h-4 mr-2" /> Enregistrer</>
+                          )}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <p className="text-sm text-amber-800">
+                    <strong>Important :</strong> Les utilisateurs qui n&apos;ont pas encore configuré leur 2FA seront invités
+                    à scanner un QR code lors de leur prochaine connexion. Assurez-vous de les prévenir au préalable.
+                  </p>
                 </div>
               </div>
             )}

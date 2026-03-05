@@ -240,6 +240,10 @@ export default function MissionsPage() {
   const showValidateTab = isManagerOrAbove(role);
   const showTeamTab = isManagerOrAbove(role);
 
+  // Sélection multiple
+  const [selectedMissionIds, setSelectedMissionIds] = useState<Set<number>>(new Set());
+  const [bulkMissionLoading, setBulkMissionLoading] = useState(false);
+
   // Tour tips
   const { showTips, dismissTips, resetTips } = usePageTour('missions');
 
@@ -397,6 +401,91 @@ export default function MissionsPage() {
     } catch (err: any) {
       toast.error('Erreur: ' + err.message);
     }
+  };
+
+  // ============================================
+  // BULK ACTIONS
+  // ============================================
+
+  const toggleSelectAllMissions = (missionList: Mission[]) => {
+    const allSelected = missionList.length > 0 && missionList.every(m => selectedMissionIds.has(m.id));
+    if (allSelected) setSelectedMissionIds(new Set());
+    else setSelectedMissionIds(new Set(missionList.map(m => m.id)));
+  };
+
+  const toggleSelectMission = (id: number) => {
+    setSelectedMissionIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkApproveMissions = async () => {
+    const pending = pendingMissions.filter(m => selectedMissionIds.has(m.id) && ['en_attente_manager', 'en_attente_rh'].includes(m.status));
+    if (pending.length === 0) { toast.error('Aucune mission à valider dans la sélection'); return; }
+    if (!confirm(`Approuver ${pending.length} mission(s) ?`)) return;
+    setBulkMissionLoading(true);
+    try {
+      for (const m of pending) {
+        await apiFetch(`/api/missions/${m.id}/validate`, { method: 'POST', body: JSON.stringify({ decision: 'approuvee', comment: 'Approbation groupée' }) });
+      }
+      setSelectedMissionIds(new Set());
+      toast.success(`${pending.length} mission(s) approuvée(s)`);
+      fetchAll();
+    } catch (err: any) { toast.error('Erreur: ' + err.message); }
+    setBulkMissionLoading(false);
+  };
+
+  const handleBulkRejectMissions = async () => {
+    const pending = pendingMissions.filter(m => selectedMissionIds.has(m.id) && ['en_attente_manager', 'en_attente_rh'].includes(m.status));
+    if (pending.length === 0) { toast.error('Aucune mission à rejeter dans la sélection'); return; }
+    const reason = prompt(`Motif de rejet pour ${pending.length} mission(s) :`);
+    if (!reason) return;
+    setBulkMissionLoading(true);
+    try {
+      for (const m of pending) {
+        await apiFetch(`/api/missions/${m.id}/validate`, { method: 'POST', body: JSON.stringify({ decision: 'rejetee', comment: reason }) });
+      }
+      setSelectedMissionIds(new Set());
+      toast.success(`${pending.length} mission(s) rejetée(s)`);
+      fetchAll();
+    } catch (err: any) { toast.error('Erreur: ' + err.message); }
+    setBulkMissionLoading(false);
+  };
+
+  const handleBulkExportMissions = (missionList: Mission[]) => {
+    const selected = missionList.filter(m => selectedMissionIds.has(m.id));
+    const headers = ['Référence', 'Employé', 'Objet', 'Destination', 'Début', 'Fin', 'Durée', 'Transport', 'Statut', 'Per Diem'];
+    const rows = selected.map(m => [
+      m.reference, m.employee_name, m.subject, m.destination,
+      formatDate(m.start_date), formatDate(m.end_date), `${m.duration_days}j`,
+      TRANSPORT_LABELS[m.transport_type]?.label || m.transport_type,
+      STATUS_CONFIG[m.status]?.label || m.status,
+      m.per_diem_amount ? formatAmount(m.per_diem_amount) : ''
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(c => `"${(c || '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `missions_selection_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
+  const handleBulkDeleteMissions = async (missionList: Mission[]) => {
+    const deletable = missionList.filter(m => selectedMissionIds.has(m.id) && m.status === 'brouillon');
+    if (deletable.length === 0) { toast.error('Seules les missions en brouillon peuvent être supprimées'); return; }
+    if (!confirm(`Supprimer ${deletable.length} mission(s) en brouillon ?`)) return;
+    setBulkMissionLoading(true);
+    try {
+      for (const m of deletable) {
+        await apiFetch(`/api/missions/${m.id}`, { method: 'DELETE' });
+      }
+      setSelectedMissionIds(new Set());
+      fetchAll();
+    } catch (err: any) { toast.error('Erreur: ' + err.message); }
+    setBulkMissionLoading(false);
   };
 
   // ============================================
@@ -621,7 +710,12 @@ export default function MissionsPage() {
     const TransportIcon = transport.icon;
 
     return (
-      <tr key={mission.id} className="hover:bg-gray-50 border-b">
+      <tr key={mission.id} className={`hover:bg-gray-50 border-b ${selectedMissionIds.has(mission.id) ? 'bg-blue-50/50' : ''}`}>
+        {context !== 'mes_missions' && (
+          <td className="w-10 px-3 py-3">
+            <input type="checkbox" checked={selectedMissionIds.has(mission.id)} onChange={() => toggleSelectMission(mission.id)} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+          </td>
+        )}
         <td className="px-4 py-3">
           <div>
             <p className="font-medium text-sm text-gray-900">{mission.reference}</p>
@@ -774,29 +868,71 @@ export default function MissionsPage() {
       );
     }
 
+    const showSelection = context !== 'mes_missions';
+    const allMissionsSelected = showSelection && missionList.length > 0 && missionList.every(m => selectedMissionIds.has(m.id));
+    const someMissionsSelected = showSelection && selectedMissionIds.size > 0;
+
     return (
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-gray-50 border-b">
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Référence</th>
-              {context !== 'mes_missions' && (
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employé</th>
-              )}
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Objet</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Destination</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transport</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Per Diem</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {missionList.map((m) => renderMissionRow(m, context))}
-          </tbody>
-        </table>
-      </div>
+      <>
+        {/* Barre d'actions groupées */}
+        {someMissionsSelected && (
+          <div className="mx-4 mt-3 mb-1 flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+            <span className="text-sm font-medium text-blue-700">{selectedMissionIds.size} sélectionnée{selectedMissionIds.size > 1 ? 's' : ''}</span>
+            <div className="h-5 w-px bg-blue-200" />
+            <button onClick={() => handleBulkExportMissions(missionList)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <Download className="w-3.5 h-3.5" />Exporter
+            </button>
+            {context === 'a_valider' && (
+              <>
+                <button onClick={handleBulkApproveMissions} disabled={bulkMissionLoading} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors">
+                  <CheckCircle className="w-3.5 h-3.5" />Approuver
+                </button>
+                <button onClick={handleBulkRejectMissions} disabled={bulkMissionLoading} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors">
+                  <XCircle className="w-3.5 h-3.5" />Rejeter
+                </button>
+              </>
+            )}
+            {context === 'equipe' && (
+              <button onClick={() => handleBulkDeleteMissions(missionList)} disabled={bulkMissionLoading} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors">
+                <Trash2 className="w-3.5 h-3.5" />Supprimer
+              </button>
+            )}
+            <div className="flex-1" />
+            <button onClick={() => setSelectedMissionIds(new Set())} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+            {bulkMissionLoading && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
+          </div>
+        )}
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50 border-b">
+                {showSelection && (
+                  <th className="w-10 px-3 py-3">
+                    <input type="checkbox" checked={allMissionsSelected} onChange={() => toggleSelectAllMissions(missionList)} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                  </th>
+                )}
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Référence</th>
+                {context !== 'mes_missions' && (
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employé</th>
+                )}
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Objet</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Destination</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transport</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Per Diem</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {missionList.map((m) => renderMissionRow(m, context))}
+            </tbody>
+          </table>
+        </div>
+      </>
     );
   };
 
@@ -855,17 +991,6 @@ export default function MissionsPage() {
       
       <Header title="Gestion des Missions" subtitle="Ordres de missions & déplacements professionnels"/>
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-end mb-6">
-          <button
-            data-tour="create-mission"
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Nouvelle mission
-          </button>
-        </div>
-
         <div data-tour="missions-stats">
           {renderStats()}
         </div>
@@ -874,7 +999,7 @@ export default function MissionsPage() {
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => { setActiveTab(tab.id); setSelectedMissionIds(new Set()); }}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === tab.id
                   ? 'bg-blue-600 text-white'
@@ -892,6 +1017,15 @@ export default function MissionsPage() {
               )}
             </button>
           ))}
+          <div className="flex-1" />
+          <button
+            data-tour="create-mission"
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Nouvelle mission
+          </button>
         </div>
 
         {activeTab !== 'a_valider' && (

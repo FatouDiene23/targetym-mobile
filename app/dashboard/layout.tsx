@@ -131,12 +131,12 @@ function DashboardContent({
 
   // Enregistrer le handler du tour dans le contexte global
   useEffect(() => {
-    if (tourCompleted && !showTour) {
+    if (!showTour) {
       setTourHandler(handleRestartTour);
     } else {
       setTourHandler(null);
     }
-  }, [tourCompleted, showTour, handleRestartTour, setTourHandler]);
+  }, [showTour, handleRestartTour, setTourHandler]);
 
   return (
     <div className="flex min-h-screen bg-gray-50">

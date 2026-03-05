@@ -255,7 +255,7 @@ function SidebarInner() {
   const [menuOpen, setMenuOpen] = useState(false);
   
   // Help menu hook for tour and tips
-  const { onRestartTour, onRestartPageTips, showTourOption, showTipsOption } = useHelpMenu();
+  const { onRestartTour, onRestartPageTips } = useHelpMenu();
 
   useEffect(() => {
     setInMySpace(pathname.startsWith('/dashboard/my-space'));
@@ -710,6 +710,20 @@ function SidebarInner() {
                     <HelpCircle className="w-4 h-4 mr-2" />
                     Aide & Support
                   </Link>
+                  <button
+                    onClick={() => { onRestartTour?.(); setMenuOpen(false); }}
+                    className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Guide de l&apos;application
+                  </button>
+                  <button
+                    onClick={() => { onRestartPageTips?.(); setMenuOpen(false); }}
+                    className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                  >
+                    <Lightbulb className="w-4 h-4 mr-2" />
+                    Astuces de la page
+                  </button>
                   <button 
                     onClick={handleLogout} 
                     className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
@@ -740,6 +754,20 @@ function SidebarInner() {
                     <HelpCircle className="w-4 h-4 mr-2" />
                     Aide & Support
                   </Link>
+                  <button
+                    onClick={() => { onRestartTour?.(); setMenuOpen(false); }}
+                    className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Guide de l&apos;application
+                  </button>
+                  <button
+                    onClick={() => { onRestartPageTips?.(); setMenuOpen(false); }}
+                    className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                  >
+                    <Lightbulb className="w-4 h-4 mr-2" />
+                    Astuces de la page
+                  </button>
                   <button 
                     onClick={handleLogout} 
                     className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
@@ -839,30 +867,26 @@ function SidebarInner() {
                   <HelpCircle className="w-4 h-4 mr-2" />
                   Aide & Support
                 </Link>
-                {showTourOption && (
-                  <button
-                    onClick={() => {
-                      onRestartTour?.();
-                      setMenuOpen(false);
-                    }}
-                    className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Guide de l&apos;application
-                  </button>
-                )}
-                {showTipsOption && (
-                  <button
-                    onClick={() => {
-                      onRestartPageTips?.();
-                      setMenuOpen(false);
-                    }}
-                    className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-                  >
-                    <Lightbulb className="w-4 h-4 mr-2" />
-                    Astuces de la page
-                  </button>
-                )}
+                <button
+                  onClick={() => {
+                    onRestartTour?.();
+                    setMenuOpen(false);
+                  }}
+                  className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Guide de l&apos;application
+                </button>
+                <button
+                  onClick={() => {
+                    onRestartPageTips?.();
+                    setMenuOpen(false);
+                  }}
+                  className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                >
+                  <Lightbulb className="w-4 h-4 mr-2" />
+                  Astuces de la page
+                </button>
                 <button 
                   onClick={handleLogout} 
                   className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
@@ -893,30 +917,26 @@ function SidebarInner() {
                   <HelpCircle className="w-4 h-4 mr-2" />
                   Aide & Support
                 </Link>
-                {showTourOption && (
-                  <button
-                    onClick={() => {
-                      onRestartTour?.();
-                      setMenuOpen(false);
-                    }}
-                    className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Guide de l&apos;application
-                  </button>
-                )}
-                {showTipsOption && (
-                  <button
-                    onClick={() => {
-                      onRestartPageTips?.();
-                      setMenuOpen(false);
-                    }}
-                    className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-                  >
-                    <Lightbulb className="w-4 h-4 mr-2" />
-                    Astuces de la page
-                  </button>
-                )}
+                <button
+                  onClick={() => {
+                    onRestartTour?.();
+                    setMenuOpen(false);
+                  }}
+                  className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Guide de l&apos;application
+                </button>
+                <button
+                  onClick={() => {
+                    onRestartPageTips?.();
+                    setMenuOpen(false);
+                  }}
+                  className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                >
+                  <Lightbulb className="w-4 h-4 mr-2" />
+                  Astuces de la page
+                </button>
                 <button 
                   onClick={handleLogout} 
                   className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"

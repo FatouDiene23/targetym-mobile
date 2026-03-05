@@ -47,19 +47,15 @@ export function usePageTour(pageId: string) {
     setIsFirstVisit(true);
   }, [pageId]);
 
-  // Enregistrer le handler de reset dans le contexte global (sauf si les tips sont déjà affichées)
+  // Enregistrer le handler de reset dans le contexte global (toujours disponible)
   useEffect(() => {
-    if (!showTips) {
-      setPageTipsHandler(resetTips);
-    } else {
-      setPageTipsHandler(null);
-    }
+    setPageTipsHandler(resetTips);
     
     // Cleanup: retirer le handler quand le composant est démonté
     return () => {
       setPageTipsHandler(null);
     };
-  }, [showTips, resetTips, setPageTipsHandler]);
+  }, [resetTips, setPageTipsHandler]);
 
   return {
     showTips,

@@ -1397,10 +1397,12 @@ export default function PeopleAnalyticsPage() {
             <AreaChart data={salaireEvolution}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatXOF(v)} />
-              <Tooltip formatter={(v: number) => [`${formatXOF(v)} XOF`, ""]} />
+              <YAxis yAxisId="left" tick={{ fontSize: 11 }} tickFormatter={(v) => formatXOF(v)} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} tickFormatter={(v) => formatXOF(v)} />
+              <Tooltip formatter={(v: number, name: string) => [`${formatXOF(v)} XOF`, name]} />
               <Legend />
               <Area
+                yAxisId="left"
                 type="monotone"
                 dataKey="masse_salariale"
                 name="Masse salariale"
@@ -1409,6 +1411,7 @@ export default function PeopleAnalyticsPage() {
                 strokeWidth={2}
               />
               <Area
+                yAxisId="right"
                 type="monotone"
                 dataKey="salaire_moyen"
                 name="Salaire moyen"

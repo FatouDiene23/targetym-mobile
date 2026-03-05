@@ -61,6 +61,31 @@ export default function HelpAdminPage() {
     }
   };
 
+  const deleteCategory = async (id: number) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ? Tous les articles associés seront également supprimés.')) return;
+
+    try {
+      const res = await fetch(`${API_URL}/api/help/admin/categories/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${getToken()}`
+        }
+      });
+
+      if (res.ok) {
+        loadCategories();
+        loadArticles(); // Recharger les articles car certains ont peut-être été supprimés
+        alert('Catégorie supprimée avec succès');
+      } else {
+        const data = await res.json();
+        alert('Erreur: ' + (data.detail || 'Impossible de supprimer la catégorie'));
+      }
+    } catch (err) {
+      console.error('Erreur suppression:', err);
+      alert('Erreur lors de la suppression');
+    }
+  };
+
   const loadArticles = async () => {
     try {
       setLoading(true);
@@ -394,8 +419,16 @@ export default function HelpAdminPage() {
                     <button 
                       onClick={() => handleEditCategory(category)}
                       className="text-blue-600 hover:text-blue-900"
+                      title="Modifier"
                     >
                       <Edit className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => deleteCategory(category.id)}
+                      className="text-red-600 hover:text-red-900"
+                      title="Supprimer"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>

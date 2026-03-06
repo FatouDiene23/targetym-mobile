@@ -2,11 +2,12 @@
 
 import Header from '@/components/Header';
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { 
+import {
   Building2,
-  Bell, 
-  Shield, 
+  Bell,
+  Shield,
   Link2,
   Users,
   CreditCard,
@@ -18,12 +19,16 @@ import {
   Loader2,
   Image as ImageIcon,
   Stamp,
-  PenTool
+  PenTool,
+  RefreshCw,
+  Unplug,
+  ExternalLink
 } from 'lucide-react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { settingsTips } from '@/config/pageTips';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { getIntegrations, connectIntegration, disconnectIntegration, syncIntegration, type Integration } from '@/lib/api';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app';
 
@@ -35,14 +40,17 @@ function getAuthHeaders(): HeadersInit {
   };
 }
 
-const integrations = [
-  { id: 'slack', name: 'Slack', description: 'Notifications et alertes', connected: true, icon: '💬' },
-  { id: 'teams', name: 'Microsoft Teams', description: 'Communication d\'équipe', connected: false, icon: '👥' },
-  { id: 'asana', name: 'Asana', description: 'Gestion de projets', connected: true, icon: '📋' },
-  { id: 'notion', name: 'Notion', description: 'Documentation', connected: false, icon: '📝' },
-  { id: 'zoho', name: 'Zoho CRM', description: 'Gestion clients', connected: false, icon: '🎯' },
-  { id: 'google', name: 'Google Workspace', description: 'Suite Google', connected: true, icon: '🔷' },
-];
+const PROVIDER_COLORS: Record<string, string> = {
+  teams: 'bg-[#6264A7]',
+  asana: 'bg-[#F06A6A]',
+  google: 'bg-[#4285F4]',
+};
+
+const PROVIDER_LETTERS: Record<string, string> = {
+  teams: 'T',
+  asana: 'A',
+  google: 'G',
+};
 
 // Types
 interface TenantData {
@@ -121,9 +129,43 @@ export default function SettingsPage() {
   const [loadingNotifPrefs, setLoadingNotifPrefs] = useState(false);
   const [savingNotifPrefs, setSavingNotifPrefs] = useState(false);
 
+  // États pour les intégrations
+  const [integrationsList, setIntegrationsList] = useState<Integration[]>([]);
+  const [loadingIntegrations, setLoadingIntegrations] = useState(false);
+  const [syncingProvider, setSyncingProvider] = useState<string | null>(null);
+  const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
+  const [disconnectingProvider, setDisconnectingProvider] = useState<string | null>(null);
+
+  // URL params (for OAuth callback redirects)
+  const searchParams = useSearchParams();
+
   // ============================================
   // CHARGEMENT DES DONNÉES
   // ============================================
+
+  // Handle URL params from OAuth callbacks
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab) setActiveTab(tab);
+
+    const connected = searchParams.get('connected');
+    const error = searchParams.get('error');
+
+    // If we're in a popup (OAuth redirect), close and let parent refresh
+    if ((connected || error) && window.opener) {
+      window.close();
+      return;
+    }
+
+    if (connected) {
+      toast.success(`${connected.charAt(0).toUpperCase() + connected.slice(1)} connecté avec succès !`);
+      window.history.replaceState({}, '', '/dashboard/settings?tab=integrations');
+    }
+    if (error) {
+      toast.error(`Erreur de connexion ${error}`);
+      window.history.replaceState({}, '', '/dashboard/settings?tab=integrations');
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     loadUserAndTenant();
@@ -281,6 +323,68 @@ export default function SettingsPage() {
     setNotifPrefs(prev => prev.map(p => p.key === key ? { ...p, enabled: !p.enabled } : p));
   };
 
+  // ============================================
+  // INTÉGRATIONS
+  // ============================================
+
+  const loadIntegrations = useCallback(async () => {
+    setLoadingIntegrations(true);
+    try {
+      const data = await getIntegrations();
+      setIntegrationsList(data);
+    } catch (error) {
+      console.error('Erreur chargement intégrations:', error);
+    } finally {
+      setLoadingIntegrations(false);
+    }
+  }, []);
+
+  const handleConnect = async (provider: string) => {
+    setConnectingProvider(provider);
+    try {
+      const { auth_url } = await connectIntegration(provider);
+      // Open OAuth in popup
+      const popup = window.open(auth_url, 'oauth', 'width=600,height=700,scrollbars=yes');
+      // Poll for popup close and refresh
+      const interval = setInterval(() => {
+        if (popup && popup.closed) {
+          clearInterval(interval);
+          setConnectingProvider(null);
+          loadIntegrations();
+        }
+      }, 500);
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Erreur de connexion');
+      setConnectingProvider(null);
+    }
+  };
+
+  const handleDisconnect = async (provider: string) => {
+    setDisconnectingProvider(provider);
+    try {
+      await disconnectIntegration(provider);
+      toast.success('Intégration déconnectée');
+      loadIntegrations();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Erreur');
+    } finally {
+      setDisconnectingProvider(null);
+    }
+  };
+
+  const handleSync = async (provider: string) => {
+    setSyncingProvider(provider);
+    try {
+      await syncIntegration(provider);
+      toast.success('Synchronisation réussie');
+      loadIntegrations();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Erreur de synchronisation');
+    } finally {
+      setSyncingProvider(null);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'certificates') {
       loadCertificateSettings();
@@ -291,7 +395,10 @@ export default function SettingsPage() {
     if (activeTab === 'security') {
       loadSecuritySettings();
     }
-  }, [activeTab, loadCertificateSettings, loadNotifPreferences, loadSecuritySettings]);
+    if (activeTab === 'integrations') {
+      loadIntegrations();
+    }
+  }, [activeTab, loadCertificateSettings, loadNotifPreferences, loadSecuritySettings, loadIntegrations]);
 
   const saveCertificateSettings = async () => {
     setSavingCertSettings(true);
@@ -815,27 +922,98 @@ export default function SettingsPage() {
             {activeTab === 'integrations' && (
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100" data-tour="integrations">
                 <h3 className="text-lg font-semibold text-gray-900 mb-6">Intégrations</h3>
-                
-                <div className="grid md:grid-cols-2 gap-4">
-                  {integrations.map((integration) => (
-                    <div key={integration.id} className="border border-gray-200 rounded-xl p-5">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center">
-                          <span className="text-2xl mr-3">{integration.icon}</span>
-                          <div>
+
+                {loadingIntegrations ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {integrationsList.map((integration) => (
+                      <div key={integration.id} className="border border-gray-200 rounded-xl p-5">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg ${PROVIDER_COLORS[integration.id] || 'bg-gray-400'}`}>
+                            {PROVIDER_LETTERS[integration.id] || integration.name[0]}
+                          </div>
+                          <div className="flex-1">
                             <h4 className="font-semibold text-gray-900">{integration.name}</h4>
                             <p className="text-sm text-gray-500">{integration.description}</p>
                           </div>
+                          {integration.connected && (
+                            <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                              <Check className="w-3 h-3" /> Connecté
+                            </span>
+                          )}
                         </div>
+
+                        {/* Features */}
+                        <ul className="mb-4 space-y-1">
+                          {integration.features.map((feature, i) => (
+                            <li key={i} className="text-xs text-gray-500 flex items-center gap-1.5">
+                              <span className="w-1 h-1 rounded-full bg-gray-300" />
+                              {feature}
+                            </li>
+                          ))}
+                        </ul>
+
+                        {/* Connected info */}
+                        {integration.connected && (
+                          <div className="mb-3 p-2.5 bg-gray-50 rounded-lg text-xs text-gray-500 space-y-1">
+                            {integration.connected_at && (
+                              <p>Connecté le {new Date(integration.connected_at).toLocaleDateString('fr-FR')}</p>
+                            )}
+                            {integration.last_synced_at && (
+                              <p>Dernière sync : {new Date(integration.last_synced_at).toLocaleDateString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
+                            )}
+                            {integration.last_sync_status && (
+                              <p>Statut : <span className={integration.last_sync_status === 'success' ? 'text-green-600' : 'text-red-500'}>{integration.last_sync_status === 'success' ? 'OK' : 'Erreur'}</span></p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        {integration.connected ? (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleSync(integration.id)}
+                              disabled={syncingProvider === integration.id}
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-lg bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors disabled:opacity-50"
+                            >
+                              <RefreshCw className={`w-3.5 h-3.5 ${syncingProvider === integration.id ? 'animate-spin' : ''}`} />
+                              Synchroniser
+                            </button>
+                            <button
+                              onClick={() => setConfirmDialog({
+                                isOpen: true,
+                                title: 'Déconnecter l\'intégration',
+                                message: `Voulez-vous vraiment déconnecter ${integration.name} ? Tous les employés perdront l'accès à cette intégration.`,
+                                onConfirm: () => { handleDisconnect(integration.id); setConfirmDialog(null); },
+                                danger: true,
+                              })}
+                              disabled={disconnectingProvider === integration.id}
+                              className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                            >
+                              {disconnectingProvider === integration.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unplug className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleConnect(integration.id)}
+                            disabled={connectingProvider === integration.id}
+                            className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50"
+                          >
+                            {connectingProvider === integration.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <ExternalLink className="w-4 h-4" />
+                            )}
+                            Connecter
+                          </button>
+                        )}
                       </div>
-                      <button className={`w-full py-2 text-sm font-medium rounded-lg transition-colors ${
-                        integration.connected ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}>
-                        {integration.connected ? '✓ Connecté' : 'Connecter'}
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

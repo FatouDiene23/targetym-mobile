@@ -1786,3 +1786,60 @@ export async function verify2FAAuthenticated(code: string): Promise<{ success: b
   }
   return response.json();
 }
+
+
+// ============================================
+// INTEGRATIONS
+// ============================================
+
+export interface Integration {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  features: string[];
+  connected: boolean;
+  connected_at: string | null;
+  last_synced_at: string | null;
+  last_sync_status: string | null;
+}
+
+export async function getIntegrations(): Promise<Integration[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/integrations/`);
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+  return response.json();
+}
+
+export async function connectIntegration(provider: string): Promise<{ auth_url: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/integrations/${provider}/connect`);
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+  return response.json();
+}
+
+export async function disconnectIntegration(provider: string): Promise<{ success: boolean; message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/integrations/${provider}/disconnect`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+  return response.json();
+}
+
+export async function syncIntegration(provider: string): Promise<{ success: boolean; result: Record<string, unknown> }> {
+  const response = await fetchWithAuth(`${API_URL}/api/integrations/${provider}/sync`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+  return response.json();
+}

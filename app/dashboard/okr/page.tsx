@@ -965,21 +965,33 @@ export default function OKRPage() {
         // RH/Admin/DG voient tous les employés
         setAssignableEmployees(empData);
       } else if (userEmployeeId) {
-        // Manager: charger ses direct-reports
+        // Manager: charger lui-même + ses direct-reports
         try {
+          // Trouver le manager dans empData, sinon le fetch directement
+          let currentEmployee = empData.find((e: Employee) => e.id === userEmployeeId);
+          if (!currentEmployee) {
+            try {
+              const meRes = await fetch(`${API_URL}/api/employees/${userEmployeeId}`, { headers: getAuthHeaders() });
+              if (meRes.ok) {
+                const meData = await meRes.json();
+                currentEmployee = { id: meData.id, first_name: meData.first_name, last_name: meData.last_name, department_id: meData.department_id };
+              }
+            } catch { /* ignore */ }
+          }
+
+          const allAssignable: Employee[] = [];
+          if (currentEmployee) {
+            allAssignable.push(currentEmployee);
+          }
+
+          // Charger les direct-reports
           const directReportsRes = await fetch(`${API_URL}/api/employees/${userEmployeeId}/direct-reports`, {
             headers: getAuthHeaders(),
           });
           if (directReportsRes.ok) {
-            const directReports: Employee[] = await directReportsRes.json();
-            // Ajouter le manager lui-même à la liste (il peut s'assigner des objectifs)
-            const currentEmployee = empData.find((e: Employee) => e.id === userEmployeeId);
-            const allAssignable: Employee[] = [];
-            if (currentEmployee) {
-              allAssignable.push(currentEmployee);
-            }
-            // Les direct-reports peuvent avoir un format enrichi, extraire les champs nécessaires
-            for (const dr of directReports) {
+            const directReports = await directReportsRes.json();
+            const drArray = Array.isArray(directReports) ? directReports : [];
+            for (const dr of drArray) {
               allAssignable.push({
                 id: dr.id,
                 first_name: dr.first_name,
@@ -987,17 +999,12 @@ export default function OKRPage() {
                 department_id: dr.department_id,
               });
             }
-            setAssignableEmployees(allAssignable);
-            console.log('Direct reports loaded:', directReports.length);
-          } else {
-            // Fallback: seulement lui-même
-            const currentEmployee = empData.find((e: Employee) => e.id === userEmployeeId);
-            setAssignableEmployees(currentEmployee ? [currentEmployee] : []);
+            console.log('Direct reports loaded:', drArray.length);
           }
+
+          setAssignableEmployees(allAssignable);
         } catch (e) {
-          console.error('Error fetching direct reports:', e);
-          const currentEmployee = empData.find((e: Employee) => e.id === userEmployeeId);
-          setAssignableEmployees(currentEmployee ? [currentEmployee] : []);
+          console.error('Error fetching assignable employees:', e);
         }
       }
     } catch (error) {

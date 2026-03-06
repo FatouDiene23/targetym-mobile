@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Calendar, Clock, MapPin, X, Loader2, AlertCircle, Search,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Video
 } from 'lucide-react';
 import PerformanceStats from '../components/PerformanceStats';
 import Header from '@/components/Header';
@@ -357,9 +357,20 @@ export default function OneOnOnePage() {
                   <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
                     <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatDateTime(meeting.scheduled_date)}</span>
                     <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{meeting.duration_minutes} min</span>
-                    {meeting.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{meeting.location}</span>}
+                    {meeting.location && !meeting.location.startsWith('http') && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{meeting.location}</span>}
                   </div>
                 </div>
+                {meeting.location && meeting.location.startsWith('http') && meeting.status === 'scheduled' && (
+                  <a
+                    href={meeting.location}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#6264A7] text-white text-xs font-medium rounded-lg hover:bg-[#525399] transition-colors shrink-0"
+                  >
+                    <Video className="w-3.5 h-3.5" />
+                    Rejoindre
+                  </a>
+                )}
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(meeting.status)}`}>{getStatusLabel(meeting.status)}</span>
               </div>
               {meeting.topics && meeting.topics.length > 0 && (

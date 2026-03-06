@@ -50,6 +50,200 @@ const PROVIDER_LETTERS: Record<string, string> = {
   google: 'G',
 };
 
+// ============================================
+// COMPOSANT : Intégration IntoWork
+// ============================================
+function IntoWorkIntegrationSection() {
+  const [status, setStatus] = useState<{ linked: boolean; intowork_company_id?: number; linked_at?: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isLinking, setIsLinking] = useState(false);
+  const [isUnlinking, setIsUnlinking] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [companyId, setCompanyId] = useState('');
+  const [intoworkApiKey, setIntoworkApiKey] = useState('');
+  const [targetymKey, setTargetymKey] = useState('');
+  const [targetymKeyPreview, setTargetymKeyPreview] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`${API_URL}/api/integrations/intowork/status`, { headers: getAuthHeaders() }).then(r => r.json()),
+      fetch(`${API_URL}/api/integrations/intowork/api-key`, { headers: getAuthHeaders() }).then(r => r.json()),
+    ])
+      .then(([statusData, keyData]) => {
+        setStatus(statusData);
+        if (keyData.has_key) setTargetymKeyPreview(keyData.api_key_preview);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleGenerateKey = async () => {
+    setIsGenerating(true);
+    try {
+      const r = await fetch(`${API_URL}/api/integrations/intowork/api-key/generate`, {
+        method: 'POST', headers: getAuthHeaders(),
+      });
+      if (!r.ok) throw new Error();
+      const data = await r.json();
+      setTargetymKey(data.api_key);
+      setTargetymKeyPreview(data.api_key.slice(0, 8) + '****');
+      toast.success('Clé générée — copiez-la dans IntoWork');
+    } catch {
+      toast.error('Erreur lors de la génération');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCopy = () => {
+    if (!targetymKey) return;
+    navigator.clipboard.writeText(targetymKey);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleLink = async () => {
+    if (!companyId || !intoworkApiKey) { toast.error('Veuillez remplir tous les champs'); return; }
+    setIsLinking(true);
+    try {
+      const r = await fetch(`${API_URL}/api/integrations/intowork/link`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ intowork_company_id: parseInt(companyId), intowork_api_key: intoworkApiKey }),
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
+      const data = await r.json();
+      setStatus({ linked: true, intowork_company_id: data.intowork_company_id, linked_at: data.linked_at });
+      toast.success('✅ Compte IntoWork lié avec succès !');
+      setCompanyId(''); setIntoworkApiKey('');
+    } catch (e: any) {
+      toast.error(e.message || 'Erreur de liaison');
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
+  const handleUnlink = async () => {
+    if (!confirm('Confirmer la suppression de la liaison avec IntoWork ?')) return;
+    setIsUnlinking(true);
+    try {
+      const r = await fetch(`${API_URL}/api/integrations/intowork/unlink`, {
+        method: 'DELETE', headers: getAuthHeaders(),
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
+      setStatus({ linked: false });
+      toast.success('Liaison IntoWork supprimée');
+    } catch (e: any) {
+      toast.error(e.message || 'Erreur');
+    } finally {
+      setIsUnlinking(false);
+    }
+  };
+
+  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 text-primary-500 animate-spin" /></div>;
+
+  return (
+    <div className="rounded-xl border-2 border-primary-100 overflow-hidden">
+      <div className="flex items-center justify-between p-5 bg-gradient-to-r from-primary-50 to-white">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-primary-100 flex items-center justify-center">
+            <span className="text-2xl">🔗</span>
+          </div>
+          <div>
+            <h4 className="font-semibold text-gray-900 text-base">IntoWork Search</h4>
+            <p className="text-xs text-gray-500">Plateforme de recrutement B2B2C</p>
+          </div>
+        </div>
+        {status?.linked ? (
+          <span className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+            <Check className="w-3.5 h-3.5" /> Liés
+          </span>
+        ) : (
+          <span className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">
+            Non lié
+          </span>
+        )}
+      </div>
+      <div className="p-5 space-y-5">
+        {status?.linked ? (
+          <>
+            <div className="p-4 bg-green-50 rounded-xl border border-green-200 text-sm text-gray-700 space-y-1">
+              <p><span className="text-gray-500">Company IntoWork :</span> <span className="font-medium">#{status.intowork_company_id}</span></p>
+              <p><span className="text-gray-500">Lié le :</span> <span className="font-medium">{status.linked_at ? new Date(status.linked_at).toLocaleDateString('fr-FR') : '—'}</span></p>
+            </div>
+            <div className="space-y-2">
+              {['Candidats embauchés → Employés créés automatiquement', 'Postes ouverts synchronisés vers IntoWork'].map((f, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm text-gray-700">
+                  <div className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                    <Check className="w-2.5 h-2.5 text-green-600" />
+                  </div>
+                  {f}
+                </div>
+              ))}
+            </div>
+            <button onClick={handleUnlink} disabled={isUnlinking} className="w-full py-2 text-sm font-medium rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition-colors disabled:opacity-50">
+              {isUnlinking ? 'Suppression...' : 'Délier IntoWork'}
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-primary-500 text-white text-xs flex items-center justify-center font-bold flex-shrink-0">1</span>
+                <p className="text-sm font-medium text-gray-800">Générez votre clé API Targetym</p>
+              </div>
+              <p className="text-xs text-gray-500 ml-7">Copiez cette clé et collez-la dans IntoWork (Dashboard → Intégrations → Targetym).</p>
+              {targetymKey ? (
+                <div className="ml-7 flex items-center gap-2">
+                  <code className="flex-1 px-3 py-2 bg-gray-800 text-green-400 rounded-lg text-xs font-mono truncate">{targetymKey}</code>
+                  <button onClick={handleCopy} className="px-3 py-2 text-xs font-medium rounded-lg bg-primary-100 text-primary-700 hover:bg-primary-200 transition-colors flex items-center gap-1 flex-shrink-0">
+                    {copied ? <><Check className="w-3.5 h-3.5" />Copié !</> : 'Copier'}
+                  </button>
+                </div>
+              ) : targetymKeyPreview ? (
+                <div className="ml-7 flex items-center gap-2 text-xs text-gray-500">
+                  <code className="px-3 py-1.5 bg-gray-100 rounded-lg font-mono">{targetymKeyPreview}</code>
+                  <span>— Régénérez si besoin</span>
+                </div>
+              ) : null}
+              <div className="ml-7">
+                <button onClick={handleGenerateKey} disabled={isGenerating} className="px-4 py-2 text-sm font-medium rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors disabled:opacity-50 flex items-center gap-2">
+                  {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin" />Génération...</> : targetymKeyPreview ? '🔄 Régénérer la clé' : '⚡ Générer la clé API'}
+                </button>
+              </div>
+            </div>
+            <div className="border-t border-gray-100" />
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-primary-500 text-white text-xs flex items-center justify-center font-bold flex-shrink-0">2</span>
+                <p className="text-sm font-medium text-gray-800">Entrez les informations IntoWork</p>
+              </div>
+              <p className="text-xs text-gray-500 ml-7">Récupérez votre ID Company et votre clé API depuis IntoWork → Intégrations → Targetym.</p>
+              <div className="ml-7 grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">ID Company IntoWork</label>
+                  <input type="number" value={companyId} onChange={(e) => setCompanyId(e.target.value)} placeholder="ex: 12" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Clé API IntoWork</label>
+                  <input type="text" value={intoworkApiKey} onChange={(e) => setIntoworkApiKey(e.target.value)} placeholder="iw_..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none font-mono" />
+                </div>
+              </div>
+              <div className="ml-7">
+                <button onClick={handleLink} disabled={isLinking || !companyId || !intoworkApiKey || !targetymKeyPreview} className="px-4 py-2.5 text-sm font-medium rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                  {isLinking ? <><Loader2 className="w-4 h-4 animate-spin" />Liaison...</> : <><Link2 className="w-4 h-4" />Lier les comptes</>}
+                </button>
+                {!targetymKeyPreview && <p className="text-xs text-amber-600 mt-1">⚠ Générez d'abord la clé API (étape 1)</p>}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Types
 interface TenantData {
   id: number;
@@ -917,99 +1111,78 @@ export default function SettingsPage() {
             {/* ============================== */}
             {activeTab === 'integrations' && (
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100" data-tour="integrations">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">Intégrations</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Intégrations</h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Connectez Targetym à vos autres outils pour automatiser vos flux RH.
+                </p>
 
-                {loadingIntegrations ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                  </div>
-                ) : (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {integrationsList.map((integration) => (
-                      <div key={integration.id} className="border border-gray-200 rounded-xl p-5">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg ${PROVIDER_COLORS[integration.id] || 'bg-gray-400'}`}>
-                            {PROVIDER_LETTERS[integration.id] || integration.name[0]}
+                {/* ── IntoWork ───────────────────────────────── */}
+                <IntoWorkIntegrationSection />
+
+                {/* ── Autres intégrations (Teams, Asana, Google...) ── */}
+                <div className="mt-8 pt-6 border-t border-gray-100">
+                  <p className="text-sm font-medium text-gray-700 mb-4">Autres intégrations</p>
+                  {loadingIntegrations ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                    </div>
+                  ) : (
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {integrationsList.map((integration) => (
+                        <div key={integration.id} className="border border-gray-200 rounded-xl p-5">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg ${PROVIDER_COLORS[integration.id] || 'bg-gray-400'}`}>
+                              {PROVIDER_LETTERS[integration.id] || integration.name[0]}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900">{integration.name}</h4>
+                              <p className="text-sm text-gray-500">{integration.description}</p>
+                            </div>
+                            {integration.connected && (
+                              <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                                <Check className="w-3 h-3" /> Connecté
+                              </span>
+                            )}
                           </div>
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-gray-900">{integration.name}</h4>
-                            <p className="text-sm text-gray-500">{integration.description}</p>
-                          </div>
-                          {integration.connected && (
-                            <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                              <Check className="w-3 h-3" /> Connecté
-                            </span>
+                          {integration.connected ? (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleSync(integration.id)}
+                                disabled={syncingProvider === integration.id}
+                                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-lg bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors disabled:opacity-50"
+                              >
+                                <RefreshCw className={`w-3.5 h-3.5 ${syncingProvider === integration.id ? 'animate-spin' : ''}`} />
+                                Synchroniser
+                              </button>
+                              <button
+                                onClick={() => setConfirmDialog({
+                                  isOpen: true,
+                                  title: "Déconnecter l'intégration",
+                                  message: `Voulez-vous vraiment déconnecter ${integration.name} ?`,
+                                  onConfirm: () => { handleDisconnect(integration.id); setConfirmDialog(null); },
+                                  danger: true,
+                                })}
+                                disabled={disconnectingProvider === integration.id}
+                                className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                              >
+                                {disconnectingProvider === integration.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unplug className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleConnect(integration.id)}
+                              disabled={connectingProvider === integration.id}
+                              className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50"
+                            >
+                              {connectingProvider === integration.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
+                              Connecter
+                            </button>
                           )}
                         </div>
-
-                        {/* Features */}
-                        <ul className="mb-4 space-y-1">
-                          {integration.features.map((feature, i) => (
-                            <li key={i} className="text-xs text-gray-500 flex items-center gap-1.5">
-                              <span className="w-1 h-1 rounded-full bg-gray-300" />
-                              {feature}
-                            </li>
-                          ))}
-                        </ul>
-
-                        {/* Connected info */}
-                        {integration.connected && (
-                          <div className="mb-3 p-2.5 bg-gray-50 rounded-lg text-xs text-gray-500 space-y-1">
-                            {integration.connected_at && (
-                              <p>Connecté le {new Date(integration.connected_at).toLocaleDateString('fr-FR')}</p>
-                            )}
-                            {integration.last_synced_at && (
-                              <p>Dernière sync : {new Date(integration.last_synced_at).toLocaleDateString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
-                            )}
-                            {integration.last_sync_status && (
-                              <p>Statut : <span className={integration.last_sync_status === 'success' ? 'text-green-600' : 'text-red-500'}>{integration.last_sync_status === 'success' ? 'OK' : 'Erreur'}</span></p>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Actions */}
-                        {integration.connected ? (
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleSync(integration.id)}
-                              disabled={syncingProvider === integration.id}
-                              className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-lg bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors disabled:opacity-50"
-                            >
-                              <RefreshCw className={`w-3.5 h-3.5 ${syncingProvider === integration.id ? 'animate-spin' : ''}`} />
-                              Synchroniser
-                            </button>
-                            <button
-                              onClick={() => setConfirmDialog({
-                                isOpen: true,
-                                title: 'Déconnecter l\'intégration',
-                                message: `Voulez-vous vraiment déconnecter ${integration.name} ? Tous les employés perdront l'accès à cette intégration.`,
-                                onConfirm: () => { handleDisconnect(integration.id); setConfirmDialog(null); },
-                                danger: true,
-                              })}
-                              disabled={disconnectingProvider === integration.id}
-                              className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
-                            >
-                              {disconnectingProvider === integration.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unplug className="w-3.5 h-3.5" />}
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => handleConnect(integration.id)}
-                            disabled={connectingProvider === integration.id}
-                            className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50"
-                          >
-                            {connectingProvider === integration.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <ExternalLink className="w-4 h-4" />
-                            )}
-                            Connecter
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

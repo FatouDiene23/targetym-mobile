@@ -234,10 +234,12 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
   const canAdd = ['admin', 'rh', 'manager', 'dg'].includes(userRole);
 
-  // Charger le count non lu au mount + polling toutes les 30s
+  // Charger le count non lu au mount + polling toutes les 60s (pause si onglet inactif)
   useEffect(() => {
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchUnreadCount();
+    }, 60000);
     return () => clearInterval(interval);
   }, []);
 

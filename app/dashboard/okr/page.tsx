@@ -105,35 +105,55 @@ function getAuthHeaders(): HeadersInit {
 }
 
 async function fetchObjectives(params?: { level?: string; status?: string; period?: string }): Promise<{ items: Objective[]; total: number }> {
-  const queryParams = new URLSearchParams();
-  queryParams.set('page_size', '100');
-  if (params?.level && params.level !== 'all') queryParams.set('level', params.level);
-  if (params?.status && params.status !== 'all') queryParams.set('status', params.status);
-  if (params?.period && params.period !== 'all') queryParams.set('period', params.period);
-  
-  const response = await fetch(`${API_URL}/api/okr/objectives?${queryParams}`, { headers: getAuthHeaders() });
-  if (!response.ok) throw new Error('Erreur lors du chargement des objectifs');
-  return response.json();
+  try {
+    const queryParams = new URLSearchParams();
+    queryParams.set('page_size', '100');
+    if (params?.level && params.level !== 'all') queryParams.set('level', params.level);
+    if (params?.status && params.status !== 'all') queryParams.set('status', params.status);
+    if (params?.period && params.period !== 'all') queryParams.set('period', params.period);
+
+    const response = await fetch(`${API_URL}/api/okr/objectives?${queryParams}`, { headers: getAuthHeaders() });
+    if (!response.ok) throw new Error('Erreur lors du chargement des objectifs');
+    return response.json();
+  } catch (e) {
+    console.error('fetchObjectives error:', e);
+    return { items: [], total: 0 };
+  }
 }
 
 async function fetchOKRStats(): Promise<OKRStats> {
-  const response = await fetch(`${API_URL}/api/okr/stats`, { headers: getAuthHeaders() });
-  if (!response.ok) throw new Error('Erreur lors du chargement des stats');
-  return response.json();
+  try {
+    const response = await fetch(`${API_URL}/api/okr/stats`, { headers: getAuthHeaders() });
+    if (!response.ok) throw new Error('Erreur lors du chargement des stats');
+    return response.json();
+  } catch (e) {
+    console.error('fetchOKRStats error:', e);
+    return { total: 0, by_level: {}, by_status: {}, avg_progress: 0, completed: 0, in_progress: 0, not_started: 0, overdue: 0, by_department: {} };
+  }
 }
 
 async function fetchDepartments(): Promise<Department[]> {
-  const response = await fetch(`${API_URL}/api/departments/`, { headers: getAuthHeaders() });
-  if (!response.ok) return [];
-  const data = await response.json();
-  return Array.isArray(data) ? data : data.items || [];
+  try {
+    const response = await fetch(`${API_URL}/api/departments/`, { headers: getAuthHeaders() });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? data : data.items || [];
+  } catch (e) {
+    console.error('fetchDepartments error:', e);
+    return [];
+  }
 }
 
 async function fetchEmployees(): Promise<Employee[]> {
-  const response = await fetch(`${API_URL}/api/employees/?page_size=100`, { headers: getAuthHeaders() });
-  if (!response.ok) return [];
-  const data = await response.json();
-  return data.items || [];
+  try {
+    const response = await fetch(`${API_URL}/api/employees/?page_size=100`, { headers: getAuthHeaders() });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.items || [];
+  } catch (e) {
+    console.error('fetchEmployees error:', e);
+    return [];
+  }
 }
 
 async function createObjective(data: Partial<Objective>): Promise<Objective> {

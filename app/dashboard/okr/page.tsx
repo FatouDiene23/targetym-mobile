@@ -823,6 +823,8 @@ export default function OKRPage() {
 
   // Employees for assignment (filtered based on role)
   const [assignableEmployees, setAssignableEmployees] = useState<Employee[]>([]);
+  // All higher-level objectives for parent alignment dropdown
+  const [parentCandidates, setParentCandidates] = useState<Objective[]>([]);
 
   // Load user data on mount
   useEffect(() => {
@@ -954,7 +956,10 @@ export default function OKRPage() {
       setObjectives(filteredObjectives.map(o => ({ ...o, expanded: false })));
       setStats(statsData);
       setDepartments(deptData);
-      
+
+      // Stocker tous les objectifs enterprise/department comme candidats parent (pour le dropdown alignement)
+      setParentCandidates(objData.items.filter(o => o.level === 'enterprise' || o.level === 'department'));
+
       // Charger les employés assignables selon le rôle
       if (canSeeAll) {
         // RH/Admin/DG voient tous les employés
@@ -966,14 +971,23 @@ export default function OKRPage() {
             headers: getAuthHeaders(),
           });
           if (directReportsRes.ok) {
-            const directReports = await directReportsRes.json();
+            const directReports: Employee[] = await directReportsRes.json();
             // Ajouter le manager lui-même à la liste (il peut s'assigner des objectifs)
             const currentEmployee = empData.find((e: Employee) => e.id === userEmployeeId);
+            const allAssignable: Employee[] = [];
             if (currentEmployee) {
-              setAssignableEmployees([currentEmployee, ...directReports]);
-            } else {
-              setAssignableEmployees(directReports);
+              allAssignable.push(currentEmployee);
             }
+            // Les direct-reports peuvent avoir un format enrichi, extraire les champs nécessaires
+            for (const dr of directReports) {
+              allAssignable.push({
+                id: dr.id,
+                first_name: dr.first_name,
+                last_name: dr.last_name,
+                department_id: dr.department_id,
+              });
+            }
+            setAssignableEmployees(allAssignable);
             console.log('Direct reports loaded:', directReports.length);
           } else {
             // Fallback: seulement lui-même
@@ -1594,7 +1608,7 @@ export default function OKRPage() {
         objective={editingObjective}
         departments={canSeeAll ? departments : departments.filter(d => d.id === userDepartmentId)}
         employees={assignableEmployees}
-        parentObjectives={objectives}
+        parentObjectives={parentCandidates}
         canCreateEnterprise={canSeeAll}
         userDepartmentId={userDepartmentId}
         canSeeAll={canSeeAll}

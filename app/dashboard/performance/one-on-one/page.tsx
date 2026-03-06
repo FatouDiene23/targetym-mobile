@@ -37,6 +37,7 @@ interface Employee {
 interface CurrentUser {
   id: number;
   role: string;
+  employee_id?: number;
 }
 
 // =============================================
@@ -75,9 +76,11 @@ async function fetchOneOnOnes(): Promise<OneOnOne[]> {
   }
 }
 
-async function fetchEmployees(): Promise<Employee[]> {
+async function fetchEmployees(managerId?: number): Promise<Employee[]> {
   try {
-    const response = await fetch(`${API_URL}/api/employees/?page_size=200&status=active`, { headers: getAuthHeaders() });
+    let url = `${API_URL}/api/employees/?page_size=200&status=active`;
+    if (managerId) url += `&manager_id=${managerId}`;
+    const response = await fetch(url, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error('API error');
     const data = await response.json();
     return data.items || [];
@@ -286,7 +289,10 @@ export default function OneOnOnePage() {
     setLoading(true);
     const user = await fetchCurrentUser();
     if (user) setUserRole(user.role?.toLowerCase() || 'employee');
-    const [oneOnOnesData, employeesData] = await Promise.all([fetchOneOnOnes(), fetchEmployees()]);
+    const role = user?.role?.toLowerCase() || 'employee';
+    // Managers: ne charger que leurs N-1
+    const managerId = role === 'manager' ? user?.employee_id : undefined;
+    const [oneOnOnesData, employeesData] = await Promise.all([fetchOneOnOnes(), fetchEmployees(managerId)]);
     setOneOnOnes(oneOnOnesData);
     setEmployees(employeesData);
     setLoading(false);

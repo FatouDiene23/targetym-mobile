@@ -194,12 +194,16 @@ function canUserEditEvaluation(evaluation: Evaluation, userRole: UserRole, curre
   return false;
 }
 
-function canUserValidateEvaluation(evaluation: Evaluation, userRole: UserRole): boolean {
+function canUserValidateEvaluation(evaluation: Evaluation, userRole: UserRole, currentEmployeeId?: number): boolean {
   // Les évaluations annulées ne peuvent pas être validées
   if (evaluation.status === 'cancelled') return false;
-  
+
   if (evaluation.status === 'submitted') {
-    if (userRole === 'manager' || userRole === 'rh' || userRole === 'admin' || userRole === 'dg') return true;
+    // Un manager ne peut valider que les évaluations de ses N-1 (pas les siennes)
+    if (userRole === 'manager') {
+      return evaluation.employee_id !== currentEmployeeId;
+    }
+    if (userRole === 'rh' || userRole === 'admin' || userRole === 'dg') return true;
   }
   return false;
 }
@@ -402,7 +406,7 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
   }
 
   const canEdit = canUserEditEvaluation(evaluation, userRole, currentEmployeeId);
-  const canValidate = canUserValidateEvaluation(evaluation, userRole);
+  const canValidate = canUserValidateEvaluation(evaluation, userRole, currentEmployeeId);
   const isEmployeeEditing = evaluation.type === 'self' && evaluation.employee_id === currentEmployeeId && (evaluation.status === 'pending' || evaluation.status === 'in_progress');
   const isManagerReviewing = canValidate || (canEdit && !isEmployeeEditing);
 
@@ -626,7 +630,7 @@ export default function EvaluationsPage() {
         <div className="space-y-3">
           {paginatedEvaluations.length > 0 ? paginatedEvaluations.map(evaluation => {
             const canEdit = canUserEditEvaluation(evaluation, userRole, currentUser?.employee_id);
-            const canValidate = canUserValidateEvaluation(evaluation, userRole);
+            const canValidate = canUserValidateEvaluation(evaluation, userRole, currentUser?.employee_id);
             const isCancelled = evaluation.status === 'cancelled';
             
             return (

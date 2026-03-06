@@ -1742,3 +1742,47 @@ export async function deletePlatformUser(userId: number): Promise<{ message: str
 
   return response.json();
 }
+
+
+// ============================================
+// 2FA STATUS
+// ============================================
+
+export async function check2FAStatus(): Promise<{
+  require_2fa: boolean;
+  totp_enabled: boolean;
+  needs_setup: boolean;
+}> {
+  const response = await fetchWithAuth(`${API_URL}/api/auth/2fa-status`);
+  if (!response.ok) {
+    throw new Error('Erreur lors de la vérification 2FA');
+  }
+  return response.json();
+}
+
+export async function setup2FAAuthenticated(): Promise<{
+  secret: string;
+  provisioning_uri: string;
+  qr_code_base64: string;
+}> {
+  const response = await fetchWithAuth(`${API_URL}/api/auth/2fa/setup-authenticated`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+  return response.json();
+}
+
+export async function verify2FAAuthenticated(code: string): Promise<{ success: boolean; totp_enabled: boolean }> {
+  const response = await fetchWithAuth(`${API_URL}/api/auth/2fa/verify-authenticated`, {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  });
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+  return response.json();
+}

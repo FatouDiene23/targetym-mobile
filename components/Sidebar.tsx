@@ -134,7 +134,7 @@ const navigation: NavItem[] = [
     name: 'People Analytics', 
     href: '/dashboard/analytics', 
     icon: BarChart3,
-    roles: ['manager', 'rh', 'admin', 'dg'],
+    roles: ['rh', 'admin', 'dg'],
     dataTour: 'sidebar-analytics'
   },
   { 

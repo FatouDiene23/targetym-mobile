@@ -9,8 +9,6 @@ import {
   Bell,
   Shield,
   Link2,
-  Users,
-  CreditCard,
   Save,
   Check,
   FileText,
@@ -547,8 +545,6 @@ export default function SettingsPage() {
     { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'security', name: 'Sécurité', icon: Shield },
     { id: 'integrations', name: 'Intégrations', icon: Link2 },
-    { id: 'team', name: 'Équipe', icon: Users },
-    { id: 'billing', name: 'Facturation', icon: CreditCard },
   ];
 
   if (loading) {
@@ -1020,38 +1016,6 @@ export default function SettingsPage() {
             {/* ============================== */}
             {/* ONGLET: ÉQUIPE                 */}
             {/* ============================== */}
-            {activeTab === 'team' && (
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">Gestion de l&apos;Équipe</h3>
-                  <button className="px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
-                    + Inviter un membre
-                  </button>
-                </div>
-                <p className="text-sm text-gray-500">La gestion de l&apos;équipe se fait depuis le module Gestion du Personnel.</p>
-              </div>
-            )}
-
-            {/* ============================== */}
-            {/* ONGLET: FACTURATION            */}
-            {/* ============================== */}
-            {activeTab === 'billing' && (
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">Facturation</h3>
-                
-                <div className="p-6 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-xl text-white mb-6">
-                  <p className="text-primary-100 text-sm">Plan actuel</p>
-                  <h4 className="text-2xl font-bold mt-1 capitalize">{tenantData?.plan || 'Trial'}</h4>
-                  <p className="text-primary-100 mt-2">
-                    Jusqu&apos;à {tenantData?.max_employees || 10} employés
-                    {tenantData?.is_trial && ' • Période d\'essai'}
-                  </p>
-                  <button className="mt-4 px-4 py-2 bg-white text-primary-600 text-sm font-medium rounded-lg hover:bg-gray-100">
-                    Changer de plan
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </main>

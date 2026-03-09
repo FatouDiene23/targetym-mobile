@@ -64,6 +64,18 @@ function IntoWorkIntegrationSection() {
   const [targetymKey, setTargetymKey] = useState('');
   const [targetymKeyPreview, setTargetymKeyPreview] = useState('');
   const [copied, setCopied] = useState(false);
+  const [myTenantId, setMyTenantId] = useState<number | null>(null);
+
+  // Décoder le tenant_id depuis le JWT stocké en localStorage
+  useEffect(() => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.tenant_id) setMyTenantId(payload.tenant_id);
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -152,6 +164,13 @@ function IntoWorkIntegrationSection() {
           </div>
           <div>
             <h4 className="font-semibold text-gray-900 text-base">IntoWork Search</h4>
+                  {myTenantId && (
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="text-xs text-gray-500">Votre Tenant ID Targetym :</span>
+                      <span className="font-mono font-bold text-primary-700 bg-primary-50 px-2 py-0.5 rounded text-sm select-all">#{myTenantId}</span>
+                      <span className="text-xs text-gray-400">(à donner au RH IntoWork)</span>
+                    </div>
+                  )}
             <p className="text-xs text-gray-500">Plateforme de recrutement B2B2C</p>
           </div>
         </div>

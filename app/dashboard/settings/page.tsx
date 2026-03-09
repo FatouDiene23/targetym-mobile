@@ -58,6 +58,7 @@ function IntoWorkIntegrationSection() {
   const [loading, setLoading] = useState(true);
   const [isLinking, setIsLinking] = useState(false);
   const [isUnlinking, setIsUnlinking] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [companyId, setCompanyId] = useState('');
   const [intoworkApiKey, setIntoworkApiKey] = useState('');
@@ -143,6 +144,28 @@ function IntoWorkIntegrationSection() {
     }
   };
 
+  const handleSyncJobs = async () => {
+    setIsSyncing(true);
+    try {
+      const r = await fetch(`${API_URL}/api/integrations/intowork/sync-jobs`, {
+        method: 'POST', headers: getAuthHeaders(),
+      });
+      if (!r.ok) throw new Error((await r.json()).detail || 'Erreur');
+      const data = await r.json();
+      if (data.synced === 0 && data.total === 0) {
+        toast('Aucun poste actif à synchroniser', { icon: 'ℹ️' });
+      } else if (data.failed > 0) {
+        toast.error(`${data.synced} synchronisé(s), ${data.failed} échec(s)`);
+      } else {
+        toast.success(`✅ ${data.synced} poste(s) synchronisé(s) vers IntoWork`);
+      }
+    } catch (e: any) {
+      toast.error(e.message || 'Erreur de synchronisation');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleUnlink = async () => {
     if (!confirm('Confirmer la suppression de la liaison avec IntoWork ?')) return;
     setIsUnlinking(true);
@@ -208,6 +231,9 @@ function IntoWorkIntegrationSection() {
                 </div>
               ))}
             </div>
+            <button onClick={handleSyncJobs} disabled={isSyncing} className="w-full py-2 text-sm font-medium rounded-lg bg-primary-50 text-primary-700 hover:bg-primary-100 border border-primary-200 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+              {isSyncing ? <><Loader2 className="w-4 h-4 animate-spin" />Synchronisation...</> : <><RefreshCw className="w-4 h-4" />Synchroniser les offres maintenant</>}
+            </button>
             <button onClick={handleUnlink} disabled={isUnlinking} className="w-full py-2 text-sm font-medium rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition-colors disabled:opacity-50">
               {isUnlinking ? 'Suppression...' : 'Délier IntoWork'}
             </button>

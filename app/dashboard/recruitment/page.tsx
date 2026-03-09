@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 import { 
   UserPlus, Briefcase, Users, Clock, Mail, Phone, MapPin, Plus, XCircle,
   FileText, Linkedin, GraduationCap, Building2, TrendingUp, Edit,
-  ArrowRight, MessageSquare, Video, Search, X, Check, Loader2, Calendar, Trash2
+  ArrowRight, MessageSquare, Video, Search, X, Check, Loader2, Calendar, Trash2, RefreshCw
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -232,6 +232,13 @@ async function closeJob(id: number): Promise<boolean> {
   } catch { return false; }
 }
 
+async function deleteJob(id: number): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/api/recruitment/jobs/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    return res.ok;
+  } catch { return false; }
+}
+
 async function createCandidate(data: { first_name: string; last_name: string; email: string; phone?: string; location?: string; linkedin_url?: string; current_company?: string; experience_years?: number; education?: string; skills?: string[]; expected_salary?: number; notice_period?: string; source?: string; job_posting_id?: number; }): Promise<boolean> {
   try {
     const res = await fetch(`${API_URL}/api/recruitment/candidates`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
@@ -438,6 +445,19 @@ export default function RecruitmentPage() {
 
   const handlePublishJob = async (jobId: number) => { const success = await publishJob(jobId); if (success) loadData(); else toast.error('Erreur lors de la publication'); };
   const handleCloseJob = async (jobId: number) => { const success = await closeJob(jobId); if (success) loadData(); else toast.error('Erreur lors de la fermeture'); };
+  const handleDeleteJob = async (jobId: number) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Supprimer l\'offre',
+      message: 'Êtes-vous sûr de vouloir supprimer cette offre d\'emploi ? Cette action est irréversible.',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        const success = await deleteJob(jobId);
+        if (success) { loadData(); toast.success('Offre supprimée'); } else toast.error('Erreur lors de la suppression');
+      },
+    });
+  };
 
   const handleDeleteInterview = async (interviewId: number) => {
     setConfirmDialog({
@@ -653,9 +673,11 @@ export default function RecruitmentPage() {
                     <div className="text-center"><p className="text-2xl font-bold text-gray-900">{job.applicants_count}</p><p className="text-xs text-gray-500">Candidats</p></div>
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${job.status === 'active' ? 'bg-green-100 text-green-700' : job.status === 'closed' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>{job.status === 'active' ? 'Active' : job.status === 'closed' ? 'Fermée' : 'Brouillon'}</span>
                     <div className="flex gap-2">
-                      <button onClick={() => { setEditingJob(job); setShowJobModal(true); }} className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg"><Edit className="w-4 h-4" /></button>
+                      <button onClick={() => { setEditingJob(job); setShowJobModal(true); }} className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="Modifier"><Edit className="w-4 h-4" /></button>
                       {job.status === 'draft' && (<button onClick={() => handlePublishJob(job.id)} className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg" title="Publier"><Check className="w-4 h-4" /></button>)}
                       {job.status === 'active' && (<button onClick={() => handleCloseJob(job.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Fermer"><XCircle className="w-4 h-4" /></button>)}
+                      {job.status === 'closed' && (<button onClick={() => handlePublishJob(job.id)} className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg" title="Republier"><RefreshCw className="w-4 h-4" /></button>)}
+                      {(job.status === 'draft' || job.status === 'closed') && (<button onClick={() => handleDeleteJob(job.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Supprimer"><Trash2 className="w-4 h-4" /></button>)}
                     </div>
                   </div>
                 </div>

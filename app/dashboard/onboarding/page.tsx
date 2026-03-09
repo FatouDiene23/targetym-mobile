@@ -466,6 +466,8 @@ export default function OnboardingPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<AssignmentDetail | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showAddDropdown, setShowAddDropdown] = useState(false);
+  const addDropdownRef = useRef<HTMLDivElement>(null);
   const [suiviFilter, setSuiviFilter] = useState('all');
 
   // Get to Know
@@ -510,12 +512,24 @@ export default function OnboardingPage() {
     if (activeTab === 'get_to_know') fetchGTK();
   }, [activeTab, suiviFilter, gtkFilter]);
 
-  // Écouter l'event du header "+Ajouter"
+  // Écouter l'event du header "+Ajouter" → ouvrir le dropdown
   useEffect(() => {
-    const handler = () => setShowAssignModal(true);
+    const handler = () => setShowAddDropdown(prev => !prev);
     window.addEventListener('onboarding-add', handler);
     return () => window.removeEventListener('onboarding-add', handler);
   }, []);
+
+  // Fermer le dropdown si clic en dehors
+  useEffect(() => {
+    if (!showAddDropdown) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (addDropdownRef.current && !addDropdownRef.current.contains(e.target as Node)) {
+        setShowAddDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showAddDropdown]);
 
   const fetchDashboard = async () => {
     setLoading(true);
@@ -859,9 +873,9 @@ export default function OnboardingPage() {
                 placeholder="Rechercher..." className="pl-9 pr-4 py-2 border rounded-lg text-sm w-56" />
             </div>
             {isHR && (
-              <button onClick={() => setShowAssignModal(true)}
+              <button onClick={() => setShowAddDropdown(!showAddDropdown)}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
-                <UserPlus size={16} /> Assigner
+                <Plus size={16} /> Ajouter <ChevronDown size={14} />
               </button>
             )}
           </div>
@@ -1568,6 +1582,20 @@ export default function OnboardingPage() {
       )}
       
       <Header title="Onboarding" subtitle="Gestion de l'intégration des nouveaux collaborateurs" />
+
+      {/* Dropdown flottant déclenché par le bouton Header "+" */}
+      {showAddDropdown && (
+        <div ref={addDropdownRef} className="fixed top-16 right-6 w-56 bg-white rounded-xl shadow-lg border border-gray-200 z-50 py-1">
+          <button onClick={() => { setShowAddDropdown(false); setEditingProgram(null); setShowProgramModal(true); }}
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
+            <ClipboardList size={16} className="text-blue-500" /> Créer un programme
+          </button>
+          <button onClick={() => { setShowAddDropdown(false); setShowAssignModal(true); }}
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
+            <UserPlus size={16} className="text-green-500" /> Assigner un programme
+          </button>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
 

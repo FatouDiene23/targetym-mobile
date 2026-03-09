@@ -66,15 +66,22 @@ function IntoWorkIntegrationSection() {
   const [copied, setCopied] = useState(false);
   const [myTenantId, setMyTenantId] = useState<number | null>(null);
 
-  // Décoder le tenant_id depuis le JWT stocké en localStorage
+  // Récupérer le tenant_id via l'API (plus fiable que le décodage JWT)
   useEffect(() => {
-    try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-      if (token) {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.tenant_id) setMyTenantId(payload.tenant_id);
-      }
-    } catch {}
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    if (!token) return;
+    fetch(`${API_URL}/api/auth/tenant-settings`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.id) setMyTenantId(data.id); })
+      .catch(() => {
+        // Fallback : décoder le JWT
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          if (payload.tenant_id) setMyTenantId(payload.tenant_id);
+        } catch {}
+      });
   }, []);
 
   useEffect(() => {

@@ -274,6 +274,12 @@ interface TenantData {
   is_trial: boolean;
   trial_ends_at?: string;
   max_employees: number;
+  currency: string;
+}
+
+interface CurrencyOption {
+  code: string;
+  label: string;
 }
 
 interface CertificateSettings {
@@ -300,7 +306,9 @@ export default function SettingsPage() {
     name: '',
     email: '',
     phone: '',
+    currency: 'XOF',
   });
+  const [currencies, setCurrencies] = useState<CurrencyOption[]>([]);
   
   const [savingTenant, setSavingTenant] = useState(false);
   const [savedTenant, setSavedTenant] = useState(false);
@@ -385,8 +393,11 @@ export default function SettingsPage() {
   async function loadUserAndTenant() {
     setLoading(true);
     try {
-      // Charger les paramètres tenant
-      const tenantRes = await fetch(`${API_URL}/api/auth/tenant-settings`, { headers: getAuthHeaders() });
+      // Charger les paramètres tenant + liste des devises
+      const [tenantRes, currenciesRes] = await Promise.all([
+        fetch(`${API_URL}/api/auth/tenant-settings`, { headers: getAuthHeaders() }),
+        fetch(`${API_URL}/api/currency/supported`),
+      ]);
       if (tenantRes.ok) {
         const tenant = await tenantRes.json();
         setTenantData(tenant);
@@ -394,7 +405,11 @@ export default function SettingsPage() {
           name: tenant.name || '',
           email: tenant.email || '',
           phone: tenant.phone || '',
+          currency: tenant.currency || 'XOF',
         });
+      }
+      if (currenciesRes.ok) {
+        setCurrencies(await currenciesRes.json());
       }
     } catch (error) {
       console.error('Erreur chargement données:', error);
@@ -846,6 +861,24 @@ export default function SettingsPage() {
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                       placeholder="+221 xx xxx xx xx"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Devise par défaut</label>
+                    <select
+                      value={tenantForm.currency}
+                      onChange={(e) => setTenantForm(prev => ({ ...prev, currency: e.target.value }))}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-white"
+                    >
+                      {currencies.length > 0 ? currencies.map(c => (
+                        <option key={c.code} value={c.code}>{c.code} — {c.label}</option>
+                      )) : (
+                        <option value={tenantForm.currency}>{tenantForm.currency}</option>
+                      )}
+                    </select>
+                    <p className="mt-1.5 text-xs text-gray-400">
+                      Cette devise sera utilisée pour les statistiques salariales. Les salaires dans d&apos;autres devises seront convertis automatiquement.
+                    </p>
                   </div>
 
                   {/* Infos en lecture seule */}

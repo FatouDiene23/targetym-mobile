@@ -74,6 +74,7 @@ interface Application {
   candidate_source: string | null;
   candidate_current_company: string | null;
   candidate_expected_salary: number | null;
+  salary_currency: string;
   candidate_notice_period: string | null;
   candidate_linkedin_url: string | null;
   job_title: string | null;
@@ -822,7 +823,7 @@ export default function RecruitmentPage() {
                     {selectedApplication.candidate_education && <div className="flex items-center text-sm"><GraduationCap className="w-4 h-4 mr-3 text-gray-400" />{selectedApplication.candidate_education}</div>}
                     {selectedApplication.candidate_experience && <div className="flex items-center text-sm"><Briefcase className="w-4 h-4 mr-3 text-gray-400" />{selectedApplication.candidate_experience} d&apos;expérience</div>}
                     {selectedApplication.candidate_current_company && <div className="flex items-center text-sm"><Building2 className="w-4 h-4 mr-3 text-gray-400" />{selectedApplication.candidate_current_company}</div>}
-                    {selectedApplication.candidate_expected_salary && <div className="flex items-center text-sm"><span className="w-4 h-4 mr-3 text-gray-400">💰</span>{selectedApplication.candidate_expected_salary.toLocaleString()} XOF</div>}
+                    {selectedApplication.candidate_expected_salary && <div className="flex items-center text-sm"><span className="w-4 h-4 mr-3 text-gray-400">💰</span>{selectedApplication.candidate_expected_salary.toLocaleString()} {selectedApplication.salary_currency || 'XOF'}</div>}
                     {selectedApplication.candidate_notice_period && <div className="flex items-center text-sm"><Clock className="w-4 h-4 mr-3 text-gray-400" />Préavis: {selectedApplication.candidate_notice_period}</div>}
                   </div>
                   
@@ -975,13 +976,18 @@ function JobModal({ job, departments, employees, onClose, onSave }: { job: Job |
 // ADD CANDIDATE MODAL COMPONENT
 // ============================================
 
-function AddCandidateModal({ jobs, onClose, onSave }: { jobs: Job[]; onClose: () => void; onSave: (data: { first_name: string; last_name: string; email: string; phone?: string; location?: string; linkedin_url?: string; current_company?: string; experience_years?: number; education?: string; skills?: string[]; expected_salary?: number; notice_period?: string; source?: string; job_posting_id?: number; }) => Promise<void>; }) {
+function AddCandidateModal({ jobs, onClose, onSave }: { jobs: Job[]; onClose: () => void; onSave: (data: { first_name: string; last_name: string; email: string; phone?: string; location?: string; linkedin_url?: string; current_company?: string; experience_years?: number; education?: string; skills?: string[]; expected_salary?: number; salary_currency?: string; notice_period?: string; source?: string; job_posting_id?: number; }) => Promise<void>; }) {
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({ first_name: '', last_name: '', email: '', phone: '', location: '', linkedin_url: '', current_company: '', experience_years: '', education: '', skills: '', expected_salary: '', notice_period: '', source: 'Autre', job_posting_id: '' });
+  const [formData, setFormData] = useState({ first_name: '', last_name: '', email: '', phone: '', location: '', linkedin_url: '', current_company: '', experience_years: '', education: '', skills: '', expected_salary: '', salary_currency: 'XOF', notice_period: '', source: 'Autre', job_posting_id: '' });
+  const [currencyOptions, setCurrencyOptions] = useState<{code: string; label: string}[]>([]);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/currency/supported`).then(r => r.json()).then(setCurrencyOptions).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true);
-    await onSave({ first_name: formData.first_name, last_name: formData.last_name, email: formData.email, phone: formData.phone || undefined, location: formData.location || undefined, linkedin_url: formData.linkedin_url || undefined, current_company: formData.current_company || undefined, experience_years: formData.experience_years ? parseInt(formData.experience_years) : undefined, education: formData.education || undefined, skills: formData.skills ? formData.skills.split(',').map(s => s.trim()).filter(s => s) : undefined, expected_salary: formData.expected_salary ? parseFloat(formData.expected_salary) : undefined, notice_period: formData.notice_period || undefined, source: formData.source, job_posting_id: formData.job_posting_id ? parseInt(formData.job_posting_id) : undefined });
+    await onSave({ first_name: formData.first_name, last_name: formData.last_name, email: formData.email, phone: formData.phone || undefined, location: formData.location || undefined, linkedin_url: formData.linkedin_url || undefined, current_company: formData.current_company || undefined, experience_years: formData.experience_years ? parseInt(formData.experience_years) : undefined, education: formData.education || undefined, skills: formData.skills ? formData.skills.split(',').map(s => s.trim()).filter(s => s) : undefined, expected_salary: formData.expected_salary ? parseFloat(formData.expected_salary) : undefined, salary_currency: formData.salary_currency || 'XOF', notice_period: formData.notice_period || undefined, source: formData.source, job_posting_id: formData.job_posting_id ? parseInt(formData.job_posting_id) : undefined });
     setSaving(false);
   };
 
@@ -1004,7 +1010,19 @@ function AddCandidateModal({ jobs, onClose, onSave }: { jobs: Job[]; onClose: ()
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Années d&apos;expérience</label><input type="number" min="0" value={formData.experience_years} onChange={(e) => setFormData({...formData, experience_years: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
             <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Formation</label><input type="text" value={formData.education} onChange={(e) => setFormData({...formData, education: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Master Informatique - Université XYZ" /></div>
             <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Compétences (séparées par virgule)</label><input type="text" value={formData.skills} onChange={(e) => setFormData({...formData, skills: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="React, Node.js, TypeScript, PostgreSQL" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">Salaire attendu (XOF)</label><input type="number" value={formData.expected_salary} onChange={(e) => setFormData({...formData, expected_salary: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="1500000" /></div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Salaire attendu</label>
+              <div className="flex gap-2">
+                <input type="number" value={formData.expected_salary} onChange={(e) => setFormData({...formData, expected_salary: e.target.value})} className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="1500000" />
+                <select value={formData.salary_currency} onChange={(e) => setFormData({...formData, salary_currency: e.target.value})} className="w-24 px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none bg-white text-sm">
+                  {currencyOptions.length > 0 ? currencyOptions.map(c => (
+                    <option key={c.code} value={c.code}>{c.code}</option>
+                  )) : (
+                    <option value="XOF">XOF</option>
+                  )}
+                </select>
+              </div>
+            </div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Préavis</label><input type="text" value={formData.notice_period} onChange={(e) => setFormData({...formData, notice_period: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="1 mois" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Source</label><select value={formData.source} onChange={(e) => setFormData({...formData, source: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"><option value="LinkedIn">LinkedIn</option><option value="Indeed">Indeed</option><option value="Site Carrière">Site Carrière</option><option value="Référence interne">Référence interne</option><option value="Cabinet">Cabinet</option><option value="Autre">Autre</option></select></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Poste visé</label><select value={formData.job_posting_id} onChange={(e) => setFormData({...formData, job_posting_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"><option value="">Sélectionner un poste...</option>{jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}</select></div>

@@ -173,7 +173,7 @@ const navigation: NavItem[] = [
     name: 'Paramètres', 
     href: '/dashboard/settings', 
     icon: Settings,
-    roles: ['admin', 'dg'],
+    roles: ['admin', 'dg', 'rh'],
     dataTour: 'sidebar-settings'
   },
 ];

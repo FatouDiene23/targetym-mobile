@@ -172,13 +172,14 @@ export interface Employee {
   status: string;
   contract_type?: string;
   salary?: number;
+  net_salary?: number;
   currency?: string;
   classification?: string;
   coefficient?: string;
   location?: string;
   site?: string;
   is_manager?: boolean;
-  role?: EmployeeRole; 
+  role?: EmployeeRole;
   nationality?: string;
   address?: string;
   created_at: string;
@@ -205,6 +206,7 @@ export interface EmployeeCreate {
   contract_type?: ContractType;
   site?: string;
   salary?: number | null;
+  net_salary?: number | null;
   currency?: string;
   classification?: string | null;
   coefficient?: string | null;

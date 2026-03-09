@@ -217,7 +217,10 @@ export function generateEmployeePDF(employee: Employee, companyName?: string): v
   
   row1Y += 15;
   drawField('Salaire brut', formatSalary(employee.salary, employee.currency), row1Y, col1);
-  drawField('Devise', employee.currency || 'XOF', row1Y, col2);
+  drawField('Salaire net', formatSalary(employee.net_salary, employee.currency), row1Y, col2);
+
+  row1Y += 15;
+  drawField('Devise', employee.currency || 'XOF', row1Y, col1);
 
   y = row1Y + 25;
 

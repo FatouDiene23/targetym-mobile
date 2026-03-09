@@ -91,6 +91,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
     contract_type: normalizeContractType(employee.contract_type),
     site: employee.location || employee.site || '',
     salary: employee.salary != null && employee.salary > 0 ? employee.salary.toString() : '',
+    net_salary: employee.net_salary != null && employee.net_salary > 0 ? employee.net_salary.toString() : '',
     currency: employee.currency || 'XOF',
     classification: employee.classification || '',
     coefficient: employee.coefficient || '',
@@ -166,6 +167,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
         contract_type: formData.contract_type,
         site: formData.site || undefined,
         salary: formData.salary ? parseFloat(formData.salary) : null,
+        net_salary: formData.net_salary ? parseFloat(formData.net_salary) : null,
         currency: formData.currency,
         classification: formData.classification || null,
         coefficient: formData.coefficient || null,
@@ -560,8 +562,8 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               <p className="text-xs text-gray-500 mt-1">Niveau dans la grille de la convention collective</p>
             </div>
 
-            {/* Salaire */}
-            <div className="col-span-2">
+            {/* Salaire brut */}
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Salaire brut mensuel</label>
               <div className="flex">
                 <input
@@ -580,15 +582,31 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                   onChange={handleChange}
                   className="px-3 py-2 border border-l-0 border-gray-300 rounded-r-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-gray-50"
                 >
-                  <option value="GNF">GNF - Franc guinéen</option>
-                  <option value="XOF">XOF - Franc CFA (UEMOA)</option>
-                  <option value="XAF">XAF - Franc CFA (CEMAC)</option>
-                  <option value="EUR">EUR - Euro</option>
-                  <option value="USD">USD - Dollar US</option>
-                  <option value="NGN">NGN - Naira nigérian</option>
-                  <option value="GHS">GHS - Cédi ghanéen</option>
+                  <option value="XAF">XAF</option>
+                  <option value="XOF">XOF</option>
+                  <option value="GHS">GHS</option>
+                  <option value="NGN">NGN</option>
+                  <option value="CDF">CDF</option>
+                  <option value="GNF">GNF</option>
+                  <option value="EUR">EUR</option>
+                  <option value="USD">USD</option>
                 </select>
               </div>
+            </div>
+
+            {/* Salaire net */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Salaire net mensuel</label>
+              <input
+                type="number"
+                name="net_salary"
+                value={formData.net_salary}
+                onChange={handleChange}
+                placeholder="Ex: 400000"
+                step="1000"
+                min="0"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
             </div>
           </div>
 

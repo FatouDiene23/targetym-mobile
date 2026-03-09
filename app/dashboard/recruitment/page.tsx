@@ -32,6 +32,7 @@ interface Job {
   salary_max: number | null;
   salary_currency: string;
   show_salary: boolean;
+  visibility: string;
   status: string;
   urgency: string;
   hiring_manager_id: number | null;
@@ -952,12 +953,12 @@ export default function RecruitmentPage() {
 function JobModal({ job, departments, employees, onClose, onSave }: { job: Job | null; departments: Department[]; employees: Employee[]; onClose: () => void; onSave: (data: Partial<Job>) => Promise<void>; }) {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    title: job?.title || '', department_id: job?.department_id?.toString() || '', location: job?.location || '', remote_policy: job?.remote_policy || 'onsite', contract_type: job?.contract_type || 'CDI', description: job?.description || '', requirements: job?.requirements?.join('\n') || '', salary_min: job?.salary_min?.toString() || '', salary_max: job?.salary_max?.toString() || '', show_salary: job?.show_salary || false, urgency: job?.urgency || 'medium', hiring_manager_id: job?.hiring_manager_id?.toString() || '', deadline: job?.deadline || ''
+    title: job?.title || '', department_id: job?.department_id?.toString() || '', location: job?.location || '', remote_policy: job?.remote_policy || 'onsite', contract_type: job?.contract_type || 'CDI', description: job?.description || '', requirements: job?.requirements?.join('\n') || '', salary_min: job?.salary_min?.toString() || '', salary_max: job?.salary_max?.toString() || '', show_salary: job?.show_salary || false, visibility: job?.visibility || 'internal', urgency: job?.urgency || 'medium', hiring_manager_id: job?.hiring_manager_id?.toString() || '', deadline: job?.deadline || ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true);
-    await onSave({ title: formData.title, department_id: formData.department_id ? parseInt(formData.department_id) : null, location: formData.location, remote_policy: formData.remote_policy, contract_type: formData.contract_type, description: formData.description || null, requirements: formData.requirements ? formData.requirements.split('\n').filter(r => r.trim()) : null, salary_min: formData.salary_min ? parseFloat(formData.salary_min) : null, salary_max: formData.salary_max ? parseFloat(formData.salary_max) : null, show_salary: formData.show_salary, urgency: formData.urgency, hiring_manager_id: formData.hiring_manager_id ? parseInt(formData.hiring_manager_id) : null, deadline: formData.deadline || null });
+    await onSave({ title: formData.title, department_id: formData.department_id ? parseInt(formData.department_id) : null, location: formData.location, remote_policy: formData.remote_policy, contract_type: formData.contract_type, description: formData.description || null, requirements: formData.requirements ? formData.requirements.split('\n').filter(r => r.trim()) : null, salary_min: formData.salary_min ? parseFloat(formData.salary_min) : null, salary_max: formData.salary_max ? parseFloat(formData.salary_max) : null, show_salary: formData.show_salary, visibility: formData.visibility, urgency: formData.urgency, hiring_manager_id: formData.hiring_manager_id ? parseInt(formData.hiring_manager_id) : null, deadline: formData.deadline || null });
     setSaving(false);
   };
 
@@ -981,6 +982,19 @@ function JobModal({ job, departments, employees, onClose, onSave }: { job: Job |
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Hiring Manager</label><select value={formData.hiring_manager_id} onChange={(e) => setFormData({...formData, hiring_manager_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"><option value="">Sélectionner...</option>{employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}</select></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Date limite</label><input type="date" value={formData.deadline} onChange={(e) => setFormData({...formData, deadline: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
             <div className="flex items-center"><input type="checkbox" id="show_salary" checked={formData.show_salary} onChange={(e) => setFormData({...formData, show_salary: e.target.checked})} className="mr-2" /><label htmlFor="show_salary" className="text-sm text-gray-700">Afficher le salaire</label></div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Type de diffusion</label>
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="visibility" value="internal" checked={formData.visibility === 'internal'} onChange={(e) => setFormData({...formData, visibility: e.target.value})} className="w-4 h-4 text-primary-500 focus:ring-primary-500" />
+                  <span className="text-sm text-gray-700">Offre interne</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="visibility" value="internal_external" checked={formData.visibility === 'internal_external'} onChange={(e) => setFormData({...formData, visibility: e.target.value})} className="w-4 h-4 text-primary-500 focus:ring-primary-500" />
+                  <span className="text-sm text-gray-700">Interne + Externe</span>
+                </label>
+              </div>
+            </div>
             <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea rows={4} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Description du poste..." /></div>
             <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Prérequis (un par ligne)</label><textarea rows={4} value={formData.requirements} onChange={(e) => setFormData({...formData, requirements: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="5+ ans d'expérience&#10;React/Node.js&#10;PostgreSQL" /></div>
           </div>

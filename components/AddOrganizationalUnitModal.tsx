@@ -121,7 +121,7 @@ export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOr
     try {
       const [deptData, empData] = await Promise.all([
         getDepartments(),
-        getEmployees({ page_size: 200 })
+        getEmployees({ page_size: 200, status: 'active' })
       ]);
       setDepartments(deptData || []);
       setEmployees(empData.items || []);

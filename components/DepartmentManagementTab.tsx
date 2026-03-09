@@ -62,7 +62,7 @@ export default function DepartmentManagementTab() {
     try {
       const [depts, empResponse] = await Promise.all([
         getDepartments(),
-        getEmployees({ page_size: 500 })
+        getEmployees({ page_size: 500, status: 'active' })
       ]);
       setDepartments(depts || []);
       setEmployees(empResponse.items || []);

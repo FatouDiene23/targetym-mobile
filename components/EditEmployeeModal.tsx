@@ -132,7 +132,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
       setDepartments(depts || []);
       
       // Charger les managers (employés avec is_manager = true, sauf l'employé actuel)
-      const empResponse = await getEmployees({ page_size: 500 });
+      const empResponse = await getEmployees({ page_size: 500, status: 'active' });
       const allManagers = (empResponse.items || []).filter(e => e.is_manager && e.id !== employee.id);
       setManagers(allManagers);
     } catch (err) {

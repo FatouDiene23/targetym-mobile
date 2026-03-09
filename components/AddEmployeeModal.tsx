@@ -91,7 +91,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
       const depts = await getDepartments();
       setDepartments(depts || []);
       
-      const empResponse = await getEmployees({ page_size: 500 });
+      const empResponse = await getEmployees({ page_size: 500, status: 'active' });
       const allManagers = (empResponse.items || []).filter(e => e.is_manager);
       setManagers(allManagers);
     } catch (err) {

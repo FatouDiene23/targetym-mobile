@@ -228,7 +228,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
 
   async function fetchEmployees() {
     try {
-      const res = await fetch(`${API_URL}/api/employees/?page=1&page_size=500`, { headers: getAuthHeaders() });
+      const res = await fetch(`${API_URL}/api/employees/?page=1&page_size=500&status=active`, { headers: getAuthHeaders() });
       if (res.ok) {
         const data = await res.json();
         setEmployees((data.items || []).map((e: any) => ({

@@ -195,7 +195,7 @@ async function fetchDepartments(): Promise<Department[]> {
 
 async function fetchEmployees(): Promise<Employee[]> {
   try {
-    const res = await fetch(`${API_URL}/api/employees/?page_size=200`, { headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/employees/?page_size=200&status=active`, { headers: getAuthHeaders() });
     if (!res.ok) return [];
     const data = await res.json();
     return data.items || [];

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Calendar, Clock, CheckCircle, Target, Users,
   ArrowRight, UserPlus, BarChart3,
@@ -933,7 +934,14 @@ function MyObjectivesProgressWidget({ objectives }: { objectives: MyObjectiveDat
 // MAIN DASHBOARD COMPONENT
 // ============================================
 
+function isPlatformAdminRole(role: string | undefined): boolean {
+  if (!role) return false;
+  const r = role.toLowerCase().replace(/[^a-z_]/g, '');
+  return ['super_admin', 'superadmin', 'superadmintech', 'platform_admin'].includes(r);
+}
+
 export default function DashboardPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<{ name: string; role: UserRole; isManager: boolean; employeeId: number | null }>({ name: '', role: 'employee', isManager: false, employeeId: null });
   const [leaveBalances, setLeaveBalances] = useState<LeaveBalanceSummary | null>(null);
@@ -1015,6 +1023,12 @@ export default function DashboardPage() {
       if (!user) {
         console.error('Impossible de récupérer les informations utilisateur');
         setLoading(false);
+        return;
+      }
+
+      // Redirectionfn vers platform-admin si rôle super admin
+      if (isPlatformAdminRole(user.role)) {
+        router.replace('/dashboard/platform-admin');
         return;
       }
 

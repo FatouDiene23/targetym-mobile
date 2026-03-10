@@ -68,8 +68,9 @@ export function useAppTour() {
       setTourCompleted(false);
       
       // Rediriger vers le bon dashboard selon le rôle
-      const normalized = userRole?.toLowerCase() || '';
-      const targetPath = normalized === 'super_admin' ? '/dashboard/platform-admin' : '/dashboard';
+      const normalized = (userRole?.toLowerCase() || '').replace(/[^a-z_]/g, '');
+      const isPlatformAdmin = ['super_admin', 'superadmin', 'superadmintech', 'platform_admin'].includes(normalized);
+      const targetPath = isPlatformAdmin ? '/dashboard/platform-admin' : '/dashboard';
       router.push(targetPath);
       
       // Laisser le temps à la page de charger avant de démarrer le tour

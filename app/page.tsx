@@ -13,6 +13,8 @@ export default function Home() {
     const refreshFromUrl = urlParams.get('refresh');
     const userFromUrl = urlParams.get('user');
 
+    let userRole = '';
+
     if (tokenFromUrl && userFromUrl) {
       // Stocker les tokens
       localStorage.setItem('access_token', tokenFromUrl);
@@ -20,14 +22,31 @@ export default function Home() {
         localStorage.setItem('refresh_token', refreshFromUrl);
       }
       try {
-        localStorage.setItem('user', decodeURIComponent(userFromUrl));
+        const decoded = decodeURIComponent(userFromUrl);
+        localStorage.setItem('user', decoded);
+        const parsed = JSON.parse(decoded);
+        userRole = parsed?.role || '';
       } catch (e) {
         console.error('Error decoding user:', e);
       }
+    } else {
+      // Récupérer le rôle depuis le localStorage si déjà connecté
+      try {
+        const stored = localStorage.getItem('user');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          userRole = parsed?.role || '';
+        }
+      } catch (e) {
+        // ignore
+      }
     }
 
-    // Rediriger vers le dashboard
-    router.replace('/dashboard');
+    // Rediriger vers le bon dashboard selon le rôle
+    const isPlatformAdmin = ['superadmin', 'super_admin', 'superadmintech', 'platform_admin'].includes(
+      userRole.toLowerCase().replace(/[^a-z_]/g, '')
+    );
+    router.replace(isPlatformAdmin ? '/dashboard/platform-admin' : '/dashboard');
   }, [router]);
 
   // Écran de chargement pendant la redirection

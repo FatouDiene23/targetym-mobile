@@ -2028,6 +2028,44 @@ export async function getGroupStats(groupId: number): Promise<GroupStatsResponse
   return response.json();
 }
 
+/** Contexte groupe de l'utilisateur courant */
+export interface MyGroupContext {
+  is_group: boolean;
+  group_type: 'standalone' | 'group' | 'subsidiary';
+  tenant_id: number;
+  tenant_name: string;
+  subsidiaries: SubsidiaryItem[];
+  parent_tenant_id?: number;
+  parent_tenant_name?: string;
+}
+
+export interface MyGroupStats {
+  group_id: number;
+  group_name: string;
+  total_employees: number;
+  total_subsidiaries: number;
+  pending_leaves: number;
+  subsidiaries_stats: Array<{
+    id: number;
+    name: string;
+    slug: string;
+    employee_count: number;
+    pending_leaves: number;
+  }>;
+}
+
+export async function getMyGroupContext(): Promise<MyGroupContext> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/groups/my-context`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getMyGroupStats(): Promise<MyGroupStats> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/groups/my-stats`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
 
 // ============================================
 // 2FA STATUS

@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import ImpersonationBanner from '@/components/ImpersonationBanner';
 import AppTour from '@/components/AppTour';
 import AIChatBox from '@/components/AIChatBox';
+import GroupContextSwitcher from '@/components/GroupContextSwitcher';
 import { getTourStepsByRole } from '@/components/AppTourSteps';
 import { useAppTour } from '@/hooks/useAppTour';
 import { HelpMenuProvider, useHelpMenu } from '@/hooks/useHelpMenu';
@@ -322,6 +323,8 @@ function DashboardContent({
       <ImpersonationBanner />
       <Sidebar />
       <main className="flex-1 overflow-auto">
+        {/* Bandeau contexte groupe — visible uniquement pour les tenants groupes */}
+        <GroupContextSwitcher />
         {children}
       </main>
 

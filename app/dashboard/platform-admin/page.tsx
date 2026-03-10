@@ -485,8 +485,17 @@ export default function PlatformAdminDashboard() {
                       <td className="px-4 py-3 text-xs text-gray-600">{log.target_user_email || '-'}</td>
                       <td className="px-4 py-3 text-xs text-gray-600">{log.target_tenant_name || '-'}</td>
                       <td className="px-4 py-3 text-xs text-gray-400 font-mono">{log.ip_address || '-'}</td>
-                      <td className="px-4 py-3 text-xs text-gray-500 max-w-xs truncate" title={JSON.stringify(log.action_detail)}>
-                        {log.action_detail ? JSON.stringify(log.action_detail).substring(0, 60) + '...' : '-'}
+                      <td className="px-4 py-3 text-xs text-gray-500 max-w-xs">
+                        {log.action_detail ? (
+                          <ul className="space-y-0.5">
+                            {Object.entries(log.action_detail).map(([k, v]) => (
+                              <li key={k} className="flex gap-1 flex-wrap">
+                                <span className="text-gray-400 capitalize">{k.replace(/_/g, ' ')} :</span>
+                                <span className="text-gray-700 font-medium truncate max-w-[140px]">{String(v)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : '-'}
                       </td>
                     </tr>
                   ))}

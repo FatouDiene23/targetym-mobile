@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Building2, Users, UserCheck, Activity, Shield, AlertCircle, CheckCircle2,
   Search, Edit2, Eye, LogIn, Clock, ChevronRight, X, Save, RotateCcw,
-  FileText, ExternalLink, Lock
+  FileText, ExternalLink, Lock, GitBranch, Plus, Unlink, Layers
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -12,8 +12,10 @@ import toast from 'react-hot-toast';
 import {
   getPlatformStats, getAllTenants, getTenantDetail, updatePlatformTenant,
   impersonateUser, getAuditLogs, platformSearch,
+  convertTenantToGroup, revertTenantToStandalone,
+  getSubsidiaries, addSubsidiary, detachSubsidiary,
   type PlatformStats, type TenantListItem, type TenantDetail,
-  type AuditLogItem, type SearchResult, type TenantUpdateData,
+  type AuditLogItem, type SearchResult, type TenantUpdateData, type SubsidiaryItem,
 } from '@/lib/api';
 
 type Tab = 'overview' | 'tenants' | 'users' | 'audit';
@@ -59,6 +61,14 @@ export default function PlatformAdminDashboard() {
 
   // Impersonation
   const [impersonating, setImpersonating] = useState<number | null>(null);
+
+  // Groupe / Filiales
+  const [subsidiaries, setSubsidiaries] = useState<SubsidiaryItem[]>([]);
+  const [subsidiariesLoading, setSubsidiariesLoading] = useState(false);
+  const [groupActionLoading, setGroupActionLoading] = useState(false);
+  const [showAddSubForm, setShowAddSubForm] = useState(false);
+  const [addSubMode, setAddSubMode] = useState<'attach' | 'create'>('attach');
+  const [addSubData, setAddSubData] = useState({ existing_tenant_slug: '', name: '', slug: '', email: '' });
 
   const getPlanBadgeClass = (plan: string) => {
     if (plan === 'enterprise') return 'bg-purple-100 text-purple-800';
@@ -130,12 +140,97 @@ export default function PlatformAdminDashboard() {
     try {
       const detail = await getTenantDetail(tenantId);
       setSelectedTenant(detail);
-      setTenantEditData({});
-      setEditingTenant(false);
       setTenantModalOpen(true);
+      setEditingTenant(false);
+      setShowAddSubForm(false);
+      setSubsidiaries([]);
+      // Charger les filiales si c'est un groupe
+      if (detail.is_group) {
+        loadSubsidiaries(tenantId);
+      }
     } catch (err) {
       console.error(err);
       toast.error('Erreur chargement tenant');
+    }
+  };
+
+  const loadSubsidiaries = async (groupId: number) => {
+    try {
+      setSubsidiariesLoading(true);
+      const subs = await getSubsidiaries(groupId);
+      setSubsidiaries(subs);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubsidiariesLoading(false);
+    }
+  };
+
+  const handleConvertToGroup = async () => {
+    if (!selectedTenant) return;
+    if (!confirm(`Convertir "${selectedTenant.name}" en groupe ? Il pourra ensuite avoir des filiales.`)) return;
+    try {
+      setGroupActionLoading(true);
+      await convertTenantToGroup(selectedTenant.id);
+      toast.success('Tenant converti en groupe !');
+      const updated = await getTenantDetail(selectedTenant.id);
+      setSelectedTenant(updated);
+      setTenants(prev => prev.map(t => t.id === updated.id ? { ...t, is_group: true, group_type: 'group' } : t));
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erreur');
+    } finally {
+      setGroupActionLoading(false);
+    }
+  };
+
+  const handleRevertToStandalone = async () => {
+    if (!selectedTenant) return;
+    if (!confirm(`Repasser "${selectedTenant.name}" en standalone ? (Aucune filiale ne doit être rattachée)`)) return;
+    try {
+      setGroupActionLoading(true);
+      await revertTenantToStandalone(selectedTenant.id);
+      toast.success('Tenant repassé en standalone');
+      const updated = await getTenantDetail(selectedTenant.id);
+      setSelectedTenant(updated);
+      setTenants(prev => prev.map(t => t.id === updated.id ? { ...t, is_group: false, group_type: 'standalone' } : t));
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erreur');
+    } finally {
+      setGroupActionLoading(false);
+    }
+  };
+
+  const handleAddSubsidiary = async () => {
+    if (!selectedTenant) return;
+    try {
+      setGroupActionLoading(true);
+      if (addSubMode === 'attach') {
+        if (!addSubData.existing_tenant_slug.trim()) { toast.error('Slug requis'); return; }
+        await addSubsidiary(selectedTenant.id, { existing_tenant_slug: addSubData.existing_tenant_slug.trim() });
+      } else {
+        if (!addSubData.name.trim() || !addSubData.slug.trim()) { toast.error('Nom et slug requis'); return; }
+        await addSubsidiary(selectedTenant.id, { name: addSubData.name.trim(), slug: addSubData.slug.trim(), email: addSubData.email.trim() || undefined });
+      }
+      toast.success('Filiale ajoutée !');
+      setShowAddSubForm(false);
+      setAddSubData({ existing_tenant_slug: '', name: '', slug: '', email: '' });
+      loadSubsidiaries(selectedTenant.id);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erreur');
+    } finally {
+      setGroupActionLoading(false);
+    }
+  };
+
+  const handleDetachSubsidiary = async (subsidiaryId: number, subsidiaryName: string) => {
+    if (!selectedTenant) return;
+    if (!confirm(`Détacher "${subsidiaryName}" du groupe ? Elle redeviendra standalone.`)) return;
+    try {
+      await detachSubsidiary(selectedTenant.id, subsidiaryId);
+      toast.success(`"${subsidiaryName}" détachée`);
+      loadSubsidiaries(selectedTenant.id);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erreur');
     }
   };
 
@@ -383,7 +478,11 @@ export default function PlatformAdminDashboard() {
                 ) : filteredTenants.map(tenant => (
                   <tr key={tenant.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
-                      <p className="font-semibold text-gray-900">{tenant.name}</p>
+                      <p className="font-semibold text-gray-900 flex items-center gap-1.5">
+                        {tenant.is_group && <span title="Groupe" className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium"><Layers className="w-3 h-3" /> Groupe</span>}
+                        {tenant.group_type === 'subsidiary' && <span title="Filiale" className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded text-xs font-medium"><GitBranch className="w-3 h-3" /> Filiale</span>}
+                        {tenant.name}
+                      </p>
                       <p className="text-xs text-gray-500">{tenant.email}</p>
                       <p className="text-xs text-gray-400">/{tenant.slug} · #{tenant.id}</p>
                     </td>
@@ -604,6 +703,133 @@ export default function PlatformAdminDashboard() {
                 )}
                 {selectedTenant.trial_ends_at && (
                   <p><span className="text-gray-500">Fin trial:</span> <span className="font-medium">{new Date(selectedTenant.trial_ends_at).toLocaleDateString('fr-FR')}</span></p>
+                )}
+              </div>
+
+              {/* ===== SECTION GROUPE / FILIALES ===== */}
+              <div className="border border-purple-200 rounded-xl p-4 bg-purple-50">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-semibold text-purple-800 flex items-center gap-2">
+                    <Layers className="w-4 h-4" /> Organisation Groupe
+                  </p>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    selectedTenant.is_group ? 'bg-purple-200 text-purple-800' :
+                    selectedTenant.group_type === 'subsidiary' ? 'bg-indigo-200 text-indigo-800' :
+                    'bg-gray-200 text-gray-600'
+                  }`}>
+                    {selectedTenant.is_group ? '🏢 Groupe' : selectedTenant.group_type === 'subsidiary' ? '🔗 Filiale' : '⬜ Standalone'}
+                  </span>
+                </div>
+
+                {/* Standalone → convertir en groupe */}
+                {selectedTenant.group_type !== 'subsidiary' && !selectedTenant.is_group && (
+                  <div>
+                    <p className="text-xs text-purple-700 mb-3">Cette entreprise est autonome. Vous pouvez la convertir en groupe pour lui rattacher des filiales.</p>
+                    <button onClick={handleConvertToGroup} disabled={groupActionLoading}
+                      className="px-3 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 flex items-center gap-2 disabled:opacity-50">
+                      <GitBranch className="w-4 h-4" /> {groupActionLoading ? 'En cours...' : 'Convertir en groupe'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Groupe → afficher filiales + actions */}
+                {selectedTenant.is_group && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-purple-700 font-medium">{subsidiaries.length} filiale(s) rattachée(s)</p>
+                      <div className="flex gap-2">
+                        <button onClick={() => setShowAddSubForm(v => !v)}
+                          className="px-2.5 py-1.5 bg-purple-600 text-white rounded-lg text-xs hover:bg-purple-700 flex items-center gap-1">
+                          <Plus className="w-3 h-3" /> Ajouter une filiale
+                        </button>
+                        {subsidiaries.length === 0 && (
+                          <button onClick={handleRevertToStandalone} disabled={groupActionLoading}
+                            className="px-2.5 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs hover:bg-gray-300 flex items-center gap-1 disabled:opacity-50">
+                            <RotateCcw className="w-3 h-3" /> Repasser standalone
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Formulaire ajout filiale */}
+                    {showAddSubForm && (
+                      <div className="bg-white border border-purple-200 rounded-lg p-3 space-y-2">
+                        <div className="flex gap-2 mb-2">
+                          <button onClick={() => setAddSubMode('attach')}
+                            className={`px-3 py-1 rounded text-xs font-medium ${addSubMode === 'attach' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                            Rattacher un tenant existant
+                          </button>
+                          <button onClick={() => setAddSubMode('create')}
+                            className={`px-3 py-1 rounded text-xs font-medium ${addSubMode === 'create' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                            Créer une nouvelle filiale
+                          </button>
+                        </div>
+                        {addSubMode === 'attach' ? (
+                          <input type="text" placeholder="Slug du tenant (ex: acme-paris)" value={addSubData.existing_tenant_slug}
+                            onChange={e => setAddSubData(p => ({ ...p, existing_tenant_slug: e.target.value }))}
+                            className="w-full px-3 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-purple-500" />
+                        ) : (
+                          <div className="space-y-2">
+                            <input type="text" placeholder="Nom de la filiale *" value={addSubData.name}
+                              onChange={e => setAddSubData(p => ({ ...p, name: e.target.value }))}
+                              className="w-full px-3 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-purple-500" />
+                            <input type="text" placeholder="Slug (ex: acme-marseille) *" value={addSubData.slug}
+                              onChange={e => setAddSubData(p => ({ ...p, slug: e.target.value }))}
+                              className="w-full px-3 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-purple-500" />
+                            <input type="email" placeholder="Email (optionnel)" value={addSubData.email}
+                              onChange={e => setAddSubData(p => ({ ...p, email: e.target.value }))}
+                              className="w-full px-3 py-1.5 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-purple-500" />
+                          </div>
+                        )}
+                        <div className="flex gap-2 pt-1">
+                          <button onClick={handleAddSubsidiary} disabled={groupActionLoading}
+                            className="px-3 py-1.5 bg-purple-600 text-white rounded text-xs hover:bg-purple-700 disabled:opacity-50">
+                            {groupActionLoading ? 'En cours...' : 'Confirmer'}
+                          </button>
+                          <button onClick={() => setShowAddSubForm(false)} className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded text-xs hover:bg-gray-200">Annuler</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Liste des filiales */}
+                    {subsidiariesLoading ? (
+                      <div className="flex justify-center py-3"><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600" /></div>
+                    ) : subsidiaries.length === 0 ? (
+                      <p className="text-xs text-purple-600 text-center py-3 italic">Aucune filiale rattachée pour l&apos;instant</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {subsidiaries.map(sub => (
+                          <div key={sub.id} className="flex items-center justify-between bg-white border border-purple-100 rounded-lg px-3 py-2">
+                            <div>
+                              <p className="text-sm font-medium text-gray-800">{sub.name}</p>
+                              <p className="text-xs text-gray-500">/{sub.slug} · {sub.employee_count} employés · <span className={sub.is_active ? 'text-green-600' : 'text-red-500'}>{sub.is_active ? 'Actif' : 'Inactif'}</span></p>
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={() => openTenantDetail(sub.id)} title="Voir détail"
+                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded">
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+                              <button onClick={() => handleDetachSubsidiary(sub.id, sub.name)} title="Détacher"
+                                className="p-1.5 text-red-400 hover:bg-red-50 rounded">
+                                <Unlink className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Filiale → info groupe parent */}
+                {selectedTenant.group_type === 'subsidiary' && selectedTenant.parent_tenant_id && (
+                  <div>
+                    <p className="text-xs text-indigo-700 mb-2">Cette entreprise est une filiale rattachée à un groupe.</p>
+                    <button onClick={() => selectedTenant.parent_tenant_id && openTenantDetail(selectedTenant.parent_tenant_id)}
+                      className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs hover:bg-indigo-700 flex items-center gap-2">
+                      <Layers className="w-3.5 h-3.5" /> Voir le groupe parent (#{selectedTenant.parent_tenant_id})
+                    </button>
+                  </div>
                 )}
               </div>
 

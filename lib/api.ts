@@ -1619,6 +1619,10 @@ export interface TenantListItem {
   created_at: string;
   users_count: number;
   employees_count: number;
+  // Groupe / Filiales
+  group_type?: 'standalone' | 'group' | 'subsidiary';
+  is_group?: boolean;
+  parent_tenant_id?: number;
 }
 
 export interface UserListItem {
@@ -1816,6 +1820,33 @@ export interface TenantDetail extends TenantListItem {
   trial_days_remaining: number;
 }
 
+export interface SubsidiaryItem {
+  id: number;
+  name: string;
+  slug: string;
+  logo_url?: string;
+  plan?: string;
+  is_active: boolean;
+  is_trial: boolean;
+  employee_count: number;
+}
+
+export interface GroupStatsResponse {
+  group_id: number;
+  group_name: string;
+  total_employees: number;
+  total_subsidiaries: number;
+  pending_leaves: number;
+  subsidiaries: Array<{
+    id: number;
+    name: string;
+    slug: string;
+    employee_count: number;
+    pending_leaves: number;
+    is_active: boolean;
+  }>;
+}
+
 export interface TenantUpdateData {
   name?: string;
   email?: string;
@@ -1935,6 +1966,65 @@ export async function platformSearch(query: string): Promise<SearchResult> {
     const error = await parseApiError(response);
     throw new Error(error);
   }
+  return response.json();
+}
+
+// ============================================
+// GROUPS & SUBSIDIARIES
+// ============================================
+
+/** Convertir un tenant standalone en groupe */
+export async function convertTenantToGroup(tenantId: number): Promise<{ success: boolean; message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/groups/tenants/${tenantId}/convert-to-group`, {
+    method: 'POST',
+    body: JSON.stringify({ confirm: true }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+/** Repasser un groupe en standalone */
+export async function revertTenantToStandalone(tenantId: number): Promise<{ success: boolean; message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/groups/tenants/${tenantId}/revert-to-standalone`, {
+    method: 'POST',
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+/** Lister les filiales d'un groupe */
+export async function getSubsidiaries(groupId: number): Promise<SubsidiaryItem[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/groups/${groupId}/subsidiaries`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+/** Rattacher un tenant existant ou créer une nouvelle filiale */
+export async function addSubsidiary(
+  groupId: number,
+  data: { existing_tenant_slug?: string; name?: string; slug?: string; email?: string }
+): Promise<{ success: boolean; message: string; subsidiary_id: number }> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/groups/${groupId}/subsidiaries`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+/** Détacher une filiale de son groupe */
+export async function detachSubsidiary(groupId: number, subsidiaryId: number): Promise<{ success: boolean; message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/groups/${groupId}/subsidiaries/${subsidiaryId}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+/** Stats agrégées d'un groupe */
+export async function getGroupStats(groupId: number): Promise<GroupStatsResponse> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/groups/${groupId}/stats`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
   return response.json();
 }
 

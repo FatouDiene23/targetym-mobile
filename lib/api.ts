@@ -2038,3 +2038,89 @@ export async function syncIntegration(provider: string): Promise<{ success: bool
   }
   return response.json();
 }
+// ============================================
+// AI AGENT - CHAT CONTEXTUEL + ACTIONS
+// ============================================
+
+export interface AgentMessageRequest {
+  message: string;
+  page_path: string;
+  file_text?: string;
+  conversation_history?: Array<{ role: string; content: string }>;
+}
+
+export interface AgentActionPreviewData {
+  tool_name: string;
+  data: Record<string, any>;
+  display_label: string;
+}
+
+export interface AgentMessageResponse {
+  reply: string;
+  action_preview: AgentActionPreviewData | null;
+}
+
+export interface ExecuteActionRequest {
+  action_type: string;
+  data: Record<string, any>;
+}
+
+export interface ExecuteActionResponse {
+  success: boolean;
+  message: string;
+  [key: string]: any;
+}
+
+/**
+ * Envoie un message au chat agentique contextuel.
+ * Peut retourner un action_preview si Claude génère du contenu structuré.
+ */
+export async function sendAgentMessage(data: AgentMessageRequest): Promise<AgentMessageResponse> {
+  const response = await fetchWithAuth(`${API_URL}/api/ai-chat/agent`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+  return response.json();
+}
+
+/**
+ * Exécute une action agentique après validation utilisateur.
+ * Insère réellement les données en base.
+ */
+export async function executeAgentAction(data: ExecuteActionRequest): Promise<ExecuteActionResponse> {
+  const response = await fetchWithAuth(`${API_URL}/api/ai-chat/execute-action`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+  return response.json();
+}
+
+/**
+ * Extrait le texte d'un fichier PDF pour le fournir au chat agentique.
+ */
+export async function extractPdfText(file: File): Promise<{ text: string; pages: number; filename?: string; warning?: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  // fetchWithAuth sans Content-Type (FormData le gère automatiquement)
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  const response = await fetch(`${API_URL}/api/ai-chat/extract-pdf`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+  return response.json();
+}

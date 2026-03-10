@@ -163,19 +163,31 @@ export default function PlatformAdminDashboard() {
     try {
       setImpersonating(userId);
       const result = await impersonateUser(userId);
-      // Stocker le token d'impersonation
+      // Backup du token et user actuels
       const currentToken = localStorage.getItem('access_token');
+      const currentUser = localStorage.getItem('user');
+      const currentUserObj = currentUser ? JSON.parse(currentUser) : null;
       localStorage.setItem('access_token_backup', currentToken || '');
+      localStorage.setItem('user_backup', currentUser || '');
+      // Appliquer le nouveau token
       localStorage.setItem('access_token', result.access_token);
-      // Récupérer les infos du tenant cible
-      if (tenantId) {
-        const t = tenants.find(x => x.id === tenantId);
-        if (t) localStorage.setItem('impersonated_tenant_slug', t.slug);
-      }
+      // Mettre à jour l'objet user pour que le sidebar affiche les bons menus
+      localStorage.setItem('user', JSON.stringify({
+        id: result.impersonated_user_id,
+        email: result.impersonated_user_email,
+        first_name: result.first_name || '',
+        last_name: result.last_name || '',
+        role: result.employee_role || 'employee',
+        is_manager: result.is_manager || false,
+        tenant_id: result.impersonated_tenant_id,
+      }));
+      // Flags d'impersonation pour la bannière
+      localStorage.setItem('is_impersonating', 'true');
+      localStorage.setItem('impersonated_user_email', result.impersonated_user_email);
+      localStorage.setItem('impersonated_by_email', currentUserObj?.email || 'admin');
+      if (result.tenant_slug) localStorage.setItem('impersonated_tenant_slug', result.tenant_slug);
       toast.success(`Impersonation OK. Token valide 30min. Redirection...`, { duration: 3000 });
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 1500);
+      setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erreur impersonation';
       toast.error(msg);

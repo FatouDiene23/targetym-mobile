@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import Sidebar from '@/components/Sidebar';
+import ImpersonationBanner from '@/components/ImpersonationBanner';
 import AppTour from '@/components/AppTour';
 import AIChatBox from '@/components/AIChatBox';
 import { getTourStepsByRole } from '@/components/AppTourSteps';
@@ -318,6 +319,7 @@ function DashboardContent({
 
   return (
     <div className="flex min-h-screen bg-gray-50">
+      <ImpersonationBanner />
       <Sidebar />
       <main className="flex-1 overflow-auto">
         {children}

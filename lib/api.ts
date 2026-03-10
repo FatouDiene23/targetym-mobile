@@ -1837,6 +1837,11 @@ export interface ImpersonationResponse {
   impersonated_user_id: number;
   impersonated_user_email: string;
   impersonated_tenant_id?: number;
+  first_name?: string;
+  last_name?: string;
+  employee_role?: string;
+  is_manager?: boolean;
+  tenant_slug?: string;
   warning: string;
 }
 

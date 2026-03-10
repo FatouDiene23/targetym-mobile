@@ -236,7 +236,7 @@ export default function AIChatBox() {
       const turn: AgentTurn = {
         id: crypto.randomUUID(),
         userText,
-        reply: `❌ Erreur : ${error.message || 'Impossible de contacter l'assistant'}`,
+        reply: `❌ Erreur : ${error.message || "Impossible de contacter l'assistant"}`,
         action_preview: null,
         timestamp: new Date(),
       };

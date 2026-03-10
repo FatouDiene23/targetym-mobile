@@ -245,7 +245,7 @@ interface InvitationEmployee {
 }
 interface InvitationStats { total_employees: number; not_invited: number; pending: number; accepted: number; }
 
-const API_URL = 'http://targetym-alb-380014716.eu-west-1.elb.amazonaws.com';
+const API_URL = 'https://api.targetym.ai';
 
 async function getAuthHeaders() {
   const token = localStorage.getItem('access_token');
@@ -571,7 +571,7 @@ export default function EmployeesPage() {
         try {
           const token = localStorage.getItem('access_token');
           await Promise.all(Array.from(selectedIds).map(id =>
-            fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://targetym-alb-380014716.eu-west-1.elb.amazonaws.com'}/api/employees/${id}`, {
+            fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai'}/api/employees/${id}`, {
               method: 'PATCH',
               headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({ status: newStatus })
@@ -604,7 +604,7 @@ export default function EmployeesPage() {
         try {
           const token = localStorage.getItem('access_token');
           await Promise.all(Array.from(selectedIds).map(id =>
-            fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://targetym-alb-380014716.eu-west-1.elb.amazonaws.com'}/api/employees/${id}`, {
+            fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai'}/api/employees/${id}`, {
               method: 'DELETE',
               headers: { 'Authorization': `Bearer ${token}` }
             })

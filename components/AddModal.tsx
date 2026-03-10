@@ -37,7 +37,7 @@ interface PageConfig {
 // API CONFIG
 // ============================================
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://targetym-alb-380014716.eu-west-1.elb.amazonaws.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
 
 function getAuthHeaders(): HeadersInit {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;

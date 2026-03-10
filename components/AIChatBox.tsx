@@ -24,6 +24,14 @@ const AGENT_PAGES: Record<string, string> = {
   '/dashboard/recruitment': 'Recrutement',
 };
 
+// Rôles autorisés PAR page (doit correspondre exactement au backend)
+const AGENT_ALLOWED_ROLES_BY_PAGE: Record<string, string[]> = {
+  '/dashboard/onboarding':               ['rh', 'admin', 'dg'],
+  '/dashboard/performance/objectives':   ['manager', 'rh', 'admin', 'dg'],
+  '/dashboard/learning':                 ['manager', 'rh', 'admin', 'dg'],
+  '/dashboard/recruitment':              ['rh', 'admin', 'dg'],
+};
+
 function getAgentContext(pathname: string): string | null {
   for (const [prefix, label] of Object.entries(AGENT_PAGES)) {
     if (pathname.startsWith(prefix)) return label;
@@ -31,7 +39,17 @@ function getAgentContext(pathname: string): string | null {
   return null;
 }
 
-// Message local d'un tour agent (non persisté en DB)
+function canUseAgent(role: string, pathname: string): boolean {
+  for (const [prefix, roles] of Object.entries(AGENT_ALLOWED_ROLES_BY_PAGE)) {
+    if (pathname.startsWith(prefix)) return roles.includes(role);
+  }
+  return false;
+}
+
+const LS_AGENT_KEY = (pathname: string) =>
+  `targetym_agent_${pathname.replace(/\//g, '_')}`;
+
+// Tour persistant localement
 interface AgentTurn {
   id: string;
   userText: string;
@@ -50,8 +68,11 @@ export default function AIChatBox() {
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState('');
 
-  // Mode agent (activé automatiquement sur les pages concernées)
-  const [agentMode, setAgentMode] = useState(!!agentContext);
+  // Rôle de l'utilisateur connecte (lu depuis localStorage)
+  const [userRole, setUserRole] = useState<string>('employee');
+
+  // Mode agent — uniquement si le rôle le permet pour cette page
+  const [agentMode, setAgentMode] = useState(false);
   const [agentTurns, setAgentTurns] = useState<AgentTurn[]>([]);
 
   // Fichier PDF attaché
@@ -72,11 +93,47 @@ export default function AIChatBox() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Activer agent mode si on change de page vers une page agent
+  // Lire le rôle depuis localStorage au montage
   useEffect(() => {
-    if (agentContext) setAgentMode(true);
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        setUserRole(u.role || 'employee');
+      }
+    } catch {}
+  }, []);
+
+  // Activer agent mode si la page + le rôle le permettent
+  useEffect(() => {
+    if (agentContext && canUseAgent(userRole, pathname)) setAgentMode(true);
     else setAgentMode(false);
+  }, [pathname, userRole]);
+
+  // Restaurer l'historique agent depuis localStorage (par page)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(LS_AGENT_KEY(pathname));
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setAgentTurns(
+          parsed.map((t: any) => ({ ...t, timestamp: new Date(t.timestamp) }))
+        );
+      } else {
+        setAgentTurns([]);
+      }
+    } catch {
+      setAgentTurns([]);
+    }
   }, [pathname]);
+
+  // Persister les turns en localStorage à chaque mise à jour
+  useEffect(() => {
+    if (agentTurns.length === 0) return;
+    try {
+      localStorage.setItem(LS_AGENT_KEY(pathname), JSON.stringify(agentTurns));
+    } catch {}
+  }, [agentTurns, pathname]);
 
   useEffect(() => {
     checkChatbotStatus();
@@ -245,6 +302,8 @@ export default function AIChatBox() {
     setAgentTurns([]);
     setAttachedFile(null);
     setFileText('');
+    // Effacer l'historique agent persistant pour cette page
+    try { localStorage.removeItem(LS_AGENT_KEY(pathname)); } catch {}
     inputRef.current?.focus();
   };
 
@@ -321,14 +380,16 @@ export default function AIChatBox() {
             </div>
 
             <div className="flex items-center gap-1">
-              {/* Toggle agent mode */}
-              <button
-                onClick={() => { setAgentMode(!agentMode); setAgentTurns([]); }}
-                className={`p-2 rounded-lg text-xs transition-colors flex items-center gap-1 ${agentMode ? 'bg-white/20 hover:bg-white/30' : 'hover:bg-white/10'}`}
-                title={agentMode ? 'Passer en chat classique' : 'Passer en mode agent'}
-              >
-                <Zap size={15} />
-              </button>
+              {/* Bouton toggle agent : visible uniquement si le rôle permet le mode agent sur cette page */}
+              {canUseAgent(userRole, pathname) && (
+                <button
+                  onClick={() => { setAgentMode(!agentMode); setAgentTurns([]); }}
+                  className={`p-2 rounded-lg text-xs transition-colors flex items-center gap-1 ${agentMode ? 'bg-white/20 hover:bg-white/30' : 'hover:bg-white/10'}`}
+                  title={agentMode ? 'Passer en chat classique' : 'Passer en mode agent'}
+                >
+                  <Zap size={15} />
+                </button>
+              )}
               {!agentMode && (
                 <>
                   <button

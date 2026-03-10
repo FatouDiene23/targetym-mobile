@@ -1,302 +1,671 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Building2, Users, UserCheck, Activity, Shield, AlertCircle, CheckCircle2,
-  Search
+  Search, Edit2, Eye, LogIn, Clock, ChevronRight, X, Save, RotateCcw,
+  FileText, ExternalLink, Lock
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import {
-  getPlatformStats,
-  getAllTenants,
-  type PlatformStats,
-  type TenantListItem
+  getPlatformStats, getAllTenants, getTenantDetail, updatePlatformTenant,
+  impersonateUser, getAuditLogs, platformSearch,
+  type PlatformStats, type TenantListItem, type TenantDetail,
+  type AuditLogItem, type SearchResult, type TenantUpdateData,
 } from '@/lib/api';
-import { usePageTour } from '@/hooks/usePageTour';
-import PageTourTips from '@/components/PageTourTips';
-import { platformAdminTips } from '@/config/pageTips';
+
+type Tab = 'overview' | 'tenants' | 'users' | 'audit';
+
+const ACTION_COLORS: Record<string, string> = {
+  VIEW: 'bg-blue-100 text-blue-700',
+  IMPERSONATE: 'bg-red-100 text-red-700',
+  EDIT: 'bg-yellow-100 text-yellow-700',
+  RESET: 'bg-orange-100 text-orange-700',
+  DELETE: 'bg-red-100 text-red-800',
+  CREATE_USER: 'bg-green-100 text-green-700',
+  VIEW_SEARCH: 'bg-gray-100 text-gray-600',
+};
 
 export default function PlatformAdminDashboard() {
   const router = useRouter();
-  const { showTips, dismissTips } = usePageTour('platformAdmin');
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [tenants, setTenants] = useState<TenantListItem[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterPlan, setFilterPlan] = useState<string>('');
+  const [auditLoading, setAuditLoading] = useState(false);
+
+  // Filters - tenants
+  const [tenantSearch, setTenantSearch] = useState('');
+  const [filterPlan, setFilterPlan] = useState('');
   const [filterActive, setFilterActive] = useState<boolean | undefined>(undefined);
-  
-  // Helper pour les couleurs de plan
+
+  // Unified search
+  const [globalSearch, setGlobalSearch] = useState('');
+  const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  // Audit filters
+  const [auditFilter, setAuditFilter] = useState('');
+
+  // Tenant detail modal
+  const [selectedTenant, setSelectedTenant] = useState<TenantDetail | null>(null);
+  const [tenantModalOpen, setTenantModalOpen] = useState(false);
+  const [editingTenant, setEditingTenant] = useState(false);
+  const [tenantEditData, setTenantEditData] = useState<TenantUpdateData>({});
+  const [savingTenant, setSavingTenant] = useState(false);
+
+  // Impersonation
+  const [impersonating, setImpersonating] = useState<number | null>(null);
+
   const getPlanBadgeClass = (plan: string) => {
     if (plan === 'enterprise') return 'bg-purple-100 text-purple-800';
     if (plan === 'professional') return 'bg-blue-100 text-blue-800';
     return 'bg-gray-100 text-gray-800';
   };
-  
-  // Vérifier si user est SUPER_ADMIN
+
+  // Auth guard
   useEffect(() => {
     const userStr = localStorage.getItem('user');
-    if (!userStr) {
-      router.push('/');
-      return;
-    }
-    
+    if (!userStr) { router.push('/'); return; }
     const user = JSON.parse(userStr);
-    if (user.role !== 'SUPER_ADMIN' && user.role !== 'super_admin') {
-      router.push('/dashboard');
-      return;
-    }
-    
+    if (user.role !== 'SUPER_ADMIN' && user.role !== 'super_admin') { router.push('/dashboard'); return; }
     loadData();
   }, [router]);
-  
+
   const loadData = async () => {
     try {
       setLoading(true);
       const [statsData, tenantsData] = await Promise.all([
         getPlatformStats(),
-        getAllTenants({ limit: 100 })
+        getAllTenants({ limit: 200 }),
       ]);
-      
       setStats(statsData);
       setTenants(tenantsData);
-    } catch (error) {
-      console.error('Erreur chargement données:', error);
+    } catch (err) {
+      console.error(err);
+      toast.error('Erreur chargement données');
     } finally {
       setLoading(false);
     }
   };
-  
-  const filteredTenants = tenants.filter(tenant => {
+
+  const loadAuditLogs = useCallback(async (action?: string) => {
+    try {
+      setAuditLoading(true);
+      const logs = await getAuditLogs({ limit: 100, action_type: action || undefined });
+      setAuditLogs(logs);
+    } catch (err) {
+      console.error(err);
+      toast.error('Erreur chargement audit');
+    } finally {
+      setAuditLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'audit') loadAuditLogs(auditFilter || undefined);
+  }, [activeTab, auditFilter, loadAuditLogs]);
+
+  // Unified search
+  const handleGlobalSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!globalSearch.trim()) return;
+    try {
+      setSearchLoading(true);
+      const result = await platformSearch(globalSearch.trim());
+      setSearchResult(result);
+    } catch (err) {
+      console.error(err);
+      toast.error('Erreur de recherche');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // Open tenant detail modal
+  const openTenantDetail = async (tenantId: number) => {
+    try {
+      const detail = await getTenantDetail(tenantId);
+      setSelectedTenant(detail);
+      setTenantEditData({});
+      setEditingTenant(false);
+      setTenantModalOpen(true);
+    } catch (err) {
+      console.error(err);
+      toast.error('Erreur chargement tenant');
+    }
+  };
+
+  // Save tenant edits
+  const saveTenantEdit = async () => {
+    if (!selectedTenant) return;
+    try {
+      setSavingTenant(true);
+      const updated = await updatePlatformTenant(selectedTenant.id, tenantEditData);
+      setSelectedTenant(updated);
+      setEditingTenant(false);
+      toast.success('Tenant mis à jour');
+      loadData(); // refresh list
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur mise à jour';
+      toast.error(msg);
+    } finally {
+      setSavingTenant(false);
+    }
+  };
+
+  // Impersonate user
+  const handleImpersonate = async (userId: number, userEmail: string, tenantId?: number) => {
+    if (!confirm(`⚠️ Vous allez impersonner ${userEmail}.\nCette action est loggée. Continuer ?`)) return;
+    try {
+      setImpersonating(userId);
+      const result = await impersonateUser(userId);
+      // Stocker le token d'impersonation
+      const currentToken = localStorage.getItem('access_token');
+      localStorage.setItem('access_token_backup', currentToken || '');
+      localStorage.setItem('access_token', result.access_token);
+      // Récupérer les infos du tenant cible
+      if (tenantId) {
+        const t = tenants.find(x => x.id === tenantId);
+        if (t) localStorage.setItem('impersonated_tenant_slug', t.slug);
+      }
+      toast.success(`Impersonation OK. Token valide 30min. Redirection...`, { duration: 3000 });
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1500);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur impersonation';
+      toast.error(msg);
+    } finally {
+      setImpersonating(null);
+    }
+  };
+
+  // Filtered tenants
+  const filteredTenants = tenants.filter(t => {
     let match = true;
-    
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      match = match && (
-        tenant.name.toLowerCase().includes(search) ||
-        tenant.email?.toLowerCase().includes(search) ||
-        tenant.slug.toLowerCase().includes(search)
-      );
+    if (tenantSearch) {
+      const s = tenantSearch.toLowerCase();
+      match = match && (t.name.toLowerCase().includes(s) || t.email?.toLowerCase().includes(s) || t.slug.toLowerCase().includes(s));
     }
-    
-    if (filterPlan) {
-      match = match && tenant.plan === filterPlan;
-    }
-    
-    if (filterActive !== undefined) {
-      match = match && tenant.is_active === filterActive;
-    }
-    
+    if (filterPlan) match = match && t.plan === filterPlan;
+    if (filterActive !== undefined) match = match && t.is_active === filterActive;
     return match;
   });
-  
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
       </div>
     );
   }
-  
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
             <Shield className="w-8 h-8 text-blue-600" />
-            Dashboard Plateforme
+            Back-Office Plateforme
           </h1>
-          <p className="text-gray-600 mt-1">Vue d&apos;ensemble de l&apos;activité TARGETYM AI</p>
+          <p className="text-gray-500 mt-1 text-sm flex items-center gap-1">
+            <Lock className="w-3 h-3" /> Accès SUPER_ADMIN uniquement — Toutes les actions sont tracées
+          </p>
         </div>
-        <Link 
-          href="/dashboard/platform-admin/users"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          <Users className="w-4 h-4" />
-          Gérer les Users
-        </Link>
+        {/* Unified search */}
+        <form onSubmit={handleGlobalSearch} className="flex gap-2 items-center">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Recherche globale (email, nom, ID, slug)..."
+              value={globalSearch}
+              onChange={e => { setGlobalSearch(e.target.value); if (!e.target.value) setSearchResult(null); }}
+              className="pl-9 pr-4 py-2 w-72 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
+          <button type="submit" disabled={searchLoading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm disabled:opacity-50">
+            {searchLoading ? '...' : 'Chercher'}
+          </button>
+        </form>
       </div>
-      
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" data-tour="platform-stats">
-          {/* Tenants */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <Building2 className="w-8 h-8 text-blue-500" />
-              <span className="text-xs text-gray-500 bg-blue-50 px-2 py-1 rounded">
-                +{stats.new_tenants_this_month} ce mois
-              </span>
-            </div>
-            <p className="text-3xl font-bold text-gray-900">{stats.total_tenants}</p>
-            <p className="text-sm text-gray-600 mt-1">Entreprises</p>
-            <div className="flex gap-4 mt-3 text-xs">
-              <span className="text-green-600 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" />
-                {stats.active_tenants} actifs
-              </span>
-              <span className="text-yellow-600 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" />
-                {stats.trial_tenants} trial
-              </span>
+
+      {/* Global search results */}
+      {searchResult && (
+        <div className="bg-white rounded-xl shadow border border-blue-200 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-gray-800">
+              Résultats pour « {searchResult.query} » — {searchResult.total_tenants} tenant(s), {searchResult.total_users} user(s)
+            </h2>
+            <button onClick={() => setSearchResult(null)} className="text-gray-400 hover:text-gray-600">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            {searchResult.tenants.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Tenants</p>
+                {searchResult.tenants.map(t => (
+                  <button key={t.id} onClick={() => openTenantDetail(t.id)}
+                    className="w-full text-left p-2 rounded-lg hover:bg-blue-50 flex items-center justify-between group mb-1">
+                    <div>
+                      <p className="font-medium text-gray-900">{t.name}</p>
+                      <p className="text-xs text-gray-500">{t.email} · {t.plan} · {t.users_count} users</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
+                  </button>
+                ))}
+              </div>
+            )}
+            {searchResult.users.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Utilisateurs</p>
+                {searchResult.users.map(u => (
+                  <div key={u.id} className="p-2 rounded-lg hover:bg-gray-50 flex items-center justify-between mb-1">
+                    <div>
+                      <p className="font-medium text-gray-900">{u.email}</p>
+                      <p className="text-xs text-gray-500">{u.tenant_name || 'Sans tenant'} · {u.role}</p>
+                    </div>
+                    <button onClick={() => handleImpersonate(u.id, u.email, u.tenant_id)}
+                      disabled={impersonating === u.id}
+                      className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 flex items-center gap-1">
+                      <LogIn className="w-3 h-3" />
+                      {impersonating === u.id ? '...' : 'Impersonner'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {searchResult.total_tenants === 0 && searchResult.total_users === 0 && (
+              <p className="text-gray-500 col-span-2 text-sm text-center py-4">Aucun résultat trouvé</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="border-b border-gray-200">
+        <nav className="flex gap-1">
+          {([
+            { key: 'overview', label: 'Vue globale', icon: Activity },
+            { key: 'tenants', label: `Tenants (${tenants.length})`, icon: Building2 },
+            { key: 'users', label: 'Utilisateurs', icon: Users },
+            { key: 'audit', label: 'Audit', icon: FileText },
+          ] as const).map(({ key, label, icon: Icon }) => (
+            <button key={key} onClick={() => setActiveTab(key)}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === key ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+              <Icon className="w-4 h-4" />{label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* ===== TAB: OVERVIEW ===== */}
+      {activeTab === 'overview' && stats && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard label="Entreprises" value={stats.total_tenants} icon={<Building2 className="w-7 h-7 text-blue-500" />}
+              badge={`+${stats.new_tenants_this_month} ce mois`} sub={`${stats.active_tenants} actifs · ${stats.trial_tenants} trial`} />
+            <StatCard label="Utilisateurs" value={stats.total_users} icon={<Users className="w-7 h-7 text-purple-500" />}
+              badge={`+${stats.new_users_this_month} ce mois`} sub={`${stats.active_users} actifs`} />
+            <StatCard label="Employés" value={stats.total_employees} icon={<UserCheck className="w-7 h-7 text-green-500" />} />
+            <StatCard label="Messages IA aujourd'hui" value={stats.total_messages_today} icon={<Activity className="w-7 h-7 text-orange-500" />}
+              sub={`${stats.total_leave_requests_pending} demandes congé en attente`} />
+          </div>
+          {/* Quick links */}
+          <div className="grid md:grid-cols-3 gap-4">
+            <QuickLink title="Gérer les utilisateurs" desc="CRUD complet, reset MDP, désactiver" icon={<Users className="w-5 h-5" />} href="/dashboard/platform-admin/users" />
+            <QuickLink title="Audit trail" desc="Historique toutes les actions support" icon={<FileText className="w-5 h-5" />} onClick={() => setActiveTab('audit')} />
+            <QuickLink title="Tenants" desc={`${stats.trial_tenants} en trial · ${stats.active_tenants} actifs`} icon={<Building2 className="w-5 h-5" />} onClick={() => setActiveTab('tenants')} />
+          </div>
+        </div>
+      )}
+
+      {/* ===== TAB: TENANTS ===== */}
+      {activeTab === 'tenants' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <div className="p-5 border-b border-gray-200">
+            <div className="flex flex-wrap gap-3 items-center">
+              <div className="flex-1 min-w-[220px] relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input type="text" placeholder="Filtrer nom, email, slug..." value={tenantSearch}
+                  onChange={e => setTenantSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <select value={filterPlan} onChange={e => setFilterPlan(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Tous les plans</option>
+                <option value="trial">Trial</option>
+                <option value="professional">Professional</option>
+                <option value="enterprise">Enterprise</option>
+              </select>
+              <select value={filterActive === undefined ? '' : filterActive.toString()}
+                onChange={e => setFilterActive(e.target.value === '' ? undefined : e.target.value === 'true')}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Tous les statuts</option>
+                <option value="true">Actifs</option>
+                <option value="false">Inactifs</option>
+              </select>
+              <span className="text-sm text-gray-500">{filteredTenants.length} résultat(s)</span>
             </div>
           </div>
-          
-          {/* Users */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <Users className="w-8 h-8 text-purple-500" />
-              <span className="text-xs text-gray-500 bg-purple-50 px-2 py-1 rounded">
-                +{stats.new_users_this_month} ce mois
-              </span>
-            </div>
-            <p className="text-3xl font-bold text-gray-900">{stats.total_users}</p>
-            <p className="text-sm text-gray-600 mt-1">Utilisateurs</p>
-            <div className="mt-3 text-xs text-gray-600">
-              <span className="text-green-600">{stats.active_users} actifs</span>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  {['Entreprise', 'Plan', 'Statut', 'Users', 'Employés', 'Trial', 'Créé le', 'Actions'].map(h => (
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filteredTenants.length === 0 ? (
+                  <tr><td colSpan={8} className="px-4 py-10 text-center text-gray-400">Aucun tenant trouvé</td></tr>
+                ) : filteredTenants.map(tenant => (
+                  <tr key={tenant.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3">
+                      <p className="font-semibold text-gray-900">{tenant.name}</p>
+                      <p className="text-xs text-gray-500">{tenant.email}</p>
+                      <p className="text-xs text-gray-400">/{tenant.slug} · #{tenant.id}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${getPlanBadgeClass(tenant.plan)}`}>
+                        {tenant.plan}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {tenant.is_active
+                        ? <span className="inline-flex items-center gap-1 text-xs text-green-600"><CheckCircle2 className="w-3 h-3" />Actif</span>
+                        : <span className="inline-flex items-center gap-1 text-xs text-red-600"><AlertCircle className="w-3 h-3" />Inactif</span>}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">{tenant.users_count}</td>
+                    <td className="px-4 py-3 text-gray-700">{tenant.employees_count} / {tenant.max_employees}</td>
+                    <td className="px-4 py-3">
+                      {tenant.is_trial
+                        ? <span className="text-xs text-yellow-600 flex items-center gap-1"><Clock className="w-3 h-3" />Trial</span>
+                        : <span className="text-xs text-green-600">Payant</span>}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString('fr-FR') : '-'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => openTenantDetail(tenant.id)}
+                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg" title="Voir détail">
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ===== TAB: USERS ===== */}
+      {activeTab === 'users' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+          <Users className="w-16 h-16 text-blue-100 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">Gestion complète des utilisateurs</h3>
+          <p className="text-gray-500 mb-6 max-w-md mx-auto">
+            Créer, modifier, désactiver, reset mot de passe, impersonner des utilisateurs sur toute la plateforme.
+          </p>
+          <Link href="/dashboard/platform-admin/users"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium">
+            <ExternalLink className="w-4 h-4" />
+            Ouvrir la gestion utilisateurs
+          </Link>
+        </div>
+      )}
+
+      {/* ===== TAB: AUDIT ===== */}
+      {activeTab === 'audit' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <div className="p-5 border-b border-gray-200 flex flex-wrap gap-3 items-center justify-between">
+            <h2 className="font-semibold text-gray-800">Historique des actions support</h2>
+            <div className="flex gap-2 items-center">
+              <select value={auditFilter} onChange={e => setAuditFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Toutes les actions</option>
+                {['VIEW', 'IMPERSONATE', 'EDIT', 'RESET', 'DELETE', 'CREATE_USER', 'VIEW_SEARCH'].map(a => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </select>
+              <button onClick={() => loadAuditLogs(auditFilter || undefined)} disabled={auditLoading}
+                className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 text-sm flex items-center gap-1">
+                <RotateCcw className="w-4 h-4" /> {auditLoading ? '...' : 'Rafraîchir'}
+              </button>
             </div>
           </div>
-          
-          {/* Employés */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <UserCheck className="w-8 h-8 text-green-500" />
-            </div>
-            <p className="text-3xl font-bold text-gray-900">{stats.total_employees}</p>
-            <p className="text-sm text-gray-600 mt-1">Employés</p>
+          <div className="overflow-x-auto">
+            {auditLoading ? (
+              <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    {['Date', 'Agent', 'Action', 'Cible User', 'Cible Tenant', 'IP', 'Détails'].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {auditLogs.length === 0 ? (
+                    <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400">Aucun log</td></tr>
+                  ) : auditLogs.map(log => (
+                    <tr key={log.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                        {log.created_at ? new Date(log.created_at).toLocaleString('fr-FR') : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-700 font-mono">{log.agent_email}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${ACTION_COLORS[log.action_type] || 'bg-gray-100 text-gray-600'}`}>
+                          {log.action_type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-600">{log.target_user_email || '-'}</td>
+                      <td className="px-4 py-3 text-xs text-gray-600">{log.target_tenant_name || '-'}</td>
+                      <td className="px-4 py-3 text-xs text-gray-400 font-mono">{log.ip_address || '-'}</td>
+                      <td className="px-4 py-3 text-xs text-gray-500 max-w-xs truncate" title={JSON.stringify(log.action_detail)}>
+                        {log.action_detail ? JSON.stringify(log.action_detail).substring(0, 60) + '...' : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
-          
-          {/* Activité */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <Activity className="w-8 h-8 text-orange-500" />
+        </div>
+      )}
+
+      {/* ===== TENANT DETAIL MODAL ===== */}
+      {tenantModalOpen && selectedTenant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setTenantModalOpen(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-5 flex items-center justify-between z-10">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-blue-600" /> {selectedTenant.name}
+                </h3>
+                <p className="text-xs text-gray-500">#{selectedTenant.id} · /{selectedTenant.slug}</p>
+              </div>
+              <div className="flex gap-2">
+                {editingTenant ? (
+                  <>
+                    <button onClick={saveTenantEdit} disabled={savingTenant}
+                      className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm flex items-center gap-1 hover:bg-green-700">
+                      <Save className="w-3 h-3" /> {savingTenant ? 'Sauvegarde...' : 'Sauvegarder'}
+                    </button>
+                    <button onClick={() => setEditingTenant(false)}
+                      className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200">
+                      Annuler
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={() => { setEditingTenant(true); setTenantEditData({}); }}
+                    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm flex items-center gap-1 hover:bg-blue-700">
+                    <Edit2 className="w-3 h-3" /> Modifier
+                  </button>
+                )}
+                <button onClick={() => setTenantModalOpen(false)} className="p-1.5 text-gray-400 hover:text-gray-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
-            <p className="text-3xl font-bold text-gray-900">{stats.total_messages_today}</p>
-            <p className="text-sm text-gray-600 mt-1">Messages IA aujourd&apos;hui</p>
-            <div className="mt-3 text-xs text-gray-600">
-              <span>{stats.total_leave_requests_pending} demandes de congé en attente</span>
+
+            <div className="p-5 space-y-5">
+              {/* Stats bar */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-blue-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-blue-700">{selectedTenant.users_count}</p>
+                  <p className="text-xs text-blue-600">Utilisateurs</p>
+                </div>
+                <div className="bg-green-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-green-700">{selectedTenant.employees_count}</p>
+                  <p className="text-xs text-green-600">Employés / {selectedTenant.max_employees}</p>
+                </div>
+                <div className="bg-yellow-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-yellow-700">{selectedTenant.trial_days_remaining}</p>
+                  <p className="text-xs text-yellow-600">Jours trial restants</p>
+                </div>
+              </div>
+
+              {/* Fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <TenantField label="Plan" value={selectedTenant.plan}
+                  editing={editingTenant}
+                  editType="select" options={['trial', 'professional', 'enterprise']}
+                  editValue={tenantEditData.plan}
+                  onChange={v => setTenantEditData(p => ({ ...p, plan: v }))} />
+                <TenantField label="Max employés" value={String(selectedTenant.max_employees)}
+                  editing={editingTenant} editType="number"
+                  editValue={tenantEditData.max_employees !== undefined ? String(tenantEditData.max_employees) : undefined}
+                  onChange={v => setTenantEditData(p => ({ ...p, max_employees: parseInt(v) }))} />
+                <TenantField label="Email" value={selectedTenant.email || '-'}
+                  editing={editingTenant} editType="text"
+                  editValue={tenantEditData.email}
+                  onChange={v => setTenantEditData(p => ({ ...p, email: v }))} />
+                <TenantField label="Téléphone" value={selectedTenant.phone || '-'}
+                  editing={editingTenant} editType="text"
+                  editValue={tenantEditData.phone}
+                  onChange={v => setTenantEditData(p => ({ ...p, phone: v }))} />
+                <TenantField label="Statut" value={selectedTenant.is_active ? 'Actif' : 'Inactif'}
+                  editing={editingTenant} editType="select" options={['true', 'false']}
+                  editValue={tenantEditData.is_active !== undefined ? String(tenantEditData.is_active) : undefined}
+                  onChange={v => setTenantEditData(p => ({ ...p, is_active: v === 'true' }))} />
+                <TenantField label="Mode trial" value={selectedTenant.is_trial ? 'Oui' : 'Non'}
+                  editing={editingTenant} editType="select" options={['true', 'false']}
+                  editValue={tenantEditData.is_trial !== undefined ? String(tenantEditData.is_trial) : undefined}
+                  onChange={v => setTenantEditData(p => ({ ...p, is_trial: v === 'true' }))} />
+                <TenantField label="Devise" value={selectedTenant.currency}
+                  editing={editingTenant} editType="text"
+                  editValue={tenantEditData.currency}
+                  onChange={v => setTenantEditData(p => ({ ...p, currency: v }))} />
+                <TenantField label="2FA requis" value={selectedTenant.require_2fa ? 'Oui' : 'Non'}
+                  editing={editingTenant} editType="select" options={['true', 'false']}
+                  editValue={tenantEditData.require_2fa !== undefined ? String(tenantEditData.require_2fa) : undefined}
+                  onChange={v => setTenantEditData(p => ({ ...p, require_2fa: v === 'true' }))} />
+              </div>
+
+              {/* Readonly info */}
+              <div className="bg-gray-50 rounded-lg p-4 text-sm space-y-1">
+                <p><span className="text-gray-500">Créé le:</span> <span className="font-medium">{selectedTenant.created_at ? new Date(selectedTenant.created_at).toLocaleString('fr-FR') : '-'}</span></p>
+                {selectedTenant.intowork_company_id && (
+                  <p><span className="text-gray-500">IntoWork Company ID:</span> <span className="font-mono text-blue-600">#{selectedTenant.intowork_company_id}</span></p>
+                )}
+                {selectedTenant.trial_ends_at && (
+                  <p><span className="text-gray-500">Fin trial:</span> <span className="font-medium">{new Date(selectedTenant.trial_ends_at).toLocaleDateString('fr-FR')}</span></p>
+                )}
+              </div>
+
+              {/* Impersonate section */}
+              <div className="border border-orange-200 rounded-lg p-4 bg-orange-50">
+                <p className="text-sm font-semibold text-orange-800 mb-2 flex items-center gap-2">
+                  <LogIn className="w-4 h-4" /> Impersonation
+                </p>
+                <p className="text-xs text-orange-700 mb-3">
+                  Pour impersonner un utilisateur de ce tenant, allez dans la gestion utilisateurs et filtrez par tenant.
+                </p>
+                <Link href={`/dashboard/platform-admin/users?tenant_id=${selectedTenant.id}`}
+                  className="inline-flex items-center gap-2 px-3 py-2 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700">
+                  <Users className="w-4 h-4" /> Voir les users du tenant
+                </Link>
+              </div>
             </div>
           </div>
         </div>
       )}
-      
-      {/* Tenants List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100" data-tour="platform-tenants">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Entreprises Clientes</h2>
-          
-          {/* Filtres */}
-          <div className="flex flex-wrap gap-4" data-tour="platform-search">
-            <div className="flex-1 min-w-[250px]">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Rechercher par nom, email, slug..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-            
-            <select
-              value={filterPlan}
-              onChange={(e) => setFilterPlan(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Tous les plans</option>
-              <option value="trial">Trial</option>
-              <option value="professional">Professional</option>
-              <option value="enterprise">Enterprise</option>
-            </select>
-            
-            <select
-              value={filterActive === undefined ? '' : filterActive.toString()}
-              onChange={(e) => setFilterActive(e.target.value === '' ? undefined : e.target.value === 'true')}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Tous les statuts</option>
-              <option value="true">Actifs</option>
-              <option value="false">Inactifs</option>
-            </select>
-          </div>
-        </div>
-        
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entreprise</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plan</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Users</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employés</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Créé le</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredTenants.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                    Aucune entreprise trouvée
-                  </td>
-                </tr>
-              ) : (
-                filteredTenants.map((tenant) => (
-                  <tr key={tenant.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="font-semibold text-gray-900">{tenant.name}</p>
-                        <p className="text-sm text-gray-500">{tenant.email}</p>
-                        <p className="text-xs text-gray-400">/{tenant.slug}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPlanBadgeClass(tenant.plan)}`}>
-                        {tenant.plan}
-                      </span>
-                      {tenant.is_trial && (
-                        <span className="ml-1 text-xs text-yellow-600">(trial)</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {tenant.is_active ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                          Actif
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          <AlertCircle className="w-3 h-3 mr-1" />
-                          Inactif
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{tenant.users_count}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {tenant.employees_count} / {tenant.max_employees}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {new Date(tenant.created_at).toLocaleDateString('fr-FR')}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+    </div>
+  );
+}
 
-      {showTips && (
-        <PageTourTips
-          tips={platformAdminTips}
-          onDismiss={dismissTips}
-          pageTitle="Dashboard Plateforme"
-        />
+// ===== Sub-components =====
+
+function StatCard({ label, value, icon, badge, sub }: {
+  label: string; value: number; icon: React.ReactNode; badge?: string; sub?: string;
+}) {
+  return (
+    <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+      <div className="flex items-center justify-between mb-3">
+        {icon}
+        {badge && <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{badge}</span>}
+      </div>
+      <p className="text-3xl font-bold text-gray-900">{value.toLocaleString()}</p>
+      <p className="text-sm text-gray-600 mt-1">{label}</p>
+      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+    </div>
+  );
+}
+
+function QuickLink({ title, desc, icon, href, onClick }: {
+  title: string; desc: string; icon: React.ReactNode; href?: string; onClick?: () => void;
+}) {
+  const cls = "flex items-start gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer text-left";
+  const inner = (
+    <>
+      <div className="p-2 bg-blue-50 rounded-lg text-blue-600">{icon}</div>
+      <div>
+        <p className="font-semibold text-gray-800 text-sm">{title}</p>
+        <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+      </div>
+    </>
+  );
+  if (href) return <Link href={href} className={cls}>{inner}</Link>;
+  return <button onClick={onClick} className={cls}>{inner}</button>;
+}
+
+function TenantField({ label, value, editing, editType, options, editValue, onChange }: {
+  label: string; value: string; editing: boolean;
+  editType?: 'text' | 'number' | 'select'; options?: string[];
+  editValue?: string; onChange?: (v: string) => void;
+}) {
+  if (!editing) {
+    return (
+      <div>
+        <p className="text-xs text-gray-500 mb-0.5">{label}</p>
+        <p className="text-sm font-medium text-gray-900">{value}</p>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <p className="text-xs text-gray-500 mb-0.5">{label}</p>
+      {editType === 'select' ? (
+        <select value={editValue ?? value} onChange={e => onChange?.(e.target.value)}
+          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          {options?.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+      ) : (
+        <input type={editType || 'text'} value={editValue ?? value} onChange={e => onChange?.(e.target.value)}
+          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
       )}
     </div>
   );

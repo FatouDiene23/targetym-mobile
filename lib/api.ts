@@ -1745,6 +1745,138 @@ export async function deletePlatformUser(userId: number): Promise<{ message: str
   return response.json();
 }
 
+// ---- Nouvelles interfaces ----
+
+export interface TenantDetail extends TenantListItem {
+  phone?: string;
+  address?: string;
+  logo_url?: string;
+  currency: string;
+  timezone: string;
+  require_2fa: boolean;
+  intowork_company_id?: number;
+  intowork_linked_at?: string;
+  updated_at?: string;
+  trial_days_remaining: number;
+}
+
+export interface TenantUpdateData {
+  name?: string;
+  email?: string;
+  phone?: string;
+  plan?: string;
+  max_employees?: number;
+  is_active?: boolean;
+  is_trial?: boolean;
+  trial_ends_at?: string;
+  require_2fa?: boolean;
+  currency?: string;
+  timezone?: string;
+}
+
+export interface ImpersonationResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  impersonated_user_id: number;
+  impersonated_user_email: string;
+  impersonated_tenant_id?: number;
+  warning: string;
+}
+
+export interface AuditLogItem {
+  id: number;
+  agent_email: string;
+  target_user_email?: string;
+  target_tenant_name?: string;
+  action_type: string;
+  action_detail?: Record<string, unknown>;
+  ip_address?: string;
+  created_at: string;
+}
+
+export interface SearchResult {
+  query: string;
+  tenants: TenantListItem[];
+  users: UserListItem[];
+  total_tenants: number;
+  total_users: number;
+}
+
+/** Détail complet d'un tenant */
+export async function getTenantDetail(tenantId: number): Promise<TenantDetail> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/tenants/${tenantId}`, {
+    method: 'GET',
+  });
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+  return response.json();
+}
+
+/** Modifier la config d'un tenant */
+export async function updatePlatformTenant(tenantId: number, data: TenantUpdateData): Promise<TenantDetail> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/tenants/${tenantId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+  return response.json();
+}
+
+/** Générer un token d'impersonation (30 min TTL) */
+export async function impersonateUser(userId: number): Promise<ImpersonationResponse> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/impersonate/${userId}`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+  return response.json();
+}
+
+/** Historique des actions support */
+export async function getAuditLogs(params?: {
+  skip?: number;
+  limit?: number;
+  action_type?: string;
+  tenant_id?: number;
+  target_user_id?: number;
+}): Promise<AuditLogItem[]> {
+  const searchParams = new URLSearchParams();
+  if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+  if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+  if (params?.action_type) searchParams.append('action_type', params.action_type);
+  if (params?.tenant_id !== undefined) searchParams.append('tenant_id', params.tenant_id.toString());
+  if (params?.target_user_id !== undefined) searchParams.append('target_user_id', params.target_user_id.toString());
+
+  const response = await fetchWithAuth(`${API_URL}/api/platform/audit-logs?${searchParams}`, {
+    method: 'GET',
+  });
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+  return response.json();
+}
+
+/** Recherche unifiée cross-tables (tenants + users) */
+export async function platformSearch(query: string): Promise<SearchResult> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/search?q=${encodeURIComponent(query)}`, {
+    method: 'GET',
+  });
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+  return response.json();
+}
+
 
 // ============================================
 // 2FA STATUS

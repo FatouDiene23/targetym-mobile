@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import {
   Users, Search, Plus, Edit2, Trash2, Eye, EyeOff,
-  CheckCircle2, XCircle, Building2, Shield, Mail
+  CheckCircle2, XCircle, Building2, Shield, Mail, LogIn, ArrowLeft
 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { usePageTour } from '@/hooks/usePageTour';
 import PageTourTips from '@/components/PageTourTips';
 import { platformAdminUsersTips } from '@/config/pageTips';
@@ -17,6 +18,7 @@ import {
   createPlatformUser,
   updatePlatformUser,
   deletePlatformUser,
+  impersonateUser,
   type UserListItem,
   type TenantListItem,
   type UserCreateData,
@@ -25,10 +27,12 @@ import {
 
 export default function PlatformUsersManagement() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showTips, dismissTips } = usePageTour('platformAdminUsers');
   const [users, setUsers] = useState<UserListItem[]>([]);
   const [tenants, setTenants] = useState<TenantListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [impersonating, setImpersonating] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('');
   const [filterTenant, setFilterTenant] = useState<number | ''>('');
@@ -63,22 +67,28 @@ export default function PlatformUsersManagement() {
   });
   const [showPassword, setShowPassword] = useState(false);
   
-  // Vérifier si user est SUPER_ADMIN
+  // Auth guard + apply URL params
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (!userStr) {
       router.push('/');
       return;
     }
-    
+
     const user = JSON.parse(userStr);
     if (user.role !== 'SUPER_ADMIN' && user.role !== 'super_admin') {
       router.push('/dashboard');
       return;
     }
-    
+
+    // Lire tenant_id depuis l'URL (ex: depuis le modal tenant detail)
+    const tenantIdParam = searchParams.get('tenant_id');
+    if (tenantIdParam) {
+      setFilterTenant(parseInt(tenantIdParam, 10));
+    }
+
     loadData();
-  }, [router]);
+  }, [router, searchParams]);
   
   const loadData = async () => {
     try {
@@ -98,8 +108,25 @@ export default function PlatformUsersManagement() {
     }
   };
   
-  const handleOpenCreate = () => {
-    setEditingUser(null);
+  const handleImpersonate = async (user: UserListItem) => {
+    if (!confirm(`⚠️ Impersonner ${user.email} ?\nCette action sera loggée dans l'audit trail. Continue ?`)) return;
+    try {
+      setImpersonating(user.id);
+      const result = await impersonateUser(user.id);
+      const currentToken = localStorage.getItem('access_token');
+      localStorage.setItem('access_token_backup', currentToken || '');
+      localStorage.setItem('access_token', result.access_token);
+      toast.success(`Impersonation OK — token 30min. Redirection vers dashboard...`, { duration: 3000 });
+      setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur impersonation';
+      toast.error(msg);
+    } finally {
+      setImpersonating(null);
+    }
+  };
+
+  const handleOpenCreate = () => {    setEditingUser(null);
     setFormData({
       email: '',
       password: '',
@@ -233,6 +260,11 @@ export default function PlatformUsersManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Link href="/dashboard/platform-admin" className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1">
+              <ArrowLeft className="w-3 h-3" /> Back-Office
+            </Link>
+          </div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
             <Users className="w-8 h-8 text-blue-600" />
             Gestion des Utilisateurs
@@ -395,6 +427,18 @@ export default function PlatformUsersManagement() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {(user.role !== 'SUPER_ADMIN' && user.role !== 'super_admin') && (
+                          <button
+                            onClick={() => handleImpersonate(user)}
+                            disabled={impersonating === user.id}
+                            className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                            title="Impersonner (token 30min, loggué)"
+                          >
+                            {impersonating === user.id
+                              ? <span className="text-xs">...</span>
+                              : <LogIn className="w-4 h-4" />}
+                          </button>
+                        )}
                         <button
                           onClick={() => handleOpenEdit(user)}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"

@@ -230,7 +230,7 @@ export interface DashboardData {
 // CONSTANTS
 // ============================================
 
-export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app').replace(/^http:\/\//, 'https://');
+export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://targetym-alb-380014716.eu-west-1.elb.amazonaws.com').replace(/^http:\/\//, 'https://');
 
 export const QUADRANT_LABELS: Record<number, { title: string; action: string; color: string }> = {
   9: { title: 'Stars', action: 'Promouvoir / Responsabiliser', color: 'bg-green-500' },

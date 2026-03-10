@@ -128,7 +128,7 @@ type FeedbackType = 'recognition' | 'improvement' | 'general';
 // API CONFIG
 // =============================================
 
-const API_URL = 'https://web-production-06c3.up.railway.app';
+const API_URL = 'http://targetym-alb-380014716.eu-west-1.elb.amazonaws.com';
 const ITEMS_PER_PAGE = 10;
 
 function getAuthHeaders(): HeadersInit {

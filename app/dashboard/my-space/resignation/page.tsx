@@ -34,7 +34,7 @@ interface MyResignation {
 // CONSTANTS
 // ============================================
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://targetym-alb-380014716.eu-west-1.elb.amazonaws.com';
 
 const STATUS_LABELS: Record<string, { label: string; color: string; description: string }> = {
   draft: { label: 'Brouillon', color: 'text-gray-600 bg-gray-100', description: 'Votre demande n\'a pas encore été soumise.' },

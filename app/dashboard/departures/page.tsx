@@ -121,7 +121,7 @@ interface Employee {
 // CONSTANTS
 // ============================================
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://targetym-alb-380014716.eu-west-1.elb.amazonaws.com';
 
 const DEPARTURE_TYPES: Record<string, { label: string; color: string }> = {
   resignation: { label: 'Démission', color: 'bg-blue-100 text-blue-800' },

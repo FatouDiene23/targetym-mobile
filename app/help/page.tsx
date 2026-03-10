@@ -24,7 +24,7 @@ interface Article {
   created_at: string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-06c3.up.railway.app';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://targetym-alb-380014716.eu-west-1.elb.amazonaws.com';
 
 export default function HelpCenterPage() {
   const [categories, setCategories] = useState<Category[]>([]);

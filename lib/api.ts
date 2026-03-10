@@ -1,5 +1,5 @@
 // Configuration API
-const API_URL = 'https://web-production-06c3.up.railway.app';
+const API_URL = 'http://targetym-alb-380014716.eu-west-1.elb.amazonaws.com';
 
 // Helper pour obtenir le token
 function getToken(): string | null {

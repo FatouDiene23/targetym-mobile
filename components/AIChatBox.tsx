@@ -16,34 +16,31 @@ import ChatMessageContent from './ChatMessageContent';
 import ConfirmDialog from './ConfirmDialog';
 import AgentActionPreview from './AgentActionPreview';
 
-// Pages où le mode agent est proposé
-const AGENT_PAGES: Record<string, string> = {
+// Pages avec outils d'action spécifiques (labels d'affichage)
+const AGENT_PAGES_LABELS: Record<string, string> = {
   '/dashboard/onboarding': 'Onboarding',
   '/dashboard/performance/objectives': 'OKR',
   '/dashboard/learning': 'Formation',
   '/dashboard/recruitment': 'Recrutement',
 };
 
-// Rôles autorisés PAR page (doit correspondre exactement au backend)
-const AGENT_ALLOWED_ROLES_BY_PAGE: Record<string, string[]> = {
-  '/dashboard/onboarding':               ['rh', 'admin', 'dg'],
-  '/dashboard/performance/objectives':   ['manager', 'rh', 'admin', 'dg'],
-  '/dashboard/learning':                 ['manager', 'rh', 'admin', 'dg'],
-  '/dashboard/recruitment':              ['rh', 'admin', 'dg'],
-};
+// Rôles globalement autorisés à utiliser l'agent (sur TOUTES les pages)
+const AGENT_ALLOWED_ROLES = ['rh', 'admin', 'dg', 'manager'];
 
-function getAgentContext(pathname: string): string | null {
-  for (const [prefix, label] of Object.entries(AGENT_PAGES)) {
+// Dérive un label lisible depuis le pathname
+function getAgentContext(pathname: string): string {
+  for (const [prefix, label] of Object.entries(AGENT_PAGES_LABELS)) {
     if (pathname.startsWith(prefix)) return label;
   }
-  return null;
+  // Label générique basé sur le dernier segment de l'URL
+  const segments = pathname.replace('/dashboard/', '').split('/');
+  const last = segments[segments.length - 1];
+  return last.charAt(0).toUpperCase() + last.slice(1) || 'Général';
 }
 
-function canUseAgent(role: string, pathname: string): boolean {
-  for (const [prefix, roles] of Object.entries(AGENT_ALLOWED_ROLES_BY_PAGE)) {
-    if (pathname.startsWith(prefix)) return roles.includes(role);
-  }
-  return false;
+// L'agent est disponible sur toutes les pages pour les rôles autorisés
+function canUseAgent(role: string): boolean {
+  return AGENT_ALLOWED_ROLES.includes(role);
 }
 
 const LS_AGENT_KEY = (pathname: string) =>
@@ -60,7 +57,7 @@ interface AgentTurn {
 
 export default function AIChatBox() {
   const pathname = usePathname();
-  const agentContext = getAgentContext(pathname);
+  const agentContext: string = getAgentContext(pathname);
 
   const [isOpen, setIsOpen] = useState(false);
   const [isEnabled, setIsEnabled] = useState(false);
@@ -104,9 +101,9 @@ export default function AIChatBox() {
     } catch {}
   }, []);
 
-  // Activer agent mode si la page + le rôle le permettent
+  // Activer agent mode si le rôle le permet (disponible sur toutes les pages)
   useEffect(() => {
-    if (agentContext && canUseAgent(userRole, pathname)) setAgentMode(true);
+    if (canUseAgent(userRole)) setAgentMode(true);
     else setAgentMode(false);
   }, [pathname, userRole]);
 
@@ -381,7 +378,7 @@ export default function AIChatBox() {
 
             <div className="flex items-center gap-1">
               {/* Bouton toggle agent : visible uniquement si le rôle permet le mode agent sur cette page */}
-              {canUseAgent(userRole, pathname) && (
+              {canUseAgent(userRole) && (
                 <button
                   onClick={() => { setAgentMode(!agentMode); setAgentTurns([]); }}
                   className={`p-2 rounded-lg text-xs transition-colors flex items-center gap-1 ${agentMode ? 'bg-white/20 hover:bg-white/30' : 'hover:bg-white/10'}`}

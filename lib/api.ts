@@ -688,6 +688,62 @@ export function exportEmployeesToCSV(employees: Employee[]): void {
 }
 
 // ============================================
+// IMPORT EMPLOYEES
+// ============================================
+
+export interface ImportEmployeesResult {
+  total: number;
+  created: number;
+  skipped: number;
+  errors: { row: number; email: string; error: string }[];
+}
+
+export async function importEmployeesFromFile(file: File): Promise<ImportEmployeesResult> {
+  const token = localStorage.getItem('access_token');
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_URL}/api/employees/import`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const err = await parseApiError(response);
+    throw new Error(err);
+  }
+
+  return response.json();
+}
+
+export function downloadEmployeeImportTemplate(): void {
+  const headers = [
+    'matricule', 'prenom', 'nom', 'email', 'telephone', 'genre',
+    'date_naissance', 'nationalite', 'adresse', 'poste', 'departement',
+    'est_manager', 'role', 'site', 'type_contrat', 'date_embauche',
+    'salaire_brut', 'salaire_net', 'devise', 'statut'
+  ];
+  const example = [
+    'EMP-001', 'Marie', 'Koné', 'marie.kone@entreprise.com', '+225 07 00 00 00', 'female',
+    '1990-05-20', 'Ivoirienne', 'Abidjan, Plateau', 'Responsable RH', 'Ressources Humaines',
+    'non', 'rh', 'Abidjan', 'CDI', '2023-01-15',
+    '500000', '400000', 'XOF', 'active'
+  ];
+  const csvContent = [headers.join(','), example.map(v => `"${v}"`).join(',')].join('\n');
+  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'template_import_collaborateurs.csv';
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// ============================================
 // LEAVE MANAGEMENT (Congés)
 // ============================================
 

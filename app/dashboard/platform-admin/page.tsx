@@ -14,11 +14,13 @@ import {
   impersonateUser, getAuditLogs, platformSearch,
   convertTenantToGroup, revertTenantToStandalone,
   getSubsidiaries, addSubsidiary, detachSubsidiary,
+  listConversionRequests, reviewConversionRequest,
   type PlatformStats, type TenantListItem, type TenantDetail,
   type AuditLogItem, type SearchResult, type TenantUpdateData, type SubsidiaryItem,
+  type ConversionRequestItem,
 } from '@/lib/api';
 
-type Tab = 'overview' | 'tenants' | 'users' | 'audit';
+type Tab = 'overview' | 'tenants' | 'users' | 'audit' | 'conversions';
 
 const ACTION_COLORS: Record<string, string> = {
   VIEW: 'bg-blue-100 text-blue-700',
@@ -70,6 +72,13 @@ export default function PlatformAdminDashboard() {
   const [addSubMode, setAddSubMode] = useState<'attach' | 'create'>('attach');
   const [addSubData, setAddSubData] = useState({ existing_tenant_slug: '', name: '', slug: '', email: '' });
 
+  // Demandes de conversion groupe
+  const [conversionRequests, setConversionRequests] = useState<ConversionRequestItem[]>([]);
+  const [convReqLoading, setConvReqLoading] = useState(false);
+  const [reviewingId, setReviewingId] = useState<number | null>(null);
+  const [reviewNote, setReviewNote] = useState('');
+  const [reviewOpenId, setReviewOpenId] = useState<number | null>(null);
+
   const getPlanBadgeClass = (plan: string) => {
     if (plan === 'enterprise') return 'bg-purple-100 text-purple-800';
     if (plan === 'professional') return 'bg-blue-100 text-blue-800';
@@ -118,6 +127,39 @@ export default function PlatformAdminDashboard() {
   useEffect(() => {
     if (activeTab === 'audit') loadAuditLogs(auditFilter || undefined);
   }, [activeTab, auditFilter, loadAuditLogs]);
+
+  // Charger les demandes de conversion
+  const loadConversionRequests = useCallback(async () => {
+    try {
+      setConvReqLoading(true);
+      const data = await listConversionRequests();
+      setConversionRequests(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setConvReqLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'conversions') loadConversionRequests();
+  }, [activeTab, loadConversionRequests]);
+
+  const handleReviewConversion = async (requestId: number, approved: boolean) => {
+    try {
+      setReviewingId(requestId);
+      await reviewConversionRequest(requestId, approved, reviewNote.trim() || undefined);
+      toast.success(approved ? 'Demande approuvée !' : 'Demande refusée');
+      setReviewOpenId(null);
+      setReviewNote('');
+      loadConversionRequests();
+      if (approved) loadData(); // refresh tenant list
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erreur');
+    } finally {
+      setReviewingId(null);
+    }
+  };
 
   // Unified search
   const handleGlobalSearch = async (e: React.FormEvent) => {
@@ -404,6 +446,7 @@ export default function PlatformAdminDashboard() {
             { key: 'tenants', label: `Tenants (${tenants.length})`, icon: Building2 },
             { key: 'users', label: 'Utilisateurs', icon: Users },
             { key: 'audit', label: 'Audit', icon: FileText },
+            { key: 'conversions', label: `Groupes${conversionRequests.filter(r => r.status === 'pending').length > 0 ? ` (${conversionRequests.filter(r => r.status === 'pending').length})` : ''}`, icon: Layers },
           ] as const).map(({ key, label, icon: Icon }) => (
             <button key={key} onClick={() => setActiveTab(key)}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
@@ -602,6 +645,110 @@ export default function PlatformAdminDashboard() {
               </table>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ===== TAB: GROUPES - DEMANDES DE CONVERSION ===== */}
+      {activeTab === 'conversions' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <div className="p-5 border-b border-gray-200 flex flex-wrap gap-3 items-center justify-between">
+            <div>
+              <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+                <Layers className="w-5 h-5 text-purple-600" /> Demandes de Conversion en Groupe
+              </h2>
+              <p className="text-xs text-gray-500 mt-0.5">Tenants qui demandent à passer en mode groupe</p>
+            </div>
+            <button onClick={loadConversionRequests} disabled={convReqLoading}
+              className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 text-sm flex items-center gap-1">
+              <RotateCcw className="w-4 h-4" /> {convReqLoading ? '...' : 'Rafraîchir'}
+            </button>
+          </div>
+
+          {convReqLoading ? (
+            <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" /></div>
+          ) : conversionRequests.length === 0 ? (
+            <div className="py-16 text-center text-gray-400">
+              <Layers className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+              <p>Aucune demande de conversion</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {conversionRequests.map(req => (
+                <div key={req.id} className="p-5 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="font-semibold text-gray-900">{req.tenant_name}</span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
+                          req.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          req.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {req.status === 'pending' ? '⏳ En attente' : req.status === 'approved' ? '✅ Approuvée' : '❌ Refusée'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mb-1">
+                        Par <span className="font-medium">{req.requested_by_email}</span> · {new Date(req.created_at).toLocaleDateString('fr-FR')}
+                      </p>
+                      {req.reason && (
+                        <p className="text-sm text-gray-700 bg-gray-50 rounded-lg px-3 py-2 mt-2 italic">&ldquo;{req.reason}&rdquo;</p>
+                      )}
+                      {req.review_note && (
+                        <p className="text-xs text-gray-500 mt-1">Note : {req.review_note}</p>
+                      )}
+                    </div>
+
+                    {req.status === 'pending' && (
+                      <div className="flex-shrink-0">
+                        {reviewOpenId === req.id ? (
+                          <div className="flex flex-col gap-2 min-w-[220px]">
+                            <input
+                              type="text"
+                              placeholder="Note (optionnel)"
+                              value={reviewNote}
+                              onChange={e => setReviewNote(e.target.value)}
+                              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleReviewConversion(req.id, true)}
+                                disabled={reviewingId === req.id}
+                                className="flex-1 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-1"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                {reviewingId === req.id ? '...' : 'Approuver'}
+                              </button>
+                              <button
+                                onClick={() => handleReviewConversion(req.id, false)}
+                                disabled={reviewingId === req.id}
+                                className="flex-1 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-1"
+                              >
+                                <AlertCircle className="w-3.5 h-3.5" />
+                                Refuser
+                              </button>
+                            </div>
+                            <button
+                              onClick={() => { setReviewOpenId(null); setReviewNote(''); }}
+                              className="text-xs text-gray-400 hover:text-gray-600 text-center"
+                            >
+                              Annuler
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setReviewOpenId(req.id)}
+                            className="px-4 py-2 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 flex items-center gap-1"
+                          >
+                            <Eye className="w-3.5 h-3.5" /> Traiter
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

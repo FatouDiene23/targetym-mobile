@@ -2066,6 +2066,52 @@ export async function getMyGroupStats(): Promise<MyGroupStats> {
   return response.json();
 }
 
+export interface ConversionRequestItem {
+  id: number;
+  tenant_id: number;
+  tenant_name?: string;
+  requested_by_email?: string;
+  reason?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewed_by_email?: string;
+  review_note?: string;
+  created_at: string;
+  reviewed_at?: string;
+}
+
+export async function requestGroupConversion(reason?: string): Promise<ConversionRequestItem> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/groups/request-conversion`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getMyConversionRequestStatus(): Promise<ConversionRequestItem | null> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/groups/request-conversion/status`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function listConversionRequests(status?: string): Promise<ConversionRequestItem[]> {
+  const url = status
+    ? `${API_URL}/api/platform/groups/conversion-requests?status_filter=${status}`
+    : `${API_URL}/api/platform/groups/conversion-requests`;
+  const response = await fetchWithAuth(url);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function reviewConversionRequest(requestId: number, approved: boolean, note?: string): Promise<ConversionRequestItem> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/groups/conversion-requests/${requestId}/review`, {
+    method: 'POST',
+    body: JSON.stringify({ approved, note }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
 
 // ============================================
 // 2FA STATUS

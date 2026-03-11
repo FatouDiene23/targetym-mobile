@@ -26,7 +26,9 @@ import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { settingsTips } from '@/config/pageTips';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { getIntegrations, connectIntegration, disconnectIntegration, syncIntegration, type Integration } from '@/lib/api';
+import { getIntegrations, connectIntegration, disconnectIntegration, syncIntegration, type Integration,
+  requestGroupConversion, getMyConversionRequestStatus, type ConversionRequestItem } from '@/lib/api';
+import { Layers } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
 
@@ -380,6 +382,13 @@ export default function SettingsPage() {
   const [notifPrefs, setNotifPrefs] = useState<{ key: string; label: string; description: string; enabled: boolean }[]>([]);
   const [loadingNotifPrefs, setLoadingNotifPrefs] = useState(false);
   const [savingNotifPrefs, setSavingNotifPrefs] = useState(false);
+
+  // États pour la demande de conversion en groupe
+  const [conversionRequest, setConversionRequest] = useState<ConversionRequestItem | null>(null);
+  const [loadingConvReq, setLoadingConvReq] = useState(false);
+  const [submittingConvReq, setSubmittingConvReq] = useState(false);
+  const [convReason, setConvReason] = useState('');
+  const [showConvForm, setShowConvForm] = useState(false);
 
   // États pour les intégrations
   const [integrationsList, setIntegrationsList] = useState<Integration[]>([]);
@@ -800,6 +809,35 @@ export default function SettingsPage() {
     );
   };
 
+  const tenantRole = typeof window !== 'undefined'
+    ? (() => { try { return JSON.parse(localStorage.getItem('user') || '{}').role || ''; } catch { return ''; } })()
+    : '';
+  const canRequestGroup = ['admin', 'dg'].includes(tenantRole?.toLowerCase());
+
+  // Charger le statut de la demande de conversion
+  useEffect(() => {
+    if (!canRequestGroup) return;
+    setLoadingConvReq(true);
+    getMyConversionRequestStatus()
+      .then(data => setConversionRequest(data))
+      .catch(() => {})
+      .finally(() => setLoadingConvReq(false));
+  }, [canRequestGroup]);
+
+  const handleSubmitConversionRequest = async () => {
+    try {
+      setSubmittingConvReq(true);
+      const result = await requestGroupConversion(convReason.trim() || undefined);
+      setConversionRequest(result);
+      setShowConvForm(false);
+      toast.success('Demande envoyée ! Le SuperAdmin va être notifié.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erreur');
+    } finally {
+      setSubmittingConvReq(false);
+    }
+  };
+
   const tabs = [
     { id: 'general', name: 'Général', icon: Building2 },
     { id: 'certificates', name: 'Signatures & Cachets', icon: FileText },
@@ -858,6 +896,7 @@ export default function SettingsPage() {
             {/* ONGLET: GÉNÉRAL (ENTREPRISE)   */}
             {/* ============================== */}
             {activeTab === 'general' && (
+              <>
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Paramètres de l&apos;Entreprise</h3>
                 <p className="text-sm text-gray-500 mb-6">Informations générales de votre organisation.</p>
@@ -957,6 +996,72 @@ export default function SettingsPage() {
                   </button>
                 </div>
               </div>
+
+              {/* ====== Section : Devenir un Groupe ====== */}
+              {canRequestGroup && (
+                <div className="mt-6 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+                      <Layers className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-gray-900 mb-1">Organisation Groupe</h4>
+                      <p className="text-sm text-gray-500 mb-4">
+                        Transformez votre entreprise en groupe pour gérer plusieurs filiales depuis un seul tableau de bord.
+                      </p>
+
+                      {loadingConvReq ? (
+                        <Loader2 className="w-5 h-5 animate-spin text-purple-500" />
+                      ) : conversionRequest ? (
+                        <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+                          conversionRequest.status === 'pending' ? 'bg-yellow-50 text-yellow-800 border border-yellow-200' :
+                          conversionRequest.status === 'approved' ? 'bg-green-50 text-green-800 border border-green-200' :
+                          'bg-red-50 text-red-800 border border-red-200'
+                        }`}>
+                          {conversionRequest.status === 'pending' && '⏳ Demande en attente de validation'}
+                          {conversionRequest.status === 'approved' && '✅ Demande approuvée — vous êtes maintenant un groupe'}
+                          {conversionRequest.status === 'rejected' && `❌ Demande refusée${conversionRequest.review_note ? ` : ${conversionRequest.review_note}` : ''}`}
+                        </div>
+                      ) : showConvForm ? (
+                        <div className="space-y-3">
+                          <textarea
+                            value={convReason}
+                            onChange={e => setConvReason(e.target.value)}
+                            placeholder="Expliquez pourquoi vous souhaitez devenir un groupe (optionnel)..."
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={handleSubmitConversionRequest}
+                              disabled={submittingConvReq}
+                              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                            >
+                              {submittingConvReq ? <Loader2 className="w-4 h-4 animate-spin" /> : <Layers className="w-4 h-4" />}
+                              Envoyer la demande
+                            </button>
+                            <button
+                              onClick={() => setShowConvForm(false)}
+                              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg transition-colors"
+                            >
+                              Annuler
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setShowConvForm(true)}
+                          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                        >
+                          <Layers className="w-4 h-4" />
+                          Demander à devenir un groupe
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              </>
             )}
 
             {/* ============================== */}

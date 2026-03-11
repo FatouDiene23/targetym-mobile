@@ -1772,6 +1772,29 @@ export async function createPlatformUser(data: UserCreateData): Promise<UserList
   return response.json();
 }
 
+export interface TenantCreateData {
+  company_name: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  password: string;
+  plan?: 'trial' | 'professional' | 'enterprise';
+  max_employees?: number;
+  is_trial?: boolean;
+}
+
+export async function createPlatformTenant(data: TenantCreateData): Promise<{ id: number; name: string; slug: string; email: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/tenants`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+  return response.json();
+}
+
 /**
  * Met à jour un user
  */

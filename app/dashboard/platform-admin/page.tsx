@@ -15,9 +15,10 @@ import {
   convertTenantToGroup, revertTenantToStandalone,
   getSubsidiaries, addSubsidiary, detachSubsidiary,
   listConversionRequests, reviewConversionRequest,
+  createPlatformTenant,
   type PlatformStats, type TenantListItem, type TenantDetail,
   type AuditLogItem, type SearchResult, type TenantUpdateData, type SubsidiaryItem,
-  type ConversionRequestItem,
+  type ConversionRequestItem, type TenantCreateData,
 } from '@/lib/api';
 
 type Tab = 'overview' | 'tenants' | 'users' | 'audit' | 'conversions';
@@ -71,6 +72,14 @@ export default function PlatformAdminDashboard() {
   const [showAddSubForm, setShowAddSubForm] = useState(false);
   const [addSubMode, setAddSubMode] = useState<'attach' | 'create'>('attach');
   const [addSubData, setAddSubData] = useState({ existing_tenant_slug: '', name: '', slug: '', email: '' });
+
+  // Création tenant
+  const [showCreateTenant, setShowCreateTenant] = useState(false);
+  const [creatingTenant, setCreatingTenant] = useState(false);
+  const [createTenantForm, setCreateTenantForm] = useState<TenantCreateData>({
+    company_name: '', email: '', first_name: '', last_name: '', password: '',
+    plan: 'trial', max_employees: 10, is_trial: true,
+  });
 
   // Demandes de conversion groupe
   const [conversionRequests, setConversionRequests] = useState<ConversionRequestItem[]>([]);
@@ -158,6 +167,22 @@ export default function PlatformAdminDashboard() {
       toast.error(err instanceof Error ? err.message : 'Erreur');
     } finally {
       setReviewingId(null);
+    }
+  };
+
+  const handleCreateTenant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setCreatingTenant(true);
+      const result = await createPlatformTenant(createTenantForm);
+      toast.success(`Tenant "${result.name}" créé (/${result.slug})`);
+      setShowCreateTenant(false);
+      setCreateTenantForm({ company_name: '', email: '', first_name: '', last_name: '', password: '', plan: 'trial', max_employees: 10, is_trial: true });
+      loadData();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erreur création tenant');
+    } finally {
+      setCreatingTenant(false);
     }
   };
 
@@ -504,6 +529,10 @@ export default function PlatformAdminDashboard() {
                 <option value="false">Inactifs</option>
               </select>
               <span className="text-sm text-gray-500">{filteredTenants.length} résultat(s)</span>
+              <button onClick={() => setShowCreateTenant(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors ml-auto">
+                <Plus className="w-4 h-4" /> Nouveau tenant
+              </button>
             </div>
           </div>
           <div className="overflow-x-auto">
@@ -749,6 +778,94 @@ export default function PlatformAdminDashboard() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ===== MODAL: CRÉER TENANT ===== */}
+      {showCreateTenant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCreateTenant(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-blue-600" /> Créer un tenant
+              </h2>
+              <button onClick={() => setShowCreateTenant(false)} className="p-1.5 text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateTenant} className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom de l&apos;entreprise *</label>
+                  <input required type="text" value={createTenantForm.company_name}
+                    onChange={e => setCreateTenantForm(f => ({ ...f, company_name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Acme Corp" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Prénom admin *</label>
+                  <input required type="text" value={createTenantForm.first_name}
+                    onChange={e => setCreateTenantForm(f => ({ ...f, first_name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Jean" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom admin *</label>
+                  <input required type="text" value={createTenantForm.last_name}
+                    onChange={e => setCreateTenantForm(f => ({ ...f, last_name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Dupont" />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email admin *</label>
+                  <input required type="email" value={createTenantForm.email}
+                    onChange={e => setCreateTenantForm(f => ({ ...f, email: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="admin@acmecorp.com" />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe *</label>
+                  <input required type="password" value={createTenantForm.password}
+                    onChange={e => setCreateTenantForm(f => ({ ...f, password: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Min. 8 caractères" minLength={8} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
+                  <select value={createTenantForm.plan}
+                    onChange={e => setCreateTenantForm(f => ({ ...f, plan: e.target.value as 'trial' | 'professional' | 'enterprise' }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="trial">Trial</option>
+                    <option value="professional">Professional</option>
+                    <option value="enterprise">Enterprise</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Max employés</label>
+                  <input type="number" min={1} max={10000} value={createTenantForm.max_employees}
+                    onChange={e => setCreateTenantForm(f => ({ ...f, max_employees: Number(e.target.value) }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div className="col-span-2 flex items-center gap-2">
+                  <input type="checkbox" id="is_trial" checked={createTenantForm.is_trial}
+                    onChange={e => setCreateTenantForm(f => ({ ...f, is_trial: e.target.checked }))}
+                    className="w-4 h-4 text-blue-600 rounded" />
+                  <label htmlFor="is_trial" className="text-sm text-gray-700">Mode trial (expire dans 30 jours)</label>
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowCreateTenant(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50">
+                  Annuler
+                </button>
+                <button type="submit" disabled={creatingTenant}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2">
+                  {creatingTenant ? <><RotateCcw className="w-4 h-4 animate-spin" /> Création...</> : <><Plus className="w-4 h-4" /> Créer le tenant</>}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

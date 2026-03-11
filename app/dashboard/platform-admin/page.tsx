@@ -221,7 +221,7 @@ export default function PlatformAdminDashboard() {
       setShowAddSubForm(false);
       setSubsidiaries([]);
       // Charger les filiales si c'est un groupe
-      if (detail.is_group) {
+      if (detail.is_group || detail.group_type === 'group') {
         loadSubsidiaries(tenantId);
       }
     } catch (err) {
@@ -255,7 +255,7 @@ export default function PlatformAdminDashboard() {
           await convertTenantToGroup(selectedTenant.id);
           toast.success('Tenant converti en groupe ! Rattachez maintenant des filiales.');
           const updated = await getTenantDetail(selectedTenant.id);
-          setSelectedTenant(updated);
+          setSelectedTenant({ ...updated, is_group: true, group_type: 'group' });
           setTenants(prev => prev.map(t => t.id === updated.id ? { ...t, is_group: true, group_type: 'group' } : t));
           await loadSubsidiaries(selectedTenant.id);
           setShowAddSubForm(true);
@@ -281,7 +281,7 @@ export default function PlatformAdminDashboard() {
           await revertTenantToStandalone(selectedTenant.id);
           toast.success('Tenant repassé en standalone');
           const updated = await getTenantDetail(selectedTenant.id);
-          setSelectedTenant(updated);
+          setSelectedTenant({ ...updated, is_group: false, group_type: 'standalone' });
           setTenants(prev => prev.map(t => t.id === updated.id ? { ...t, is_group: false, group_type: 'standalone' } : t));
         } catch (err: unknown) {
           toast.error(err instanceof Error ? err.message : 'Erreur');
@@ -1051,16 +1051,16 @@ export default function PlatformAdminDashboard() {
                     <Layers className="w-4 h-4" /> Organisation Groupe
                   </p>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    selectedTenant.is_group ? 'bg-purple-200 text-purple-800' :
+                    (selectedTenant.is_group || selectedTenant.group_type === 'group') ? 'bg-purple-200 text-purple-800' :
                     selectedTenant.group_type === 'subsidiary' ? 'bg-indigo-200 text-indigo-800' :
                     'bg-gray-200 text-gray-600'
                   }`}>
-                    {selectedTenant.is_group ? '🏢 Groupe' : selectedTenant.group_type === 'subsidiary' ? '🔗 Filiale' : '⬜ Standalone'}
+                    {(selectedTenant.is_group || selectedTenant.group_type === 'group') ? '🏢 Groupe' : selectedTenant.group_type === 'subsidiary' ? '🔗 Filiale' : '⬜ Standalone'}
                   </span>
                 </div>
 
                 {/* Standalone → convertir en groupe */}
-                {selectedTenant.group_type !== 'subsidiary' && !selectedTenant.is_group && (
+                {selectedTenant.group_type !== 'subsidiary' && !selectedTenant.is_group && selectedTenant.group_type !== 'group' && (
                   <div>
                     <p className="text-xs text-purple-700 mb-3">Cette entreprise est autonome. Vous pouvez la convertir en groupe pour lui rattacher des filiales.</p>
                     <button onClick={handleConvertToGroup} disabled={groupActionLoading}
@@ -1071,7 +1071,7 @@ export default function PlatformAdminDashboard() {
                 )}
 
                 {/* Groupe → afficher filiales + actions */}
-                {selectedTenant.is_group && (
+                {(selectedTenant.is_group || selectedTenant.group_type === 'group') && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-purple-700 font-medium">{subsidiaries.length} filiale(s) rattachée(s)</p>
@@ -1153,9 +1153,9 @@ export default function PlatformAdminDashboard() {
                                 className="p-1.5 text-blue-600 hover:bg-blue-50 rounded">
                                 <Eye className="w-3.5 h-3.5" />
                               </button>
-                              <button onClick={() => handleDetachSubsidiary(sub.id, sub.name)} title="Détacher"
-                                className="p-1.5 text-red-400 hover:bg-red-50 rounded">
-                                <Unlink className="w-3.5 h-3.5" />
+                              <button onClick={() => handleDetachSubsidiary(sub.id, sub.name)} title="Détacher cette filiale"
+                                className="flex items-center gap-1 px-2 py-1 text-xs text-red-500 hover:bg-red-50 rounded border border-red-200 hover:border-red-300">
+                                <Unlink className="w-3 h-3" /> Détacher
                               </button>
                             </div>
                           </div>

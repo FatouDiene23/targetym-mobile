@@ -88,6 +88,15 @@ export default function PlatformAdminDashboard() {
   const [reviewNote, setReviewNote] = useState('');
   const [reviewOpenId, setReviewOpenId] = useState<number | null>(null);
 
+  // Confirm dialog (remplace les confirm() natifs)
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    variant: 'danger' | 'warning';
+    onConfirm: () => void;
+  } | null>(null);
+
   const getPlanBadgeClass = (plan: string) => {
     if (plan === 'enterprise') return 'bg-purple-100 text-purple-800';
     if (plan === 'professional') return 'bg-blue-100 text-blue-800';
@@ -233,40 +242,54 @@ export default function PlatformAdminDashboard() {
     }
   };
 
-  const handleConvertToGroup = async () => {
+  const handleConvertToGroup = () => {
     if (!selectedTenant) return;
-    if (!confirm(`Convertir "${selectedTenant.name}" en groupe ? Il pourra ensuite avoir des filiales.`)) return;
-    try {
-      setGroupActionLoading(true);
-      await convertTenantToGroup(selectedTenant.id);
-      toast.success('Tenant converti en groupe ! Rattachez maintenant des filiales.');
-      const updated = await getTenantDetail(selectedTenant.id);
-      setSelectedTenant(updated);
-      setTenants(prev => prev.map(t => t.id === updated.id ? { ...t, is_group: true, group_type: 'group' } : t));
-      await loadSubsidiaries(selectedTenant.id);
-      setShowAddSubForm(true);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur');
-    } finally {
-      setGroupActionLoading(false);
-    }
+    setConfirmDialog({
+      title: 'Convertir en groupe',
+      message: `"${selectedTenant.name}" pourra ensuite avoir des filiales rattachées. Cette action est réversible si aucune filiale n’est attachée.`,
+      confirmLabel: 'Convertir',
+      variant: 'warning',
+      onConfirm: async () => {
+        try {
+          setGroupActionLoading(true);
+          await convertTenantToGroup(selectedTenant.id);
+          toast.success('Tenant converti en groupe ! Rattachez maintenant des filiales.');
+          const updated = await getTenantDetail(selectedTenant.id);
+          setSelectedTenant(updated);
+          setTenants(prev => prev.map(t => t.id === updated.id ? { ...t, is_group: true, group_type: 'group' } : t));
+          await loadSubsidiaries(selectedTenant.id);
+          setShowAddSubForm(true);
+        } catch (err: unknown) {
+          toast.error(err instanceof Error ? err.message : 'Erreur');
+        } finally {
+          setGroupActionLoading(false);
+        }
+      },
+    });
   };
 
-  const handleRevertToStandalone = async () => {
+  const handleRevertToStandalone = () => {
     if (!selectedTenant) return;
-    if (!confirm(`Repasser "${selectedTenant.name}" en standalone ? (Aucune filiale ne doit être rattachée)`)) return;
-    try {
-      setGroupActionLoading(true);
-      await revertTenantToStandalone(selectedTenant.id);
-      toast.success('Tenant repassé en standalone');
-      const updated = await getTenantDetail(selectedTenant.id);
-      setSelectedTenant(updated);
-      setTenants(prev => prev.map(t => t.id === updated.id ? { ...t, is_group: false, group_type: 'standalone' } : t));
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur');
-    } finally {
-      setGroupActionLoading(false);
-    }
+    setConfirmDialog({
+      title: 'Annuler le groupe',
+      message: `"${selectedTenant.name}" repassera en standalone. Assurez-vous qu’aucune filiale n’est rattachée.`,
+      confirmLabel: 'Annuler le groupe',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          setGroupActionLoading(true);
+          await revertTenantToStandalone(selectedTenant.id);
+          toast.success('Tenant repassé en standalone');
+          const updated = await getTenantDetail(selectedTenant.id);
+          setSelectedTenant(updated);
+          setTenants(prev => prev.map(t => t.id === updated.id ? { ...t, is_group: false, group_type: 'standalone' } : t));
+        } catch (err: unknown) {
+          toast.error(err instanceof Error ? err.message : 'Erreur');
+        } finally {
+          setGroupActionLoading(false);
+        }
+      },
+    });
   };
 
   const handleAddSubsidiary = async () => {
@@ -291,16 +314,23 @@ export default function PlatformAdminDashboard() {
     }
   };
 
-  const handleDetachSubsidiary = async (subsidiaryId: number, subsidiaryName: string) => {
+  const handleDetachSubsidiary = (subsidiaryId: number, subsidiaryName: string) => {
     if (!selectedTenant) return;
-    if (!confirm(`Détacher "${subsidiaryName}" du groupe ? Elle redeviendra standalone.`)) return;
-    try {
-      await detachSubsidiary(selectedTenant.id, subsidiaryId);
-      toast.success(`"${subsidiaryName}" détachée`);
-      loadSubsidiaries(selectedTenant.id);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur');
-    }
+    setConfirmDialog({
+      title: 'Détacher la filiale',
+      message: `"${subsidiaryName}" sera détachée du groupe et redeviendra un tenant standalone.`,
+      confirmLabel: 'Détacher',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await detachSubsidiary(selectedTenant.id, subsidiaryId);
+          toast.success(`« ${subsidiaryName} » détachée`);
+          loadSubsidiaries(selectedTenant.id);
+        } catch (err: unknown) {
+          toast.error(err instanceof Error ? err.message : 'Erreur');
+        }
+      },
+    });
   };
 
   // Save tenant edits
@@ -322,44 +352,50 @@ export default function PlatformAdminDashboard() {
   };
 
   // Impersonate user
-  const handleImpersonate = async (userId: number, userEmail: string, tenantId?: number) => {
-    if (!confirm(`⚠️ Vous allez impersonner ${userEmail}.\nCette action est loggée. Continuer ?`)) return;
-    try {
-      setImpersonating(userId);
-      const result = await impersonateUser(userId);
-      // Backup du token et user actuels
-      const currentToken = localStorage.getItem('access_token');
-      const currentUser = localStorage.getItem('user');
-      const currentUserObj = currentUser ? JSON.parse(currentUser) : null;
-      localStorage.setItem('access_token_backup', currentToken || '');
-      localStorage.setItem('user_backup', currentUser || '');
-      // Appliquer le nouveau token
-      localStorage.setItem('access_token', result.access_token);
-      // Mettre à jour l'objet user pour que le sidebar affiche les bons menus
-      localStorage.setItem('user', JSON.stringify({
-        id: result.impersonated_user_id,
-        email: result.impersonated_user_email,
-        first_name: result.first_name || '',
-        last_name: result.last_name || '',
-        role: result.employee_role || 'employee',
-        is_manager: result.is_manager || false,
-        tenant_id: result.impersonated_tenant_id,
-      }));
-      // Flags d'impersonation pour la bannière
-      localStorage.setItem('is_impersonating', 'true');
-      localStorage.setItem('impersonated_user_email', result.impersonated_user_email);
-      localStorage.setItem('impersonated_by_email', currentUserObj?.email || 'admin');
-      if (result.tenant_slug) localStorage.setItem('impersonated_tenant_slug', result.tenant_slug);
-      toast.success(`Impersonation OK. Token valide 30min. Redirection...`, { duration: 3000 });
-      setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erreur impersonation';
-      toast.error(msg);
-    } finally {
-      setImpersonating(null);
-    }
+  const handleImpersonate = (userId: number, userEmail: string, tenantId?: number) => {
+    setConfirmDialog({
+      title: 'Impersonation',
+      message: `Vous allez accéder au dashboard de ${userEmail} en tant qu'administrateur. Cette action est enregistrée dans l'audit.`,
+      confirmLabel: 'Accéder',
+      variant: 'warning',
+      onConfirm: async () => {
+        try {
+          setImpersonating(userId);
+          const result = await impersonateUser(userId);
+          // Backup du token et user actuels
+          const currentToken = localStorage.getItem('access_token');
+          const currentUser = localStorage.getItem('user');
+          const currentUserObj = currentUser ? JSON.parse(currentUser) : null;
+          localStorage.setItem('access_token_backup', currentToken || '');
+          localStorage.setItem('user_backup', currentUser || '');
+          // Appliquer le nouveau token
+          localStorage.setItem('access_token', result.access_token);
+          // Mettre à jour l'objet user pour que le sidebar affiche les bons menus
+          localStorage.setItem('user', JSON.stringify({
+            id: result.impersonated_user_id,
+            email: result.impersonated_user_email,
+            first_name: result.first_name || '',
+            last_name: result.last_name || '',
+            role: result.employee_role || 'employee',
+            is_manager: result.is_manager || false,
+            tenant_id: result.impersonated_tenant_id,
+          }));
+          // Flags d'impersonation pour la bannière
+          localStorage.setItem('is_impersonating', 'true');
+          localStorage.setItem('impersonated_user_email', result.impersonated_user_email);
+          localStorage.setItem('impersonated_by_email', currentUserObj?.email || 'admin');
+          if (result.tenant_slug) localStorage.setItem('impersonated_tenant_slug', result.tenant_slug);
+          toast.success(`Impersonation OK. Token valide 30min. Redirection...`, { duration: 3000 });
+          setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'Erreur impersonation';
+          toast.error(msg);
+        } finally {
+          setImpersonating(null);
+        }
+      },
+    });
   };
-
   // Filtered tenants
   const filteredTenants = tenants.filter(t => {
     let match = true;
@@ -783,6 +819,42 @@ export default function PlatformAdminDashboard() {
         </div>
       )}
 
+      {/* ===== CONFIRM DIALOG ===== */}
+      {confirmDialog && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setConfirmDialog(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className={`p-2 rounded-xl ${confirmDialog.variant === 'danger' ? 'bg-red-100' : 'bg-orange-100'}`}>
+                <AlertCircle className={`w-5 h-5 ${confirmDialog.variant === 'danger' ? 'text-red-600' : 'text-orange-600'}`} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">{confirmDialog.title}</h3>
+                <p className="text-sm text-gray-600 mt-1">{confirmDialog.message}</p>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2 justify-end">
+              <button
+                onClick={() => setConfirmDialog(null)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => { confirmDialog.onConfirm(); setConfirmDialog(null); }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors ${
+                  confirmDialog.variant === 'danger'
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-orange-500 hover:bg-orange-600'
+                }`}
+              >
+                {confirmDialog.confirmLabel || 'Confirmer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ===== MODAL: CRÉER TENANT ===== */}
       {showCreateTenant && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1011,7 +1083,7 @@ export default function PlatformAdminDashboard() {
                         <button
                           onClick={() => {
                             if (subsidiaries.length > 0) {
-                              if (!confirm(`Ce groupe a ${subsidiaries.length} filiale(s) rattachée(s). Détachez-les d'abord avant de repasser en standalone.`)) return;
+                              toast.error(`Détachez d’abord les ${subsidiaries.length} filiale(s) avant d’annuler le groupe.`);
                               return;
                             }
                             handleRevertToStandalone();

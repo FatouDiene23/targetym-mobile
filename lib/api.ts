@@ -2117,6 +2117,15 @@ export async function getMyConversionRequestStatus(): Promise<ConversionRequestI
   return response.json();
 }
 
+export async function createMySubsidiary(name: string, slug: string, email?: string): Promise<{ success: boolean; message: string; subsidiary_id: number; subsidiary_slug: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/groups/my-group/subsidiaries`, {
+    method: 'POST',
+    body: JSON.stringify({ name, slug, email: email || undefined }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
 export async function listConversionRequests(status?: string): Promise<ConversionRequestItem[]> {
   const url = status
     ? `${API_URL}/api/platform/groups/conversion-requests?status_filter=${status}`

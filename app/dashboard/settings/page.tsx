@@ -27,7 +27,8 @@ import { usePageTour } from '@/hooks/usePageTour';
 import { settingsTips } from '@/config/pageTips';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { getIntegrations, connectIntegration, disconnectIntegration, syncIntegration, type Integration,
-  requestGroupConversion, getMyConversionRequestStatus, type ConversionRequestItem } from '@/lib/api';
+  requestGroupConversion, getMyConversionRequestStatus, getMyGroupContext, createMySubsidiary,
+  type ConversionRequestItem, type SubsidiaryItem } from '@/lib/api';
 import { Layers } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
@@ -389,6 +390,15 @@ export default function SettingsPage() {
   const [submittingConvReq, setSubmittingConvReq] = useState(false);
   const [convReason, setConvReason] = useState('');
   const [showConvForm, setShowConvForm] = useState(false);
+
+  // États pour la gestion des filiales (si groupe approuvé)
+  const [groupSubsidiaries, setGroupSubsidiaries] = useState<SubsidiaryItem[]>([]);
+  const [loadingSubsidiaries, setLoadingSubsidiaries] = useState(false);
+  const [showSubsidiaryModal, setShowSubsidiaryModal] = useState(false);
+  const [newSubName, setNewSubName] = useState('');
+  const [newSubSlug, setNewSubSlug] = useState('');
+  const [newSubEmail, setNewSubEmail] = useState('');
+  const [creatingSubsidiary, setCreatingSubsidiary] = useState(false);
 
   // États pour les intégrations
   const [integrationsList, setIntegrationsList] = useState<Integration[]>([]);
@@ -838,6 +848,39 @@ export default function SettingsPage() {
     }
   };
 
+  const fetchGroupSubsidiaries = async () => {
+    setLoadingSubsidiaries(true);
+    try {
+      const ctx = await getMyGroupContext();
+      setGroupSubsidiaries(ctx.subsidiaries || []);
+    } catch {
+      // silently ignore
+    } finally {
+      setLoadingSubsidiaries(false);
+    }
+  };
+
+  const handleCreateSubsidiary = async () => {
+    if (!newSubName.trim() || !newSubSlug.trim()) {
+      toast.error('Le nom et l\'identifiant sont requis');
+      return;
+    }
+    setCreatingSubsidiary(true);
+    try {
+      await createMySubsidiary(newSubName.trim(), newSubSlug.trim(), newSubEmail.trim() || undefined);
+      toast.success(`Filiale "${newSubName}" créée avec succès !`);
+      setShowSubsidiaryModal(false);
+      setNewSubName('');
+      setNewSubSlug('');
+      setNewSubEmail('');
+      fetchGroupSubsidiaries();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erreur lors de la création');
+    } finally {
+      setCreatingSubsidiary(false);
+    }
+  };
+
   const tabs = [
     { id: 'general', name: 'Général', icon: Building2 },
     { id: 'certificates', name: 'Signatures & Cachets', icon: FileText },
@@ -1057,6 +1100,157 @@ export default function SettingsPage() {
                           Demander à devenir un groupe
                         </button>
                       )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ====== Section : Gérer mes filiales (si groupe approuvé) ====== */}
+              {conversionRequest?.status === 'approved' && (
+                <div className="mt-4 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+                        <Layers className="w-5 h-5 text-indigo-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">Mes filiales</h4>
+                        <p className="text-xs text-gray-500">Gérez les entités de votre groupe</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { fetchGroupSubsidiaries(); setShowSubsidiaryModal(true); }}
+                      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                    >
+                      <span className="text-lg leading-none">+</span>
+                      Ajouter une filiale
+                    </button>
+                  </div>
+
+                  {loadingSubsidiaries ? (
+                    <div className="flex items-center justify-center py-6">
+                      <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
+                    </div>
+                  ) : groupSubsidiaries.length === 0 ? (
+                    <div
+                      className="text-center py-8 text-gray-400 cursor-pointer hover:text-indigo-500 transition-colors border-2 border-dashed border-gray-200 rounded-lg"
+                      onClick={() => { fetchGroupSubsidiaries(); setShowSubsidiaryModal(true); }}
+                    >
+                      <Layers className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                      <p className="text-sm">Aucune filiale pour l&apos;instant.</p>
+                      <p className="text-xs mt-1">Cliquez pour créer votre première filiale</p>
+                    </div>
+                  ) : (
+                    <div
+                      className="space-y-2"
+                      onClick={() => {
+                        if (groupSubsidiaries.length === 0) fetchGroupSubsidiaries();
+                      }}
+                    >
+                      {groupSubsidiaries.map(sub => (
+                        <div key={sub.id} className="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-lg border border-gray-100">
+                          <div className="flex items-center gap-3">
+                            {sub.logo_url ? (
+                              <img src={sub.logo_url} alt={sub.name} className="w-8 h-8 rounded-lg object-cover" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+                                <span className="text-xs font-bold text-indigo-600">{sub.name.charAt(0).toUpperCase()}</span>
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{sub.name}</p>
+                              <p className="text-xs text-gray-500">{sub.slug} · {sub.employee_count} employé{sub.employee_count !== 1 ? 's' : ''}</p>
+                            </div>
+                          </div>
+                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                            sub.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                          }`}>
+                            {sub.is_active ? 'Actif' : 'Inactif'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Bouton refresh si pas encore chargé */}
+                  {!loadingSubsidiaries && groupSubsidiaries.length === 0 && (
+                    <button
+                      onClick={fetchGroupSubsidiaries}
+                      className="mt-3 text-xs text-indigo-500 hover:text-indigo-700 underline"
+                    >
+                      Charger mes filiales
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Modal création filiale */}
+              {showSubsidiaryModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+                    <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                      <h3 className="text-lg font-semibold text-gray-900">Créer une filiale</h3>
+                      <button onClick={() => setShowSubsidiaryModal(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        <X className="w-5 h-5 text-gray-400" />
+                      </button>
+                    </div>
+                    <div className="p-6 space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Nom de la filiale <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          value={newSubName}
+                          onChange={e => {
+                            setNewSubName(e.target.value);
+                            // Auto-générer le slug depuis le nom
+                            const slug = e.target.value
+                              .toLowerCase()
+                              .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                              .replace(/[^a-z0-9]+/g, '-')
+                              .replace(/^-+|-+$/g, '');
+                            setNewSubSlug(slug);
+                          }}
+                          placeholder="Ex: Filiale Dakar"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Identifiant unique (slug) <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          value={newSubSlug}
+                          onChange={e => setNewSubSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                          placeholder="Ex: filiale-dakar"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">Lettres minuscules, chiffres et tirets uniquement</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email de contact <span className="text-gray-400">(optionnel)</span></label>
+                        <input
+                          type="email"
+                          value={newSubEmail}
+                          onChange={e => setNewSubEmail(e.target.value)}
+                          placeholder="Ex: filiale@monentreprise.com"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-3 p-6 pt-0">
+                      <button
+                        onClick={() => setShowSubsidiaryModal(false)}
+                        className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        onClick={handleCreateSubsidiary}
+                        disabled={creatingSubsidiary || !newSubName.trim() || !newSubSlug.trim()}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                      >
+                        {creatingSubsidiary ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                        Créer la filiale
+                      </button>
                     </div>
                   </div>
                 </div>

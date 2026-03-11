@@ -2095,6 +2095,11 @@ export interface ConversionRequestItem {
   tenant_name?: string;
   requested_by_email?: string;
   reason?: string;
+  nb_subsidiaries?: number;
+  contact_phone?: string;
+  quote_amount?: number;
+  payment_status: 'unpaid' | 'paid';
+  payment_ref?: string;
   status: 'pending' | 'approved' | 'rejected';
   reviewed_by_email?: string;
   review_note?: string;
@@ -2102,10 +2107,10 @@ export interface ConversionRequestItem {
   reviewed_at?: string;
 }
 
-export async function requestGroupConversion(reason?: string): Promise<ConversionRequestItem> {
+export async function requestGroupConversion(reason?: string, nb_subsidiaries?: number, contact_phone?: string): Promise<ConversionRequestItem> {
   const response = await fetchWithAuth(`${API_URL}/api/platform/groups/request-conversion`, {
     method: 'POST',
-    body: JSON.stringify({ reason }),
+    body: JSON.stringify({ reason, nb_subsidiaries: nb_subsidiaries || 1, contact_phone }),
   });
   if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
   return response.json();
@@ -2139,6 +2144,15 @@ export async function reviewConversionRequest(requestId: number, approved: boole
   const response = await fetchWithAuth(`${API_URL}/api/platform/groups/conversion-requests/${requestId}/review`, {
     method: 'POST',
     body: JSON.stringify({ approved, note }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function markConversionAsPaid(requestId: number, paymentRef?: string): Promise<ConversionRequestItem> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/groups/conversion-requests/${requestId}/mark-paid`, {
+    method: 'POST',
+    body: JSON.stringify({ payment_ref: paymentRef || '' }),
   });
   if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
   return response.json();

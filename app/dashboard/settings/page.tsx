@@ -29,6 +29,11 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { getIntegrations, connectIntegration, disconnectIntegration, syncIntegration, type Integration,
   requestGroupConversion, getMyConversionRequestStatus, getMyGroupContext, createMySubsidiary,
   type ConversionRequestItem, type SubsidiaryItem } from '@/lib/api';
+
+const GROUP_BASE_PRICE = 100_000;       // XOF/mois
+const GROUP_PRICE_PER_SUB = 30_000;    // XOF/mois par filiale
+const calcGroupPrice = (n: number) => GROUP_BASE_PRICE + Math.max(1, n) * GROUP_PRICE_PER_SUB;
+const formatXOF = (n: number) => new Intl.NumberFormat('fr-FR').format(n) + ' XOF';
 import { Layers } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
@@ -389,6 +394,8 @@ export default function SettingsPage() {
   const [loadingConvReq, setLoadingConvReq] = useState(false);
   const [submittingConvReq, setSubmittingConvReq] = useState(false);
   const [convReason, setConvReason] = useState('');
+  const [convNbSubsidiaries, setConvNbSubsidiaries] = useState(1);
+  const [convPhone, setConvPhone] = useState('');
   const [showConvForm, setShowConvForm] = useState(false);
 
   // États pour la gestion des filiales (si groupe approuvé)
@@ -837,7 +844,11 @@ export default function SettingsPage() {
   const handleSubmitConversionRequest = async () => {
     try {
       setSubmittingConvReq(true);
-      const result = await requestGroupConversion(convReason.trim() || undefined);
+      const result = await requestGroupConversion(
+        convReason.trim() || undefined,
+        convNbSubsidiaries,
+        convPhone.trim() || undefined,
+      );
       setConversionRequest(result);
       setShowConvForm(false);
       toast.success('Demande envoyée ! Le SuperAdmin va être notifié.');
@@ -1067,13 +1078,49 @@ export default function SettingsPage() {
                         </div>
                       ) : showConvForm ? (
                         <div className="space-y-3">
-                          <textarea
-                            value={convReason}
-                            onChange={e => setConvReason(e.target.value)}
-                            placeholder="Expliquez pourquoi vous souhaitez devenir un groupe (optionnel)..."
-                            rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                          />
+                          {/* Nombre de filiales */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Nombre de filiales souhaitées <span className="text-red-500">*</span></label>
+                            <input
+                              type="number"
+                              min={1}
+                              max={50}
+                              value={convNbSubsidiaries}
+                              onChange={e => setConvNbSubsidiaries(Math.max(1, parseInt(e.target.value) || 1))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            />
+                          </div>
+                          {/* Téléphone */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Téléphone de contact</label>
+                            <input
+                              type="tel"
+                              value={convPhone}
+                              onChange={e => setConvPhone(e.target.value)}
+                              placeholder="Ex: +221 77 000 00 00"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            />
+                          </div>
+                          {/* Motif */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Motif <span className="text-gray-400">(optionnel)</span></label>
+                            <textarea
+                              value={convReason}
+                              onChange={e => setConvReason(e.target.value)}
+                              placeholder="Expliquez pourquoi vous souhaitez devenir un groupe..."
+                              rows={2}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                            />
+                          </div>
+                          {/* Aperçu du prix */}
+                          <div className="bg-purple-50 border border-purple-200 rounded-lg px-4 py-3">
+                            <p className="text-xs text-purple-700 font-medium mb-1">Estimation mensuelle</p>
+                            <p className="text-xl font-bold text-purple-900">{formatXOF(calcGroupPrice(convNbSubsidiaries))}</p>
+                            <p className="text-xs text-purple-600 mt-1">
+                              Forfait groupe 100 000 XOF + {convNbSubsidiaries} filiale{convNbSubsidiaries > 1 ? 's' : ''} × 30 000 XOF/mois
+                            </p>
+                            <p className="text-xs text-purple-500 mt-1 italic">Le SuperAdmin vous contactera pour finaliser le paiement.</p>
+                          </div>
                           <div className="flex gap-2">
                             <button
                               onClick={handleSubmitConversionRequest}

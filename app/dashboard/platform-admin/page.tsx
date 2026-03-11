@@ -14,7 +14,7 @@ import {
   impersonateUser, getAuditLogs, platformSearch,
   convertTenantToGroup, revertTenantToStandalone,
   getSubsidiaries, addSubsidiary, detachSubsidiary,
-  listConversionRequests, reviewConversionRequest,
+  listConversionRequests, reviewConversionRequest, markConversionAsPaid,
   createPlatformTenant,
   type PlatformStats, type TenantListItem, type TenantDetail,
   type AuditLogItem, type SearchResult, type TenantUpdateData, type SubsidiaryItem,
@@ -87,6 +87,8 @@ export default function PlatformAdminDashboard() {
   const [reviewingId, setReviewingId] = useState<number | null>(null);
   const [reviewNote, setReviewNote] = useState('');
   const [reviewOpenId, setReviewOpenId] = useState<number | null>(null);
+  const [markingPaidId, setMarkingPaidId] = useState<number | null>(null);
+  const [paymentRefInput, setPaymentRefInput] = useState<Record<number, string>>({});
 
   // Confirm dialog (remplace les confirm() natifs)
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -171,11 +173,26 @@ export default function PlatformAdminDashboard() {
       setReviewOpenId(null);
       setReviewNote('');
       loadConversionRequests();
-      if (approved) loadData(); // refresh tenant list
+      if (approved) loadData();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erreur');
+      setReviewingId(null);
+    } finally {
+      setReviewingId(null);
+    }
+  };
+
+  const handleMarkPaid = async (requestId: number) => {
+    try {
+      setMarkingPaidId(requestId);
+      const ref = paymentRefInput[requestId]?.trim() || undefined;
+      await markConversionAsPaid(requestId, ref);
+      toast.success('Paiement confirmé ✔');
+      loadConversionRequests();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Erreur');
     } finally {
-      setReviewingId(null);
+      setMarkingPaidId(null);
     }
   };
 
@@ -753,22 +770,64 @@ export default function PlatformAdminDashboard() {
                         }`}>
                           {req.status === 'pending' ? '⏳ En attente' : req.status === 'approved' ? '✅ Approuvée' : '❌ Refusée'}
                         </span>
+                        {/* Badge paiement */}
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
+                          req.payment_status === 'paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-orange-100 text-orange-800'
+                        }`}>
+                          {req.payment_status === 'paid' ? '💳 Payé' : '⏳ Paiement en attente'}
+                        </span>
                       </div>
                       <p className="text-xs text-gray-500 mb-1">
                         Par <span className="font-medium">{req.requested_by_email}</span> · {new Date(req.created_at).toLocaleDateString('fr-FR')}
                       </p>
+                      {/* Infos commerciales */}
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600 mt-2">
+                        {req.nb_subsidiaries && (
+                          <span>🏗️ <strong>{req.nb_subsidiaries}</strong> filiale{req.nb_subsidiaries > 1 ? 's' : ''} souhaitée{req.nb_subsidiaries > 1 ? 's' : ''}</span>
+                        )}
+                        {req.quote_amount && (
+                          <span>💰 Devis : <strong className="text-purple-700">{new Intl.NumberFormat('fr-FR').format(req.quote_amount)} XOF/mois</strong></span>
+                        )}
+                        {req.contact_phone && (
+                          <span>📞 {req.contact_phone}</span>
+                        )}
+                        {req.payment_ref && (
+                          <span>🧳 Réf : <span className="font-mono text-gray-800">{req.payment_ref}</span></span>
+                        )}
+                      </div>
                       {req.reason && (
                         <p className="text-sm text-gray-700 bg-gray-50 rounded-lg px-3 py-2 mt-2 italic">&ldquo;{req.reason}&rdquo;</p>
                       )}
                       {req.review_note && (
-                        <p className="text-xs text-gray-500 mt-1">Note : {req.review_note}</p>
+                        <p className="text-xs text-gray-500 mt-1">Note : {req.review_note}</p>
                       )}
                     </div>
 
                     {req.status === 'pending' && (
                       <div className="flex-shrink-0">
                         {reviewOpenId === req.id ? (
-                          <div className="flex flex-col gap-2 min-w-[220px]">
+                          <div className="flex flex-col gap-2 min-w-[240px]">
+                            {/* Paiement non confirmé : montrer le panneau de confirmation paiement */}
+                            {req.payment_status !== 'paid' && (
+                              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-1">
+                                <p className="text-xs font-semibold text-orange-800 mb-2">⚠️ Paiement requis avant approbation</p>
+                                <input
+                                  type="text"
+                                  placeholder="Référence paiement (optionnel)"
+                                  value={paymentRefInput[req.id] || ''}
+                                  onChange={e => setPaymentRefInput(prev => ({ ...prev, [req.id]: e.target.value }))}
+                                  className="w-full px-2 py-1.5 border border-orange-300 rounded text-xs mb-2 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                                />
+                                <button
+                                  onClick={() => handleMarkPaid(req.id)}
+                                  disabled={markingPaidId === req.id}
+                                  className="w-full px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-1"
+                                >
+                                  {markingPaidId === req.id ? <span className="animate-spin">...</span> : '💳'}
+                                  {markingPaidId === req.id ? 'Confirmation...' : 'Marquer paiement reçu'}
+                                </button>
+                              </div>
+                            )}
                             <input
                               type="text"
                               placeholder="Note (optionnel)"
@@ -779,8 +838,9 @@ export default function PlatformAdminDashboard() {
                             <div className="flex gap-2">
                               <button
                                 onClick={() => handleReviewConversion(req.id, true)}
-                                disabled={reviewingId === req.id}
-                                className="flex-1 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-1"
+                                disabled={reviewingId === req.id || req.payment_status !== 'paid'}
+                                title={req.payment_status !== 'paid' ? 'Confirmez le paiement d\'abord' : ''}
+                                className="flex-1 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
                                 {reviewingId === req.id ? '...' : 'Approuver'}

@@ -239,10 +239,12 @@ export default function PlatformAdminDashboard() {
     try {
       setGroupActionLoading(true);
       await convertTenantToGroup(selectedTenant.id);
-      toast.success('Tenant converti en groupe !');
+      toast.success('Tenant converti en groupe ! Rattachez maintenant des filiales.');
       const updated = await getTenantDetail(selectedTenant.id);
       setSelectedTenant(updated);
       setTenants(prev => prev.map(t => t.id === updated.id ? { ...t, is_group: true, group_type: 'group' } : t));
+      await loadSubsidiaries(selectedTenant.id);
+      setShowAddSubForm(true);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Erreur');
     } finally {
@@ -1006,12 +1008,18 @@ export default function PlatformAdminDashboard() {
                           className="px-2.5 py-1.5 bg-purple-600 text-white rounded-lg text-xs hover:bg-purple-700 flex items-center gap-1">
                           <Plus className="w-3 h-3" /> Ajouter une filiale
                         </button>
-                        {subsidiaries.length === 0 && (
-                          <button onClick={handleRevertToStandalone} disabled={groupActionLoading}
-                            className="px-2.5 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs hover:bg-gray-300 flex items-center gap-1 disabled:opacity-50">
-                            <RotateCcw className="w-3 h-3" /> Repasser standalone
-                          </button>
-                        )}
+                        <button
+                          onClick={() => {
+                            if (subsidiaries.length > 0) {
+                              if (!confirm(`Ce groupe a ${subsidiaries.length} filiale(s) rattachée(s). Détachez-les d'abord avant de repasser en standalone.`)) return;
+                              return;
+                            }
+                            handleRevertToStandalone();
+                          }}
+                          disabled={groupActionLoading}
+                          className="px-2.5 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs hover:bg-gray-300 flex items-center gap-1 disabled:opacity-50">
+                          <RotateCcw className="w-3 h-3" /> Annuler groupe
+                        </button>
                       </div>
                     </div>
 

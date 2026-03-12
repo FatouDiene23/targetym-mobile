@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 // ============================================
 // CONFIG
 // ============================================
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
+const API_URL = 'https://api.targetym.ai';
 
 function getToken(): string | null {
   return typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
@@ -126,15 +126,18 @@ export default function SanctionsTab() {
   const loadEmployees = useCallback(async () => {
     try {
       const data = await apiFetch('/api/employees?page_size=500');
+      console.log('[SanctionsTab] employees response:', data);
       const list = Array.isArray(data) ? data : data.items || [];
-      setEmployees(list.map((e: SimpleEmployee) => ({
-        id: e.id,
-        first_name: e.first_name,
-        last_name: e.last_name,
-        job_title: e.job_title,
-        department_name: e.department_name,
+      console.log('[SanctionsTab] employees list length:', list.length);
+      setEmployees(list.map((e: Record<string, unknown>) => ({
+        id: e.id as number,
+        first_name: (e.first_name as string) || '',
+        last_name: (e.last_name as string) || '',
+        job_title: (e.job_title as string) || undefined,
+        department_name: (e.department_name as string) || undefined,
       })));
-    } catch {
+    } catch (err) {
+      console.error('[SanctionsTab] loadEmployees error:', err);
       setEmployees([]);
     }
   }, []);

@@ -1,5 +1,6 @@
 'use client';
 
+import toast from 'react-hot-toast';
 import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import {
@@ -285,7 +286,7 @@ export default function AIChatBox() {
         await loadConversation(response.conversation_id);
       }
     } catch (error: any) {
-      alert(error.message || 'Erreur lors de l\'envoi du message');
+      toast.error(error.message || 'Erreur lors de l\'envoi du message');
     } finally {
       setSending(false);
       inputRef.current?.focus();
@@ -318,7 +319,7 @@ export default function AIChatBox() {
           if (activeConversation?.id === conversationId) setActiveConversation(null);
           await loadConversations();
         } catch (error: any) {
-          alert(error.message || 'Erreur lors de la suppression');
+          toast.error(error.message || 'Erreur lors de la suppression');
         }
       },
     });
@@ -335,7 +336,7 @@ export default function AIChatBox() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.name.toLowerCase().endsWith('.pdf')) {
-      alert('Seuls les fichiers PDF sont acceptés.');
+      toast.error('Seuls les fichiers PDF sont acceptés.');
       return;
     }
     setAttachedFile(file);

@@ -254,6 +254,8 @@ export default function MissionsPage() {
     onConfirm: () => void;
     danger?: boolean;
   } | null>(null);
+  const [rejectDialog, setRejectDialog] = useState<{ pending: Mission[] } | null>(null);
+  const [rejectReasonText, setRejectReasonText] = useState('');
 
   useEffect(() => {
     const userInfo = getUserFromStorage();
@@ -442,24 +444,34 @@ export default function MissionsPage() {
   const handleBulkApproveMissions = async () => {
     const pending = pendingMissions.filter(m => selectedMissionIds.has(m.id) && ['en_attente_manager', 'en_attente_rh'].includes(m.status));
     if (pending.length === 0) { toast.error('Aucune mission à valider dans la sélection'); return; }
-    if (!confirm(`Approuver ${pending.length} mission(s) ?`)) return;
-    setBulkMissionLoading(true);
-    try {
-      for (const m of pending) {
-        await apiFetch(`/api/missions/${m.id}/validate`, { method: 'POST', body: JSON.stringify({ decision: 'approuvee', comment: 'Approbation groupée' }) });
-      }
-      setSelectedMissionIds(new Set());
-      toast.success(`${pending.length} mission(s) approuvée(s)`);
-      fetchAll();
-    } catch (err: any) { toast.error('Erreur: ' + err.message); }
-    setBulkMissionLoading(false);
+    setConfirmDialog({
+      isOpen: true,
+      title: `Approuver ${pending.length} mission(s) ?`,
+      message: `Valider en masse ${pending.length} mission(s) sélectionnée(s) ?`,
+      danger: false,
+      onConfirm: async () => {
+        setBulkMissionLoading(true);
+        try {
+          for (const m of pending) {
+            await apiFetch(`/api/missions/${m.id}/validate`, { method: 'POST', body: JSON.stringify({ decision: 'approuvee', comment: 'Approbation groupée' }) });
+          }
+          setSelectedMissionIds(new Set());
+          toast.success(`${pending.length} mission(s) approuvée(s)`);
+          fetchAll();
+        } catch (err: any) { toast.error('Erreur: ' + err.message); }
+        setBulkMissionLoading(false);
+      },
+    });
   };
 
   const handleBulkRejectMissions = async () => {
     const pending = pendingMissions.filter(m => selectedMissionIds.has(m.id) && ['en_attente_manager', 'en_attente_rh'].includes(m.status));
     if (pending.length === 0) { toast.error('Aucune mission à rejeter dans la sélection'); return; }
-    const reason = prompt(`Motif de rejet pour ${pending.length} mission(s) :`);
-    if (!reason) return;
+    setRejectReasonText('');
+    setRejectDialog({ pending });
+  };
+
+  const doRejectMissions = async (pending: Mission[], reason: string) => {
     setBulkMissionLoading(true);
     try {
       for (const m of pending) {
@@ -493,16 +505,23 @@ export default function MissionsPage() {
   const handleBulkDeleteMissions = async (missionList: Mission[]) => {
     const deletable = missionList.filter(m => selectedMissionIds.has(m.id) && m.status === 'brouillon');
     if (deletable.length === 0) { toast.error('Seules les missions en brouillon peuvent être supprimées'); return; }
-    if (!confirm(`Supprimer ${deletable.length} mission(s) en brouillon ?`)) return;
-    setBulkMissionLoading(true);
-    try {
-      for (const m of deletable) {
-        await apiFetch(`/api/missions/${m.id}`, { method: 'DELETE' });
-      }
-      setSelectedMissionIds(new Set());
-      fetchAll();
-    } catch (err: any) { toast.error('Erreur: ' + err.message); }
-    setBulkMissionLoading(false);
+    setConfirmDialog({
+      isOpen: true,
+      title: `Supprimer ${deletable.length} mission(s) ?`,
+      message: `Supprimer définitivement ${deletable.length} mission(s) en brouillon ? Cette action est irréversible.`,
+      danger: true,
+      onConfirm: async () => {
+        setBulkMissionLoading(true);
+        try {
+          for (const m of deletable) {
+            await apiFetch(`/api/missions/${m.id}`, { method: 'DELETE' });
+          }
+          setSelectedMissionIds(new Set());
+          fetchAll();
+        } catch (err: any) { toast.error('Erreur: ' + err.message); }
+        setBulkMissionLoading(false);
+      },
+    });
   };
 
   // ============================================
@@ -1122,6 +1141,33 @@ export default function MissionsPage() {
         />
       )}
       
+      {rejectDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-2">Motif de rejet</h2>
+            <p className="text-sm text-gray-600 mb-4">Refuser {rejectDialog.pending.length} mission(s)</p>
+            <textarea
+              value={rejectReasonText}
+              onChange={e => setRejectReasonText(e.target.value)}
+              placeholder="Motif de rejet obligatoire..."
+              rows={3}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 mb-4"
+            />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setRejectDialog(null)} className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Annuler</button>
+              <button
+                onClick={() => {
+                  if (!rejectReasonText.trim()) { toast.error('Motif requis'); return; }
+                  const p = rejectDialog.pending;
+                  setRejectDialog(null);
+                  doRejectMissions(p, rejectReasonText.trim());
+                }}
+                className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >Confirmer le rejet</button>
+            </div>
+          </div>
+        </div>
+      )}
       {confirmDialog && (
         <ConfirmDialog
           isOpen={confirmDialog.isOpen}

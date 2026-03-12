@@ -1,5 +1,6 @@
 'use client';
 
+import toast from 'react-hot-toast';
 import { useState, useRef } from 'react';
 import { X, Upload, FileText, Loader2, Download, Building2, User, Calendar, Briefcase } from 'lucide-react';
 import { Employee } from '@/lib/api';
@@ -239,7 +240,7 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
       
     } catch (error) {
       console.error('Erreur génération PDF:', error);
-      alert('Erreur lors de la génération du certificat');
+      toast.error('Erreur lors de la génération du certificat');
     } finally {
       setIsGenerating(false);
     }

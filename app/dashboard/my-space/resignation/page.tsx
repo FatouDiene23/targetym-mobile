@@ -7,6 +7,7 @@ import {
   Calendar, FileText, ChevronRight, Ban,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 // ============================================
 // TYPES
@@ -77,6 +78,10 @@ export default function ResignationPage() {
   const [formDetail, setFormDetail] = useState('');
   const [formDate, setFormDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean; title: string; message: string;
+    onConfirm: () => void; danger?: boolean;
+  } | null>(null);
 
   // Load existing resignation
   useEffect(() => {
@@ -127,22 +132,29 @@ export default function ResignationPage() {
     }
   };
 
-  const handleCancel = async () => {
+  const handleCancel = () => {
     if (!resignation) return;
-    if (!confirm('Êtes-vous sûr de vouloir annuler votre démission ?')) return;
-    try {
-      const res = await fetch(`${API_URL}/api/departures/${resignation.id}/cancel`, {
-        method: 'POST', headers: getAuthHeaders(),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || 'Erreur annulation');
-      }
-      toast.success('Démission annulée');
-      loadResignation();
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Erreur annulation');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Annuler ma démission',
+      message: 'Êtes-vous sûr de vouloir annuler votre démission ?',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/departures/${resignation.id}/cancel`, {
+            method: 'POST', headers: getAuthHeaders(),
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Erreur annulation');
+          }
+          toast.success('Démission annulée');
+          loadResignation();
+        } catch (e: unknown) {
+          toast.error(e instanceof Error ? e.message : 'Erreur annulation');
+        }
+      },
+    });
   };
 
   if (loading) {
@@ -382,6 +394,16 @@ export default function ResignationPage() {
           </>
         )}
       </div>
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
+        />
+      )}
     </>
   );
 }

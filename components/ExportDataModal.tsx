@@ -1,5 +1,6 @@
 'use client';
 
+import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 import {
   X, Download, FileSpreadsheet, FileText, File,
@@ -283,7 +284,7 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
       setTimeout(() => setExportSuccess(false), 3000);
     } catch (err) {
       console.error('Export error:', err);
-      alert("Erreur lors de l'export.");
+      toast.error("Erreur lors de l'export.");
     } finally {
       setIsExporting(false);
     }
@@ -332,7 +333,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-      alert('Veuillez autoriser les popups pour exporter en PDF.');
+      toast.error('Veuillez autoriser les popups pour exporter en PDF.');
       return;
     }
 

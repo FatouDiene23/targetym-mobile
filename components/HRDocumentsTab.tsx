@@ -433,17 +433,24 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
 
   const handleBulkDeleteDocs = async () => {
     if (!someDocsSelected) return;
-    if (!confirm(`Supprimer ${selectedIds.size} document(s) ? Cette action est irréversible.`)) return;
-    setBulkLoading(true);
-    try {
-      for (const id of Array.from(selectedIds)) {
-        await fetch(`${API_URL}/api/documents/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
-      }
-      setSelectedIds(new Set());
-      fetchDocuments(page);
-      fetchStats();
-    } catch (e) { console.error(e); }
-    setBulkLoading(false);
+    setConfirmDialog({
+      isOpen: true,
+      title: `Supprimer ${selectedIds.size} document(s) ?`,
+      message: `Cette action est irréversible.`,
+      danger: true,
+      onConfirm: async () => {
+        setBulkLoading(true);
+        try {
+          for (const id of Array.from(selectedIds)) {
+            await fetch(`${API_URL}/api/documents/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+          }
+          setSelectedIds(new Set());
+          fetchDocuments(page);
+          fetchStats();
+        } catch (e) { console.error(e); }
+        setBulkLoading(false);
+      },
+    });
   };
 
   const handleBulkExportDocs = () => {

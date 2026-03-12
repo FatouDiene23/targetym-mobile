@@ -108,38 +108,45 @@ export default function PlatformUsersManagement() {
     }
   };
   
-  const handleImpersonate = async (user: UserListItem) => {
-    if (!confirm(`⚠️ Impersonner ${user.email} ?\nCette action sera loggée dans l'audit trail. Continue ?`)) return;
-    try {
-      setImpersonating(user.id);
-      const result = await impersonateUser(user.id);
-      const currentToken = localStorage.getItem('access_token');
-      const currentUser = localStorage.getItem('user');
-      const currentUserObj = currentUser ? JSON.parse(currentUser) : null;
-      localStorage.setItem('access_token_backup', currentToken || '');
-      localStorage.setItem('user_backup', currentUser || '');
-      localStorage.setItem('access_token', result.access_token);
-      localStorage.setItem('user', JSON.stringify({
-        id: result.impersonated_user_id,
-        email: result.impersonated_user_email,
-        first_name: result.first_name || '',
-        last_name: result.last_name || '',
-        role: result.employee_role || 'employee',
-        is_manager: result.is_manager || false,
-        tenant_id: result.impersonated_tenant_id,
-      }));
-      localStorage.setItem('is_impersonating', 'true');
-      localStorage.setItem('impersonated_user_email', result.impersonated_user_email);
-      localStorage.setItem('impersonated_by_email', currentUserObj?.email || 'admin');
-      if (result.tenant_slug) localStorage.setItem('impersonated_tenant_slug', result.tenant_slug);
-      toast.success(`Impersonation OK — token 30min. Redirection vers dashboard...`, { duration: 3000 });
-      setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erreur impersonation';
-      toast.error(msg);
-    } finally {
-      setImpersonating(null);
-    }
+  const handleImpersonate = (user: UserListItem) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: `Impersonner ${user.email} ?`,
+      message: `Cette action sera loggée dans l'audit trail. Vous serez connecté en tant que cet utilisateur.`,
+      danger: true,
+      onConfirm: async () => {
+        try {
+          setImpersonating(user.id);
+          const result = await impersonateUser(user.id);
+          const currentToken = localStorage.getItem('access_token');
+          const currentUser = localStorage.getItem('user');
+          const currentUserObj = currentUser ? JSON.parse(currentUser) : null;
+          localStorage.setItem('access_token_backup', currentToken || '');
+          localStorage.setItem('user_backup', currentUser || '');
+          localStorage.setItem('access_token', result.access_token);
+          localStorage.setItem('user', JSON.stringify({
+            id: result.impersonated_user_id,
+            email: result.impersonated_user_email,
+            first_name: result.first_name || '',
+            last_name: result.last_name || '',
+            role: result.employee_role || 'employee',
+            is_manager: result.is_manager || false,
+            tenant_id: result.impersonated_tenant_id,
+          }));
+          localStorage.setItem('is_impersonating', 'true');
+          localStorage.setItem('impersonated_user_email', result.impersonated_user_email);
+          localStorage.setItem('impersonated_by_email', currentUserObj?.email || 'admin');
+          if (result.tenant_slug) localStorage.setItem('impersonated_tenant_slug', result.tenant_slug);
+          toast.success(`Impersonation OK — token 30min. Redirection vers dashboard...`, { duration: 3000 });
+          setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'Erreur impersonation';
+          toast.error(msg);
+        } finally {
+          setImpersonating(null);
+        }
+      },
+    });
   };
 
   const handleOpenCreate = () => {    setEditingUser(null);

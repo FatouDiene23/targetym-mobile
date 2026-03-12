@@ -332,6 +332,14 @@ export default function RecruitmentPage() {
     onConfirm: () => void;
     danger?: boolean;
   } | null>(null);
+  const [inputDialog, setInputDialog] = useState<{
+    title: string;
+    placeholder: string;
+    defaultValue?: string;
+    onConfirm: (value: string) => void;
+    required?: boolean;
+  } | null>(null);
+  const [inputDialogValue, setInputDialogValue] = useState('');
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -420,19 +428,33 @@ export default function RecruitmentPage() {
     window.open(`mailto:${application.candidate_email}?subject=${subject}&body=${body}`, '_blank');
   };
 
-  const handleReject = async (application: Application) => {
-    const reason = prompt('Raison du refus (optionnel):');
-    const success = await rejectApplication(application.id, reason || undefined);
-    if (success) { setShowCandidateModal(false); loadData(); } else { toast.error('Erreur lors du refus'); }
+  const handleReject = (application: Application) => {
+    setInputDialogValue('');
+    setInputDialog({
+      title: 'Raison du refus',
+      placeholder: 'Raison du refus (optionnel)',
+      required: false,
+      onConfirm: async (reason) => {
+        const success = await rejectApplication(application.id, reason || undefined);
+        if (success) { setShowCandidateModal(false); loadData(); } else { toast.error('Erreur lors du refus'); }
+      },
+    });
   };
 
-  const handleSendOffer = async (application: Application) => {
-    const salaryStr = prompt('Salaire proposé (XOF):', application.candidate_expected_salary?.toString() || '');
-    if (!salaryStr) return;
-    const salary = parseFloat(salaryStr);
-    if (isNaN(salary)) { toast.error('Salaire invalide'); return; }
-    const success = await sendOffer(application.id, salary);
-    if (success) { setShowCandidateModal(false); loadData(); } else { toast.error('Erreur lors de l\'envoi de l\'offre'); }
+  const handleSendOffer = (application: Application) => {
+    setInputDialogValue(application.candidate_expected_salary?.toString() || '');
+    setInputDialog({
+      title: 'Salaire proposé (XOF)',
+      placeholder: 'Ex: 500000',
+      defaultValue: application.candidate_expected_salary?.toString() || '',
+      required: true,
+      onConfirm: async (salaryStr) => {
+        const salary = parseFloat(salaryStr);
+        if (isNaN(salary)) { toast.error('Salaire invalide'); return; }
+        const success = await sendOffer(application.id, salary);
+        if (success) { setShowCandidateModal(false); loadData(); } else { toast.error('Erreur lors de l\'envoi de l\'offre'); }
+      },
+    });
   };
 
   const handleNextStage = async (application: Application) => {
@@ -931,6 +953,43 @@ export default function RecruitmentPage() {
         {showAddCandidateModal && <AddCandidateModal jobs={jobs.filter(j => j.status === 'active')} onClose={() => setShowAddCandidateModal(false)} onSave={async (data) => { const success = await createCandidate(data); if (success) { setShowAddCandidateModal(false); loadData(); } else { toast.error('Erreur lors de la création'); } }} />}
         {showInterviewModal && selectedApplication && <InterviewModal application={selectedApplication} employees={employees} onClose={() => setShowInterviewModal(false)} onSave={async (data) => { const success = await createInterview(data); if (success) { setShowInterviewModal(false); setShowCandidateModal(false); loadData(); } else { toast.error('Erreur lors de la planification'); } }} />}
         
+        {inputDialog && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-3">{inputDialog.title}</h2>
+              <input
+                type="text"
+                value={inputDialogValue}
+                onChange={e => setInputDialogValue(e.target.value)}
+                placeholder={inputDialog.placeholder}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mb-4"
+                autoFocus
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    if (inputDialog.required && !inputDialogValue.trim()) { toast.error('Champ requis'); return; }
+                    const v = inputDialogValue;
+                    setInputDialog(null);
+                    inputDialog.onConfirm(v);
+                  }
+                  if (e.key === 'Escape') setInputDialog(null);
+                }}
+              />
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setInputDialog(null)} className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">Annuler</button>
+                <button
+                  onClick={() => {
+                    if (inputDialog.required && !inputDialogValue.trim()) { toast.error('Champ requis'); return; }
+                    const v = inputDialogValue;
+                    setInputDialog(null);
+                    inputDialog.onConfirm(v);
+                  }}
+                  className="px-4 py-2 text-sm font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                >Confirmer</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {confirmDialog && (
           <ConfirmDialog
             isOpen={confirmDialog.isOpen}

@@ -1,5 +1,6 @@
 'use client';
 
+import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
@@ -322,8 +323,8 @@ function CandidateForm({ jobs, onSuccess, onCancel }: { jobs: Job[]; onSuccess: 
         })
       });
       if (res.ok) onSuccess();
-      else alert('Erreur lors de la création');
-    } catch { alert('Erreur de connexion'); }
+      else toast.error('Erreur lors de la création');
+    } catch { toast.error('Erreur de connexion'); }
     finally { setSaving(false); }
   };
 
@@ -419,8 +420,8 @@ function JobForm({ departments, employees, onSuccess, onCancel }: { departments:
         })
       });
       if (res.ok) onSuccess();
-      else alert('Erreur lors de la création');
-    } catch { alert('Erreur de connexion'); }
+      else toast.error('Erreur lors de la création');
+    } catch { toast.error('Erreur de connexion'); }
     finally { setSaving(false); }
   };
 
@@ -507,8 +508,8 @@ function TrainingForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel
         })
       });
       if (res.ok) onSuccess();
-      else alert('Erreur lors de la création');
-    } catch { alert('Erreur de connexion'); }
+      else toast.error('Erreur lors de la création');
+    } catch { toast.error('Erreur de connexion'); }
     finally { setSaving(false); }
   };
 
@@ -570,8 +571,8 @@ function ObjectiveForm({ onSuccess, onCancel }: { onSuccess: () => void; onCance
         })
       });
       if (res.ok) onSuccess();
-      else alert('Erreur lors de la création');
-    } catch { alert('Erreur de connexion'); }
+      else toast.error('Erreur lors de la création');
+    } catch { toast.error('Erreur de connexion'); }
     finally { setSaving(false); }
   };
 
@@ -628,8 +629,8 @@ function LeaveForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: (
         })
       });
       if (res.ok) onSuccess();
-      else alert('Erreur lors de la création');
-    } catch { alert('Erreur de connexion'); }
+      else toast.error('Erreur lors de la création');
+    } catch { toast.error('Erreur de connexion'); }
     finally { setSaving(false); }
   };
 

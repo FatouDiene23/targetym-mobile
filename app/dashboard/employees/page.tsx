@@ -712,16 +712,23 @@ export default function EmployeesPage() {
     const toInvite = invitations.filter(i => selectedInvIds.has(i.id) && i.invitation_status === 'not_invited');
     const toResend = invitations.filter(i => selectedInvIds.has(i.id) && i.invitation_status === 'pending');
     const count = toInvite.length + toResend.length;
-    if (count === 0) { alert('Aucun employé à inviter/relancer dans la sélection.'); return; }
-    if (!confirm(`Envoyer ${toInvite.length} invitation(s) et ${toResend.length} relance(s) ?`)) return;
-    setBulkInvLoading(true);
-    try {
-      for (const inv of toInvite) { await sendInvitation(inv.id); }
-      for (const inv of toResend) { await resendInvitation(inv.id); }
-      setSelectedInvIds(new Set());
-      await fetchInvitations();
-    } catch (err) { console.error('Bulk invite failed', err); }
-    setBulkInvLoading(false);
+    if (count === 0) { toast.error('Aucun employé à inviter/relancer dans la sélection.'); return; }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Envoyer les invitations',
+      message: `Envoyer ${toInvite.length} invitation(s) et ${toResend.length} relance(s) ?`,
+      danger: false,
+      onConfirm: async () => {
+        setBulkInvLoading(true);
+        try {
+          for (const inv of toInvite) { await sendInvitation(inv.id); }
+          for (const inv of toResend) { await resendInvitation(inv.id); }
+          setSelectedInvIds(new Set());
+          await fetchInvitations();
+        } catch (err) { console.error('Bulk invite failed', err); }
+        setBulkInvLoading(false);
+      },
+    });
   };
 
   const handleBulkExportInv = () => {

@@ -74,6 +74,7 @@ function IntoWorkIntegrationSection() {
   const [targetymKeyPreview, setTargetymKeyPreview] = useState('');
   const [copied, setCopied] = useState(false);
   const [myTenantId, setMyTenantId] = useState<number | null>(null);
+  const [confirmUnlink, setConfirmUnlink] = useState(false);
 
   // Récupérer le tenant_id via l'API (plus fiable que le décodage JWT)
   useEffect(() => {
@@ -174,21 +175,8 @@ function IntoWorkIntegrationSection() {
     }
   };
 
-  const handleUnlink = async () => {
-    if (!confirm('Confirmer la suppression de la liaison avec IntoWork ?')) return;
-    setIsUnlinking(true);
-    try {
-      const r = await fetch(`${API_URL}/api/integrations/intowork/unlink`, {
-        method: 'DELETE', headers: getAuthHeaders(),
-      });
-      if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
-      setStatus({ linked: false });
-      toast.success('Liaison IntoWork supprimée');
-    } catch (e: any) {
-      toast.error(e.message || 'Erreur');
-    } finally {
-      setIsUnlinking(false);
-    }
+  const handleUnlink = () => {
+    setConfirmUnlink(true);
   };
 
   if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 text-primary-500 animate-spin" /></div>;
@@ -300,6 +288,32 @@ function IntoWorkIntegrationSection() {
           </>
         )}
       </div>
+      {confirmUnlink && (
+        <ConfirmDialog
+          isOpen={confirmUnlink}
+          title="Supprimer la liaison IntoWork"
+          message="Confirmer la suppression de la liaison avec IntoWork ?"
+          danger={true}
+          confirmText="Supprimer"
+          onClose={() => setConfirmUnlink(false)}
+          onConfirm={async () => {
+            setConfirmUnlink(false);
+            setIsUnlinking(true);
+            try {
+              const r = await fetch(`${API_URL}/api/integrations/intowork/unlink`, {
+                method: 'DELETE', headers: getAuthHeaders(),
+              });
+              if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
+              setStatus({ linked: false });
+              toast.success('Liaison IntoWork supprimée');
+            } catch (e: any) {
+              toast.error(e.message || 'Erreur');
+            } finally {
+              setIsUnlinking(false);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

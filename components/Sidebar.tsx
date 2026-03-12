@@ -190,6 +190,7 @@ const mySpaceNavigation: NavItem[] = [
   { name: 'Daily Checklist', href: '/dashboard/my-space/daily-checklist', icon: CheckSquare, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Offres Internes', href: '/dashboard/my-space/internal-jobs', icon: Briefcase, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Mes Documents', href: '/dashboard/my-space/documents', icon: FileText, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-documents' },
+  { name: 'Mes Sanctions', href: '/dashboard/my-space/sanctions', icon: Shield, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Ma Démission', href: '/dashboard/my-space/resignation', icon: UserMinus, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
 ];
 

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import toast from 'react-hot-toast';
+import { getEmployees, type Employee } from '@/lib/api';
 
 // ============================================
 // CONFIG
@@ -125,19 +126,16 @@ export default function SanctionsTab() {
 
   const loadEmployees = useCallback(async () => {
     try {
-      const data = await apiFetch('/api/employees?page_size=500');
-      console.log('[SanctionsTab] employees response:', data);
-      const list = Array.isArray(data) ? data : data.items || [];
-      console.log('[SanctionsTab] employees list length:', list.length);
-      setEmployees(list.map((e: Record<string, unknown>) => ({
-        id: e.id as number,
-        first_name: (e.first_name as string) || '',
-        last_name: (e.last_name as string) || '',
-        job_title: (e.job_title as string) || undefined,
-        department_name: (e.department_name as string) || undefined,
+      const data = await getEmployees({ page_size: 500 });
+      const list = data.items || [];
+      setEmployees(list.map((e: Employee) => ({
+        id: e.id,
+        first_name: e.first_name || '',
+        last_name: e.last_name || '',
+        job_title: e.job_title || undefined,
+        department_name: e.department_name || undefined,
       })));
-    } catch (err) {
-      console.error('[SanctionsTab] loadEmployees error:', err);
+    } catch {
       setEmployees([]);
     }
   }, []);

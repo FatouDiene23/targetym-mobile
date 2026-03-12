@@ -125,7 +125,7 @@ export default function SanctionsTab() {
 
   const loadEmployees = useCallback(async () => {
     try {
-      const data = await apiFetch('/api/employees?limit=500');
+      const data = await apiFetch('/api/employees?page_size=500');
       const list = Array.isArray(data) ? data : data.items || [];
       setEmployees(list.map((e: SimpleEmployee) => ({
         id: e.id,

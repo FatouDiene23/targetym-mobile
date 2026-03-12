@@ -316,6 +316,8 @@ interface TenantData {
   trial_ends_at?: string;
   max_employees: number;
   currency: string;
+  is_group?: boolean;
+  group_type?: 'standalone' | 'group' | 'subsidiary';
 }
 
 interface CurrencyOption {
@@ -1066,14 +1068,14 @@ export default function SettingsPage() {
 
                       {loadingConvReq ? (
                         <Loader2 className="w-5 h-5 animate-spin text-purple-500" />
-                      ) : conversionRequest ? (
+                      ) : conversionRequest && (conversionRequest.status !== 'approved' || tenantData?.is_group) ? (
                         <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
                           conversionRequest.status === 'pending' ? 'bg-yellow-50 text-yellow-800 border border-yellow-200' :
-                          conversionRequest.status === 'approved' ? 'bg-green-50 text-green-800 border border-green-200' :
+                          (conversionRequest.status === 'approved' && tenantData?.is_group) ? 'bg-green-50 text-green-800 border border-green-200' :
                           'bg-red-50 text-red-800 border border-red-200'
                         }`}>
                           {conversionRequest.status === 'pending' && '⏳ Demande en attente de validation'}
-                          {conversionRequest.status === 'approved' && '✅ Demande approuvée — vous êtes maintenant un groupe'}
+                          {conversionRequest.status === 'approved' && tenantData?.is_group && '✅ Demande approuvée — vous êtes maintenant un groupe'}
                           {conversionRequest.status === 'rejected' && `❌ Demande refusée${conversionRequest.review_note ? ` : ${conversionRequest.review_note}` : ''}`}
                         </div>
                       ) : showConvForm ? (
@@ -1153,7 +1155,7 @@ export default function SettingsPage() {
               )}
 
               {/* ====== Section : Gérer mes filiales (si groupe approuvé) ====== */}
-              {conversionRequest?.status === 'approved' && (
+              {tenantData?.is_group === true && tenantData?.group_type === 'group' && (
                 <div className="mt-4 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">

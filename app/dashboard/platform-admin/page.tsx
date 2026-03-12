@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Building2, Users, UserCheck, Activity, Shield, AlertCircle, CheckCircle2,
   Search, Edit2, Eye, LogIn, Clock, ChevronRight, X, Save, RotateCcw,
-  FileText, ExternalLink, Lock, GitBranch, Plus, Unlink, Layers
+  FileText, ExternalLink, Lock, GitBranch, Plus, Unlink, Layers, Power, PowerOff
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -89,6 +89,9 @@ export default function PlatformAdminDashboard() {
   const [reviewOpenId, setReviewOpenId] = useState<number | null>(null);
   const [markingPaidId, setMarkingPaidId] = useState<number | null>(null);
   const [paymentRefInput, setPaymentRefInput] = useState<Record<number, string>>({});
+
+  // Toggle actif/inactif tenant
+  const [togglingTenantId, setTogglingTenantId] = useState<number | null>(null);
 
   // Confirm dialog (remplace les confirm() natifs)
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -193,6 +196,44 @@ export default function PlatformAdminDashboard() {
       toast.error(err instanceof Error ? err.message : 'Erreur');
     } finally {
       setMarkingPaidId(null);
+    }
+  };
+
+  const handleToggleTenant = (tenant: TenantListItem) => {
+    if (tenant.is_active) {
+      // Désactivation → confirmation obligatoire
+      setConfirmDialog({
+        title: `Désactiver « ${tenant.name} » ?`,
+        message: `Les utilisateurs de ce tenant ne pourront plus se connecter tant que le compte est désactivé. Cette action est réversible.`,
+        confirmLabel: 'Désactiver',
+        variant: 'danger',
+        onConfirm: async () => {
+          try {
+            setTogglingTenantId(tenant.id);
+            await updatePlatformTenant(tenant.id, { is_active: false });
+            setTenants(prev => prev.map(t => t.id === tenant.id ? { ...t, is_active: false } : t));
+            toast.success(`Tenant « ${tenant.name} » désactivé`);
+          } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : 'Erreur lors de la désactivation');
+          } finally {
+            setTogglingTenantId(null);
+          }
+        },
+      });
+    } else {
+      // Réactivation → direct sans confirmation
+      (async () => {
+        try {
+          setTogglingTenantId(tenant.id);
+          await updatePlatformTenant(tenant.id, { is_active: true });
+          setTenants(prev => prev.map(t => t.id === tenant.id ? { ...t, is_active: true } : t));
+          toast.success(`Tenant « ${tenant.name} » réactivé ✔`);
+        } catch (err: unknown) {
+          toast.error(err instanceof Error ? err.message : 'Erreur lors de la réactivation');
+        } finally {
+          setTogglingTenantId(null);
+        }
+      })();
     }
   };
 
@@ -634,10 +675,24 @@ export default function PlatformAdminDashboard() {
                       {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString('fr-FR') : '-'}
                     </td>
                     <td className="px-4 py-3">
-                      <button onClick={() => openTenantDetail(tenant.id)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg" title="Voir détail">
-                        <Eye className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => openTenantDetail(tenant.id)}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg" title="Voir détail">
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleToggleTenant(tenant)}
+                          disabled={togglingTenantId === tenant.id}
+                          className={`p-1.5 rounded-lg disabled:opacity-40 ${
+                            tenant.is_active
+                              ? 'text-red-500 hover:bg-red-50'
+                              : 'text-green-600 hover:bg-green-50'
+                          }`}
+                          title={tenant.is_active ? 'Désactiver ce tenant' : 'Réactiver ce tenant'}
+                        >
+                          {tenant.is_active ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

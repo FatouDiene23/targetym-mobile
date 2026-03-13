@@ -33,7 +33,7 @@ import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { settingsTips } from '@/config/pageTips';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { usePlan, PLAN_LABELS, PLAN_PRICING } from '@/hooks/usePlan';
+import { usePlan, PLAN_LABELS, PLAN_LEVEL, PLAN_PRICING } from '@/hooks/usePlan';
 import { UpgradeModal } from '@/components/PlanGate';
 import { getIntegrations, connectIntegration, disconnectIntegration, syncIntegration, type Integration,
   requestGroupConversion, getMyConversionRequestStatus, getMyGroupContext, createMySubsidiary,
@@ -1659,15 +1659,21 @@ export default function SettingsPage() {
                       <div className="grid sm:grid-cols-3 gap-3">
                         {(['basique', 'premium', 'entreprise'] as const).map((p) => {
                           const pricing = PLAN_PRICING[p];
-                          const isCurrentPlan = plan === p || (isTrial && p === 'premium');
+                          const currentLevel = PLAN_LEVEL[plan] || 1;
+                          const cardLevel = PLAN_LEVEL[p] || 1;
+                          const isCurrentPlan = isTrial ? p === 'premium' : plan === p;
+                          const isLowerPlan = cardLevel < currentLevel;
+                          const isDisabled = isCurrentPlan || isLowerPlan;
                           return (
                             <button
                               key={p}
-                              onClick={() => setPlanChangeForm(prev => ({ ...prev, targetPlan: p }))}
-                              disabled={isCurrentPlan}
+                              onClick={() => !isDisabled && setPlanChangeForm(prev => ({ ...prev, targetPlan: p }))}
+                              disabled={isDisabled}
                               className={`relative p-4 rounded-xl border-2 text-left transition-all ${
                                 isCurrentPlan
-                                  ? 'border-green-300 bg-green-50/50 cursor-not-allowed opacity-60'
+                                  ? 'border-green-300 bg-green-50/50 cursor-not-allowed'
+                                  : isLowerPlan
+                                  ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50'
                                   : planChangeForm.targetPlan === p
                                   ? 'border-primary-500 ring-2 ring-primary-500/20 bg-primary-50/30'
                                   : 'border-gray-200 hover:border-gray-300'
@@ -1675,7 +1681,7 @@ export default function SettingsPage() {
                             >
                               {isCurrentPlan && (
                                 <span className="absolute -top-2 right-2 text-[10px] font-bold bg-green-500 text-white px-2 py-0.5 rounded-full">
-                                  Actuel
+                                  {isTrial ? 'Essai' : 'Actuel'}
                                 </span>
                               )}
                               <p className="font-bold text-gray-900">{PLAN_LABELS[p]}</p>

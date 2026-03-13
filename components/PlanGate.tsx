@@ -7,6 +7,7 @@ import {
   getRequiredPlanLabel,
   normalizePlan,
   PLAN_LABELS,
+  PLAN_LEVEL,
   PLAN_PRICING,
 } from '@/hooks/usePlan';
 
@@ -136,7 +137,13 @@ export function UpgradeModal({ open, onClose, feature, currentPlan }: UpgradeMod
         {/* Plans grid */}
         <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
           {plans.map((plan) => {
-            const isCurrent = current === plan.key || (current === 'trial' && plan.key === 'basique');
+            // trial → badge on Premium, otherwise match the plan key
+            const currentLevel = PLAN_LEVEL[current] || 1;
+            const planLevel = PLAN_LEVEL[plan.key] || 1;
+            const isCurrent = current === 'trial'
+              ? plan.key === 'premium'
+              : current === plan.key;
+            const isLower = planLevel < currentLevel;
             const isRequired = feature
               ? plan.label === requiredLabel
               : false;
@@ -145,14 +152,16 @@ export function UpgradeModal({ open, onClose, feature, currentPlan }: UpgradeMod
               <div
                 key={plan.key}
                 className={`relative rounded-xl border-2 p-5 transition-all ${
-                  isRequired
-                    ? 'border-primary-500 ring-2 ring-primary-500/20 shadow-lg'
-                    : isCurrent
+                  isCurrent
                     ? 'border-green-500 bg-green-50/50'
+                    : isLower
+                    ? 'border-gray-200 bg-gray-50 opacity-60'
+                    : isRequired
+                    ? 'border-primary-500 ring-2 ring-primary-500/20 shadow-lg'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                {plan.popular && (
+                {plan.popular && !isCurrent && !isLower && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <span className="bg-primary-500 text-white text-xs font-bold px-3 py-1 rounded-full">
                       Populaire
@@ -183,7 +192,11 @@ export function UpgradeModal({ open, onClose, feature, currentPlan }: UpgradeMod
 
                 {isCurrent ? (
                   <div className="w-full py-2.5 text-center text-sm font-medium text-green-700 bg-green-100 rounded-lg">
-                    Plan actuel
+                    {current === 'trial' ? 'Essai gratuit (accès Premium)' : 'Plan actuel'}
+                  </div>
+                ) : isLower ? (
+                  <div className="w-full py-2.5 text-center text-sm font-medium text-gray-400 bg-gray-100 rounded-lg cursor-not-allowed">
+                    Plan inférieur
                   </div>
                 ) : (
                   <a

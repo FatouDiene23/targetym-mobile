@@ -137,13 +137,12 @@ export default function PlatformAdminDashboard() {
     }
   };
 
-  // Deep-link: si l'URL contient ?tenantId=X, ouvrir le modal de détail une fois les données chargées
+  // Deep-link: si l'URL contient ?tenantId=X, ouvrir le modal de détail directement
   useEffect(() => {
     const tenantIdParam = searchParams.get('tenantId');
     if (!tenantIdParam || loading || deepLinkHandled.current) return;
     deepLinkHandled.current = true;
     openTenantDetail(parseInt(tenantIdParam, 10));
-    setActiveTab('tenants'); // basculer sur l'onglet Tenants pour context
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, searchParams]);
 

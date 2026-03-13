@@ -216,9 +216,11 @@ export default function PeopleAnalyticsPage() {
   const fetchRealData = useCallback(async () => {
     setLoading(true);
     try {
-      const params: Record<string, string> = { period };
+      const scopedParams: Record<string, string> = selectedTenantId
+        ? { subsidiary_tenant_id: selectedTenantId.toString() }
+        : {};
+      const params: Record<string, string> = { period, ...scopedParams };
       if (department) params.department = department;
-      if (selectedTenantId) params.subsidiary_tenant_id = selectedTenantId.toString();
 
       const [
         overviewRes,
@@ -245,25 +247,25 @@ export default function PeopleAnalyticsPage() {
       ] = await Promise.allSettled([
         fetchAPI("/api/analytics/overview", params),
         fetchAPI("/api/analytics/effectifs/evolution", params),
-        fetchAPI("/api/analytics/effectifs/by-department"),
-        fetchAPI("/api/analytics/effectifs/pyramide-ages", department ? { department } : {}),
-        fetchAPI("/api/analytics/effectifs/turnover-by-department", { period }),
-        fetchAPI("/api/analytics/absenteisme/by-department", { period }),
+        fetchAPI("/api/analytics/effectifs/by-department", scopedParams),
+        fetchAPI("/api/analytics/effectifs/pyramide-ages", department ? { department, ...scopedParams } : scopedParams),
+        fetchAPI("/api/analytics/effectifs/turnover-by-department", { period, ...scopedParams }),
+        fetchAPI("/api/analytics/absenteisme/by-department", { period, ...scopedParams }),
         fetchAPI("/api/analytics/missions/stats", params),
-        fetchAPI("/api/analytics/departments"),
+        fetchAPI("/api/analytics/departments", scopedParams),
         fetchAPI("/api/analytics/salaires/overview", params),
         fetchAPI("/api/analytics/salaires/evolution", params),
-        fetchAPI("/api/analytics/salaires/by-department"),
-        fetchAPI("/api/analytics/salaires/distribution"),
-        fetchAPI("/api/analytics/salaires/by-contract"),
+        fetchAPI("/api/analytics/salaires/by-department", scopedParams),
+        fetchAPI("/api/analytics/salaires/distribution", scopedParams),
+        fetchAPI("/api/analytics/salaires/by-contract", scopedParams),
         fetchAPI("/api/analytics/performance/overview", params),
-        fetchAPI("/api/analytics/performance/by-manager", { period }),
+        fetchAPI("/api/analytics/performance/by-manager", { period, ...scopedParams }),
         fetchAPI("/api/analytics/formation/overview", params),
-        fetchAPI("/api/analytics/formation/by-category", { period }),
-        fetchAPI("/api/analytics/formation/evolution", { period }),
-        fetchAPI("/api/analytics/talents/ninebox"),
-        fetchAPI("/api/analytics/talents/succession"),
-        fetchAPI("/api/recruitment/analytics"),
+        fetchAPI("/api/analytics/formation/by-category", { period, ...scopedParams }),
+        fetchAPI("/api/analytics/formation/evolution", { period, ...scopedParams }),
+        fetchAPI("/api/analytics/talents/ninebox", scopedParams),
+        fetchAPI("/api/analytics/talents/succession", scopedParams),
+        fetchAPI("/api/recruitment/analytics", scopedParams),
       ]);
 
       if (overviewRes.status === "fulfilled") setOverview(overviewRes.value);

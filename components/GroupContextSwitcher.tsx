@@ -10,14 +10,16 @@ import { useGroupContext } from '@/hooks/useGroupContext';
  * "Groupe entier" (stats agrégées) et une filiale spécifique.
  */
 export default function GroupContextSwitcher() {
-  const { context, selectedTenantId, selectedSubsidiary, selectTenant, loading } = useGroupContext();
+  const { context, selectedTenantId, selectedSubsidiary, isGlobalDashboardMode, selectTenant, setGlobalDashboardMode, loading } = useGroupContext();
   const [open, setOpen] = useState(false);
 
   if (loading || !context?.is_group) return null;
 
-  const currentLabel = selectedSubsidiary
-    ? selectedSubsidiary.name
-    : `Dashboard global du groupe`;
+  const currentLabel = isGlobalDashboardMode
+    ? 'Dashboard global du groupe'
+    : selectedSubsidiary
+      ? selectedSubsidiary.name
+      : context.tenant_name;
 
   return (
     <div className="sticky top-0 z-30 bg-white border-b border-purple-100 px-6 py-2 flex items-center gap-3 shadow-sm">
@@ -43,11 +45,30 @@ export default function GroupContextSwitcher() {
           <>
             <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
             <div className="absolute top-full left-0 mt-1 min-w-[260px] bg-white rounded-xl shadow-xl border border-gray-200 z-20 overflow-hidden">
-              {/* Option : Groupe entier */}
+              {/* Option : Vue du tenant courant (le groupe lui-même) */}
               <button
                 onClick={() => { selectTenant(null); setOpen(false); }}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 transition-colors border-b border-gray-100 ${
-                  selectedTenantId === null ? 'bg-purple-50' : ''
+                  !isGlobalDashboardMode && selectedTenantId === null ? 'bg-blue-50' : ''
+                }`}
+              >
+                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <Building2 className="w-4 h-4 text-blue-600" />
+                </div>
+                <div className="text-left min-w-0">
+                  <p className="font-semibold text-gray-900">{context.tenant_name}</p>
+                  <p className="text-xs text-gray-500">Vue du groupe — données du tenant courant</p>
+                </div>
+                {!isGlobalDashboardMode && selectedTenantId === null && (
+                  <div className="ml-auto w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                )}
+              </button>
+
+              {/* Option : Dashboard global du groupe */}
+              <button
+                onClick={() => { setGlobalDashboardMode(true); setOpen(false); }}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 transition-colors border-b border-gray-100 ${
+                  isGlobalDashboardMode ? 'bg-purple-50' : ''
                 }`}
               >
                 <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
@@ -57,7 +78,7 @@ export default function GroupContextSwitcher() {
                   <p className="font-semibold text-gray-900">Dashboard global du groupe</p>
                   <p className="text-xs text-gray-500">Toutes les filiales — données agrégées</p>
                 </div>
-                {selectedTenantId === null && (
+                {isGlobalDashboardMode && (
                   <div className="ml-auto w-2 h-2 rounded-full bg-purple-500 flex-shrink-0" />
                 )}
               </button>
@@ -106,6 +127,9 @@ export default function GroupContextSwitcher() {
         <span className="text-xs text-gray-400">
           Filiale de <span className="font-medium text-gray-600">{context.tenant_name}</span>
         </span>
+      )}
+      {isGlobalDashboardMode && (
+        <span className="text-xs text-purple-500 font-medium">Toutes filiales agrégées</span>
       )}
     </div>
   );

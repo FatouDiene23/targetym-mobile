@@ -973,7 +973,7 @@ export default function DashboardPage() {
   const { showTips, dismissTips, resetTips } = usePageTour('dashboard');
 
   // Contexte groupe : sélecteur de filiale
-  const { context, selectedTenantId, selectedSubsidiary } = useGroupContext();
+  const { context, selectedTenantId, selectedSubsidiary, isGlobalDashboardMode } = useGroupContext();
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -1122,13 +1122,13 @@ export default function DashboardPage() {
 
   // Fetch stats globales du groupe (toutes filiales agrégées)
   useEffect(() => {
-    if (selectedTenantId || !context?.is_group) { setGroupGlobalStats(null); return; }
+    if (!isGlobalDashboardMode || !context?.is_group) { setGroupGlobalStats(null); return; }
     setGroupGlobalStatsLoading(true);
     getGroupGlobalDashboardStats()
       .then(setGroupGlobalStats)
       .catch(() => setGroupGlobalStats(null))
       .finally(() => setGroupGlobalStatsLoading(false));
-  }, [selectedTenantId, context?.is_group]);
+  }, [isGlobalDashboardMode, context?.is_group]);
 
   if (loading) {
     return (
@@ -1209,7 +1209,7 @@ export default function DashboardPage() {
         <WelcomeCard userName={name} role={role} />
 
         {/* Panel Dashboard global du groupe — toutes filiales agrégées */}
-        {!isSubsidiaryView && context?.is_group && (
+        {isGlobalDashboardMode && context?.is_group && (
           <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
@@ -1329,6 +1329,7 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {!isGlobalDashboardMode && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {isHROrAdmin && hrStats && <HRStatsWidget stats={hrStats} />}
@@ -1355,6 +1356,7 @@ export default function DashboardPage() {
             {!isSubsidiaryView && <TasksWidget stats={taskStats} />}
           </div>
         </div>
+        )}
       </div>
     </div>
   );

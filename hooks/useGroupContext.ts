@@ -4,20 +4,25 @@ import { useState, useEffect, useCallback } from 'react';
 import { getMyGroupContext, type MyGroupContext, type SubsidiaryItem } from '@/lib/api';
 
 const STORAGE_KEY = 'group_context_tenant_id';
+const GLOBAL_MODE_KEY = 'group_context_global_mode';
 
 export interface GroupContextState {
   context: MyGroupContext | null;
-  /** null = vue groupe entier, sinon l'id de la filiale sélectionnée */
+  /** null = vue tenant courant, sinon l'id de la filiale sélectionnée */
   selectedTenantId: number | null;
   selectedSubsidiary: SubsidiaryItem | null;
+  /** true = Dashboard global du groupe (données agrégées de toutes les filiales) */
+  isGlobalDashboardMode: boolean;
   loading: boolean;
   selectTenant: (tenantId: number | null) => void;
+  setGlobalDashboardMode: (enabled: boolean) => void;
   refresh: () => void;
 }
 
 export function useGroupContext(): GroupContextState {
   const [context, setContext] = useState<MyGroupContext | null>(null);
   const [selectedTenantId, setSelectedTenantId] = useState<number | null>(null);
+  const [isGlobalDashboardMode, setIsGlobalDashboardModeState] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const loadContext = useCallback(async () => {
@@ -25,6 +30,12 @@ export function useGroupContext(): GroupContextState {
       const data = await getMyGroupContext();
       if (data.is_group) {
         setContext(data);
+        // Restaurer le mode global si actif
+        const globalMode = localStorage.getItem(GLOBAL_MODE_KEY);
+        if (globalMode === '1') {
+          setIsGlobalDashboardModeState(true);
+          return;
+        }
         // Restaurer la sélection précédente si la filiale existe encore
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
@@ -46,10 +57,23 @@ export function useGroupContext(): GroupContextState {
 
   const selectTenant = useCallback((tenantId: number | null) => {
     setSelectedTenantId(tenantId);
+    setIsGlobalDashboardModeState(false);
+    localStorage.removeItem(GLOBAL_MODE_KEY);
     if (tenantId === null) {
       localStorage.removeItem(STORAGE_KEY);
     } else {
       localStorage.setItem(STORAGE_KEY, tenantId.toString());
+    }
+  }, []);
+
+  const setGlobalDashboardMode = useCallback((enabled: boolean) => {
+    setIsGlobalDashboardModeState(enabled);
+    if (enabled) {
+      setSelectedTenantId(null);
+      localStorage.setItem(GLOBAL_MODE_KEY, '1');
+      localStorage.removeItem(STORAGE_KEY);
+    } else {
+      localStorage.removeItem(GLOBAL_MODE_KEY);
     }
   }, []);
 
@@ -59,8 +83,10 @@ export function useGroupContext(): GroupContextState {
     context,
     selectedTenantId,
     selectedSubsidiary,
+    isGlobalDashboardMode,
     loading,
     selectTenant,
+    setGlobalDashboardMode,
     refresh: loadContext,
   };
 }

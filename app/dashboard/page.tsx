@@ -1241,7 +1241,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {isHROrAdmin && hrStats && <HRStatsWidget stats={hrStats} />}
-            {isManager && <TeamOverviewWidget teamMembers={teamMembers} pendingRequests={teamPendingRequests} />}
+            {isManager && !isSubsidiaryView && <TeamOverviewWidget teamMembers={teamMembers} pendingRequests={teamPendingRequests} />}
             {isHROrAdmin && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <EvolutionChartWidget data={evolutionData} />
@@ -1256,7 +1256,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-6">
-            <QuickActions role={role} isManager={isManager} />
+            {!isSubsidiaryView && <QuickActions role={role} isManager={isManager} />}
             {isHROrAdmin && hrStats && <AlertsWidget pendingCount={hrStats.pending_requests} onLeaveCount={hrStats.on_leave_today} />}
             {employeeId && !isSubsidiaryView && <MyPerformanceWidget stats={myPerformance} />}
             {!isSubsidiaryView && recentFeedbacks.length > 0 && <RecentFeedbacksWidget feedbacks={recentFeedbacks} />}

@@ -41,11 +41,9 @@ export default function MySanctionsPage() {
   const loadSanctions = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await apiFetch('/api/sanctions/');
-      console.log('[MySanctions] API response:', data);
+      const data = await apiFetch('/api/sanctions/?mine=true');
       setSanctions(data.items || []);
-    } catch (err) {
-      console.error('[MySanctions] API error:', err);
+    } catch {
       setSanctions([]);
     } finally {
       setIsLoading(false);

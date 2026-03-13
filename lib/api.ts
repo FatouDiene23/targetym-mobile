@@ -2089,6 +2089,22 @@ export async function getMyGroupStats(): Promise<MyGroupStats> {
   return response.json();
 }
 
+export interface SubsidiaryDashboardStats {
+  subsidiary_id: number;
+  subsidiary_name: string;
+  total_employees: number;
+  active_employees: number;
+  pending_leaves: number;
+  departments_count: number;
+  is_active: boolean;
+}
+
+export async function getSubsidiaryDashboardStats(subsidiaryTenantId: number): Promise<SubsidiaryDashboardStats> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/groups/my-subsidiary/${subsidiaryTenantId}/stats`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
 export interface ConversionRequestItem {
   id: number;
   tenant_id: number;

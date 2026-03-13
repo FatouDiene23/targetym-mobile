@@ -23,6 +23,8 @@ import {
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { analyticsTips } from '@/config/pageTips';
+import GroupContextSwitcher from '@/components/GroupContextSwitcher';
+import { useGroupContext } from '@/hooks/useGroupContext';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.targetym.ai";
 
@@ -176,6 +178,9 @@ export default function PeopleAnalyticsPage() {
   // Page Tour Hook
   const { showTips, dismissTips, resetTips } = usePageTour('analytics');
 
+  // Contexte groupe : sélecteur de filiale
+  const { selectedTenantId, selectedSubsidiary } = useGroupContext();
+
   // Données réelles depuis l'API
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [effectifsEvolution, setEffectifsEvolution] = useState<any[]>([]);
@@ -214,6 +219,7 @@ export default function PeopleAnalyticsPage() {
     try {
       const params: Record<string, string> = { period };
       if (department) params.department = department;
+      if (selectedTenantId) params.subsidiary_tenant_id = selectedTenantId.toString();
 
       const [
         overviewRes,
@@ -296,7 +302,7 @@ export default function PeopleAnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  }, [period, department]);
+  }, [period, department, selectedTenantId]);
 
   useEffect(() => {
     fetchRealData();
@@ -1576,7 +1582,8 @@ export default function PeopleAnalyticsPage() {
           pageTitle="People Analytics"
         />
       )}
-      {/* Header */}
+      {/* Sélecteur de filiale (visible uniquement si Admin/RH/DG d'un groupe) */}
+      <GroupContextSwitcher />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">People Analytics</h1>

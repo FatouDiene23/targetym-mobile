@@ -7,7 +7,7 @@ import {
   ArrowRight, UserPlus, BarChart3,
   CalendarDays, ClipboardList, Bell, ChevronRight, TrendingUp, PieChart,
   Star, MessageSquare, Zap, ThumbsUp,
-  Briefcase, UserCheck, Activity, Sparkles, GraduationCap, BookOpen
+  Briefcase, UserCheck, Activity, Sparkles, GraduationCap, BookOpen, Building2
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -26,6 +26,9 @@ import {
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { dashboardTips } from '@/config/pageTips';
+import GroupContextSwitcher from '@/components/GroupContextSwitcher';
+import { useGroupContext } from '@/hooks/useGroupContext';
+import { getSubsidiaryDashboardStats, type SubsidiaryDashboardStats } from '@/lib/api';
 
 // ============================================
 // TYPES
@@ -959,9 +962,14 @@ export default function DashboardPage() {
   const [recentFeedbacks, setRecentFeedbacks] = useState<FeedbackItem[]>([]);
   const [myAssignments, setMyAssignments] = useState<MyAssignment[]>([]);
   const [taskStats, setTaskStats] = useState<TaskStats | null>(null);
+  const [subsidiaryStats, setSubsidiaryStats] = useState<SubsidiaryDashboardStats | null>(null);
+  const [subsidiaryStatsLoading, setSubsidiaryStatsLoading] = useState(false);
 
   // Page Tour - Suggestions contextuelles pour la première visite
   const { showTips, dismissTips, resetTips } = usePageTour('dashboard');
+
+  // Contexte groupe : sélecteur de filiale
+  const { selectedTenantId, selectedSubsidiary } = useGroupContext();
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -1091,6 +1099,16 @@ export default function DashboardPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // Fetch stats de la filiale sélectionnée
+  useEffect(() => {
+    if (!selectedTenantId) { setSubsidiaryStats(null); return; }
+    setSubsidiaryStatsLoading(true);
+    getSubsidiaryDashboardStats(selectedTenantId)
+      .then(setSubsidiaryStats)
+      .catch(() => setSubsidiaryStats(null))
+      .finally(() => setSubsidiaryStatsLoading(false));
+  }, [selectedTenantId]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -1165,10 +1183,55 @@ export default function DashboardPage() {
         />
       )}
       
-      {/* Bouton pour relancer les suggestions */}
-      
+      {/* Sélecteur de filiale (visible uniquement si Admin/RH/DG d'un groupe) */}
+      {isHROrAdmin && <GroupContextSwitcher />}
+
       <div className="max-w-7xl mx-auto space-y-6">
         <WelcomeCard userName={name} role={role} />
+
+        {/* Panel stats filiale sélectionnée */}
+        {selectedSubsidiary && (
+          <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+                <Building2 className="w-4 h-4 text-indigo-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-indigo-900">{selectedSubsidiary.name}</p>
+                <p className="text-xs text-indigo-500">Vue filiale — données isolées</p>
+              </div>
+            </div>
+            {subsidiaryStatsLoading ? (
+              <div className="flex items-center gap-2 text-indigo-400 text-sm">
+                <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                Chargement...
+              </div>
+            ) : subsidiaryStats ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+                  <p className="text-2xl font-bold text-gray-900">{subsidiaryStats.active_employees}</p>
+                  <p className="text-xs text-gray-500 mt-1">Employés actifs</p>
+                </div>
+                <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+                  <p className="text-2xl font-bold text-gray-900">{subsidiaryStats.total_employees}</p>
+                  <p className="text-xs text-gray-500 mt-1">Total employés</p>
+                </div>
+                <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+                  <p className="text-2xl font-bold text-orange-600">{subsidiaryStats.pending_leaves}</p>
+                  <p className="text-xs text-gray-500 mt-1">Congés en attente</p>
+                </div>
+                <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+                  <p className="text-2xl font-bold text-gray-900">{subsidiaryStats.departments_count}</p>
+                  <p className="text-xs text-gray-500 mt-1">Départements</p>
+                </div>
+              </div>
+            ) : null}
+            <p className="text-xs text-indigo-400 mt-3">
+              Pour les analytics complets de cette filiale :{' '}
+              <a href="/dashboard/analytics" className="underline font-medium hover:text-indigo-600">People Analytics</a>.
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">

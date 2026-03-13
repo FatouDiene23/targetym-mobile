@@ -46,7 +46,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
-import { usePlan, FEATURE_OKR, FEATURE_CAREERS, FEATURE_LEARNING, FEATURE_PERFORMANCE, FEATURE_ANALYTICS, FEATURE_DEPARTURES, FEATURE_CERTIFICATES, getRequiredPlanLabel } from '@/hooks/usePlan';
+import { usePlan, FEATURE_OKR, FEATURE_CAREERS, FEATURE_LEARNING, FEATURE_PERFORMANCE, FEATURE_ANALYTICS, FEATURE_DEPARTURES, FEATURE_CERTIFICATES, FEATURE_DOCUMENTS, FEATURE_TASKS, getRequiredPlanLabel } from '@/hooks/usePlan';
 import { PlanBadge } from '@/components/PlanGate';
 
 // ============================================
@@ -253,7 +253,7 @@ function hasAccess(item: { roles: UserRole[] }, userRole: UserRole, isManager?: 
 // SIDEBAR INNER (needs useSearchParams inside Suspense)
 // ============================================
 
-// Route → feature mapping for plan gating
+// Route → feature mapping for plan gating (admin/RH sidebar — shows badge)
 const ROUTE_FEATURE_MAP: Record<string, string> = {
   '/dashboard/okr': FEATURE_OKR,
   '/dashboard/talents': FEATURE_CAREERS,
@@ -262,6 +262,15 @@ const ROUTE_FEATURE_MAP: Record<string, string> = {
   '/dashboard/analytics': FEATURE_ANALYTICS,
   '/dashboard/departures': FEATURE_DEPARTURES,
   '/dashboard/certificates': FEATURE_CERTIFICATES,
+};
+
+// Mon Espace route → feature mapping (employee space — silently hidden)
+const MY_SPACE_FEATURE_MAP: Record<string, string> = {
+  '/dashboard/my-space/career': FEATURE_CAREERS,
+  '/dashboard/my-space/objectives': FEATURE_OKR,
+  '/dashboard/my-space/tasks': FEATURE_TASKS,
+  '/dashboard/my-space/documents': FEATURE_DOCUMENTS,
+  '/dashboard/my-space/resignation': FEATURE_DEPARTURES,
 };
 
 function SidebarInner() {
@@ -330,7 +339,12 @@ function SidebarInner() {
   }, [hasFeature]);
 
   const filteredNavigation = applyPlanGating(navigation.filter(item => hasAccess(item, userRole, isManager)));
-  const filteredMySpaceNav = mySpaceNavigation.filter(item => hasAccess(item, userRole, isManager));
+  const filteredMySpaceNav = mySpaceNavigation
+    .filter(item => hasAccess(item, userRole, isManager))
+    .filter(item => {
+      const feature = MY_SPACE_FEATURE_MAP[item.href];
+      return !feature || hasFeature(feature);
+    });
   const filteredPerformanceNav = performanceNavigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredLearningNav = learningNavigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredTalentsNav = talentsNavigation.filter(item => hasAccess(item, userRole, isManager));

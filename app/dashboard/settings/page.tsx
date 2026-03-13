@@ -21,12 +21,20 @@ import {
   RefreshCw,
   Unplug,
   ExternalLink,
-  Layers
+  Layers,
+  CreditCard,
+  Crown,
+  Users,
+  Calendar,
+  Send,
+  ArrowUpRight,
 } from 'lucide-react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { settingsTips } from '@/config/pageTips';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { usePlan, PLAN_LABELS, PLAN_PRICING } from '@/hooks/usePlan';
+import { UpgradeModal } from '@/components/PlanGate';
 import { getIntegrations, connectIntegration, disconnectIntegration, syncIntegration, type Integration,
   requestGroupConversion, getMyConversionRequestStatus, getMyGroupContext, createMySubsidiary,
   type ConversionRequestItem, type SubsidiaryItem } from '@/lib/api';
@@ -399,6 +407,15 @@ export default function SettingsPage() {
     danger?: boolean;
   } | null>(null);
 
+  // Billing / Plan
+  const { plan, planLabel, planLevel, isTrial, employeeLimit, loading: planLoading } = usePlan();
+  const [employeeCount, setEmployeeCount] = useState<number>(0);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [planChangeForm, setPlanChangeForm] = useState({ targetPlan: 'premium', message: '' });
+  const [sendingPlanRequest, setSendingPlanRequest] = useState(false);
+  const [planRequestSent, setPlanRequestSent] = useState(false);
+  const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
+
   // Tour tips
   const { showTips, dismissTips, resetTips } = usePageTour('settings');
 
@@ -709,7 +726,46 @@ export default function SettingsPage() {
     if (activeTab === 'integrations') {
       loadIntegrations();
     }
+    if (activeTab === 'billing') {
+      // Fetch employee count + trial info
+      fetch(`${API_URL}/api/auth/tenant-settings`, { headers: getAuthHeaders() })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data) {
+            setTrialEndsAt(data.trial_ends_at || null);
+          }
+        })
+        .catch(() => {});
+      fetch(`${API_URL}/api/employees?limit=1`, { headers: getAuthHeaders() })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data?.total !== undefined) setEmployeeCount(data.total);
+          else if (Array.isArray(data)) setEmployeeCount(data.length);
+        })
+        .catch(() => {});
+    }
   }, [activeTab, loadCertificateSettings, loadNotifPreferences, loadSecuritySettings, loadIntegrations]);
+
+  const handlePlanChangeRequest = async () => {
+    setSendingPlanRequest(true);
+    try {
+      const res = await fetch(`${API_URL}/api/settings/plan-change-request`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          target_plan: planChangeForm.targetPlan,
+          message: planChangeForm.message,
+        }),
+      });
+      if (!res.ok) throw new Error('Erreur lors de l\'envoi');
+      setPlanRequestSent(true);
+      toast.success('Demande envoyée ! Notre équipe vous contactera sous 24h.');
+    } catch {
+      toast.error('Erreur lors de l\'envoi de la demande. Contactez contact@targetym.com');
+    } finally {
+      setSendingPlanRequest(false);
+    }
+  };
 
   const saveCertificateSettings = async () => {
     setSavingCertSettings(true);
@@ -965,6 +1021,7 @@ export default function SettingsPage() {
 
   const tabs = [
     { id: 'general', name: 'Général', icon: Building2 },
+    { id: 'billing', name: 'Abonnement', icon: CreditCard },
     { id: 'certificates', name: 'Signatures & Cachets', icon: FileText },
     { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'security', name: 'Sécurité', icon: Shield },
@@ -1451,6 +1508,238 @@ export default function SettingsPage() {
               )}
               </>
             )}
+
+            {/* ============================== */}
+            {/* ONGLET: ABONNEMENT (BILLING)   */}
+            {/* ============================== */}
+            {activeTab === 'billing' && (
+              <div className="space-y-6">
+                {/* Plan actuel */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Plan actuel</h3>
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                      isTrial ? 'bg-amber-100 text-amber-700' : planLevel >= 3 ? 'bg-amber-100 text-amber-700' : planLevel >= 2 ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      <Crown className="w-4 h-4 mr-1.5" />
+                      {isTrial ? 'Essai gratuit' : planLabel}
+                    </span>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Plan name */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Plan</p>
+                      <p className="text-lg font-bold text-gray-900">{isTrial ? `Essai (${planLabel})` : planLabel}</p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {PLAN_PRICING[plan]?.label || (isTrial ? 'Gratuit pendant 30 jours' : '—')}
+                      </p>
+                    </div>
+
+                    {/* Status */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Statut</p>
+                      {isTrial && trialEndsAt ? (
+                        <>
+                          <p className="text-lg font-bold text-amber-600">
+                            {Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} jours restants
+                          </p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Expire le {new Date(trialEndsAt).toLocaleDateString('fr-FR')}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-lg font-bold text-green-600">Actif</p>
+                      )}
+                    </div>
+
+                    {/* Employee limit */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Employés inclus</p>
+                      <p className="text-lg font-bold text-gray-900">{employeeLimit}</p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {isTrial ? 'Pendant la période d\'essai' : 'Dans votre plan'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Utilisation */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Utilisation</h3>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-shrink-0 w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center">
+                      <Users className="w-6 h-6 text-primary-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-700">Employés</span>
+                        <span className="text-sm font-bold text-gray-900">
+                          {employeeCount} / {employeeLimit}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div
+                          className={`h-2.5 rounded-full transition-all ${
+                            employeeCount >= employeeLimit ? 'bg-red-500' : employeeCount >= employeeLimit * 0.8 ? 'bg-amber-500' : 'bg-primary-500'
+                          }`}
+                          style={{ width: `${Math.min(100, (employeeCount / employeeLimit) * 100)}%` }}
+                        />
+                      </div>
+                      {employeeCount >= employeeLimit && (
+                        <p className="text-xs text-red-500 mt-1">
+                          Limite atteinte — passez au plan supérieur pour ajouter des employés.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-4">
+                    Employé supplémentaire : 12 500 FCFA/mois (Basique &amp; Premium) — 5 000 FCFA/mois (Entreprise).
+                  </p>
+                </div>
+
+                {/* Historique des factures */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Historique des factures</h3>
+                  {isTrial ? (
+                    <div className="text-center py-8">
+                      <Calendar className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                      <p className="text-sm text-gray-500">
+                        Aucune facture pour le moment.
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Les factures apparaîtront ici après l&apos;activation de votre abonnement.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-100">
+                            <th className="text-left py-3 px-2 text-xs font-medium text-gray-500 uppercase">Date</th>
+                            <th className="text-left py-3 px-2 text-xs font-medium text-gray-500 uppercase">Description</th>
+                            <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase">Montant</th>
+                            <th className="text-center py-3 px-2 text-xs font-medium text-gray-500 uppercase">Statut</th>
+                            <th className="text-center py-3 px-2 text-xs font-medium text-gray-500 uppercase">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-b border-gray-50">
+                            <td className="py-3 px-2 text-gray-600" colSpan={5}>
+                              <div className="text-center text-gray-400 py-4">
+                                Aucune facture disponible.
+                              </div>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Changer de plan */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Changer de plan</h3>
+                  <p className="text-sm text-gray-500 mb-6">
+                    Soumettez une demande de changement de plan. Notre équipe vous contactera sous 24h.
+                  </p>
+
+                  {planRequestSent ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
+                      <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-green-800">Demande envoyée avec succès</p>
+                        <p className="text-xs text-green-600 mt-0.5">
+                          Notre équipe commerciale vous contactera sous 24h pour finaliser le changement.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="grid sm:grid-cols-3 gap-3">
+                        {(['basique', 'premium', 'entreprise'] as const).map((p) => {
+                          const pricing = PLAN_PRICING[p];
+                          const isCurrentPlan = plan === p || (isTrial && p === 'premium');
+                          return (
+                            <button
+                              key={p}
+                              onClick={() => setPlanChangeForm(prev => ({ ...prev, targetPlan: p }))}
+                              disabled={isCurrentPlan}
+                              className={`relative p-4 rounded-xl border-2 text-left transition-all ${
+                                isCurrentPlan
+                                  ? 'border-green-300 bg-green-50/50 cursor-not-allowed opacity-60'
+                                  : planChangeForm.targetPlan === p
+                                  ? 'border-primary-500 ring-2 ring-primary-500/20 bg-primary-50/30'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              {isCurrentPlan && (
+                                <span className="absolute -top-2 right-2 text-[10px] font-bold bg-green-500 text-white px-2 py-0.5 rounded-full">
+                                  Actuel
+                                </span>
+                              )}
+                              <p className="font-bold text-gray-900">{PLAN_LABELS[p]}</p>
+                              <p className="text-sm text-gray-500 mt-0.5">{pricing?.label || '—'}</p>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          Message (optionnel)
+                        </label>
+                        <textarea
+                          value={planChangeForm.message}
+                          onChange={(e) => setPlanChangeForm(prev => ({ ...prev, message: e.target.value }))}
+                          rows={3}
+                          placeholder="Précisez vos besoins, le nombre d'employés souhaité, etc."
+                          className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-none"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <button
+                          onClick={() => setShowUpgradeModal(true)}
+                          className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center"
+                        >
+                          Comparer les plans
+                          <ArrowUpRight className="w-4 h-4 ml-1" />
+                        </button>
+                        <button
+                          onClick={handlePlanChangeRequest}
+                          disabled={sendingPlanRequest || (plan === planChangeForm.targetPlan && !isTrial)}
+                          className="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white bg-primary-500 hover:bg-primary-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {sendingPlanRequest ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <Send className="w-4 h-4 mr-2" />
+                          )}
+                          Envoyer la demande
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Contact */}
+                <div className="bg-gray-50 rounded-xl p-4 text-center">
+                  <p className="text-sm text-gray-500">
+                    Besoin d&apos;aide ? Contactez-nous à{' '}
+                    <a href="mailto:contact@targetym.com" className="text-primary-600 hover:text-primary-700 font-medium">
+                      contact@targetym.com
+                    </a>
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <UpgradeModal
+              open={showUpgradeModal}
+              onClose={() => setShowUpgradeModal(false)}
+              currentPlan={plan}
+            />
 
             {/* ============================== */}
             {/* ONGLET: CERTIFICATS            */}

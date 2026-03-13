@@ -761,7 +761,7 @@ export default function SettingsPage() {
       setPlanRequestSent(true);
       toast.success('Demande envoyée ! Notre équipe vous contactera sous 24h.');
     } catch {
-      toast.error('Erreur lors de l\'envoi de la demande. Contactez contact@targetym.com');
+      toast.error('Erreur lors de l\'envoi de la demande. Contactez support@agiltym.com');
     } finally {
       setSendingPlanRequest(false);
     }
@@ -1736,8 +1736,8 @@ export default function SettingsPage() {
                 <div className="bg-gray-50 rounded-xl p-4 text-center">
                   <p className="text-sm text-gray-500">
                     Besoin d&apos;aide ? Contactez-nous à{' '}
-                    <a href="mailto:contact@targetym.com" className="text-primary-600 hover:text-primary-700 font-medium">
-                      contact@targetym.com
+                    <a href="mailto:support@agiltym.com" className="text-primary-600 hover:text-primary-700 font-medium">
+                      support@agiltym.com
                     </a>
                   </p>
                 </div>

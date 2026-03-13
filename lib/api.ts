@@ -397,6 +397,7 @@ export async function getEmployees(params?: {
   search?: string;
   department_id?: number;
   status?: string;
+  subsidiary_tenant_id?: number;
 }): Promise<PaginatedResponse<Employee>> {
   const queryParams = new URLSearchParams();
   if (params?.page) queryParams.set('page', params.page.toString());
@@ -404,6 +405,7 @@ export async function getEmployees(params?: {
   if (params?.search) queryParams.set('search', params.search);
   if (params?.department_id) queryParams.set('department_id', params.department_id.toString());
   if (params?.status) queryParams.set('status', params.status);
+  if (params?.subsidiary_tenant_id) queryParams.set('subsidiary_tenant_id', params.subsidiary_tenant_id.toString());
 
   const response = await fetchWithAuth(`${API_URL}/api/employees/?${queryParams}`, {
     
@@ -492,8 +494,14 @@ export async function deleteEmployee(id: number): Promise<void> {
   }
 }
 
-export async function getEmployeeStats(): Promise<EmployeeStats> {
-  const response = await fetchWithAuth(`${API_URL}/api/employees/stats`, {
+export async function getEmployeeStats(params?: { subsidiary_tenant_id?: number }): Promise<EmployeeStats> {
+  const queryParams = new URLSearchParams();
+  if (params?.subsidiary_tenant_id) queryParams.set('subsidiary_tenant_id', params.subsidiary_tenant_id.toString());
+  const url = queryParams.toString()
+    ? `${API_URL}/api/employees/stats?${queryParams.toString()}`
+    : `${API_URL}/api/employees/stats`;
+
+  const response = await fetchWithAuth(url, {
     
   });
 
@@ -509,14 +517,15 @@ export async function getEmployeeStats(): Promise<EmployeeStats> {
 // DEPARTMENTS API
 // ============================================
 
-export async function getDepartments(level?: OrganizationalLevel): Promise<Department[]> {
+export async function getDepartments(level?: OrganizationalLevel, subsidiaryTenantId?: number): Promise<Department[]> {
   console.log('Fetching departments from:', `${API_URL}/api/departments/`);
   
   const queryParams = new URLSearchParams();
   if (level) queryParams.set('level', level);
+  if (subsidiaryTenantId) queryParams.set('subsidiary_tenant_id', subsidiaryTenantId.toString());
   
-  const url = level 
-    ? `${API_URL}/api/departments/?${queryParams}` 
+  const url = queryParams.toString()
+    ? `${API_URL}/api/departments/?${queryParams.toString()}`
     : `${API_URL}/api/departments/`;
   
   const response = await fetchWithAuth(url, {
@@ -823,6 +832,7 @@ export async function getLeaveRequests(params?: {
   department_id?: number;
   start_date?: string;
   end_date?: string;
+  subsidiary_tenant_id?: number;
 }): Promise<LeaveRequestsResponse> {
   const queryParams = new URLSearchParams();
   if (params?.page) queryParams.set('page', params.page.toString());
@@ -832,6 +842,7 @@ export async function getLeaveRequests(params?: {
   if (params?.department_id) queryParams.set('department_id', params.department_id.toString());
   if (params?.start_date) queryParams.set('start_date', params.start_date);
   if (params?.end_date) queryParams.set('end_date', params.end_date);
+  if (params?.subsidiary_tenant_id) queryParams.set('subsidiary_tenant_id', params.subsidiary_tenant_id.toString());
 
   const response = await fetchWithAuth(`${API_URL}/api/leaves/requests?${queryParams}`, {
     

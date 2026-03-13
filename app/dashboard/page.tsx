@@ -20,14 +20,15 @@ import {
   getEmployeeStats,
   getDepartments,
   getLeaveRequests,
+  getSubsidiaryDashboardStats,
   type Employee,
-  type EmployeeStats
+  type EmployeeStats,
+  type SubsidiaryDashboardStats
 } from '@/lib/api';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { dashboardTips } from '@/config/pageTips';
 import { useGroupContext } from '@/hooks/useGroupContext';
-import { getSubsidiaryDashboardStats, type SubsidiaryDashboardStats } from '@/lib/api';
 
 // ============================================
 // TYPES
@@ -107,27 +108,27 @@ async function getTeamPendingRequests(teamMembers: TeamMember[]): Promise<LeaveR
   return allRequests;
 }
 
-async function getAllEmployees(): Promise<Employee[]> {
-  try { const data = await getEmployees({ page_size: 500 }); return data.items || []; } 
+async function getAllEmployees(subsidiaryTenantId?: number): Promise<Employee[]> {
+  try { const data = await getEmployees({ page_size: 500, subsidiary_tenant_id: subsidiaryTenantId }); return data.items || []; } 
   catch { return []; }
 }
 
-async function getHRStatsData(): Promise<HRStats> {
+async function getHRStatsData(subsidiaryTenantId?: number): Promise<HRStats> {
   try {
-    const stats: EmployeeStats = await getEmployeeStats();
-    const departments = await getDepartments();
+    const stats: EmployeeStats = await getEmployeeStats({ subsidiary_tenant_id: subsidiaryTenantId });
+    const departments = await getDepartments(undefined, subsidiaryTenantId);
     let pendingRequests = 0;
-    try { const reqData = await getLeaveRequests({ status: 'pending', page_size: 100 }); pendingRequests = (reqData.items || []).length; } catch {}
+    try { const reqData = await getLeaveRequests({ status: 'pending', page_size: 100, subsidiary_tenant_id: subsidiaryTenantId }); pendingRequests = (reqData.items || []).length; } catch {}
     return { total_employees: stats.total || 0, active_employees: stats.active || 0, on_leave_today: stats.on_leave || 0, pending_requests: pendingRequests, new_hires_this_month: stats.new_this_month || 0, departments_count: departments.length };
   } catch { return { total_employees: 0, active_employees: 0, on_leave_today: 0, pending_requests: 0, new_hires_this_month: 0, departments_count: 0 }; }
 }
 
-async function getAllPendingRequests(): Promise<LeaveRequest[]> {
-  try { const data = await getLeaveRequests({ status: 'pending', page_size: 10 }); return data.items || []; } catch { return []; }
+async function getAllPendingRequests(subsidiaryTenantId?: number): Promise<LeaveRequest[]> {
+  try { const data = await getLeaveRequests({ status: 'pending', page_size: 10, subsidiary_tenant_id: subsidiaryTenantId }); return data.items || []; } catch { return []; }
 }
 
-async function getAllLeaveRequests(): Promise<LeaveRequest[]> {
-  try { const data = await getLeaveRequests({ page_size: 100 }); return data.items || []; } catch { return []; }
+async function getAllLeaveRequests(subsidiaryTenantId?: number): Promise<LeaveRequest[]> {
+  try { const data = await getLeaveRequests({ page_size: 100, subsidiary_tenant_id: subsidiaryTenantId }); return data.items || []; } catch { return []; }
 }
 
 async function getOKRStats(): Promise<OKRStats> {
@@ -1078,13 +1079,20 @@ export default function DashboardPage() {
       }
 
       if (['rh', 'admin', 'dg'].includes(role)) {
+        if (selectedTenantId) {
+          setOkrStats({ total: 0, by_level: {}, by_status: {}, avg_progress: 0, completed: 0, in_progress: 0, not_started: 0, overdue: 0, by_department: {} });
+          setCriticalOKRs([]);
+        }
+
         promises.push(
-          getHRStatsData().then(setHRStats).catch(() => {}),
-          getAllPendingRequests().then(setAllPendingRequests).catch(() => {}),
-          getAllEmployees().then(employees => { setDepartmentData(calculateDepartmentData(employees)); setEvolutionData(calculateMonthlyEvolution(employees)); }).catch(() => {}),
-          getAllLeaveRequests().then(requests => { setLeavesData(calculateLeavesByMonth(requests)); }).catch(() => {}),
-          getOKRStats().then(setOkrStats).catch(() => {}),
-          getCriticalOKRs().then(setCriticalOKRs).catch(() => {})
+          getHRStatsData(selectedTenantId || undefined).then(setHRStats).catch(() => {}),
+          getAllPendingRequests(selectedTenantId || undefined).then(setAllPendingRequests).catch(() => {}),
+          getAllEmployees(selectedTenantId || undefined).then(employees => { setDepartmentData(calculateDepartmentData(employees)); setEvolutionData(calculateMonthlyEvolution(employees)); }).catch(() => {}),
+          getAllLeaveRequests(selectedTenantId || undefined).then(requests => { setLeavesData(calculateLeavesByMonth(requests)); }).catch(() => {}),
+          ...(selectedTenantId ? [] : [
+            getOKRStats().then(setOkrStats).catch(() => {}),
+            getCriticalOKRs().then(setCriticalOKRs).catch(() => {}),
+          ])
         );
       }
 
@@ -1094,7 +1102,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedTenantId]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -1122,6 +1130,7 @@ export default function DashboardPage() {
   const { name, role, isManager, employeeId } = userData;
   const isHROrAdmin = ['rh', 'admin', 'dg'].includes(role);
   const isSimpleEmployee = role === 'employee' && !isManager;
+  const isSubsidiaryView = Boolean(selectedTenantId);
 
   // ============================================
   // LAYOUT EMPLOYÉ SIMPLE - 2 colonnes équilibrées
@@ -1238,21 +1247,21 @@ export default function DashboardPage() {
                 <EvolutionChartWidget data={evolutionData} />
                 <DepartmentChartWidget data={departmentData} />
                 <LeavesChartWidget data={leavesData} />
-                <OKRStatsWidget stats={okrStats} criticalOKRs={criticalOKRs} />
+                {!isSubsidiaryView && <OKRStatsWidget stats={okrStats} criticalOKRs={criticalOKRs} />}
               </div>
             )}
-            {employeeId && <MyLeaveBalanceWidget balances={leaveBalances} />}
-            {employeeId && <MyLearningWidget assignments={myAssignments} />}
+            {employeeId && !isSubsidiaryView && <MyLeaveBalanceWidget balances={leaveBalances} />}
+            {employeeId && !isSubsidiaryView && <MyLearningWidget assignments={myAssignments} />}
             {isHROrAdmin && <PendingRequestsWidget requests={allPendingRequests} />}
           </div>
 
           <div className="space-y-6">
             <QuickActions role={role} isManager={isManager} />
             {isHROrAdmin && hrStats && <AlertsWidget pendingCount={hrStats.pending_requests} onLeaveCount={hrStats.on_leave_today} />}
-            {employeeId && <MyPerformanceWidget stats={myPerformance} />}
-            {recentFeedbacks.length > 0 && <RecentFeedbacksWidget feedbacks={recentFeedbacks} />}
-            {employeeId && <MyObjectivesProgressWidget objectives={myObjectives} />}
-            <TasksWidget stats={taskStats} />
+            {employeeId && !isSubsidiaryView && <MyPerformanceWidget stats={myPerformance} />}
+            {!isSubsidiaryView && recentFeedbacks.length > 0 && <RecentFeedbacksWidget feedbacks={recentFeedbacks} />}
+            {employeeId && !isSubsidiaryView && <MyObjectivesProgressWidget objectives={myObjectives} />}
+            {!isSubsidiaryView && <TasksWidget stats={taskStats} />}
           </div>
         </div>
       </div>

@@ -20,7 +20,8 @@ import {
   PenTool,
   RefreshCw,
   Unplug,
-  ExternalLink
+  ExternalLink,
+  Layers
 } from 'lucide-react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
@@ -32,9 +33,15 @@ import { getIntegrations, connectIntegration, disconnectIntegration, syncIntegra
 
 const GROUP_BASE_PRICE = 100_000;       // XOF/mois
 const GROUP_PRICE_PER_SUB = 30_000;    // XOF/mois par filiale
-const calcGroupPrice = (n: number) => GROUP_BASE_PRICE + Math.max(1, n) * GROUP_PRICE_PER_SUB;
+const calcGroupPrice = (n: number, includeBaseFee: boolean = true) =>
+  (includeBaseFee ? GROUP_BASE_PRICE : 0) + Math.max(1, n) * GROUP_PRICE_PER_SUB;
 const formatXOF = (n: number) => new Intl.NumberFormat('fr-FR').format(n) + ' XOF';
-import { Layers } from 'lucide-react';
+
+type GroupQuotaState = {
+  allowed: number;
+  used: number;
+  remaining: number;
+};
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
 
@@ -416,6 +423,7 @@ export default function SettingsPage() {
 
   // États pour la gestion des filiales (si groupe approuvé)
   const [groupSubsidiaries, setGroupSubsidiaries] = useState<SubsidiaryItem[]>([]);
+  const [groupQuota, setGroupQuota] = useState<GroupQuotaState | null>(null);
   const [loadingSubsidiaries, setLoadingSubsidiaries] = useState(false);
   const [showSubsidiaryModal, setShowSubsidiaryModal] = useState(false);
   const [newSubName, setNewSubName] = useState('');
@@ -848,6 +856,9 @@ export default function SettingsPage() {
     ? (() => { try { return JSON.parse(localStorage.getItem('user') || '{}').role || ''; } catch { return ''; } })()
     : '';
   const canRequestGroup = ['admin', 'dg'].includes(tenantRole?.toLowerCase());
+  const isGroupTenant = tenantData?.is_group === true && tenantData?.group_type === 'group';
+  const hasPendingConversionRequest = conversionRequest?.status === 'pending';
+  const isQuotaReached = groupQuota ? groupQuota.remaining <= 0 : false;
 
   // Charger le statut de la demande de conversion
   useEffect(() => {
@@ -882,6 +893,10 @@ export default function SettingsPage() {
     try {
       const ctx = await getMyGroupContext();
       setGroupSubsidiaries(ctx.subsidiaries || []);
+      const allowed = ctx.allowed_subsidiaries ?? 0;
+      const used = ctx.used_subsidiaries ?? (ctx.subsidiaries?.length || 0);
+      const remaining = ctx.remaining_subsidiaries ?? Math.max(0, allowed - used);
+      setGroupQuota({ allowed, used, remaining });
     } catch {
       // silently ignore
     } finally {
@@ -889,7 +904,18 @@ export default function SettingsPage() {
     }
   };
 
+  useEffect(() => {
+    if (activeTab !== 'general') return;
+    if (!isGroupTenant) return;
+    fetchGroupSubsidiaries();
+  }, [activeTab, isGroupTenant]);
+
   const handleCreateSubsidiary = async () => {
+    if (isQuotaReached) {
+      toast.error('Quota de filiales atteint. Faites une nouvelle demande pour ajouter des filiales.');
+      setShowSubsidiaryModal(false);
+      return;
+    }
     if (!newSubName.trim() || !newSubSlug.trim()) {
       toast.error('Le nom et l\'identifiant sont requis');
       return;
@@ -912,6 +938,17 @@ export default function SettingsPage() {
         newSubAdminPassword,
       );
       toast.success(`Filiale "${newSubName}" créée avec succès. Admin: ${result.admin_email || newSubAdminEmail.trim()}`);
+      if (
+        typeof result.quota_allowed === 'number' &&
+        typeof result.quota_used === 'number' &&
+        typeof result.quota_remaining === 'number'
+      ) {
+        setGroupQuota({
+          allowed: result.quota_allowed,
+          used: result.quota_used,
+          remaining: result.quota_remaining,
+        });
+      }
       setShowSubsidiaryModal(false);
       setNewSubName('');
       setNewSubSlug('');
@@ -1100,21 +1137,28 @@ export default function SettingsPage() {
 
                       {loadingConvReq ? (
                         <Loader2 className="w-5 h-5 animate-spin text-purple-500" />
-                      ) : conversionRequest && (conversionRequest.status !== 'approved' || tenantData?.is_group) ? (
-                        <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
-                          conversionRequest.status === 'pending' ? 'bg-yellow-50 text-yellow-800 border border-yellow-200' :
-                          (conversionRequest.status === 'approved' && tenantData?.is_group) ? 'bg-green-50 text-green-800 border border-green-200' :
-                          'bg-red-50 text-red-800 border border-red-200'
-                        }`}>
-                          {conversionRequest.status === 'pending' && '⏳ Demande en attente de validation'}
-                          {conversionRequest.status === 'approved' && tenantData?.is_group && '✅ Demande approuvée — vous êtes maintenant un groupe'}
-                          {conversionRequest.status === 'rejected' && `❌ Demande refusée${conversionRequest.review_note ? ` : ${conversionRequest.review_note}` : ''}`}
-                        </div>
-                      ) : showConvForm ? (
+                      ) : (
+                        <>
+                          {conversionRequest && (
+                            <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium mb-3 ${
+                              conversionRequest.status === 'pending' ? 'bg-yellow-50 text-yellow-800 border border-yellow-200' :
+                              conversionRequest.status === 'approved' ? 'bg-green-50 text-green-800 border border-green-200' :
+                              'bg-red-50 text-red-800 border border-red-200'
+                            }`}>
+                              {conversionRequest.status === 'pending' && '⏳ Demande en attente de validation'}
+                              {conversionRequest.status === 'approved' && isGroupTenant && '✅ Demande approuvée — quota filiales mis à jour'}
+                              {conversionRequest.status === 'approved' && !isGroupTenant && '✅ Demande approuvée — activation du groupe en cours'}
+                              {conversionRequest.status === 'rejected' && `❌ Demande refusée${conversionRequest.review_note ? ` : ${conversionRequest.review_note}` : ''}`}
+                            </div>
+                          )}
+
+                          {showConvForm ? (
                         <div className="space-y-3">
                           {/* Nombre de filiales */}
                           <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">Nombre de filiales souhaitées <span className="text-red-500">*</span></label>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              {isGroupTenant ? 'Nombre de filiales supplémentaires souhaitées' : 'Nombre de filiales souhaitées'} <span className="text-red-500">*</span>
+                            </label>
                             <input
                               type="number"
                               min={1}
@@ -1149,10 +1193,16 @@ export default function SettingsPage() {
                           {/* Aperçu du prix */}
                           <div className="bg-purple-50 border border-purple-200 rounded-lg px-4 py-3">
                             <p className="text-xs text-purple-700 font-medium mb-1">Estimation mensuelle</p>
-                            <p className="text-xl font-bold text-purple-900">{formatXOF(calcGroupPrice(convNbSubsidiaries))}</p>
-                            <p className="text-xs text-purple-600 mt-1">
-                              Forfait groupe 100 000 XOF + {convNbSubsidiaries} filiale{convNbSubsidiaries > 1 ? 's' : ''} × 30 000 XOF/mois
-                            </p>
+                            <p className="text-xl font-bold text-purple-900">{formatXOF(calcGroupPrice(convNbSubsidiaries, !isGroupTenant))}</p>
+                            {isGroupTenant ? (
+                              <p className="text-xs text-purple-600 mt-1">
+                                Extension : {convNbSubsidiaries} filiale{convNbSubsidiaries > 1 ? 's' : ''} × 30 000 XOF/mois
+                              </p>
+                            ) : (
+                              <p className="text-xs text-purple-600 mt-1">
+                                Forfait groupe 100 000 XOF + {convNbSubsidiaries} filiale{convNbSubsidiaries > 1 ? 's' : ''} × 30 000 XOF/mois
+                              </p>
+                            )}
                             <p className="text-xs text-purple-500 mt-1 italic">Le SuperAdmin vous contactera pour finaliser le paiement.</p>
                           </div>
                           <div className="flex gap-2">
@@ -1162,7 +1212,7 @@ export default function SettingsPage() {
                               className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
                             >
                               {submittingConvReq ? <Loader2 className="w-4 h-4 animate-spin" /> : <Layers className="w-4 h-4" />}
-                              Envoyer la demande
+                              {isGroupTenant ? 'Envoyer la demande d\'extension' : 'Envoyer la demande'}
                             </button>
                             <button
                               onClick={() => setShowConvForm(false)}
@@ -1172,14 +1222,16 @@ export default function SettingsPage() {
                             </button>
                           </div>
                         </div>
-                      ) : (
-                        <button
-                          onClick={() => setShowConvForm(true)}
-                          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
-                        >
-                          <Layers className="w-4 h-4" />
-                          Demander à devenir un groupe
-                        </button>
+                          ) : hasPendingConversionRequest ? null : (
+                            <button
+                              onClick={() => setShowConvForm(true)}
+                              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                            >
+                              <Layers className="w-4 h-4" />
+                              {isGroupTenant ? 'Demander l\'ajout de filiales' : 'Demander à devenir un groupe'}
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -1187,7 +1239,7 @@ export default function SettingsPage() {
               )}
 
               {/* ====== Section : Gérer mes filiales (si groupe approuvé) ====== */}
-              {tenantData?.is_group === true && tenantData?.group_type === 'group' && (
+              {isGroupTenant && (
                 <div className="mt-4 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -1197,16 +1249,42 @@ export default function SettingsPage() {
                       <div>
                         <h4 className="font-semibold text-gray-900">Mes filiales</h4>
                         <p className="text-xs text-gray-500">Gérez les entités de votre groupe</p>
+                        {groupQuota && (
+                          <p className="text-xs text-indigo-600 mt-1">
+                            Quota utilisé : {groupQuota.used}/{groupQuota.allowed} · Restant : {groupQuota.remaining}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <button
-                      onClick={() => { fetchGroupSubsidiaries(); setShowSubsidiaryModal(true); }}
-                      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                      onClick={() => {
+                        if (isQuotaReached) {
+                          setShowConvForm(true);
+                          return;
+                        }
+                        fetchGroupSubsidiaries();
+                        setShowSubsidiaryModal(true);
+                      }}
+                      disabled={isQuotaReached}
+                      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       <span className="text-lg leading-none">+</span>
-                      Ajouter une filiale
+                      {isQuotaReached ? 'Quota atteint' : 'Ajouter une filiale'}
                     </button>
                   </div>
+
+                  {isQuotaReached && (
+                    <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                      <p className="text-sm text-amber-800 font-medium">Quota de filiales atteint</p>
+                      <p className="text-xs text-amber-700 mt-1">Vous devez envoyer une nouvelle demande pour ajouter des filiales.</p>
+                      <button
+                        onClick={() => setShowConvForm(true)}
+                        className="mt-2 text-xs font-medium text-purple-700 hover:text-purple-900 underline"
+                      >
+                        Faire une demande d&apos;extension
+                      </button>
+                    </div>
+                  )}
 
                   {loadingSubsidiaries ? (
                     <div className="flex items-center justify-center py-6">
@@ -1215,11 +1293,20 @@ export default function SettingsPage() {
                   ) : groupSubsidiaries.length === 0 ? (
                     <div
                       className="text-center py-8 text-gray-400 cursor-pointer hover:text-indigo-500 transition-colors border-2 border-dashed border-gray-200 rounded-lg"
-                      onClick={() => { fetchGroupSubsidiaries(); setShowSubsidiaryModal(true); }}
+                      onClick={() => {
+                        if (isQuotaReached) {
+                          setShowConvForm(true);
+                          return;
+                        }
+                        fetchGroupSubsidiaries();
+                        setShowSubsidiaryModal(true);
+                      }}
                     >
                       <Layers className="w-8 h-8 mx-auto mb-2 opacity-40" />
                       <p className="text-sm">Aucune filiale pour l&apos;instant.</p>
-                      <p className="text-xs mt-1">Cliquez pour créer votre première filiale</p>
+                      <p className="text-xs mt-1">
+                        {isQuotaReached ? 'Quota atteint : faites une demande d\'extension' : 'Cliquez pour créer votre première filiale'}
+                      </p>
                     </div>
                   ) : (
                     <div
@@ -1276,6 +1363,11 @@ export default function SettingsPage() {
                       </button>
                     </div>
                     <div className="p-6 space-y-4">
+                      {isQuotaReached && (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                          <p className="text-xs text-amber-800">Quota atteint. Cette création sera bloquée tant qu&apos;une demande d&apos;extension n&apos;est pas approuvée.</p>
+                        </div>
+                      )}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Nom de la filiale <span className="text-red-500">*</span></label>
                         <input
@@ -1347,7 +1439,7 @@ export default function SettingsPage() {
                       </button>
                       <button
                         onClick={handleCreateSubsidiary}
-                        disabled={creatingSubsidiary || !newSubName.trim() || !newSubSlug.trim() || !newSubAdminEmail.trim() || !newSubAdminPassword.trim()}
+                        disabled={isQuotaReached || creatingSubsidiary || !newSubName.trim() || !newSubSlug.trim() || !newSubAdminEmail.trim() || !newSubAdminPassword.trim()}
                         className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
                       >
                         {creatingSubsidiary ? <Loader2 className="w-4 h-4 animate-spin" /> : null}

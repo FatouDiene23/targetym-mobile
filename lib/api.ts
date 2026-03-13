@@ -2069,6 +2069,9 @@ export interface MyGroupContext {
   tenant_id: number;
   tenant_name: string;
   subsidiaries: SubsidiaryItem[];
+  allowed_subsidiaries: number;
+  used_subsidiaries: number;
+  remaining_subsidiaries: number;
   parent_tenant_id?: number;
   parent_tenant_name?: string;
 }
@@ -2155,7 +2158,17 @@ export async function createMySubsidiary(
   email?: string,
   adminEmail?: string,
   adminPassword?: string,
-): Promise<{ success: boolean; message: string; subsidiary_id: number; subsidiary_slug: string; admin_email?: string; admin_user_id?: number }> {
+): Promise<{
+  success: boolean;
+  message: string;
+  subsidiary_id: number;
+  subsidiary_slug: string;
+  admin_email?: string;
+  admin_user_id?: number;
+  quota_allowed?: number;
+  quota_used?: number;
+  quota_remaining?: number;
+}> {
   const response = await fetchWithAuth(`${API_URL}/api/platform/groups/my-group/subsidiaries`, {
     method: 'POST',
     body: JSON.stringify({

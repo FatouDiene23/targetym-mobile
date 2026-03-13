@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import ImpersonationBanner from '@/components/ImpersonationBanner';
 import AppTour from '@/components/AppTour';
@@ -307,6 +308,8 @@ function DashboardContent({
   handleSkipTour: () => void;
   handleRestartTour: () => void;
 }>) {
+  const pathname = usePathname();
+  const hideGroupContextSwitcher = pathname.startsWith('/dashboard/recruitment');
   const { setTourHandler } = useHelpMenu();
 
   // Enregistrer le handler du tour dans le contexte global
@@ -324,7 +327,7 @@ function DashboardContent({
       <Sidebar />
       <main className="flex-1 overflow-auto">
         {/* Bandeau contexte groupe — visible uniquement pour les tenants groupes */}
-        <GroupContextSwitcher />
+        {!hideGroupContextSwitcher && <GroupContextSwitcher />}
         {children}
       </main>
 

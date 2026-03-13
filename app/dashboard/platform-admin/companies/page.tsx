@@ -6,11 +6,12 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import {
   Building2, Search, CheckCircle2, XCircle, Clock, Eye,
-  ChevronLeft, AlertTriangle, Filter, RefreshCw, Shield,
+  ChevronLeft, AlertTriangle, RefreshCw, Shield, X, Users, Calendar,
+  Info, Lock, CreditCard,
 } from 'lucide-react';
 import {
-  getAllTenants, activateTenant, blockTenant,
-  type TenantListItem,
+  getAllTenants, activateTenant, blockTenant, getTenantDetail,
+  type TenantListItem, type TenantDetail,
 } from '@/lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -76,6 +77,23 @@ export default function CompaniesPage() {
   const [blockingTenant, setBlockingTenant] = useState<TenantListItem | null>(null);
   const [blockReason, setBlockReason] = useState('');
   const [blocking, setBlocking] = useState(false);
+
+  // Modale détail
+  const [detailTenant, setDetailTenant] = useState<TenantDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  const openDetail = async (id: number) => {
+    setDetailLoading(true);
+    setDetailTenant(null);
+    try {
+      const data = await getTenantDetail(id);
+      setDetailTenant(data);
+    } catch {
+      toast.error('Erreur chargement détail');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
 
   // ── Auth guard ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -266,14 +284,14 @@ export default function CompaniesPage() {
                     <td className="px-4 py-4 text-center text-gray-600">{t.employees_count}</td>
                     <td className="px-4 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        {/* Voir détails → ouvre le modal de détail dans platform-admin */}
-                        <Link
-                          href={`/dashboard/platform-admin?tenantId=${t.id}`}
+                        {/* Voir détails → modal inline */}
+                        <button
+                          onClick={() => openDetail(t.id)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
                         >
                           <Eye size={13} />
                           Détails
-                        </Link>
+                        </button>
 
                         {/* Activer — uniquement si en attente */}
                         {t.computed_status === 'pending' && (
@@ -389,8 +407,7 @@ export default function CompaniesPage() {
       )}
 
       {/* ── Modale Blocage ─────────────────────────────────────────────────── */}
-      {blockingTenant && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      {blockingTenant && (        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
             <div className="flex items-center gap-3">
               <div className="bg-red-100 p-2 rounded-xl">
@@ -436,6 +453,117 @@ export default function CompaniesPage() {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modale Détail ──────────────────────────────────────────────────── */}
+      {(detailLoading || detailTenant) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            {detailLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent" />
+              </div>
+            ) : detailTenant ? (
+              <>
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-indigo-100 p-2 rounded-xl">
+                      <Building2 size={20} className="text-indigo-600" />
+                    </div>
+                    <div>
+                      <h2 className="font-bold text-gray-900 text-base">{detailTenant.name}</h2>
+                      <p className="text-xs text-gray-400">{detailTenant.slug}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setDetailTenant(null)} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-5">
+                  {/* Statut */}
+                  <div className="flex items-center gap-3">
+                    <StatusBadge tenant={detailTenant} />
+                    {detailTenant.trial_days_remaining > 0 && (
+                      <span className="text-xs text-gray-500">{detailTenant.trial_days_remaining} jours restants</span>
+                    )}
+                  </div>
+
+                  {/* Infos principales */}
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="bg-gray-50 rounded-xl p-3">
+                      <p className="text-xs text-gray-400 mb-0.5">Email admin</p>
+                      <p className="font-medium text-gray-800 truncate">{detailTenant.email || '—'}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-3">
+                      <p className="text-xs text-gray-400 mb-0.5">Téléphone</p>
+                      <p className="font-medium text-gray-800">{detailTenant.phone || '—'}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-3">
+                      <p className="text-xs text-gray-400 mb-0.5 flex items-center gap-1"><CreditCard size={10} /> Plan</p>
+                      <p className="font-medium text-gray-800 capitalize">{detailTenant.plan}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-3">
+                      <p className="text-xs text-gray-400 mb-0.5 flex items-center gap-1"><Users size={10} /> Employés</p>
+                      <p className="font-medium text-gray-800">{detailTenant.employees_count} / {detailTenant.max_employees}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-3">
+                      <p className="text-xs text-gray-400 mb-0.5 flex items-center gap-1"><Calendar size={10} /> Inscription</p>
+                      <p className="font-medium text-gray-800">{fmt(detailTenant.created_at)}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-3">
+                      <p className="text-xs text-gray-400 mb-0.5 flex items-center gap-1"><Calendar size={10} /> Fin du trial</p>
+                      <p className="font-medium text-gray-800">{fmt(detailTenant.trial_ends_at)}</p>
+                    </div>
+                  </div>
+
+                  {/* Note d'activation */}
+                  {detailTenant.activation_note && (
+                    <div className="bg-green-50 border border-green-100 rounded-xl p-3 text-sm">
+                      <p className="text-xs font-semibold text-green-600 mb-1 flex items-center gap-1"><Info size={11} /> Note d'activation</p>
+                      <p className="text-gray-700">{detailTenant.activation_note}</p>
+                    </div>
+                  )}
+
+                  {/* Motif de blocage */}
+                  {detailTenant.block_reason && (
+                    <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-sm">
+                      <p className="text-xs font-semibold text-red-600 mb-1 flex items-center gap-1"><Lock size={11} /> Motif de blocage</p>
+                      <p className="text-gray-700">{detailTenant.block_reason}</p>
+                    </div>
+                  )}
+
+                  {/* Actions contextuelles */}
+                  <div className="flex gap-3 pt-1 border-t border-gray-100">
+                    {detailTenant.computed_status === 'pending' && (
+                      <button
+                        onClick={() => { setDetailTenant(null); openActivateModal(detailTenant); }}
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors"
+                      >
+                        <CheckCircle2 size={15} /> Activer
+                      </button>
+                    )}
+                    {(detailTenant.computed_status === 'trial_active' || detailTenant.computed_status === 'subscribed') && (
+                      <button
+                        onClick={() => { setDetailTenant(null); openBlockModal(detailTenant); }}
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors"
+                      >
+                        <XCircle size={15} /> Bloquer
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setDetailTenant(null)}
+                      className="px-4 py-2.5 text-sm font-medium bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors"
+                    >
+                      Fermer
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
       )}

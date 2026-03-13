@@ -448,7 +448,7 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
   const loadSanctions = useCallback(async () => {
     setIsLoadingSanctions(true);
     try {
-      const data = await apiFetch(`/api/employees/${employee.id}/sanctions`);
+      const data = await apiFetch(`/api/employees/${employee.id}/sanctions/`);
       setSanctions(Array.isArray(data) ? data : data.items || []);
     } catch { setSanctions([]); }
     finally { setIsLoadingSanctions(false); }
@@ -519,7 +519,7 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
     if (!newSanction.reason.trim()) return;
     setIsSavingSanction(true);
     try {
-      const data = await apiFetch(`/api/employees/${employee.id}/sanctions`, {
+      const data = await apiFetch(`/api/employees/${employee.id}/sanctions/`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newSanction),
       });
       setSanctions(prev => [data, ...prev]);
@@ -541,7 +541,7 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
       danger: true,
       onConfirm: async () => {
         setConfirmDialog(null);
-        try { await apiFetch(`/api/employees/${employee.id}/sanctions/${sanctionId}`, { method: 'DELETE' }); } catch {}
+        try { await apiFetch(`/api/employees/${employee.id}/sanctions/${sanctionId}/`, { method: 'DELETE' }); } catch {}
         setSanctions(prev => prev.filter(s => s.id !== sanctionId));
       },
     });

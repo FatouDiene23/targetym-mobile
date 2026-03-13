@@ -115,7 +115,7 @@ export default function SanctionsTab() {
       if (search) params.append('search', search);
       params.append('limit', '200');
 
-      const data = await apiFetch(`/api/sanctions?${params.toString()}`);
+      const data = await apiFetch(`/api/sanctions/?${params.toString()}`);
       setSanctions(data.items || []);
     } catch {
       setSanctions([]);
@@ -151,7 +151,7 @@ export default function SanctionsTab() {
     }
     setIsSaving(true);
     try {
-      const data = await apiFetch('/api/sanctions', {
+      const data = await apiFetch('/api/sanctions/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSanction),
@@ -175,7 +175,7 @@ export default function SanctionsTab() {
       danger: true,
       onConfirm: async () => {
         try {
-          await apiFetch(`/api/sanctions/${id}`, { method: 'DELETE' });
+          await apiFetch(`/api/sanctions/${id}/`, { method: 'DELETE' });
           setSanctions(prev => prev.filter(s => s.id !== id));
           toast.success('Sanction supprimée');
         } catch {

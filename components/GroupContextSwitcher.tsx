@@ -17,7 +17,7 @@ export default function GroupContextSwitcher() {
 
   const currentLabel = selectedSubsidiary
     ? selectedSubsidiary.name
-    : `${context.tenant_name} — Groupe entier`;
+    : `Dashboard global du groupe`;
 
   return (
     <div className="sticky top-0 z-30 bg-white border-b border-purple-100 px-6 py-2 flex items-center gap-3 shadow-sm">
@@ -54,8 +54,8 @@ export default function GroupContextSwitcher() {
                   <Layers className="w-4 h-4 text-purple-600" />
                 </div>
                 <div className="text-left min-w-0">
-                  <p className="font-semibold text-gray-900">{context.tenant_name}</p>
-                  <p className="text-xs text-gray-500">Vue groupe — stats agrégées</p>
+                  <p className="font-semibold text-gray-900">Dashboard global du groupe</p>
+                  <p className="text-xs text-gray-500">Toutes les filiales — données agrégées</p>
                 </div>
                 {selectedTenantId === null && (
                   <div className="ml-auto w-2 h-2 rounded-full bg-purple-500 flex-shrink-0" />

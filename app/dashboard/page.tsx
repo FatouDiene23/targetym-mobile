@@ -1196,15 +1196,18 @@ export default function DashboardPage() {
 
         {/* Panel stats filiale sélectionnée */}
         {selectedSubsidiary && (
-          <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
-                <Building2 className="w-4 h-4 text-indigo-600" />
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow">
+                  <Building2 className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-indigo-900">{selectedSubsidiary.name}</p>
+                  <p className="text-xs text-indigo-500">Vue filiale — données isolées</p>
+                </div>
               </div>
-              <div>
-                <p className="font-semibold text-indigo-900">{selectedSubsidiary.name}</p>
-                <p className="text-xs text-indigo-500">Vue filiale — données isolées</p>
-              </div>
+              <a href="/dashboard/analytics" className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline underline-offset-2">People Analytics complets →</a>
             </div>
             {subsidiaryStatsLoading ? (
               <div className="flex items-center gap-2 text-indigo-400 text-sm">
@@ -1213,28 +1216,24 @@ export default function DashboardPage() {
               </div>
             ) : subsidiaryStats ? (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="bg-white rounded-lg p-3 text-center shadow-sm">
-                  <p className="text-2xl font-bold text-gray-900">{subsidiaryStats.active_employees}</p>
-                  <p className="text-xs text-gray-500 mt-1">Employés actifs</p>
+                <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-indigo-100">
+                  <p className="text-3xl font-bold text-indigo-700">{subsidiaryStats.active_employees}</p>
+                  <p className="text-xs text-gray-500 mt-1 font-medium">Employés actifs</p>
                 </div>
-                <div className="bg-white rounded-lg p-3 text-center shadow-sm">
-                  <p className="text-2xl font-bold text-gray-900">{subsidiaryStats.total_employees}</p>
-                  <p className="text-xs text-gray-500 mt-1">Total employés</p>
+                <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-indigo-100">
+                  <p className="text-3xl font-bold text-gray-900">{subsidiaryStats.total_employees}</p>
+                  <p className="text-xs text-gray-500 mt-1 font-medium">Total employés</p>
                 </div>
-                <div className="bg-white rounded-lg p-3 text-center shadow-sm">
-                  <p className="text-2xl font-bold text-orange-600">{subsidiaryStats.pending_leaves}</p>
-                  <p className="text-xs text-gray-500 mt-1">Congés en attente</p>
+                <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-orange-100">
+                  <p className="text-3xl font-bold text-orange-500">{subsidiaryStats.pending_leaves}</p>
+                  <p className="text-xs text-gray-500 mt-1 font-medium">Congés en attente</p>
                 </div>
-                <div className="bg-white rounded-lg p-3 text-center shadow-sm">
-                  <p className="text-2xl font-bold text-gray-900">{subsidiaryStats.departments_count}</p>
-                  <p className="text-xs text-gray-500 mt-1">Départements</p>
+                <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-indigo-100">
+                  <p className="text-3xl font-bold text-gray-900">{subsidiaryStats.departments_count}</p>
+                  <p className="text-xs text-gray-500 mt-1 font-medium">Départements</p>
                 </div>
               </div>
             ) : null}
-            <p className="text-xs text-indigo-400 mt-3">
-              Pour les analytics complets de cette filiale :{' '}
-              <a href="/dashboard/analytics" className="underline font-medium hover:text-indigo-600">People Analytics</a>.
-            </p>
           </div>
         )}
 
@@ -1252,7 +1251,7 @@ export default function DashboardPage() {
             )}
             {employeeId && !isSubsidiaryView && <MyLeaveBalanceWidget balances={leaveBalances} />}
             {employeeId && !isSubsidiaryView && <MyLearningWidget assignments={myAssignments} />}
-            {isHROrAdmin && <PendingRequestsWidget requests={allPendingRequests} />}
+            {isHROrAdmin && !isSubsidiaryView && <PendingRequestsWidget requests={allPendingRequests} />}
           </div>
 
           <div className="space-y-6">

@@ -168,7 +168,7 @@ export default function MySanctionsPage() {
   const loadTeamSanctions = useCallback(async () => {
     setIsLoadingTeam(true);
     try {
-      const data = await apiFetch('/api/sanctions/?limit=200');
+      const data = await apiFetch('/api/sanctions/?limit=200&team_only=true');
       setTeamSanctions(data.items || []);
     } catch {
       setTeamSanctions([]);

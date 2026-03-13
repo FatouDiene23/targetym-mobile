@@ -161,8 +161,12 @@ export default function SanctionsTab() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetchWithAuth(`${API_URL}/api/sanctions/policy/upload`, {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${API_URL}/api/sanctions/policy/upload`, {
         method: 'POST',
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
         body: formData,
       });
       if (!res.ok) throw new Error('Upload failed');

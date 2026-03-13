@@ -26,7 +26,6 @@ import {
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { dashboardTips } from '@/config/pageTips';
-import GroupContextSwitcher from '@/components/GroupContextSwitcher';
 import { useGroupContext } from '@/hooks/useGroupContext';
 import { getSubsidiaryDashboardStats, type SubsidiaryDashboardStats } from '@/lib/api';
 
@@ -1182,9 +1181,6 @@ export default function DashboardPage() {
           pageTitle="Tableau de Bord"
         />
       )}
-      
-      {/* Sélecteur de filiale (visible uniquement si Admin/RH/DG d'un groupe) */}
-      {isHROrAdmin && <GroupContextSwitcher />}
 
       <div className="max-w-7xl mx-auto space-y-6">
         <WelcomeCard userName={name} role={role} />

@@ -23,7 +23,6 @@ import {
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { analyticsTips } from '@/config/pageTips';
-import GroupContextSwitcher from '@/components/GroupContextSwitcher';
 import { useGroupContext } from '@/hooks/useGroupContext';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.targetym.ai";
@@ -1582,8 +1581,6 @@ export default function PeopleAnalyticsPage() {
           pageTitle="People Analytics"
         />
       )}
-      {/* Sélecteur de filiale (visible uniquement si Admin/RH/DG d'un groupe) */}
-      <GroupContextSwitcher />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">People Analytics</h1>

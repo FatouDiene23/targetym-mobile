@@ -421,6 +421,8 @@ export default function SettingsPage() {
   const [newSubName, setNewSubName] = useState('');
   const [newSubSlug, setNewSubSlug] = useState('');
   const [newSubEmail, setNewSubEmail] = useState('');
+  const [newSubAdminEmail, setNewSubAdminEmail] = useState('');
+  const [newSubAdminPassword, setNewSubAdminPassword] = useState('');
   const [creatingSubsidiary, setCreatingSubsidiary] = useState(false);
 
   // États pour les intégrations
@@ -892,14 +894,30 @@ export default function SettingsPage() {
       toast.error('Le nom et l\'identifiant sont requis');
       return;
     }
+    if (!newSubAdminEmail.trim() || !newSubAdminPassword.trim()) {
+      toast.error('L\'email admin et le mot de passe admin sont requis');
+      return;
+    }
+    if (newSubAdminPassword.trim().length < 8) {
+      toast.error('Le mot de passe admin doit contenir au moins 8 caractères');
+      return;
+    }
     setCreatingSubsidiary(true);
     try {
-      await createMySubsidiary(newSubName.trim(), newSubSlug.trim(), newSubEmail.trim() || undefined);
-      toast.success(`Filiale "${newSubName}" créée avec succès !`);
+      const result = await createMySubsidiary(
+        newSubName.trim(),
+        newSubSlug.trim(),
+        newSubEmail.trim() || undefined,
+        newSubAdminEmail.trim(),
+        newSubAdminPassword,
+      );
+      toast.success(`Filiale "${newSubName}" créée avec succès. Admin: ${result.admin_email || newSubAdminEmail.trim()}`);
       setShowSubsidiaryModal(false);
       setNewSubName('');
       setNewSubSlug('');
       setNewSubEmail('');
+      setNewSubAdminEmail('');
+      setNewSubAdminPassword('');
       fetchGroupSubsidiaries();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Erreur lors de la création');
@@ -1298,6 +1316,27 @@ export default function SettingsPage() {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
                       </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email admin de la filiale <span className="text-red-500">*</span></label>
+                        <input
+                          type="email"
+                          value={newSubAdminEmail}
+                          onChange={e => setNewSubAdminEmail(e.target.value)}
+                          placeholder="Ex: admin.filiale@monentreprise.com"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe initial admin <span className="text-red-500">*</span></label>
+                        <input
+                          type="password"
+                          value={newSubAdminPassword}
+                          onChange={e => setNewSubAdminPassword(e.target.value)}
+                          placeholder="Minimum 8 caractères"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">L'admin de la filiale utilisera ces identifiants puis pourra changer son mot de passe.</p>
+                      </div>
                     </div>
                     <div className="flex gap-3 p-6 pt-0">
                       <button
@@ -1308,7 +1347,7 @@ export default function SettingsPage() {
                       </button>
                       <button
                         onClick={handleCreateSubsidiary}
-                        disabled={creatingSubsidiary || !newSubName.trim() || !newSubSlug.trim()}
+                        disabled={creatingSubsidiary || !newSubName.trim() || !newSubSlug.trim() || !newSubAdminEmail.trim() || !newSubAdminPassword.trim()}
                         className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
                       >
                         {creatingSubsidiary ? <Loader2 className="w-4 h-4 animate-spin" /> : null}

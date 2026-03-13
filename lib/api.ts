@@ -2138,10 +2138,22 @@ export async function getMyConversionRequestStatus(): Promise<ConversionRequestI
   return response.json();
 }
 
-export async function createMySubsidiary(name: string, slug: string, email?: string): Promise<{ success: boolean; message: string; subsidiary_id: number; subsidiary_slug: string }> {
+export async function createMySubsidiary(
+  name: string,
+  slug: string,
+  email?: string,
+  adminEmail?: string,
+  adminPassword?: string,
+): Promise<{ success: boolean; message: string; subsidiary_id: number; subsidiary_slug: string; admin_email?: string; admin_user_id?: number }> {
   const response = await fetchWithAuth(`${API_URL}/api/platform/groups/my-group/subsidiaries`, {
     method: 'POST',
-    body: JSON.stringify({ name, slug, email: email || undefined }),
+    body: JSON.stringify({
+      name,
+      slug,
+      email: email || undefined,
+      admin_email: adminEmail || undefined,
+      admin_password: adminPassword || undefined,
+    }),
   });
   if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
   return response.json();

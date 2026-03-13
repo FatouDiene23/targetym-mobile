@@ -1,5 +1,5 @@
 // Configuration API
-const API_URL = 'https://api.targetym.ai';
+export const API_URL = 'https://api.targetym.ai';
 
 // Helper pour obtenir le token
 function getToken(): string | null {
@@ -78,7 +78,7 @@ async function refreshAccessToken(): Promise<boolean> {
 }
 
 // Wrapper pour fetch avec gestion automatique du refresh token
-async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
   let response = await fetch(url, {
     ...options,
     headers: {

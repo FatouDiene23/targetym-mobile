@@ -5,18 +5,10 @@ import Header from '@/components/Header';
 import {
   AlertTriangle, Calendar, Loader2, Shield, FileText
 } from 'lucide-react';
+import { fetchWithAuth, API_URL } from '@/lib/api';
 
-const API_URL = 'https://api.targetym.ai';
-
-function getToken(): string | null {
-  return typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-}
-function getAuthHeaders(): Record<string, string> {
-  const token = getToken();
-  return { Authorization: token ? `Bearer ${token}` : '' };
-}
-async function apiFetch(url: string) {
-  const res = await fetch(`${API_URL}${url}`, { headers: getAuthHeaders() });
+async function apiFetch(path: string) {
+  const res = await fetchWithAuth(`${API_URL}${path}`, {});
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }

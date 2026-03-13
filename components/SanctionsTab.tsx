@@ -7,25 +7,13 @@ import {
 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import toast from 'react-hot-toast';
-import { getEmployees, type Employee } from '@/lib/api';
+import { getEmployees, fetchWithAuth, API_URL, type Employee } from '@/lib/api';
 
 // ============================================
 // CONFIG
 // ============================================
-const API_URL = 'https://api.targetym.ai';
-
-function getToken(): string | null {
-  return typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-}
-function getAuthHeaders(): Record<string, string> {
-  const token = getToken();
-  return { Authorization: token ? `Bearer ${token}` : '' };
-}
-async function apiFetch(url: string, options?: RequestInit) {
-  const res = await fetch(`${API_URL}${url}`, {
-    ...options,
-    headers: { ...getAuthHeaders(), ...(options?.headers || {}) },
-  });
+async function apiFetch(path: string, options?: RequestInit) {
+  const res = await fetchWithAuth(`${API_URL}${path}`, options || {});
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }

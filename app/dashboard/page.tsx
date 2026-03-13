@@ -21,9 +21,11 @@ import {
   getDepartments,
   getLeaveRequests,
   getSubsidiaryDashboardStats,
+  getGroupGlobalDashboardStats,
   type Employee,
   type EmployeeStats,
-  type SubsidiaryDashboardStats
+  type SubsidiaryDashboardStats,
+  type GroupGlobalDashboardStats
 } from '@/lib/api';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
@@ -964,12 +966,14 @@ export default function DashboardPage() {
   const [taskStats, setTaskStats] = useState<TaskStats | null>(null);
   const [subsidiaryStats, setSubsidiaryStats] = useState<SubsidiaryDashboardStats | null>(null);
   const [subsidiaryStatsLoading, setSubsidiaryStatsLoading] = useState(false);
+  const [groupGlobalStats, setGroupGlobalStats] = useState<GroupGlobalDashboardStats | null>(null);
+  const [groupGlobalStatsLoading, setGroupGlobalStatsLoading] = useState(false);
 
   // Page Tour - Suggestions contextuelles pour la première visite
   const { showTips, dismissTips, resetTips } = usePageTour('dashboard');
 
   // Contexte groupe : sélecteur de filiale
-  const { selectedTenantId, selectedSubsidiary } = useGroupContext();
+  const { context, selectedTenantId, selectedSubsidiary } = useGroupContext();
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -1116,6 +1120,16 @@ export default function DashboardPage() {
       .finally(() => setSubsidiaryStatsLoading(false));
   }, [selectedTenantId]);
 
+  // Fetch stats globales du groupe (toutes filiales agrégées)
+  useEffect(() => {
+    if (selectedTenantId || !context?.is_group) { setGroupGlobalStats(null); return; }
+    setGroupGlobalStatsLoading(true);
+    getGroupGlobalDashboardStats()
+      .then(setGroupGlobalStats)
+      .catch(() => setGroupGlobalStats(null))
+      .finally(() => setGroupGlobalStatsLoading(false));
+  }, [selectedTenantId, context?.is_group]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -1193,6 +1207,84 @@ export default function DashboardPage() {
 
       <div className="max-w-7xl mx-auto space-y-6">
         <WelcomeCard userName={name} role={role} />
+
+        {/* Panel Dashboard global du groupe — toutes filiales agrégées */}
+        {!isSubsidiaryView && context?.is_group && (
+          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center shadow">
+                  <Building2 className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-purple-900">Dashboard global du groupe</p>
+                  <p className="text-xs text-purple-500">Toutes les filiales — données consolidées</p>
+                </div>
+              </div>
+              {groupGlobalStats && (
+                <span className="text-xs font-medium text-purple-600 bg-purple-100 px-3 py-1 rounded-full">
+                  {groupGlobalStats.subsidiaries_count} filiale{groupGlobalStats.subsidiaries_count > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+            {groupGlobalStatsLoading ? (
+              <div className="flex items-center gap-2 text-purple-400 text-sm">
+                <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                Chargement des données consolidées...
+              </div>
+            ) : groupGlobalStats ? (
+              <>
+                {/* KPIs consolidés */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
+                  <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-purple-100">
+                    <p className="text-3xl font-bold text-purple-700">{groupGlobalStats.active_employees}</p>
+                    <p className="text-xs text-gray-500 mt-1 font-medium">Employés actifs</p>
+                  </div>
+                  <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-purple-100">
+                    <p className="text-3xl font-bold text-gray-900">{groupGlobalStats.total_employees}</p>
+                    <p className="text-xs text-gray-500 mt-1 font-medium">Total employés</p>
+                  </div>
+                  <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-orange-100">
+                    <p className="text-3xl font-bold text-orange-500">{groupGlobalStats.pending_leaves}</p>
+                    <p className="text-xs text-gray-500 mt-1 font-medium">Congés en attente</p>
+                  </div>
+                  <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-purple-100">
+                    <p className="text-3xl font-bold text-gray-900">{groupGlobalStats.departments_count}</p>
+                    <p className="text-xs text-gray-500 mt-1 font-medium">Départements</p>
+                  </div>
+                </div>
+                {/* Tableau par filiale */}
+                {groupGlobalStats.subsidiaries.length > 0 && (
+                  <div className="bg-white rounded-xl border border-purple-100 overflow-hidden">
+                    <div className="px-4 py-2 bg-purple-50 border-b border-purple-100">
+                      <p className="text-xs font-semibold text-purple-700 uppercase tracking-wide">Détail par filiale</p>
+                    </div>
+                    <div className="divide-y divide-gray-100">
+                      {groupGlobalStats.subsidiaries.map(sub => (
+                        <div key={sub.subsidiary_id} className="flex items-center gap-4 px-4 py-3">
+                          <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                            <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+                          </div>
+                          <p className="flex-1 text-sm font-medium text-gray-900 truncate">{sub.subsidiary_name}</p>
+                          <div className="flex items-center gap-4 text-xs text-gray-500">
+                            <span><span className="font-semibold text-gray-900">{sub.active_employees}</span> actifs</span>
+                            <span><span className="font-semibold text-gray-900">{sub.total_employees}</span> total</span>
+                            {sub.pending_leaves > 0 && (
+                              <span className="text-orange-500 font-semibold">{sub.pending_leaves} congé{sub.pending_leaves > 1 ? 's' : ''}</span>
+                            )}
+                            <span className={`px-2 py-0.5 rounded-full font-medium ${
+                              sub.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+                            }`}>{sub.is_active ? 'Active' : 'Inactive'}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
+        )}
 
         {/* Panel stats filiale sélectionnée */}
         {selectedSubsidiary && (

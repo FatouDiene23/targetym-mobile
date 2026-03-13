@@ -2166,6 +2166,31 @@ export async function getSubsidiaryDashboardStats(subsidiaryTenantId: number): P
   return response.json();
 }
 
+export interface GroupGlobalDashboardStats {
+  group_id: number;
+  group_name: string;
+  subsidiaries_count: number;
+  total_employees: number;
+  active_employees: number;
+  pending_leaves: number;
+  departments_count: number;
+  subsidiaries: {
+    subsidiary_id: number;
+    subsidiary_name: string;
+    total_employees: number;
+    active_employees: number;
+    pending_leaves: number;
+    departments_count: number;
+    is_active: boolean;
+  }[];
+}
+
+export async function getGroupGlobalDashboardStats(): Promise<GroupGlobalDashboardStats> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/groups/global-dashboard`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
 export interface ConversionRequestItem {
   id: number;
   tenant_id: number;

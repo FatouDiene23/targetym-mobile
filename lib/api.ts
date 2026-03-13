@@ -1622,12 +1622,19 @@ export interface TenantListItem {
   name: string;
   slug: string;
   email?: string;
+  phone?: string;
   plan: string;
   is_trial: boolean;
   is_active: boolean;
+  trial_starts_at?: string;
   trial_ends_at?: string;
+  activation_note?: string;
+  block_reason?: string;
   max_employees: number;
   created_at: string;
+  // Statut calculé côté backend
+  computed_status?: 'pending' | 'trial_active' | 'trial_expired' | 'subscribed' | 'blocked';
+  trial_days_remaining?: number;
   users_count: number;
   employees_count: number;
   // Groupe / Filiales
@@ -1699,6 +1706,7 @@ export async function getAllTenants(params?: {
   search?: string;
   plan?: string;
   is_active?: boolean;
+  status?: 'pending' | 'active' | 'expired' | 'subscribed' | 'all';
 }): Promise<TenantListItem[]> {
   const searchParams = new URLSearchParams();
   if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
@@ -1706,6 +1714,7 @@ export async function getAllTenants(params?: {
   if (params?.search) searchParams.append('search', params.search);
   if (params?.plan) searchParams.append('plan', params.plan);
   if (params?.is_active !== undefined) searchParams.append('is_active', params.is_active.toString());
+  if (params?.status) searchParams.append('status', params.status);
 
   const response = await fetchWithAuth(`${API_URL}/api/platform/tenants?${searchParams}`, {
     method: 'GET',
@@ -1716,6 +1725,44 @@ export async function getAllTenants(params?: {
     throw new Error(error);
   }
 
+  return response.json();
+}
+
+/**
+ * Active un tenant en attente (back-office SUPER_ADMIN)
+ */
+export async function activateTenant(
+  tenantId: number,
+  data: { activation_note?: string }
+): Promise<{ success: boolean; tenant_id: number; trial_ends_at: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/tenants/${tenantId}/activate`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+  return response.json();
+}
+
+/**
+ * Bloque un tenant avec motif (back-office SUPER_ADMIN)
+ */
+export async function blockTenant(
+  tenantId: number,
+  data: { reason: string }
+): Promise<{ success: boolean; tenant_id: number; reason: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/tenants/${tenantId}/block`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
   return response.json();
 }
 

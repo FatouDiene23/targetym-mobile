@@ -591,10 +591,11 @@ export default function PlatformAdminDashboard() {
               sub={`${stats.total_leave_requests_pending} demandes congé en attente`} />
           </div>
           {/* Quick links */}
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-4 gap-4">
             <QuickLink title="Gérer les utilisateurs" desc="CRUD complet, reset MDP, désactiver" icon={<Users className="w-5 h-5" />} href="/dashboard/platform-admin/users" />
             <QuickLink title="Audit trail" desc="Historique toutes les actions support" icon={<FileText className="w-5 h-5" />} onClick={() => setActiveTab('audit')} />
             <QuickLink title="Tenants" desc={`${stats.trial_tenants} en trial · ${stats.active_tenants} actifs`} icon={<Building2 className="w-5 h-5" />} onClick={() => setActiveTab('tenants')} />
+            <QuickLink title="Entreprises — Activation" desc="En attente, activer, bloquer" icon={<CheckCircle2 className="w-5 h-5" />} href="/dashboard/platform-admin/companies" />
           </div>
         </div>
       )}

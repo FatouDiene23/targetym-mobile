@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   AlertTriangle, Search, Plus, Loader2, X, Trash2, Calendar,
-  User, Filter, ChevronDown
+  User, Filter, Upload, FileCheck, Download
 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import toast from 'react-hot-toast';
@@ -84,6 +84,10 @@ export default function SanctionsTab() {
     notes: '',
   });
 
+  // Policy
+  const [policyInfo, setPolicyInfo] = useState<{ exists: boolean; file_name?: string; file_size?: number; uploaded_at?: string } | null>(null);
+  const [isUploadingPolicy, setIsUploadingPolicy] = useState(false);
+
   // Delete confirm
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -128,10 +132,92 @@ export default function SanctionsTab() {
     }
   }, []);
 
+  const loadPolicyInfo = useCallback(async () => {
+    try {
+      const data = await apiFetch('/api/sanctions/policy/info');
+      setPolicyInfo(data);
+    } catch {
+      setPolicyInfo(null);
+    }
+  }, []);
+
   useEffect(() => { loadEmployees(); }, [loadEmployees]);
   useEffect(() => { loadSanctions(); }, [loadSanctions]);
+  useEffect(() => { loadPolicyInfo(); }, [loadPolicyInfo]);
 
-  // ---- Handlers ----
+  // ---- Policy Handlers ----
+  const handleUploadPolicy = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      toast.error('Seuls les fichiers PDF sont acceptés');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Fichier trop volumineux (max 10 Mo)');
+      return;
+    }
+    setIsUploadingPolicy(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetchWithAuth(`${API_URL}/api/sanctions/policy/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      toast.success('Politique des sanctions mise à jour');
+      loadPolicyInfo();
+    } catch {
+      toast.error('Erreur lors de l\'upload');
+    } finally {
+      setIsUploadingPolicy(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDownloadPolicy = async () => {
+    try {
+      const data = await apiFetch('/api/sanctions/policy/download');
+      const byteChars = atob(data.file_data);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        byteNumbers[i] = byteChars.charCodeAt(i);
+      }
+      const blob = new Blob([new Uint8Array(byteNumbers)], { type: data.mime_type || 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = data.file_name || 'politique-sanctions.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Erreur lors du téléchargement');
+    }
+  };
+
+  const handleDeletePolicy = () => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Supprimer la politique',
+      message: 'Voulez-vous vraiment supprimer la politique des sanctions ? Les employés n\'y auront plus accès.',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          await apiFetch('/api/sanctions/policy/', { method: 'DELETE' });
+          toast.success('Politique supprimée');
+          loadPolicyInfo();
+        } catch {
+          toast.error('Erreur lors de la suppression');
+        }
+        setConfirmDialog(null);
+      },
+    });
+  };
+
+  // ---- Sanctions Handlers ----
   const handleAdd = async () => {
     if (!newSanction.employee_id || !newSanction.reason.trim()) {
       toast.error('Veuillez sélectionner un employé et saisir un motif');
@@ -225,6 +311,49 @@ export default function SanctionsTab() {
               <p className="text-2xl font-bold text-red-600">{stats.graves}</p>
               <p className="text-xs text-gray-500">Sanctions graves</p>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Policy Management */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-50 rounded-lg">
+              <FileCheck className="w-5 h-5 text-indigo-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">Politique des sanctions</p>
+              {policyInfo?.exists ? (
+                <p className="text-xs text-gray-500 mt-0.5">{policyInfo.file_name}</p>
+              ) : (
+                <p className="text-xs text-gray-400 mt-0.5">Aucun document. Uploadez un PDF visible par tous les employés.</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {policyInfo?.exists && (
+              <>
+                <button
+                  onClick={handleDownloadPolicy}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Voir
+                </button>
+                <button
+                  onClick={handleDeletePolicy}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </>
+            )}
+            <label className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer">
+              {isUploadingPolicy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              {policyInfo?.exists ? 'Remplacer' : 'Uploader PDF'}
+              <input type="file" accept=".pdf" onChange={handleUploadPolicy} className="hidden" />
+            </label>
           </div>
         </div>
       </div>

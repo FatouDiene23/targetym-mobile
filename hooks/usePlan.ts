@@ -91,10 +91,10 @@ const PLAN_EMPLOYEE_LIMITS: Record<string, number> = {
 };
 
 // Plan pricing (FCFA / month)
-export const PLAN_PRICING: Record<string, { price: number; label: string }> = {
-  basique: { price: 0, label: 'Gratuit' },
-  premium: { price: 150_000, label: '150 000 FCFA/mois' },
-  entreprise: { price: 350_000, label: '350 000 FCFA/mois' },
+export const PLAN_PRICING: Record<string, { price: number; label: string; employees: string }> = {
+  basique: { price: 297_000, label: '297 000 FCFA/mois', employees: 'Jusqu\'à 25 employés inclus' },
+  premium: { price: 597_000, label: '597 000 FCFA/mois', employees: 'Jusqu\'à 50 employés inclus' },
+  entreprise: { price: 1_000_000, label: '12 000 000 FCFA/an', employees: 'Jusqu\'à 100 employés inclus' },
 };
 
 // ============================================

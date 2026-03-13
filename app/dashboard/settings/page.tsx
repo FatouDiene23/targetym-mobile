@@ -1532,7 +1532,7 @@ export default function SettingsPage() {
                       <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Plan</p>
                       <p className="text-lg font-bold text-gray-900">{isTrial ? `Essai (${planLabel})` : planLabel}</p>
                       <p className="text-sm text-gray-500 mt-1">
-                        {PLAN_PRICING[plan]?.label || (isTrial ? 'Gratuit pendant 30 jours' : '—')}
+                        {isTrial ? 'Essai gratuit 30 jours (accès Premium)' : (PLAN_PRICING[plan]?.label || '—')}
                       </p>
                     </div>
 
@@ -1594,7 +1594,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
                   <p className="text-xs text-gray-400 mt-4">
-                    Employé supplémentaire : 12 500 FCFA/mois (Basique &amp; Premium) — 5 000 FCFA/mois (Entreprise).
+                    Employé supplémentaire : +12 500 FCFA/mois (Basique &amp; Premium) — +5 000 FCFA/mois (Entreprise).
                   </p>
                 </div>
 
@@ -1680,6 +1680,9 @@ export default function SettingsPage() {
                               )}
                               <p className="font-bold text-gray-900">{PLAN_LABELS[p]}</p>
                               <p className="text-sm text-gray-500 mt-0.5">{pricing?.label || '—'}</p>
+                              {pricing?.employees && (
+                                <p className="text-[11px] text-gray-400 mt-0.5">{pricing.employees}</p>
+                              )}
                             </button>
                           );
                         })}

@@ -59,7 +59,9 @@ export function UpgradeModal({ open, onClose, feature, currentPlan }: UpgradeMod
     {
       key: 'basique',
       label: 'Basique',
-      price: 'Gratuit',
+      price: '297 000 FCFA/mois',
+      employees: 'Jusqu\'à 25 employés inclus',
+      extraEmployee: '+12 500 FCFA/employé/mois',
       features: [
         'Recrutement',
         'Onboarding',
@@ -67,13 +69,14 @@ export function UpgradeModal({ open, onClose, feature, currentPlan }: UpgradeMod
         'Congés & Missions',
         'Sanctions',
         'Chatbot conversationnel',
-        '25 employés inclus',
       ],
     },
     {
       key: 'premium',
       label: 'Premium',
-      price: '150 000 FCFA/mois',
+      price: '597 000 FCFA/mois',
+      employees: 'Jusqu\'à 50 employés inclus',
+      extraEmployee: '+12 500 FCFA/employé/mois',
       popular: true,
       features: [
         'Tout le plan Basique',
@@ -85,13 +88,15 @@ export function UpgradeModal({ open, onClose, feature, currentPlan }: UpgradeMod
         'Documents & Certificats',
         'Tâches & Départs',
         'Chatbot agent IA',
-        '50 employés inclus',
       ],
     },
     {
       key: 'entreprise',
       label: 'Entreprise',
-      price: '350 000 FCFA/mois',
+      price: '12 000 000 FCFA/an',
+      priceSubtext: 'soit 1 000 000 FCFA/mois',
+      employees: 'Jusqu\'à 100 employés inclus',
+      extraEmployee: '+5 000 FCFA/employé/mois',
       features: [
         'Tout le plan Premium',
         'Support H24',
@@ -101,7 +106,6 @@ export function UpgradeModal({ open, onClose, feature, currentPlan }: UpgradeMod
         'Certifications RH',
         'Data Insights',
         'Mode Groupe (filiales)',
-        '100 employés inclus',
       ],
     },
   ];
@@ -161,6 +165,11 @@ export function UpgradeModal({ open, onClose, feature, currentPlan }: UpgradeMod
                   <p className="text-2xl font-bold text-gray-900 mt-1">
                     {plan.price}
                   </p>
+                  {'priceSubtext' in plan && plan.priceSubtext && (
+                    <p className="text-xs text-gray-500 mt-0.5">{plan.priceSubtext}</p>
+                  )}
+                  <p className="text-xs text-primary-600 font-medium mt-1">{plan.employees}</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">{plan.extraEmployee}</p>
                 </div>
 
                 <ul className="space-y-2 mb-6">
@@ -193,7 +202,6 @@ export function UpgradeModal({ open, onClose, feature, currentPlan }: UpgradeMod
         {/* Extra employee pricing note */}
         <div className="px-6 pb-6">
           <p className="text-xs text-gray-400 text-center">
-            Employé supplémentaire : 12 500 FCFA/mois (Basique &amp; Premium) — 5 000 FCFA/mois (Entreprise).
             Contactez-nous pour un devis personnalisé.
           </p>
         </div>

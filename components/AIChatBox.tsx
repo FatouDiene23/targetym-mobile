@@ -369,7 +369,7 @@ export default function AIChatBox() {
               </div>
               <div>
                 <h3 className="font-semibold text-base leading-tight">
-                  {agentMode ? `Agent IA — ${agentContext || 'Général'}` : 'Assistant Targetym'}
+                  {agentMode ? 'Targetym Assistant' : 'Assistant Targetym'}
                 </h3>
                 {agentMode && (
                   <p className="text-[11px] text-white/70">Génération · Prévisualisation · Insertion</p>
@@ -575,12 +575,12 @@ export default function AIChatBox() {
           {!agentMode && (
             <div className="px-4 py-2 bg-gray-100 border-t border-gray-200 flex items-center gap-2 text-xs">
               <span className="text-gray-600">Besoin d'un agent ?</span>
-              <a href="mailto:support@targetym.com" className="flex items-center gap-1 text-blue-600 hover:text-blue-700 font-medium">
+              <a href="mailto:support@agiltym.com" className="flex items-center gap-1 text-blue-600 hover:text-blue-700 font-medium">
                 <Mail size={14} />Email
               </a>
               <span className="text-gray-300">|</span>
               <a
-                href="https://wa.me/33XXXXXXXXX"
+                href="https://wa.me/221787100606"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 text-green-600 hover:text-green-700 font-medium"

@@ -27,7 +27,6 @@ import {
   MessageSquare,
   Star,
   UserCheck,
-  Lock,
   Briefcase,
   FileText,
   Plane,
@@ -45,8 +44,10 @@ import {
   Lightbulb,
   UserMinus,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
+import { usePlan, FEATURE_OKR, FEATURE_CAREERS, FEATURE_LEARNING, FEATURE_PERFORMANCE, FEATURE_ANALYTICS, FEATURE_DEPARTURES, FEATURE_CERTIFICATES, getRequiredPlanLabel } from '@/hooks/usePlan';
+import { PlanBadge } from '@/components/PlanGate';
 
 // ============================================
 // TYPES
@@ -252,6 +253,17 @@ function hasAccess(item: { roles: UserRole[] }, userRole: UserRole, isManager?: 
 // SIDEBAR INNER (needs useSearchParams inside Suspense)
 // ============================================
 
+// Route → feature mapping for plan gating
+const ROUTE_FEATURE_MAP: Record<string, string> = {
+  '/dashboard/okr': FEATURE_OKR,
+  '/dashboard/talents': FEATURE_CAREERS,
+  '/dashboard/learning': FEATURE_LEARNING,
+  '/dashboard/performance': FEATURE_PERFORMANCE,
+  '/dashboard/analytics': FEATURE_ANALYTICS,
+  '/dashboard/departures': FEATURE_DEPARTURES,
+  '/dashboard/certificates': FEATURE_CERTIFICATES,
+};
+
 function SidebarInner() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
@@ -262,7 +274,10 @@ function SidebarInner() {
   const [inTalents, setInTalents] = useState(false);
   const [isManager, setIsManager] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  
+
+  // Plan gating
+  const { hasFeature } = usePlan();
+
   // Help menu hook for tour and tips
   const { onRestartTour, onRestartPageTips } = useHelpMenu();
 
@@ -297,7 +312,24 @@ function SidebarInner() {
     window.location.href = 'https://targetym-website.vercel.app/login';
   };
 
-  const filteredNavigation = navigation.filter(item => hasAccess(item, userRole, isManager));
+  // Apply plan gating: add disabled + disabledReason based on feature access
+  const applyPlanGating = useMemo(() => {
+    return (items: NavItem[]): NavItem[] =>
+      items.map(item => {
+        const feature = ROUTE_FEATURE_MAP[item.href];
+        if (feature && !hasFeature(feature)) {
+          const requiredLabel = getRequiredPlanLabel(feature);
+          return {
+            ...item,
+            disabled: true,
+            disabledReason: `Nécessite le plan ${requiredLabel}`,
+          };
+        }
+        return item;
+      });
+  }, [hasFeature]);
+
+  const filteredNavigation = applyPlanGating(navigation.filter(item => hasAccess(item, userRole, isManager)));
   const filteredMySpaceNav = mySpaceNavigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredPerformanceNav = performanceNavigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredLearningNav = learningNavigation.filter(item => hasAccess(item, userRole, isManager));
@@ -307,16 +339,18 @@ function SidebarInner() {
     const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
     
     if (item.disabled) {
+      const feature = ROUTE_FEATURE_MAP[item.href];
+      const requiredPlan = feature ? (getRequiredPlanLabel(feature) === 'Entreprise' ? 'entreprise' : 'premium') : 'premium';
       return (
-        <div 
-          className={`flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'} rounded-lg cursor-not-allowed opacity-50 group relative`} 
+        <div
+          className={`flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'} rounded-lg cursor-not-allowed opacity-50 group relative`}
           title={item.disabledReason || 'Non disponible'}
         >
           <item.icon className={`w-5 h-5 text-gray-500 ${isCollapsed ? '' : 'mr-3'}`} />
           {!isCollapsed && (
             <>
-              <span className="text-sm font-medium text-gray-500 flex-1">{item.name}</span>
-              <Lock className="w-3.5 h-3.5 text-gray-600" />
+              <span className="text-sm font-medium text-gray-500 flex-1 truncate">{item.name}</span>
+              <PlanBadge requiredPlan={requiredPlan} size="xs" />
             </>
           )}
           {showTooltip && (

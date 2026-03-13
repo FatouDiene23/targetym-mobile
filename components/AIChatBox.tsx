@@ -66,8 +66,9 @@ export default function AIChatBox() {
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState('');
 
-  // Rôle de l'utilisateur connecte (lu depuis localStorage)
+  // Rôle et nom de l'utilisateur connecte (lu depuis localStorage)
   const [userRole, setUserRole] = useState<string>('employee');
+  const [userName, setUserName] = useState<string>('');
 
   // Mode agent — uniquement si le rôle le permet pour cette page
   const [agentMode, setAgentMode] = useState(false);
@@ -91,16 +92,33 @@ export default function AIChatBox() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Lire le rôle depuis localStorage au montage
+  // Lire le rôle et le nom depuis localStorage au montage
   useEffect(() => {
     try {
       const stored = localStorage.getItem('user');
       if (stored) {
         const u = JSON.parse(stored);
         setUserRole(u.role || 'employee');
+        const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.name || u.email || '';
+        setUserName(fullName);
       }
     } catch {}
   }, []);
+
+  // Construire le message WhatsApp selon le rôle
+  const getWhatsAppLink = () => {
+    const roleLabels: Record<string, string> = {
+      rh: 'Responsable RH',
+      admin: 'Administrateur',
+      dg: 'Direction Générale',
+      manager: 'Manager',
+      employee: 'Employé',
+    };
+    const roleLabel = roleLabels[userRole] || 'Utilisateur';
+    const nameText = userName ? ` ${userName}` : '';
+    const msg = `Bonjour, je suis${nameText} (${roleLabel}) sur la plateforme Targetym. J'ai besoin d'assistance.`;
+    return `https://wa.me/221787100606?text=${encodeURIComponent(msg)}`;
+  };
 
   // Activer agent mode si le rôle le permet (disponible sur toutes les pages)
   useEffect(() => {
@@ -369,7 +387,7 @@ export default function AIChatBox() {
               </div>
               <div>
                 <h3 className="font-semibold text-base leading-tight">
-                  {agentMode ? 'Targetym Assistant' : 'Assistant Targetym'}
+                  {agentMode ? 'Targetym AI' : 'Targetym AI'}
                 </h3>
                 {agentMode && (
                   <p className="text-[11px] text-white/70">Génération · Prévisualisation · Insertion</p>
@@ -580,7 +598,7 @@ export default function AIChatBox() {
               </a>
               <span className="text-gray-300">|</span>
               <a
-                href="https://wa.me/221787100606"
+                href={getWhatsAppLink()}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 text-green-600 hover:text-green-700 font-medium"

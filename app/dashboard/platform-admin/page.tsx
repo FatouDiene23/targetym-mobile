@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Building2, Users, UserCheck, Activity, Shield, AlertCircle, CheckCircle2,
   Search, Edit2, Eye, LogIn, Clock, ChevronRight, X, Save, RotateCcw,
@@ -35,6 +36,8 @@ const ACTION_COLORS: Record<string, string> = {
 
 export default function PlatformAdminDashboard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const deepLinkHandled = useRef(false);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [tenants, setTenants] = useState<TenantListItem[]>([]);
@@ -133,6 +136,16 @@ export default function PlatformAdminDashboard() {
       setLoading(false);
     }
   };
+
+  // Deep-link: si l'URL contient ?tenantId=X, ouvrir le modal de détail une fois les données chargées
+  useEffect(() => {
+    const tenantIdParam = searchParams.get('tenantId');
+    if (!tenantIdParam || loading || deepLinkHandled.current) return;
+    deepLinkHandled.current = true;
+    openTenantDetail(parseInt(tenantIdParam, 10));
+    setActiveTab('tenants'); // basculer sur l'onglet Tenants pour context
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, searchParams]);
 
   const loadAuditLogs = useCallback(async (action?: string) => {
     try {

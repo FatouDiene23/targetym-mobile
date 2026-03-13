@@ -266,9 +266,9 @@ export default function CompaniesPage() {
                     <td className="px-4 py-4 text-center text-gray-600">{t.employees_count}</td>
                     <td className="px-4 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        {/* Voir détails → page platform-admin principale */}
+                        {/* Voir détails → ouvre le modal de détail dans platform-admin */}
                         <Link
-                          href="/dashboard/platform-admin"
+                          href={`/dashboard/platform-admin?tenantId=${t.id}`}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
                         >
                           <Eye size={13} />

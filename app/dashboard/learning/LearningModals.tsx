@@ -170,6 +170,22 @@ export function LearningModals() {
                 <div className="flex items-center gap-2"><input type="checkbox" id="mandatory" checked={newCourse.is_mandatory} onChange={(e) => setNewCourse({ ...newCourse, is_mandatory: e.target.checked })} className="rounded" /><label htmlFor="mandatory" className="text-sm text-gray-700">Formation obligatoire</label></div>
                 <div className="flex items-center gap-2"><input type="checkbox" id="requires_certificate" checked={newCourse.requires_certificate} onChange={(e) => setNewCourse({ ...newCourse, requires_certificate: e.target.checked })} className="rounded" /><label htmlFor="requires_certificate" className="text-sm text-gray-700 flex items-center gap-1"><FileWarning className="w-4 h-4 text-purple-600" />Certificat requis pour validation</label></div>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Compétences développées</label>
+                {skills.length === 0 ? (
+                  <p className="text-xs text-gray-400 py-2">Aucune compétence disponible</p>
+                ) : (
+                  <div className="space-y-1 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2">
+                    {skills.map((skill) => (
+                      <label key={skill.id} className="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded cursor-pointer">
+                        <input type="checkbox" checked={(newCourse.skill_ids as number[]).includes(skill.id)} onChange={(e) => { const ids = newCourse.skill_ids as number[]; setNewCourse({ ...newCourse, skill_ids: e.target.checked ? [...ids, skill.id] : ids.filter((id) => id !== skill.id) }); }} className="rounded text-primary-600" />
+                        <span className="text-sm text-gray-700">{skill.name}</span>
+                        <span className="text-xs text-gray-400 ml-auto">{skill.category}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="p-6 border-t border-gray-200 flex gap-3">
               <button onClick={() => setShowCreateCourse(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
@@ -280,6 +296,22 @@ export function LearningModals() {
                   <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2">{skills.map((skill) => (<label key={skill.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded"><input type="checkbox" checked={newPlan.skill_ids.includes(skill.id)} onChange={(e) => { if (e.target.checked) { setNewPlan({ ...newPlan, skill_ids: [...newPlan.skill_ids, skill.id] }); } else { setNewPlan({ ...newPlan, skill_ids: newPlan.skill_ids.filter((id: number) => id !== skill.id) }); } }} className="rounded" /><span className="text-sm text-gray-700">{skill.name}</span><span className="text-xs text-gray-400">({skill.category})</span></label>))}</div>
                 )}
               </div>
+              {newPlan.skill_ids.length > 0 && (() => {
+                const recommended = courses.filter(c => c.skills?.some(s => newPlan.skill_ids.includes(s.id)) && !newPlan.course_ids.includes(c.id));
+                return recommended.length > 0 ? (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-xs font-medium text-blue-700 mb-2">✨ Formations recommandées pour les compétences sélectionnées</p>
+                    <div className="space-y-1">
+                      {recommended.map((course) => (
+                        <div key={course.id} className="flex items-center justify-between gap-2">
+                          <span className="text-sm text-gray-700">{course.image_emoji} {course.title}</span>
+                          <button onClick={() => setNewPlan({ ...newPlan, course_ids: [...newPlan.course_ids, course.id] })} className="text-xs px-2 py-0.5 bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap">+ Ajouter</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Formations à assigner</label>
                 <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2">{courses.map((course) => (<label key={course.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded"><input type="checkbox" checked={newPlan.course_ids.includes(course.id)} onChange={(e) => { if (e.target.checked) { setNewPlan({ ...newPlan, course_ids: [...newPlan.course_ids, course.id] }); } else { setNewPlan({ ...newPlan, course_ids: newPlan.course_ids.filter((id: number) => id !== course.id) }); } }} className="rounded" /><span className="text-sm text-gray-700">{course.title}</span></label>))}</div>
@@ -307,6 +339,22 @@ export function LearningModals() {
                 <div className="flex items-center justify-between mb-2"><label className="block text-sm font-medium text-gray-700">Compétences</label><div className="flex items-center gap-2"><span className="text-xs text-gray-500">{editPlanData.skill_ids.length} sélectionnée(s)</span><button onClick={() => setShowCreateSkill(true)} className="text-xs text-primary-600 hover:text-primary-700 flex items-center"><Plus className="w-3 h-3 mr-1" />Ajouter</button></div></div>
                 {skills.length === 0 ? (<div className="text-center py-4 bg-gray-50 rounded-lg"><p className="text-sm text-gray-500">Aucune compétence</p><button onClick={() => setShowCreateSkill(true)} className="text-xs text-primary-600 hover:text-primary-700 mt-1">Créer une compétence</button></div>) : (<div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2">{skills.map((skill) => (<label key={skill.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" checked={editPlanData.skill_ids.includes(skill.id)} onChange={(e) => { if (e.target.checked) { setEditPlanData({ ...editPlanData, skill_ids: [...editPlanData.skill_ids, skill.id] }); } else { setEditPlanData({ ...editPlanData, skill_ids: editPlanData.skill_ids.filter((id: number) => id !== skill.id) }); } }} className="rounded text-primary-600" /><span className="text-sm text-gray-700">{skill.name}</span><span className="text-xs text-gray-400 ml-auto">({skill.category})</span></label>))}</div>)}
               </div>
+              {editPlanData.skill_ids.length > 0 && (() => {
+                const recommended = courses.filter(c => c.skills?.some(s => editPlanData.skill_ids.includes(s.id)) && !editPlanData.course_ids.includes(c.id));
+                return recommended.length > 0 ? (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-xs font-medium text-blue-700 mb-2">✨ Formations recommandées pour les compétences sélectionnées</p>
+                    <div className="space-y-1">
+                      {recommended.map((course) => (
+                        <div key={course.id} className="flex items-center justify-between gap-2">
+                          <span className="text-sm text-gray-700">{course.image_emoji} {course.title}</span>
+                          <button onClick={() => setEditPlanData({ ...editPlanData, course_ids: [...editPlanData.course_ids, course.id] })} className="text-xs px-2 py-0.5 bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap">+ Ajouter</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
               <div>
                 <div className="flex items-center justify-between mb-2"><label className="block text-sm font-medium text-gray-700">Formations</label><span className="text-xs text-gray-500">{editPlanData.course_ids.length} sélectionnée(s)</span></div>
                 <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2">{courses.map((course) => (<label key={course.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" checked={editPlanData.course_ids.includes(course.id)} onChange={(e) => { if (e.target.checked) { setEditPlanData({ ...editPlanData, course_ids: [...editPlanData.course_ids, course.id] }); } else { setEditPlanData({ ...editPlanData, course_ids: editPlanData.course_ids.filter((id: number) => id !== course.id) }); } }} className="rounded text-primary-600" /><span className="text-2xl">{course.image_emoji || '📚'}</span><span className="text-sm text-gray-700 flex-1">{course.title}</span><span className="text-xs text-gray-400">{course.duration_hours}h</span></label>))}</div>

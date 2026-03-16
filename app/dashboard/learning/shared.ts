@@ -25,6 +25,7 @@ export interface Course {
   enrolled: number;
   completed: number;
   completion_rate: number;
+  skills: { id: number; name: string; category: string }[];
 }
 
 export interface LearningPath {

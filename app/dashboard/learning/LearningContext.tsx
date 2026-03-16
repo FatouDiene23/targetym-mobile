@@ -262,7 +262,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   const [newCourse, setNewCourse] = useState({
     title: '', description: '', category: 'Technique', provider: '',
     external_url: '', duration_hours: '', level: 'beginner', image_emoji: '📚',
-    is_mandatory: false, requires_certificate: false
+    is_mandatory: false, requires_certificate: false, skill_ids: [] as number[]
   });
   const [assignData, setAssignData] = useState({ employee_id: '', course_id: '', deadline: '' });
   const [validationData, setValidationData] = useState({ approved: true, rejection_reason: '' });
@@ -528,7 +528,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       });
       if (response.ok) {
         setShowCreateCourse(false);
-        setNewCourse({ title: '', description: '', category: 'Technique', provider: '', external_url: '', duration_hours: '', level: 'beginner', image_emoji: '📚', is_mandatory: false, requires_certificate: false });
+        setNewCourse({ title: '', description: '', category: 'Technique', provider: '', external_url: '', duration_hours: '', level: 'beginner', image_emoji: '📚', is_mandatory: false, requires_certificate: false, skill_ids: [] });
         fetchCourses();
       }
     } catch (error) { console.error('Error creating course:', error); }

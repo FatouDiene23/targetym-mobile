@@ -113,6 +113,14 @@ export default function CatalogPage() {
                 </div>
                 <h4 className="font-semibold text-gray-900 mb-1 line-clamp-2">{course.title}</h4>
                 <p className="text-xs text-gray-500 mb-3">{course.provider || 'Interne'}</p>
+                {course.skills && course.skills.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {course.skills.slice(0, 3).map((skill) => (
+                      <span key={skill.id} className="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 text-xs rounded">{skill.name}</span>
+                    ))}
+                    {course.skills.length > 3 && <span className="text-xs text-gray-400">+{course.skills.length - 3}</span>}
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center text-sm"><Users className="w-4 h-4 text-gray-400 mr-1" /><span className="text-gray-600">{course.enrolled}</span></div>
                   <div className="flex items-center gap-2">

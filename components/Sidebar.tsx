@@ -320,7 +320,7 @@ function SidebarInner() {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
-    window.location.href = 'https://dashboard.targetym.ai/login';
+    window.location.href = 'https://www.targetym.ai/login';
   };
 
   // Apply plan gating: add disabled + disabledReason based on feature access

@@ -555,12 +555,12 @@ function TeamOverviewWidget({ teamMembers, pendingRequests }: { teamMembers: Tea
 // HR Stats Widget
 function HRStatsWidget({ stats }: { stats: HRStats }) {
   const statItems = [
-    { label: 'Total employés', value: stats.total_employees, icon: Users, color: 'from-blue-400 to-blue-600', bg: 'bg-blue-50', href: '/dashboard/employees' },
-    { label: 'Actifs', value: stats.active_employees, icon: UserCheck, color: 'from-green-400 to-green-600', bg: 'bg-green-50', href: '/dashboard/employees?filter=active' },
-    { label: 'En congé', value: stats.on_leave_today, icon: Calendar, color: 'from-orange-400 to-orange-600', bg: 'bg-orange-50', href: '/dashboard/leaves' },
-    { label: 'Demandes en attente', value: stats.pending_requests, icon: Clock, color: 'from-yellow-400 to-yellow-600', bg: 'bg-yellow-50', href: '/dashboard/leaves?status=pending' },
-    { label: 'Nouveaux ce mois', value: stats.new_hires_this_month, icon: UserPlus, color: 'from-purple-400 to-purple-600', bg: 'bg-purple-50', href: '/dashboard/employees?filter=new_this_month' },
-    { label: 'Départements', value: stats.departments_count, icon: Briefcase, color: 'from-indigo-400 to-indigo-600', bg: 'bg-indigo-50', href: '/dashboard/employees?tab=departments' },
+    { label: 'Total employés', value: stats.total_employees, icon: Users, color: 'from-blue-400 to-blue-600', bg: 'bg-blue-50', href: '/dashboard/employees', badge: 0 },
+    { label: 'Actifs', value: stats.active_employees, icon: UserCheck, color: 'from-green-400 to-green-600', bg: 'bg-green-50', href: '/dashboard/employees?filter=active', badge: stats.new_hires_this_month },
+    { label: 'En congé', value: stats.on_leave_today, icon: Calendar, color: 'from-orange-400 to-orange-600', bg: 'bg-orange-50', href: '/dashboard/leaves', badge: 0 },
+    { label: 'Demandes en attente', value: stats.pending_requests, icon: Clock, color: 'from-yellow-400 to-yellow-600', bg: 'bg-yellow-50', href: '/dashboard/leaves?status=pending', badge: 0 },
+    { label: 'Nouveaux ce mois', value: stats.new_hires_this_month, icon: UserPlus, color: 'from-purple-400 to-purple-600', bg: 'bg-purple-50', href: '/dashboard/employees?filter=new_this_month', badge: 0 },
+    { label: 'Départements', value: stats.departments_count, icon: Briefcase, color: 'from-indigo-400 to-indigo-600', bg: 'bg-indigo-50', href: '/dashboard/employees?tab=departments', badge: 0 },
   ];
 
   return (
@@ -571,7 +571,10 @@ function HRStatsWidget({ stats }: { stats: HRStats }) {
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {statItems.map((item, i) => (
-          <Link key={i} href={item.href} className={`${item.bg} rounded-xl p-4 hover:scale-[1.02] hover:shadow-md transition-all cursor-pointer block`}>
+          <Link key={i} href={item.href} className={`relative ${item.bg} rounded-xl p-4 hover:scale-[1.02] hover:shadow-md transition-all cursor-pointer block`}>
+            {item.badge > 0 && (
+              <span className="absolute top-2 right-2 min-w-[20px] h-5 bg-emerald-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1.5 shadow-sm">+{item.badge}</span>
+            )}
             <div className={`w-10 h-10 bg-gradient-to-br ${item.color} rounded-lg flex items-center justify-center mb-2 shadow-sm`}><item.icon className="w-5 h-5 text-white" /></div>
             <p className="text-2xl font-bold text-gray-900">{item.value}</p>
             <p className="text-xs text-gray-600">{item.label}</p>

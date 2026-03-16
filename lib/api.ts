@@ -2447,8 +2447,116 @@ export async function executeAgentAction(data: ExecuteActionRequest): Promise<Ex
   return response.json();
 }
 
-/**
- * Extrait le texte d'un fichier PDF pour le fournir au chat agentique.
+// ─── Billing / Facturation ─────────────────────────────────────────────────────
+
+export interface InvoiceItem {
+  id: number;
+  tenant_id: number;
+  amount: number;
+  currency: string;
+  description?: string;
+  status: 'pending' | 'paid' | 'cancelled';
+  payment_provider: string;
+  payment_ref?: string;
+  invoice_date: string;
+  due_date?: string;
+  pdf_url?: string;
+  created_by_email?: string;
+  created_at: string;
+}
+
+export interface CurrentPlan {
+  tenant_id: number;
+  tenant_name: string;
+  plan: string;
+  is_trial: boolean;
+  is_active: boolean;
+  trial_ends_at?: string;
+  trial_days_remaining: number;
+  max_employees: number;
+  current_employees: number;
+  currency: string;
+}
+
+export async function getMyInvoices(): Promise<InvoiceItem[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/invoices`);
+  if (!response.ok) throw new Error(await parseApiError(response));
+  return response.json();
+}
+
+export async function getCurrentPlan(): Promise<CurrentPlan> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/current-plan`);
+  if (!response.ok) throw new Error(await parseApiError(response));
+  return response.json();
+}
+
+export async function requestUpgrade(data: { desired_plan: string; message?: string }): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/upgrade-request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error(await parseApiError(response));
+  return response.json();
+}
+
+// Admin billing
+export async function adminGetInvoices(tenantId: number): Promise<InvoiceItem[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/admin/invoices/${tenantId}`);
+  if (!response.ok) throw new Error(await parseApiError(response));
+  return response.json();
+}
+
+export async function adminCreateInvoice(tenantId: number, data: {
+  amount: number;
+  currency?: string;
+  description?: string;
+  due_date?: string;
+  pdf_url?: string;
+}): Promise<InvoiceItem> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/admin/invoices/${tenantId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error(await parseApiError(response));
+  return response.json();
+}
+
+export async function adminPayInvoice(invoiceId: number, payment_ref?: string): Promise<InvoiceItem> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/admin/invoices/${invoiceId}/pay`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ payment_ref }),
+  });
+  if (!response.ok) throw new Error(await parseApiError(response));
+  return response.json();
+}
+
+export async function adminCancelInvoice(invoiceId: number): Promise<InvoiceItem> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/admin/invoices/${invoiceId}/cancel`, {
+    method: 'PATCH',
+  });
+  if (!response.ok) throw new Error(await parseApiError(response));
+  return response.json();
+}
+
+export async function adminChangePlan(tenantId: number, data: {
+  plan: string;
+  max_employees?: number;
+  is_trial?: boolean;
+  trial_ends_at?: string;
+  note?: string;
+}): Promise<{ message: string; tenant_id: number; plan: string; max_employees: number }> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/admin/tenants/${tenantId}/plan`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error(await parseApiError(response));
+  return response.json();
+}
+
  */
 export async function extractPdfText(file: File): Promise<{ text: string; pages: number; filename?: string; warning?: string }> {
   const formData = new FormData();

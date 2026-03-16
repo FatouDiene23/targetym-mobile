@@ -43,6 +43,8 @@ import {
   RotateCcw,
   Lightbulb,
   UserMinus,
+  Receipt,
+  Building2,
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
@@ -732,6 +734,30 @@ function SidebarInner() {
           >
             <Settings className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
             {!collapsed && <span className="text-sm font-medium">Centre d'Aide</span>}
+          </Link>
+          <Link 
+            href="/dashboard/platform-admin/companies" 
+            className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+              pathname.startsWith('/dashboard/platform-admin/companies')
+                ? 'bg-primary-500 text-white' 
+                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+            }`} 
+            title={collapsed ? 'Entreprises' : undefined}
+          >
+            <Building2 className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
+            {!collapsed && <span className="text-sm font-medium">Entreprises</span>}
+          </Link>
+          <Link 
+            href="/dashboard/platform-admin/billing" 
+            className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+              pathname.startsWith('/dashboard/platform-admin/billing')
+                ? 'bg-primary-500 text-white' 
+                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+            }`} 
+            title={collapsed ? 'Facturation' : undefined}
+          >
+            <Receipt className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
+            {!collapsed && <span className="text-sm font-medium">Facturation</span>}
           </Link>
         </nav>
 

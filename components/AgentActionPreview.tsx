@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle, XCircle, Loader2, ChevronDown, ChevronUp, Briefcase, Target, BookOpen, Users } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, ChevronDown, ChevronUp, Briefcase, Target, BookOpen, Users, UserPlus } from 'lucide-react';
 
 export interface ActionPreview {
   tool_name: string;         // generate_onboarding_program | generate_okr_objectives | ...
@@ -149,6 +149,32 @@ function TrainingPreview({ data }: { data: any }) {
   );
 }
 
+function CandidatePreview({ data }: { data: any }) {
+  return (
+    <div className="space-y-2">
+      <div className="bg-white border rounded p-2 text-xs space-y-1">
+        <div className="flex items-center justify-between">
+          <p className="font-semibold text-gray-800">{data.first_name} {data.last_name}</p>
+          {data.source && (
+            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-[10px] font-medium">
+              {data.source}
+            </span>
+          )}
+        </div>
+        <p className="text-gray-600">✉️ {data.email}</p>
+        {data.phone && <p className="text-gray-500">📞 {data.phone}</p>}
+        {data.current_position && <p className="text-gray-500">💼 {data.current_position}</p>}
+      </div>
+      {data.notes && (
+        <div className="bg-white border rounded p-2 text-xs">
+          <p className="text-gray-500 mb-0.5">Notes</p>
+          <p className="text-gray-700">{data.notes}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function JobPostingPreview({ data }: { data: any }) {
   return (
     <div className="space-y-2">
@@ -191,6 +217,7 @@ const ACTION_ICONS: Record<string, React.ComponentType<any>> = {
   generate_onboarding_program: Users,
   generate_okr_objectives: Target,
   generate_training_plan: BookOpen,
+  generate_candidate: UserPlus,
   generate_job_posting: Briefcase,
 };
 
@@ -198,6 +225,7 @@ const ACTION_COLORS: Record<string, string> = {
   generate_onboarding_program: 'from-indigo-500 to-indigo-700',
   generate_okr_objectives: 'from-blue-500 to-blue-700',
   generate_training_plan: 'from-emerald-500 to-emerald-700',
+  generate_candidate: 'from-violet-500 to-violet-700',
   generate_job_posting: 'from-orange-500 to-orange-600',
 };
 
@@ -246,6 +274,7 @@ export default function AgentActionPreview({ preview, onValidate, onCancel }: Pr
         {preview.tool_name === 'generate_onboarding_program' && <OnboardingPreview data={preview.data} />}
         {preview.tool_name === 'generate_okr_objectives' && <OkrPreview data={preview.data} />}
         {preview.tool_name === 'generate_training_plan' && <TrainingPreview data={preview.data} />}
+        {preview.tool_name === 'generate_candidate' && <CandidatePreview data={preview.data} />}
         {preview.tool_name === 'generate_job_posting' && <JobPostingPreview data={preview.data} />}
       </div>
 

@@ -612,7 +612,7 @@ export default function RecruitmentPage() {
             {activeTab === 'kanban' && (
               <select value={selectedJobFilter || ''} onChange={(e) => setSelectedJobFilter(e.target.value ? parseInt(e.target.value) : null)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                 <option value="">Tous les postes</option>
-                {jobs.filter(j => j.status === 'active').map(job => (<option key={job.id} value={job.id}>{job.title}</option>))}
+                {jobs.map(job => (<option key={job.id} value={job.id}>{job.title}{job.status === 'draft' ? ' (brouillon)' : ''}</option>))}
               </select>
             )}
             {activeTab === 'interviews' && (

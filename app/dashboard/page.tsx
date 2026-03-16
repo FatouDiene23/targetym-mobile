@@ -556,10 +556,10 @@ function TeamOverviewWidget({ teamMembers, pendingRequests }: { teamMembers: Tea
 function HRStatsWidget({ stats }: { stats: HRStats }) {
   const statItems = [
     { label: 'Total employés', value: stats.total_employees, icon: Users, color: 'from-blue-400 to-blue-600', bg: 'bg-blue-50', href: '/dashboard/employees', badge: 0 },
-    { label: 'Actifs', value: stats.active_employees, icon: UserCheck, color: 'from-green-400 to-green-600', bg: 'bg-green-50', href: '/dashboard/employees?filter=active', badge: stats.new_hires_this_month },
+    { label: 'Actifs', value: stats.active_employees, icon: UserCheck, color: 'from-green-400 to-green-600', bg: 'bg-green-50', href: '/dashboard/employees?filter=active', badge: 0 },
     { label: 'En congé', value: stats.on_leave_today, icon: Calendar, color: 'from-orange-400 to-orange-600', bg: 'bg-orange-50', href: '/dashboard/leaves', badge: 0 },
     { label: 'Demandes en attente', value: stats.pending_requests, icon: Clock, color: 'from-yellow-400 to-yellow-600', bg: 'bg-yellow-50', href: '/dashboard/leaves?status=pending', badge: 0 },
-    { label: 'Nouveaux ce mois', value: stats.new_hires_this_month, icon: UserPlus, color: 'from-purple-400 to-purple-600', bg: 'bg-purple-50', href: '/dashboard/employees?filter=new_this_month', badge: 0 },
+    { label: 'Nouveaux ce mois', value: stats.new_hires_this_month, icon: UserPlus, color: 'from-purple-400 to-purple-600', bg: 'bg-purple-50', href: '/dashboard/employees?filter=new_this_month', badge: stats.new_hires_this_month },
     { label: 'Départements', value: stats.departments_count, icon: Briefcase, color: 'from-indigo-400 to-indigo-600', bg: 'bg-indigo-50', href: '/dashboard/employees?tab=departments', badge: 0 },
   ];
 

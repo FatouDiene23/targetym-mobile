@@ -312,7 +312,8 @@ function DashboardContent({
   handleRestartTour: () => void;
 }>) {
   const pathname = usePathname();
-  const hideGroupContextSwitcher = pathname.startsWith('/dashboard/recruitment');
+  const showGroupContextSwitcher =
+    pathname === '/dashboard' || pathname.startsWith('/dashboard/analytics');
   const { setTourHandler } = useHelpMenu();
 
   // Enregistrer le handler du tour dans le contexte global
@@ -329,8 +330,8 @@ function DashboardContent({
       <ImpersonationBanner />
       <Sidebar />
       <main className="flex-1 overflow-auto">
-        {/* Bandeau contexte groupe — visible uniquement pour les tenants groupes */}
-        {!hideGroupContextSwitcher && <GroupContextSwitcher />}
+        {/* Bandeau contexte groupe — visible uniquement sur Dashboard et People Analytics */}
+        {showGroupContextSwitcher && <GroupContextSwitcher />}
         {children}
       </main>
 

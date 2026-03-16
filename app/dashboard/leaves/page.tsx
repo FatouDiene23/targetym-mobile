@@ -8,6 +8,7 @@ import {
   ChevronLeft, ChevronRight, X, Search, Plus
 } from 'lucide-react';
 import Header from '@/components/Header';
+import Pagination from '@/components/Pagination';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { leavesTips } from '@/config/pageTips';
@@ -791,7 +792,7 @@ export default function LeavesManagementPage() {
       status: statusFilter,
       department_id: departmentFilter,
       page,
-      page_size: 20
+      page_size: 10
     });
     setRequests(data.items);
     setTotalRequests(data.total);
@@ -1035,29 +1036,7 @@ export default function LeavesManagementPage() {
             </div>
 
             {/* Pagination */}
-            {totalRequests > 20 && (
-              <div className="p-4 border-t border-gray-200 flex items-center justify-between">
-                <p className="text-sm text-gray-500">
-                  Affichage de {(page - 1) * 20 + 1} à {Math.min(page * 20, totalRequests)} sur {totalRequests}
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="px-3 py-1 border border-gray-300 rounded-lg text-sm disabled:opacity-50"
-                  >
-                    Précédent
-                  </button>
-                  <button
-                    onClick={() => setPage(p => p + 1)}
-                    disabled={page * 20 >= totalRequests}
-                    className="px-3 py-1 border border-gray-300 rounded-lg text-sm disabled:opacity-50"
-                  >
-                    Suivant
-                  </button>
-                </div>
-              </div>
-            )}
+            <Pagination page={page} total={totalRequests} pageSize={10} onPageChange={setPage} />
           </div>
         )}
 

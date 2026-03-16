@@ -6,6 +6,7 @@ import {
   BookOpen, Search, Plus, User, Users, Eye, FileWarning, MessageSquarePlus, Brain
 } from 'lucide-react';
 import PageTourTips from '@/components/PageTourTips';
+import Pagination from '@/components/Pagination';
 import { usePageTour } from '@/hooks/usePageTour';
 import { learningTips } from '@/config/pageTips';
 
@@ -13,7 +14,8 @@ export default function CatalogPage() {
   const {
     userRole, stats, courses, selectedCategory, setSelectedCategory,
     searchQuery, setSearchQuery, setSelectedCourse, setShowCreateCourse,
-    setShowAssignModal, setShowRequestCourse, setShowCreateSkill
+    setShowAssignModal, setShowRequestCourse, setShowCreateSkill,
+    coursePage, setCoursePage, totalCourses,
   } = useLearning();
 
   const totalCatalogHours = courses.reduce((s, c) => s + (c.duration_hours || 0), 0);
@@ -138,6 +140,7 @@ export default function CatalogPage() {
           ))}
         </div>
       )}
+      <Pagination page={coursePage} total={totalCourses} pageSize={10} onPageChange={setCoursePage} />
     </div>
   );
 }

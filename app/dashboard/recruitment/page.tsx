@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import Pagination from '@/components/Pagination';
 
 // ============================================
 // TYPES
@@ -312,6 +313,8 @@ export default function RecruitmentPage() {
   const [selectedJobFilter, setSelectedJobFilter] = useState<number | null>(null);
 
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobsPage, setJobsPage] = useState(1);
+  const JOBS_PAGE_SIZE = 10;
   const [applications, setApplications] = useState<Application[]>([]);
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [stats, setStats] = useState<RecruitmentStats | null>(null);
@@ -669,7 +672,7 @@ export default function RecruitmentPage() {
                 <p className="text-gray-500">Aucune offre d&apos;emploi</p>
                 <button onClick={() => { setEditingJob(null); setShowJobModal(true); }} className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm">Créer une offre</button>
               </div>
-            ) : jobs.map((job) => (
+            ) : jobs.slice((jobsPage - 1) * JOBS_PAGE_SIZE, jobsPage * JOBS_PAGE_SIZE).map((job) => (
               <div key={job.id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center flex-1">
@@ -711,6 +714,7 @@ export default function RecruitmentPage() {
                 )}
               </div>
             ))}
+            <Pagination page={jobsPage} total={jobs.length} pageSize={JOBS_PAGE_SIZE} onPageChange={setJobsPage} />
           </div>
         )}
 

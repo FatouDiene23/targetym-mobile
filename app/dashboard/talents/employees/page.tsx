@@ -16,6 +16,7 @@ import {
   TrendingUp, BookOpen, Heart, ArrowUpRight, Users, AlertCircle,
   Filter
 } from 'lucide-react';
+import Pagination from '@/components/Pagination';
 import { useTalents } from '../TalentsContext';
 import { getInitials, ELIGIBILITY_LABELS, formatDate } from '../shared';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -50,6 +51,9 @@ export default function AllEmployeesCareerPage() {
     loadPaths();
   }, []);
 
+  const [empPage, setEmpPage] = useState(1);
+  const EMP_PAGE_SIZE = 10;
+
   const filtered = employeeCareers.filter(ec => {
     const matchSearch = !search || `${ec.first_name} ${ec.last_name} ${ec.path_name} ${ec.current_level_title}`
       .toLowerCase().includes(search.toLowerCase());
@@ -57,6 +61,11 @@ export default function AllEmployeesCareerPage() {
     const matchPath = !pathFilter || String(ec.career_path_id) === pathFilter;
     return matchSearch && matchElig && matchPath;
   });
+
+  // Reset page when filters change
+  useEffect(() => { setEmpPage(1); }, [search, eligFilter, pathFilter]);
+
+  const paginated = filtered.slice((empPage - 1) * EMP_PAGE_SIZE, empPage * EMP_PAGE_SIZE);
 
   const openDetail = async (ec: any) => {
     setSelected(ec);
@@ -174,7 +183,7 @@ export default function AllEmployeesCareerPage() {
                 <Users className="w-8 h-8 text-gray-200 mx-auto mb-2" />
                 <p className="text-sm text-gray-400">Aucun collaborateur</p>
               </div>
-            ) : filtered.map(ec => {
+            ) : paginated.map(ec => {
               const progress = ec.total_count ? Math.round(((ec.validated_count || 0) / ec.total_count) * 100) : 0;
               const elig = ELIGIBILITY_LABELS[ec.eligibility_status] || ELIGIBILITY_LABELS.not_eligible;
               const isSelected = selected?.id === ec.id;
@@ -216,6 +225,7 @@ export default function AllEmployeesCareerPage() {
                 </button>
               );
             })}
+            <Pagination page={empPage} total={filtered.length} pageSize={EMP_PAGE_SIZE} onPageChange={setEmpPage} />
           </div>
         </div>
 

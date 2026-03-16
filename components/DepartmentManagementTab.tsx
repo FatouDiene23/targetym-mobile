@@ -13,6 +13,7 @@ import {
 } from '@/lib/api';
 import AddOrganizationalUnitModal from './AddOrganizationalUnitModal';
 import ConfirmDialog from './ConfirmDialog';
+import Pagination from './Pagination';
 
 // ============================================
 // TYPES
@@ -43,6 +44,10 @@ export default function DepartmentManagementTab() {
 
   // View mode
   const [viewMode, setViewMode] = useState<'list' | 'tree'>('list');
+
+  // Pagination
+  const [deptPage, setDeptPage] = useState(1);
+  const DEPT_PAGE_SIZE = 10;
 
   // Sélection multiple
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -162,6 +167,11 @@ export default function DepartmentManagementTab() {
   const filteredDepts = searchTerm
     ? departments.filter(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()) || (d.code || '').toLowerCase().includes(searchTerm.toLowerCase()))
     : departments;
+
+  // Reset page when search changes
+  useEffect(() => { setDeptPage(1); }, [searchTerm]);
+
+  const paginatedDepts = filteredDepts.slice((deptPage - 1) * DEPT_PAGE_SIZE, deptPage * DEPT_PAGE_SIZE);
 
   const tree = buildTree(filteredDepts);
 
@@ -498,10 +508,11 @@ export default function DepartmentManagementTab() {
                 {filteredDepts.length === 0 ? (
                   <tr><td colSpan={7} className="text-center py-10 text-gray-500 text-sm">Aucune unité trouvée</td></tr>
                 ) : (
-                  filteredDepts.map(dept => <ListRow key={dept.id} dept={dept} />)
+                  paginatedDepts.map(dept => <ListRow key={dept.id} dept={dept} />)
                 )}
               </tbody>
             </table>
+            <Pagination page={deptPage} total={filteredDepts.length} pageSize={DEPT_PAGE_SIZE} onPageChange={setDeptPage} />
           </div>
         </>
       )}

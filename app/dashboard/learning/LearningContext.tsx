@@ -53,6 +53,9 @@ interface LearningContextType {
   setSelectedCategory: (cat: string) => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
+  coursePage: number;
+  setCoursePage: (p: number) => void;
+  totalCourses: number;
 
   // Modal states
   selectedCourse: Course | null;
@@ -226,6 +229,11 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   // Filters
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [searchQuery, setSearchQuery] = useState('');
+  const [coursePage, setCoursePage] = useState(1);
+  const [totalCourses, setTotalCourses] = useState(0);
+
+  // Reset page when filters change
+  useEffect(() => { setCoursePage(1); }, [selectedCategory, searchQuery]);
 
   // Modals
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -311,11 +319,14 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       const params = new URLSearchParams();
       if (selectedCategory !== 'Tous') params.append('category', selectedCategory);
       if (searchQuery) params.append('search', searchQuery);
+      params.append('page', String(coursePage));
+      params.append('page_size', '10');
       const response = await fetch(`${API_URL}/api/learning/courses/?${params}`, { headers: getAuthHeaders() });
       const data = await response.json();
       setCourses(data.items || []);
+      setTotalCourses(data.total || 0);
     } catch (error) { console.error('Error fetching courses:', error); }
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery, coursePage]);
 
   const fetchLearningPaths = useCallback(async () => {
     try {
@@ -756,6 +767,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     myAssignments, teamAssignments, certHolders,
     epfPending, epfAll, epfStats, epfSettings: epfSettings, setEpfSettings: setEpfSettingsState,
     selectedCategory, setSelectedCategory, searchQuery, setSearchQuery,
+    coursePage, setCoursePage, totalCourses,
     selectedCourse, setSelectedCourse, showCreateCourse, setShowCreateCourse,
     showEditCourse, setShowEditCourse, editCourseData, setEditCourseData,
     showAssignModal, setShowAssignModal, showValidationModal, setShowValidationModal,

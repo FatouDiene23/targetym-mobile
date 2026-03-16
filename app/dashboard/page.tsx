@@ -555,12 +555,12 @@ function TeamOverviewWidget({ teamMembers, pendingRequests }: { teamMembers: Tea
 // HR Stats Widget
 function HRStatsWidget({ stats }: { stats: HRStats }) {
   const statItems = [
-    { label: 'Total employés', value: stats.total_employees, icon: Users, color: 'from-blue-400 to-blue-600', bg: 'bg-blue-50' },
-    { label: 'Actifs', value: stats.active_employees, icon: UserCheck, color: 'from-green-400 to-green-600', bg: 'bg-green-50' },
-    { label: 'En congé', value: stats.on_leave_today, icon: Calendar, color: 'from-orange-400 to-orange-600', bg: 'bg-orange-50' },
-    { label: 'Demandes en attente', value: stats.pending_requests, icon: Clock, color: 'from-yellow-400 to-yellow-600', bg: 'bg-yellow-50' },
-    { label: 'Nouveaux ce mois', value: stats.new_hires_this_month, icon: UserPlus, color: 'from-purple-400 to-purple-600', bg: 'bg-purple-50' },
-    { label: 'Départements', value: stats.departments_count, icon: Briefcase, color: 'from-indigo-400 to-indigo-600', bg: 'bg-indigo-50' },
+    { label: 'Total employés', value: stats.total_employees, icon: Users, color: 'from-blue-400 to-blue-600', bg: 'bg-blue-50', href: '/dashboard/employees' },
+    { label: 'Actifs', value: stats.active_employees, icon: UserCheck, color: 'from-green-400 to-green-600', bg: 'bg-green-50', href: '/dashboard/employees?filter=active' },
+    { label: 'En congé', value: stats.on_leave_today, icon: Calendar, color: 'from-orange-400 to-orange-600', bg: 'bg-orange-50', href: '/dashboard/leaves' },
+    { label: 'Demandes en attente', value: stats.pending_requests, icon: Clock, color: 'from-yellow-400 to-yellow-600', bg: 'bg-yellow-50', href: '/dashboard/leaves?status=pending' },
+    { label: 'Nouveaux ce mois', value: stats.new_hires_this_month, icon: UserPlus, color: 'from-purple-400 to-purple-600', bg: 'bg-purple-50', href: '/dashboard/employees?filter=new_this_month' },
+    { label: 'Départements', value: stats.departments_count, icon: Briefcase, color: 'from-indigo-400 to-indigo-600', bg: 'bg-indigo-50', href: '/dashboard/employees?tab=departments' },
   ];
 
   return (
@@ -571,11 +571,11 @@ function HRStatsWidget({ stats }: { stats: HRStats }) {
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {statItems.map((item, i) => (
-          <div key={i} className={`${item.bg} rounded-xl p-4 hover:scale-[1.02] transition-transform cursor-default`}>
+          <Link key={i} href={item.href} className={`${item.bg} rounded-xl p-4 hover:scale-[1.02] hover:shadow-md transition-all cursor-pointer block`}>
             <div className={`w-10 h-10 bg-gradient-to-br ${item.color} rounded-lg flex items-center justify-center mb-2 shadow-sm`}><item.icon className="w-5 h-5 text-white" /></div>
             <p className="text-2xl font-bold text-gray-900">{item.value}</p>
             <p className="text-xs text-gray-600">{item.label}</p>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

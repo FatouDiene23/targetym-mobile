@@ -160,7 +160,7 @@ export default function ResignationPage() {
   if (loading) {
     return (
       <>
-        <Header title="Ma Démission" subtitle="Gérer votre procédure de départ" />
+        <Header title="Processus de Départ" subtitle="Gérer votre procédure de départ" />
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent" />
         </div>
@@ -170,7 +170,7 @@ export default function ResignationPage() {
 
   return (
     <>
-      <Header title="Ma Démission" subtitle="Gérer votre procédure de départ" />
+      <Header title="Processus de Départ" subtitle="Gérer votre procédure de départ" />
 
       <div className="p-6 max-w-3xl mx-auto space-y-6">
         {resignation ? (

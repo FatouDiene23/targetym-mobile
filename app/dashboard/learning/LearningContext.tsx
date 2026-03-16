@@ -59,6 +59,10 @@ interface LearningContextType {
   setSelectedCourse: (c: Course | null) => void;
   showCreateCourse: boolean;
   setShowCreateCourse: (v: boolean) => void;
+  showEditCourse: boolean;
+  setShowEditCourse: (v: boolean) => void;
+  editCourseData: any;
+  setEditCourseData: (d: any) => void;
   showAssignModal: boolean;
   setShowAssignModal: (v: boolean) => void;
   showValidationModal: boolean;
@@ -148,6 +152,8 @@ interface LearningContextType {
   openCompleteModal: (a: Assignment) => void;
   completeAssignment: () => Promise<void>;
   createCourse: () => Promise<void>;
+  openEditCourse: (course: Course) => void;
+  updateCourse: () => Promise<void>;
   createPath: () => Promise<void>;
   assignCourse: () => Promise<void>;
   validateAssignment: () => Promise<void>;
@@ -224,6 +230,8 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   // Modals
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [showCreateCourse, setShowCreateCourse] = useState(false);
+  const [showEditCourse, setShowEditCourse] = useState(false);
+  const [editCourseData, setEditCourseData] = useState<any>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
@@ -520,6 +528,43 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     setAssignmentToComplete(assignment); setCompletionNote(assignment.completion_note || ''); setCompletionFile(null); setShowCompleteModal(true);
   };
 
+  const openEditCourse = (course: Course) => {
+    setEditCourseData({
+      id: course.id,
+      title: course.title || '',
+      description: course.description || '',
+      category: course.category || 'Technique',
+      provider: course.provider || '',
+      external_url: course.external_url || '',
+      duration_hours: course.duration_hours ? String(course.duration_hours) : '',
+      level: course.level || 'beginner',
+      image_emoji: course.image_emoji || '📚',
+      is_mandatory: course.is_mandatory || false,
+      requires_certificate: course.requires_certificate || false,
+      skill_ids: course.skills ? course.skills.map(s => s.id) : [],
+    });
+    setSelectedCourse(null);
+    setShowEditCourse(true);
+  };
+
+  const updateCourse = async () => {
+    if (!editCourseData?.id) return;
+    try {
+      const response = await fetch(`${API_URL}/api/learning/courses/${editCourseData.id}`, {
+        method: 'PUT', headers: getAuthHeaders(),
+        body: JSON.stringify({
+          ...editCourseData,
+          duration_hours: editCourseData.duration_hours ? parseFloat(editCourseData.duration_hours) : null,
+        }),
+      });
+      if (response.ok) {
+        setShowEditCourse(false);
+        setEditCourseData(null);
+        fetchCourses();
+      }
+    } catch (error) { console.error('Error updating course:', error); }
+  };
+
   const createCourse = async () => {
     try {
       const response = await fetch(`${API_URL}/api/learning/courses/`, {
@@ -712,6 +757,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     epfPending, epfAll, epfStats, epfSettings: epfSettings, setEpfSettings: setEpfSettingsState,
     selectedCategory, setSelectedCategory, searchQuery, setSearchQuery,
     selectedCourse, setSelectedCourse, showCreateCourse, setShowCreateCourse,
+    showEditCourse, setShowEditCourse, editCourseData, setEditCourseData,
     showAssignModal, setShowAssignModal, showValidationModal, setShowValidationModal,
     selectedAssignment, setSelectedAssignment,
     showCreateCertification, setShowCreateCertification,
@@ -733,7 +779,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     newPath, setNewPath, newPlan, setNewPlan, editPlanData, setEditPlanData,
     newRequest, setNewRequest, newSkill, setNewSkill,
     startAssignment, openCompleteModal, completeAssignment,
-    createCourse, createPath, assignCourse, validateAssignment,
+    createCourse, openEditCourse, updateCourse, createPath, assignCourse, validateAssignment,
     createCertificationType, createSkill, createDevelopmentPlan,
     openEditPlanModal, updateDevelopmentPlan, cancelDevelopmentPlan, archiveDevelopmentPlan,
     submitCourseRequest, reviewCourseRequest, fetchCertificationHolders, getVisiblePlans,

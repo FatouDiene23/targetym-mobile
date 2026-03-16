@@ -26,6 +26,7 @@ export function LearningModals() {
     // Modal states
     selectedCourse, setSelectedCourse,
     showCreateCourse, setShowCreateCourse,
+    showEditCourse, setShowEditCourse, editCourseData, setEditCourseData,
     showAssignModal, setShowAssignModal,
     showValidationModal, setShowValidationModal,
     selectedAssignment, setSelectedAssignment,
@@ -67,7 +68,7 @@ export function LearningModals() {
     newRequest, setNewRequest,
     newSkill, setNewSkill,
     // Actions
-    completeAssignment, createCourse, createPath, assignCourse,
+    completeAssignment, createCourse, openEditCourse, updateCourse, createPath, assignCourse,
     validateAssignment, createCertificationType, createSkill,
     createDevelopmentPlan, updateDevelopmentPlan, cancelDevelopmentPlan,
     submitCourseRequest, submitEvaluation, assignEvaluator,
@@ -143,6 +144,9 @@ export function LearningModals() {
               {hasPermission(userRole, 'assign_course') && (
                 <button onClick={() => { setAssignData({ ...assignData, course_id: selectedCourse.id.toString() }); setSelectedCourse(null); setShowAssignModal(true); }} className="w-full flex items-center justify-center px-4 py-3 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600"><User className="w-5 h-5 mr-2" />Assigner à un employé</button>
               )}
+              {hasPermission(userRole, 'create_course') && (
+                <button onClick={() => openEditCourse(selectedCourse)} className="w-full mt-2 flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"><Edit className="w-4 h-4 mr-2" />Modifier la formation</button>
+              )}
             </div>
           </div>
         </div>
@@ -190,6 +194,53 @@ export function LearningModals() {
             <div className="p-6 border-t border-gray-200 flex gap-3">
               <button onClick={() => setShowCreateCourse(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
               <button onClick={createCourse} disabled={!newCourse.title} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">Créer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Modifier Formation */}
+      {showEditCourse && editCourseData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-gray-900">Modifier la formation</h2><button onClick={() => { setShowEditCourse(false); setEditCourseData(null); }} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div></div>
+            <div className="p-6 space-y-4">
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label><input type="text" value={editCourseData.title} onChange={(e) => setEditCourseData({ ...editCourseData, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea value={editCourseData.description} onChange={(e) => setEditCourseData({ ...editCourseData, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={3} /></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label><select value={editCourseData.category} onChange={(e) => setEditCourseData({ ...editCourseData, category: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="Soft Skills">Soft Skills</option><option value="Technique">Technique</option><option value="Management">Management</option><option value="Commercial">Commercial</option><option value="Innovation">Innovation</option><option value="Juridique">Juridique</option></select></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Niveau</label><select value={editCourseData.level} onChange={(e) => setEditCourseData({ ...editCourseData, level: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="beginner">Débutant</option><option value="intermediate">Intermédiaire</option><option value="advanced">Avancé</option></select></div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Durée (heures)</label><input type="number" value={editCourseData.duration_hours} onChange={(e) => setEditCourseData({ ...editCourseData, duration_hours: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Emoji</label><input type="text" value={editCourseData.image_emoji} onChange={(e) => setEditCourseData({ ...editCourseData, image_emoji: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+              </div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label><input type="text" value={editCourseData.provider} onChange={(e) => setEditCourseData({ ...editCourseData, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">URL externe</label><input type="url" value={editCourseData.external_url} onChange={(e) => setEditCourseData({ ...editCourseData, external_url: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2"><input type="checkbox" id="edit-mandatory" checked={editCourseData.is_mandatory} onChange={(e) => setEditCourseData({ ...editCourseData, is_mandatory: e.target.checked })} className="rounded" /><label htmlFor="edit-mandatory" className="text-sm text-gray-700">Formation obligatoire</label></div>
+                <div className="flex items-center gap-2"><input type="checkbox" id="edit-requires-cert" checked={editCourseData.requires_certificate} onChange={(e) => setEditCourseData({ ...editCourseData, requires_certificate: e.target.checked })} className="rounded" /><label htmlFor="edit-requires-cert" className="text-sm text-gray-700 flex items-center gap-1"><FileWarning className="w-4 h-4 text-purple-600" />Certificat requis pour validation</label></div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Compétences développées</label>
+                {skills.length === 0 ? (
+                  <p className="text-xs text-gray-400 py-2">Aucune compétence disponible</p>
+                ) : (
+                  <div className="space-y-1 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2">
+                    {skills.map((skill) => (
+                      <label key={skill.id} className="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded cursor-pointer">
+                        <input type="checkbox" checked={(editCourseData.skill_ids as number[]).includes(skill.id)} onChange={(e) => { const ids = editCourseData.skill_ids as number[]; setEditCourseData({ ...editCourseData, skill_ids: e.target.checked ? [...ids, skill.id] : ids.filter((id: number) => id !== skill.id) }); }} className="rounded text-primary-600" />
+                        <span className="text-sm text-gray-700">{skill.name}</span>
+                        <span className="text-xs text-gray-400 ml-auto">{skill.category}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex gap-3">
+              <button onClick={() => { setShowEditCourse(false); setEditCourseData(null); }} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+              <button onClick={updateCourse} disabled={!editCourseData.title} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">Enregistrer</button>
             </div>
           </div>
         </div>

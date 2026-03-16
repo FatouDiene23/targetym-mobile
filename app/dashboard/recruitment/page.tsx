@@ -179,6 +179,15 @@ async function fetchStats(): Promise<RecruitmentStats | null> {
   } catch { return null; }
 }
 
+async function fetchTotalCandidates(): Promise<number> {
+  try {
+    const res = await fetch(`${API_URL}/api/recruitment/candidates?page_size=1`, { headers: getAuthHeaders() });
+    if (!res.ok) return 0;
+    const data = await res.json();
+    return data.total ?? 0;
+  } catch { return 0; }
+}
+
 async function fetchAnalytics(): Promise<Analytics | null> {
   try {
     const res = await fetch(`${API_URL}/api/recruitment/analytics`, { headers: getAuthHeaders() });
@@ -315,6 +324,7 @@ export default function RecruitmentPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [jobsPage, setJobsPage] = useState(1);
   const JOBS_PAGE_SIZE = 10;
+  const [totalCandidates, setTotalCandidates] = useState(0);
   const [applications, setApplications] = useState<Application[]>([]);
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [stats, setStats] = useState<RecruitmentStats | null>(null);
@@ -346,10 +356,10 @@ export default function RecruitmentPage() {
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [jobsData, appsData, interviewsData, statsData, depts, emps] = await Promise.all([
-      fetchJobs(), fetchApplications(selectedJobFilter || undefined), fetchInterviews(), fetchStats(), fetchDepartments(), fetchEmployees()
+    const [jobsData, appsData, interviewsData, statsData, candidatesTotal, depts, emps] = await Promise.all([
+      fetchJobs(), fetchApplications(selectedJobFilter || undefined), fetchInterviews(), fetchStats(), fetchTotalCandidates(), fetchDepartments(), fetchEmployees()
     ]);
-    setJobs(jobsData); setApplications(appsData); setInterviews(interviewsData); setStats(statsData); setDepartments(depts); setEmployees(emps);
+    setJobs(jobsData); setApplications(appsData); setInterviews(interviewsData); setStats(statsData); setTotalCandidates(candidatesTotal); setDepartments(depts); setEmployees(emps);
     setLoading(false);
   }, [selectedJobFilter]);
 
@@ -386,6 +396,11 @@ export default function RecruitmentPage() {
   };
 
   const getInterviewsForApplication = (applicationId: number) => interviews.filter(i => i.application_id === applicationId);
+
+  // Métriques dérivées des données déjà chargées (toujours à jour après loadData)
+  const INTERVIEW_STAGES = ['phone_screen', 'hr_interview', 'technical', 'final'];
+  const openPositions = jobs.filter(j => j.status === 'active').length;
+  const inInterview = applications.filter(a => INTERVIEW_STAGES.includes(a.stage)).length;
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return 'text-green-600 bg-green-100';
@@ -532,31 +547,31 @@ export default function RecruitmentPage() {
         <div data-tour="recruitment-stats" className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">Postes Ouverts</p><p className="text-2xl font-bold text-gray-900">{stats?.open_positions || 0}</p></div>
+              <div><p className="text-xs text-gray-500">Postes Ouverts</p><p className="text-2xl font-bold text-gray-900">{openPositions}</p></div>
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><Briefcase className="w-5 h-5 text-blue-600" /></div>
             </div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">Total Candidats</p><p className="text-2xl font-bold text-purple-600">{stats?.total_candidates || 0}</p></div>
+              <div><p className="text-xs text-gray-500">Total Candidats</p><p className="text-2xl font-bold text-purple-600">{totalCandidates}</p></div>
               <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center"><Users className="w-5 h-5 text-purple-600" /></div>
             </div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">En Entretien</p><p className="text-2xl font-bold text-orange-600">{stats?.in_interview || 0}</p></div>
+              <div><p className="text-xs text-gray-500">En Entretien</p><p className="text-2xl font-bold text-orange-600">{inInterview}</p></div>
               <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center"><MessageSquare className="w-5 h-5 text-orange-600" /></div>
             </div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">Délai Moyen</p><p className="text-2xl font-bold text-gray-900">{stats?.avg_time_to_hire || 0}j</p></div>
+              <div><p className="text-xs text-gray-500">Délai Moyen</p><p className="text-2xl font-bold text-gray-900">{stats?.avg_time_to_hire ?? 0}j</p></div>
               <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center"><Clock className="w-5 h-5 text-gray-600" /></div>
             </div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">Embauches (Mois)</p><p className="text-2xl font-bold text-green-600">{stats?.hires_this_month || 0}</p></div>
+              <div><p className="text-xs text-gray-500">Embauches (Mois)</p><p className="text-2xl font-bold text-green-600">{stats?.hires_this_month ?? 0}</p></div>
               <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center"><UserPlus className="w-5 h-5 text-green-600" /></div>
             </div>
           </div>

@@ -1995,6 +1995,7 @@ export default function SettingsPage() {
                 {/* ── IntoWork ───────────────────────────────── */}
                 <IntoWorkIntegrationSection />
 
+<<<<<<< Updated upstream
                 {/* ── Autres intégrations (Teams, Asana, Google...) ── */}
                 <div className="mt-8 pt-6 border-t border-gray-100">
                   <p className="text-sm font-medium text-gray-700 mb-4">Autres intégrations</p>
@@ -2058,6 +2059,32 @@ export default function SettingsPage() {
                       ))}
                     </div>
                   )}
+=======
+                {/* ── Autres intégrations (placeholder) ─────── */}
+                <div className="mt-8 pt-6 border-t border-gray-100">
+                  <p className="text-sm font-medium text-gray-700 mb-4">Autres intégrations</p>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {[
+                      { id: 'slack', name: 'Slack', description: 'Notifications et alertes', icon: '💬' },
+                      { id: 'teams', name: 'Microsoft Teams', description: "Communication d'équipe", icon: '👥' },
+                      { id: 'google', name: 'Google Workspace', description: 'Suite Google', icon: '🔷' },
+                      { id: 'notion', name: 'Notion', description: 'Documentation', icon: '📝' },
+                    ].map((item) => (
+                      <div key={item.id} className="border border-gray-200 rounded-xl p-5 opacity-60">
+                        <div className="flex items-center mb-3">
+                          <span className="text-2xl mr-3">{item.icon}</span>
+                          <div>
+                            <h4 className="font-semibold text-gray-900">{item.name}</h4>
+                            <p className="text-sm text-gray-500">{item.description}</p>
+                          </div>
+                        </div>
+                        <button disabled className="w-full py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed">
+                          Bientôt disponible
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+>>>>>>> Stashed changes
                 </div>
               </div>
             )}

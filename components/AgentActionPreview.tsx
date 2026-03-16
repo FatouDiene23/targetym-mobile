@@ -252,10 +252,9 @@ export default function AgentActionPreview({ preview, onValidate, onCancel }: Pr
 
   if (done) {
     return (
-      <div className="mt-2 bg-green-50 border border-green-200 rounded-xl p-3 text-center">
-        <CheckCircle size={24} className="text-green-600 mx-auto mb-1" />
-        <p className="text-sm font-semibold text-green-800">Insertion réussie !</p>
-        <p className="text-xs text-green-600 mt-0.5">Rafraîchissez la page pour voir les données.</p>
+      <div className="mt-2 bg-green-50 border border-green-200 rounded-xl p-2.5 flex items-center gap-2">
+        <CheckCircle size={18} className="text-green-600 flex-shrink-0" />
+        <p className="text-xs font-semibold text-green-800">Inséré avec succès</p>
       </div>
     );
   }

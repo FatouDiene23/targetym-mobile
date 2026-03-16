@@ -217,8 +217,13 @@ export default function AIChatBox() {
         try {
           const extracted = await extractPdfText(attachedFile);
           resolvedFileText = extracted.text || '';
-          setFileText(resolvedFileText);
+          if (!resolvedFileText) {
+            toast('PDF attaché mais non lisible (scan ?). Copiez-collez les informations directement.', { icon: '⚠️' });
+          } else {
+            setFileText(resolvedFileText);
+          }
         } catch {
+          toast('Impossible d\'extraire le PDF. Copiez-collez les informations.', { icon: '⚠️' });
           resolvedFileText = '';
         } finally {
           setExtractingPdf(false);
@@ -265,14 +270,25 @@ export default function AIChatBox() {
 
   const handleValidateAction = async (turn: AgentTurn) => {
     if (!turn.action_preview) return;
-    await executeAgentAction({
+    // Peut lever une exception → capturée par AgentActionPreview pour afficher l'erreur
+    const result = await executeAgentAction({
       action_type: turn.action_preview.tool_name,
       data: turn.action_preview.data,
     });
-    // Retirer l'action preview après validation
+    // Retirer l'action preview
     setAgentTurns((prev) =>
       prev.map((t) => t.id === turn.id ? { ...t, action_preview: null } : t)
     );
+    // Ajouter un turn de confirmation dans le chat
+    const confirmTurn: AgentTurn = {
+      id: crypto.randomUUID(),
+      userText: '',
+      reply: `✅ **${result.message || 'Insertion réussie !'}**`,
+      action_preview: null,
+      timestamp: new Date(),
+    };
+    setAgentTurns((prev) => [...prev, confirmTurn]);
+    setTimeout(() => scrollToBottom(), 50);
   };
 
   const handleCancelAction = (turnId: string) => {
@@ -500,15 +516,17 @@ export default function AIChatBox() {
                 <>
                   {agentTurns.map((turn) => (
                     <div key={turn.id} className="space-y-2">
-                      {/* User */}
-                      <div className="flex justify-end">
-                        <div className="max-w-[85%] bg-indigo-600 text-white rounded-2xl px-4 py-2.5">
-                          <p className="text-sm">{turn.userText}</p>
-                          <p className="text-[11px] text-indigo-200 mt-1">
-                            {turn.timestamp.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                          </p>
+                      {/* User - masqué si turn de confirmation système (userText vide) */}
+                      {turn.userText && (
+                        <div className="flex justify-end">
+                          <div className="max-w-[85%] bg-indigo-600 text-white rounded-2xl px-4 py-2.5">
+                            <p className="text-sm">{turn.userText}</p>
+                            <p className="text-[11px] text-indigo-200 mt-1">
+                              {turn.timestamp.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
                         </div>
-                      </div>
+                      )}
                       {/* Assistant */}
                       <div className="flex justify-start">
                         <div className="max-w-[90%] bg-white text-gray-900 border border-gray-200 rounded-2xl px-4 py-2.5 shadow-sm">

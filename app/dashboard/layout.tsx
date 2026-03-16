@@ -7,6 +7,7 @@ import ImpersonationBanner from '@/components/ImpersonationBanner';
 import AppTour from '@/components/AppTour';
 import AIChatBox from '@/components/AIChatBox';
 import GroupContextSwitcher from '@/components/GroupContextSwitcher';
+import { GroupContextProvider } from '@/context/GroupContext';
 import { getTourStepsByRole } from '@/components/AppTourSteps';
 import { useAppTour } from '@/hooks/useAppTour';
 import { HelpMenuProvider, useHelpMenu } from '@/hooks/useHelpMenu';
@@ -273,6 +274,7 @@ export default function DashboardLayout({
   }
 
   return (
+    <GroupContextProvider>
     <HelpMenuProvider>
       {needs2FASetup && (
         <TwoFactorSetupModal onComplete={() => setNeeds2FASetup(false)} />
@@ -288,6 +290,7 @@ export default function DashboardLayout({
         {children}
       </DashboardContent>
     </HelpMenuProvider>
+    </GroupContextProvider>
   );
 }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Loader2, ChevronLeft, Building2, Users, Briefcase, Layers, Network, GitBranch } from 'lucide-react';
+import { Loader2, ChevronLeft, Building2, Users, Briefcase, Layers, Network, GitBranch, Search, X } from 'lucide-react';
 import { createDepartment, getDepartments, getEmployees, type Department, type Employee, type OrganizationalLevel } from '@/lib/api';
 
 interface AddOrganizationalUnitModalProps {
@@ -93,6 +93,17 @@ export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOr
   const [error, setError] = useState('');
   const [departments, setDepartments] = useState<Department[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [managerSearch, setManagerSearch] = useState('');
+  const [showManagerSuggestions, setShowManagerSuggestions] = useState(false);
+
+  const filteredManagers = useMemo(() => {
+    if (!managerSearch.trim()) return employees.slice(0, 8);
+    const q = managerSearch.toLowerCase();
+    return employees.filter(e =>
+      `${e.first_name} ${e.last_name}`.toLowerCase().includes(q) ||
+      (e.job_title || '').toLowerCase().includes(q)
+    ).slice(0, 8);
+  }, [managerSearch, employees]);
   
   const [formData, setFormData] = useState<{
     name: string;
@@ -288,22 +299,49 @@ export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOr
             </div>
 
             {/* Responsable */}
-            <div>
+            <div className="relative">
               <label className="block text-sm font-medium text-gray-700 mb-1">Responsable (optionnel)</label>
-              <select
-                name="head_id"
-                value={formData.head_id}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                disabled={isLoadingData}
-              >
-                <option value="">Sélectionner un responsable</option>
-                {employees.map(emp => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.first_name} {emp.last_name} {emp.job_title ? `- ${emp.job_title}` : ''}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={managerSearch}
+                  onChange={(e) => { setManagerSearch(e.target.value); setShowManagerSuggestions(true); if (!e.target.value) setFormData(f => ({ ...f, head_id: '' })); }}
+                  onFocus={() => setShowManagerSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowManagerSuggestions(false), 150)}
+                  placeholder="Rechercher un responsable..."
+                  disabled={isLoadingData}
+                  className="w-full pl-9 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                />
+                {managerSearch && (
+                  <button type="button" onClick={() => { setManagerSearch(''); setFormData(f => ({ ...f, head_id: '' })); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              {showManagerSuggestions && filteredManagers.length > 0 && (
+                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  <div className="py-1 px-3 text-xs text-gray-400 border-b">Sélectionner un responsable</div>
+                  {filteredManagers.map(emp => (
+                    <button
+                      key={emp.id}
+                      type="button"
+                      onMouseDown={() => {
+                        setFormData(f => ({ ...f, head_id: String(emp.id) }));
+                        setManagerSearch(`${emp.first_name} ${emp.last_name}${emp.job_title ? ` — ${emp.job_title}` : ''}`);
+                        setShowManagerSuggestions(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-primary-50 hover:text-primary-700 flex items-center gap-2"
+                    >
+                      <div className="w-7 h-7 bg-primary-100 rounded-full flex items-center justify-center text-xs font-medium text-primary-700">{emp.first_name[0]}{emp.last_name[0]}</div>
+                      <div>
+                        <p className="font-medium">{emp.first_name} {emp.last_name}</p>
+                        {emp.job_title && <p className="text-xs text-gray-500">{emp.job_title}</p>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Description */}

@@ -289,6 +289,12 @@ export default function AIChatBox() {
     };
     setAgentTurns((prev) => [...prev, confirmTurn]);
     setTimeout(() => scrollToBottom(), 50);
+
+    // Notifier la page courante pour qu'elle rafraîchisse ses données
+    const actionType = turn.action_preview?.tool_name;
+    if (actionType === 'generate_candidate' || actionType === 'generate_job_posting') {
+      window.dispatchEvent(new CustomEvent('recruitment:data-changed'));
+    }
   };
 
   const handleCancelAction = (turnId: string) => {

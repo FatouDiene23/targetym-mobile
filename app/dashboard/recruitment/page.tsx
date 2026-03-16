@@ -368,6 +368,13 @@ export default function RecruitmentPage() {
   useEffect(() => { loadData(); }, [loadData]);
   useEffect(() => { if (activeTab === 'analytics') loadAnalytics(); }, [activeTab, loadAnalytics]);
 
+  // Rafraîchir quand l'agent crée un candidat ou une offre
+  useEffect(() => {
+    const handleAgentInsert = () => loadData();
+    window.addEventListener('recruitment:data-changed', handleAgentInsert);
+    return () => window.removeEventListener('recruitment:data-changed', handleAgentInsert);
+  }, [loadData]);
+
   // Écouter l'événement du bouton "+ Ajouter" du Header
   useEffect(() => {
     const handleHeaderAdd = () => {

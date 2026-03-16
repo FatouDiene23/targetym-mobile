@@ -1089,10 +1089,10 @@ export default function DashboardPage() {
         }
 
         promises.push(
-          getHRStatsData(selectedTenantId || undefined).then(setHRStats).catch(() => {}),
-          getAllPendingRequests(selectedTenantId || undefined).then(setAllPendingRequests).catch(() => {}),
-          getAllEmployees(selectedTenantId || undefined).then(employees => { setDepartmentData(calculateDepartmentData(employees)); setEvolutionData(calculateMonthlyEvolution(employees)); }).catch(() => {}),
-          getAllLeaveRequests(selectedTenantId || undefined).then(requests => { setLeavesData(calculateLeavesByMonth(requests)); }).catch(() => {}),
+          getHRStatsData(selectedTenantId || undefined).then(d => { console.log('[Dashboard] hrStats OK:', d); setHRStats(d); }).catch(e => console.error('[Dashboard] hrStats ERR:', e?.message || e)),
+          getAllPendingRequests(selectedTenantId || undefined).then(setAllPendingRequests).catch(e => console.error('[Dashboard] pendingRequests ERR:', e?.message || e)),
+          getAllEmployees(selectedTenantId || undefined).then(employees => { setDepartmentData(calculateDepartmentData(employees)); setEvolutionData(calculateMonthlyEvolution(employees)); }).catch(e => console.error('[Dashboard] employees ERR:', e?.message || e)),
+          getAllLeaveRequests(selectedTenantId || undefined).then(requests => { setLeavesData(calculateLeavesByMonth(requests)); }).catch(e => console.error('[Dashboard] leaves ERR:', e?.message || e)),
           ...(selectedTenantId ? [] : [
             getOKRStats().then(setOkrStats).catch(() => {}),
             getCriticalOKRs().then(setCriticalOKRs).catch(() => {}),
@@ -1115,18 +1115,19 @@ export default function DashboardPage() {
     if (!selectedTenantId) { setSubsidiaryStats(null); return; }
     setSubsidiaryStatsLoading(true);
     getSubsidiaryDashboardStats(selectedTenantId)
-      .then(setSubsidiaryStats)
-      .catch(() => setSubsidiaryStats(null))
+      .then(data => { console.log('[Dashboard] subsidiaryStats OK:', data); setSubsidiaryStats(data); })
+      .catch(err => { console.error('[Dashboard] subsidiaryStats ERROR:', err?.message || err); setSubsidiaryStats(null); })
       .finally(() => setSubsidiaryStatsLoading(false));
   }, [selectedTenantId]);
 
   // Fetch stats globales du groupe (toutes filiales agrégées)
   useEffect(() => {
     if (!isGlobalDashboardMode || !context?.is_group) { setGroupGlobalStats(null); return; }
+    console.log('[Dashboard] loading groupGlobalStats… context.is_group=', context?.is_group);
     setGroupGlobalStatsLoading(true);
     getGroupGlobalDashboardStats()
-      .then(setGroupGlobalStats)
-      .catch(() => setGroupGlobalStats(null))
+      .then(data => { console.log('[Dashboard] groupGlobalStats OK:', data); setGroupGlobalStats(data); })
+      .catch(err => { console.error('[Dashboard] groupGlobalStats ERROR:', err?.message || err); setGroupGlobalStats(null); })
       .finally(() => setGroupGlobalStatsLoading(false));
   }, [isGlobalDashboardMode, context?.is_group]);
 
@@ -1234,6 +1235,12 @@ export default function DashboardPage() {
               </div>
             ) : groupGlobalStats ? (
               <>
+                {/* Debug info visible uniquement si total = 0 */}
+                {groupGlobalStats.total_employees === 0 && groupGlobalStats.subsidiaries_count === 0 && (
+                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-700">
+                    ⚠️ Aucune filiale avec des employés trouvée. Vérifiez que les filiales ont bien des employés rattachés dans la base.
+                  </div>
+                )}
                 {/* KPIs consolidés */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
                   <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-purple-100">
@@ -1282,7 +1289,11 @@ export default function DashboardPage() {
                   </div>
                 )}
               </>
-            ) : null}
+            ) : (
+              <div className="p-4 text-sm text-red-600 bg-red-50 rounded-xl border border-red-200">
+                ⚠️ Impossible de charger les statistiques du groupe. Vérifiez la console pour plus de détails (F12).
+              </div>
+            )}
           </div>
         )}
 

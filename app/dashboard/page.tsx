@@ -751,7 +751,7 @@ function OKRStatsWidget({ stats, criticalOKRs }: { stats: OKRStats; criticalOKRs
           </div>
         )}
       </div>
-      <div className="grid grid-cols-4 gap-2 mb-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
         <div className="text-center p-2 bg-green-50 rounded-lg"><p className="text-base font-bold text-green-600">{onTrack}</p><p className="text-xs text-green-700">En voie</p></div>
         <div className="text-center p-2 bg-yellow-50 rounded-lg"><p className="text-base font-bold text-yellow-600">{atRisk}</p><p className="text-xs text-yellow-700">À risque</p></div>
         <div className="text-center p-2 bg-red-50 rounded-lg"><p className="text-base font-bold text-red-600">{behind}</p><p className="text-xs text-red-700">En retard</p></div>

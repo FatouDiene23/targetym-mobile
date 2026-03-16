@@ -1316,7 +1316,7 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Lieu de départ *</label>
               <input
@@ -1350,7 +1350,7 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Date de départ *</label>
               <input
@@ -1371,7 +1371,7 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Moyen de transport *</label>
               <select
@@ -1482,7 +1482,7 @@ function MissionDetailModal({ mission, role, onClose }: {
           </div>
 
           {/* Itinéraire + Dates */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-blue-50 rounded-xl p-4">
               <h3 className="text-sm font-semibold text-blue-700 mb-2 flex items-center gap-2">
                 <MapPin className="w-4 h-4" /> Itinéraire
@@ -1501,7 +1501,7 @@ function MissionDetailModal({ mission, role, onClose }: {
           </div>
 
           {/* Transport & Hébergement */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-1">Transport</h3>
               <p className="text-sm">{transport.label}</p>
@@ -1519,7 +1519,7 @@ function MissionDetailModal({ mission, role, onClose }: {
             <h3 className="text-sm font-semibold text-green-700 mb-2 flex items-center gap-2">
               <DollarSign className="w-4 h-4" /> Budget & Per Diem
             </h3>
-            <div className="grid grid-cols-3 gap-3 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
               <div><span className="text-gray-500">Budget estimé:</span><br /><span className="font-medium">{formatAmount(mission.estimated_budget)}</span></div>
               <div><span className="text-gray-500">Per diem:</span><br /><span className="font-medium">{formatAmount(mission.per_diem_amount, mission.per_diem_currency)}</span></div>
               <div><span className="text-gray-500">Avance:</span><br /><span className="font-medium">{formatAmount(mission.advance_amount)}</span></div>
@@ -1677,7 +1677,7 @@ function EditMissionModal({ mission, onClose, onSuccess }: {
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
             <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm" rows={3} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Lieu de départ *</label>
               <input type="text" value={formData.departure_location} onChange={(e) => setFormData({ ...formData, departure_location: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm" />
@@ -1687,7 +1687,7 @@ function EditMissionModal({ mission, onClose, onSuccess }: {
               <input type="text" value={formData.destination} onChange={(e) => setFormData({ ...formData, destination: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Date de départ *</label>
               <input type="date" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm" />
@@ -1697,7 +1697,7 @@ function EditMissionModal({ mission, onClose, onSuccess }: {
               <input type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Transport</label>
               <select value={formData.transport_type} onChange={(e) => setFormData({ ...formData, transport_type: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm">
@@ -1823,7 +1823,7 @@ function ValidateMissionModal({ mission, role, onClose, onSuccess }: {
           </div>
 
           {isRHStep && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Per diem journalier (XOF) *</label>
                 <input

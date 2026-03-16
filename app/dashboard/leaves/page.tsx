@@ -399,7 +399,7 @@ function LeaveTypesModal({
             {leaveTypes.map((type) => (
               <div key={type.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 {editingType?.id === type.id ? (
-                  <div className="flex-1 grid grid-cols-3 gap-3">
+                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <input
                       type="text"
                       value={editingType.name}
@@ -468,7 +468,7 @@ function LeaveTypesModal({
           {/* Add new type */}
           {showAddForm ? (
             <div className="mt-4 p-4 border-2 border-dashed border-gray-300 rounded-lg">
-              <div className="grid grid-cols-3 gap-3 mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                 <input
                   type="text"
                   value={newType.name}

@@ -1516,7 +1516,7 @@ export default function OnboardingPage() {
                 {assignments.filter(a => a.status === 'in_progress' || a.status === 'not_started').map(a => <option key={a.id} value={a.id}>{a.employee_name} - {a.program_name}</option>)}
               </select>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">Date *</label>
                 <input type="date" value={date_} onChange={e => setDate_(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" />

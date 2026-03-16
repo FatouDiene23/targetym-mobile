@@ -534,7 +534,7 @@ function MemberDetailPanel({ member, onClose }: { member: Employee; onClose: () 
             {activeTab === 'taches' && (
               <div className="space-y-4">
                 {/* Stats */}
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
                     { label: 'Total', value: taskData.stats.total, color: 'text-gray-700' },
                     { label: 'En cours', value: taskData.stats.in_progress, color: 'text-blue-600' },

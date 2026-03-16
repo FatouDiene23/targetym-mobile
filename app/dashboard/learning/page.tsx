@@ -3,7 +3,7 @@
 import { useLearning } from './LearningContext';
 import { hasPermission, getLevelColor, getLevelLabel, categories } from './shared';
 import {
-  BookOpen, Search, Plus, User, Users, Eye, FileWarning, MessageSquarePlus
+  BookOpen, Search, Plus, User, Users, Eye, FileWarning, MessageSquarePlus, Brain
 } from 'lucide-react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
@@ -13,7 +13,7 @@ export default function CatalogPage() {
   const {
     userRole, stats, courses, selectedCategory, setSelectedCategory,
     searchQuery, setSearchQuery, setSelectedCourse, setShowCreateCourse,
-    setShowAssignModal, setShowRequestCourse
+    setShowAssignModal, setShowRequestCourse, setShowCreateSkill
   } = useLearning();
 
   const totalCatalogHours = courses.reduce((s, c) => s + (c.duration_hours || 0), 0);
@@ -68,6 +68,11 @@ export default function CatalogPage() {
             <button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${selectedCategory === cat ? 'bg-primary-500 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>{cat}</button>
           ))}
         </div>
+        {hasPermission(userRole, 'create_skill') && (
+          <button onClick={() => setShowCreateSkill(true)} className="flex items-center px-4 py-2 bg-indigo-500 text-white text-sm font-medium rounded-lg hover:bg-indigo-600">
+            <Brain className="w-4 h-4 mr-2" />Nouvelle compétence
+          </button>
+        )}
         {hasPermission(userRole, 'create_course') && (
           <button onClick={() => setShowCreateCourse(true)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
             <Plus className="w-4 h-4 mr-2" />Ajouter

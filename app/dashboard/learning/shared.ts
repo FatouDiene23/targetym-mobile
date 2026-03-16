@@ -243,6 +243,7 @@ export interface EmployeeEvalHistory {
 
 export const hasPermission = (userRole: string, action: string): boolean => {
   const permissions: Record<string, string[]> = {
+    'create_skill': ['admin', 'dg', 'dga', 'rh'],
     'create_course': ['admin', 'dg', 'dga', 'rh'],
     'assign_course': ['admin', 'dg', 'dga', 'rh', 'manager'],
     'validate_completion': ['admin', 'dg', 'dga', 'rh', 'manager'],

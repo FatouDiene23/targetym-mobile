@@ -181,10 +181,10 @@ async function fetchStats(): Promise<RecruitmentStats | null> {
 
 async function fetchTotalCandidates(): Promise<number> {
   try {
-    const res = await fetch(`${API_URL}/api/recruitment/candidates?page_size=1`, { headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/recruitment/stats`, { headers: getAuthHeaders() });
     if (!res.ok) return 0;
     const data = await res.json();
-    return data.total ?? 0;
+    return data.total_candidates ?? 0;
   } catch { return 0; }
 }
 

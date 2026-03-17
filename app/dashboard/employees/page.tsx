@@ -954,7 +954,7 @@ function EmployeesPageInner() {
           <div className="flex items-center gap-2 px-3 py-1.5 bg-primary-50 border border-primary-200 rounded-lg text-sm text-primary-700 mb-4 w-fit">
             <Filter className="w-3.5 h-3.5" />
             <span className="font-medium">{cardFilterLabels[cardFilter]}</span>
-            <span className="text-primary-500">({displayedEmployees.length})</span>
+            <span className="text-primary-500">({cardFilter === 'active' ? dynamicStats.active : cardFilter === 'inactive' ? dynamicStats.inactive : cardFilter === 'on_leave' ? dynamicStats.on_leave : cardFilter === 'managers' ? dynamicStats.managers : cardFilter === 'female' ? dynamicStats.female : cardFilter === 'new_this_month' ? dynamicStats.new_this_month : displayedEmployees.length})</span>
             <button onClick={() => setCardFilter(null)} className="ml-1 p-0.5 hover:bg-primary-100 rounded"><X className="w-3.5 h-3.5" /></button>
           </div>
         )}

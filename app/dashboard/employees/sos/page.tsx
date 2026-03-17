@@ -33,6 +33,7 @@ interface SOSStats {
   new_alerts: number;
   in_progress: number;
   resolved: number;
+  closed: number;
   last_30_days: number;
   last_7_days: number;
   by_category: { category: string; count: number; label: string }[];
@@ -222,10 +223,11 @@ export default function SOSAdminPage() {
 
         {/* STAT CARDS */}
         {stats && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
             <StatCard label="Nouvelles alertes" value={stats.new_alerts} color="text-red-600" bg="bg-red-50" icon={<AlertTriangle className="w-5 h-5 text-red-500" />} />
             <StatCard label="En traitement" value={stats.in_progress} color="text-blue-600" bg="bg-blue-50" icon={<Clock className="w-5 h-5 text-blue-500" />} />
             <StatCard label="Résolues" value={stats.resolved} color="text-green-600" bg="bg-green-50" icon={<CheckCircle className="w-5 h-5 text-green-500" />} />
+            <StatCard label="Fermées" value={stats.closed ?? 0} color="text-gray-600" bg="bg-gray-100" icon={<XCircle className="w-5 h-5 text-gray-500" />} />
             <StatCard label="7 derniers jours" value={stats.last_7_days} color="text-orange-600" bg="bg-orange-50" icon={<BarChart2 className="w-5 h-5 text-orange-500" />} />
           </div>
         )}

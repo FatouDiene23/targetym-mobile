@@ -7,7 +7,7 @@ import {
   Briefcase, MapPin, Phone, Mail, Building, CalendarDays, Building2,
   FileText, Download, Loader2, Trash2, CheckCircle,
   Network, ZoomIn, ZoomOut, Users, ChevronUp, ChevronDown, Lock, Eye, EyeOff,
-  PenLine, Clock, CheckCircle2, XCircle
+  PenLine, Clock, CheckCircle2, XCircle, Upload
 } from 'lucide-react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
@@ -1170,13 +1170,23 @@ export default function MyProfilePage() {
                   <p className="text-xs text-gray-400 mb-2">Votre signature enregistrée :</p>
                   <img src={signature.signature_url} alt="Ma signature" className="max-h-20 max-w-xs object-contain" />
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   <button
                     onClick={() => setShowDefaultSigCanvas(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                   >
-                    <PenLine className="w-4 h-4" /> Modifier ma signature
+                    <PenLine className="w-4 h-4" /> Modifier (dessiner)
                   </button>
+                  <label className="flex items-center gap-2 px-4 py-2 border border-blue-300 text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium cursor-pointer">
+                    <Upload className="w-4 h-4" /> Importer une image
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/png,image/jpeg,image/webp"
+                      className="hidden"
+                      onChange={handleSignatureUpload}
+                    />
+                  </label>
                   <button
                     onClick={handleSignatureDelete}
                     disabled={signatureLoading}
@@ -1192,21 +1202,33 @@ export default function MyProfilePage() {
               <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center">
                 <PenLine className="w-10 h-10 text-gray-300 mx-auto mb-3" />
                 <p className="text-sm text-gray-500 mb-1">Aucune signature enregistrée</p>
-                <p className="text-xs text-gray-400 mb-4">
-                  Dessinez votre signature une fois pour la réutiliser sur tous vos documents
+                <p className="text-xs text-gray-400 mb-5">
+                  Dessinez votre signature ou importez une image (PNG, JPEG, WebP)
                 </p>
-                <button
-                  onClick={() => setShowDefaultSigCanvas(true)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                >
-                  <PenLine className="w-4 h-4" /> Dessiner ma signature
-                </button>
+                <div className="flex flex-wrap justify-center gap-3">
+                  <button
+                    onClick={() => setShowDefaultSigCanvas(true)}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    <PenLine className="w-4 h-4" /> Dessiner ma signature
+                  </button>
+                  <label className="inline-flex items-center gap-2 px-5 py-2.5 border border-blue-300 text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium cursor-pointer">
+                    <Upload className="w-4 h-4" /> Importer une image
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/png,image/jpeg,image/webp"
+                      className="hidden"
+                      onChange={handleSignatureUpload}
+                    />
+                  </label>
+                </div>
+                {signatureUploading && <p className="mt-3 text-sm text-blue-600">Import en cours...</p>}
               </div>
             )
           ) : (
             /* Canvas pour dessiner */
             <div>
-              <p className="text-sm text-gray-600 mb-3">Dessinez votre signature dans le cadre ci-dessous :</p>
               {savingDefaultSig ? (
                 <div className="flex items-center justify-center gap-2 text-blue-600 py-10">
                   <Loader2 className="w-5 h-5 animate-spin" /> Enregistrement en cours...

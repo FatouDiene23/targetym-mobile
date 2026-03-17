@@ -1132,7 +1132,9 @@ export default function RecruitmentPage() {
                   <button onClick={() => handleSendEmail(selectedApplication)} className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"><Mail className="w-4 h-4 mr-2" />Envoyer Email</button>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => handleReject(selectedApplication)} className="flex items-center px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600"><XCircle className="w-4 h-4 mr-2" />Refuser</button>
+                  {!['hired', 'rejected', 'withdrawn'].includes(selectedApplication.stage) && (
+                    <button onClick={() => handleReject(selectedApplication)} className="flex items-center px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600"><XCircle className="w-4 h-4 mr-2" />Refuser</button>
+                  )}
                   {selectedApplication.stage === 'final' ? (
                     <button onClick={() => handleSendOffer(selectedApplication)} className="flex items-center px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600"><FileText className="w-4 h-4 mr-2" />Envoyer Offre</button>
                   ) : selectedApplication.stage === 'offer' ? (

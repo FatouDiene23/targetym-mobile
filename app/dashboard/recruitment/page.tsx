@@ -314,6 +314,20 @@ async function updateApplicationStage(applicationId: number, stage: string, note
   } catch { return false; }
 }
 
+async function convertToEmployee(applicationId: number): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/api/recruitment/applications/${applicationId}/convert-to-employee`, { method: 'POST', headers: getAuthHeaders() });
+    return res.ok;
+  } catch { return false; }
+}
+
+async function updateCandidateAPI(candidateId: number, data: Record<string, unknown>): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/api/recruitment/candidates/${candidateId}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    return res.ok;
+  } catch { return false; }
+}
+
 async function rejectApplication(applicationId: number, reason?: string): Promise<boolean> {
   try {
     const url = reason ? `${API_URL}/api/recruitment/applications/${applicationId}/reject?reason=${encodeURIComponent(reason)}` : `${API_URL}/api/recruitment/applications/${applicationId}/reject`;
@@ -357,7 +371,7 @@ const pipelineStages = [
   { id: 'hired', name: 'Embauché', color: 'bg-emerald-600' },
 ];
 
-const stageLabels: Record<string, string> = { new: 'Candidatures', screening: 'Screening CV', phone_screen: 'Entretien Tél.', hr_interview: 'Entretien RH', technical: 'Entretien Tech', final: 'Entretien Final', offer: 'Offre', hired: 'Embauché', rejected: 'Refusé', withdrawn: 'Désisté' };
+const stageLabels: Record<string, string> = { new: 'Candidatures', screening: 'Screening CV', phone_screen: 'Entretien Tél.', hr_interview: 'Entretien RH', technical: 'Entretien Tech', final: 'Entretien Final', offer: 'Offre', hired: 'Embauché', employee: 'Employé', rejected: 'Refusé', withdrawn: 'Désisté' };
 const interviewTypeLabels: Record<string, string> = { phone: 'Téléphonique', video: 'Vidéoconférence', onsite: 'Sur site' };
 const interviewStatusLabels: Record<string, string> = { scheduled: 'Planifié', completed: 'Terminé', cancelled: 'Annulé', no_show: 'Absent' };
 
@@ -384,6 +398,7 @@ export default function RecruitmentPage() {
 
   const [showCandidateModal, setShowCandidateModal] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [showEditCandidateModal, setShowEditCandidateModal] = useState(false);
   const [showJobModal, setShowJobModal] = useState(false);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [showAddCandidateModal, setShowAddCandidateModal] = useState(false);
@@ -882,7 +897,7 @@ export default function RecruitmentPage() {
                   </div>
                 )}
                 {expandedJobCandidates === job.id && (() => {
-                  const jobApps = applications.filter(a => a.job_posting_id === job.id);
+                  const jobApps = applications.filter(a => a.job_posting_id === job.id && a.stage !== 'employee');
                   return (
                     <div className="mt-4 pt-4 border-t border-primary-100 bg-primary-50/40 rounded-b-xl -mx-5 px-5 pb-4">
                       <h4 className="text-sm font-semibold text-primary-700 mb-3 flex items-center gap-2"><Users className="w-4 h-4" />Candidats pour ce poste ({jobApps.length})</h4>
@@ -1060,7 +1075,10 @@ export default function RecruitmentPage() {
                     </div>
                   </div>
                 </div>
-                <button onClick={() => setShowCandidateModal(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setShowEditCandidateModal(true)} className="p-2 hover:bg-blue-50 rounded-lg text-blue-500" title="Modifier le candidat"><Edit className="w-5 h-5" /></button>
+                  <button onClick={() => setShowCandidateModal(false)} className="p-2 hover:bg-gray-100 rounded-lg" title="Fermer"><X className="w-5 h-5 text-gray-500" /></button>
+                </div>
               </div>
               
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1170,8 +1188,11 @@ export default function RecruitmentPage() {
                     <button onClick={() => handleSendOffer(selectedApplication)} className="flex items-center px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600"><FileText className="w-4 h-4 mr-2" />Envoyer Offre</button>
                   ) : selectedApplication.stage === 'offer' ? (
                     <button onClick={async () => { const ok = await updateApplicationStage(selectedApplication.id, 'hired'); if (ok) { setShowCandidateModal(false); loadData(); } else { toast.error('Erreur'); } }} className="flex items-center px-4 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700"><CheckCircle2 className="w-4 h-4 mr-2" />Accepter → Embauché</button>
-                  ) : !['hired', 'rejected', 'withdrawn'].includes(selectedApplication.stage) && (
+                  ) : !['hired', 'rejected', 'withdrawn', 'employee'].includes(selectedApplication.stage) && (
                     <button onClick={() => handleNextStage(selectedApplication)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600"><ArrowRight className="w-4 h-4 mr-2" />Étape Suivante</button>
+                  )}
+                  {selectedApplication.stage === 'hired' && (
+                    <button onClick={() => setConfirmDialog({ isOpen: true, title: 'Confirmer l’embauche', message: `Marquer ${selectedApplication.candidate_name} comme employé ? Cette action le retirera de la liste des candidats actifs pour ce poste.`, onConfirm: async () => { const ok = await convertToEmployee(selectedApplication.id); setConfirmDialog(null); if (ok) { setShowCandidateModal(false); loadData(); toast.success('Candidat converti en employé'); } else { toast.error('Erreur'); } } })} className="flex items-center px-4 py-2 bg-emerald-700 text-white text-sm rounded-lg hover:bg-emerald-800"><CheckCircle2 className="w-4 h-4 mr-2" />Est employé</button>
                   )}
                 </div>
               </div>
@@ -1182,6 +1203,7 @@ export default function RecruitmentPage() {
         {/* Modals */}
         {showJobModal && <JobModal job={editingJob} departments={departments} employees={employees} onClose={() => setShowJobModal(false)} onSave={async (data) => { const success = editingJob ? await updateJob(editingJob.id, data) : await createJob(data); if (success) { setShowJobModal(false); loadData(); } else { toast.error('Erreur lors de la sauvegarde'); } }} />}
         {showAddCandidateModal && <AddCandidateModal jobs={jobs.filter(j => j.status === 'active')} onClose={() => setShowAddCandidateModal(false)} onSave={async (data, cvFile) => { const candidateId = await createCandidate(data); if (candidateId) { if (cvFile) await uploadCandidateCV(candidateId, cvFile); setShowAddCandidateModal(false); loadData(); } else { toast.error('Erreur lors de la création'); } }} />}
+        {showEditCandidateModal && selectedApplication && <EditCandidateModal application={selectedApplication} onClose={() => setShowEditCandidateModal(false)} onSave={async (data, cvFile) => { const ok = await updateCandidateAPI(selectedApplication.candidate_id, data); if (ok) { if (cvFile) await uploadCandidateCV(selectedApplication.candidate_id, cvFile); setShowEditCandidateModal(false); loadData(); toast.success('Candidat mis à jour'); } else { toast.error('Erreur lors de la mise à jour'); } }} />}
         {showInterviewModal && selectedApplication && <InterviewModal application={selectedApplication} employees={employees} onClose={() => setShowInterviewModal(false)} onSave={async (data) => { const success = await createInterview(data); if (success) { setShowInterviewModal(false); setShowCandidateModal(false); loadData(); } else { toast.error('Erreur lors de la planification'); } }} />}
 
         {/* Batch Scoring IA Modal */}
@@ -1517,6 +1539,92 @@ function AddCandidateModal({ jobs, onClose, onSave }: { jobs: Job[]; onClose: ()
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
             <button type="submit" disabled={saving} className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{saving ? 'Création...' : 'Ajouter'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// EDIT CANDIDATE MODAL COMPONENT
+// ============================================
+
+function EditCandidateModal({ application, onClose, onSave }: { application: Application; onClose: () => void; onSave: (data: Record<string, unknown>, cvFile: File | null) => Promise<void>; }) {
+  const [saving, setSaving] = useState(false);
+  const [cvFile, setCvFile] = useState<File | null>(null);
+  const cvInputRef = useRef<HTMLInputElement>(null);
+  const [formData, setFormData] = useState({
+    first_name: application.candidate_name.split(' ')[0] || '',
+    last_name: application.candidate_name.split(' ').slice(1).join(' ') || '',
+    email: application.candidate_email || '',
+    phone: application.candidate_phone || '',
+    location: application.candidate_location || '',
+    linkedin_url: application.candidate_linkedin_url || '',
+    current_company: application.candidate_current_company || '',
+    education: application.candidate_education || '',
+    skills: (application.candidate_skills || []).join(', '),
+    expected_salary: application.candidate_expected_salary ? String(application.candidate_expected_salary) : '',
+    salary_currency: application.salary_currency || 'XOF',
+    notice_period: application.candidate_notice_period || '',
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault(); setSaving(true);
+    await onSave({
+      first_name: formData.first_name, last_name: formData.last_name, email: formData.email,
+      phone: formData.phone || undefined, location: formData.location || undefined,
+      linkedin_url: formData.linkedin_url || undefined, current_company: formData.current_company || undefined,
+      education: formData.education || undefined,
+      skills: formData.skills ? formData.skills.split(',').map(s => s.trim()).filter(s => s) : undefined,
+      expected_salary: formData.expected_salary ? parseFloat(formData.expected_salary) : undefined,
+      salary_currency: formData.salary_currency || 'XOF',
+      notice_period: formData.notice_period || undefined,
+    }, cvFile);
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-900">Modifier le candidat</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label><input type="text" required value={formData.first_name} onChange={(e) => setFormData({...formData, first_name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label><input type="text" required value={formData.last_name} onChange={(e) => setFormData({...formData, last_name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Email *</label><input type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label><input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label><input type="text" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn</label><input type="url" value={formData.linkedin_url} onChange={(e) => setFormData({...formData, linkedin_url: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="https://linkedin.com/in/..." /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Entreprise actuelle</label><input type="text" value={formData.current_company} onChange={(e) => setFormData({...formData, current_company: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Formation</label><input type="text" value={formData.education} onChange={(e) => setFormData({...formData, education: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
+            <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Compétences (séparées par virgule)</label><input type="text" value={formData.skills} onChange={(e) => setFormData({...formData, skills: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="React, Node.js, TypeScript" /></div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Salaire attendu</label>
+              <div className="flex gap-2">
+                <input type="number" value={formData.expected_salary} onChange={(e) => setFormData({...formData, expected_salary: e.target.value})} className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="1500000" />
+                <input type="text" value={formData.salary_currency} onChange={(e) => setFormData({...formData, salary_currency: e.target.value})} className="w-20 px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm" />
+              </div>
+            </div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Préavis</label><input type="text" value={formData.notice_period} onChange={(e) => setFormData({...formData, notice_period: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="1 mois" /></div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">{application.candidate_cv_url ? 'Remplacer le CV (PDF, DOC, DOCX)' : 'Ajouter un CV (PDF, DOC, DOCX)'}</label>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 text-sm text-gray-600 flex-1">
+                  <Upload className="w-4 h-4 text-gray-400" />
+                  {cvFile ? cvFile.name : (application.candidate_cv_filename || 'Choisir un fichier...')}
+                  <input ref={cvInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => setCvFile(e.target.files?.[0] || null)} />
+                </label>
+                {cvFile && <button type="button" onClick={() => { setCvFile(null); if (cvInputRef.current) cvInputRef.current.value = ''; }} className="p-1.5 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>}
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+            <button type="submit" disabled={saving} className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{saving ? 'Enregistrement...' : 'Mettre à jour'}</button>
           </div>
         </form>
       </div>

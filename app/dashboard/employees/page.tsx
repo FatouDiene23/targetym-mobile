@@ -22,7 +22,7 @@ import {
   Palmtree, CheckCircle, XCircle, Filter, ChevronDown, Briefcase,
   User, Loader2, RefreshCw, X, Send, Clock, MailCheck, AlertCircle, AlertTriangle,
   Copy, Check, Maximize2, Minimize2, Network, ZoomIn, ZoomOut, FileText,
-  Trash2, UserX, MoreHorizontal
+  Trash2, UserX, MoreHorizontal, Layers
 } from 'lucide-react';
 import { 
   getEmployees, getEmployeeStats, getDepartments, getDepartmentsTree, exportEmployeesToCSV,
@@ -875,27 +875,63 @@ function EmployeesPageInner() {
       <main className="flex-1 p-6 overflow-auto">
         {error && (<div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between"><span className="text-red-700">{error}</span><button onClick={loadAllData} className="flex items-center text-red-600 hover:text-red-800"><RefreshCw className="w-4 h-4 mr-1" />Réessayer</button></div>)}
 
-        {hasActiveFilter && (
+        {hasActiveFilter && activeTab === 'employees' && (
           <div className="mb-4 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
             <span className="text-sm text-blue-700"><Filter className="w-4 h-4 inline mr-2" />Filtres : {selectedDepartment !== 'Tous' && <span className="ml-2 px-2 py-0.5 bg-blue-100 rounded">{selectedDepartment}</span>}{selectedLocation !== 'Tous' && <span className="ml-2 px-2 py-0.5 bg-blue-100 rounded">{selectedLocation}</span>}{searchTerm && <span className="ml-2 px-2 py-0.5 bg-blue-100 rounded">&quot;{searchTerm}&quot;</span>}{cardFilter && <span className="ml-2 px-2 py-0.5 bg-primary-100 text-primary-700 rounded">{cardFilterLabels[cardFilter]}</span>}</span>
             <button onClick={() => { setSelectedDepartment('Tous'); setSelectedLocation('Tous'); setSearchTerm(''); setCardFilter(null); setCurrentPage(1); }} className="text-sm text-blue-600 hover:text-blue-800 flex items-center"><X className="w-4 h-4 mr-1" />Effacer</button>
           </div>
         )}
 
-        {/* Stats — clickable cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
-          <div onClick={() => { setCardFilter(null); setActiveTab('employees'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${!cardFilter ? 'border-blue-300 ring-2 ring-blue-100' : 'border-gray-100'}`}><Users className="w-5 h-5 text-blue-500 mb-2" /><p className="text-2xl font-bold text-gray-900">{dynamicStats.total}</p><p className="text-xs text-gray-500">Total</p></div>
-          <div onClick={() => { setCardFilter(cardFilter === 'active' ? null : 'active'); setActiveTab('employees'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'active' ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}><UserCheck className="w-5 h-5 text-green-500 mb-2" /><p className="text-2xl font-bold text-green-600">{dynamicStats.active}</p><p className="text-xs text-gray-500">Actifs</p></div>
-          <div onClick={() => { setCardFilter(cardFilter === 'new_this_month' ? null : 'new_this_month'); setActiveTab('employees'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'new_this_month' ? 'border-blue-300 ring-2 ring-blue-100' : 'border-gray-100'}`}><UserPlus className="w-5 h-5 text-blue-500 mb-2" /><p className="text-2xl font-bold text-blue-600">{dynamicStats.new_this_month}</p><p className="text-xs text-gray-500">Nouveaux</p></div>
-          <div onClick={() => { setCardFilter(cardFilter === 'inactive' ? null : 'inactive'); setActiveTab('employees'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'inactive' ? 'border-red-300 ring-2 ring-red-100' : 'border-gray-100'}`}><TrendingDown className="w-5 h-5 text-red-500 mb-2" /><p className="text-2xl font-bold text-red-600">{dynamicStats.inactive}</p><p className="text-xs text-gray-500">Inactifs</p></div>
-          <div onClick={() => { setActiveTab('departments'); setCardFilter(null); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${activeTab === 'departments' ? 'border-purple-300 ring-2 ring-purple-100' : 'border-gray-100'}`}><Building2 className="w-5 h-5 text-purple-500 mb-2" /><p className="text-2xl font-bold text-purple-600">{departments.length}</p><p className="text-xs text-gray-500">Départements</p></div>
-          <div onClick={() => { setCardFilter(cardFilter === 'managers' ? null : 'managers'); setActiveTab('employees'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'managers' ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-gray-100'}`}><Briefcase className="w-5 h-5 text-indigo-500 mb-2" /><p className="text-2xl font-bold text-indigo-600">{dynamicStats.managers}</p><p className="text-xs text-gray-500">Managers</p></div>
-          <div onClick={() => { setCardFilter(cardFilter === 'on_leave' ? null : 'on_leave'); setActiveTab('employees'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'on_leave' ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}><Palmtree className="w-5 h-5 text-green-500 mb-2" /><p className="text-2xl font-bold text-green-600">{dynamicStats.on_leave}</p><p className="text-xs text-gray-500">En congés</p></div>
-          <div onClick={() => { setCardFilter(cardFilter === 'female' ? null : 'female'); setActiveTab('employees'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'female' ? 'border-pink-300 ring-2 ring-pink-100' : 'border-gray-100'}`}><span className="text-sm font-bold text-pink-500 block mb-2">♀</span><p className="text-2xl font-bold text-pink-600">{dynamicStats.female}</p><p className="text-xs text-gray-500">Femmes</p></div>
-        </div>
+        {/* Stats — contextuelles par onglet */}
+        {activeTab === 'employees' && (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
+            <div onClick={() => { setCardFilter(null); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${!cardFilter ? 'border-blue-300 ring-2 ring-blue-100' : 'border-gray-100'}`}><Users className="w-5 h-5 text-blue-500 mb-2" /><p className="text-2xl font-bold text-gray-900">{dynamicStats.total}</p><p className="text-xs text-gray-500">Total</p></div>
+            <div onClick={() => { setCardFilter(cardFilter === 'active' ? null : 'active'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'active' ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}><UserCheck className="w-5 h-5 text-green-500 mb-2" /><p className="text-2xl font-bold text-green-600">{dynamicStats.active}</p><p className="text-xs text-gray-500">Actifs</p></div>
+            <div onClick={() => { setCardFilter(cardFilter === 'new_this_month' ? null : 'new_this_month'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'new_this_month' ? 'border-blue-300 ring-2 ring-blue-100' : 'border-gray-100'}`}><UserPlus className="w-5 h-5 text-blue-500 mb-2" /><p className="text-2xl font-bold text-blue-600">{dynamicStats.new_this_month}</p><p className="text-xs text-gray-500">Nouveaux</p></div>
+            <div onClick={() => { setCardFilter(cardFilter === 'inactive' ? null : 'inactive'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'inactive' ? 'border-red-300 ring-2 ring-red-100' : 'border-gray-100'}`}><TrendingDown className="w-5 h-5 text-red-500 mb-2" /><p className="text-2xl font-bold text-red-600">{dynamicStats.inactive}</p><p className="text-xs text-gray-500">Inactifs</p></div>
+            <div onClick={() => { setCardFilter(cardFilter === 'managers' ? null : 'managers'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'managers' ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-gray-100'}`}><Briefcase className="w-5 h-5 text-indigo-500 mb-2" /><p className="text-2xl font-bold text-indigo-600">{dynamicStats.managers}</p><p className="text-xs text-gray-500">Managers</p></div>
+            <div onClick={() => { setCardFilter(cardFilter === 'on_leave' ? null : 'on_leave'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'on_leave' ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}><Palmtree className="w-5 h-5 text-green-500 mb-2" /><p className="text-2xl font-bold text-green-600">{dynamicStats.on_leave}</p><p className="text-xs text-gray-500">En congés</p></div>
+            <div onClick={() => { setCardFilter(cardFilter === 'female' ? null : 'female'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'female' ? 'border-pink-300 ring-2 ring-pink-100' : 'border-gray-100'}`}><span className="text-sm font-bold text-pink-500 block mb-2">♀</span><p className="text-2xl font-bold text-pink-600">{dynamicStats.female}</p><p className="text-xs text-gray-500">Femmes</p></div>
+          </div>
+        )}
+
+        {activeTab === 'departments' && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Building2 className="w-5 h-5 text-purple-500 mb-2" /><p className="text-2xl font-bold text-purple-600">{departments.length}</p><p className="text-xs text-gray-500">Total unités</p></div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Network className="w-5 h-5 text-indigo-500 mb-2" /><p className="text-2xl font-bold text-indigo-600">{departments.filter(d => !d.parent_id).length}</p><p className="text-xs text-gray-500">Unités principales</p></div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Layers className="w-5 h-5 text-blue-500 mb-2" /><p className="text-2xl font-bold text-blue-600">{departments.filter(d => d.parent_id).length}</p><p className="text-xs text-gray-500">Sous-unités</p></div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Users className="w-5 h-5 text-green-500 mb-2" /><p className="text-2xl font-bold text-green-600">{dynamicStats.total}</p><p className="text-xs text-gray-500">Collaborateurs</p></div>
+          </div>
+        )}
+
+        {activeTab === 'orgchart' && (
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Users className="w-5 h-5 text-blue-500 mb-2" /><p className="text-2xl font-bold text-gray-900">{dynamicStats.total}</p><p className="text-xs text-gray-500">Collaborateurs</p></div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Building2 className="w-5 h-5 text-purple-500 mb-2" /><p className="text-2xl font-bold text-purple-600">{departments.filter(d => !d.parent_id).length}</p><p className="text-xs text-gray-500">Unités</p></div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Briefcase className="w-5 h-5 text-indigo-500 mb-2" /><p className="text-2xl font-bold text-indigo-600">{dynamicStats.managers}</p><p className="text-xs text-gray-500">Managers</p></div>
+          </div>
+        )}
+
+        {activeTab === 'leaves' && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Palmtree className="w-5 h-5 text-blue-500 mb-2" /><p className="text-2xl font-bold text-gray-900">{leaveStats.total}</p><p className="text-xs text-gray-500">Total demandes</p></div>
+            <div onClick={() => setLeaveStatusFilter('pending')} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${leaveStatusFilter === 'pending' ? 'border-yellow-300 ring-2 ring-yellow-100' : 'border-gray-100'}`}><Clock className="w-5 h-5 text-yellow-500 mb-2" /><p className="text-2xl font-bold text-yellow-600">{leaveStats.pending}</p><p className="text-xs text-gray-500">En attente</p></div>
+            <div onClick={() => setLeaveStatusFilter('approved')} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${leaveStatusFilter === 'approved' ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}><CheckCircle className="w-5 h-5 text-green-500 mb-2" /><p className="text-2xl font-bold text-green-600">{leaveStats.approved}</p><p className="text-xs text-gray-500">Approuvées</p></div>
+            <div onClick={() => setLeaveStatusFilter('rejected')} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${leaveStatusFilter === 'rejected' ? 'border-red-300 ring-2 ring-red-100' : 'border-gray-100'}`}><XCircle className="w-5 h-5 text-red-500 mb-2" /><p className="text-2xl font-bold text-red-600">{leaveStats.rejected}</p><p className="text-xs text-gray-500">Refusées</p></div>
+          </div>
+        )}
+
+        {activeTab === 'invitations' && invitationStats && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Users className="w-5 h-5 text-blue-500 mb-2" /><p className="text-2xl font-bold text-gray-900">{invitationStats.total_employees}</p><p className="text-xs text-gray-500">Total employés</p></div>
+            <div onClick={() => setInvitationFilter(invitationFilter === 'not_invited' ? 'all' : 'not_invited')} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${invitationFilter === 'not_invited' ? 'border-gray-400 ring-2 ring-gray-100' : 'border-gray-100'}`}><UserX className="w-5 h-5 text-gray-400 mb-2" /><p className="text-2xl font-bold text-gray-600">{invitationStats.not_invited}</p><p className="text-xs text-gray-500">Non invités</p></div>
+            <div onClick={() => setInvitationFilter(invitationFilter === 'pending' ? 'all' : 'pending')} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${invitationFilter === 'pending' ? 'border-yellow-300 ring-2 ring-yellow-100' : 'border-gray-100'}`}><Clock className="w-5 h-5 text-yellow-500 mb-2" /><p className="text-2xl font-bold text-yellow-600">{invitationStats.pending}</p><p className="text-xs text-gray-500">En attente</p></div>
+            <div onClick={() => setInvitationFilter(invitationFilter === 'accepted' ? 'all' : 'accepted')} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${invitationFilter === 'accepted' ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}><UserCheck className="w-5 h-5 text-green-500 mb-2" /><p className="text-2xl font-bold text-green-600">{invitationStats.accepted}</p><p className="text-xs text-gray-500">Acceptées</p></div>
+          </div>
+        )}
 
         {/* Card filter indicator */}
-        {cardFilter && (
+        {cardFilter && activeTab === 'employees' && (
           <div className="flex items-center gap-2 px-3 py-1.5 bg-primary-50 border border-primary-200 rounded-lg text-sm text-primary-700 mb-4 w-fit">
             <Filter className="w-3.5 h-3.5" />
             <span className="font-medium">{cardFilterLabels[cardFilter]}</span>

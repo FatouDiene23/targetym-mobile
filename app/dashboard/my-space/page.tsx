@@ -6,13 +6,15 @@ import {
   User, Edit2, Save, X, AlertCircle,
   Briefcase, MapPin, Phone, Mail, Building, CalendarDays, Building2,
   FileText, Download, Loader2, PenTool, Upload, Trash2, CheckCircle,
-  Network, ZoomIn, ZoomOut, Users, ChevronUp, ChevronDown, Lock, Eye, EyeOff
+  Network, ZoomIn, ZoomOut, Users, ChevronUp, ChevronDown, Lock, Eye, EyeOff,
+  PenLine, Clock, CheckCircle2, XCircle
 } from 'lucide-react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { mySpaceTips } from '@/config/pageTips';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import SOSButton from '@/components/SOSButton';
+import SignatureCanvas from '@/components/SignatureCanvas';
 
 // ============================================
 // TYPES
@@ -69,6 +71,32 @@ interface OrgNode {
   is_manager?: boolean;
   children: OrgNode[];
 }
+
+// ============================================
+// SIGNATURES - Types
+// ============================================
+interface PendingSignature {
+  id: number;
+  document_id: number;
+  document_title: string;
+  document_type: string;
+  file_name?: string;
+  status: string;
+  expires_at?: string;
+  viewed_at?: string;
+  created_at: string;
+}
+
+const DOC_TYPE_LABELS: Record<string, string> = {
+  contrat_travail: 'Contrat de travail',
+  avenant: 'Avenant',
+  accord: 'Accord',
+  nda: 'NDA / Confidentialité',
+  fiche_paie: 'Fiche de paie',
+  attestation: 'Attestation',
+  reglement_interieur: 'Règlement intérieur',
+  autre: 'Autre',
+};
 
 const myOrgCSS = `
 .my-org-tree {
@@ -368,7 +396,17 @@ export default function MyProfilePage() {
   const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
 
   // Tab
-  const [activeTab, setActiveTab] = useState<'profile' | 'orgchart'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'orgchart' | 'signatures'>('profile');
+
+  // Signatures
+  const [pendingSignatures, setPendingSignatures] = useState<PendingSignature[]>([]);
+  const [signaturesLoading, setSignaturesLoading] = useState(false);
+  const [signingRequest, setSigningRequest] = useState<PendingSignature | null>(null);
+  const [signDocData, setSignDocData] = useState<{ file_data: string; file_name: string; title: string } | null>(null);
+  const [signDocLoading, setSignDocLoading] = useState(false);
+  const [showSignCanvas, setShowSignCanvas] = useState(false);
+  const [rejectingRequest, setRejectingRequest] = useState<PendingSignature | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   // Organigramme personnel
   const [orgTree, setOrgTree] = useState<OrgNode | null>(null);
@@ -382,6 +420,72 @@ export default function MyProfilePage() {
   const [showPasswordSection, setShowPasswordSection] = useState(false);
 
   // Tour tips
+  const fetchPendingSignatures = useCallback(async () => {
+    setSignaturesLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/signatures/pending`, { headers: getAuthHeaders() });
+      if (res.ok) setPendingSignatures(await res.json());
+    } catch { /* ignore */ } finally {
+      setSignaturesLoading(false);
+    }
+  }, []);
+
+  const openSignModal = async (req: PendingSignature) => {
+    setSigningRequest(req);
+    setShowSignCanvas(false);
+    setSignDocData(null);
+    setSignDocLoading(true);
+    try {
+      // mark as viewed
+      await fetch(`${API_URL}/api/signatures/requests/${req.id}/view`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+      });
+      // load pdf data
+      const res = await fetch(`${API_URL}/api/signatures/requests/${req.id}/document-data`, { headers: getAuthHeaders() });
+      if (res.ok) setSignDocData(await res.json());
+    } catch { /* ignore */ } finally {
+      setSignDocLoading(false);
+    }
+  };
+
+  const handleSign = async (base64: string) => {
+    if (!signingRequest) return;
+    try {
+      const res = await fetch(`${API_URL}/api/signatures/requests/${signingRequest.id}/sign`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ signature_image_b64: base64 }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success('Document signé avec succès !');
+      setSigningRequest(null);
+      setSignDocData(null);
+      setShowSignCanvas(false);
+      fetchPendingSignatures();
+    } catch {
+      toast.error('Erreur lors de la signature');
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectingRequest) return;
+    try {
+      const res = await fetch(`${API_URL}/api/signatures/requests/${rejectingRequest.id}/reject`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: rejectReason || 'Refusé par l\'employé' }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success('Refus enregistré');
+      setRejectingRequest(null);
+      setRejectReason('');
+      fetchPendingSignatures();
+    } catch {
+      toast.error('Erreur lors du refus');
+    }
+  };
+
   const { showTips, dismissTips, resetTips } = usePageTour('mySpace');
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -603,6 +707,10 @@ export default function MyProfilePage() {
     }
   }, [activeTab, orgTree, orgLoading, employee, fetchMyOrgChart]);
 
+  useEffect(() => {
+    if (activeTab === 'signatures') fetchPendingSignatures();
+  }, [activeTab, fetchPendingSignatures]);
+
   const toggleOrgNode = (id: number) => {
     setOrgExpanded(prev => {
       const next = new Set(prev);
@@ -753,6 +861,12 @@ export default function MyProfilePage() {
           </button>
           <button onClick={() => setActiveTab('orgchart')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${activeTab === 'orgchart' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
             <Network className="w-4 h-4" />Mon Organigramme
+          </button>
+          <button onClick={() => setActiveTab('signatures')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${activeTab === 'signatures' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+            <PenLine className="w-4 h-4" />Mes Signatures
+            {pendingSignatures.length > 0 && (
+              <span className="ml-1 bg-orange-500 text-white text-xs px-1.5 py-0.5 rounded-full">{pendingSignatures.length}</span>
+            )}
           </button>
         </div>
 
@@ -1214,8 +1328,178 @@ export default function MyProfilePage() {
           </p>
         </div>
         </>)}
+
+        {/* ============================================ */}
+        {/* Tab: Mes Signatures */}
+        {/* ============================================ */}
+        {activeTab === 'signatures' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <PenLine className="w-5 h-5 text-blue-600" />
+                  Documents à signer
+                </h2>
+                <p className="text-sm text-gray-500 mt-0.5">Documents en attente de votre signature électronique</p>
+              </div>
+            </div>
+
+            {signaturesLoading ? (
+              <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+            ) : pendingSignatures.length === 0 ? (
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
+                <CheckCircle2 className="w-12 h-12 text-green-400 mx-auto mb-3" />
+                <p className="text-gray-500 font-medium">Aucun document en attente</p>
+                <p className="text-sm text-gray-400 mt-1">Tous vos documents ont été traités</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pendingSignatures.map((req) => (
+                  <div key={req.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center justify-between gap-4">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="mt-1 flex-shrink-0 w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center">
+                        <FileText className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{req.document_title}</p>
+                        <p className="text-sm text-gray-500">{DOC_TYPE_LABELS[req.document_type] ?? req.document_type}</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${req.status === 'viewed' ? 'bg-blue-50 text-blue-700' : 'bg-orange-50 text-orange-700'}`}>
+                            {req.status === 'viewed' ? <Eye className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                            {req.status === 'viewed' ? 'Consulté' : 'En attente'}
+                          </span>
+                          {req.expires_at && (
+                            <span className="text-xs text-gray-400">
+                              Expire le {new Date(req.expires_at).toLocaleDateString('fr-FR')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => setRejectingRequest(req)}
+                        className="px-3 py-1.5 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition"
+                      >
+                        Refuser
+                      </button>
+                      <button
+                        onClick={() => openSignModal(req)}
+                        className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-1.5"
+                      >
+                        <PenLine className="w-3.5 h-3.5" />
+                        Signer
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Sign Modal ── */}
+        {signingRequest && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between px-6 py-4 border-b">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <PenLine className="w-5 h-5 text-blue-600" />
+                  Signer : {signingRequest.document_title}
+                </h3>
+                <button onClick={() => { setSigningRequest(null); setSignDocData(null); setShowSignCanvas(false); }} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-6 space-y-5">
+                {signDocLoading ? (
+                  <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+                ) : signDocData ? (
+                  <>
+                    {/* PDF Preview */}
+                    {!showSignCanvas && (
+                      <div className="space-y-3">
+                        <p className="text-sm text-gray-600">Lisez attentivement le document avant de signer.</p>
+                        <div className="border border-gray-200 rounded-xl overflow-hidden bg-gray-50 h-64 flex items-center justify-center">
+                          <div className="text-center">
+                            <FileText className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                            <p className="text-sm text-gray-500">{signDocData.file_name}</p>
+                            <a
+                              href={`data:application/pdf;base64,${signDocData.file_data}`}
+                              download={signDocData.file_name}
+                              className="mt-2 inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline"
+                            >
+                              <Download className="w-3.5 h-3.5" /> Télécharger le PDF
+                            </a>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setShowSignCanvas(true)}
+                          className="w-full py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-medium flex items-center justify-center gap-2"
+                        >
+                          <PenLine className="w-4 h-4" />
+                          Procéder à la signature
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Signature Canvas */}
+                    {showSignCanvas && (
+                      <SignatureCanvas
+                        onConfirm={handleSign}
+                        onCancel={() => setShowSignCanvas(false)}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-red-500">Impossible de charger le document.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Reject Modal ── */}
+        {rejectingRequest && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+              <div className="flex items-center justify-between px-6 py-4 border-b">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <XCircle className="w-5 h-5 text-red-500" />
+                  Refuser la signature
+                </h3>
+                <button onClick={() => { setRejectingRequest(null); setRejectReason(''); }} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <p className="text-sm text-gray-600">
+                  Vous êtes sur le point de refuser de signer <strong>{rejectingRequest.document_title}</strong>.
+                </p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Motif du refus (optionnel)</label>
+                  <textarea
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    rows={3}
+                    placeholder="Expliquez la raison de votre refus..."
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
+                  />
+                </div>
+                <div className="flex gap-3 justify-end">
+                  <button onClick={() => { setRejectingRequest(null); setRejectReason(''); }} className="px-4 py-2 text-sm border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition">
+                    Annuler
+                  </button>
+                  <button onClick={handleReject} className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                    Confirmer le refus
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-      
+
       {confirmDialog && (
         <ConfirmDialog
           isOpen={confirmDialog.isOpen}

@@ -47,6 +47,7 @@ import {
   Building2,
   GitBranch,
   AlertTriangle,
+  PenLine,
 } from 'lucide-react';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
@@ -246,6 +247,7 @@ const personnelNavigation: NavItem[] = [
   { name: 'Invitations',  href: '/dashboard/employees?tab=invitations', icon: UserPlus,  roles: ['rh', 'admin', 'dg'] },
   { name: 'Import',       href: '/dashboard/employees?tab=import',     icon: ArrowUpRight, roles: ['rh', 'admin', 'dg'] },
   { name: 'Alertes SOS',  href: '/dashboard/employees/sos',            icon: AlertTriangle, roles: ['rh', 'admin', 'dg'] },
+  { name: 'Signatures',   href: '/dashboard/employees/signatures',      icon: PenLine,       roles: ['rh', 'admin', 'dg'] },
 ];
 
 // ============================================

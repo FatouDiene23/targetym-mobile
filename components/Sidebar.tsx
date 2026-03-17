@@ -239,9 +239,11 @@ const personnelNavigation: NavItem[] = [
   { name: 'Départements', href: '/dashboard/employees?tab=departments', icon: Building2, roles: ['rh', 'admin', 'dg'] },
   { name: 'Organigramme', href: '/dashboard/employees?tab=orgchart',    icon: GitBranch, roles: ['rh', 'admin', 'dg'] },
   { name: 'Documents',    href: '/dashboard/employees?tab=documents',  icon: FileText,  roles: ['rh', 'admin', 'dg'] },
+  { name: 'Congés',       href: '/dashboard/employees?tab=leaves',     icon: Calendar,  roles: ['rh', 'admin', 'dg'] },
   { name: 'Absences',     href: '/dashboard/employees?tab=absences',   icon: UserMinus, roles: ['rh', 'admin', 'dg', 'manager'] },
   { name: 'Sanctions',    href: '/dashboard/employees?tab=sanctions',  icon: Shield,    roles: ['rh', 'admin', 'dg'] },
   { name: 'Invitations',  href: '/dashboard/employees?tab=invitations', icon: UserPlus,  roles: ['rh', 'admin', 'dg'] },
+  { name: 'Import',       href: '/dashboard/employees?tab=import',     icon: ArrowUpRight, roles: ['rh', 'admin', 'dg'] },
 ];
 
 // ============================================

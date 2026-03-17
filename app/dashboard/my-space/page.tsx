@@ -12,6 +12,7 @@ import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { mySpaceTips } from '@/config/pageTips';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import SOSButton from '@/components/SOSButton';
 
 // ============================================
 // TYPES
@@ -737,9 +738,12 @@ export default function MyProfilePage() {
       <style dangerouslySetInnerHTML={{ __html: myOrgCSS }} />
       <div className={activeTab === 'orgchart' ? 'max-w-7xl mx-auto' : 'max-w-4xl mx-auto'}>
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Mon Espace</h1>
-          <p className="text-gray-500 mt-1">Votre profil et votre position dans l&apos;organisation</p>
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Mon Espace</h1>
+            <p className="text-gray-500 mt-1">Votre profil et votre position dans l&apos;organisation</p>
+          </div>
+          <SOSButton />
         </div>
 
         {/* Tabs */}

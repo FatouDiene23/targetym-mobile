@@ -13,7 +13,8 @@ import AbsencesTab from '@/components/AbsencesTab';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { employeesTips } from '@/config/pageTips';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { 
   Search, Plus, Mail, Phone, MapPin, Calendar, Building2, Download,
@@ -338,7 +339,7 @@ function TempPasswordModal({ isOpen, onClose, employeeName, email, tempPassword,
 // ============================================
 // PAGE PRINCIPALE
 // ============================================
-export default function EmployeesPage() {
+function EmployeesPageInner() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [stats, setStats] = useState<EmployeeStats | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -349,16 +350,16 @@ export default function EmployeesPage() {
   const [selectedLocation, setSelectedLocation] = useState('Tous');
   const [cardFilter, setCardFilter] = useState<string | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'employees' | 'leaves' | 'invitations' | 'orgchart' | 'documents' | 'departments' | 'import' | 'sanctions' | 'absences'>('employees');
-  // Lire l'onglet initial depuis l'URL (?tab=xxx) — utilisé par la sidebar
+  // Réagir aux changements de ?tab= dans l'URL (sidebar navigation)
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get('tab');
-    const validTabs = ['employees', 'leaves', 'invitations', 'orgchart', 'documents', 'departments', 'import', 'sanctions'];
+    const tab = searchParams.get('tab');
+    const validTabs = ['employees', 'leaves', 'invitations', 'orgchart', 'documents', 'departments', 'import', 'sanctions', 'absences'];
     if (tab && validTabs.includes(tab)) {
       setActiveTab(tab as 'employees' | 'leaves' | 'invitations' | 'orgchart' | 'documents' | 'departments' | 'import' | 'sanctions' | 'absences');
     }
-  }, []);
+  }, [searchParams]);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -1248,5 +1249,12 @@ export default function EmployeesPage() {
         />
       )}
     </>
+  );
+}
+export default function EmployeesPage() {
+  return (
+    <Suspense>
+      <EmployeesPageInner />
+    </Suspense>
   );
 }

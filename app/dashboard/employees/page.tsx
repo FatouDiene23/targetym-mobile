@@ -1046,11 +1046,16 @@ function EmployeesPageInner() {
               <p className="text-xs font-medium text-gray-500 mb-2">Légende</p>
               <div className="flex flex-wrap gap-3">
                 {[
-                  { label: 'PCA / Présidence', i: 0 }, { label: 'VP', i: 1 }, { label: 'DG', i: 2 },
-                  { label: 'DGA', i: 3 }, { label: 'DC / Direction', i: 4 }, { label: 'Département', i: 5 }, { label: 'Service', i: 6 },
+                  { label: 'Présidence',                i: 0 },
+                  { label: 'Vice-Présidence',           i: 1 },
+                  { label: 'Direction Générale',        i: 2 },
+                  { label: 'Dir. Générale Adjointe',    i: 3 },
+                  { label: 'Direction Centrale',        i: 4 },
+                  { label: 'Direction',                 i: 5 },
+                  { label: 'Département / Service',     i: 6 },
                 ].map(({ label, i }) => (
                   <div key={i} className="flex items-center gap-1.5">
-                    <div className={`w-3 h-3 rounded-full ${levelStyles[Math.min(i, levelStyles.length - 1)].avatar}`} />
+                    <div className={`w-3 h-3 rounded-full ${levelStyles[i].avatar}`} />
                     <span className="text-xs text-gray-600">{label}</span>
                   </div>
                 ))}

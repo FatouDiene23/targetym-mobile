@@ -857,8 +857,21 @@ function EmployeesPageInner() {
   // ============================================
   // RENDER
   // ============================================
+  const tabHeaders: Record<string, { title: string; subtitle: string }> = {
+    employees:   { title: 'Annuaire',          subtitle: 'Liste et gestion des collaborateurs' },
+    departments: { title: 'Unités',            subtitle: 'Gestion des unités et sous-unités organisationnelles' },
+    orgchart:    { title: 'Organigramme',       subtitle: 'Structure hiérarchique de l\'organisation' },
+    documents:   { title: 'Documents RH',      subtitle: 'Gestion des documents et contrats des collaborateurs' },
+    leaves:      { title: 'Congés',            subtitle: 'Suivi et validation des demandes de congé' },
+    absences:    { title: 'Absences',          subtitle: 'Déclaration et suivi des absences non planifiées' },
+    sanctions:   { title: 'Sanctions',         subtitle: 'Gestion des mesures disciplinaires' },
+    invitations: { title: 'Invitations',       subtitle: 'Inviter des collaborateurs à rejoindre la plateforme' },
+    import:      { title: 'Import',            subtitle: 'Importer des collaborateurs en masse via fichier CSV' },
+  };
+  const currentHeader = tabHeaders[activeTab] ?? { title: 'Gestion du Personnel', subtitle: 'Administration RH, effectifs et congés' };
+
   if (isLoading) {
-    return (<><Header title="Gestion du Personnel" subtitle="Administration RH, effectifs et congés" /><main className="flex-1 p-6 flex items-center justify-center"><div className="text-center"><Loader2 className="w-12 h-12 animate-spin text-primary-500 mx-auto mb-4" /><p className="text-gray-500">Chargement...</p></div></main></>);
+    return (<><Header title={currentHeader.title} subtitle={currentHeader.subtitle} /><main className="flex-1 p-6 flex items-center justify-center"><div className="text-center"><Loader2 className="w-12 h-12 animate-spin text-primary-500 mx-auto mb-4" /><p className="text-gray-500">Chargement...</p></div></main></>);
   }
 
   return (
@@ -868,10 +881,10 @@ function EmployeesPageInner() {
         <PageTourTips
           tips={employeesTips}
           onDismiss={dismissTips}
-          pageTitle="Gestion du Personnel"
+          pageTitle={currentHeader.title}
         />
       )}
-      <Header title="Gestion du Personnel" subtitle="Administration RH, effectifs et congés" />
+      <Header title={currentHeader.title} subtitle={currentHeader.subtitle} />
       <main className="flex-1 p-6 overflow-auto">
         {error && (<div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between"><span className="text-red-700">{error}</span><button onClick={loadAllData} className="flex items-center text-red-600 hover:text-red-800"><RefreshCw className="w-4 h-4 mr-1" />Réessayer</button></div>)}
 

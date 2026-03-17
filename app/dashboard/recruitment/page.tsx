@@ -9,7 +9,8 @@ import toast from 'react-hot-toast';
 import { 
   UserPlus, Briefcase, Users, Clock, Mail, Phone, MapPin, Plus, XCircle,
   FileText, Linkedin, GraduationCap, Building2, TrendingUp, Edit,
-  ArrowRight, MessageSquare, Video, Search, X, Check, Loader2, Calendar, Trash2, RefreshCw
+  ArrowRight, MessageSquare, Video, Search, X, Check, Loader2, Calendar, Trash2, RefreshCw,
+  Brain, Upload, Sparkles, CheckCircle2, AlertCircle, MinusCircle, ExternalLink
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -73,6 +74,7 @@ interface Application {
   candidate_education: string | null;
   candidate_ai_score: number | null;
   candidate_ai_score_details: AIScoreDetail[] | null;
+  candidate_ai_analysis?: string | null;
   candidate_source: string | null;
   candidate_current_company: string | null;
   candidate_expected_salary: number | null;
@@ -354,6 +356,18 @@ export default function RecruitmentPage() {
   } | null>(null);
   const [inputDialogValue, setInputDialogValue] = useState('');
 
+  // --- Batch Scoring IA ---
+  const [showBatchScoringModal, setShowBatchScoringModal] = useState(false);
+  const [batchFiles, setBatchFiles] = useState<File[]>([]);
+  const [batchCriteria, setBatchCriteria] = useState<string[]>([]);
+  const [batchCriteriaInput, setBatchCriteriaInput] = useState('');
+  const [batchSelectedJob, setBatchSelectedJob] = useState<number | null>(null);
+  const [batchResults, setBatchResults] = useState<{filename: string; candidate_name: string; candidate_id?: number; overall_score: number; score_details: {category: string; score: number}[]; analysis: string; recommendation: string; recommendation_reason: string; conditions_to_verify: string[]}[] | null>(null);
+  const [batchScoring, setBatchScoring] = useState(false);
+  const [selectedForScreening, setSelectedForScreening] = useState<Set<number>>(new Set());
+  // --- Single candidate scoring ---
+  const [scoringCandidateId, setScoringCandidateId] = useState<number | null>(null);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     const [jobsData, appsData, interviewsData, statsData, candidatesTotal, depts, emps] = await Promise.all([
@@ -445,6 +459,77 @@ export default function RecruitmentPage() {
     if (min && max) return `${fmt(min)} - ${fmt(max)} ${currency}`;
     if (min) return `À partir de ${fmt(min)} ${currency}`;
     return `Jusqu'à ${fmt(max!)} ${currency}`;
+  };
+
+  // ------------------------------------------------------------------
+  // SCORING FUNCTIONS
+  // ------------------------------------------------------------------
+  const handleBatchScore = async () => {
+    if (!batchSelectedJob || batchFiles.length === 0) {
+      toast.error('Sélectionnez une offre et ajoutez au moins un CV.');
+      return;
+    }
+    setBatchScoring(true);
+    setBatchResults(null);
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    try {
+      // Extraire le texte de chaque PDF via /api/ai/extract-pdf
+      const candidates = await Promise.all(batchFiles.map(async (file) => {
+        const fd = new FormData();
+        fd.append('file', file);
+        let cv_text = '';
+        try {
+          const r = await fetch(`${API_URL}/api/ai-chat/extract-pdf`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: fd,
+          });
+          if (r.ok) { const d = await r.json(); cv_text = d.text || ''; }
+        } catch { /* silencieux */ }
+        return { cv_text, filename: file.name, candidate_name: file.name.replace(/\.pdf$/i, '') };
+      }));
+      const res = await fetch(`${API_URL}/api/ai/score-cvs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ job_posting_id: batchSelectedJob, candidates, criteria: batchCriteria }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setBatchResults(data.results || []);
+      toast.success(`${data.total_scored} CV(s) scoré(s) — ${data.summary.shortlist} shortlisté(s)`);
+    } catch (e: unknown) {
+      toast.error(`Erreur scoring : ${e instanceof Error ? e.message : 'inconnue'}`);
+    } finally {
+      setBatchScoring(false);
+    }
+  };
+
+  const handleScoreCandidate = async (candidateId: number) => {
+    setScoringCandidateId(candidateId);
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    try {
+      const res = await fetch(`${API_URL}/api/ai/score-candidate/${candidateId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      toast.success(`Score calculé : ${data.overall_score}/100`);
+      // Mettre à jour le candidat sélectionné dans la vue
+      if (selectedApplication && selectedApplication.candidate_id === candidateId) {
+        setSelectedApplication({
+          ...selectedApplication,
+          candidate_ai_score: data.overall_score,
+          candidate_ai_score_details: data.score_details || [],
+        });
+      }
+      await loadData();
+    } catch (e: unknown) {
+      toast.error(`Erreur : ${e instanceof Error ? e.message : 'inconnue'}`);
+    } finally {
+      setScoringCandidateId(null);
+    }
   };
 
   const handleSendEmail = (application: Application) => {
@@ -624,9 +709,14 @@ export default function RecruitmentPage() {
           </div>
           <div className="flex gap-3">
             {activeTab === 'kanban' && (
-              <button onClick={() => setShowAddCandidateModal(true)} className="flex items-center px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600">
-                <UserPlus className="w-4 h-4 mr-2" />Ajouter Candidat
-              </button>
+              <>
+                <button onClick={() => { setShowBatchScoringModal(true); setBatchResults(null); setBatchFiles([]); setBatchCriteria([]); setBatchSelectedJob(selectedJobFilter); }} className="flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700">
+                  <Brain className="w-4 h-4 mr-2" />Scoring IA des CVs
+                </button>
+                <button onClick={() => setShowAddCandidateModal(true)} className="flex items-center px-4 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600">
+                  <UserPlus className="w-4 h-4 mr-2" />Ajouter Candidat
+                </button>
+              </>
             )}
             {activeTab === 'jobs' && (
               <button 
@@ -667,6 +757,11 @@ export default function RecruitmentPage() {
                           {app.candidate_ai_score && (<div className={`px-2 py-1 rounded text-xs font-bold ${getScoreColor(app.candidate_ai_score)}`}>{app.candidate_ai_score}</div>)}
                         </div>
                         <p className="text-xs text-gray-600 mb-2 truncate">{app.job_title}</p>
+                        {app.candidate_source === 'IntoWork' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-xs font-medium mb-2">
+                            <ExternalLink className="w-3 h-3" />IntoWork
+                          </span>
+                        )}
                         <div className="flex flex-wrap gap-1">
                           {(app.candidate_skills || []).slice(0, 3).map((skill) => (<span key={skill} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">{skill}</span>))}
                           {(app.candidate_skills || []).length > 3 && <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded">+{(app.candidate_skills || []).length - 3}</span>}
@@ -875,7 +970,13 @@ export default function RecruitmentPage() {
                     <h2 className="text-xl font-bold text-gray-900">{selectedApplication.candidate_name}</h2>
                     <p className="text-gray-500">{selectedApplication.job_title}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      {selectedApplication.candidate_ai_score && (<span className={`px-2 py-0.5 rounded text-xs font-medium ${getScoreColor(selectedApplication.candidate_ai_score)}`}>Score IA: {selectedApplication.candidate_ai_score}%</span>)}
+                      {selectedApplication.candidate_ai_score
+                      ? <span className={`px-2 py-0.5 rounded text-xs font-medium ${getScoreColor(selectedApplication.candidate_ai_score)}`}>Score IA : {selectedApplication.candidate_ai_score}/100</span>
+                      : <button onClick={() => handleScoreCandidate(selectedApplication.candidate_id)} disabled={scoringCandidateId === selectedApplication.candidate_id} className="flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium hover:bg-purple-200 disabled:opacity-60">
+                          {scoringCandidateId === selectedApplication.candidate_id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Brain className="w-3 h-3" />}
+                          Scorer ce candidat
+                        </button>
+                    }
                       <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">{stageLabels[selectedApplication.stage] || selectedApplication.stage}</span>
                     </div>
                   </div>
@@ -929,17 +1030,27 @@ export default function RecruitmentPage() {
                 
                 <div>
                   {selectedApplication.candidate_ai_score_details && selectedApplication.candidate_ai_score_details.length > 0 && (
-                    <><h3 className="font-semibold text-gray-900 mb-3">Score IA Détaillé</h3>
+                    <>
+                      <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2"><Brain className="w-4 h-4 text-purple-600" />Analyse IA Détaillée</h3>
                       <div className="space-y-3">
                         {selectedApplication.candidate_ai_score_details.map((detail) => (
                           <div key={detail.category}>
-                            <div className="flex justify-between text-sm mb-1"><span className="text-gray-600">{detail.category}</span><span className="font-medium">{detail.score}%</span></div>
-                            <div className="h-2 bg-gray-200 rounded-full"><div className={`h-full rounded-full ${detail.score >= 90 ? 'bg-green-500' : detail.score >= 75 ? 'bg-blue-500' : 'bg-yellow-500'}`} style={{ width: `${detail.score}%` }} /></div>
+                            <div className="flex justify-between text-sm mb-1"><span className="text-gray-600">{detail.category}</span><span className="font-medium">{detail.score}/100</span></div>
+                            <div className="h-2 bg-gray-200 rounded-full"><div className={`h-full rounded-full ${detail.score >= 85 ? 'bg-green-500' : detail.score >= 65 ? 'bg-blue-500' : 'bg-yellow-500'}`} style={{ width: `${detail.score}%` }} /></div>
                           </div>
                         ))}
                       </div>
                     </>
                   )}
+                  {(() => {
+                    const app = selectedApplication as Application & { candidate_ai_analysis?: string };
+                    return app.candidate_ai_analysis ? (
+                      <div className="mt-4 p-3 bg-purple-50 rounded-lg border border-purple-100">
+                        <p className="text-xs font-semibold text-purple-700 mb-1 flex items-center gap-1"><Sparkles className="w-3 h-3" />Synthèse IA</p>
+                        <p className="text-xs text-gray-700 leading-relaxed">{app.candidate_ai_analysis}</p>
+                      </div>
+                    ) : null;
+                  })()}
                   
                   {selectedApplication.timeline && selectedApplication.timeline.length > 0 && (
                     <><h3 className="font-semibold text-gray-900 mt-6 mb-3">Timeline</h3>
@@ -978,6 +1089,154 @@ export default function RecruitmentPage() {
         {showJobModal && <JobModal job={editingJob} departments={departments} employees={employees} onClose={() => setShowJobModal(false)} onSave={async (data) => { const success = editingJob ? await updateJob(editingJob.id, data) : await createJob(data); if (success) { setShowJobModal(false); loadData(); } else { toast.error('Erreur lors de la sauvegarde'); } }} />}
         {showAddCandidateModal && <AddCandidateModal jobs={jobs.filter(j => j.status === 'active')} onClose={() => setShowAddCandidateModal(false)} onSave={async (data) => { const success = await createCandidate(data); if (success) { setShowAddCandidateModal(false); loadData(); } else { toast.error('Erreur lors de la création'); } }} />}
         {showInterviewModal && selectedApplication && <InterviewModal application={selectedApplication} employees={employees} onClose={() => setShowInterviewModal(false)} onSave={async (data) => { const success = await createInterview(data); if (success) { setShowInterviewModal(false); setShowCandidateModal(false); loadData(); } else { toast.error('Erreur lors de la planification'); } }} />}
+
+        {/* Batch Scoring IA Modal */}
+        {showBatchScoringModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+              {/* Header */}
+              <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center"><Brain className="w-5 h-5 text-purple-600" /></div>
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">Scoring IA des CVs</h2>
+                    <p className="text-sm text-gray-500">Déposez jusqu’à 20 CVs — l’IA les évalue et génère une shortlist</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowBatchScoringModal(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Offre de référence */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Offre d’emploi de référence <span className="text-red-500">*</span></label>
+                  <select value={batchSelectedJob || ''} onChange={e => setBatchSelectedJob(e.target.value ? parseInt(e.target.value) : null)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+                    <option value="">-- Sélectionner une offre --</option>
+                    {jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
+                  </select>
+                </div>
+
+                {/* Critères personnalisés */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Critères de sélection supplémentaires <span className="text-gray-400 font-normal">(optionnel)</span></label>
+                  <div className="flex gap-2">
+                    <input type="text" placeholder="Ex : Bilingue anglais/français, expérience SAP..." value={batchCriteriaInput} onChange={e => setBatchCriteriaInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && batchCriteriaInput.trim()) { setBatchCriteria(prev => [...prev, batchCriteriaInput.trim()]); setBatchCriteriaInput(''); }}} className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 outline-none" />
+                    <button onClick={() => { if (batchCriteriaInput.trim()) { setBatchCriteria(prev => [...prev, batchCriteriaInput.trim()]); setBatchCriteriaInput(''); }}} className="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm hover:bg-purple-200">+ Ajouter</button>
+                  </div>
+                  {batchCriteria.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {batchCriteria.map((c, i) => (
+                        <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">{c}<button onClick={() => setBatchCriteria(prev => prev.filter((_, j) => j !== i))} className="ml-1 text-purple-400 hover:text-purple-700"><X className="w-3 h-3" /></button></span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload CVs */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">CVs à scorer <span className="text-red-500">*</span></label>
+                  <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${batchFiles.length > 0 ? 'border-purple-400 bg-purple-50' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'}`}>
+                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                    <span className="text-sm text-gray-500">Cliquez ou glissez-déposez vos PDFs</span>
+                    <span className="text-xs text-gray-400 mt-1">PDF uniquement — max 20 fichiers</span>
+                    <input type="file" accept=".pdf" multiple className="hidden" onChange={e => { const files = Array.from(e.target.files || []).slice(0, 20); setBatchFiles(files); setBatchResults(null); }} />
+                  </label>
+                  {batchFiles.length > 0 && (
+                    <div className="mt-3 space-y-1 max-h-40 overflow-y-auto">
+                      {batchFiles.map((f, i) => (
+                        <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-2"><FileText className="w-4 h-4 text-gray-400" /><span className="text-sm text-gray-700 truncate max-w-xs">{f.name}</span></div>
+                          <button onClick={() => setBatchFiles(prev => prev.filter((_, j) => j !== i))} className="text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Bouton lancer */}
+                {!batchResults && (
+                  <button onClick={handleBatchScore} disabled={batchScoring || !batchSelectedJob || batchFiles.length === 0} className="w-full flex items-center justify-center gap-2 py-3 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                    {batchScoring ? <><Loader2 className="w-5 h-5 animate-spin" />Analyse en cours...</> : <><Brain className="w-5 h-5" />Lancer le Scoring IA ({batchFiles.length} CV{batchFiles.length > 1 ? 's' : ''})</>}
+                  </button>
+                )}
+
+                {/* Résultats */}
+                {batchResults && (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold text-gray-900">Résultats — {batchResults.length} candidat(s) scoré(s)</h3>
+                      <div className="flex gap-3 text-sm">
+                        <span className="text-green-600 font-medium">{batchResults.filter(r => r.recommendation === 'shortlist').length} shortlist</span>
+                        <span className="text-yellow-600 font-medium">{batchResults.filter(r => r.recommendation === 'to_review').length} à revoir</span>
+                        <span className="text-red-500 font-medium">{batchResults.filter(r => r.recommendation === 'reject').length} rejeté</span>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      {batchResults.map((r, i) => (
+                        <div key={i} className={`p-4 rounded-xl border-2 ${r.recommendation === 'shortlist' ? 'border-green-300 bg-green-50' : r.recommendation === 'to_review' ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200 bg-gray-50'}`}>
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              {r.recommendation === 'shortlist'
+                                ? <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                                : r.recommendation === 'to_review'
+                                  ? <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
+                                  : <MinusCircle className="w-5 h-5 text-gray-400 flex-shrink-0" />}
+                              <div>
+                                <p className="font-medium text-gray-900 text-sm">{r.candidate_name}</p>
+                                <p className="text-xs text-gray-500">{r.filename}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className={`text-lg font-bold ${r.overall_score >= 85 ? 'text-green-600' : r.overall_score >= 65 ? 'text-yellow-600' : 'text-red-500'}`}>{r.overall_score}/100</span>
+                              {r.recommendation === 'shortlist' && (
+                                <label className="flex items-center gap-1 cursor-pointer">
+                                  <input type="checkbox" checked={selectedForScreening.has(i)} onChange={e => setSelectedForScreening(prev => { const next = new Set(prev); e.target.checked ? next.add(i) : next.delete(i); return next; })} className="w-4 h-4 accent-purple-600" />
+                                  <span className="text-xs text-gray-600">Sélectionner</span>
+                                </label>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-2 line-clamp-2">{r.analysis}</p>
+                          {r.score_details.length > 0 && (
+                            <div className="grid grid-cols-2 gap-1 mt-2">
+                              {r.score_details.map(d => (
+                                <div key={d.category} className="flex items-center gap-1">
+                                  <div className="h-1.5 bg-gray-200 rounded-full flex-1"><div className={`h-full rounded-full ${d.score >= 85 ? 'bg-green-500' : d.score >= 65 ? 'bg-yellow-400' : 'bg-red-400'}`} style={{ width: `${d.score}%` }} /></div>
+                                  <span className="text-xs text-gray-500 w-28 truncate">{d.category.split(' ').slice(0,2).join(' ')}</span>
+                                  <span className="text-xs font-medium w-6 text-right">{d.score}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {r.conditions_to_verify.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-xs text-gray-500 font-medium mb-1">À vérifier :</p>
+                              {r.conditions_to_verify.slice(0, 2).map((c, j) => <p key={j} className="text-xs text-gray-500">• {c}</p>)}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 flex items-center justify-between">
+                      <button onClick={() => { setBatchResults(null); setBatchFiles([]); setSelectedForScreening(new Set()); }} className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50">Nouveau scoring</button>
+                      <button
+                        onClick={async () => {
+                          if (selectedForScreening.size === 0) { toast.error('Sélectionnez au moins un candidat.'); return; }
+                          toast.success(`${selectedForScreening.size} candidat(s) marqué(s) pour screening.`);
+                          setShowBatchScoringModal(false);
+                        }}
+                        disabled={selectedForScreening.size === 0}
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                      >
+                        <Check className="w-4 h-4" />Ajouter {selectedForScreening.size} à la Shortlist
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         
         {inputDialog && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

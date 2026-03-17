@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { 
   User, Edit2, Save, X, AlertCircle,
   Briefcase, MapPin, Phone, Mail, Building, CalendarDays, Building2,
-  FileText, Download, Loader2, PenTool, Upload, Trash2, CheckCircle,
+  FileText, Download, Loader2, Trash2, CheckCircle,
   Network, ZoomIn, ZoomOut, Users, ChevronUp, ChevronDown, Lock, Eye, EyeOff,
   PenLine, Clock, CheckCircle2, XCircle
 } from 'lucide-react';
@@ -405,8 +405,13 @@ export default function MyProfilePage() {
   const [signDocData, setSignDocData] = useState<{ file_data: string; file_name: string; title: string } | null>(null);
   const [signDocLoading, setSignDocLoading] = useState(false);
   const [showSignCanvas, setShowSignCanvas] = useState(false);
+  const [signUseDefault, setSignUseDefault] = useState(false); // true = use saved sig, false = draw
   const [rejectingRequest, setRejectingRequest] = useState<PendingSignature | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+
+  // Signature par défaut (depuis Mon Profil)
+  const [showDefaultSigCanvas, setShowDefaultSigCanvas] = useState(false);
+  const [savingDefaultSig, setSavingDefaultSig] = useState(false);
 
   // Organigramme personnel
   const [orgTree, setOrgTree] = useState<OrgNode | null>(null);
@@ -430,9 +435,32 @@ export default function MyProfilePage() {
     }
   }, []);
 
+  const saveDefaultSignature = async (base64: string) => {
+    if (!employee) return;
+    setSavingDefaultSig(true);
+    try {
+      const res = await fetch(`${API_URL}/api/employees/${employee.id}/signature-canvas`, {
+        method: 'PUT',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ signature_b64: base64 }),
+      });
+      if (!res.ok) throw new Error();
+      // Reload signature state
+      const updated = await fetch(`${API_URL}/api/employees/${employee.id}/signature`, { headers: getAuthHeaders() });
+      if (updated.ok) setSignature(await updated.json());
+      setShowDefaultSigCanvas(false);
+      toast.success('Signature enregistrée !');
+    } catch {
+      toast.error('Erreur lors de l\'enregistrement');
+    } finally {
+      setSavingDefaultSig(false);
+    }
+  };
+
   const openSignModal = async (req: PendingSignature) => {
     setSigningRequest(req);
     setShowSignCanvas(false);
+    setSignUseDefault(false);
     setSignDocData(null);
     setSignDocLoading(true);
     try {
@@ -594,15 +622,13 @@ export default function MyProfilePage() {
       onConfirm: async () => {
         setConfirmDialog(null);
         setSignatureLoading(true);
-        setSignatureMessage(null);
-        
         try {
           await deleteSignature(employee.id);
           setSignature({ employee_id: employee.id, employee_name: `${employee.first_name} ${employee.last_name}`, has_signature: false, signature_url: null });
-          setSignatureMessage({ type: 'success', text: 'Signature supprimée.' });
+          toast.success('Signature supprimée.');
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : 'Erreur lors de la suppression';
-          setSignatureMessage({ type: 'error', text: message });
+          toast.error(message);
         } finally {
           setSignatureLoading(false);
         }
@@ -1125,38 +1151,86 @@ export default function MyProfilePage() {
         </div>
 
         {/* ============================================ */}
-        {/* SECTION SIGNATURE ÉLECTRONIQUE → nouveau système */}
+        {/* SECTION SIGNATURE PAR DÉFAUT */}
         {/* ============================================ */}
-        <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6" data-tour="signature-section">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-11 h-11 bg-blue-100 rounded-xl flex items-center justify-center">
-                <PenLine className="w-5 h-5 text-blue-600" />
+        <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-tour="signature-section">
+          <h3 className="text-lg font-semibold text-gray-900 mb-1 flex items-center gap-2">
+            <PenLine className="w-5 h-5 text-blue-600" />
+            Ma signature par défaut
+          </h3>
+          <p className="text-sm text-gray-500 mb-5">
+            Dessinez votre signature une fois et réutilisez-la automatiquement lors de la signature de vos documents.
+          </p>
+
+          {!showDefaultSigCanvas ? (
+            signature?.has_signature && signature.signature_url ? (
+              /* Signature existante */
+              <div className="space-y-4">
+                <div className="inline-block border border-gray-200 rounded-xl p-4 bg-gray-50">
+                  <p className="text-xs text-gray-400 mb-2">Votre signature enregistrée :</p>
+                  <img src={signature.signature_url} alt="Ma signature" className="max-h-20 max-w-xs object-contain" />
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDefaultSigCanvas(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    <PenLine className="w-4 h-4" /> Modifier ma signature
+                  </button>
+                  <button
+                    onClick={handleSignatureDelete}
+                    disabled={signatureLoading}
+                    className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    {signatureLoading ? 'Suppression...' : 'Supprimer'}
+                  </button>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Signatures électroniques
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Signez vos documents directement depuis l&apos;application avec votre signature manuscrite numérique.
-                  Contrats, ordres de mission, courriers officiels — tout se signe en quelques clics.
+            ) : (
+              /* Pas de signature */
+              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center">
+                <PenLine className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                <p className="text-sm text-gray-500 mb-1">Aucune signature enregistrée</p>
+                <p className="text-xs text-gray-400 mb-4">
+                  Dessinez votre signature une fois pour la réutiliser sur tous vos documents
                 </p>
-                {pendingSignatures.length > 0 && (
-                  <div className="mt-2 inline-flex items-center gap-1.5 bg-orange-100 text-orange-700 text-xs font-medium px-2.5 py-1 rounded-full">
-                    <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse" />
-                    {pendingSignatures.length} document{pendingSignatures.length > 1 ? 's' : ''} en attente de signature
-                  </div>
-                )}
+                <button
+                  onClick={() => setShowDefaultSigCanvas(true)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                >
+                  <PenLine className="w-4 h-4" /> Dessiner ma signature
+                </button>
               </div>
+            )
+          ) : (
+            /* Canvas pour dessiner */
+            <div>
+              <p className="text-sm text-gray-600 mb-3">Dessinez votre signature dans le cadre ci-dessous :</p>
+              {savingDefaultSig ? (
+                <div className="flex items-center justify-center gap-2 text-blue-600 py-10">
+                  <Loader2 className="w-5 h-5 animate-spin" /> Enregistrement en cours...
+                </div>
+              ) : (
+                <SignatureCanvas
+                  onConfirm={saveDefaultSignature}
+                  onCancel={() => setShowDefaultSigCanvas(false)}
+                />
+              )}
             </div>
-            <button
-              onClick={() => setActiveTab('signatures')}
-              className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-            >
-              <PenLine className="w-4 h-4" />
-              Voir mes signatures
-            </button>
-          </div>
+          )}
+
+          {pendingSignatures.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <button
+                onClick={() => setActiveTab('signatures')}
+                className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                <PenLine className="w-4 h-4" />
+                {pendingSignatures.length} document{pendingSignatures.length > 1 ? 's' : ''} en attente de votre signature →
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Section Attestation de Travail */}
@@ -1348,7 +1422,7 @@ export default function MyProfilePage() {
                   <PenLine className="w-5 h-5 text-blue-600" />
                   Signer : {signingRequest.document_title}
                 </h3>
-                <button onClick={() => { setSigningRequest(null); setSignDocData(null); setShowSignCanvas(false); }} className="text-gray-400 hover:text-gray-600">
+                <button onClick={() => { setSigningRequest(null); setSignDocData(null); setShowSignCanvas(false); setSignUseDefault(false); }} className="text-gray-400 hover:text-gray-600">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -1357,8 +1431,8 @@ export default function MyProfilePage() {
                   <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
                 ) : signDocData ? (
                   <>
-                    {/* PDF Preview */}
-                    {!showSignCanvas && (
+                    {/* PDF Preview — toujours visible sauf quand le canvas est affiché */}
+                    {!showSignCanvas && !signUseDefault && (
                       <div className="space-y-3">
                         <p className="text-sm text-gray-600">Lisez attentivement le document avant de signer.</p>
                         <div className="border border-gray-200 rounded-xl overflow-hidden bg-gray-50 h-64 flex items-center justify-center">
@@ -1374,17 +1448,76 @@ export default function MyProfilePage() {
                             </a>
                           </div>
                         </div>
-                        <button
-                          onClick={() => setShowSignCanvas(true)}
-                          className="w-full py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-medium flex items-center justify-center gap-2"
-                        >
-                          <PenLine className="w-4 h-4" />
-                          Procéder à la signature
-                        </button>
+
+                        {/* Choix de signature */}
+                        {signature?.has_signature && signature.signature_url ? (
+                          <div className="space-y-2">
+                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Choisir votre mode de signature</p>
+                            {/* Option 1 : signature enregistrée */}
+                            <button
+                              onClick={() => setSignUseDefault(true)}
+                              className="w-full flex items-center gap-4 px-4 py-3 border-2 border-blue-200 bg-blue-50 rounded-xl hover:border-blue-400 hover:bg-blue-100 transition text-left"
+                            >
+                              <div className="flex-shrink-0 w-20 h-12 bg-white rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden">
+                                <img src={signature.signature_url} alt="" className="max-h-10 max-w-full object-contain" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-blue-800">Utiliser ma signature enregistrée</p>
+                                <p className="text-xs text-blue-600 mt-0.5">Votre signature par défaut sera apposée automatiquement</p>
+                              </div>
+                            </button>
+                            {/* Option 2 : dessiner maintenant */}
+                            <button
+                              onClick={() => setShowSignCanvas(true)}
+                              className="w-full flex items-center gap-4 px-4 py-3 border-2 border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition text-left"
+                            >
+                              <div className="flex-shrink-0 w-20 h-12 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-center">
+                                <PenLine className="w-6 h-6 text-gray-400" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-700">Signer maintenant</p>
+                                <p className="text-xs text-gray-500 mt-0.5">Dessinez une nouvelle signature dans cette fenêtre</p>
+                              </div>
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setShowSignCanvas(true)}
+                            className="w-full py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-medium flex items-center justify-center gap-2"
+                          >
+                            <PenLine className="w-4 h-4" />
+                            Procéder à la signature
+                          </button>
+                        )}
                       </div>
                     )}
 
-                    {/* Signature Canvas */}
+                    {/* Confirmation signature enregistrée */}
+                    {signUseDefault && signature?.signature_url && (
+                      <div className="space-y-4">
+                        <p className="text-sm text-gray-600">Vous allez apposer votre signature enregistrée sur ce document.</p>
+                        <div className="border border-gray-200 rounded-xl p-4 bg-gray-50 flex flex-col items-center gap-2">
+                          <p className="text-xs text-gray-400">Aperçu de votre signature :</p>
+                          <img src={signature.signature_url} alt="Ma signature" className="max-h-20 object-contain" />
+                        </div>
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => handleSign(signature.signature_url!.split(',')[1] ?? signature.signature_url!)}
+                            className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-medium flex items-center justify-center gap-2"
+                          >
+                            <CheckCircle2 className="w-4 h-4" /> Confirmer et signer
+                          </button>
+                          <button
+                            onClick={() => setSignUseDefault(false)}
+                            className="px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition text-sm"
+                          >
+                            Retour
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Canvas pour dessiner */}
                     {showSignCanvas && (
                       <SignatureCanvas
                         onConfirm={handleSign}

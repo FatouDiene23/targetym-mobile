@@ -242,6 +242,7 @@ export interface Department {
   employee_count?: number;
   is_active?: boolean;
   created_at?: string;
+  has_open_manager_position?: boolean;
 }
 
 export interface DepartmentCreate {

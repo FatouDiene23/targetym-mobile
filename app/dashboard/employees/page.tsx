@@ -43,6 +43,7 @@ interface OrgNode {
   department_name?: string;
   is_manager?: boolean;
   status?: string;
+  isVacant?: boolean;
   children: OrgNode[];
 }
 
@@ -146,7 +147,28 @@ function OrgCard({ node, level, isExpanded, hasChildren, onToggle, onSelect }: {
   const s = getLS(level);
   const initials = `${node.first_name?.[0] || ''}${node.last_name?.[0] || ''}`.toUpperCase();
   const isVirtual = node.id === 0;
+  const isVacant = node.isVacant === true;
   const childCount = node.children.length;
+
+  if (isVacant) {
+    return (
+      <div className="relative group">
+        <div className="relative px-4 py-3 rounded-xl border-2 border-dashed border-orange-400 bg-orange-50/60 min-w-[140px] max-w-[200px]">
+          <div className="flex flex-col items-center text-center">
+            <div className="w-11 h-11 border-2 border-dashed border-orange-400 rounded-full flex items-center justify-center text-orange-500 mb-2">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <p className="font-semibold text-xs leading-tight text-orange-700 truncate max-w-[160px]">
+              {node.first_name}
+            </p>
+            <p className="text-[10px] text-orange-500 mt-0.5 leading-tight font-medium">
+              Poste à pourvoir
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative group">
@@ -436,8 +458,45 @@ export default function EmployeesPage() {
   const fetchOrgChart = useCallback(async () => {
     setOrgLoading(true);
     try {
-      const response = await getEmployees({ page: 1, page_size: 500 });
+      const [response, depts] = await Promise.all([
+        getEmployees({ page: 1, page_size: 500 }),
+        getDepartments(),
+      ]);
       const tree = buildOrgTree(response.items || []);
+
+      // Inject vacant department placeholders (departments with no head)
+      if (tree && depts) {
+        // Build a flat map of all org nodes for fast lookup by employee id
+        const nodeMap = new Map<number, OrgNode>();
+        const collectNodes = (n: OrgNode) => { nodeMap.set(n.id, n); n.children.forEach(collectNodes); };
+        collectNodes(tree);
+
+        const deptMap = new Map(depts.map(d => [d.id, d]));
+        const vacantDepts = depts.filter(d => !d.head_id && d.is_active !== false);
+
+        for (const dept of vacantDepts) {
+          const vacantNode: OrgNode = {
+            id: -(dept.id),
+            first_name: dept.name,
+            last_name: '',
+            job_title: 'Poste à pourvoir',
+            department_name: dept.name,
+            isVacant: true,
+            children: [],
+          };
+          // Try to attach under the parent department's head
+          let attached = false;
+          if (dept.parent_id) {
+            const parentDept = deptMap.get(dept.parent_id);
+            if (parentDept?.head_id) {
+              const parentNode = nodeMap.get(parentDept.head_id);
+              if (parentNode) { parentNode.children.push(vacantNode); attached = true; }
+            }
+          }
+          if (!attached) { tree.children.push(vacantNode); }
+        }
+      }
+
       setOrgData(tree);
       if (tree) {
         const ids = new Set<number>();
@@ -457,7 +516,7 @@ export default function EmployeesPage() {
   const toggleOrgNode = (id: number) => { setExpandedNodes(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; }); };
   const expandAllNodes = () => { if (!orgData) return; const ids = new Set<number>(); const t = (n: OrgNode) => { ids.add(n.id); n.children.forEach(t); }; t(orgData); setExpandedNodes(ids); };
   const collapseAllNodes = () => { if (orgData) setExpandedNodes(new Set([orgData.id])); };
-  const countDescendants = (node: OrgNode): number => { let c = node.id === 0 ? 0 : 1; node.children.forEach(ch => { c += countDescendants(ch); }); return c; };
+  const countDescendants = (node: OrgNode): number => { let c = node.id === 0 || node.isVacant ? 0 : 1; node.children.forEach(ch => { c += countDescendants(ch); }); return c; };
 
   useEffect(() => {
     if (!orgSearch || !orgData) return;
@@ -899,6 +958,10 @@ export default function EmployeesPage() {
                     <span className="text-xs text-gray-600">{label}</span>
                   </div>
                 ))}
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full border-2 border-dashed border-orange-400 bg-orange-50" />
+                  <span className="text-xs text-orange-600">Poste à pourvoir</span>
+                </div>
               </div>
             </div>
           </div>

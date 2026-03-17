@@ -291,8 +291,12 @@ export default function DepartmentManagementTab() {
               {node.code && <span className="text-xs text-gray-400">{node.code}</span>}
               <LevelBadge level={node.level} />
             </div>
-            {headName && (
+            {headName ? (
               <p className="text-xs text-gray-500 mt-0.5">Responsable : {headName}</p>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-orange-100 text-orange-700 mt-0.5">
+                Sans manager
+              </span>
             )}
           </div>
 
@@ -356,7 +360,13 @@ export default function DepartmentManagementTab() {
         </td>
         <td className="px-4 py-3"><LevelBadge level={dept.level} /></td>
         <td className="px-4 py-3 text-sm text-gray-600">{getParentName(dept.parent_id)}</td>
-        <td className="px-4 py-3 text-sm text-gray-600">{headName || '—'}</td>
+        <td className="px-4 py-3 text-sm text-gray-600">
+          {headName ? headName : (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-700">
+              Sans manager
+            </span>
+          )}
+        </td>
         <td className="px-4 py-3">
           <div className="flex items-center gap-1 text-sm text-gray-600">
             <Users className="w-3.5 h-3.5" />
@@ -433,7 +443,7 @@ export default function DepartmentManagementTab() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-4 gap-4 mb-4">
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
           <p className="text-xs text-gray-500 mb-1">Total unités</p>
           <p className="text-2xl font-bold text-gray-900">{departments.length}</p>
@@ -445,6 +455,10 @@ export default function DepartmentManagementTab() {
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
           <p className="text-xs text-gray-500 mb-1">Employés affectés</p>
           <p className="text-2xl font-bold text-blue-600">{employees.filter(e => e.department_id).length}/{employees.length}</p>
+        </div>
+        <div className={`rounded-xl p-4 border shadow-sm ${departments.filter(d => !d.head_id).length > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-100'}`}>
+          <p className="text-xs text-gray-500 mb-1">Postes ouverts</p>
+          <p className={`text-2xl font-bold ${departments.filter(d => !d.head_id).length > 0 ? 'text-orange-600' : 'text-gray-400'}`}>{departments.filter(d => !d.head_id).length}</p>
         </div>
       </div>
 

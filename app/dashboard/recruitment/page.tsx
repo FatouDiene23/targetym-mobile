@@ -277,6 +277,13 @@ async function openCvAuthenticated(candidateId: number, download = false): Promi
   } catch { toast.error('Erreur lors de l\'ouverture du CV'); }
 }
 
+async function deleteApplication(applicationId: number): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/api/recruitment/applications/${applicationId}`, { method: 'DELETE', headers: getAuthHeaders() });
+    return res.ok;
+  } catch { return false; }
+}
+
 async function createCandidate(data: { first_name: string; last_name: string; email: string; phone?: string; location?: string; linkedin_url?: string; current_company?: string; experience_years?: number; education?: string; skills?: string[]; expected_salary?: number; notice_period?: string; source?: string; job_posting_id?: number; }): Promise<number | null> {
   try {
     const res = await fetch(`${API_URL}/api/recruitment/candidates`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
@@ -1153,6 +1160,7 @@ export default function RecruitmentPage() {
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => setShowInterviewModal(true)} className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"><Video className="w-4 h-4 mr-2" />Planifier Entretien</button>
                   <button onClick={() => handleSendEmail(selectedApplication)} className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"><Mail className="w-4 h-4 mr-2" />Envoyer Email</button>
+                  <button onClick={() => setConfirmDialog({ isOpen: true, title: 'Supprimer la candidature', message: `Supprimer la candidature de ${selectedApplication.candidate_name} pour le poste ${selectedApplication.job_title || ''} ? Cette action est irréversible.`, danger: true, onConfirm: async () => { const ok = await deleteApplication(selectedApplication.id); setConfirmDialog(null); if (ok) { setShowCandidateModal(false); loadData(); toast.success('Candidature supprimée'); } else { toast.error('Erreur lors de la suppression'); } } })} className="flex items-center px-4 py-2 border border-red-200 text-red-600 text-sm rounded-lg hover:bg-red-50"><Trash2 className="w-4 h-4 mr-2" />Supprimer</button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {!['hired', 'rejected', 'withdrawn'].includes(selectedApplication.stage) && (

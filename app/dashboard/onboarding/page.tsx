@@ -448,6 +448,8 @@ interface QueueItem {
   department_name?: string;
   hired_at: string;
   status: string;
+  employee_id?: number;
+  employee_name?: string;
 }
 
 export default function OnboardingPage() {
@@ -1398,7 +1400,7 @@ export default function OnboardingPage() {
   };
 
   const AssignModal = () => {
-    const [empId, setEmpId] = useState(preselectedEmployeeId || '');
+    const [empId, setEmpId] = useState(preselectedEmployeeId || (queueStartItem?.employee_id ? String(queueStartItem.employee_id) : ''));
     const [progId, setProgId] = useState('');
     const [managerId, setManagerId] = useState('');
     const [buddyId, setBuddyId] = useState('');
@@ -1455,11 +1457,13 @@ export default function OnboardingPage() {
           <div className="p-6 space-y-4">
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">Employé *</label>
-              {preselectedEmployeeId ? (
+              {preselectedEmployeeId || queueStartItem?.employee_id ? (
                 <div className="flex items-center gap-3 px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg">
                   <UserCheck size={16} className="text-emerald-600 shrink-0" />
-                  <span className="text-sm font-medium text-emerald-900">{preselectedEmployeeName || `Employé #${preselectedEmployeeId}`}</span>
-                  <span className="ml-auto px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">Nouveau</span>
+                  <span className="text-sm font-medium text-emerald-900">
+                    {preselectedEmployeeName || queueStartItem?.employee_name || (preselectedEmployeeId ? `Employé #${preselectedEmployeeId}` : `Employé #${queueStartItem?.employee_id}`)}
+                  </span>
+                  <span className="ml-auto px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">Pré-sélectionné</span>
                 </div>
               ) : (
                 <SearchableSelect

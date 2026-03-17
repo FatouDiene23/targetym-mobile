@@ -6,7 +6,7 @@ import {
   GraduationCap, Award, Clock, Palmtree, TrendingUp, Edit2, Download,
   Key, Loader2, CheckCircle, XCircle, Shield, DollarSign, Printer,
   Target, CheckCircle2, Star, MessageSquare, ThumbsUp, ExternalLink,
-  BookOpen, AlertTriangle, Plus, Trash2, ChevronDown, ChevronUp, Maximize2, Minimize2
+  BookOpen, AlertTriangle, Plus, Trash2, ChevronDown, ChevronUp, Maximize2, Minimize2, Gift
 } from 'lucide-react';
 import { getEmployeeAccessStatus, activateEmployeeAccess, deactivateEmployeeAccess, type AccessStatus } from '@/lib/api';
 import EmployeeDocuments from '@/components/EmployeeDocuments';
@@ -160,6 +160,20 @@ interface Sanction {
   reason: string;
   notes?: string;
   issued_by?: string;
+}
+
+interface Benefit {
+  id: number;
+  label: string;
+  category: string;
+  amount?: number | null;
+  currency: string;
+  frequency: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  status: string;
+  notes?: string | null;
+  created_by?: string | null;
 }
 
 interface SalaryHistoryItem {
@@ -331,6 +345,13 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
   const [skills, setSkills] = useState<EmployeeSkillItem[]>([]);
   const [isLoadingSkills, setIsLoadingSkills] = useState(false);
 
+  // ---- Benefits states ----
+  const [benefits, setBenefits] = useState<Benefit[]>([]);
+  const [isLoadingBenefits, setIsLoadingBenefits] = useState(false);
+  const [showAddBenefit, setShowAddBenefit] = useState(false);
+  const [isSavingBenefit, setIsSavingBenefit] = useState(false);
+  const [newBenefit, setNewBenefit] = useState({ label: '', category: 'financier', amount: '', currency: 'XOF', frequency: 'mensuel', start_date: '', notes: '' });
+
   // ---- Sanctions states ----
   const [sanctions, setSanctions] = useState<Sanction[]>([]);
   const [isLoadingSanctions, setIsLoadingSanctions] = useState(false);
@@ -445,6 +466,15 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
     finally { setIsLoadingSkills(false); }
   }, [employee.id]);
 
+  const loadBenefits = useCallback(async () => {
+    setIsLoadingBenefits(true);
+    try {
+      const data = await apiFetch(`/api/benefits/employee/${employee.id}`);
+      setBenefits(Array.isArray(data) ? data : data.items || []);
+    } catch { setBenefits([]); }
+    finally { setIsLoadingBenefits(false); }
+  }, [employee.id]);
+
   const loadSanctions = useCallback(async () => {
     setIsLoadingSanctions(true);
     try {
@@ -471,6 +501,7 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
     loadFeedbacks();
     loadTrainings();
     loadSkills();
+    loadBenefits();
     loadSanctions();
     loadSalaryHistory();
   }, [employee.id]);
@@ -1129,6 +1160,151 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
               ) : (
                 <p className="text-sm text-gray-400 text-center py-3">Aucune formation assignée.</p>
               )}
+            </div>
+
+            {/* AVANTAGES EMPLOYÉ */}
+            <div className="bg-gray-50 rounded-xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-900 flex items-center">
+                  <Gift className="w-4 h-4 mr-2 text-emerald-500" />Avantages
+                  {benefits.length > 0 && <span className="ml-2 bg-emerald-100 text-emerald-700 text-xs font-medium px-2 py-0.5 rounded-full">{benefits.length}</span>}
+                </h3>
+                <button onClick={() => setShowAddBenefit(!showAddBenefit)} className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
+                  <Plus className="w-3.5 h-3.5" /> Ajouter
+                </button>
+              </div>
+
+              {showAddBenefit && (
+                <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Intitulé *</label>
+                    <input type="text" value={newBenefit.label} onChange={e => setNewBenefit(p => ({ ...p, label: e.target.value }))}
+                      className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none"
+                      placeholder="Ex : Prime de transport, Voiture de fonction…" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Catégorie</label>
+                      <select value={newBenefit.category} onChange={e => setNewBenefit(p => ({ ...p, category: e.target.value }))}
+                        className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none">
+                        <option value="financier">Financier</option>
+                        <option value="nature">En nature</option>
+                        <option value="sante">Santé</option>
+                        <option value="retraite">Retraite</option>
+                        <option value="transport">Transport</option>
+                        <option value="repas">Repas</option>
+                        <option value="formation">Formation</option>
+                        <option value="autre">Autre</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Périodicité</label>
+                      <select value={newBenefit.frequency} onChange={e => setNewBenefit(p => ({ ...p, frequency: e.target.value }))}
+                        className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none">
+                        <option value="mensuel">Mensuel</option>
+                        <option value="trimestriel">Trimestriel</option>
+                        <option value="semestriel">Semestriel</option>
+                        <option value="annuel">Annuel</option>
+                        <option value="unique">Versement unique</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Montant (optionnel)</label>
+                      <input type="number" value={newBenefit.amount} onChange={e => setNewBenefit(p => ({ ...p, amount: e.target.value }))}
+                        className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none"
+                        placeholder="0" min="0" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Devise</label>
+                      <select value={newBenefit.currency} onChange={e => setNewBenefit(p => ({ ...p, currency: e.target.value }))}
+                        className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none">
+                        <option value="XOF">XOF (FCFA)</option>
+                        <option value="EUR">EUR</option>
+                        <option value="USD">USD</option>
+                        <option value="GNF">GNF</option>
+                        <option value="XAF">XAF</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Date de début</label>
+                    <input type="date" value={newBenefit.start_date} onChange={e => setNewBenefit(p => ({ ...p, start_date: e.target.value }))}
+                      className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Notes (optionnel)</label>
+                    <input type="text" value={newBenefit.notes} onChange={e => setNewBenefit(p => ({ ...p, notes: e.target.value }))}
+                      className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none"
+                      placeholder="Observations complémentaires…" />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button onClick={() => setShowAddBenefit(false)} className="px-3 py-1.5 text-xs text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300">Annuler</button>
+                    <button
+                      onClick={async () => {
+                        if (!newBenefit.label.trim()) return;
+                        setIsSavingBenefit(true);
+                        try {
+                          const payload = {
+                            employee_id: employee.id,
+                            label: newBenefit.label.trim(),
+                            category: newBenefit.category,
+                            amount: newBenefit.amount ? parseFloat(newBenefit.amount) : null,
+                            currency: newBenefit.currency,
+                            frequency: newBenefit.frequency,
+                            start_date: newBenefit.start_date || null,
+                            notes: newBenefit.notes || null,
+                          };
+                          const data = await apiFetch('/api/benefits', { method: 'POST', body: JSON.stringify(payload) });
+                          setBenefits(prev => [data, ...prev]);
+                          setShowAddBenefit(false);
+                          setNewBenefit({ label: '', category: 'financier', amount: '', currency: 'XOF', frequency: 'mensuel', start_date: '', notes: '' });
+                        } catch { /* silent */ }
+                        finally { setIsSavingBenefit(false); }
+                      }}
+                      disabled={!newBenefit.label.trim() || isSavingBenefit}
+                      className="px-3 py-1.5 text-xs text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 disabled:opacity-50 flex items-center gap-1">
+                      {isSavingBenefit && <Loader2 className="w-3 h-3 animate-spin" />}Enregistrer
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {isLoadingBenefits ? (
+                <div className="flex items-center justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
+              ) : benefits.length > 0 ? (
+                <div className="space-y-2">
+                  {benefits.map(b => (
+                    <div key={b.id} className="group flex items-start gap-3 p-3 bg-white rounded-lg border border-gray-100 hover:border-emerald-200 transition-colors">
+                      <Gift className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                          <span className="text-sm font-medium text-gray-800">{b.label}</span>
+                          <span className="px-1.5 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-700">{b.category}</span>
+                          <span className="text-xs text-gray-400">{b.frequency}</span>
+                          {b.status !== 'actif' && <span className="px-1.5 py-0.5 rounded-full text-xs bg-gray-100 text-gray-500">{b.status}</span>}
+                        </div>
+                        {b.amount != null && (
+                          <p className="text-xs text-gray-600">{b.amount.toLocaleString('fr-FR')} {b.currency}</p>
+                        )}
+                        {b.notes && <p className="text-xs text-gray-400 mt-0.5">{b.notes}</p>}
+                        {b.start_date && <p className="text-xs text-gray-400">Depuis le {formatDate(b.start_date)}</p>}
+                      </div>
+                      <button
+                        onClick={async () => {
+                          try { await apiFetch(`/api/benefits/${b.id}`, { method: 'DELETE' }); } catch {}
+                          setBenefits(prev => prev.filter(x => x.id !== b.id));
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-600 transition-opacity" title="Supprimer">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : !showAddBenefit ? (
+                <p className="text-sm text-gray-400 text-center py-3">Aucun avantage enregistré.</p>
+              ) : null}
             </div>
 
             {/* SANCTIONS DISCIPLINAIRES */}

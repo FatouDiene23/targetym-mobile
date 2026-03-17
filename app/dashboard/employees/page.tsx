@@ -9,6 +9,7 @@ import HRDocumentsTab from '@/components/HRDocumentsTab';
 import DepartmentManagementTab from '@/components/DepartmentManagementTab';
 import ImportEmployeesTab from '@/components/ImportEmployeesTab';
 import SanctionsTab from '@/components/SanctionsTab';
+import AbsencesTab from '@/components/AbsencesTab';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { employeesTips } from '@/config/pageTips';
@@ -326,7 +327,16 @@ export default function EmployeesPage() {
   const [selectedLocation, setSelectedLocation] = useState('Tous');
   const [cardFilter, setCardFilter] = useState<string | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [activeTab, setActiveTab] = useState<'employees' | 'leaves' | 'invitations' | 'orgchart' | 'documents' | 'departments' | 'import' | 'sanctions'>('employees');
+  const [activeTab, setActiveTab] = useState<'employees' | 'leaves' | 'invitations' | 'orgchart' | 'documents' | 'departments' | 'import' | 'sanctions' | 'absences'>('employees');
+  // Lire l'onglet initial depuis l'URL (?tab=xxx) — utilisé par la sidebar
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    const validTabs = ['employees', 'leaves', 'invitations', 'orgchart', 'documents', 'departments', 'import', 'sanctions'];
+    if (tab && validTabs.includes(tab)) {
+      setActiveTab(tab as 'employees' | 'leaves' | 'invitations' | 'orgchart' | 'documents' | 'departments' | 'import' | 'sanctions' | 'absences');
+    }
+  }, []);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -811,6 +821,7 @@ export default function EmployeesPage() {
             <button onClick={() => { setActiveTab('invitations'); setCardFilter(null); }} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'invitations' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Send className="w-4 h-4 inline mr-2" />Invitations{invitationStats && invitationStats.pending > 0 && <span className="ml-2 px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">{invitationStats.pending}</span>}</button>
             <button onClick={() => { setActiveTab('import'); setCardFilter(null); }} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'import' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><UserPlus className="w-4 h-4 inline mr-2" />Import</button>
             <button onClick={() => { setActiveTab('sanctions'); setCardFilter(null); }} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'sanctions' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><AlertTriangle className="w-4 h-4 inline mr-2" />Sanctions</button>
+            <button onClick={() => { setActiveTab('absences'); setCardFilter(null); }} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'absences' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Clock className="w-4 h-4 inline mr-2" />Absences</button>
           </div>
 
           {/* Card filter indicator */}
@@ -1147,6 +1158,13 @@ export default function EmployeesPage() {
         {/* ============================================ */}
         {activeTab === 'import' && (
           <ImportEmployeesTab onImportDone={handleSuccess} />
+        )}
+
+        {/* ============================================ */}
+        {/* Tab: Absences / Retards */}
+        {/* ============================================ */}
+        {activeTab === 'absences' && (
+          <AbsencesTab employeesList={employees} />
         )}
       </main>
 

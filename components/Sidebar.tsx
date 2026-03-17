@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Target, 
@@ -45,8 +45,9 @@ import {
   UserMinus,
   Receipt,
   Building2,
+  GitBranch,
 } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
 import { usePlan, FEATURE_OKR, FEATURE_CAREERS, FEATURE_LEARNING, FEATURE_PERFORMANCE, FEATURE_ANALYTICS, FEATURE_DEPARTURES, FEATURE_CERTIFICATES, FEATURE_DOCUMENTS, FEATURE_TASKS, getRequiredPlanLabel } from '@/hooks/usePlan';
 import { PlanBadge } from '@/components/PlanGate';
@@ -232,6 +233,17 @@ const talentsNavigation: NavItem[] = [
   { name: 'Promotions',       href: '/dashboard/talents/promotions', icon: ArrowUpRight, roles: ['rh', 'admin', 'dg', 'manager'] },
 ];
 
+// Sous-menu Gestion du Personnel
+const personnelNavigation: NavItem[] = [
+  { name: 'Annuaire',      href: '/dashboard/employees?tab=employees',   icon: Users,     roles: ['rh', 'admin', 'dg'] },
+  { name: 'Départements', href: '/dashboard/employees?tab=departments', icon: Building2, roles: ['rh', 'admin', 'dg'] },
+  { name: 'Organigramme', href: '/dashboard/employees?tab=orgchart',    icon: GitBranch, roles: ['rh', 'admin', 'dg'] },
+  { name: 'Documents',    href: '/dashboard/employees?tab=documents',  icon: FileText,  roles: ['rh', 'admin', 'dg'] },
+  { name: 'Absences',     href: '/dashboard/employees?tab=absences',   icon: UserMinus, roles: ['rh', 'admin', 'dg', 'manager'] },
+  { name: 'Sanctions',    href: '/dashboard/employees?tab=sanctions',  icon: Shield,    roles: ['rh', 'admin', 'dg'] },
+  { name: 'Invitations',  href: '/dashboard/employees?tab=invitations', icon: UserPlus,  roles: ['rh', 'admin', 'dg'] },
+];
+
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
@@ -277,12 +289,14 @@ const MY_SPACE_FEATURE_MAP: Record<string, string> = {
 
 function SidebarInner() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [collapsed, setCollapsed] = useState(false);
   const [user, setUser] = useState<UserData | null>(null);
   const [inMySpace, setInMySpace] = useState(false);
   const [inPerformance, setInPerformance] = useState(false);
   const [inLearning, setInLearning] = useState(false);
   const [inTalents, setInTalents] = useState(false);
+  const [inPersonnel, setInPersonnel] = useState(false);
   const [isManager, setIsManager] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -297,6 +311,7 @@ function SidebarInner() {
     setInPerformance(pathname.startsWith('/dashboard/performance'));
     setInLearning(pathname.startsWith('/dashboard/learning'));
     setInTalents(pathname.startsWith('/dashboard/talents'));
+    setInPersonnel(pathname.startsWith('/dashboard/employees'));
   }, [pathname]);
 
   useEffect(() => {
@@ -350,6 +365,7 @@ function SidebarInner() {
   const filteredPerformanceNav = performanceNavigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredLearningNav = learningNavigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredTalentsNav = talentsNavigation.filter(item => hasAccess(item, userRole, isManager));
+  const filteredPersonnelNav = personnelNavigation.filter(item => hasAccess(item, userRole, isManager));
 
   const NavItemComponent = ({ item, isCollapsed, showTooltip = false }: { item: NavItem; isCollapsed: boolean; showTooltip?: boolean }) => {
     const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
@@ -399,7 +415,7 @@ function SidebarInner() {
   // ============================================
   // ICON SIDEBAR (shared by sub-menu modes)
   // ============================================
-  const IconSidebar = ({ activeModule }: { activeModule: 'my-space' | 'performance' | 'learning' | 'talents' }) => (
+  const IconSidebar = ({ activeModule }: { activeModule: 'my-space' | 'performance' | 'learning' | 'talents' | 'personnel' }) => (
     <aside className="w-20 bg-dark h-screen flex flex-col border-r border-gray-700 overflow-hidden">
       <div className="h-16 flex items-center justify-center border-b border-gray-700 flex-shrink-0">
         <Link href="/dashboard">
@@ -425,7 +441,7 @@ function SidebarInner() {
             );
           }
           // Determine active module href path
-          const modulePath = activeModule === 'my-space' ? '/dashboard/my-space' : activeModule === 'performance' ? '/dashboard/performance' : activeModule === 'talents' ? '/dashboard/talents' : '/dashboard/learning';
+          const modulePath = activeModule === 'my-space' ? '/dashboard/my-space' : activeModule === 'performance' ? '/dashboard/performance' : activeModule === 'talents' ? '/dashboard/talents' : activeModule === 'personnel' ? '/dashboard/employees' : '/dashboard/learning';
           const isModuleItem = item.href === modulePath;
           const isActive = isModuleItem 
             ? true 
@@ -630,6 +646,53 @@ function SidebarInner() {
           <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
             {filteredTalentsNav.map((item) => {
               const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-primary-500/20 text-primary-400 border-l-2 border-primary-500'
+                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5 mr-3" />
+                  <span className="text-sm font-medium">{item.name}</span>
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="p-4 border-t border-gray-700 flex-shrink-0">
+            <Link
+              href="/dashboard"
+              className="flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Retour au menu
+            </Link>
+          </div>
+        </aside>
+      </div>
+    );
+  }
+
+  // ============================================
+  // MODE GESTION DU PERSONNEL
+  // ============================================
+  if (inPersonnel) {
+    const currentTab = searchParams.get('tab') ?? 'employees';
+    return (
+      <div className="flex h-screen sticky top-0">
+        <IconSidebar activeModule="personnel" />
+        <aside className="w-56 bg-gray-900 h-screen flex flex-col overflow-hidden">
+          <div className="h-16 flex items-center px-4 border-b border-gray-700 flex-shrink-0">
+            <Users className="w-5 h-5 text-primary-400 mr-3 flex-shrink-0" />
+            <span className="font-semibold text-white text-sm truncate">Gestion du Personnel</span>
+          </div>
+          <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
+            {filteredPersonnelNav.map((item) => {
+              const itemTab = item.href.includes('?tab=') ? item.href.split('?tab=')[1] : 'employees';
+              const isActive = currentTab === itemTab;
               return (
                 <Link
                   key={item.name}
@@ -1043,5 +1106,9 @@ function SidebarInner() {
 // SIDEBAR COMPONENT
 // ============================================
 export default function Sidebar() {
-  return <SidebarInner />;
+  return (
+    <Suspense fallback={null}>
+      <SidebarInner />
+    </Suspense>
+  );
 }

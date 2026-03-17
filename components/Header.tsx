@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Search, Bell, Plus, X, Loader2, User, UserPlus, Briefcase, GraduationCap, Target, FileText, Check, CheckCheck, ExternalLink, Handshake, Calendar, FileCheck, Plane, ClipboardList } from 'lucide-react';
 import AddModal from './AddModal';
-import SOSButton from './SOSButton';
 
 // ============================================
 // TYPES
@@ -492,9 +491,6 @@ export default function Header({ title, subtitle }: HeaderProps) {
                 </div>
               )}
             </div>
-
-            {/* ========== BOUTON SOS ========== */}
-            <SOSButton />
 
             {/* ========== NOTIFICATIONS ========== */}
             <div className="relative">

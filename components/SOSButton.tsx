@@ -25,14 +25,12 @@ export default function SOSButton() {
   const [step, setStep] = useState<'form' | 'confirm' | 'done'>('form');
   const [category, setCategory] = useState('general');
   const [message, setMessage] = useState('');
-  const [isAnonymous, setIsAnonymous] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   function handleOpen() {
     setStep('form');
     setCategory('general');
     setMessage('');
-    setIsAnonymous(false);
     setOpen(true);
   }
 
@@ -46,7 +44,7 @@ export default function SOSButton() {
       const res = await fetch(`${API_URL}/api/sos`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ category, message: message.trim() || null, is_anonymous: isAnonymous }),
+        body: JSON.stringify({ category, message: message.trim() || null, is_anonymous: false }),
       });
       if (!res.ok) throw new Error('Erreur serveur');
       setStep('done');
@@ -134,17 +132,6 @@ export default function SOSButton() {
                   )}
                 </div>
 
-                {/* Anonymat */}
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isAnonymous}
-                    onChange={e => setIsAnonymous(e.target.checked)}
-                    className="w-4 h-4 rounded accent-red-500"
-                  />
-                  <span className="text-sm text-gray-700">Envoyer de façon anonyme</span>
-                </label>
-
                 {/* Actions */}
                 <div className="flex gap-3 pt-2">
                   <button onClick={handleClose} className="flex-1 px-4 py-2.5 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors">
@@ -166,7 +153,6 @@ export default function SOSButton() {
                   <h3 className="text-lg font-bold text-gray-900 mb-1">Confirmer l&apos;alerte ?</h3>
                   <p className="text-sm text-gray-500">
                     L&apos;équipe RH et la direction vont être notifiées immédiatement.
-                    {isAnonymous && ' Votre identité restera anonyme.'}
                   </p>
                   <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-700 rounded-lg text-sm font-medium">
                     <span>{selectedCat?.emoji}</span>
@@ -197,7 +183,6 @@ export default function SOSButton() {
                   <h3 className="text-lg font-bold text-gray-900 mb-1">Alerte envoyée</h3>
                   <p className="text-sm text-gray-500">
                     L&apos;équipe RH a été notifiée et traitera votre situation rapidement.
-                    {isAnonymous && ' Votre anonymat est préservé.'}
                   </p>
                 </div>
                 <button onClick={handleClose} className="w-full px-4 py-2.5 text-sm text-white bg-primary-500 hover:bg-primary-600 rounded-xl font-medium">

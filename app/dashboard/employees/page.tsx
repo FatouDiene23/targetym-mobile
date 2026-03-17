@@ -894,30 +894,15 @@ function EmployeesPageInner() {
           <div onClick={() => { setCardFilter(cardFilter === 'female' ? null : 'female'); setActiveTab('employees'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'female' ? 'border-pink-300 ring-2 ring-pink-100' : 'border-gray-100'}`}><span className="text-sm font-bold text-pink-500 block mb-2">♀</span><p className="text-2xl font-bold text-pink-600">{dynamicStats.female}</p><p className="text-xs text-gray-500">Femmes</p></div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex items-center gap-4 mb-6">
-          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
-            <button onClick={() => { setActiveTab('employees'); }} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'employees' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Users className="w-4 h-4 inline mr-2" />Annuaire</button>
-            <button onClick={() => { setActiveTab('departments'); setCardFilter(null); }} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'departments' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Building2 className="w-4 h-4 inline mr-2" />Départements</button>
-            <button onClick={() => { setActiveTab('orgchart'); setCardFilter(null); }} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'orgchart' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Network className="w-4 h-4 inline mr-2" />Organigramme</button>
-            <button onClick={() => { setActiveTab('documents'); setCardFilter(null); }} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'documents' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><FileText className="w-4 h-4 inline mr-2" />Documents</button>
-            <button onClick={() => { setActiveTab('leaves'); setCardFilter(null); }} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'leaves' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Palmtree className="w-4 h-4 inline mr-2" />Congés{leaveStats.pending > 0 && <span className="ml-2 px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">{leaveStats.pending}</span>}</button>
-            <button onClick={() => { setActiveTab('invitations'); setCardFilter(null); }} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'invitations' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Send className="w-4 h-4 inline mr-2" />Invitations{invitationStats && invitationStats.pending > 0 && <span className="ml-2 px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">{invitationStats.pending}</span>}</button>
-            <button onClick={() => { setActiveTab('import'); setCardFilter(null); }} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'import' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><UserPlus className="w-4 h-4 inline mr-2" />Import</button>
-            <button onClick={() => { setActiveTab('sanctions'); setCardFilter(null); }} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'sanctions' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><AlertTriangle className="w-4 h-4 inline mr-2" />Sanctions</button>
-            <button onClick={() => { setActiveTab('absences'); setCardFilter(null); }} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'absences' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}><Clock className="w-4 h-4 inline mr-2" />Absences</button>
+        {/* Card filter indicator */}
+        {cardFilter && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-primary-50 border border-primary-200 rounded-lg text-sm text-primary-700 mb-4 w-fit">
+            <Filter className="w-3.5 h-3.5" />
+            <span className="font-medium">{cardFilterLabels[cardFilter]}</span>
+            <span className="text-primary-500">({displayedEmployees.length})</span>
+            <button onClick={() => setCardFilter(null)} className="ml-1 p-0.5 hover:bg-primary-100 rounded"><X className="w-3.5 h-3.5" /></button>
           </div>
-
-          {/* Card filter indicator */}
-          {cardFilter && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary-50 border border-primary-200 rounded-lg text-sm text-primary-700">
-              <Filter className="w-3.5 h-3.5" />
-              <span className="font-medium">{cardFilterLabels[cardFilter]}</span>
-              <span className="text-primary-500">({displayedEmployees.length})</span>
-              <button onClick={() => setCardFilter(null)} className="ml-1 p-0.5 hover:bg-primary-100 rounded"><X className="w-3.5 h-3.5" /></button>
-            </div>
-          )}
-        </div>
+        )}
 
         {/* ============================================ */}
         {/* Tab: Documents (NEW) */}

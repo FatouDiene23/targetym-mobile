@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { 
   Calendar, Clock, CheckCircle, XCircle, AlertCircle,
   Download, RefreshCw, Users, Settings, BarChart3, CalendarDays,
-  ChevronLeft, ChevronRight, X, Search, Plus
+  ChevronLeft, ChevronRight, X, Search, Plus, Brain, Sparkles
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Pagination from '@/components/Pagination';
@@ -57,6 +57,32 @@ interface LeaveStats {
 interface Department {
   id: number;
   name: string;
+}
+
+interface OkrAtRisk {
+  id: number;
+  title: string;
+  period: string;
+  end_date: string | null;
+  progress: number;
+  deadline_during_leave: boolean;
+  days_until_deadline: number | null;
+  key_results: Array<{ title: string; progress: number; current: number; target: number }>;
+}
+
+interface OkrImpact {
+  has_okrs: boolean;
+  okrs_at_risk: OkrAtRisk[];
+  warning_level: 'none' | 'low' | 'medium' | 'high';
+  message: string | null;
+}
+
+interface ManagerSuggestion {
+  recommendation: 'approve' | 'caution' | 'review';
+  color: string;
+  ai_text: string;
+  okrs_at_risk: OkrAtRisk[];
+  has_okr_issues: boolean;
 }
 
 // ============================================
@@ -179,6 +205,43 @@ async function initializeAllBalances(year: number): Promise<void> {
     headers: getAuthHeaders(),
   });
   if (!response.ok) throw new Error('Erreur');
+}
+
+async function submitLeaveRequest(data: {
+  employee_id: number;
+  leave_type_id: number;
+  start_date: string;
+  end_date: string;
+  reason?: string;
+}): Promise<void> {
+  const { employee_id, ...body } = data;
+  const response = await fetch(`${API_URL}/api/leaves/requests?employee_id=${employee_id}`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Erreur création demande');
+  }
+}
+
+async function getOkrImpact(employeeId: number, startDate: string, endDate: string): Promise<OkrImpact> {
+  const response = await fetch(
+    `${API_URL}/api/ai/leave-okr-impact?employee_id=${employeeId}&start_date=${startDate}&end_date=${endDate}`,
+    { headers: getAuthHeaders() }
+  );
+  if (!response.ok) throw new Error('Erreur impact OKR');
+  return response.json();
+}
+
+async function fetchManagerSuggestion(leaveRequestId: number): Promise<ManagerSuggestion> {
+  const response = await fetch(
+    `${API_URL}/api/ai/leave-manager-suggestion/${leaveRequestId}`,
+    { headers: getAuthHeaders() }
+  );
+  if (!response.ok) throw new Error('Erreur suggestion manager');
+  return response.json();
 }
 
 // ============================================
@@ -631,6 +694,10 @@ function RequestActionModal({
   const [rejectionReason, setRejectionReason] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // AI suggestion state
+  const [aiSuggestion, setAiSuggestion] = useState<ManagerSuggestion | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
   const handleAction = async (approved: boolean) => {
     if (!request) return;
     if (!approved && !rejectionReason.trim()) {
@@ -650,7 +717,33 @@ function RequestActionModal({
     }
   };
 
+  const handleAiAnalysis = async () => {
+    if (!request) return;
+    setAiLoading(true);
+    try {
+      const suggestion = await fetchManagerSuggestion(request.id);
+      setAiSuggestion(suggestion);
+    } catch (e) {
+      console.error(e);
+      toast.error('Erreur lors de l\'analyse IA');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   if (!request) return null;
+
+  const suggestionBg: Record<string, string> = {
+    green: 'bg-green-50 border-green-200',
+    yellow: 'bg-yellow-50 border-yellow-200',
+    orange: 'bg-orange-50 border-orange-200',
+    gray: 'bg-gray-50 border-gray-200',
+  };
+  const suggestionLabel: Record<string, string> = {
+    approve: '✅ Recommandation : Approuver',
+    caution: '⚠️ Recommandation : Approuver avec précautions',
+    review: '🔍 Recommandation : Examiner avec attention',
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -667,7 +760,7 @@ function RequestActionModal({
             </button>
           </div>
 
-          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg">
             <p className="font-medium text-gray-900">{request.employee_name}</p>
             <p className="text-sm text-primary-600">{request.leave_type_name}</p>
             <p className="text-sm text-gray-500 mt-2">
@@ -689,6 +782,61 @@ function RequestActionModal({
               </div>
             )}
           </div>
+
+          {/* AI Suggestion button + panel */}
+          {request.status === 'pending' && (
+            <div className="mb-4">
+              {aiSuggestion ? (
+                <div className={`rounded-lg border p-4 ${suggestionBg[aiSuggestion.color] || suggestionBg.gray}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-semibold">
+                      {suggestionLabel[aiSuggestion.recommendation]}
+                    </p>
+                    <button
+                      onClick={() => setAiSuggestion(null)}
+                      className="text-gray-400 hover:text-gray-600 ml-2"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-700 whitespace-pre-line">{aiSuggestion.ai_text}</p>
+                  {aiSuggestion.has_okr_issues && (
+                    <div className="mt-2 pt-2 border-t border-current border-opacity-20">
+                      <p className="text-xs font-medium mb-1 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> OKRs concernés :
+                      </p>
+                      <ul className="pl-4 list-disc space-y-0.5">
+                        {aiSuggestion.okrs_at_risk.map((o) => (
+                          <li key={o.id} className="text-xs">
+                            {o.title} — {o.progress.toFixed(0)}%
+                            {o.deadline_during_leave && <span className="text-red-600 font-medium"> ⚠ deadline {o.end_date}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={handleAiAnalysis}
+                  disabled={aiLoading}
+                  className="w-full px-4 py-2 border border-purple-300 text-purple-700 bg-purple-50 rounded-lg hover:bg-purple-100 disabled:opacity-50 flex items-center justify-center gap-2 text-sm font-medium"
+                >
+                  {aiLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                      Analyse en cours…
+                    </>
+                  ) : (
+                    <>
+                      <Brain className="w-4 h-4" />
+                      Analyse IA (OKRs + recommandation)
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          )}
 
           {request.status === 'pending' ? (
             <>
@@ -738,6 +886,223 @@ function RequestActionModal({
 }
 
 // ============================================
+// NEW LEAVE REQUEST MODAL (Employee + OKR alert)
+// ============================================
+
+function NewLeaveRequestModal({
+  isOpen,
+  onClose,
+  leaveTypes,
+  onSuccess,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  leaveTypes: LeaveType[];
+  onSuccess: () => void;
+}) {
+  const [employeeId, setEmployeeId] = useState('');
+  const [leaveTypeId, setLeaveTypeId] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const [okrImpact, setOkrImpact] = useState<OkrImpact | null>(null);
+  const [okrLoading, setOkrLoading] = useState(false);
+
+  // Fetch OKR impact whenever employee + both dates are set
+  useEffect(() => {
+    if (!employeeId || !startDate || !endDate) {
+      setOkrImpact(null);
+      return;
+    }
+    const id = Number.parseInt(employeeId);
+    if (Number.isNaN(id) || endDate < startDate) {
+      setOkrImpact(null);
+      return;
+    }
+    let cancelled = false;
+    setOkrLoading(true);
+    getOkrImpact(id, startDate, endDate)
+      .then((data) => { if (!cancelled) setOkrImpact(data); })
+      .catch(() => { if (!cancelled) setOkrImpact(null); })
+      .finally(() => { if (!cancelled) setOkrLoading(false); });
+    return () => { cancelled = true; };
+  }, [employeeId, startDate, endDate]);
+
+  const handleSubmit = async () => {
+    if (!employeeId || !leaveTypeId || !startDate || !endDate) {
+      toast.error('Veuillez remplir tous les champs obligatoires.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await submitLeaveRequest({
+        employee_id: Number.parseInt(employeeId),
+        leave_type_id: Number.parseInt(leaveTypeId),
+        start_date: startDate,
+        end_date: endDate,
+        reason: reason || undefined,
+      });
+      toast.success('Demande créée avec succès');
+      onSuccess();
+      onClose();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erreur lors de la création');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const warningColors = {
+    none: '',
+    low: 'bg-blue-50 border-blue-200 text-blue-800',
+    medium: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+    high: 'bg-red-50 border-red-200 text-red-800',
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+        <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-primary-600" />
+              Nouvelle demande de congé
+            </h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {/* Employee ID */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                ID Employé <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                value={employeeId}
+                onChange={(e) => setEmployeeId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                placeholder="ex: 42"
+              />
+            </div>
+
+            {/* Leave type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Type de congé <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={leaveTypeId}
+                onChange={(e) => setLeaveTypeId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              >
+                <option value="">-- Choisir --</option>
+                {leaveTypes.filter(t => t.is_active).map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Dates */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Début <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Fin <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  min={startDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+            </div>
+
+            {/* OKR Impact */}
+            {okrLoading && (
+              <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+                <div className="w-4 h-4 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" />
+                Analyse de l&apos;impact OKR…
+              </div>
+            )}
+            {!okrLoading && okrImpact && okrImpact.has_okrs && okrImpact.warning_level !== 'none' && (
+              <div className={`rounded-lg border p-4 ${warningColors[okrImpact.warning_level]}`}>
+                <div className="flex items-start gap-2 mb-2">
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <p className="text-sm font-medium">{okrImpact.message}</p>
+                </div>
+                <ul className="mt-2 space-y-1 pl-6 list-disc text-xs">
+                  {okrImpact.okrs_at_risk.map((o) => (
+                    <li key={o.id}>
+                      <span className="font-medium">{o.title}</span>
+                      {' '}— {o.progress.toFixed(0)}% complété
+                      {o.deadline_during_leave && (
+                        <span className="ml-1 font-semibold text-red-700">⚠ deadline le {o.end_date}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Reason */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Motif (optionnel)</label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                rows={2}
+                placeholder="Motif de la demande…"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {submitting ? (
+                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Envoi…</>
+              ) : (
+                <>Envoyer la demande</>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
 // MAIN PAGE
 // ============================================
 
@@ -768,6 +1133,7 @@ export default function LeavesManagementPage() {
   const [showTypesModal, setShowTypesModal] = useState(false);
   const [showInitModal, setShowInitModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
+  const [showNewLeaveModal, setShowNewLeaveModal] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -889,6 +1255,13 @@ export default function LeavesManagementPage() {
       <div className="max-w-7xl mx-auto">
         {/* Actions */}
         <div className="flex justify-end gap-3 mb-6">
+            <button
+              onClick={() => setShowNewLeaveModal(true)}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Nouvelle demande
+            </button>
             <button
               onClick={() => setShowInitModal(true)}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2"
@@ -1105,6 +1478,13 @@ export default function LeavesManagementPage() {
       <RequestActionModal
         request={selectedRequest}
         onClose={() => setSelectedRequest(null)}
+        onSuccess={() => { loadRequests(); loadData(); }}
+      />
+
+      <NewLeaveRequestModal
+        isOpen={showNewLeaveModal}
+        onClose={() => setShowNewLeaveModal(false)}
+        leaveTypes={leaveTypes}
         onSuccess={() => { loadRequests(); loadData(); }}
       />
     </>

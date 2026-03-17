@@ -1958,6 +1958,7 @@ export interface ImpersonationResponse {
   first_name?: string;
   last_name?: string;
   employee_role?: string;
+  user_role?: string;
   is_manager?: boolean;
   tenant_slug?: string;
   warning: string;

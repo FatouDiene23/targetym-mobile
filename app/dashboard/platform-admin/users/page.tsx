@@ -129,7 +129,7 @@ export default function PlatformUsersManagement() {
             email: result.impersonated_user_email,
             first_name: result.first_name || '',
             last_name: result.last_name || '',
-            role: result.employee_role || 'employee',
+            role: result.user_role || result.employee_role || 'employee',
             is_manager: result.is_manager || false,
             tenant_id: result.impersonated_tenant_id,
           }));

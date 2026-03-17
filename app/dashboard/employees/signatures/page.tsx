@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/Header';
 import {
   PenLine, FileText, Plus, X, Loader2, CheckCircle2,
-  Clock, XCircle, Trash2, Send, Ban,
+  Clock, XCircle, Trash2, Send, Ban, Download,
   ChevronDown, ChevronRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -250,6 +250,24 @@ export default function SignaturesPage() {
     }
   };
 
+  const handleDownloadFinalPdf = async (doc: DocumentOut) => {
+    try {
+      const res = await fetch(`${API_URL}/api/signatures/documents/${doc.id}/final-pdf`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `signed_${doc.title.replace(/\s+/g, '_').slice(0, 50)}_${doc.id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Erreur lors du téléchargement');
+    }
+  };
+
   const filtered = filterStatus === 'all' ? docs : docs.filter(d => d.status === filterStatus);
 
   return (
@@ -348,6 +366,9 @@ export default function SignaturesPage() {
                     )}
                     {(doc.status === 'sent' || doc.status === 'partially_signed') && (
                       <button onClick={() => handleCancel(doc.id)} title="Annuler" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg transition"><Ban className="w-4 h-4" /></button>
+                    )}
+                    {(doc.status === 'sent' || doc.status === 'partially_signed' || doc.status === 'fully_signed') && (
+                      <button onClick={() => handleDownloadFinalPdf(doc)} title="Télécharger PDF final signé" className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition"><Download className="w-4 h-4" /></button>
                     )}
                     {totalCount > 0 && (
                       <button

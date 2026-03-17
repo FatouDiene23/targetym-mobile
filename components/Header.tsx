@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Search, Bell, Plus, X, Loader2, User, UserPlus, Briefcase, GraduationCap, Target, FileText, Check, CheckCheck, ExternalLink, Handshake, Calendar, FileCheck, Plane, ClipboardList } from 'lucide-react';
+import { Search, Bell, Plus, X, Loader2, User, UserPlus, Briefcase, GraduationCap, Target, FileText, Check, CheckCheck, ExternalLink, Handshake, Calendar, FileCheck, Plane, ClipboardList, PenLine } from 'lucide-react';
 import AddModal from './AddModal';
 
 // ============================================
@@ -62,6 +62,10 @@ const NOTIF_ICONS: Record<string, { icon: typeof Bell; color: string; bg: string
   leave_request: { icon: Plane, color: 'text-blue-600', bg: 'bg-blue-100' },
   mission_assigned: { icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-100' },
   task_assigned: { icon: ClipboardList, color: 'text-blue-600', bg: 'bg-blue-100' },
+  signature_request: { icon: PenLine, color: 'text-blue-600', bg: 'bg-blue-100' },
+  signature_signed: { icon: CheckCheck, color: 'text-green-600', bg: 'bg-green-100' },
+  signature_rejected: { icon: X, color: 'text-red-600', bg: 'bg-red-100' },
+  sos_alert: { icon: Bell, color: 'text-red-600', bg: 'bg-red-100' },
   general: { icon: Bell, color: 'text-gray-600', bg: 'bg-gray-100' },
   system: { icon: Bell, color: 'text-gray-600', bg: 'bg-gray-100' },
 };
@@ -235,12 +239,12 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
   const canAdd = ['admin', 'rh', 'manager', 'dg'].includes(userRole);
 
-  // Charger le count non lu au mount + polling toutes les 60s (pause si onglet inactif)
+  // Charger le count non lu au mount + polling toutes les 30s (pause si onglet inactif)
   useEffect(() => {
     fetchUnreadCount();
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') fetchUnreadCount();
-    }, 60000);
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 

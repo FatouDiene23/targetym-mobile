@@ -1125,97 +1125,38 @@ export default function MyProfilePage() {
         </div>
 
         {/* ============================================ */}
-        {/* SECTION SIGNATURE ÉLECTRONIQUE */}
+        {/* SECTION SIGNATURE ÉLECTRONIQUE → nouveau système */}
         {/* ============================================ */}
-        <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-tour="signature-section">
-          <h3 className="text-lg font-semibold text-gray-900 mb-1 flex items-center gap-2">
-            <PenTool className="w-5 h-5 text-primary-600" />
-            Signature électronique
-          </h3>
-          <p className="text-sm text-gray-500 mb-5">
-            Votre signature sera utilisée sur les ordres de mission et autres documents officiels.
-          </p>
-
-          {/* Message de feedback */}
-          {signatureMessage && (
-            <div className={`mb-4 flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium ${
-              signatureMessage.type === 'success' 
-                ? 'bg-green-50 text-green-700 border border-green-200' 
-                : 'bg-red-50 text-red-700 border border-red-200'
-            }`}>
-              {signatureMessage.type === 'success' 
-                ? <CheckCircle className="w-4 h-4 shrink-0" /> 
-                : <AlertCircle className="w-4 h-4 shrink-0" />
-              }
-              {signatureMessage.text}
-            </div>
-          )}
-
-          {signature?.has_signature && signature.signature_url ? (
-            /* Signature existante */
-            <div>
-              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 inline-block">
-                <p className="text-xs text-gray-400 mb-2">Aperçu de votre signature :</p>
-                <img 
-                  src={signature.signature_url} 
-                  alt="Ma signature" 
-                  className="max-h-20 max-w-xs object-contain"
-                />
+        <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6" data-tour="signature-section">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-11 h-11 bg-blue-100 rounded-xl flex items-center justify-center">
+                <PenLine className="w-5 h-5 text-blue-600" />
               </div>
-              <div className="mt-4 flex gap-3">
-                <label className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors text-sm font-medium">
-                  <Upload className="w-4 h-4" />
-                  {signatureUploading ? 'Upload...' : 'Remplacer'}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    onChange={handleSignatureUpload}
-                    className="hidden"
-                    disabled={signatureUploading}
-                  />
-                </label>
-                <button
-                  onClick={handleSignatureDelete}
-                  disabled={signatureLoading}
-                  className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  {signatureLoading ? 'Suppression...' : 'Supprimer'}
-                </button>
-              </div>
-            </div>
-          ) : (
-            /* Pas de signature */
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-              <PenTool className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-              <p className="text-sm text-gray-500 mb-1">Aucune signature enregistrée</p>
-              <p className="text-xs text-gray-400 mb-4">
-                Uploadez une image de votre signature manuscrite (PNG, JPEG ou WebP, max 2 MB)
-              </p>
-              <label className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors text-sm font-medium">
-                {signatureUploading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Upload en cours...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4" />
-                    Uploader ma signature
-                  </>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Signatures électroniques
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Signez vos documents directement depuis l&apos;application avec votre signature manuscrite numérique.
+                  Contrats, ordres de mission, courriers officiels — tout se signe en quelques clics.
+                </p>
+                {pendingSignatures.length > 0 && (
+                  <div className="mt-2 inline-flex items-center gap-1.5 bg-orange-100 text-orange-700 text-xs font-medium px-2.5 py-1 rounded-full">
+                    <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse" />
+                    {pendingSignatures.length} document{pendingSignatures.length > 1 ? 's' : ''} en attente de signature
+                  </div>
                 )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={handleSignatureUpload}
-                  className="hidden"
-                  disabled={signatureUploading}
-                />
-              </label>
+              </div>
             </div>
-          )}
+            <button
+              onClick={() => setActiveTab('signatures')}
+              className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+            >
+              <PenLine className="w-4 h-4" />
+              Voir mes signatures
+            </button>
+          </div>
         </div>
 
         {/* Section Attestation de Travail */}

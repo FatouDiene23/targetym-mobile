@@ -173,6 +173,8 @@ export interface Employee {
   contract_type?: string;
   salary?: number;
   net_salary?: number;
+  salaire_brut?: number;
+  part_variable?: number;
   currency?: string;
   classification?: string;
   coefficient?: string;
@@ -207,6 +209,8 @@ export interface EmployeeCreate {
   site?: string;
   salary?: number | null;
   net_salary?: number | null;
+  salaire_brut?: number | null;
+  part_variable?: number | null;
   currency?: string;
   classification?: string | null;
   coefficient?: string | null;

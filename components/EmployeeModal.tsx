@@ -59,6 +59,8 @@ interface Employee {
   onLeave?: boolean;
   role?: string;
   salary?: number;
+  salaire_brut?: number;
+  part_variable?: number;
   currency?: string;
   contract_type?: string;
   classification?: string;
@@ -863,14 +865,30 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
               </div>
 
               {/* Rémunération */}
-              {employee.salary != null && employee.salary > 0 && (
+              {(employee.salaire_brut != null || employee.part_variable != null || (employee.salary != null && employee.salary > 0)) && (
                 <div className="bg-gray-50 rounded-xl p-5">
                   <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                     <DollarSign className="w-4 h-4 mr-2 text-primary-500" />Rémunération
                   </h3>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">Salaire brut mensuel</span>
-                    <span className="text-sm font-bold text-gray-900">{formatCurrency(employee.salary, employee.currency || 'XOF')}</span>
+                  <div className="space-y-2">
+                    {employee.salaire_brut != null && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-500">Salaire brut mensuel</span>
+                        <span className="text-sm font-bold text-gray-900">{formatCurrency(employee.salaire_brut, employee.currency || 'XOF')}</span>
+                      </div>
+                    )}
+                    {employee.part_variable != null && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-500">Part variable</span>
+                        <span className="text-sm font-semibold text-gray-900">{formatCurrency(employee.part_variable, employee.currency || 'XOF')}</span>
+                      </div>
+                    )}
+                    {employee.salary != null && employee.salary > 0 && employee.salaire_brut == null && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-500">Salaire brut mensuel</span>
+                        <span className="text-sm font-bold text-gray-900">{formatCurrency(employee.salary, employee.currency || 'XOF')}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

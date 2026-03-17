@@ -51,6 +51,8 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
     site: '',
     salary: '',
     net_salary: '',
+    salaire_brut: '',
+    part_variable: '',
     currency: 'XOF',
     classification: '',
     coefficient: '',
@@ -127,6 +129,8 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
         site: formData.site || undefined,
         salary: formData.salary ? parseFloat(formData.salary) : undefined,
         net_salary: formData.net_salary ? parseFloat(formData.net_salary) : undefined,
+        salaire_brut: formData.salaire_brut ? parseFloat(formData.salaire_brut) : undefined,
+        part_variable: formData.part_variable ? parseFloat(formData.part_variable) : undefined,
         currency: formData.currency,
         classification: formData.classification || undefined,
         coefficient: formData.coefficient || undefined,
@@ -354,9 +358,9 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               />
             </div>
 
-            {/* Département */}
+            {/* Unité */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Département</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Unité</label>
               <select
                 name="department_id"
                 value={formData.department_id}
@@ -568,14 +572,14 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               <p className="text-xs text-gray-500 mt-1">Niveau dans la grille de la convention collective</p>
             </div>
 
-            {/* Salaire brut */}
+            {/* Salaire brut mensuel */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Salaire brut mensuel</label>
               <div className="flex">
                 <input
                   type="number"
-                  name="salary"
-                  value={formData.salary}
+                  name="salaire_brut"
+                  value={formData.salaire_brut}
                   onChange={handleChange}
                   placeholder="Ex: 500000"
                   step="1000"
@@ -600,19 +604,20 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               </div>
             </div>
 
-            {/* Salaire net */}
+            {/* Part variable */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Salaire net mensuel</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Part variable</label>
               <input
                 type="number"
-                name="net_salary"
-                value={formData.net_salary}
+                name="part_variable"
+                value={formData.part_variable}
                 onChange={handleChange}
-                placeholder="Ex: 400000"
+                placeholder="Ex: 100000"
                 step="1000"
                 min="0"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
+              <p className="text-xs text-gray-500 mt-1">Prime ou commission variable mensuelle</p>
             </div>
 
             {/* Adresse */}

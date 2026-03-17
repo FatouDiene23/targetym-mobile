@@ -92,6 +92,8 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
     site: employee.location || employee.site || '',
     salary: employee.salary != null && employee.salary > 0 ? employee.salary.toString() : '',
     net_salary: employee.net_salary != null && employee.net_salary > 0 ? employee.net_salary.toString() : '',
+    salaire_brut: employee.salaire_brut != null && employee.salaire_brut > 0 ? employee.salaire_brut.toString() : '',
+    part_variable: employee.part_variable != null && employee.part_variable > 0 ? employee.part_variable.toString() : '',
     currency: employee.currency || 'XOF',
     classification: employee.classification || '',
     coefficient: employee.coefficient || '',
@@ -168,6 +170,8 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
         site: formData.site || undefined,
         salary: formData.salary ? parseFloat(formData.salary) : null,
         net_salary: formData.net_salary ? parseFloat(formData.net_salary) : null,
+        salaire_brut: formData.salaire_brut ? parseFloat(formData.salaire_brut) : null,
+        part_variable: formData.part_variable ? parseFloat(formData.part_variable) : null,
         currency: formData.currency,
         classification: formData.classification || null,
         coefficient: formData.coefficient || null,
@@ -350,9 +354,9 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               />
             </div>
 
-            {/* Département */}
+            {/* Unité */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Département</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Unité</label>
               <select
                 name="department_id"
                 value={formData.department_id}
@@ -562,14 +566,14 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               <p className="text-xs text-gray-500 mt-1">Niveau dans la grille de la convention collective</p>
             </div>
 
-            {/* Salaire brut */}
+            {/* Salaire brut mensuel */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Salaire brut mensuel</label>
               <div className="flex">
                 <input
                   type="number"
-                  name="salary"
-                  value={formData.salary}
+                  name="salaire_brut"
+                  value={formData.salaire_brut}
                   onChange={handleChange}
                   placeholder="Ex: 500000"
                   step="1000"
@@ -594,19 +598,20 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               </div>
             </div>
 
-            {/* Salaire net */}
+            {/* Part variable */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Salaire net mensuel</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Part variable</label>
               <input
                 type="number"
-                name="net_salary"
-                value={formData.net_salary}
+                name="part_variable"
+                value={formData.part_variable}
                 onChange={handleChange}
-                placeholder="Ex: 400000"
+                placeholder="Ex: 100000"
                 step="1000"
                 min="0"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
+              <p className="text-xs text-gray-500 mt-1">Prime ou commission variable mensuelle</p>
             </div>
           </div>
 

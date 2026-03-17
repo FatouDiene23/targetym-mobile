@@ -69,18 +69,17 @@ const ORGANIZATIONAL_LEVELS = [
   },
 ];
 
-const COLORS = [
-  { value: '#EF4444', label: 'Rouge', class: 'bg-red-500' },
-  { value: '#F97316', label: 'Orange', class: 'bg-orange-500' },
-  { value: '#F59E0B', label: 'Ambre', class: 'bg-amber-500' },
-  { value: '#EAB308', label: 'Jaune', class: 'bg-yellow-500' },
-  { value: '#22C55E', label: 'Vert', class: 'bg-green-500' },
-  { value: '#3B82F6', label: 'Bleu', class: 'bg-blue-500' },
-  { value: '#8B5CF6', label: 'Violet', class: 'bg-purple-500' },
-  { value: '#EC4899', label: 'Rose', class: 'bg-pink-500' },
-  { value: '#06B6D4', label: 'Cyan', class: 'bg-cyan-500' },
-  { value: '#6366F1', label: 'Indigo', class: 'bg-indigo-500' },
-];
+// Couleur automatique par type d'unité (cohérence avec l'organigramme)
+const LEVEL_COLOR_MAP: Record<string, string> = {
+  president:          '#f97316',
+  vice_president:     '#f59e0b',
+  dg:                 '#c2410c',
+  dga:                '#22c55e',
+  direction_centrale: '#a855f7',
+  direction:          '#3b82f6',
+  departement:        '#fdba74',
+  service:            '#6b7280',
+};
 
 // Helper pour obtenir le label d'un niveau
 function getLevelLabel(level: string): string {
@@ -109,7 +108,6 @@ export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOr
     name: string;
     code: string;
     description: string;
-    color: string;
     level: OrganizationalLevel | '';
     parent_id: string;
     head_id: string;
@@ -117,7 +115,6 @@ export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOr
     name: '',
     code: '',
     description: '',
-    color: '#3B82F6',
     level: '',
     parent_id: '',
     head_id: '',
@@ -159,7 +156,7 @@ export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOr
         name: formData.name,
         code: formData.code || formData.name.substring(0, 4).toUpperCase(),
         description: formData.description || undefined,
-        color: formData.color,
+        color: LEVEL_COLOR_MAP[formData.level] ?? '#6b7280',
         level: formData.level as OrganizationalLevel,
         parent_id: formData.parent_id ? parseInt(formData.parent_id) : undefined,
         head_id: formData.head_id ? parseInt(formData.head_id) : undefined,
@@ -357,25 +354,6 @@ export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOr
               />
             </div>
 
-            {/* Couleur */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Couleur</label>
-              <div className="flex gap-2 flex-wrap">
-                {COLORS.map(color => (
-                  <button
-                    key={color.value}
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, color: color.value }))}
-                    className={`w-8 h-8 rounded-full ${color.class} ${
-                      formData.color === color.value 
-                        ? 'ring-2 ring-offset-2 ring-gray-400' 
-                        : 'hover:scale-110'
-                    } transition-all`}
-                    title={color.label}
-                  />
-                ))}
-              </div>
-            </div>
           </div>
         </form>
 

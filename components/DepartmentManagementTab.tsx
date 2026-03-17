@@ -625,13 +625,15 @@ function EditDepartmentModal({
     { value: 'service', label: 'Service' },
   ];
 
-  const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#64748b'];
+  const LEVEL_COLOR_MAP: Record<string, string> = {
+    president: '#f97316', vice_president: '#f59e0b', dg: '#c2410c', dga: '#22c55e',
+    direction_centrale: '#a855f7', direction: '#3b82f6', departement: '#fdba74', service: '#6b7280',
+  };
 
   const [form, setForm] = useState({
     name: department.name || '',
     code: department.code || '',
     description: department.description || '',
-    color: department.color || '#6366f1',
     level: department.level || '',
     parent_id: department.parent_id?.toString() || '',
     head_id: department.head_id?.toString() || '',
@@ -651,7 +653,7 @@ function EditDepartmentModal({
         name: form.name.trim(),
         code: form.code.trim() || undefined,
         description: form.description.trim() || undefined,
-        color: form.color,
+        color: LEVEL_COLOR_MAP[form.level] ?? '#6b7280',
         level: (form.level || undefined) as any,
         parent_id: form.parent_id ? parseInt(form.parent_id) : undefined,
         head_id: form.head_id ? parseInt(form.head_id) : undefined,
@@ -759,22 +761,6 @@ function EditDepartmentModal({
                 </option>
               ))}
             </select>
-          </div>
-
-          {/* Couleur */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Couleur</label>
-            <div className="flex items-center gap-2 flex-wrap">
-              {COLORS.map(c => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setForm(f => ({ ...f, color: c }))}
-                  className={`w-7 h-7 rounded-full border-2 transition-transform ${form.color === c ? 'border-gray-900 scale-110' : 'border-transparent hover:scale-105'}`}
-                  style={{ backgroundColor: c }}
-                />
-              ))}
-            </div>
           </div>
 
           {/* Description */}

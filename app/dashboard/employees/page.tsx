@@ -145,36 +145,52 @@ const orgChartCSS = `
 `;
 
 // ============================================
-// Couleurs par niveau hiérarchique
+// Couleurs fixes par type d'unité organisationnelle
 // ============================================
-const levelStyles = [
-  { bg: 'bg-orange-50', border: 'border-orange-400', text: 'text-orange-800', avatar: 'bg-orange-500', badge: 'bg-orange-100 text-orange-700' },
-  { bg: 'bg-amber-50', border: 'border-amber-400', text: 'text-amber-800', avatar: 'bg-amber-500', badge: 'bg-amber-100 text-amber-700' },
-  { bg: 'bg-blue-50', border: 'border-blue-400', text: 'text-blue-800', avatar: 'bg-blue-500', badge: 'bg-blue-100 text-blue-700' },
-  { bg: 'bg-green-50', border: 'border-green-400', text: 'text-green-800', avatar: 'bg-green-500', badge: 'bg-green-100 text-green-700' },
-  { bg: 'bg-purple-50', border: 'border-purple-400', text: 'text-purple-800', avatar: 'bg-purple-500', badge: 'bg-purple-100 text-purple-700' },
-  { bg: 'bg-pink-50', border: 'border-pink-400', text: 'text-pink-800', avatar: 'bg-pink-500', badge: 'bg-pink-100 text-pink-700' },
-  { bg: 'bg-gray-50', border: 'border-gray-400', text: 'text-gray-700', avatar: 'bg-gray-500', badge: 'bg-gray-100 text-gray-600' },
-];
+type UnitStyleKey = 'president' | 'vice_president' | 'dg' | 'dga' | 'direction_centrale' | 'direction' | 'departement' | 'service' | 'default';
 
-function getLS(level: number) {
-  return levelStyles[Math.min(level, levelStyles.length - 1)];
+const UNIT_TYPE_STYLES: Record<UnitStyleKey, { bg: string; border: string; text: string; avatar: string; badge: string }> = {
+  president:          { bg: 'bg-orange-50',  border: 'border-orange-500',  text: 'text-orange-900',  avatar: 'bg-orange-500',  badge: 'bg-orange-100 text-orange-700' },
+  vice_president:     { bg: 'bg-amber-50',   border: 'border-amber-500',   text: 'text-amber-900',   avatar: 'bg-amber-500',   badge: 'bg-amber-100 text-amber-700' },
+  dg:                 { bg: 'bg-orange-50',  border: 'border-orange-700',  text: 'text-orange-900',  avatar: 'bg-orange-700',  badge: 'bg-orange-200 text-orange-900' },
+  dga:                { bg: 'bg-green-50',   border: 'border-green-500',   text: 'text-green-900',   avatar: 'bg-green-500',   badge: 'bg-green-100 text-green-700' },
+  direction_centrale: { bg: 'bg-purple-50',  border: 'border-purple-500',  text: 'text-purple-900',  avatar: 'bg-purple-500',  badge: 'bg-purple-100 text-purple-700' },
+  direction:          { bg: 'bg-blue-50',    border: 'border-blue-500',    text: 'text-blue-900',    avatar: 'bg-blue-500',    badge: 'bg-blue-100 text-blue-700' },
+  departement:        { bg: 'bg-orange-50',  border: 'border-orange-300',  text: 'text-orange-700',  avatar: 'bg-orange-300',  badge: 'bg-orange-50 text-orange-600' },
+  service:            { bg: 'bg-gray-50',    border: 'border-gray-400',    text: 'text-gray-700',    avatar: 'bg-gray-500',    badge: 'bg-gray-100 text-gray-600' },
+  default:            { bg: 'bg-slate-50',   border: 'border-slate-400',   text: 'text-slate-700',   avatar: 'bg-slate-500',   badge: 'bg-slate-100 text-slate-600' },
+};
+
+function getUnitStyle(deptLevel?: string) {
+  return UNIT_TYPE_STYLES[(deptLevel as UnitStyleKey)] ?? UNIT_TYPE_STYLES.default;
 }
 
-// Mapping niveau département → label court
+// Mapping niveau département → label court (badge sur la carte)
 const DEPT_LEVEL_LABELS: Record<string, string> = {
   president: 'PCA', vice_president: 'VP', dg: 'DG', dga: 'DGA',
   direction_centrale: 'DC', direction: 'DIR', departement: 'DEPT', service: 'SRV',
 };
 
+// Mapping niveau → couleur hex pour l'enregistrement en base
+export const LEVEL_COLOR_MAP: Record<string, string> = {
+  president:          '#f97316',
+  vice_president:     '#f59e0b',
+  dg:                 '#c2410c',
+  dga:                '#22c55e',
+  direction_centrale: '#a855f7',
+  direction:          '#3b82f6',
+  departement:        '#fdba74',
+  service:            '#6b7280',
+};
+
 // ============================================
 // Composant Carte Noeud
 // ============================================
-function OrgCard({ node, level, isExpanded, hasChildren, onToggle, onSelect }: {
-  node: OrgNode; level: number; isExpanded: boolean; hasChildren: boolean;
+function OrgCard({ node, isExpanded, hasChildren, onToggle, onSelect }: {
+  node: OrgNode; isExpanded: boolean; hasChildren: boolean;
   onToggle: () => void; onSelect?: () => void;
 }) {
-  const s = getLS(level);
+  const s = getUnitStyle(node.department_level);
   const initials = `${node.first_name?.[0] || ''}${node.last_name?.[0] || ''}`.toUpperCase();
   const isVirtual = node.id === 0;
   const isVacant = node.isVacant === true;
@@ -281,7 +297,6 @@ function OrgTreeVisual({ node, expanded, onToggle, level = 0, onSelectEmployee }
     <li>
       <OrgCard
         node={node}
-        level={level}
         isExpanded={isExpanded}
         hasChildren={hasChildren}
         onToggle={() => onToggle(node.id)}
@@ -1045,17 +1060,18 @@ function EmployeesPageInner() {
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
               <p className="text-xs font-medium text-gray-500 mb-2">Légende</p>
               <div className="flex flex-wrap gap-3">
-                {[
-                  { label: 'Présidence',                i: 0 },
-                  { label: 'Vice-Présidence',           i: 1 },
-                  { label: 'Direction Générale',        i: 2 },
-                  { label: 'Dir. Générale Adjointe',    i: 3 },
-                  { label: 'Direction Centrale',        i: 4 },
-                  { label: 'Direction',                 i: 5 },
-                  { label: 'Département / Service',     i: 6 },
-                ].map(({ label, i }) => (
-                  <div key={i} className="flex items-center gap-1.5">
-                    <div className={`w-3 h-3 rounded-full ${levelStyles[i].avatar}`} />
+                {([
+                  { label: 'Présidence',                key: 'president'          },
+                  { label: 'Vice-Présidence',           key: 'vice_president'     },
+                  { label: 'Direction Générale',        key: 'dg'                 },
+                  { label: 'Dir. Générale Adjointe',    key: 'dga'                },
+                  { label: 'Direction Centrale',        key: 'direction_centrale' },
+                  { label: 'Direction',                 key: 'direction'          },
+                  { label: 'Département',               key: 'departement'        },
+                  { label: 'Service',                   key: 'service'            },
+                ] as { label: string; key: UnitStyleKey }[]).map(({ label, key }) => (
+                  <div key={key} className="flex items-center gap-1.5">
+                    <div className={`w-3 h-3 rounded-full ${UNIT_TYPE_STYLES[key].avatar}`} />
                     <span className="text-xs text-gray-600">{label}</span>
                   </div>
                 ))}

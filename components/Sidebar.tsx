@@ -46,6 +46,7 @@ import {
   Receipt,
   Building2,
   GitBranch,
+  AlertTriangle,
 } from 'lucide-react';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
@@ -244,6 +245,7 @@ const personnelNavigation: NavItem[] = [
   { name: 'Sanctions',    href: '/dashboard/employees?tab=sanctions',  icon: Shield,    roles: ['rh', 'admin', 'dg'] },
   { name: 'Invitations',  href: '/dashboard/employees?tab=invitations', icon: UserPlus,  roles: ['rh', 'admin', 'dg'] },
   { name: 'Import',       href: '/dashboard/employees?tab=import',     icon: ArrowUpRight, roles: ['rh', 'admin', 'dg'] },
+  { name: 'Alertes SOS',  href: '/dashboard/employees/sos',            icon: AlertTriangle, roles: ['rh', 'admin', 'dg'] },
 ];
 
 // ============================================
@@ -693,8 +695,9 @@ function SidebarInner() {
           </div>
           <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
             {filteredPersonnelNav.map((item) => {
-              const itemTab = item.href.includes('?tab=') ? item.href.split('?tab=')[1] : 'employees';
-              const isActive = currentTab === itemTab;
+              const isActive = item.href.includes('?tab=')
+                ? currentTab === item.href.split('?tab=')[1]
+                : pathname === item.href;
               return (
                 <Link
                   key={item.name}

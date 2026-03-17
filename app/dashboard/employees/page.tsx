@@ -25,9 +25,9 @@ import {
   Trash2, UserX, MoreHorizontal
 } from 'lucide-react';
 import { 
-  getEmployees, getEmployeeStats, getDepartments, exportEmployeesToCSV,
+  getEmployees, getEmployeeStats, getDepartments, getDepartmentsTree, exportEmployeesToCSV,
   getLeaveRequests, approveLeaveRequest, rejectLeaveRequest,
-  type Employee, type EmployeeStats, type Department, type LeaveRequest
+  type Employee, type EmployeeStats, type Department, type DepartmentWithChildren, type LeaveRequest
 } from '@/lib/api';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -37,11 +37,13 @@ const locations = ['Tous', 'Abidjan', 'Dakar', 'Bamako', 'Ouagadougou', 'Conakry
 // TYPES ORGANIGRAMME
 // ============================================
 interface OrgNode {
-  id: number;
+  id: number;           // dept id (positive), 0 (virtual root), or -(dept.id) for vacant
+  employeeId?: number;  // actual employee id, for profile click
   first_name: string;
   last_name: string;
   job_title?: string;
   department_name?: string;
+  department_level?: string; // 'president' | 'dg' | etc.
   is_manager?: boolean;
   status?: string;
   isVacant?: boolean;
@@ -56,6 +58,7 @@ const orgChartCSS = `
   display: flex;
   justify-content: center;
   padding: 20px 40px 40px;
+  min-width: max-content;
 }
 .org-tree ul {
   display: flex;
@@ -119,6 +122,26 @@ const orgChartCSS = `
 .org-tree > ul::before {
   display: none;
 }
+/* Responsive card sizes */
+.org-card { min-width: 100px; max-width: 160px; }
+.org-card p.org-card-name { font-size: 11px; }
+.org-card p.org-card-job { font-size: 9px; }
+@media (min-width: 768px) {
+  .org-card { min-width: 120px; max-width: 180px; }
+  .org-card p.org-card-name { font-size: 12px; }
+  .org-card p.org-card-job { font-size: 10px; }
+}
+@media (min-width: 1024px) {
+  .org-card { min-width: 140px; max-width: 200px; }
+  .org-card p.org-card-name { font-size: 12px; }
+  .org-card p.org-card-job { font-size: 10px; }
+}
+.org-mobile-hint {
+  display: flex;
+}
+@media (min-width: 768px) {
+  .org-mobile-hint { display: none; }
+}
 `;
 
 // ============================================
@@ -138,6 +161,12 @@ function getLS(level: number) {
   return levelStyles[Math.min(level, levelStyles.length - 1)];
 }
 
+// Mapping niveau département → label court
+const DEPT_LEVEL_LABELS: Record<string, string> = {
+  president: 'PCA', vice_president: 'VP', dg: 'DG', dga: 'DGA',
+  direction_centrale: 'DC', direction: 'DIR', departement: 'DEPT', service: 'SRV',
+};
+
 // ============================================
 // Composant Carte Noeud
 // ============================================
@@ -150,23 +179,37 @@ function OrgCard({ node, level, isExpanded, hasChildren, onToggle, onSelect }: {
   const isVirtual = node.id === 0;
   const isVacant = node.isVacant === true;
   const childCount = node.children.length;
+  const levelLabel = node.department_level ? DEPT_LEVEL_LABELS[node.department_level] : null;
 
   if (isVacant) {
     return (
       <div className="relative group">
-        <div className="relative px-4 py-3 rounded-xl border-2 border-dashed border-orange-400 bg-orange-50/60 min-w-[140px] max-w-[200px]">
+        <div className="org-card relative px-3 py-3 rounded-xl border-2 border-dashed border-orange-400 bg-orange-50/60">
           <div className="flex flex-col items-center text-center">
-            <div className="w-11 h-11 border-2 border-dashed border-orange-400 rounded-full flex items-center justify-center text-orange-500 mb-2">
-              <Building2 className="w-5 h-5" />
+            <div className="w-9 h-9 border-2 border-dashed border-orange-400 rounded-full flex items-center justify-center text-orange-500 mb-1.5">
+              <Building2 className="w-4 h-4" />
             </div>
-            <p className="font-semibold text-xs leading-tight text-orange-700 truncate max-w-[160px]">
+            {levelLabel && (
+              <span className="mb-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-orange-100 text-orange-600">{levelLabel}</span>
+            )}
+            <p className="org-card-name font-semibold leading-tight text-orange-700 truncate w-full text-center">
               {node.first_name}
             </p>
-            <p className="text-[10px] text-orange-500 mt-0.5 leading-tight font-medium">
+            <p className="org-card-job text-orange-500 mt-0.5 leading-tight font-medium">
               Poste à pourvoir
             </p>
           </div>
         </div>
+        {hasChildren && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggle(); }}
+            className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-10 w-6 h-6 rounded-full border-2 border-orange-300 bg-white shadow-sm flex items-center justify-center hover:bg-orange-50 transition-all"
+          >
+            {isExpanded
+              ? <span className="text-orange-500 text-xs font-bold leading-none">−</span>
+              : <span className="text-orange-500 text-xs font-bold leading-none">+</span>}
+          </button>
+        )}
       </div>
     );
   }
@@ -174,32 +217,35 @@ function OrgCard({ node, level, isExpanded, hasChildren, onToggle, onSelect }: {
   return (
     <div className="relative group">
       <div
-        className={`relative px-4 py-3 rounded-xl border-2 ${s.border} ${s.bg} shadow-sm hover:shadow-lg transition-all cursor-pointer min-w-[140px] max-w-[200px] ${node.is_manager ? 'ring-1 ring-offset-1 ring-opacity-30 ring-current' : ''}`}
+        className={`org-card relative px-3 py-3 rounded-xl border-2 ${s.border} ${s.bg} shadow-sm hover:shadow-lg transition-all cursor-pointer ${node.is_manager ? 'ring-1 ring-offset-1 ring-opacity-30 ring-current' : ''}`}
         onClick={onSelect}
       >
         <div className="flex flex-col items-center text-center">
           {!isVirtual ? (
-            <div className={`w-11 h-11 ${s.avatar} rounded-full flex items-center justify-center text-white font-bold text-sm mb-2 shadow-sm`}>
+            <div className={`w-9 h-9 ${s.avatar} rounded-full flex items-center justify-center text-white font-bold text-xs mb-1.5 shadow-sm`}>
               {initials}
             </div>
           ) : (
-            <div className="w-11 h-11 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white mb-2 shadow-sm">
-              <Building2 className="w-5 h-5" />
+            <div className="w-9 h-9 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white mb-1.5 shadow-sm">
+              <Building2 className="w-4 h-4" />
             </div>
           )}
-          <p className={`font-semibold text-xs leading-tight ${s.text}`}>
-            {node.first_name} {node.last_name}
+          {levelLabel && (
+            <span className={`mb-1 px-1.5 py-0.5 rounded text-[9px] font-bold ${s.badge}`}>{levelLabel}</span>
+          )}
+          <p className={`org-card-name font-semibold leading-tight ${s.text} truncate w-full text-center`}>
+            {node.first_name}{node.last_name ? ` ${node.last_name}` : ''}
           </p>
-          <p className="text-[10px] text-gray-500 mt-0.5 leading-tight truncate max-w-[170px]">
-            {node.job_title || '-'}
+          <p className="org-card-job text-gray-500 mt-0.5 leading-tight truncate w-full text-center">
+            {node.job_title || (isVirtual ? 'Organisation' : '—')}
           </p>
-          {node.department_name && (
-            <span className={`mt-1 px-2 py-0.5 rounded-full text-[9px] font-medium ${s.badge}`}>
+          {node.department_name && !isVirtual && (
+            <span className={`mt-1 px-1.5 py-0.5 rounded-full text-[9px] font-medium ${s.badge} truncate max-w-full`}>
               {node.department_name}
             </span>
           )}
           {hasChildren && (
-            <span className="mt-1 px-2 py-0.5 rounded-full text-[9px] font-medium bg-gray-200 text-gray-600">
+            <span className="mt-1 px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-gray-200 text-gray-600">
               {childCount} N-1{childCount > 1 ? 's' : ''}
             </span>
           )}
@@ -210,11 +256,9 @@ function OrgCard({ node, level, isExpanded, hasChildren, onToggle, onSelect }: {
           onClick={(e) => { e.stopPropagation(); onToggle(); }}
           className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-10 w-6 h-6 rounded-full border-2 border-gray-300 bg-white shadow-sm flex items-center justify-center hover:bg-gray-100 hover:border-gray-400 transition-all"
         >
-          {isExpanded ? (
-            <span className="text-gray-500 text-xs font-bold leading-none">−</span>
-          ) : (
-            <span className="text-gray-500 text-xs font-bold leading-none">+</span>
-          )}
+          {isExpanded
+            ? <span className="text-gray-500 text-xs font-bold leading-none">−</span>
+            : <span className="text-gray-500 text-xs font-bold leading-none">+</span>}
         </button>
       )}
     </div>
@@ -230,6 +274,8 @@ function OrgTreeVisual({ node, expanded, onToggle, level = 0, onSelectEmployee }
 }) {
   const isExpanded = expanded.has(node.id);
   const hasChildren = node.children.length > 0;
+  // Use employeeId for profile click; skip for virtual root and vacant nodes
+  const canSelect = !node.isVacant && node.id !== 0 && !!node.employeeId && !!onSelectEmployee;
 
   return (
     <li>
@@ -239,7 +285,7 @@ function OrgTreeVisual({ node, expanded, onToggle, level = 0, onSelectEmployee }
         isExpanded={isExpanded}
         hasChildren={hasChildren}
         onToggle={() => onToggle(node.id)}
-        onSelect={node.id !== 0 && onSelectEmployee ? () => onSelectEmployee(node.id) : undefined}
+        onSelect={canSelect ? () => onSelectEmployee!(node.employeeId!) : undefined}
       />
       {hasChildren && isExpanded && (
         <ul>
@@ -393,6 +439,7 @@ function EmployeesPageInner() {
   const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
   const [orgSearch, setOrgSearch] = useState('');
   const [orgZoom, setOrgZoom] = useState(70);
+  const lastPinchDistRef = useRef<number | null>(null);
 
   // Sélection multiple
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -407,112 +454,89 @@ function EmployeesPageInner() {
   const { showTips, dismissTips, resetTips } = usePageTour('employees');
 
   // ============================================
-  // ORGANIGRAMME LOGIC
+  // ORGANIGRAMME LOGIC — arbre basé sur les départements
   // ============================================
-  const buildOrgTree = useCallback((emps: Employee[]): OrgNode | null => {
-    const activeEmps = emps.filter(e => {
-      const s = e.status?.toLowerCase();
-      if (s === 'terminated') return false;
-      const name = `${e.first_name} ${e.last_name}`.toLowerCase();
-      const job = (e.position || e.job_title || '').toLowerCase();
-      if (name.includes('admin') || job === 'administrateur') return false;
-      return true;
-    });
-    const map = new Map<number, OrgNode>();
-    activeEmps.forEach(emp => {
-      map.set(emp.id, { id: emp.id, first_name: emp.first_name, last_name: emp.last_name, job_title: emp.position || emp.job_title, department_name: emp.department_name, is_manager: emp.is_manager, status: emp.status, children: [] });
-    });
-    const roots: OrgNode[] = [];
-    activeEmps.forEach(emp => {
-      const node = map.get(emp.id);
-      if (!node) return;
-      if (emp.manager_id && map.has(emp.manager_id)) { map.get(emp.manager_id)!.children.push(node); }
-      else { roots.push(node); }
-    });
-    const sortC = (node: OrgNode) => {
-      node.children.sort((a, b) => {
-        const aHasKids = a.children.length > 0 ? 1 : 0;
-        const bHasKids = b.children.length > 0 ? 1 : 0;
-        if (aHasKids !== bHasKids) return bHasKids - aHasKids;
-        if (a.is_manager && !b.is_manager) return -1;
-        if (!a.is_manager && b.is_manager) return 1;
-        return a.last_name.localeCompare(b.last_name);
-      });
-      node.children.forEach(sortC);
-    };
-    if (roots.length === 1) { sortC(roots[0]); return roots[0]; }
-    if (roots.length > 1) {
-      roots.sort((a, b) => {
-        const aHasKids = a.children.length > 0 ? 1 : 0;
-        const bHasKids = b.children.length > 0 ? 1 : 0;
-        if (aHasKids !== bHasKids) return bHasKids - aHasKids;
-        if (a.is_manager && !b.is_manager) return -1;
-        if (!a.is_manager && b.is_manager) return 1;
-        return a.last_name.localeCompare(b.last_name);
-      });
-      roots.forEach(sortC);
-      return { id: 0, first_name: 'Direction', last_name: 'Générale', job_title: 'Organisation', children: roots };
+  const LEVEL_ORDER: Record<string, number> = {
+    president: 0, vice_president: 1, dg: 1, dga: 2,
+    direction_centrale: 3, direction: 4, departement: 5, service: 6,
+  };
+
+  const buildDeptOrgTree = useCallback((
+    depts: DepartmentWithChildren[],
+    empMap: Map<number, Employee>
+  ): OrgNode | null => {
+    function convertDept(dept: DepartmentWithChildren): OrgNode {
+      const headEmp = dept.head_id ? empMap.get(dept.head_id) : undefined;
+      const sortedChildren = [...dept.children].sort(
+        (a, b) => (LEVEL_ORDER[a.level ?? ''] ?? 99) - (LEVEL_ORDER[b.level ?? ''] ?? 99)
+      );
+      const children = sortedChildren.map(convertDept);
+
+      if (!headEmp) {
+        return {
+          id: -(dept.id),
+          first_name: dept.name,
+          last_name: '',
+          job_title: 'Poste à pourvoir',
+          department_name: dept.name,
+          department_level: dept.level,
+          isVacant: true,
+          children,
+        };
+      }
+      return {
+        id: dept.id,
+        employeeId: headEmp.id,
+        first_name: headEmp.first_name,
+        last_name: headEmp.last_name,
+        job_title: headEmp.position || headEmp.job_title,
+        department_name: dept.name,
+        department_level: dept.level,
+        is_manager: headEmp.is_manager,
+        status: headEmp.status,
+        children,
+      };
     }
-    return null;
+
+    if (!depts.length) return null;
+    const sorted = [...depts].sort(
+      (a, b) => (LEVEL_ORDER[a.level ?? ''] ?? 99) - (LEVEL_ORDER[b.level ?? ''] ?? 99)
+    );
+    if (sorted.length === 1) return convertDept(sorted[0]);
+    return {
+      id: 0,
+      first_name: 'Organisation',
+      last_name: '',
+      job_title: 'Vue d\'ensemble',
+      children: sorted.map(convertDept),
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchOrgChart = useCallback(async () => {
     setOrgLoading(true);
     try {
-      const [response, depts] = await Promise.all([
+      const [empResponse, deptTree] = await Promise.all([
         getEmployees({ page: 1, page_size: 500 }),
-        getDepartments(),
+        getDepartmentsTree(),
       ]);
-      const tree = buildOrgTree(response.items || []);
-
-      // Inject vacant department placeholders (departments with no head)
-      if (tree && depts) {
-        // Build a flat map of all org nodes for fast lookup by employee id
-        const nodeMap = new Map<number, OrgNode>();
-        const collectNodes = (n: OrgNode) => { nodeMap.set(n.id, n); n.children.forEach(collectNodes); };
-        collectNodes(tree);
-
-        const deptMap = new Map(depts.map(d => [d.id, d]));
-        const vacantDepts = depts.filter(d => !d.head_id && d.is_active !== false);
-
-        for (const dept of vacantDepts) {
-          const vacantNode: OrgNode = {
-            id: -(dept.id),
-            first_name: dept.name,
-            last_name: '',
-            job_title: 'Poste à pourvoir',
-            department_name: dept.name,
-            isVacant: true,
-            children: [],
-          };
-          // Try to attach under the parent department's head
-          let attached = false;
-          if (dept.parent_id) {
-            const parentDept = deptMap.get(dept.parent_id);
-            if (parentDept?.head_id) {
-              const parentNode = nodeMap.get(parentDept.head_id);
-              if (parentNode) { parentNode.children.push(vacantNode); attached = true; }
-            }
-          }
-          if (!attached) { tree.children.push(vacantNode); }
-        }
-      }
-
+      const empMap = new Map<number, Employee>(
+        (empResponse.items || []).map(e => [e.id, e])
+      );
+      const tree = buildDeptOrgTree(deptTree || [], empMap);
       setOrgData(tree);
       if (tree) {
         const ids = new Set<number>();
         ids.add(tree.id);
         tree.children.forEach(c => {
           ids.add(c.id);
-          if (c.children.length > 0) {
-            c.children.forEach(gc => ids.add(gc.id));
-          }
+          c.children.forEach(gc => ids.add(gc.id));
         });
         setExpandedNodes(ids);
       }
     } catch (err) { console.error('Error building org chart:', err); }
     finally { setOrgLoading(false); }
-  }, [buildOrgTree]);
+  }, [buildDeptOrgTree]);
 
   const toggleOrgNode = (id: number) => { setExpandedNodes(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; }); };
   const expandAllNodes = () => { if (!orgData) return; const ids = new Set<number>(); const t = (n: OrgNode) => { ids.add(n.id); n.children.forEach(t); }; t(orgData); setExpandedNodes(ids); };
@@ -914,46 +938,92 @@ function EmployeesPageInner() {
         {/* ============================================ */}
         {activeTab === 'orgchart' && (
           <div className="space-y-4">
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-              <div className="flex flex-col md:flex-row gap-4 items-center">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input type="text" placeholder="Rechercher un collaborateur..." value={orgSearch} onChange={(e) => setOrgSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
+            {/* Barre de contrôles — sticky sur mobile */}
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 sticky top-0 z-20">
+              <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">
+                <div className="flex-1 relative w-full">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input type="text" placeholder="Rechercher..." value={orgSearch} onChange={(e) => setOrgSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
                 </div>
-                <div className="flex gap-2 items-center">
+                <div className="flex flex-wrap gap-2 items-center">
                   <div className="flex items-center gap-1 bg-gray-100 rounded-lg px-2 py-1">
                     <button onClick={() => setOrgZoom(z => Math.max(30, z - 10))} className="p-1 hover:bg-gray-200 rounded"><ZoomOut className="w-4 h-4 text-gray-600" /></button>
-                    <span className="text-xs text-gray-600 w-10 text-center">{orgZoom}%</span>
+                    <span className="text-xs text-gray-600 w-9 text-center">{orgZoom}%</span>
                     <button onClick={() => setOrgZoom(z => Math.min(150, z + 10))} className="p-1 hover:bg-gray-200 rounded"><ZoomIn className="w-4 h-4 text-gray-600" /></button>
                   </div>
-                  <button onClick={expandAllNodes} className="flex items-center px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"><Maximize2 className="w-4 h-4 mr-1.5" />Déplier</button>
-                  <button onClick={collapseAllNodes} className="flex items-center px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"><Minimize2 className="w-4 h-4 mr-1.5" />Replier</button>
-                  <button onClick={() => { setOrgData(null); fetchOrgChart(); }} className="flex items-center px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"><RefreshCw className={`w-4 h-4 mr-1.5 ${orgLoading ? 'animate-spin' : ''}`} />Actualiser</button>
+                  <button onClick={expandAllNodes} className="flex items-center px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"><Maximize2 className="w-3.5 h-3.5 mr-1" />Déplier</button>
+                  <button onClick={collapseAllNodes} className="flex items-center px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"><Minimize2 className="w-3.5 h-3.5 mr-1" />Replier</button>
+                  <button onClick={() => { setOrgData(null); fetchOrgChart(); }} className="flex items-center px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"><RefreshCw className={`w-3.5 h-3.5 mr-1 ${orgLoading ? 'animate-spin' : ''}`} />Actualiser</button>
                 </div>
               </div>
-              {orgData && <p className="text-xs text-gray-400 mt-3">{countDescendants(orgData)} collaborateurs • Cliquez sur une carte pour voir le profil • +/− pour déplier/replier</p>}
+              {orgData && <p className="text-xs text-gray-400 mt-2">{countDescendants(orgData)} collaborateurs • Touchez une carte pour voir le profil • +/− pour déplier/replier</p>}
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto" style={{ minHeight: 400 }}>
+            {/* Conteneur scrollable avec support pinch-to-zoom */}
+            <div
+              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto overflow-y-hidden w-full"
+              style={{ minHeight: 400, touchAction: 'pan-x pan-y' }}
+              onTouchStart={(e) => {
+                if (e.touches.length === 2) {
+                  const dx = e.touches[0].clientX - e.touches[1].clientX;
+                  const dy = e.touches[0].clientY - e.touches[1].clientY;
+                  lastPinchDistRef.current = Math.sqrt(dx * dx + dy * dy);
+                }
+              }}
+              onTouchMove={(e) => {
+                if (e.touches.length === 2 && lastPinchDistRef.current !== null) {
+                  const dx = e.touches[0].clientX - e.touches[1].clientX;
+                  const dy = e.touches[0].clientY - e.touches[1].clientY;
+                  const dist = Math.sqrt(dx * dx + dy * dy);
+                  const ratio = dist / lastPinchDistRef.current;
+                  lastPinchDistRef.current = dist;
+                  setOrgZoom(z => Math.min(150, Math.max(30, Math.round(z * ratio))));
+                }
+              }}
+              onTouchEnd={() => { lastPinchDistRef.current = null; }}
+            >
               {orgLoading ? (
-                <div className="flex items-center justify-center py-20"><div className="text-center"><Loader2 className="w-10 h-10 animate-spin text-primary-500 mx-auto mb-3" /><p className="text-gray-500">Construction de l&apos;organigramme...</p></div></div>
-              ) : orgData ? (
-                <div style={{ transform: `scale(${orgZoom / 100})`, transformOrigin: 'top center', transition: 'transform 0.2s' }}>
-                  <div className="org-tree">
-                    <ul>
-                      <OrgTreeVisual node={orgData} expanded={expandedNodes} onToggle={toggleOrgNode} onSelectEmployee={handleOrgSelectEmployee} />
-                    </ul>
+                <div className="flex items-center justify-center py-20">
+                  <div className="text-center">
+                    <Loader2 className="w-10 h-10 animate-spin text-primary-500 mx-auto mb-3" />
+                    <p className="text-gray-500">Construction de l&apos;organigramme...</p>
                   </div>
                 </div>
+              ) : orgData ? (
+                <>
+                  {/* Hint scroll mobile */}
+                  <div className="org-mobile-hint items-center justify-center gap-2 py-2 text-xs text-gray-400 bg-gray-50 border-b border-gray-100">
+                    <span>←</span>
+                    <span>Faites glisser pour naviguer</span>
+                    <span>→</span>
+                  </div>
+                  <div style={{ transform: `scale(${orgZoom / 100})`, transformOrigin: 'top center', transition: 'transform 0.15s' }}>
+                    <div className="org-tree">
+                      <ul>
+                        <OrgTreeVisual node={orgData} expanded={expandedNodes} onToggle={toggleOrgNode} onSelectEmployee={handleOrgSelectEmployee} />
+                      </ul>
+                    </div>
+                  </div>
+                </>
               ) : (
-                <div className="flex items-center justify-center py-20 text-center"><div><Network className="w-12 h-12 text-gray-300 mx-auto mb-4" /><p className="text-gray-500 mb-2">Aucune donnée</p><p className="text-sm text-gray-400">Vérifiez les relations manager</p></div></div>
+                <div className="flex items-center justify-center py-20 text-center">
+                  <div>
+                    <Network className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 mb-2">Aucune donnée</p>
+                    <p className="text-sm text-gray-400">Vérifiez la structure des départements</p>
+                  </div>
+                </div>
               )}
             </div>
 
+            {/* Légende */}
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-              <p className="text-xs font-medium text-gray-500 mb-2">Légende par niveau hiérarchique</p>
+              <p className="text-xs font-medium text-gray-500 mb-2">Légende</p>
               <div className="flex flex-wrap gap-3">
-                {['DG / Président', 'Vice-Président', 'Directeur', 'Responsable', 'Chef de service', 'Coordinateur', 'Collaborateur'].map((label, i) => (
+                {[
+                  { label: 'PCA / Présidence', i: 0 }, { label: 'VP', i: 1 }, { label: 'DG', i: 2 },
+                  { label: 'DGA', i: 3 }, { label: 'DC / Direction', i: 4 }, { label: 'Département', i: 5 }, { label: 'Service', i: 6 },
+                ].map(({ label, i }) => (
                   <div key={i} className="flex items-center gap-1.5">
                     <div className={`w-3 h-3 rounded-full ${levelStyles[Math.min(i, levelStyles.length - 1)].avatar}`} />
                     <span className="text-xs text-gray-600">{label}</span>

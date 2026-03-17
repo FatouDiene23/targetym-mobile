@@ -245,6 +245,11 @@ export interface Department {
   has_open_manager_position?: boolean;
 }
 
+export interface DepartmentWithChildren extends Department {
+  children: DepartmentWithChildren[];
+  employee_count?: number;
+}
+
 export interface DepartmentCreate {
   name: string;
   code?: string;
@@ -561,9 +566,9 @@ export async function getDepartments(level?: OrganizationalLevel, subsidiaryTena
   return [];
 }
 
-export async function getDepartmentsTree(): Promise<Department[]> {
+export async function getDepartmentsTree(): Promise<DepartmentWithChildren[]> {
   const response = await fetchWithAuth(`${API_URL}/api/departments/tree`, {
-    
+
   });
 
   if (!response.ok) {

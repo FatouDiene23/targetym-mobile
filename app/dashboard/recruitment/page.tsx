@@ -1162,7 +1162,7 @@ export default function RecruitmentPage() {
                     <button onClick={() => handleSendOffer(selectedApplication)} className="flex items-center px-4 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600"><FileText className="w-4 h-4 mr-2" />Envoyer Offre</button>
                   ) : selectedApplication.stage === 'offer' ? (
                     <button onClick={async () => { const ok = await updateApplicationStage(selectedApplication.id, 'hired'); if (ok) { setShowCandidateModal(false); loadData(); } else { toast.error('Erreur'); } }} className="flex items-center px-4 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700"><CheckCircle2 className="w-4 h-4 mr-2" />Accepter → Embauché</button>
-                  ) : selectedApplication.stage !== 'hired' && (
+                  ) : !['hired', 'rejected', 'withdrawn'].includes(selectedApplication.stage) && (
                     <button onClick={() => handleNextStage(selectedApplication)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600"><ArrowRight className="w-4 h-4 mr-2" />Étape Suivante</button>
                   )}
                 </div>

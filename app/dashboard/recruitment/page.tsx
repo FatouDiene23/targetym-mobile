@@ -254,6 +254,29 @@ async function deleteJob(id: number): Promise<boolean> {
   } catch { return false; }
 }
 
+async function openCvAuthenticated(candidateId: number, download = false): Promise<void> {
+  try {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const url = `${API_URL}/api/recruitment/candidates/${candidateId}/cv${download ? '?download=1' : ''}`;
+    const res = await fetch(url, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+    if (!res.ok) { toast.error('CV non disponible'); return; }
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    if (download) {
+      const cd = res.headers.get('content-disposition') || '';
+      const match = cd.match(/filename="?([^"]+)"?/);
+      a.download = match ? match[1] : 'cv.pdf';
+    } else {
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+    }
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+  } catch { toast.error('Erreur lors de l\'ouverture du CV'); }
+}
+
 async function createCandidate(data: { first_name: string; last_name: string; email: string; phone?: string; location?: string; linkedin_url?: string; current_company?: string; experience_years?: number; education?: string; skills?: string[]; expected_salary?: number; notice_period?: string; source?: string; job_posting_id?: number; }): Promise<number | null> {
   try {
     const res = await fetch(`${API_URL}/api/recruitment/candidates`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
@@ -1052,8 +1075,8 @@ export default function RecruitmentPage() {
                     <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
                       <p className="text-xs font-semibold text-blue-700 mb-2 flex items-center gap-1"><FileText className="w-3.5 h-3.5" />CV du candidat{selectedApplication.candidate_cv_filename ? ` — ${selectedApplication.candidate_cv_filename}` : ''}</p>
                       <div className="flex gap-2">
-                        <a href={`${API_URL}/api/recruitment/candidates/${selectedApplication.candidate_id}/cv`} target="_blank" rel="noopener noreferrer" className="flex items-center px-3 py-1.5 bg-white text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-100 border border-blue-200"><FileText className="w-3.5 h-3.5 mr-1" />Voir</a>
-                        <a href={`${API_URL}/api/recruitment/candidates/${selectedApplication.candidate_id}/cv?download=1`} className="flex items-center px-3 py-1.5 bg-white text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-100 border border-gray-200"><Download className="w-3.5 h-3.5 mr-1" />Télécharger</a>
+                        <button onClick={() => openCvAuthenticated(selectedApplication.candidate_id, false)} className="flex items-center px-3 py-1.5 bg-white text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-100 border border-blue-200"><FileText className="w-3.5 h-3.5 mr-1" />Voir</button>
+                        <button onClick={() => openCvAuthenticated(selectedApplication.candidate_id, true)} className="flex items-center px-3 py-1.5 bg-white text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-100 border border-gray-200"><Download className="w-3.5 h-3.5 mr-1" />Télécharger</button>
                       </div>
                     </div>
                   )}

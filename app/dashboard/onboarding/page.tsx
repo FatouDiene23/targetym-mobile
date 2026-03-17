@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
 import {
@@ -493,6 +492,7 @@ export default function OnboardingPage() {
 
   // Pre-selected employee (from URL param ?employee_id=...&assign=1)
   const [preselectedEmployeeId, setPreselectedEmployeeId] = useState<string>('');
+  const [preselectedEmployeeName, setPreselectedEmployeeName] = useState<string>('');
 
   // Shared
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -517,17 +517,18 @@ export default function OnboardingPage() {
   }, []);
 
   // Lire les params URL pour pré-remplir l'assignation d'onboarding
-  const searchParams = useSearchParams();
   useEffect(() => {
-    const empParam = searchParams.get('employee_id');
-    const assign = searchParams.get('assign');
+    const params = new URLSearchParams(window.location.search);
+    const empParam = params.get('employee_id');
+    const empName = params.get('employee_name');
+    const assign = params.get('assign');
     if (empParam && assign === '1') {
       setPreselectedEmployeeId(empParam);
+      setPreselectedEmployeeName(empName ? decodeURIComponent(empName) : '');
       setActiveTab('suivi');
-      // Petit délai pour laisser les données se charger
-      setTimeout(() => setShowAssignModal(true), 400);
+      setTimeout(() => setShowAssignModal(true), 600);
     }
-  }, [searchParams]);
+  }, []);
 
   // Fetch employees & departments
   useEffect(() => {
@@ -1431,6 +1432,7 @@ export default function OnboardingPage() {
         }
         setShowAssignModal(false);
         setPreselectedEmployeeId('');
+        setPreselectedEmployeeName('');
         fetchAssignments();
         if (activeTab === 'dashboard') fetchDashboard();
       } catch (e: any) { setError(e.message); }
@@ -1442,7 +1444,7 @@ export default function OnboardingPage() {
         <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
           <div className="px-6 py-4 border-b flex items-center justify-between">
             <h3 className="font-semibold">Assigner un onboarding</h3>
-            <button onClick={() => { setShowAssignModal(false); setQueueStartItem(null); setPreselectedEmployeeId(''); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            <button onClick={() => { setShowAssignModal(false); setQueueStartItem(null); setPreselectedEmployeeId(''); setPreselectedEmployeeName(''); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
           </div>
           {queueStartItem && (
             <div className="mx-6 mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2 text-sm text-blue-800">
@@ -1453,12 +1455,20 @@ export default function OnboardingPage() {
           <div className="p-6 space-y-4">
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">Employé *</label>
-              <SearchableSelect
-                value={empId}
-                onChange={setEmpId}
-                placeholder="Sélectionner un employé"
-                options={employees.map(e => ({ value: String(e.id), label: `${e.first_name} ${e.last_name}`, subtitle: e.job_title || '' }))}
-              />
+              {preselectedEmployeeId ? (
+                <div className="flex items-center gap-3 px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  <UserCheck size={16} className="text-emerald-600 shrink-0" />
+                  <span className="text-sm font-medium text-emerald-900">{preselectedEmployeeName || `Employé #${preselectedEmployeeId}`}</span>
+                  <span className="ml-auto px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">Nouveau</span>
+                </div>
+              ) : (
+                <SearchableSelect
+                  value={empId}
+                  onChange={setEmpId}
+                  placeholder="Sélectionner un employé"
+                  options={employees.map(e => ({ value: String(e.id), label: `${e.first_name} ${e.last_name}`, subtitle: e.job_title || '' }))}
+                />
+              )}
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">Programme *</label>
@@ -1499,7 +1509,7 @@ export default function OnboardingPage() {
             </div>
           </div>
           <div className="px-6 py-4 border-t flex justify-end gap-2">
-            <button onClick={() => { setShowAssignModal(false); setQueueStartItem(null); setPreselectedEmployeeId(''); }} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Annuler</button>
+            <button onClick={() => { setShowAssignModal(false); setQueueStartItem(null); setPreselectedEmployeeId(''); setPreselectedEmployeeName(''); }} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Annuler</button>
             <button onClick={handleSave} disabled={saving || !empId || !progId} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
               {saving ? <Loader2 size={16} className="animate-spin" /> : 'Assigner'}
             </button>

@@ -1614,7 +1614,7 @@ function NewEmployeeCredentialsModal({ info, onClose }: {
             <a href="/dashboard/employees?tab=employees" className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm">
               <Users className="w-4 h-4" />Voir l&apos;annuaire
             </a>
-            <a href={`/dashboard/onboarding?employee_id=${info.employee_id}&assign=1`} className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm">
+            <a href={`/dashboard/onboarding?employee_id=${info.employee_id}&employee_name=${encodeURIComponent(info.candidate_name)}&assign=1`} className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm">
               <Rocket className="w-4 h-4" />Lancer l&apos;onboarding
             </a>
           </div>

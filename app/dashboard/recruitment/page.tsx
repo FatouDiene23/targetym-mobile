@@ -4,13 +4,13 @@ import Header from '@/components/Header';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { recruitmentTips } from '@/config/pageTips';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { 
   UserPlus, Briefcase, Users, Clock, Mail, Phone, MapPin, Plus, XCircle,
   FileText, Linkedin, GraduationCap, Building2, TrendingUp, Edit,
   ArrowRight, MessageSquare, Video, Search, X, Check, Loader2, Calendar, Trash2, RefreshCw,
-  Brain, Upload, Sparkles, CheckCircle2, AlertCircle, MinusCircle, ExternalLink
+  Brain, Upload, Sparkles, CheckCircle2, AlertCircle, MinusCircle, ExternalLink, Download, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -81,6 +81,8 @@ interface Application {
   salary_currency: string;
   candidate_notice_period: string | null;
   candidate_linkedin_url: string | null;
+  candidate_cv_url?: string | null;
+  candidate_cv_filename?: string | null;
   job_title: string | null;
   timeline: TimelineEvent[] | null;
 }
@@ -252,9 +254,25 @@ async function deleteJob(id: number): Promise<boolean> {
   } catch { return false; }
 }
 
-async function createCandidate(data: { first_name: string; last_name: string; email: string; phone?: string; location?: string; linkedin_url?: string; current_company?: string; experience_years?: number; education?: string; skills?: string[]; expected_salary?: number; notice_period?: string; source?: string; job_posting_id?: number; }): Promise<boolean> {
+async function createCandidate(data: { first_name: string; last_name: string; email: string; phone?: string; location?: string; linkedin_url?: string; current_company?: string; experience_years?: number; education?: string; skills?: string[]; expected_salary?: number; notice_period?: string; source?: string; job_posting_id?: number; }): Promise<number | null> {
   try {
     const res = await fetch(`${API_URL}/api/recruitment/candidates`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    if (!res.ok) return null;
+    const created = await res.json();
+    return created.id ?? null;
+  } catch { return null; }
+}
+
+async function uploadCandidateCV(candidateId: number, file: File): Promise<boolean> {
+  try {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const fd = new FormData();
+    fd.append('cv', file);
+    const res = await fetch(`${API_URL}/api/recruitment/candidates/${candidateId}/cv`, {
+      method: 'POST',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: fd,
+    });
     return res.ok;
   } catch { return false; }
 }
@@ -340,6 +358,7 @@ export default function RecruitmentPage() {
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [showAddCandidateModal, setShowAddCandidateModal] = useState(false);
   const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [expandedJobCandidates, setExpandedJobCandidates] = useState<number | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -813,7 +832,10 @@ export default function RecruitmentPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-6">
-                    <div className="text-center"><p className="text-2xl font-bold text-gray-900">{job.applicants_count}</p><p className="text-xs text-gray-500">Candidats</p></div>
+                    <button onClick={() => setExpandedJobCandidates(expandedJobCandidates === job.id ? null : job.id)} className="text-center hover:bg-primary-50 rounded-lg p-2 transition-colors group">
+                      <p className="text-2xl font-bold text-gray-900 group-hover:text-primary-600">{job.applicants_count}</p>
+                      <p className="text-xs text-gray-500 flex items-center gap-0.5 justify-center">Candidats {expandedJobCandidates === job.id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}</p>
+                    </button>
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${job.status === 'active' ? 'bg-green-100 text-green-700' : job.status === 'closed' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>{job.status === 'active' ? 'Active' : job.status === 'closed' ? 'Fermée' : 'Brouillon'}</span>
                     <div className="flex gap-2">
                       <button onClick={() => { setEditingJob(job); setShowJobModal(true); }} className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="Modifier"><Edit className="w-4 h-4" /></button>
@@ -829,6 +851,33 @@ export default function RecruitmentPage() {
                     <div className="flex flex-wrap gap-2">{job.requirements.map((req, i) => (<span key={i} className="px-3 py-1 bg-gray-50 text-gray-600 text-xs rounded-full">{req}</span>))}</div>
                   </div>
                 )}
+                {expandedJobCandidates === job.id && (() => {
+                  const jobApps = applications.filter(a => a.job_posting_id === job.id);
+                  return (
+                    <div className="mt-4 pt-4 border-t border-primary-100 bg-primary-50/40 rounded-b-xl -mx-5 px-5 pb-4">
+                      <h4 className="text-sm font-semibold text-primary-700 mb-3 flex items-center gap-2"><Users className="w-4 h-4" />Candidats pour ce poste ({jobApps.length})</h4>
+                      {jobApps.length === 0 ? (
+                        <p className="text-sm text-gray-400 py-2">Aucun candidat pour le moment</p>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                          {jobApps.map(app => (
+                            <button key={app.id} onClick={() => { setSelectedApplication(app); setShowCandidateModal(true); }} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-100 hover:border-primary-200 hover:shadow-sm text-left transition-all">
+                              <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium text-xs flex-shrink-0">{app.candidate_name.split(' ').map(n => n[0]).join('')}</div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-gray-900 truncate">{app.candidate_name}</p>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className="text-xs text-gray-500">{stageLabels[app.stage] || app.stage}</span>
+                                  {app.candidate_cv_url && <span className="text-xs text-blue-600 flex items-center gap-0.5"><FileText className="w-3 h-3" />CV</span>}
+                                  {app.candidate_ai_score && <span className={`text-xs font-bold ${getScoreColor(app.candidate_ai_score)}`}>{app.candidate_ai_score}</span>}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             ))}
             <Pagination page={jobsPage} total={jobs.length} pageSize={JOBS_PAGE_SIZE} onPageChange={setJobsPage} />
@@ -998,7 +1047,17 @@ export default function RecruitmentPage() {
                     {selectedApplication.candidate_expected_salary && <div className="flex items-center text-sm"><span className="w-4 h-4 mr-3 text-gray-400">💰</span>{selectedApplication.candidate_expected_salary.toLocaleString()} {selectedApplication.salary_currency || 'XOF'}</div>}
                     {selectedApplication.candidate_notice_period && <div className="flex items-center text-sm"><Clock className="w-4 h-4 mr-3 text-gray-400" />Préavis: {selectedApplication.candidate_notice_period}</div>}
                   </div>
-                  
+
+                  {selectedApplication.candidate_cv_url && (
+                    <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                      <p className="text-xs font-semibold text-blue-700 mb-2 flex items-center gap-1"><FileText className="w-3.5 h-3.5" />CV du candidat{selectedApplication.candidate_cv_filename ? ` — ${selectedApplication.candidate_cv_filename}` : ''}</p>
+                      <div className="flex gap-2">
+                        <a href={`${API_URL}/api/recruitment/candidates/${selectedApplication.candidate_id}/cv`} target="_blank" rel="noopener noreferrer" className="flex items-center px-3 py-1.5 bg-white text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-100 border border-blue-200"><FileText className="w-3.5 h-3.5 mr-1" />Voir</a>
+                        <a href={`${API_URL}/api/recruitment/candidates/${selectedApplication.candidate_id}/cv?download=1`} className="flex items-center px-3 py-1.5 bg-white text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-100 border border-gray-200"><Download className="w-3.5 h-3.5 mr-1" />Télécharger</a>
+                      </div>
+                    </div>
+                  )}
+
                   {selectedApplication.candidate_skills && selectedApplication.candidate_skills.length > 0 && (
                     <><h3 className="font-semibold text-gray-900 mt-6 mb-3">Compétences</h3><div className="flex flex-wrap gap-2">{selectedApplication.candidate_skills.map((skill) => (<span key={skill} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">{skill}</span>))}</div></>
                   )}
@@ -1089,7 +1148,7 @@ export default function RecruitmentPage() {
 
         {/* Modals */}
         {showJobModal && <JobModal job={editingJob} departments={departments} employees={employees} onClose={() => setShowJobModal(false)} onSave={async (data) => { const success = editingJob ? await updateJob(editingJob.id, data) : await createJob(data); if (success) { setShowJobModal(false); loadData(); } else { toast.error('Erreur lors de la sauvegarde'); } }} />}
-        {showAddCandidateModal && <AddCandidateModal jobs={jobs.filter(j => j.status === 'active')} onClose={() => setShowAddCandidateModal(false)} onSave={async (data) => { const success = await createCandidate(data); if (success) { setShowAddCandidateModal(false); loadData(); } else { toast.error('Erreur lors de la création'); } }} />}
+        {showAddCandidateModal && <AddCandidateModal jobs={jobs.filter(j => j.status === 'active')} onClose={() => setShowAddCandidateModal(false)} onSave={async (data, cvFile) => { const candidateId = await createCandidate(data); if (candidateId) { if (cvFile) await uploadCandidateCV(candidateId, cvFile); setShowAddCandidateModal(false); loadData(); } else { toast.error('Erreur lors de la création'); } }} />}
         {showInterviewModal && selectedApplication && <InterviewModal application={selectedApplication} employees={employees} onClose={() => setShowInterviewModal(false)} onSave={async (data) => { const success = await createInterview(data); if (success) { setShowInterviewModal(false); setShowCandidateModal(false); loadData(); } else { toast.error('Erreur lors de la planification'); } }} />}
 
         {/* Batch Scoring IA Modal */}
@@ -1358,10 +1417,12 @@ function JobModal({ job, departments, employees, onClose, onSave }: { job: Job |
 // ADD CANDIDATE MODAL COMPONENT
 // ============================================
 
-function AddCandidateModal({ jobs, onClose, onSave }: { jobs: Job[]; onClose: () => void; onSave: (data: { first_name: string; last_name: string; email: string; phone?: string; location?: string; linkedin_url?: string; current_company?: string; experience_years?: number; education?: string; skills?: string[]; expected_salary?: number; salary_currency?: string; notice_period?: string; source?: string; job_posting_id?: number; }) => Promise<void>; }) {
+function AddCandidateModal({ jobs, onClose, onSave }: { jobs: Job[]; onClose: () => void; onSave: (data: { first_name: string; last_name: string; email: string; phone?: string; location?: string; linkedin_url?: string; current_company?: string; experience_years?: number; education?: string; skills?: string[]; expected_salary?: number; salary_currency?: string; notice_period?: string; source?: string; job_posting_id?: number; }, cvFile?: File | null) => Promise<void>; }) {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({ first_name: '', last_name: '', email: '', phone: '', location: '', linkedin_url: '', current_company: '', experience_years: '', education: '', skills: '', expected_salary: '', salary_currency: 'XOF', notice_period: '', source: 'Autre', job_posting_id: '' });
   const [currencyOptions, setCurrencyOptions] = useState<{code: string; label: string}[]>([]);
+  const [cvFile, setCvFile] = useState<File | null>(null);
+  const cvInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch(`${API_URL}/api/currency/supported`).then(r => r.json()).then(setCurrencyOptions).catch(() => {});
@@ -1369,7 +1430,7 @@ function AddCandidateModal({ jobs, onClose, onSave }: { jobs: Job[]; onClose: ()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true);
-    await onSave({ first_name: formData.first_name, last_name: formData.last_name, email: formData.email, phone: formData.phone || undefined, location: formData.location || undefined, linkedin_url: formData.linkedin_url || undefined, current_company: formData.current_company || undefined, experience_years: formData.experience_years ? parseInt(formData.experience_years) : undefined, education: formData.education || undefined, skills: formData.skills ? formData.skills.split(',').map(s => s.trim()).filter(s => s) : undefined, expected_salary: formData.expected_salary ? parseFloat(formData.expected_salary) : undefined, salary_currency: formData.salary_currency || 'XOF', notice_period: formData.notice_period || undefined, source: formData.source, job_posting_id: formData.job_posting_id ? parseInt(formData.job_posting_id) : undefined });
+    await onSave({ first_name: formData.first_name, last_name: formData.last_name, email: formData.email, phone: formData.phone || undefined, location: formData.location || undefined, linkedin_url: formData.linkedin_url || undefined, current_company: formData.current_company || undefined, experience_years: formData.experience_years ? parseInt(formData.experience_years) : undefined, education: formData.education || undefined, skills: formData.skills ? formData.skills.split(',').map(s => s.trim()).filter(s => s) : undefined, expected_salary: formData.expected_salary ? parseFloat(formData.expected_salary) : undefined, salary_currency: formData.salary_currency || 'XOF', notice_period: formData.notice_period || undefined, source: formData.source, job_posting_id: formData.job_posting_id ? parseInt(formData.job_posting_id) : undefined }, cvFile);
     setSaving(false);
   };
 
@@ -1408,6 +1469,17 @@ function AddCandidateModal({ jobs, onClose, onSave }: { jobs: Job[]; onClose: ()
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Préavis</label><input type="text" value={formData.notice_period} onChange={(e) => setFormData({...formData, notice_period: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="1 mois" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Source</label><select value={formData.source} onChange={(e) => setFormData({...formData, source: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"><option value="LinkedIn">LinkedIn</option><option value="Indeed">Indeed</option><option value="Site Carrière">Site Carrière</option><option value="Référence interne">Référence interne</option><option value="Référence externe">Référence externe</option><option value="Chasseur de tête">Chasseur de tête</option><option value="Cabinet">Cabinet</option><option value="Autre">Autre</option></select></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Poste visé</label><select value={formData.job_posting_id} onChange={(e) => setFormData({...formData, job_posting_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"><option value="">Sélectionner un poste...</option>{jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}</select></div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">CV (PDF, DOC, DOCX)</label>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 text-sm text-gray-600 flex-1">
+                  <Upload className="w-4 h-4 text-gray-400" />
+                  {cvFile ? cvFile.name : 'Choisir un fichier...'}
+                  <input ref={cvInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => setCvFile(e.target.files?.[0] || null)} />
+                </label>
+                {cvFile && <button type="button" onClick={() => { setCvFile(null); if (cvInputRef.current) cvInputRef.current.value = ''; }} className="p-1.5 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>}
+              </div>
+            </div>
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>

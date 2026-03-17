@@ -10,7 +10,7 @@ import {
   UserPlus, Briefcase, Users, Clock, Mail, Phone, MapPin, Plus, XCircle,
   FileText, Linkedin, GraduationCap, Building2, TrendingUp, Edit,
   ArrowRight, MessageSquare, Video, Search, X, Check, Loader2, Calendar, Trash2, RefreshCw,
-  Brain, Upload, Sparkles, CheckCircle2, AlertCircle, MinusCircle, ExternalLink, Download, ChevronDown, ChevronUp
+  Brain, Upload, Sparkles, CheckCircle2, AlertCircle, MinusCircle, ExternalLink, Download, ChevronDown, ChevronUp, Rocket
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -314,11 +314,12 @@ async function updateApplicationStage(applicationId: number, stage: string, note
   } catch { return false; }
 }
 
-async function convertToEmployee(applicationId: number): Promise<boolean> {
+async function convertToEmployee(applicationId: number): Promise<{ employee_id: number; user_id: number | null; email: string; temp_password: string | null; already_existed: boolean } | null> {
   try {
     const res = await fetch(`${API_URL}/api/recruitment/applications/${applicationId}/convert-to-employee`, { method: 'POST', headers: getAuthHeaders() });
-    return res.ok;
-  } catch { return false; }
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
 }
 
 async function updateCandidateAPI(candidateId: number, data: Record<string, unknown>): Promise<boolean> {
@@ -400,6 +401,7 @@ export default function RecruitmentPage() {
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [showEditCandidateModal, setShowEditCandidateModal] = useState(false);
   const [showJobModal, setShowJobModal] = useState(false);
+  const [newEmployeeInfo, setNewEmployeeInfo] = useState<{ employee_id: number; user_id: number | null; email: string; temp_password: string | null; already_existed: boolean; candidate_name: string } | null>(null);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [showAddCandidateModal, setShowAddCandidateModal] = useState(false);
   const [showInterviewModal, setShowInterviewModal] = useState(false);
@@ -1192,7 +1194,7 @@ export default function RecruitmentPage() {
                     <button onClick={() => handleNextStage(selectedApplication)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600"><ArrowRight className="w-4 h-4 mr-2" />Étape Suivante</button>
                   )}
                   {selectedApplication.stage === 'hired' && (
-                    <button onClick={() => setConfirmDialog({ isOpen: true, title: 'Confirmer l’embauche', message: `Marquer ${selectedApplication.candidate_name} comme employé ? Cette action le retirera de la liste des candidats actifs pour ce poste.`, onConfirm: async () => { const ok = await convertToEmployee(selectedApplication.id); setConfirmDialog(null); if (ok) { setShowCandidateModal(false); loadData(); toast.success('Candidat converti en employé'); } else { toast.error('Erreur'); } } })} className="flex items-center px-4 py-2 bg-emerald-700 text-white text-sm rounded-lg hover:bg-emerald-800"><CheckCircle2 className="w-4 h-4 mr-2" />Est employé</button>
+                    <button onClick={() => setConfirmDialog({ isOpen: true, title: 'Confirmer l’embauche', message: `Créer le dossier employé de ${selectedApplication.candidate_name} et son compte d’accès ? Un email de bienvenue sera envoyé.`, onConfirm: async () => { const result = await convertToEmployee(selectedApplication.id); setConfirmDialog(null); if (result) { setShowCandidateModal(false); loadData(); setNewEmployeeInfo({ ...result, candidate_name: selectedApplication.candidate_name }); } else { toast.error('Erreur lors de la conversion'); } } })} className="flex items-center px-4 py-2 bg-emerald-700 text-white text-sm rounded-lg hover:bg-emerald-800"><CheckCircle2 className="w-4 h-4 mr-2" />Est employé</button>
                   )}
                 </div>
               </div>
@@ -1204,6 +1206,7 @@ export default function RecruitmentPage() {
         {showJobModal && <JobModal job={editingJob} departments={departments} employees={employees} onClose={() => setShowJobModal(false)} onSave={async (data) => { const success = editingJob ? await updateJob(editingJob.id, data) : await createJob(data); if (success) { setShowJobModal(false); loadData(); } else { toast.error('Erreur lors de la sauvegarde'); } }} />}
         {showAddCandidateModal && <AddCandidateModal jobs={jobs.filter(j => j.status === 'active')} onClose={() => setShowAddCandidateModal(false)} onSave={async (data, cvFile) => { const candidateId = await createCandidate(data); if (candidateId) { if (cvFile) await uploadCandidateCV(candidateId, cvFile); setShowAddCandidateModal(false); loadData(); } else { toast.error('Erreur lors de la création'); } }} />}
         {showEditCandidateModal && selectedApplication && <EditCandidateModal application={selectedApplication} onClose={() => setShowEditCandidateModal(false)} onSave={async (data, cvFile) => { const ok = await updateCandidateAPI(selectedApplication.candidate_id, data); if (ok) { if (cvFile) await uploadCandidateCV(selectedApplication.candidate_id, cvFile); setShowEditCandidateModal(false); loadData(); toast.success('Candidat mis à jour'); } else { toast.error('Erreur lors de la mise à jour'); } }} />}
+        {newEmployeeInfo && <NewEmployeeCredentialsModal info={newEmployeeInfo} onClose={() => setNewEmployeeInfo(null)} />}
         {showInterviewModal && selectedApplication && <InterviewModal application={selectedApplication} employees={employees} onClose={() => setShowInterviewModal(false)} onSave={async (data) => { const success = await createInterview(data); if (success) { setShowInterviewModal(false); setShowCandidateModal(false); loadData(); } else { toast.error('Erreur lors de la planification'); } }} />}
 
         {/* Batch Scoring IA Modal */}
@@ -1541,6 +1544,82 @@ function AddCandidateModal({ jobs, onClose, onSave }: { jobs: Job[]; onClose: ()
             <button type="submit" disabled={saving} className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">{saving ? 'Création...' : 'Ajouter'}</button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// NEW EMPLOYEE CREDENTIALS MODAL
+// ============================================
+
+function NewEmployeeCredentialsModal({ info, onClose }: {
+  info: { employee_id: number; user_id: number | null; email: string; temp_password: string | null; already_existed: boolean; candidate_name: string };
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const copy = (text: string, key: string) => {
+    navigator.clipboard.writeText(text).then(() => { setCopied(key); setTimeout(() => setCopied(null), 2000); });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
+        <div className="p-6 border-b border-gray-200 flex items-center gap-3">
+          <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Employé créé avec succès !</h2>
+            <p className="text-sm text-gray-500">{info.candidate_name} est maintenant visible dans l&apos;annuaire</p>
+          </div>
+        </div>
+        <div className="p-6 space-y-4">
+          {info.already_existed ? (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+              Un dossier employé existait déjà pour cet email. Il a été lié à la candidature.
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-gray-600">Voici les identifiants de connexion du nouvel employé. Un email de bienvenue lui a été envoyé automatiquement.</p>
+              <div className="space-y-3">
+                <div className="bg-gray-50 rounded-lg p-3 flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-0.5">Email</p>
+                    <p className="text-sm font-medium text-gray-900">{info.email}</p>
+                  </div>
+                  <button onClick={() => copy(info.email, 'email')} className="p-1.5 hover:bg-gray-200 rounded text-gray-400">
+                    {copied === 'email' ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Download className="w-4 h-4" />}
+                  </button>
+                </div>
+                {info.temp_password && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs text-amber-600 mb-0.5">Mot de passe temporaire</p>
+                      <p className="text-sm font-mono font-bold text-amber-900 tracking-wider">{info.temp_password}</p>
+                    </div>
+                    <button onClick={() => copy(info.temp_password!, 'pwd')} className="p-1.5 hover:bg-amber-100 rounded text-amber-400">
+                      {copied === 'pwd' ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Download className="w-4 h-4" />}
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs text-emerald-700">
+                <strong>Rôle assigné :</strong> Employé · L&apos;employé devra changer son mot de passe à la première connexion.
+              </div>
+            </>
+          )}
+          <div className="flex gap-3 pt-2">
+            <a href="/dashboard/personnel" className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm">
+              <Users className="w-4 h-4" />Voir l&apos;annuaire
+            </a>
+            <a href="/dashboard/onboarding" className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm">
+              <Rocket className="w-4 h-4" />Lancer l&apos;onboarding
+            </a>
+          </div>
+          <button onClick={onClose} className="w-full text-center text-sm text-gray-400 hover:text-gray-600 pt-1">Fermer</button>
+        </div>
       </div>
     </div>
   );

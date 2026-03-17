@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Header from '@/components/Header';
 import {
   PenLine, FileText, Plus, X, Loader2, CheckCircle2,
   Clock, XCircle, Trash2, Send, Ban, Download,
-  ChevronDown, ChevronRight,
+  ChevronDown, ChevronRight, Search,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -127,8 +127,40 @@ export default function SignaturesPage() {
   const [selectedSignatories, setSelectedSignatories] = useState<number[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  // Filter
   const [filterStatus, setFilterStatus] = useState<string>('all');
+
+  // Signataires search
+  const [sigSearch, setSigSearch] = useState('');
+  const [sigDropOpen, setSigDropOpen] = useState(false);
+  const sigSearchRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (sigSearchRef.current && !sigSearchRef.current.contains(e.target as Node)) {
+        setSigDropOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filteredEmployeesForSearch = employees.filter(emp => {
+    const q = sigSearch.toLowerCase();
+    if (!q) return !selectedSignatories.includes(emp.id);
+    const name = `${emp.first_name} ${emp.last_name}`.toLowerCase();
+    const job = (emp.job_title ?? '').toLowerCase();
+    return (name.includes(q) || job.includes(q)) && !selectedSignatories.includes(emp.id);
+  });
+
+  const addSignatory = (empId: number) => {
+    setSelectedSignatories(prev => [...prev, empId]);
+    setSigSearch('');
+  };
+
+  const removeSignatory = (empId: number) => {
+    setSelectedSignatories(prev => prev.filter(id => id !== empId));
+  };
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -198,6 +230,8 @@ export default function SignaturesPage() {
       setShowCreateModal(false);
       setCreateForm({ title: '', description: '', document_type: 'contrat_travail', file_data: '', file_name: '', expires_at: '', notes: '' });
       setSelectedSignatories([]);
+      setSigSearch('');
+      setSigDropOpen(false);
       fetchAll();
     } catch {
       toast.error('Erreur lors de la création');
@@ -423,7 +457,7 @@ export default function SignaturesPage() {
                 <Plus className="w-5 h-5 text-blue-600" />
                 Nouveau document à signer
               </h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => { setShowCreateModal(false); setSigSearch(''); setSigDropOpen(false); setSelectedSignatories([]); }} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -501,38 +535,102 @@ export default function SignaturesPage() {
                 />
               </div>
 
-              {/* Signatories */}
+              {/* Signatories – recherche */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Signataires</label>
-                <div className="border border-gray-200 rounded-xl max-h-48 overflow-y-auto">
-                  {employees.map(emp => (
-                    <label key={emp.id} className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedSignatories.includes(emp.id)}
-                        onChange={e => {
-                          setSelectedSignatories(prev =>
-                            e.target.checked ? [...prev, emp.id] : prev.filter(id => id !== emp.id)
-                          );
-                        }}
-                        className="rounded border-gray-300"
-                      />
-                      <span className="text-sm text-gray-700">{emp.first_name} {emp.last_name}</span>
-                      {emp.job_title && <span className="text-xs text-gray-400">{emp.job_title}</span>}
-                    </label>
-                  ))}
-                  {employees.length === 0 && (
-                    <p className="text-sm text-gray-400 text-center py-4">Chargement...</p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Signataires
+                  {selectedSignatories.length > 0 && (
+                    <span className="ml-2 text-xs font-normal text-blue-600">{selectedSignatories.length} sélectionné(s)</span>
+                  )}
+                </label>
+
+                {/* Pills des signataires sélectionnés (ordonnés) */}
+                {selectedSignatories.length > 0 && (
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    {selectedSignatories.map((id, idx) => {
+                      const emp = employees.find(e => e.id === id);
+                      if (!emp) return null;
+                      return (
+                        <span
+                          key={id}
+                          className="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-800 text-xs px-2.5 py-1 rounded-full"
+                        >
+                          <span className="w-4 h-4 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                            {idx + 1}
+                          </span>
+                          {emp.first_name} {emp.last_name}
+                          <button
+                            type="button"
+                            onClick={() => removeSignatory(id)}
+                            className="text-blue-400 hover:text-blue-700 ml-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSignatories([])}
+                      className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 transition"
+                    >
+                      <X className="w-3 h-3" /> Tout effacer
+                    </button>
+                  </div>
+                )}
+
+                {/* Champ de recherche */}
+                <div className="relative" ref={sigSearchRef}>
+                  <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-blue-300 bg-white">
+                    <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    <input
+                      type="text"
+                      value={sigSearch}
+                      onChange={e => { setSigSearch(e.target.value); setSigDropOpen(true); }}
+                      onFocus={() => setSigDropOpen(true)}
+                      placeholder="Rechercher un employé..."
+                      className="flex-1 text-sm outline-none bg-transparent"
+                    />
+                    {sigSearch && (
+                      <button type="button" onClick={() => setSigSearch('')} className="text-gray-400 hover:text-gray-600">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Dropdown résultats */}
+                  {sigDropOpen && (
+                    <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                      {filteredEmployeesForSearch.length === 0 ? (
+                        <p className="text-sm text-gray-400 text-center py-4">
+                          {sigSearch ? 'Aucun résultat' : 'Tous les employés sont déjà sélectionnés'}
+                        </p>
+                      ) : (
+                        filteredEmployeesForSearch.map(emp => (
+                          <button
+                            key={emp.id}
+                            type="button"
+                            onMouseDown={e => { e.preventDefault(); addSignatory(emp.id); setSigDropOpen(false); }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50 text-left transition"
+                          >
+                            <div className="w-7 h-7 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                              {emp.first_name[0]}{emp.last_name[0]}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-gray-800">{emp.first_name} {emp.last_name}</p>
+                              {emp.job_title && <p className="text-xs text-gray-400 truncate">{emp.job_title}</p>}
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
                   )}
                 </div>
-                {selectedSignatories.length > 0 && (
-                  <p className="text-xs text-gray-500 mt-1">{selectedSignatories.length} signataire(s) sélectionné(s)</p>
-                )}
               </div>
 
               {/* Actions */}
               <div className="flex gap-3 justify-end pt-2">
-                <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition">
+                <button onClick={() => { setShowCreateModal(false); setSigSearch(''); setSigDropOpen(false); setSelectedSignatories([]); }} className="px-4 py-2 text-sm border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition">
                   Annuler
                 </button>
                 <button

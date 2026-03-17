@@ -486,7 +486,7 @@ export default function RecruitmentPage() {
           });
           if (r.ok) { const d = await r.json(); cv_text = d.text || ''; }
         } catch { /* silencieux */ }
-        return { cv_text, filename: file.name, candidate_name: file.name.replace(/\.pdf$/i, '') };
+        return { cv_text, filename: file.name, candidate_name: file.name.replace(/\.[^.]+$/, '') };
       }));
       const res = await fetch(`${API_URL}/api/ai/score-cvs`, {
         method: 'POST',
@@ -1137,9 +1137,9 @@ export default function RecruitmentPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">CVs à scorer <span className="text-red-500">*</span></label>
                   <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${batchFiles.length > 0 ? 'border-purple-400 bg-purple-50' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'}`}>
                     <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                    <span className="text-sm text-gray-500">Cliquez ou glissez-déposez vos PDFs</span>
-                    <span className="text-xs text-gray-400 mt-1">PDF uniquement — max 20 fichiers</span>
-                    <input type="file" accept=".pdf" multiple className="hidden" onChange={e => { const files = Array.from(e.target.files || []).slice(0, 20); setBatchFiles(files); setBatchResults(null); }} />
+                    <span className="text-sm text-gray-500">Cliquez ou glissez-déposez vos CVs</span>
+                    <span className="text-xs text-gray-400 mt-1">PDF, DOCX, DOC, TXT, RTF — max 20 fichiers</span>
+                    <input type="file" accept=".pdf,.doc,.docx,.txt,.text,.rtf" multiple className="hidden" onChange={e => { const newFiles = Array.from(e.target.files || []); setBatchFiles(prev => { const names = new Set(prev.map(f => f.name)); const toAdd = newFiles.filter(f => !names.has(f.name)); return [...prev, ...toAdd].slice(0, 20); }); setBatchResults(null); e.currentTarget.value = ''; }} />
                   </label>
                   {batchFiles.length > 0 && (
                     <div className="mt-3 space-y-1 max-h-40 overflow-y-auto">

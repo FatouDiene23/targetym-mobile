@@ -684,7 +684,7 @@ function SidebarInner() {
   // MODE GESTION DU PERSONNEL
   // ============================================
   if (inPersonnel) {
-    const currentTab = searchParams.get('tab') ?? 'employees';
+    const currentTab = searchParams.get('tab') ?? (pathname === '/dashboard/employees' ? 'employees' : null);
     return (
       <div className="flex h-screen sticky top-0">
         <IconSidebar activeModule="personnel" />

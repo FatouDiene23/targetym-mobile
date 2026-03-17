@@ -437,7 +437,18 @@ function SearchableSelect({
 // MAIN COMPONENT
 // ============================================
 
-type TabType = 'dashboard' | 'programmes' | 'suivi' | 'get_to_know';
+type TabType = 'dashboard' | 'programmes' | 'suivi' | 'get_to_know' | 'queue';
+
+interface QueueItem {
+  id: number;
+  application_id: number;
+  candidate_name: string;
+  candidate_email?: string;
+  job_title: string;
+  department_name?: string;
+  hired_at: string;
+  status: string;
+}
 
 export default function OnboardingPage() {
   const [role, setRole] = useState('employee');
@@ -475,6 +486,10 @@ export default function OnboardingPage() {
   const [showGTKModal, setShowGTKModal] = useState(false);
   const [gtkFilter, setGtkFilter] = useState('upcoming');
 
+  // Onboarding Queue
+  const [queueItems, setQueueItems] = useState<QueueItem[]>([]);
+  const [queueStartItem, setQueueStartItem] = useState<QueueItem | null>(null);
+
   // Shared
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -502,6 +517,7 @@ export default function OnboardingPage() {
     if (!canManageAll(role)) return;
     apiFetch('/api/employees/?limit=200&status=active').then(res => setEmployees(res.employees || res.items || res || [])).catch(() => {});
     apiFetch('/api/departments/').then(res => setDepartments(res.departments || res.items || res || [])).catch(() => {});
+    apiFetch('/api/onboarding/queue').then(res => setQueueItems(Array.isArray(res) ? res : [])).catch(() => {});
   }, [role]);
 
   // Fetch data per tab
@@ -510,6 +526,7 @@ export default function OnboardingPage() {
     if (activeTab === 'programmes') fetchPrograms();
     if (activeTab === 'suivi') fetchAssignments();
     if (activeTab === 'get_to_know') fetchGTK();
+    if (activeTab === 'queue') fetchQueue();
   }, [activeTab, suiviFilter, gtkFilter]);
 
   // Écouter l'event du header "+Ajouter" → ouvrir le dropdown
@@ -582,6 +599,15 @@ export default function OnboardingPage() {
       else if (gtkFilter !== 'all') url += `?status=${gtkFilter}`;
       const data = await apiFetch(url);
       setGtkMeetings(data.items || []);
+    } catch (e: any) { setError(e.message); }
+    setLoading(false);
+  };
+
+  const fetchQueue = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch('/api/onboarding/queue');
+      setQueueItems(Array.isArray(data) ? data : []);
     } catch (e: any) { setError(e.message); }
     setLoading(false);
   };
@@ -1379,6 +1405,13 @@ export default function OnboardingPage() {
             start_date: startDate, notes: notes || null
           })
         });
+        if (queueStartItem) {
+          try {
+            await apiFetch(`/api/onboarding/queue/${queueStartItem.id}/start`, { method: 'POST' });
+          } catch (_) {}
+          setQueueStartItem(null);
+          fetchQueue();
+        }
         setShowAssignModal(false);
         fetchAssignments();
         if (activeTab === 'dashboard') fetchDashboard();
@@ -1391,8 +1424,14 @@ export default function OnboardingPage() {
         <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
           <div className="px-6 py-4 border-b flex items-center justify-between">
             <h3 className="font-semibold">Assigner un onboarding</h3>
-            <button onClick={() => setShowAssignModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            <button onClick={() => { setShowAssignModal(false); setQueueStartItem(null); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
           </div>
+          {queueStartItem && (
+            <div className="mx-6 mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2 text-sm text-blue-800">
+              <UserCheck size={16} className="shrink-0" />
+              <span>Pour : <strong>{queueStartItem.candidate_name}</strong> — {queueStartItem.job_title}</span>
+            </div>
+          )}
           <div className="p-6 space-y-4">
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">Employé *</label>
@@ -1442,7 +1481,7 @@ export default function OnboardingPage() {
             </div>
           </div>
           <div className="px-6 py-4 border-t flex justify-end gap-2">
-            <button onClick={() => setShowAssignModal(false)} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Annuler</button>
+            <button onClick={() => { setShowAssignModal(false); setQueueStartItem(null); }} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Annuler</button>
             <button onClick={handleSave} disabled={saving || !empId || !progId} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
               {saving ? <Loader2 size={16} className="animate-spin" /> : 'Assigner'}
             </button>
@@ -1557,6 +1596,77 @@ export default function OnboardingPage() {
   };
 
   // ============================================
+  // RENDER QUEUE
+  // ============================================
+
+  const renderQueue = () => {
+    if (queueItems.length === 0) {
+      return (
+        <div className="text-center py-16 text-gray-400">
+          <UserCheck size={48} className="mx-auto mb-3 opacity-30" />
+          <p className="font-medium">Aucun candidat en attente d'onboarding</p>
+          <p className="text-sm mt-1">Les candidats embauchés apparaîtront ici automatiquement</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 border-b flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-gray-900">Candidats embauchés à onboarder</h3>
+            <p className="text-sm text-gray-500 mt-0.5">{queueItems.length} personne{queueItems.length > 1 ? 's' : ''} en attente</p>
+          </div>
+        </div>
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 border-b">
+            <tr>
+              <th className="text-left px-6 py-3 font-medium text-gray-600">Candidat</th>
+              <th className="text-left px-6 py-3 font-medium text-gray-600">Poste</th>
+              <th className="text-left px-6 py-3 font-medium text-gray-600">Département</th>
+              <th className="text-left px-6 py-3 font-medium text-gray-600">Date d'embauche</th>
+              <th className="text-right px-6 py-3 font-medium text-gray-600">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {queueItems.map(item => (
+              <tr key={item.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-xs">
+                      {item.candidate_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{item.candidate_name}</p>
+                      {item.candidate_email && <p className="text-xs text-gray-400">{item.candidate_email}</p>}
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-gray-700">{item.job_title}</td>
+                <td className="px-6 py-4 text-gray-500">{item.department_name || '—'}</td>
+                <td className="px-6 py-4 text-gray-500">
+                  {new Date(item.hired_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </td>
+                <td className="px-6 py-4 text-right">
+                  <button
+                    onClick={() => {
+                      setQueueStartItem(item);
+                      setShowAssignModal(true);
+                    }}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    <Play size={12} /> Démarrer l'onboarding
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  // ============================================
   // TABS
   // ============================================
 
@@ -1565,6 +1675,7 @@ export default function OnboardingPage() {
     { id: 'programmes', label: 'Programmes', icon: ClipboardList },
     { id: 'suivi', label: 'Suivi', icon: Users, badge: dashData?.stats.in_progress },
     { id: 'get_to_know', label: 'Get to Know', icon: Handshake },
+    { id: 'queue', label: 'Nouveaux employés', icon: UserPlus, badge: queueItems.length || undefined },
   ];
 
   // ============================================
@@ -1642,6 +1753,7 @@ export default function OnboardingPage() {
             {activeTab === 'programmes' && renderProgrammes()}
             {activeTab === 'suivi' && renderSuivi()}
             {activeTab === 'get_to_know' && renderGetToKnow()}
+            {activeTab === 'queue' && renderQueue()}
           </>
         )}
       </div>

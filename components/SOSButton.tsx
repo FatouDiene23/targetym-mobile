@@ -18,6 +18,7 @@ const CATEGORIES = [
   { value: 'conflict',   label: 'Conflit',               emoji: '⚡' },
   { value: 'security',   label: 'Sécurité physique',     emoji: '🛡️' },
   { value: 'health',     label: 'Problème de santé',     emoji: '🏥' },
+  { value: 'equipment',  label: 'Outils / Matériel',     emoji: '💻' },
 ];
 
 export default function SOSButton() {
@@ -124,7 +125,11 @@ export default function SOSButton() {
                     onChange={e => setMessage(e.target.value)}
                     rows={3}
                     className="w-full text-sm px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-400 outline-none resize-none"
-                    placeholder="Décrivez brièvement la situation si vous le souhaitez…"
+                    placeholder={
+                      category === 'equipment'
+                        ? 'Ex : Mon ordinateur ne démarre plus, il me manque un casque, accès au logiciel X…'
+                        : 'Décrivez brièvement la situation si vous le souhaitez…'
+                    }
                     maxLength={500}
                   />
                   {message.length > 0 && (

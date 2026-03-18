@@ -66,7 +66,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
 };
 
 const CATEGORY_EMOJI: Record<string, string> = {
-  general: '🆘', harassment: '🚫', burnout: '😔', conflict: '⚡', security: '🛡️', health: '🏥',
+  general: '🆘', harassment: '🚫', burnout: '😔', conflict: '⚡', security: '🛡️', health: '🏥', equipment: '💻',
 };
 
 function formatDate(d: string) {

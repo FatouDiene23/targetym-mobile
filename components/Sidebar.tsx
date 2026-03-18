@@ -220,6 +220,7 @@ const learningNavigation: NavItem[] = [
   { name: 'Demandes', href: '/dashboard/learning/requests', icon: MessageSquarePlus, roles: ['rh', 'admin', 'dg'] },
   { name: 'Éval. Post-Formation', href: '/dashboard/learning/post-eval', icon: ClipboardCheck, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Analytics', href: '/dashboard/learning/analytics', icon: BarChart3, roles: ['rh', 'admin', 'dg'] },
+  { name: 'Fournisseurs', href: '/dashboard/learning/providers', icon: Building2, roles: ['rh', 'admin', 'dg'] },
 ];
 
 // Sous-menu Talents & Carrière

@@ -67,12 +67,18 @@ export function LearningModals() {
     editPlanData, setEditPlanData,
     newRequest, setNewRequest,
     newSkill, setNewSkill,
+    // Provider states
+    providers,
+    showCreateProvider, setShowCreateProvider,
+    showEditProvider, setShowEditProvider,
+    newProvider, setNewProvider,
     // Actions
     completeAssignment, createCourse, openEditCourse, updateCourse, createPath, assignCourse,
     validateAssignment, createCertificationType, createSkill,
     createDevelopmentPlan, updateDevelopmentPlan, cancelDevelopmentPlan,
     submitCourseRequest, submitEvaluation, assignEvaluator,
-    computeWeightedScore, syncCareer, fetchEpfStats
+    computeWeightedScore, syncCareer, fetchEpfStats,
+    createProvider, updateProvider, deactivateProvider,
   } = ctx;
 
   return (
@@ -168,7 +174,16 @@ export function LearningModals() {
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Durée (heures)</label><input type="number" value={newCourse.duration_hours} onChange={(e) => setNewCourse({ ...newCourse, duration_hours: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="8" /></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Emoji</label><input type="text" value={newCourse.image_emoji} onChange={(e) => setNewCourse({ ...newCourse, image_emoji: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="📚" /></div>
               </div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label><input type="text" value={newCourse.provider} onChange={(e) => setNewCourse({ ...newCourse, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Coursera, Udemy..." /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label>
+                {providers.length > 0 ? (
+                  <select value={newCourse.provider_id || ''} onChange={(e) => { const p = providers.find(p => p.id === Number(e.target.value)); setNewCourse({ ...newCourse, provider_id: e.target.value ? Number(e.target.value) : null, provider: p ? p.name : '' }); }} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="">-- Aucun fournisseur --</option>
+                    {providers.filter(p => p.is_active).map(p => <option key={p.id} value={p.id}>{p.name} ({p.type})</option>)}
+                  </select>
+                ) : (
+                  <input type="text" value={newCourse.provider} onChange={(e) => setNewCourse({ ...newCourse, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Coursera, Udemy..." />
+                )}
+              </div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">URL externe</label><input type="url" value={newCourse.external_url} onChange={(e) => setNewCourse({ ...newCourse, external_url: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="https://..." /></div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2"><input type="checkbox" id="mandatory" checked={newCourse.is_mandatory} onChange={(e) => setNewCourse({ ...newCourse, is_mandatory: e.target.checked })} className="rounded" /><label htmlFor="mandatory" className="text-sm text-gray-700">Formation obligatoire</label></div>
@@ -215,7 +230,16 @@ export function LearningModals() {
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Durée (heures)</label><input type="number" value={editCourseData.duration_hours} onChange={(e) => setEditCourseData({ ...editCourseData, duration_hours: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Emoji</label><input type="text" value={editCourseData.image_emoji} onChange={(e) => setEditCourseData({ ...editCourseData, image_emoji: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
               </div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label><input type="text" value={editCourseData.provider} onChange={(e) => setEditCourseData({ ...editCourseData, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label>
+                {providers.length > 0 ? (
+                  <select value={editCourseData.provider_id || ''} onChange={(e) => { const p = providers.find(p => p.id === Number(e.target.value)); setEditCourseData({ ...editCourseData, provider_id: e.target.value ? Number(e.target.value) : null, provider: p ? p.name : editCourseData.provider }); }} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="">-- Aucun fournisseur --</option>
+                    {providers.filter(p => p.is_active).map(p => <option key={p.id} value={p.id}>{p.name} ({p.type})</option>)}
+                  </select>
+                ) : (
+                  <input type="text" value={editCourseData.provider} onChange={(e) => setEditCourseData({ ...editCourseData, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                )}
+              </div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">URL externe</label><input type="url" value={editCourseData.external_url} onChange={(e) => setEditCourseData({ ...editCourseData, external_url: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2"><input type="checkbox" id="edit-mandatory" checked={editCourseData.is_mandatory} onChange={(e) => setEditCourseData({ ...editCourseData, is_mandatory: e.target.checked })} className="rounded" /><label htmlFor="edit-mandatory" className="text-sm text-gray-700">Formation obligatoire</label></div>
@@ -625,6 +649,55 @@ export function LearningModals() {
               <button onClick={async () => {
                 try { const response = await fetch(`${API_URL}/api/learning/post-eval/settings/config`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(epfSettings) }); if (response.ok) { setShowEpfSettings(false); fetchEpfStats(); } } catch (error) { console.error('Error saving settings:', error); }
               }} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600">Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Créer Fournisseur */}
+      {showCreateProvider && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-gray-900">Nouveau Fournisseur</h2><button onClick={() => setShowCreateProvider(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div></div>
+            <div className="p-6 space-y-4">
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label><input type="text" value={newProvider.name} onChange={(e) => setNewProvider({ ...newProvider, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: CEGOS, Coursera..." /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Type</label><select value={newProvider.type} onChange={(e) => setNewProvider({ ...newProvider, type: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="externe">Externe</option><option value="interne">Interne</option></select></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Contact</label><input type="text" value={newProvider.contact_name} onChange={(e) => setNewProvider({ ...newProvider, contact_name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Nom du contact" /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label><input type="text" value={newProvider.phone} onChange={(e) => setNewProvider({ ...newProvider, phone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="+225 07 00 00 00" /></div>
+              </div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" value={newProvider.email} onChange={(e) => setNewProvider({ ...newProvider, email: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="contact@fournisseur.com" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Site web</label><input type="url" value={newProvider.website} onChange={(e) => setNewProvider({ ...newProvider, website: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="https://..." /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Spécialités</label><textarea value={newProvider.specialties} onChange={(e) => setNewProvider({ ...newProvider, specialties: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={3} placeholder="Ex: Management, Leadership, Techniques commerciales..." /></div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex gap-3">
+              <button onClick={() => setShowCreateProvider(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+              <button onClick={createProvider} disabled={!newProvider.name} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">Créer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Modifier Fournisseur */}
+      {showEditProvider && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-gray-900">Modifier le fournisseur</h2><button onClick={() => setShowEditProvider(null)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div></div>
+            <div className="p-6 space-y-4">
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label><input type="text" value={showEditProvider.name} onChange={(e) => setShowEditProvider({ ...showEditProvider, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Type</label><select value={showEditProvider.type} onChange={(e) => setShowEditProvider({ ...showEditProvider, type: e.target.value as 'interne' | 'externe' })} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="externe">Externe</option><option value="interne">Interne</option></select></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Contact</label><input type="text" value={showEditProvider.contact_name || ''} onChange={(e) => setShowEditProvider({ ...showEditProvider, contact_name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label><input type="text" value={showEditProvider.phone || ''} onChange={(e) => setShowEditProvider({ ...showEditProvider, phone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+              </div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" value={showEditProvider.email || ''} onChange={(e) => setShowEditProvider({ ...showEditProvider, email: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Site web</label><input type="url" value={showEditProvider.website || ''} onChange={(e) => setShowEditProvider({ ...showEditProvider, website: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Spécialités</label><textarea value={showEditProvider.specialties || ''} onChange={(e) => setShowEditProvider({ ...showEditProvider, specialties: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={3} /></div>
+              <div className="flex items-center gap-2"><input type="checkbox" id="edit-prov-active" checked={showEditProvider.is_active} onChange={(e) => setShowEditProvider({ ...showEditProvider, is_active: e.target.checked })} className="rounded" /><label htmlFor="edit-prov-active" className="text-sm text-gray-700">Fournisseur actif</label></div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex gap-3">
+              <button onClick={() => setShowEditProvider(null)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+              <button onClick={updateProvider} disabled={!showEditProvider.name} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">Enregistrer</button>
             </div>
           </div>
         </div>

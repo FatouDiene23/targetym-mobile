@@ -9,12 +9,28 @@ export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym
 // TYPES
 // ============================================
 
+export interface TrainingProvider {
+  id: number;
+  tenant_id: number;
+  name: string;
+  contact_name: string;
+  email: string;
+  phone: string;
+  website: string;
+  type: 'interne' | 'externe';
+  specialties: string;
+  is_active: boolean;
+  created_at: string;
+}
+
 export interface Course {
   id: number;
   title: string;
   description: string;
   category: string;
   provider: string;
+  provider_id: number | null;
+  provider_name: string | null;
   external_url: string;
   duration_hours: number;
   level: string;

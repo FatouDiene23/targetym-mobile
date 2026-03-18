@@ -11,7 +11,8 @@ import {
   API_URL, getAuthHeaders, hasPermission,
   Course, LearningPath, Assignment, Certification, CertificationHolder, Skill,
   DevelopmentPlan, CourseRequest, Stats, MonthlyStats, CategoryStats, TopLearner,
-  Employee, PostTrainingEval, CriteriaScore, EpfStats, EpfSettings, EmployeeEvalHistory
+  Employee, PostTrainingEval, CriteriaScore, EpfStats, EpfSettings, EmployeeEvalHistory,
+  TrainingProvider
 } from './shared';
 
 // ============================================
@@ -40,6 +41,19 @@ interface LearningContextType {
   myAssignments: Assignment[];
   teamAssignments: Assignment[];
   certHolders: CertificationHolder[];
+
+  // Providers
+  providers: TrainingProvider[];
+  showCreateProvider: boolean;
+  setShowCreateProvider: (v: boolean) => void;
+  showEditProvider: TrainingProvider | null;
+  setShowEditProvider: (p: TrainingProvider | null) => void;
+  newProvider: any;
+  setNewProvider: (p: any) => void;
+  createProvider: () => Promise<void>;
+  updateProvider: () => Promise<void>;
+  deactivateProvider: (id: number) => Promise<void>;
+  fetchProviders: () => Promise<void>;
 
   // EPF data
   epfPending: PostTrainingEval[];
@@ -220,6 +234,12 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   const [teamAssignments, setTeamAssignments] = useState<Assignment[]>([]);
   const [certHolders, setCertHolders] = useState<CertificationHolder[]>([]);
 
+  // Providers
+  const [providers, setProviders] = useState<TrainingProvider[]>([]);
+  const [showCreateProvider, setShowCreateProvider] = useState(false);
+  const [showEditProvider, setShowEditProvider] = useState<TrainingProvider | null>(null);
+  const [newProvider, setNewProvider] = useState({ name: '', contact_name: '', email: '', phone: '', website: '', type: 'externe', specialties: '' });
+
   // EPF
   const [epfPending, setEpfPending] = useState<PostTrainingEval[]>([]);
   const [epfAll, setEpfAll] = useState<PostTrainingEval[]>([]);
@@ -276,7 +296,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
 
   // Forms
   const [newCourse, setNewCourse] = useState({
-    title: '', description: '', category: 'Technique', provider: '',
+    title: '', description: '', category: 'Technique', provider: '', provider_id: null as number | null,
     external_url: '', duration_hours: '', level: 'beginner', image_emoji: '📚',
     is_mandatory: false, requires_certificate: false, skill_ids: [] as number[]
   });
@@ -455,6 +475,13 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     } catch (error) { console.error('Error fetching EPF history:', error); }
   };
 
+  const fetchProviders = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/training/providers`, { headers: getAuthHeaders() });
+      if (response.ok) { const data = await response.json(); setProviders(data || []); }
+    } catch (error) { console.error('Error fetching providers:', error); }
+  }, []);
+
   // ============================================
   // LOAD ALL DATA
   // ============================================
@@ -466,12 +493,13 @@ export function LearningProvider({ children }: { children: ReactNode }) {
         fetchCourses(), fetchLearningPaths(), fetchPendingValidations(), fetchMyAssignments(),
         fetchCertifications(), fetchSkills(), fetchDevelopmentPlans(), fetchCourseRequests(),
         fetchStats(), fetchEmployees(), fetchTeamAssignments(),
-        fetchEpfPending(), fetchEpfAll(), fetchEpfStats(), fetchEpfSettingsFn()
+        fetchEpfPending(), fetchEpfAll(), fetchEpfStats(), fetchEpfSettingsFn(),
+        fetchProviders()
       ]);
       setIsLoading(false);
     };
     loadData();
-  }, [fetchCourses, fetchLearningPaths, fetchPendingValidations, fetchMyAssignments, fetchCertifications, fetchSkills, fetchDevelopmentPlans, fetchCourseRequests, fetchStats, fetchEmployees, fetchTeamAssignments, fetchEpfPending, fetchEpfAll, fetchEpfStats, fetchEpfSettingsFn]);
+  }, [fetchCourses, fetchLearningPaths, fetchPendingValidations, fetchMyAssignments, fetchCertifications, fetchSkills, fetchDevelopmentPlans, fetchCourseRequests, fetchStats, fetchEmployees, fetchTeamAssignments, fetchEpfPending, fetchEpfAll, fetchEpfStats, fetchEpfSettingsFn, fetchProviders]);
 
   useEffect(() => {
     if (!isLoading) fetchCourses();
@@ -546,6 +574,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       description: course.description || '',
       category: course.category || 'Technique',
       provider: course.provider || '',
+      provider_id: course.provider_id ?? null,
       external_url: course.external_url || '',
       duration_hours: course.duration_hours ? String(course.duration_hours) : '',
       level: course.level || 'beginner',
@@ -584,7 +613,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       });
       if (response.ok) {
         setShowCreateCourse(false);
-        setNewCourse({ title: '', description: '', category: 'Technique', provider: '', external_url: '', duration_hours: '', level: 'beginner', image_emoji: '📚', is_mandatory: false, requires_certificate: false, skill_ids: [] });
+        setNewCourse({ title: '', description: '', category: 'Technique', provider: '', provider_id: null, external_url: '', duration_hours: '', level: 'beginner', image_emoji: '📚', is_mandatory: false, requires_certificate: false, skill_ids: [] });
         fetchCourses();
       }
     } catch (error) { console.error('Error creating course:', error); }
@@ -703,6 +732,45 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     } catch (error) { console.error('Error reviewing request:', error); }
   };
 
+  // ============================================
+  // PROVIDER ACTIONS
+  // ============================================
+
+  const createProvider = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/training/providers`, {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(newProvider)
+      });
+      if (response.ok) {
+        setShowCreateProvider(false);
+        setNewProvider({ name: '', contact_name: '', email: '', phone: '', website: '', type: 'externe', specialties: '' });
+        fetchProviders();
+        toast.success('Fournisseur créé');
+      } else { const err = await response.json(); toast.error(err.detail || 'Erreur'); }
+    } catch (error) { console.error('Error creating provider:', error); }
+  };
+
+  const updateProvider = async () => {
+    if (!showEditProvider) return;
+    try {
+      const response = await fetch(`${API_URL}/api/training/providers/${showEditProvider.id}`, {
+        method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(showEditProvider)
+      });
+      if (response.ok) { setShowEditProvider(null); fetchProviders(); toast.success('Fournisseur mis à jour'); }
+      else { const err = await response.json(); toast.error(err.detail || 'Erreur'); }
+    } catch (error) { console.error('Error updating provider:', error); }
+  };
+
+  const deactivateProvider = async (id: number) => {
+    try {
+      const response = await fetch(`${API_URL}/api/training/providers/${id}`, {
+        method: 'DELETE', headers: getAuthHeaders()
+      });
+      if (response.ok) { fetchProviders(); toast.success('Fournisseur désactivé'); }
+      else { const err = await response.json(); toast.error(err.detail || 'Erreur'); }
+    } catch (error) { console.error('Error deactivating provider:', error); }
+  };
+
   // EPF actions
   const openEvalModal = (epf: PostTrainingEval) => {
     setSelectedEpf(epf);
@@ -765,6 +833,8 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     courses, learningPaths, certifications, skills, developmentPlans, courseRequests,
     stats, monthlyStats, categoryStats, topLearners, employees, pendingValidations,
     myAssignments, teamAssignments, certHolders,
+    providers, showCreateProvider, setShowCreateProvider, showEditProvider, setShowEditProvider,
+    newProvider, setNewProvider, createProvider, updateProvider, deactivateProvider, fetchProviders,
     epfPending, epfAll, epfStats, epfSettings: epfSettings, setEpfSettings: setEpfSettingsState,
     selectedCategory, setSelectedCategory, searchQuery, setSearchQuery,
     coursePage, setCoursePage, totalCourses,

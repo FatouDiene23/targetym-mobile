@@ -78,6 +78,8 @@ export default function AIChatBox() {
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [extractingPdf, setExtractingPdf] = useState(false);
   const [fileText, setFileText] = useState<string>('');
+  const [cvTmpPath, setCvTmpPath] = useState<string | null>(null);
+  const [cvFilename, setCvFilename] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
@@ -221,6 +223,8 @@ export default function AIChatBox() {
             toast('PDF attaché mais non lisible (scan ?). Copiez-collez les informations directement.', { icon: '⚠️' });
           } else {
             setFileText(resolvedFileText);
+            if (extracted.cv_tmp_path) setCvTmpPath(extracted.cv_tmp_path);
+            if (extracted.cv_filename) setCvFilename(extracted.cv_filename);
           }
         } catch {
           toast('Impossible d\'extraire le PDF. Copiez-collez les informations.', { icon: '⚠️' });
@@ -271,9 +275,12 @@ export default function AIChatBox() {
   const handleValidateAction = async (turn: AgentTurn) => {
     if (!turn.action_preview) return;
     // Peut lever une exception → capturée par AgentActionPreview pour afficher l'erreur
+    const actionData = (turn.action_preview.tool_name === 'generate_candidate' && cvTmpPath)
+      ? { ...turn.action_preview.data, cv_tmp_path: cvTmpPath, cv_filename: cvFilename }
+      : turn.action_preview.data;
     const result = await executeAgentAction({
       action_type: turn.action_preview.tool_name,
-      data: turn.action_preview.data,
+      data: actionData,
     });
     // Retirer l'action preview
     setAgentTurns((prev) =>
@@ -340,6 +347,8 @@ export default function AIChatBox() {
     setAgentTurns([]);
     setAttachedFile(null);
     setFileText('');
+    setCvTmpPath(null);
+    setCvFilename(null);
     // Effacer l'historique agent persistant pour cette page
     try { localStorage.removeItem(LS_AGENT_KEY(pathname)); } catch {}
     inputRef.current?.focus();
@@ -381,6 +390,8 @@ export default function AIChatBox() {
     }
     setAttachedFile(file);
     setFileText(''); // reset, sera extrait à l'envoi
+    setCvTmpPath(null);
+    setCvFilename(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -638,7 +649,7 @@ export default function AIChatBox() {
               <FileText size={13} />
               <span className="flex-1 truncate">{attachedFile.name}</span>
               <button
-                onClick={() => { setAttachedFile(null); setFileText(''); }}
+                onClick={() => { setAttachedFile(null); setFileText(''); setCvTmpPath(null); setCvFilename(null); }}
                 className="text-indigo-400 hover:text-red-500"
               >
                 <X size={13} />

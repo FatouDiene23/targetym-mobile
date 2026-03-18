@@ -2571,7 +2571,7 @@ export async function adminChangePlan(tenantId: number, data: {
 /**
  * Extrait le texte d'un fichier PDF pour le fournir au chat agentique.
  */
-export async function extractPdfText(file: File): Promise<{ text: string; pages: number; filename?: string; warning?: string }> {
+export async function extractPdfText(file: File): Promise<{ text: string; pages: number; filename?: string; warning?: string; cv_tmp_path?: string; cv_filename?: string }> {
   const formData = new FormData();
   formData.append('file', file);
 

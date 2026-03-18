@@ -284,13 +284,21 @@ async function deleteApplication(applicationId: number): Promise<boolean> {
   } catch { return false; }
 }
 
-async function createCandidate(data: { first_name: string; last_name: string; email: string; phone?: string; location?: string; linkedin_url?: string; current_company?: string; experience_years?: number; education?: string; skills?: string[]; expected_salary?: number; notice_period?: string; source?: string; job_posting_id?: number; }): Promise<number | null> {
+async function createCandidate(data: { first_name: string; last_name: string; email: string; phone?: string; location?: string; linkedin_url?: string; current_company?: string; experience_years?: number; education?: string; skills?: string[]; expected_salary?: number; notice_period?: string; source?: string; job_posting_id?: number; }): Promise<{ id: number } | { error: string }> {
   try {
     const res = await fetch(`${API_URL}/api/recruitment/candidates`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      let detail = 'Erreur lors de la création';
+      try {
+        const body = await res.json();
+        detail = body.detail || body.message || detail;
+        if (Array.isArray(detail)) detail = detail.map((e: { msg?: string }) => e.msg || JSON.stringify(e)).join(', ');
+      } catch {}
+      return { error: detail };
+    }
     const created = await res.json();
-    return created.id ?? null;
-  } catch { return null; }
+    return { id: created.id };
+  } catch { return { error: 'Impossible de joindre le serveur' }; }
 }
 
 async function uploadCandidateCV(candidateId: number, file: File): Promise<boolean> {
@@ -1204,7 +1212,7 @@ export default function RecruitmentPage() {
 
         {/* Modals */}
         {showJobModal && <JobModal job={editingJob} departments={departments} employees={employees} onClose={() => setShowJobModal(false)} onSave={async (data) => { const success = editingJob ? await updateJob(editingJob.id, data) : await createJob(data); if (success) { setShowJobModal(false); loadData(); } else { toast.error('Erreur lors de la sauvegarde'); } }} />}
-        {showAddCandidateModal && <AddCandidateModal jobs={jobs.filter(j => j.status === 'active')} onClose={() => setShowAddCandidateModal(false)} onSave={async (data, cvFile) => { const candidateId = await createCandidate(data); if (candidateId) { if (cvFile) await uploadCandidateCV(candidateId, cvFile); setShowAddCandidateModal(false); loadData(); } else { toast.error('Erreur lors de la création'); } }} />}
+        {showAddCandidateModal && <AddCandidateModal jobs={jobs.filter(j => j.status === 'active')} onClose={() => setShowAddCandidateModal(false)} onSave={async (data, cvFile) => { const result = await createCandidate(data); if ('error' in result) { toast.error(result.error); } else { if (cvFile) await uploadCandidateCV(result.id, cvFile); setShowAddCandidateModal(false); loadData(); } }} />}
         {showEditCandidateModal && selectedApplication && <EditCandidateModal application={selectedApplication} onClose={() => setShowEditCandidateModal(false)} onSave={async (data, cvFile) => { const ok = await updateCandidateAPI(selectedApplication.candidate_id, data); if (ok) { if (cvFile) await uploadCandidateCV(selectedApplication.candidate_id, cvFile); setShowEditCandidateModal(false); loadData(); toast.success('Candidat mis à jour'); } else { toast.error('Erreur lors de la mise à jour'); } }} />}
         {newEmployeeInfo && <NewEmployeeCredentialsModal info={newEmployeeInfo} onClose={() => setNewEmployeeInfo(null)} />}
         {showInterviewModal && selectedApplication && <InterviewModal application={selectedApplication} employees={employees} onClose={() => setShowInterviewModal(false)} onSave={async (data) => { const success = await createInterview(data); if (success) { setShowInterviewModal(false); setShowCandidateModal(false); loadData(); } else { toast.error('Erreur lors de la planification'); } }} />}

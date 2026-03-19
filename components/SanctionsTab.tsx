@@ -47,13 +47,14 @@ interface SimpleEmployee {
 // CONSTANTS
 // ============================================
 const SANCTION_TYPES: Record<string, { icon: string; color: string }> = {
-  'Avertissement':    { icon: '\u26a0\ufe0f', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-  'Bl\u00e2me':              { icon: '\ud83d\udccb', color: 'bg-orange-100 text-orange-800 border-orange-200' },
-  'Mise \u00e0 pied':       { icon: '\ud83d\udeab', color: 'bg-red-100 text-red-800 border-red-200' },
-  'R\u00e9trogradation':    { icon: '\u2b07\ufe0f', color: 'bg-red-100 text-red-800 border-red-200' },
-  'Licenciement':     { icon: '\u274c', color: 'bg-red-200 text-red-900 border-red-300' },
-  'Rappel \u00e0 l\'ordre': { icon: '\ud83d\udcdd', color: 'bg-blue-100 text-blue-800 border-blue-200' },
-  'Autre':            { icon: '\ud83d\udcc4', color: 'bg-gray-100 text-gray-800 border-gray-200' },
+  'Avertissement':          { icon: '⚠️', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+  'Blâme':                  { icon: '📋', color: 'bg-orange-100 text-orange-800 border-orange-200' },
+  'Mise à pied':            { icon: '🚫', color: 'bg-red-100 text-red-800 border-red-200' },
+  'Rétrogradation':         { icon: '⬇️', color: 'bg-red-100 text-red-800 border-red-200' },
+  'Licenciement':           { icon: '❌', color: 'bg-red-200 text-red-900 border-red-300' },
+  'Rappel à l\'ordre':      { icon: '📝', color: 'bg-blue-100 text-blue-800 border-blue-200' },
+  'Demande d\'explications':{ icon: '❓', color: 'bg-purple-100 text-purple-800 border-purple-200' },
+  'Autre':                  { icon: '📄', color: 'bg-gray-100 text-gray-800 border-gray-200' },
 };
 
 const SANCTION_TYPE_OPTIONS = Object.keys(SANCTION_TYPES);
@@ -83,6 +84,7 @@ export default function SanctionsTab() {
     reason: '',
     notes: '',
   });
+  const [sanctionFile, setSanctionFile] = useState<File | null>(null);
 
   // Policy
   const [policyInfo, setPolicyInfo] = useState<{ exists: boolean; file_name?: string; file_size?: number; uploaded_at?: string } | null>(null);
@@ -229,13 +231,25 @@ export default function SanctionsTab() {
     }
     setIsSaving(true);
     try {
-      const data = await apiFetch('/api/sanctions/', {
+      const token = localStorage.getItem('access_token');
+      const formData = new FormData();
+      formData.append('employee_id', String(newSanction.employee_id));
+      formData.append('type', newSanction.type);
+      formData.append('date', new Date(newSanction.date).toISOString());
+      formData.append('reason', newSanction.reason);
+      if (newSanction.notes) formData.append('notes', newSanction.notes);
+      if (sanctionFile) formData.append('file', sanctionFile);
+
+      const res = await fetch(`${API_URL}/api/sanctions/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newSanction),
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: formData,
       });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      const data = await res.json();
       setSanctions(prev => [data, ...prev]);
       setNewSanction({ employee_id: 0, type: 'Avertissement', date: new Date().toISOString().split('T')[0], reason: '', notes: '' });
+      setSanctionFile(null);
       setShowAddForm(false);
       toast.success('Sanction enregistrée');
     } catch {
@@ -507,6 +521,29 @@ export default function SanctionsTab() {
                 placeholder="Notes confidentielles RH..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none resize-none"
               />
+            </div>
+
+            {/* Document joint */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Document joint (optionnel)</label>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 px-3 py-2 border border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 cursor-pointer w-full">
+                  <Upload className="w-4 h-4 text-gray-400 shrink-0" />
+                  <span className="truncate">{sanctionFile ? sanctionFile.name : 'Cliquez pour joindre un fichier (PDF, image…)'}</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                    className="hidden"
+                    onChange={e => setSanctionFile(e.target.files?.[0] || null)}
+                  />
+                </label>
+                {sanctionFile && (
+                  <button type="button" onClick={() => setSanctionFile(null)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg">
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Ce document sera joint à l'email envoyé au collaborateur.</p>
             </div>
           </div>
 

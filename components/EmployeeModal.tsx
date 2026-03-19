@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { 
   X, Mail, Phone, MapPin, Calendar, Briefcase, User, FileText,
   GraduationCap, Award, Clock, Palmtree, TrendingUp, Edit2, Download,
   Key, Loader2, CheckCircle, XCircle, Shield, DollarSign, Printer,
   Target, CheckCircle2, Star, MessageSquare, ThumbsUp, ExternalLink,
-  BookOpen, AlertTriangle, Plus, Trash2, ChevronDown, ChevronUp, Maximize2, Minimize2, Gift
+  BookOpen, AlertTriangle, Plus, Trash2, ChevronDown, ChevronUp, Maximize2, Minimize2, Gift,
+  UserMinus, UserCheck
 } from 'lucide-react';
 import { getEmployeeAccessStatus, activateEmployeeAccess, deactivateEmployeeAccess, type AccessStatus } from '@/lib/api';
 import EmployeeDocuments from '@/components/EmployeeDocuments';
@@ -328,6 +330,8 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
   const [leaveBalance, setLeaveBalance] = useState<LeaveBalanceData | null>(null);
   const [isLoadingLeave, setIsLoadingLeave] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+  const [employeeStatus, setEmployeeStatus] = useState<string>(employee.status || 'active');
 
   // ---- Performance states ----
   const [perfScore, setPerfScore] = useState<PerformanceScore | null>(null);
@@ -548,6 +552,36 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
     });
   }
 
+  async function handleToggleStatus() {
+    const isActive = employeeStatus === 'active';
+    setConfirmDialog({
+      isOpen: true,
+      title: isActive ? 'Désactiver le collaborateur' : 'Réactiver le collaborateur',
+      message: isActive
+        ? `Désactiver ${displayName} ? Il n'apparaîtra plus comme actif sur la plateforme.`
+        : `Réactiver ${displayName} ? Son profil repassera en statut actif.`,
+      danger: isActive,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setIsTogglingStatus(true);
+        try {
+          const res = await fetch(`${API_URL}/api/employees/${employee.id}/toggle-status`, {
+            method: 'PATCH',
+            headers: getAuthHeaders(),
+          });
+          if (!res.ok) throw new Error(`API error: ${res.status}`);
+          const data = await res.json();
+          setEmployeeStatus(data.status);
+          toast.success(data.message);
+        } catch {
+          toast.error('Erreur lors du changement de statut');
+        } finally {
+          setIsTogglingStatus(false);
+        }
+      },
+    });
+  }
+
   const handleAddSanction = async () => {
     if (!newSanction.reason.trim()) return;
     setIsSavingSanction(true);
@@ -716,7 +750,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                   <span className="px-2 py-0.5 bg-green-400/30 text-white text-xs rounded-full">En congés</span>
                 ) : (
                   <span className="px-2 py-0.5 bg-white/20 text-white text-xs rounded-full">
-                    {employee.status === 'active' ? 'Actif' : employee.status}
+                    {employeeStatus === 'active' ? 'Actif' : employeeStatus === 'inactive' ? 'Inactif' : employeeStatus}
                   </span>
                 )}
                 {employee.role && (
@@ -736,6 +770,19 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                 <Edit2 className="w-5 h-5" />
               </button>
             )}
+            <button
+              onClick={handleToggleStatus}
+              disabled={isTogglingStatus}
+              className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg"
+              title={employeeStatus === 'active' ? 'Désactiver le collaborateur' : 'Réactiver le collaborateur'}
+            >
+              {isTogglingStatus
+                ? <Loader2 className="w-5 h-5 animate-spin" />
+                : employeeStatus === 'active'
+                  ? <UserMinus className="w-5 h-5" />
+                  : <UserCheck className="w-5 h-5" />
+              }
+            </button>
             <button onClick={handleExportPDF} disabled={isExporting} className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg" title="Télécharger le dossier">
               {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
             </button>

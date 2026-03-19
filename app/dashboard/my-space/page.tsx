@@ -7,7 +7,7 @@ import {
   Briefcase, MapPin, Phone, Mail, Building, CalendarDays, Building2,
   FileText, Download, Loader2, Trash2, CheckCircle,
   Network, ZoomIn, ZoomOut, Users, ChevronUp, ChevronDown, Lock, Eye, EyeOff,
-  PenLine, Clock, CheckCircle2, XCircle, Upload
+  PenLine, Clock, CheckCircle2, XCircle, Upload, Bell
 } from 'lucide-react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
@@ -396,8 +396,6 @@ export default function MyProfilePage() {
   const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
 
   // Tab
-  const [activeTab, setActiveTab] = useState<'profile' | 'orgchart' | 'signatures'>('profile');
-
   // Signatures
   const [pendingSignatures, setPendingSignatures] = useState<PendingSignature[]>([]);
   const [signaturesLoading, setSignaturesLoading] = useState(false);
@@ -423,6 +421,18 @@ export default function MyProfilePage() {
   const [passwordForm, setPasswordForm] = useState({ current: '', newPwd: '', confirm: '' });
   const [changingPassword, setChangingPassword] = useState(false);
   const [showPasswordSection, setShowPasswordSection] = useState(false);
+
+  // Tab
+  const [activeTab, setActiveTab] = useState<'profile' | 'orgchart' | 'signatures' | 'alertes'>('profile');
+
+  // Alertes SOS
+  const [sosAlerts, setSosAlerts] = useState<Array<{
+    id: number; category: string; message: string | null; is_anonymous: boolean;
+    status: string; handled_by: string | null; handled_at: string | null;
+    resolution_note: string | null; location_hint: string | null; created_at: string;
+  }>>([]);
+  const [alertsLoading, setAlertsLoading] = useState(false);
+  const [sosAlertsPending, setSosAlertsPending] = useState(0);
 
   // Tour tips
   const fetchPendingSignatures = useCallback(async () => {
@@ -647,6 +657,20 @@ export default function MyProfilePage() {
   // ============================================
   // ORGANIGRAMME PERSONNEL
   // ============================================
+  const fetchAlerts = useCallback(async () => {
+    setAlertsLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/sos/mine`, { headers: getAuthHeaders() });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const items = data.items || [];
+      setSosAlerts(items);
+      setSosAlertsPending(data.new_count || 0);
+    } catch { /* ignore */ } finally {
+      setAlertsLoading(false);
+    }
+  }, []);
+
   const fetchMyOrgChart = useCallback(async () => {
     if (!employee) return;
     setOrgLoading(true);
@@ -659,13 +683,10 @@ export default function MyProfilePage() {
       const data = await res.json();
       const allEmps: Employee[] = data.items || [];
 
-      // Filtrer les inactifs et admins
+      // Filtrer les inactifs, terminés et admins
       const activeEmps = allEmps.filter(e => {
         const s = e.status?.toLowerCase();
-        if (s === 'terminated') return false;
-        const name = `${e.first_name} ${e.last_name}`.toLowerCase();
-        const job = (e.job_title || '').toLowerCase();
-        if (name.includes('admin') || job === 'administrateur') return false;
+        if (s === 'terminated' || s === 'inactive') return false;
         return true;
       });
 
@@ -736,6 +757,10 @@ export default function MyProfilePage() {
   useEffect(() => {
     if (activeTab === 'signatures') fetchPendingSignatures();
   }, [activeTab, fetchPendingSignatures]);
+
+  useEffect(() => {
+    if (activeTab === 'alertes') fetchAlerts();
+  }, [activeTab, fetchAlerts]);
 
   const toggleOrgNode = (id: number) => {
     setOrgExpanded(prev => {
@@ -892,6 +917,12 @@ export default function MyProfilePage() {
             <PenLine className="w-4 h-4" />Mes Signatures
             {pendingSignatures.length > 0 && (
               <span className="ml-1 bg-orange-500 text-white text-xs px-1.5 py-0.5 rounded-full">{pendingSignatures.length}</span>
+            )}
+          </button>
+          <button onClick={() => setActiveTab('alertes')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${activeTab === 'alertes' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+            <Bell className="w-4 h-4" />Mes Alertes SOS
+            {sosAlertsPending > 0 && (
+              <span className="ml-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{sosAlertsPending}</span>
             )}
           </button>
         </div>
@@ -1592,6 +1623,134 @@ export default function MyProfilePage() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ============================================ */}
+        {/* Tab: Mes Alertes SOS */}
+        {/* ============================================ */}
+        {activeTab === 'alertes' && (
+          <div className="space-y-4">
+            {/* En-tête */}
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center shrink-0">
+                <Bell className="w-5 h-5 text-red-500" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Mes alertes SOS</h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Suivez l&apos;évolution de vos alertes de détresse envoyées aux RH
+                </p>
+              </div>
+            </div>
+
+            {alertsLoading ? (
+              <div className="flex justify-center py-16">
+                <Loader2 className="w-8 h-8 animate-spin text-red-400" />
+              </div>
+            ) : sosAlerts.length === 0 ? (
+              <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-gray-100">
+                <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle2 className="w-8 h-8 text-green-400" />
+                </div>
+                <p className="text-gray-700 font-semibold">Aucune alerte envoyée</p>
+                <p className="text-sm text-gray-400 mt-1">Vous n&apos;avez pas encore déclenché de signal SOS.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {sosAlerts.map((alert) => {
+                  const statusConfig: Record<string, { label: string; color: string; bg: string; dot: string }> = {
+                    new:          { label: 'Nouveau',              color: 'text-red-700',    bg: 'bg-red-50 border-red-200',    dot: 'bg-red-500' },
+                    acknowledged: { label: 'Pris en compte',       color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200', dot: 'bg-orange-500' },
+                    in_progress:  { label: 'En cours de traitement', color: 'text-blue-700',  bg: 'bg-blue-50 border-blue-200',  dot: 'bg-blue-500' },
+                    resolved:     { label: 'Résolu',               color: 'text-green-700',  bg: 'bg-green-50 border-green-200', dot: 'bg-green-500' },
+                    closed:       { label: 'Fermé',                color: 'text-gray-600',   bg: 'bg-gray-50 border-gray-200',  dot: 'bg-gray-400' },
+                  };
+                  const categoryLabels: Record<string, string> = {
+                    general:    '🆘 Situation générale',
+                    harassment: '🚫 Harcèlement',
+                    burnout:    '😔 Épuisement (burnout)',
+                    conflict:   '⚡ Conflit',
+                    security:   '🛡️ Sécurité physique',
+                    health:     '🏥 Problème de santé',
+                    equipment:  '💻 Outils / Matériel',
+                  };
+                  const s = statusConfig[alert.status] ?? statusConfig['new'];
+                  const steps = ['new', 'acknowledged', 'in_progress', 'resolved'];
+                  const currentStep = steps.indexOf(alert.status === 'closed' ? 'resolved' : alert.status);
+
+                  return (
+                    <div key={alert.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                      {/* Header carte */}
+                      <div className="flex items-start justify-between p-4 gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-base font-semibold text-gray-900">
+                              {categoryLabels[alert.category] ?? alert.category}
+                            </span>
+                            <span className={`text-xs px-2.5 py-0.5 rounded-full border font-semibold ${s.bg} ${s.color}`}>
+                              {s.label}
+                            </span>
+                          </div>
+                          {alert.message && (
+                            <p className="text-sm text-gray-600 mt-1 leading-snug">{alert.message}</p>
+                          )}
+                          <p className="text-xs text-gray-400 mt-1">
+                            Envoyée le {alert.created_at ? new Date(alert.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                          </p>
+                        </div>
+                        <div className={`w-3 h-3 rounded-full shrink-0 mt-1.5 ${s.dot}`} />
+                      </div>
+
+                      {/* Barre de progression du statut */}
+                      <div className="px-4 pb-3">
+                        <div className="flex items-center gap-0">
+                          {['Envoyée', 'Prise en compte', 'En traitement', 'Résolue'].map((stepLabel, i) => {
+                            const done = i <= currentStep;
+                            const active = i === currentStep;
+                            return (
+                              <div key={i} className="flex items-center flex-1 last:flex-none">
+                                <div className="flex flex-col items-center">
+                                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-colors ${
+                                    done ? (active ? 'border-primary-500 bg-primary-500 text-white' : 'border-green-400 bg-green-400 text-white')
+                                         : 'border-gray-200 bg-gray-50 text-gray-400'
+                                  }`}>
+                                    {done && !active ? '✓' : i + 1}
+                                  </div>
+                                  <span className={`text-[10px] mt-0.5 text-center w-16 leading-tight ${done ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
+                                    {stepLabel}
+                                  </span>
+                                </div>
+                                {i < 3 && (
+                                  <div className={`h-0.5 flex-1 mx-1 mb-3 rounded ${i < currentStep ? 'bg-green-400' : 'bg-gray-200'}`} />
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Note de résolution si disponible */}
+                      {alert.resolution_note && (
+                        <div className="mx-4 mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <p className="text-xs font-semibold text-green-700 mb-0.5">Note de résolution</p>
+                          <p className="text-sm text-green-800">{alert.resolution_note}</p>
+                          {alert.handled_by && (
+                            <p className="text-xs text-green-600 mt-1">Par {alert.handled_by}{alert.handled_at ? ` · ${new Date(alert.handled_at).toLocaleDateString('fr-FR')}` : ''}</p>
+                          )}
+                        </div>
+                      )}
+                      {/* Prise en charge sans note */}
+                      {!alert.resolution_note && alert.handled_by && (
+                        <div className="mx-4 mb-4 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                          <p className="text-xs text-blue-700">Prise en charge par <span className="font-semibold">{alert.handled_by}</span>{alert.handled_at ? ` · ${new Date(alert.handled_at).toLocaleDateString('fr-FR')}` : ''}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

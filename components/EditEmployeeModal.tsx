@@ -332,9 +332,9 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               />
             </div>
 
-            {/* Nationalité */}
+            {/* Pays */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nationalité</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pays</label>
               <NationalitySelect
                 value={formData.nationality}
                 onChange={(val) => setFormData(prev => ({ ...prev, nationality: val }))}

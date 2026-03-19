@@ -14,6 +14,7 @@ import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { missionsTips } from '@/config/pageTips';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CountrySelect from '@/components/CountrySelect';
 
 // ============================================
 // TYPES
@@ -1196,6 +1197,7 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
     departure_location: '',
     destination: '',
     destination_country: '',
+    trip_type: 'aller_retour',
     start_date: '',
     end_date: '',
     transport_type: 'avion',
@@ -1341,13 +1343,24 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Pays de destination</label>
-            <input
-              type="text"
+            <CountrySelect
               value={formData.destination_country}
-              onChange={(e) => setFormData({ ...formData, destination_country: e.target.value })}
-              className="w-full px-3 py-2 border rounded-xl text-sm"
-              placeholder="Côte d'Ivoire (si international)"
+              onChange={(val) => setFormData({ ...formData, destination_country: val })}
+              placeholder="Sélectionner un pays…"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Type de trajet</label>
+            <select
+              value={formData.trip_type}
+              onChange={(e) => setFormData({ ...formData, trip_type: e.target.value })}
+              className="w-full px-3 py-2 border rounded-xl text-sm"
+            >
+              <option value="aller_retour">Aller-retour</option>
+              <option value="aller_simple">Aller simple</option>
+              <option value="multi_destination">Multi-destinations</option>
+            </select>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

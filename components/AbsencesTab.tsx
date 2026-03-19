@@ -110,6 +110,7 @@ function AbsenceForm({
     absence_date: new Date().toISOString().split('T')[0],
     expected_start_time: '',
     actual_start_time: '',
+    actual_departure_time: '',
     duration_minutes: '',
     reason: '',
     notes: '',
@@ -127,6 +128,7 @@ function AbsenceForm({
         absence_date: form.absence_date,
         expected_start_time: form.expected_start_time || null,
         actual_start_time: form.actual_start_time || null,
+        actual_departure_time: form.actual_departure_time || null,
         duration_minutes: form.duration_minutes ? parseInt(form.duration_minutes) : null,
         reason: form.reason || null,
         notes: form.notes || null,
@@ -143,6 +145,7 @@ function AbsenceForm({
   }
 
   const isTardiness = form.type === 'tardiness';
+  const isEarlyDeparture = form.type === 'early_departure';
 
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-orange-200 shadow-sm p-5 space-y-4">
@@ -201,6 +204,14 @@ function AbsenceForm({
                 className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-orange-400" />
             </div>
           </>
+        )}
+        {isEarlyDeparture && (
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Heure de départ</label>
+            <input type="time" value={form.actual_departure_time}
+              onChange={e => setForm(f => ({ ...f, actual_departure_time: e.target.value }))}
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-orange-400" />
+          </div>
         )}
         <div className="col-span-2">
           <label className="block text-xs font-medium text-gray-600 mb-1">Raison fournie par l'employé</label>
@@ -331,7 +342,7 @@ function AbsenceRow({
             <div><p className="text-xs font-semibold text-gray-500 uppercase mb-1">Heure prévue</p><p className="text-gray-700">{report.expected_start_time}</p></div>
           )}
           {report.actual_start_time && (
-            <div><p className="text-xs font-semibold text-gray-500 uppercase mb-1">Heure réelle</p><p className="text-gray-700">{report.actual_start_time}</p></div>
+            <div><p className="text-xs font-semibold text-gray-500 uppercase mb-1">{report.type === 'early_departure' ? 'Heure de départ' : 'Heure réelle'}</p><p className="text-gray-700">{report.actual_start_time}</p></div>
           )}
           {report.reason && (
             <div className="col-span-2"><p className="text-xs font-semibold text-gray-500 uppercase mb-1">Raison</p><p className="text-gray-700">{report.reason}</p></div>

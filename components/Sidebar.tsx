@@ -239,7 +239,7 @@ const talentsNavigation: NavItem[] = [
 // Sous-menu Gestion du Personnel
 const personnelNavigation: NavItem[] = [
   { name: 'Annuaire',      href: '/dashboard/employees?tab=employees',   icon: Users,     roles: ['rh', 'admin', 'dg'] },
-  { name: 'Unités', href: '/dashboard/employees?tab=departments', icon: Building2, roles: ['rh', 'admin', 'dg'] },
+  { name: 'Unités', href: '/dashboard/employees?tab=departments', icon: Building2, roles: ['rh', 'admin', 'dg', 'manager'] },
   { name: 'Organigramme', href: '/dashboard/employees?tab=orgchart',    icon: GitBranch, roles: ['rh', 'admin', 'dg'] },
   { name: 'Documents',    href: '/dashboard/employees?tab=documents',  icon: FileText,  roles: ['rh', 'admin', 'dg'] },
   { name: 'Congés',       href: '/dashboard/employees?tab=leaves',     icon: Calendar,  roles: ['rh', 'admin', 'dg'] },

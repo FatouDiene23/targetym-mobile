@@ -1322,11 +1322,14 @@ export default function SettingsPage() {
                         fetchGroupSubsidiaries();
                         setShowSubsidiaryModal(true);
                       }}
-                      disabled={isQuotaReached}
-                      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        isQuotaReached
+                          ? 'bg-amber-500 text-white hover:bg-amber-600'
+                          : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                      }`}
                     >
-                      <span className="text-lg leading-none">+</span>
-                      {isQuotaReached ? 'Quota atteint' : 'Ajouter une filiale'}
+                      <span className="text-lg leading-none">{isQuotaReached ? '↗' : '+'}</span>
+                      {isQuotaReached ? 'Demander une extension' : 'Ajouter une filiale'}
                     </button>
                   </div>
 

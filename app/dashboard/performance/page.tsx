@@ -156,7 +156,13 @@ async function fetchAttitudes(): Promise<AttitudeItem[]> {
   try {
     const response = await fetch(`${API_URL}/api/attitudes?active_only=true`, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error('API error');
-    return await response.json();
+    const data = await response.json();
+    if (data.length === 0) {
+      await fetch(`${API_URL}/api/performance/attitudes/initialize`, { method: 'POST', headers: getAuthHeaders() });
+      const retry = await fetch(`${API_URL}/api/attitudes?active_only=true`, { headers: getAuthHeaders() });
+      if (retry.ok) return await retry.json();
+    }
+    return data;
   } catch { return []; }
 }
 

@@ -1134,7 +1134,8 @@ function EmployeesPageInner() {
                   {displayedEmployees.length === 0 ? (
                     <div className="p-12 text-center"><Users className="w-12 h-12 mx-auto mb-4 text-gray-300" /><p className="text-gray-500 mb-4">Aucun employé trouvé</p><button onClick={loadAllData} className="flex items-center mx-auto px-4 py-2 text-primary-600 hover:bg-primary-50 rounded-lg"><RefreshCw className="w-4 h-4 mr-2" />Actualiser</button></div>
                   ) : (
-                    <table className="w-full">
+                    <div className="w-full overflow-x-auto">
+                    <table className="min-w-full">
                       <thead className="bg-gray-50 border-b border-gray-100">
                         <tr>
                           <th className="w-10 px-3 py-3">
@@ -1162,6 +1163,7 @@ function EmployeesPageInner() {
                         ))}
                       </tbody>
                     </table>
+                    </div>
                   )}
                   {totalPages > 1 && (<div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between"><p className="text-sm text-gray-500">Page {currentPage}/{totalPages} • {totalEmployees} employés</p><div className="flex gap-2"><button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 hover:bg-gray-50">Précédent</button><button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 hover:bg-gray-50">Suivant</button></div></div>)}
                 </div>

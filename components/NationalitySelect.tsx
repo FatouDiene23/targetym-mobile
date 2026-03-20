@@ -1,5 +1,5 @@
 // components/NationalitySelect.tsx
-// Composant Select searchable pour les nationalités
+// Composant Select searchable pour les nationalités ou les pays
 // À utiliser dans AddEmployeeModal et EditEmployeeModal
 
 "use client";
@@ -13,6 +13,7 @@ interface NationalitySelectProps {
   placeholder?: string;
   required?: boolean;
   className?: string;
+  options?: string[];
 }
 
 export default function NationalitySelect({
@@ -21,14 +22,17 @@ export default function NationalitySelect({
   placeholder = "Sélectionner une nationalité...",
   required = false,
   className = "",
+  options,
 }: NationalitySelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Filtrer les nationalités selon la recherche
-  const filtered = NATIONALITIES.filter((n) =>
+  const list = options ?? NATIONALITIES;
+
+  // Filtrer selon la recherche
+  const filtered = list.filter((n) =>
     n.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -131,7 +135,7 @@ export default function NationalitySelect({
         <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
           {filtered.length === 0 ? (
             <div className="px-3 py-2 text-sm text-gray-500 text-center">
-              Aucune nationalité trouvée
+              Aucun résultat trouvé
             </div>
           ) : (
             filtered.map((nationality) => (

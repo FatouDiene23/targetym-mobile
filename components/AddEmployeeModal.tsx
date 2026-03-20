@@ -7,6 +7,7 @@ import {
   type Department, type Employee, type GenderType, type ContractType, type StatusType, type EmployeeRole 
 } from '@/lib/api';
 import NationalitySelect from '@/components/NationalitySelect';
+import { COUNTRIES } from '@/data/countries';
 
 interface AddEmployeeModalProps {
   onClose: () => void;
@@ -340,7 +341,8 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               <NationalitySelect
                 value={formData.nationality}
                 onChange={(val) => setFormData(prev => ({ ...prev, nationality: val }))}
-                placeholder="Sélectionner une nationalité..."
+                placeholder="Sélectionner un pays..."
+                options={COUNTRIES}
               />
             </div>
 

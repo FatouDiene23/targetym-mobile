@@ -319,7 +319,16 @@ export function LearningModals() {
             <div className="p-6 border-b border-gray-200"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-gray-900">Nouvelle Certification</h2><button onClick={() => setShowCreateCertification(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div></div>
             <div className="p-6 space-y-4">
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label><input type="text" value={newCertification.name} onChange={(e) => setNewCertification({ ...newCertification, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="AWS Solutions Architect" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label><input type="text" value={newCertification.provider} onChange={(e) => setNewCertification({ ...newCertification, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Amazon" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label>
+                {providers.length > 0 ? (
+                  <select value={newCertification.provider_id || ''} onChange={(e) => { const p = providers.find(p => p.id === Number(e.target.value)); setNewCertification({ ...newCertification, provider_id: e.target.value ? Number(e.target.value) : null, provider: p ? p.name : '' }); }} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Sélectionner un fournisseur</option>
+                    {providers.filter(p => p.is_active).map(p => <option key={p.id} value={p.id}>{p.name} ({p.type})</option>)}
+                  </select>
+                ) : (
+                  <input type="text" value={newCertification.provider} onChange={(e) => setNewCertification({ ...newCertification, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Amazon" />
+                )}
+              </div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea value={newCertification.description} onChange={(e) => setNewCertification({ ...newCertification, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Validité (mois)</label><input type="number" value={newCertification.validity_months} onChange={(e) => setNewCertification({ ...newCertification, validity_months: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Permanent si vide" /></div>
             </div>

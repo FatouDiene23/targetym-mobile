@@ -302,7 +302,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   });
   const [assignData, setAssignData] = useState({ employee_id: '', course_id: '', deadline: '' });
   const [validationData, setValidationData] = useState({ approved: true, rejection_reason: '' });
-  const [newCertification, setNewCertification] = useState({ name: '', provider: '', description: '', validity_months: '' });
+  const [newCertification, setNewCertification] = useState({ name: '', provider: '', provider_id: null as number | null, description: '', validity_months: '' });
   const [newPath, setNewPath] = useState({ title: '', description: '', category: 'Technique', course_ids: [] as number[] });
   const [newPlan, setNewPlan] = useState({
     employee_id: '', current_role: '', target_role: '', target_date: '',
@@ -653,7 +653,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
         method: 'POST', headers: getAuthHeaders(),
         body: JSON.stringify({ ...newCertification, validity_months: newCertification.validity_months ? parseInt(newCertification.validity_months) : null })
       });
-      if (response.ok) { setShowCreateCertification(false); setNewCertification({ name: '', provider: '', description: '', validity_months: '' }); fetchCertifications(); }
+      if (response.ok) { setShowCreateCertification(false); setNewCertification({ name: '', provider: '', provider_id: null, description: '', validity_months: '' }); fetchCertifications(); }
     } catch (error) { console.error('Error creating certification:', error); }
   };
 

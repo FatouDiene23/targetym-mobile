@@ -77,7 +77,7 @@ interface EmployeeAttitudeScores {
 }
 
 type FeedbackType = 'recognition' | 'improvement' | 'general';
-type TabView = 'feed' | 'attitudes';
+type TabView = 'received' | 'sent' | 'attitudes';
 
 // =============================================
 // API
@@ -759,7 +759,7 @@ export default function FeedbackPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabView>('feed');
+  const [activeTab, setActiveTab] = useState<TabView>('received');
   const [filterType, setFilterType] = useState<string>('all');
 
   const loadData = useCallback(async () => {
@@ -786,12 +786,17 @@ export default function FeedbackPage() {
   }, []);
 
   const filteredFeedbacks = feedbacks.filter(f => {
-    const matchSearch = !search || 
+    const matchSearch = !search ||
       f.from_employee_name?.toLowerCase().includes(search.toLowerCase()) ||
       f.to_employee_name?.toLowerCase().includes(search.toLowerCase()) ||
       f.message.toLowerCase().includes(search.toLowerCase());
     const matchType = filterType === 'all' || f.type === filterType;
-    return matchSearch && matchType;
+    const matchTab = activeTab === 'received'
+      ? currentEmployeeId !== null && f.to_employee_id === currentEmployeeId
+      : activeTab === 'sent'
+      ? currentEmployeeId !== null && f.from_employee_id === currentEmployeeId
+      : true;
+    return matchSearch && matchType && matchTab;
   });
   
   const paginatedFeedbacks = filteredFeedbacks.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
@@ -832,15 +837,18 @@ export default function FeedbackPage() {
 
       {/* Tabs */}
       <div data-tour="feedback-tabs" className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
-        <button onClick={() => setActiveTab('feed')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'feed' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
-          📋 Fil d'activité
+        <button onClick={() => { setActiveTab('received'); setPage(1); }} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'received' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+          📥 Reçus
+        </button>
+        <button onClick={() => { setActiveTab('sent'); setPage(1); }} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'sent' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+          📤 Envoyés
         </button>
         <button onClick={() => setActiveTab('attitudes')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'attitudes' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
           📊 Mes Attitudes
         </button>
       </div>
 
-      {activeTab === 'feed' ? (
+      {activeTab !== 'attitudes' ? (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex flex-col sm:flex-row gap-3 mb-6">
             <div className="relative flex-1">

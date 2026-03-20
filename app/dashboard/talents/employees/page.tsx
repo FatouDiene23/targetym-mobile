@@ -1,6 +1,6 @@
 // ============================================
 // app/dashboard/talents/employees/page.tsx
-// Vue RH — Tous les collaborateurs (carrières)
+// Vue RH — Tous les collaborateurs (carrière)
 // ============================================
 
 'use client';

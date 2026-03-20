@@ -81,7 +81,7 @@ export default function PlatformAdminDashboard() {
   const [creatingTenant, setCreatingTenant] = useState(false);
   const [createTenantForm, setCreateTenantForm] = useState<TenantCreateData>({
     company_name: '', email: '', first_name: '', last_name: '', password: '',
-    plan: 'trial', max_employees: 10, is_trial: true,
+    plan: 'basique', max_employees: 25, is_trial: false,
   });
 
   // Demandes de conversion groupe
@@ -108,6 +108,7 @@ export default function PlatformAdminDashboard() {
   const getPlanBadgeClass = (plan: string) => {
     if (plan === 'enterprise') return 'bg-purple-100 text-purple-800';
     if (plan === 'professional') return 'bg-blue-100 text-blue-800';
+    if (plan === 'basique') return 'bg-green-100 text-green-800';
     return 'bg-gray-100 text-gray-800';
   };
 
@@ -256,7 +257,7 @@ export default function PlatformAdminDashboard() {
       const result = await createPlatformTenant(createTenantForm);
       toast.success(`Tenant "${result.name}" créé (/${result.slug})`);
       setShowCreateTenant(false);
-      setCreateTenantForm({ company_name: '', email: '', first_name: '', last_name: '', password: '', plan: 'trial', max_employees: 10, is_trial: true });
+      setCreateTenantForm({ company_name: '', email: '', first_name: '', last_name: '', password: '', plan: 'basique', max_employees: 25, is_trial: false });
       loadData();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Erreur création tenant');
@@ -627,8 +628,9 @@ export default function PlatformAdminDashboard() {
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">Tous les plans</option>
                 <option value="trial">Trial</option>
-                <option value="professional">Professional</option>
-                <option value="enterprise">Enterprise</option>
+                <option value="basique">Basique</option>
+                <option value="professional">Professionnel</option>
+                <option value="enterprise">Entreprise</option>
               </select>
               <select value={filterActive === undefined ? '' : filterActive.toString()}
                 onChange={e => setFilterActive(e.target.value === '' ? undefined : e.target.value === 'true')}
@@ -1036,18 +1038,21 @@ export default function PlatformAdminDashboard() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
                   <select value={createTenantForm.plan}
-                    onChange={e => setCreateTenantForm(f => ({ ...f, plan: e.target.value as 'trial' | 'professional' | 'enterprise' }))}
+                    onChange={e => {
+                      const p = e.target.value as 'basique' | 'professional' | 'enterprise';
+                      const limits: Record<string, number> = { basique: 25, professional: 50, enterprise: 100 };
+                      setCreateTenantForm(f => ({ ...f, plan: p, max_employees: limits[p] }));
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="trial">Trial</option>
-                    <option value="professional">Professional</option>
-                    <option value="enterprise">Enterprise</option>
+                    <option value="basique">Basique — 25 employés</option>
+                    <option value="professional">Professionnel — 50 employés</option>
+                    <option value="enterprise">Entreprise — 100 employés</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Max employés</label>
-                  <input type="number" min={1} max={10000} value={createTenantForm.max_employees}
-                    onChange={e => setCreateTenantForm(f => ({ ...f, max_employees: Number(e.target.value) }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <input type="number" readOnly value={createTenantForm.max_employees}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-600 cursor-not-allowed" />
                 </div>
                 <div className="col-span-2 flex items-center gap-2">
                   <input type="checkbox" id="is_trial" checked={createTenantForm.is_trial}

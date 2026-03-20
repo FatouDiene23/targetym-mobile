@@ -44,7 +44,7 @@ export const PLAN_LEVEL: Record<string, number> = {
 
 export const PLAN_LABELS: Record<string, string> = {
   trial: 'Essai', basique: 'Basique', starter: 'Basique',
-  premium: 'Premium', professional: 'Premium',
+  premium: 'Premium', professional: 'Professionnel',
   entreprise: 'Entreprise', enterprise: 'Entreprise',
 };
 

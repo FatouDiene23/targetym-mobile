@@ -39,10 +39,9 @@ function StatusBadge({ status }: { status: InvoiceItem['status'] }) {
 }
 
 const PLANS = [
-  { value: 'trial', label: 'Trial (essai)' },
-  { value: 'starter', label: 'Starter' },
-  { value: 'professional', label: 'Professionnel' },
-  { value: 'enterprise', label: 'Entreprise' },
+  { value: 'basique', label: 'Basique', employees: 25 },
+  { value: 'professional', label: 'Professionnel', employees: 50 },
+  { value: 'enterprise', label: 'Entreprise', employees: 100 },
 ];
 
 // ─── Composant principal ───────────────────────────────────────────────────────
@@ -629,19 +628,22 @@ export default function BillingAdminPage() {
                 <label className="block text-xs font-medium text-gray-600 mb-1">Plan <span className="text-red-500">*</span></label>
                 <select
                   value={planForm.plan}
-                  onChange={e => setPlanForm(f => ({ ...f, plan: e.target.value }))}
+                  onChange={e => {
+                    const selected = PLANS.find(p => p.value === e.target.value);
+                    setPlanForm(f => ({ ...f, plan: e.target.value, max_employees: selected ? String(selected.employees) : f.max_employees }));
+                  }}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                  {PLANS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                  {PLANS.map(p => <option key={p.value} value={p.value}>{p.label} — {p.employees} employés</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Nb max employés</label>
                 <input
                   type="number"
+                  readOnly
                   value={planForm.max_employees}
-                  onChange={e => setPlanForm(f => ({ ...f, max_employees: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
                 />
               </div>
             </div>

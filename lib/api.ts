@@ -1846,7 +1846,7 @@ export interface TenantCreateData {
   first_name: string;
   last_name: string;
   password: string;
-  plan?: 'trial' | 'professional' | 'enterprise';
+  plan?: 'basique' | 'professional' | 'enterprise';
   max_employees?: number;
   is_trial?: boolean;
 }

@@ -826,6 +826,15 @@ async function fetchMyStats(): Promise<MyStats | null> {
   } catch { return null; }
 }
 
+async function fetchFeedbackCount(params: string): Promise<number> {
+  try {
+    const response = await fetch(`${API_URL}/api/performance/feedbacks?page_size=1&${params}`, { headers: getAuthHeaders() });
+    if (!response.ok) return 0;
+    const data = await response.json();
+    return data.total ?? 0;
+  } catch { return 0; }
+}
+
 function StatsCards({ stats, attitudeScore }: { stats: MyStats | null; attitudeScore: number | null }) {
   if (!stats) return null;
   return (
@@ -890,10 +899,19 @@ export default function FeedbackPage() {
     ]);
     setFeedbacks(feedbacksData);
     setEmployees(employeesData);
-    setStats(statsData);
     setAttitudes(attitudesData);
     setAttitudeScores(attScoresData);
     setCurrentEmployeeId(empId);
+
+    if (empId && statsData) {
+      const [received, sent] = await Promise.all([
+        fetchFeedbackCount(`to_employee_id=${empId}`),
+        fetchFeedbackCount(`from_employee_id=${empId}`)
+      ]);
+      setStats({ ...statsData, feedbacks_received: received, feedbacks_given: sent });
+    } else {
+      setStats(statsData);
+    }
     setLoading(false);
   }, []);
 

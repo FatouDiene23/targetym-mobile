@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   ThumbsUp, Send, X, Loader2, AlertCircle, Search,
-  ChevronLeft, ChevronRight, BarChart3, Check, Trash2
+  ChevronLeft, ChevronRight, BarChart3, Check, Trash2, MessageCircle
 } from 'lucide-react';
 import Header from '@/components/Header';
 import PageTourTips from '@/components/PageTourTips';
@@ -76,8 +76,18 @@ interface EmployeeAttitudeScores {
   scores: AttitudeScoreItem[];
 }
 
+interface ReplyItem {
+  id: number;
+  feedback_id: number;
+  employee_id: number;
+  employee_name: string;
+  employee_initials: string;
+  content: string;
+  created_at: string;
+}
+
 type FeedbackType = 'recognition' | 'improvement' | 'general';
-type TabView = 'received' | 'sent' | 'attitudes';
+type TabView = 'received' | 'sent' | 'feed' | 'attitudes';
 
 // =============================================
 // API
@@ -141,6 +151,25 @@ async function deleteFeedback(feedbackId: number): Promise<boolean> {
     });
     return response.ok;
   } catch { return false; }
+}
+
+async function fetchReplies(feedbackId: number): Promise<ReplyItem[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/performance/feedbacks/${feedbackId}/replies`, { headers: getAuthHeaders() });
+    if (!response.ok) return [];
+    return await response.json();
+  } catch { return []; }
+}
+
+async function postReply(feedbackId: number, content: string): Promise<ReplyItem | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/performance/feedbacks/${feedbackId}/replies`, {
+      method: 'POST', headers: getAuthHeaders(),
+      body: JSON.stringify({ content })
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch { return null; }
 }
 
 async function fetchEmployees(): Promise<Employee[]> {
@@ -256,6 +285,41 @@ function FeedbackCard({ feedback, onLike, onDelete, currentEmployeeId }: { feedb
   const [likes, setLikes] = useState(feedback.likes_count);
   const [deleting, setDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showReplyInput, setShowReplyInput] = useState(false);
+  const [replyContent, setReplyContent] = useState('');
+  const [replies, setReplies] = useState<ReplyItem[]>([]);
+  const [repliesLoaded, setRepliesLoaded] = useState(false);
+  const [showReplies, setShowReplies] = useState(false);
+  const [sendingReply, setSendingReply] = useState(false);
+
+  const isParticipant = currentEmployeeId !== null &&
+    (feedback.from_employee_id === currentEmployeeId || feedback.to_employee_id === currentEmployeeId);
+
+  const loadReplies = async () => {
+    if (!repliesLoaded) {
+      const data = await fetchReplies(feedback.id);
+      setReplies(data);
+      setRepliesLoaded(true);
+    }
+  };
+
+  const handleToggleReplies = async () => {
+    if (!showReplies) await loadReplies();
+    setShowReplies(!showReplies);
+  };
+
+  const handleSendReply = async () => {
+    if (!replyContent.trim()) return;
+    setSendingReply(true);
+    const reply = await postReply(feedback.id, replyContent.trim());
+    setSendingReply(false);
+    if (reply) {
+      setReplies(prev => [...prev, reply]);
+      setReplyContent('');
+      setShowReplyInput(false);
+      setShowReplies(true);
+    }
+  };
 
   const handleLike = async () => {
     const newCount = await likeFeedback(feedback.id);
@@ -278,7 +342,6 @@ function FeedbackCard({ feedback, onLike, onDelete, currentEmployeeId }: { feedb
     return `Il y a ${Math.floor(hours / 24)}j`;
   };
 
-  // Suppression autorisée uniquement par l'auteur dans les 15 premières minutes
   const minutesSinceCreation = (Date.now() - new Date(feedback.created_at).getTime()) / (1000 * 60);
   const isAuthor = currentEmployeeId !== null && feedback.from_employee_id === currentEmployeeId;
   const canDelete = isAuthor && minutesSinceCreation <= 15;
@@ -300,10 +363,9 @@ function FeedbackCard({ feedback, onLike, onDelete, currentEmployeeId }: { feedb
               <span className="font-medium text-primary-600 text-sm">{feedback.to_employee_name}</span>
               <span className="text-lg">{getFeedbackIcon(feedback.type)}</span>
             </div>
-            {/* Bouton supprimer - uniquement dans les 15 premières minutes */}
             {canDelete && (
-              <button 
-                onClick={() => setShowConfirm(true)} 
+              <button
+                onClick={() => setShowConfirm(true)}
                 className="p-1.5 text-gray-300 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
                 title={`Supprimer (${minutesLeft} min restantes)`}
               >
@@ -312,14 +374,13 @@ function FeedbackCard({ feedback, onLike, onDelete, currentEmployeeId }: { feedb
             )}
           </div>
           <p className="text-gray-700 text-sm mt-2 leading-relaxed">{feedback.message}</p>
-          
-          {/* Attitudes tags */}
+
           {attitudes.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
               {attitudes.map((att, idx) => (
                 <span key={idx} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                  att.sentiment === 'recognition' 
-                    ? 'bg-green-50 text-green-700 border border-green-200' 
+                  att.sentiment === 'recognition'
+                    ? 'bg-green-50 text-green-700 border border-green-200'
                     : 'bg-amber-50 text-amber-700 border border-amber-200'
                 }`}>
                   <span>{att.icon}</span>
@@ -329,16 +390,70 @@ function FeedbackCard({ feedback, onLike, onDelete, currentEmployeeId }: { feedb
               ))}
             </div>
           )}
-          
+
           <div className="flex items-center gap-4 mt-3">
             <button onClick={handleLike} className={`flex items-center gap-1.5 text-sm transition-colors ${liked ? 'text-primary-600' : 'text-gray-400 hover:text-primary-500'}`}>
               <ThumbsUp className={`w-4 h-4 ${liked ? 'fill-current' : ''}`} /><span>{likes}</span>
             </button>
+            {isParticipant && (
+              <button onClick={handleToggleReplies} className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-primary-500 transition-colors">
+                <MessageCircle className="w-4 h-4" />
+                <span>{repliesLoaded ? replies.length : ''}</span>
+              </button>
+            )}
+            {isParticipant && !showReplyInput && (
+              <button onClick={() => { setShowReplyInput(true); loadReplies(); setShowReplies(true); }} className="text-xs text-gray-400 hover:text-primary-500 transition-colors">
+                Répondre
+              </button>
+            )}
             <span className="text-xs text-gray-400">{timeAgo(feedback.created_at)}</span>
           </div>
         </div>
       </div>
-      
+
+      {/* Replies thread */}
+      {showReplies && replies.length > 0 && (
+        <div className="ml-13 mt-3 pl-4 border-l-2 border-gray-100 space-y-3">
+          {replies.map(reply => (
+            <div key={reply.id} className="flex gap-2">
+              <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-medium text-xs flex-shrink-0">
+                {reply.employee_initials}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-900 text-xs">{reply.employee_name}</span>
+                  <span className="text-xs text-gray-400">{timeAgo(reply.created_at)}</span>
+                </div>
+                <p className="text-gray-700 text-sm mt-0.5">{reply.content}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Reply input */}
+      {showReplyInput && (
+        <div className="ml-13 mt-3 pl-4 border-l-2 border-primary-100">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={replyContent}
+              onChange={(e) => setReplyContent(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendReply(); } }}
+              placeholder="Écrire une réponse..."
+              className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              autoFocus
+            />
+            <button onClick={handleSendReply} disabled={sendingReply || !replyContent.trim()} className="px-3 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
+              {sendingReply ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            </button>
+            <button onClick={() => { setShowReplyInput(false); setReplyContent(''); }} className="px-2 py-2 text-gray-400 hover:text-gray-600">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Confirmation suppression */}
       {showConfirm && (
         <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
@@ -727,7 +842,7 @@ function StatsCards({ stats, attitudeScore }: { stats: MyStats | null; attitudeS
       <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
         <p className="text-sm text-gray-500">Feedbacks Reçus</p>
         <p className="text-2xl font-bold text-purple-600">{stats.feedbacks_received}</p>
-        <p className="text-xs text-gray-400">{stats.feedbacks_given} donnés</p>
+        <p className="text-xs text-gray-400">{stats.feedbacks_given} envoyés</p>
       </div>
       <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
         <p className="text-sm text-gray-500">Attitudes</p>
@@ -801,6 +916,8 @@ export default function FeedbackPage() {
       ? currentEmployeeId !== null && f.to_employee_id === currentEmployeeId
       : activeTab === 'sent'
       ? currentEmployeeId !== null && f.from_employee_id === currentEmployeeId
+      : activeTab === 'feed'
+      ? f.is_public === true
       : true;
     return matchSearch && matchType && matchTab;
   });
@@ -848,6 +965,9 @@ export default function FeedbackPage() {
         </button>
         <button onClick={() => { setActiveTab('sent'); setPage(1); }} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'sent' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
           📤 Envoyés
+        </button>
+        <button onClick={() => { setActiveTab('feed'); setPage(1); }} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'feed' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+          📋 Fil d&apos;actualité
         </button>
         <button onClick={() => setActiveTab('attitudes')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'attitudes' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
           📊 Mes Attitudes

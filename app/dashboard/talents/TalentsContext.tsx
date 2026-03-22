@@ -56,6 +56,7 @@ interface TalentsContextType {
   loadAttitudes: () => Promise<void>;
   linkAttitudes: (levelId: number, attitudeIds: number[], threshold?: number) => Promise<void>;
   createFactor: (levelId: number, data: any) => Promise<void>;
+  updateFactor: (id: number, data: any) => Promise<void>;
   deleteFactor: (id: number) => Promise<void>;
 
   // Employee Careers
@@ -73,6 +74,7 @@ interface TalentsContextType {
   loadPromotions: (status?: string) => Promise<void>;
   requestPromotion: (ecId: number, comments?: string) => Promise<void>;
   decidePromotion: (reqId: number, status: 'approved' | 'rejected', comments?: string, committee?: string) => Promise<void>;
+  cancelPromotion: (reqId: number) => Promise<void>;
 
   // Nine-Box
   nineBoxData: NineBoxData | null;
@@ -269,6 +271,13 @@ export function TalentsProvider({ children }: { children: React.ReactNode }) {
     if (selectedPath) await loadPathDetail(selectedPath.id);
   }, [loadPathDetail, selectedPath]);
 
+  const updateFactor = useCallback(async (id: number, data: any) => {
+    await apiFetch(`/api/careers/factors/${id}`, {
+      method: 'PUT', body: JSON.stringify(data)
+    });
+    if (selectedPath) await loadPathDetail(selectedPath.id);
+  }, [loadPathDetail, selectedPath]);
+
   const deleteFactor = useCallback(async (id: number) => {
     await apiFetch(`/api/careers/factors/${id}`, { method: 'DELETE' });
     if (selectedPath) await loadPathDetail(selectedPath.id);
@@ -341,6 +350,11 @@ export function TalentsProvider({ children }: { children: React.ReactNode }) {
     await apiFetch(`/api/careers/promotions/${reqId}/decide`, {
       method: 'PUT', body: JSON.stringify({ status, comments, committee_decision: committee })
     });
+    await loadPromotions();
+  }, [loadPromotions]);
+
+  const cancelPromotion = useCallback(async (reqId: number) => {
+    await apiFetch(`/api/careers/promotions/${reqId}`, { method: 'DELETE' });
     await loadPromotions();
   }, [loadPromotions]);
 
@@ -433,10 +447,10 @@ export function TalentsProvider({ children }: { children: React.ReactNode }) {
     paths, selectedPath, loadPaths, loadPathDetail, createPath, updatePath, deletePath, duplicatePath,
     createLevel, updateLevel, deleteLevel, reorderLevels,
     createCompetency, updateCompetency, deleteCompetency, linkTrainings,
-    attitudes, loadAttitudes, linkAttitudes, createFactor, deleteFactor,
+    attitudes, loadAttitudes, linkAttitudes, createFactor, updateFactor, deleteFactor,
     employeeCareers, loadEmployeeCareers, assignEmployee, assignBulk,
     loadEmployeeCareerDetail, syncProgress, syncAllProgress, unassignCareer,
-    promotions, loadPromotions, requestPromotion, decidePromotion,
+    promotions, loadPromotions, requestPromotion, decidePromotion, cancelPromotion,
     nineBoxData, loadNineBox, createNineBoxPlacement, bulkNineBoxPlacements,
     successionPlans, selectedPlan, loadSuccessionPlans, loadPlanDetail,
     createSuccessionPlan, updateSuccessionPlan, deleteSuccessionPlan,

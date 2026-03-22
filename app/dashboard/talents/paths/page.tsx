@@ -24,7 +24,7 @@ export default function PathsPage() {
     createPath, updatePath, deletePath, duplicatePath,
     createLevel, updateLevel, deleteLevel,
     createCompetency, deleteCompetency,
-    createFactor, deleteFactor,
+    createFactor, updateFactor, deleteFactor,
     attitudes, loadAttitudes, linkAttitudes,
     employeeCareers, loadEmployeeCareers, assignEmployee, unassignCareer,
   } = useTalents();
@@ -32,6 +32,8 @@ export default function PathsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [expandedLevel, setExpandedLevel] = useState<number | null>(null);
   const [showAddLevel, setShowAddLevel] = useState(false);
+  const [editLevelId, setEditLevelId] = useState<number | null>(null);
+  const [editFactorId, setEditFactorId] = useState<number | null>(null);
   const [showAssign, setShowAssign] = useState(false);
   const [activeTab, setActiveTab] = useState<'levels' | 'employees'>('levels');
   const [addCompForLevel, setAddCompForLevel] = useState<number | null>(null);
@@ -204,8 +206,7 @@ export default function PathsPage() {
                   const isExpanded = expandedLevel === level.id;
                   return (
                     <div key={level.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                      <div
-                        className="p-4 cursor-pointer hover:bg-gray-50"
+                      <div className="p-4 cursor-pointer hover:bg-gray-50"
                         onClick={() => setExpandedLevel(isExpanded ? null : level.id)}
                       >
                         <div className="flex items-center justify-between">
@@ -224,6 +225,15 @@ export default function PathsPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-gray-400">{level.employee_count || 0} emp.</span>
+                            {canEdit && (
+                              <button
+                                onClick={e => { e.stopPropagation(); setEditLevelId(level.id); }}
+                                className="p-1 text-gray-400 hover:text-primary-500"
+                                title="Modifier le niveau"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                             {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
                           </div>
                         </div>
@@ -330,9 +340,14 @@ export default function PathsPage() {
                                       <span className="text-xs text-gray-500">{f.factor_type}</span>
                                       {f.is_blocking && <span className="text-xs text-red-500">Bloquant</span>}
                                       {canEdit && (
-                                        <button onClick={() => deleteFactor(f.id)} className="text-gray-400 hover:text-red-500">
-                                          <Trash2 className="w-3 h-3" />
-                                        </button>
+                                        <>
+                                          <button onClick={() => setEditFactorId(f.id)} className="text-gray-400 hover:text-primary-500" title="Modifier">
+                                            <Edit className="w-3 h-3" />
+                                          </button>
+                                          <button onClick={() => deleteFactor(f.id)} className="text-gray-400 hover:text-red-500" title="Supprimer">
+                                            <Trash2 className="w-3 h-3" />
+                                          </button>
+                                        </>
                                       )}
                                     </div>
                                   </div>
@@ -481,6 +496,38 @@ export default function PathsPage() {
             )}
           </div>
         </div>
+
+        {/* Edit Level Modal */}
+        {editLevelId !== null && selectedPath && (() => {
+          const lvl = selectedPath.levels?.find((l: CareerLevel) => l.id === editLevelId);
+          if (!lvl) return null;
+          return (
+            <EditLevelModal
+              level={lvl}
+              onClose={() => setEditLevelId(null)}
+              onSave={async (data) => {
+                await updateLevel(editLevelId, data);
+                setEditLevelId(null);
+              }}
+            />
+          );
+        })()}
+
+        {/* Edit Factor Modal */}
+        {editFactorId !== null && selectedPath && (() => {
+          const factor = selectedPath.levels?.flatMap((l: CareerLevel) => l.promotion_factors || []).find((f: any) => f.id === editFactorId);
+          if (!factor) return null;
+          return (
+            <EditFactorModal
+              factor={factor}
+              onClose={() => setEditFactorId(null)}
+              onSave={async (data) => {
+                await updateFactor(editFactorId, data);
+                setEditFactorId(null);
+              }}
+            />
+          );
+        })()}
 
         {/* Create Path Modal */}
         {showCreate && <CreatePathModal onClose={() => setShowCreate(false)} onCreate={createPath} />}
@@ -1115,6 +1162,153 @@ function AddFactorModalNew({ levelId, onClose, onAdd }: {
           <button onClick={handleSubmit} disabled={saving || !name.trim()}
             className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
             {saving ? 'Ajout...' : 'Ajouter'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditLevelModal({ level, onClose, onSave }: {
+  level: CareerLevel;
+  onClose: () => void;
+  onSave: (data: any) => Promise<void>;
+}) {
+  const [title, setTitle] = useState(level.title);
+  const [tenure, setTenure] = useState(level.min_tenure_months);
+  const [isEntry, setIsEntry] = useState(level.is_entry_level);
+  const [description, setDescription] = useState(level.description || '');
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!title.trim()) return;
+    setSaving(true);
+    try {
+      await onSave({ title, min_tenure_months: tenure, is_entry_level: isEntry, description: description || null });
+    } catch { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Modifier le Niveau</h3>
+          <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
+            <input value={title} onChange={e => setTitle(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              placeholder="Ex: Chef de Service" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea value={description} onChange={e => setDescription(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" rows={2} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Ancienneté minimum (mois)</label>
+            <input type="number" value={tenure} onChange={e => setTenure(parseInt(e.target.value) || 0)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" min={0} />
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={isEntry} onChange={e => setIsEntry(e.target.checked)}
+              className="rounded border-gray-300 text-primary-500" />
+            <span className="text-sm text-gray-700">Niveau d'entrée dans le parcours</span>
+          </label>
+        </div>
+        <div className="flex gap-3 mt-6">
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">Annuler</button>
+          <button onClick={handleSubmit} disabled={saving || !title.trim()}
+            className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
+            {saving ? 'Enregistrement...' : 'Enregistrer'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditFactorModal({ factor, onClose, onSave }: {
+  factor: PromotionFactor;
+  onClose: () => void;
+  onSave: (data: any) => Promise<void>;
+}) {
+  const [name, setName] = useState(factor.factor_name);
+  const [factorType, setFactorType] = useState<'auto' | 'committee' | 'n_plus_1'>(factor.factor_type);
+  const [thresholdValue, setThresholdValue] = useState(factor.threshold_value || '');
+  const [isBlocking, setIsBlocking] = useState(factor.is_blocking);
+  const [saving, setSaving] = useState(false);
+
+  const FACTOR_TYPES = [
+    { value: 'auto', label: 'Automatique', desc: 'Validé automatiquement par le système' },
+    { value: 'committee', label: 'Comité RH', desc: "Requiert l'approbation du comité" },
+    { value: 'n_plus_1', label: 'Manager N+1', desc: 'Validé par le manager direct' },
+  ];
+
+  const handleSubmit = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      await onSave({
+        factor_name: name,
+        factor_type: factorType,
+        threshold_value: thresholdValue || null,
+        is_blocking: isBlocking,
+      });
+    } catch { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Modifier le Facteur de Promotion</h3>
+          <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nom du facteur *</label>
+            <input value={name} onChange={e => setName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              placeholder="Ex: Ancienneté ≥ 12 mois..." />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Type de validation</label>
+            <div className="space-y-2">
+              {FACTOR_TYPES.map(ft => (
+                <label key={ft.value} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  factorType === ft.value ? 'border-primary-400 bg-primary-50' : 'border-gray-200 hover:border-gray-300'
+                }`}>
+                  <input type="radio" name="editFactorType" value={ft.value} checked={factorType === ft.value}
+                    onChange={() => setFactorType(ft.value as any)} className="mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{ft.label}</p>
+                    <p className="text-xs text-gray-500">{ft.desc}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Seuil / Valeur (optionnel)</label>
+            <input value={thresholdValue} onChange={e => setThresholdValue(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              placeholder="Ex: 12, 80%, Approuvé..." />
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={isBlocking} onChange={e => setIsBlocking(e.target.checked)}
+              className="rounded border-gray-300 text-red-500" />
+            <span className="text-sm text-gray-700">Facteur bloquant</span>
+            <span className="text-xs text-gray-400">(la promotion est impossible sans ce critère)</span>
+          </label>
+        </div>
+        <div className="flex gap-3 mt-6">
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">Annuler</button>
+          <button onClick={handleSubmit} disabled={saving || !name.trim()}
+            className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
+            {saving ? 'Enregistrement...' : 'Enregistrer'}
           </button>
         </div>
       </div>

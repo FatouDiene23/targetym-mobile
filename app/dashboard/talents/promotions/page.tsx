@@ -17,7 +17,7 @@ import { ELIGIBILITY_LABELS, getInitials, formatDate, isRH } from '../shared';
 
 export default function PromotionsPage() {
   const {
-    promotions, loadPromotions, decidePromotion,
+    promotions, loadPromotions, decidePromotion, cancelPromotion,
     employeeCareers, loadEmployeeCareers, requestPromotion,
     syncAllProgress
   } = useTalents();
@@ -27,6 +27,7 @@ export default function PromotionsPage() {
   const [syncing, setSyncing] = useState(false);
   const [decidingId, setDecidingId] = useState<number | null>(null);
   const [decisionForm, setDecisionForm] = useState({ comments: '', committee: '' });
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
   const canApprove = isRH();
 
   const { showTips, dismissTips, resetTips } = usePageTour('promotions');
@@ -53,6 +54,17 @@ export default function PromotionsPage() {
       setDecidingId(null);
       setDecisionForm({ comments: '', committee: '' });
     } catch {}
+  };
+
+  const handleCancel = async (reqId: number) => {
+    setCancellingId(reqId);
+    try {
+      await cancelPromotion(reqId);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setCancellingId(null);
+    }
   };
 
   const handleRequestPromo = async (ecId: number) => {
@@ -186,12 +198,22 @@ export default function PromotionsPage() {
                                   </button>
                                 </div>
                               ) : (
-                                <button
-                                  onClick={() => setDecidingId(req.id)}
-                                  className="px-3 py-1.5 bg-primary-500 text-white text-xs font-medium rounded hover:bg-primary-600"
-                                >
-                                  Décider
-                                </button>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => setDecidingId(req.id)}
+                                    className="px-3 py-1.5 bg-primary-500 text-white text-xs font-medium rounded hover:bg-primary-600"
+                                  >
+                                    Décider
+                                  </button>
+                                  <button
+                                    onClick={() => handleCancel(req.id)}
+                                    disabled={cancellingId === req.id}
+                                    className="px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-medium rounded hover:bg-gray-200 disabled:opacity-50"
+                                    title="Annuler la demande"
+                                  >
+                                    {cancellingId === req.id ? '...' : 'Annuler'}
+                                  </button>
+                                </div>
                               )}
                             </div>
                           )}

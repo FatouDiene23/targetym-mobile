@@ -15,7 +15,7 @@ import {
   GraduationCap, Target, Award, Settings, Users, Layers
 } from 'lucide-react';
 import { useTalents } from '../TalentsContext';
-import { CareerPath, CareerLevel, isRH, getInitials, apiFetch, ELIGIBILITY_LABELS } from '../shared';
+import { CareerPath, CareerLevel, PromotionFactor, isRH, getInitials, apiFetch, ELIGIBILITY_LABELS } from '../shared';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
 export default function PathsPage() {

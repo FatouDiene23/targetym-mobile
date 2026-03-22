@@ -108,12 +108,14 @@ async function getLeaveTypes(): Promise<LeaveType[]> {
 async function getLeaveRequests(params: {
   status?: string;
   department_id?: number;
+  leave_type_id?: number;
   page?: number;
   page_size?: number;
 }): Promise<{ items: LeaveRequest[]; total: number }> {
   const searchParams = new URLSearchParams();
   if (params.status && params.status !== 'all') searchParams.append('status', params.status);
   if (params.department_id) searchParams.append('department_id', params.department_id.toString());
+  if (params.leave_type_id) searchParams.append('leave_type_id', params.leave_type_id.toString());
   searchParams.append('page', (params.page || 1).toString());
   searchParams.append('page_size', (params.page_size || 20).toString());
 
@@ -1122,6 +1124,7 @@ export default function LeavesManagementPage() {
   // Filters
   const [statusFilter, setStatusFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState<number | undefined>();
+  const [leaveTypeFilter, setLeaveTypeFilter] = useState<number | undefined>();
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
 
@@ -1157,12 +1160,13 @@ export default function LeavesManagementPage() {
     const data = await getLeaveRequests({
       status: statusFilter,
       department_id: departmentFilter,
+      leave_type_id: leaveTypeFilter,
       page,
       page_size: 10
     });
     setRequests(data.items);
     setTotalRequests(data.total);
-  }, [statusFilter, departmentFilter, page]);
+  }, [statusFilter, departmentFilter, leaveTypeFilter, page]);
 
   const loadCalendar = useCallback(async () => {
     const data = await getLeaveCalendar(calendarYear, calendarMonth);
@@ -1345,6 +1349,16 @@ export default function LeavesManagementPage() {
                 <option value="">Tous les départements</option>
                 {departments.map(dept => (
                   <option key={dept.id} value={dept.id}>{dept.name}</option>
+                ))}
+              </select>
+              <select
+                value={leaveTypeFilter || ''}
+                onChange={(e) => { setLeaveTypeFilter(e.target.value ? parseInt(e.target.value) : undefined); setPage(1); }}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              >
+                <option value="">Tous les types</option>
+                {leaveTypes.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
               </select>
               <button

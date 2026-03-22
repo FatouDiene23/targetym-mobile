@@ -75,7 +75,7 @@ export default function AIChatBox() {
   const [agentTurns, setAgentTurns] = useState<AgentTurn[]>([]);
 
   // Fichier PDF attaché
-  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [extractingPdf, setExtractingPdf] = useState(false);
   const [fileText, setFileText] = useState<string>('');
   const [cvTmpPath, setCvTmpPath] = useState<string | null>(null);
@@ -214,17 +214,21 @@ export default function AIChatBox() {
     try {
       // Extraire PDF si nécessaire
       let resolvedFileText = fileText;
-      if (attachedFile && !fileText) {
+      if (attachedFiles.length > 0 && !fileText) {
         setExtractingPdf(true);
         try {
-          const extracted = await extractPdfText(attachedFile);
-          resolvedFileText = extracted.text || '';
-          if (!resolvedFileText) {
-            toast('PDF attaché mais non lisible (scan ?). Copiez-collez les informations directement.', { icon: '⚠️' });
-          } else {
-            setFileText(resolvedFileText);
+          let combinedText = '';
+          for (const file of attachedFiles) {
+            const extracted = await extractPdfText(file);
+            if (extracted.text) combinedText += extracted.text + '\n\n';
             if (extracted.cv_tmp_path) setCvTmpPath(extracted.cv_tmp_path);
             if (extracted.cv_filename) setCvFilename(extracted.cv_filename);
+          }
+          resolvedFileText = combinedText.trim();
+          if (!resolvedFileText) {
+            toast('PDF(s) attaché(s) mais non lisible(s) (scan ?). Copiez-collez les informations directement.', { icon: '⚠️' });
+          } else {
+            setFileText(resolvedFileText);
           }
         } catch {
           toast('Impossible d\'extraire le PDF. Copiez-collez les informations.', { icon: '⚠️' });
@@ -345,7 +349,7 @@ export default function AIChatBox() {
     setShowConversationList(false);
     setMessage('');
     setAgentTurns([]);
-    setAttachedFile(null);
+    setAttachedFiles([]);
     setFileText('');
     setCvTmpPath(null);
     setCvFilename(null);
@@ -382,13 +386,12 @@ export default function AIChatBox() {
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      toast.error('Seuls les fichiers PDF sont acceptés.');
-      return;
-    }
-    setAttachedFile(file);
+    const allFiles = Array.from(e.target.files || []);
+    const validFiles = allFiles.filter(f => f.name.toLowerCase().endsWith('.pdf'));
+    const rejected = allFiles.filter(f => !f.name.toLowerCase().endsWith('.pdf'));
+    if (rejected.length > 0) toast.error('Seuls les fichiers PDF sont acceptés.');
+    if (validFiles.length === 0) return;
+    setAttachedFiles(prev => [...prev, ...validFiles]);
     setFileText(''); // reset, sera extrait à l'envoi
     setCvTmpPath(null);
     setCvFilename(null);
@@ -643,17 +646,25 @@ export default function AIChatBox() {
             </div>
           )}
 
-          {/* Fichier attaché (mode agent) */}
-          {agentMode && attachedFile && (
-            <div className="px-4 py-1.5 bg-indigo-50 border-t border-indigo-100 flex items-center gap-2 text-xs text-indigo-700">
-              <FileText size={13} />
-              <span className="flex-1 truncate">{attachedFile.name}</span>
-              <button
-                onClick={() => { setAttachedFile(null); setFileText(''); setCvTmpPath(null); setCvFilename(null); }}
-                className="text-indigo-400 hover:text-red-500"
-              >
-                <X size={13} />
-              </button>
+          {/* Fichiers attachés (mode agent) */}
+          {agentMode && attachedFiles.length > 0 && (
+            <div className="px-4 py-1.5 bg-indigo-50 border-t border-indigo-100 flex flex-col gap-1">
+              {attachedFiles.map((file, idx) => (
+                <div key={idx} className="flex items-center gap-2 text-xs text-indigo-700">
+                  <FileText size={13} />
+                  <span className="flex-1 truncate">{file.name}</span>
+                  <button
+                    onClick={() => {
+                      setAttachedFiles(prev => prev.filter((_, i) => i !== idx));
+                      setFileText('');
+                      if (attachedFiles.length === 1) { setCvTmpPath(null); setCvFilename(null); }
+                    }}
+                    className="text-indigo-400 hover:text-red-500"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
 
@@ -667,17 +678,18 @@ export default function AIChatBox() {
                     ref={fileInputRef}
                     type="file"
                     accept=".pdf"
+                    multiple
                     className="hidden"
                     onChange={handleFileSelect}
                   />
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className={`p-2.5 rounded-xl border transition-colors flex-shrink-0 ${
-                      attachedFile
+                      attachedFiles.length > 0
                         ? 'bg-indigo-100 border-indigo-300 text-indigo-700'
                         : 'border-gray-300 text-gray-500 hover:bg-gray-50'
                     }`}
-                    title="Joindre un PDF"
+                    title="Joindre un ou plusieurs PDF"
                   >
                     <Paperclip size={18} />
                   </button>

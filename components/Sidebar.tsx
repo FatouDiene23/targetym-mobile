@@ -351,6 +351,14 @@ function SidebarInner() {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
+    localStorage.removeItem('employee_photo_url');
+    localStorage.removeItem('employee_photo_url_backup');
+    localStorage.removeItem('access_token_backup');
+    localStorage.removeItem('user_backup');
+    localStorage.removeItem('is_impersonating');
+    localStorage.removeItem('impersonated_user_email');
+    localStorage.removeItem('impersonated_by_email');
+    localStorage.removeItem('impersonated_tenant_slug');
     window.location.href = 'https://www.targetym.ai/login';
   };
 

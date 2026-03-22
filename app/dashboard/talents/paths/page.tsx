@@ -31,6 +31,7 @@ export default function PathsPage() {
   } = useTalents();
 
   const [showCreate, setShowCreate] = useState(false);
+  const [showEditPath, setShowEditPath] = useState(false);
   const [expandedLevel, setExpandedLevel] = useState<number | null>(null);
   const [showAddLevel, setShowAddLevel] = useState(false);
   const [editLevelId, setEditLevelId] = useState<number | null>(null);
@@ -131,6 +132,10 @@ export default function PathsPage() {
                     </div>
                     {canEdit && (
                       <div className="flex gap-2">
+                        <button onClick={() => setShowEditPath(true)}
+                          className="p-2 text-gray-400 hover:text-primary-500" title="Modifier">
+                          <Edit className="w-4 h-4" />
+                        </button>
                         <button onClick={() => duplicatePath(selectedPath.id)}
                           className="p-2 text-gray-400 hover:text-primary-500" title="Dupliquer">
                           <Copy className="w-4 h-4" />
@@ -535,6 +540,19 @@ export default function PathsPage() {
         {/* Create Path Modal */}
         {showCreate && <CreatePathModal onClose={() => setShowCreate(false)} onCreate={createPath} />}
 
+        {/* Edit Path Modal */}
+        {showEditPath && selectedPath && (
+          <EditPathModal
+            path={selectedPath}
+            onClose={() => setShowEditPath(false)}
+            onSave={async (data) => {
+              await updatePath(selectedPath.id, data);
+              toast.success('Parcours mis à jour');
+              setShowEditPath(false);
+            }}
+          />
+        )}
+
         {/* Add Level Modal */}
         {showAddLevel && selectedPath && (
           <AddLevelModal
@@ -651,6 +669,60 @@ function CreatePathModal({ onClose, onCreate }: { onClose: () => void; onCreate:
           <button onClick={handleSubmit} disabled={saving || !name.trim()}
             className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
             {saving ? 'Création...' : 'Créer'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditPathModal({ path, onClose, onSave }: {
+  path: CareerPath;
+  onClose: () => void;
+  onSave: (data: { name: string; description?: string; is_active: boolean }) => Promise<void>;
+}) {
+  const [name, setName] = useState(path.name);
+  const [desc, setDesc] = useState(path.description || '');
+  const [isActive, setIsActive] = useState(path.is_active !== false);
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      await onSave({ name, description: desc || undefined, is_active: isActive });
+    } catch (e: any) { setSaving(false); toast.error(e?.message || 'Erreur lors de la sauvegarde'); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Modifier le Parcours</h3>
+          <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nom de la filière</label>
+            <input value={name} onChange={e => setName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea value={desc} onChange={e => setDesc(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" rows={2} />
+          </div>
+          <div className="flex items-center gap-3">
+            <input type="checkbox" id="pathActive" checked={isActive} onChange={e => setIsActive(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-primary-500" />
+            <label htmlFor="pathActive" className="text-sm text-gray-700">Parcours actif</label>
+          </div>
+        </div>
+        <div className="flex gap-3 mt-6">
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">Annuler</button>
+          <button onClick={handleSubmit} disabled={saving || !name.trim()}
+            className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
+            {saving ? 'Enregistrement...' : 'Enregistrer'}
           </button>
         </div>
       </div>

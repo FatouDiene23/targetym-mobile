@@ -2066,10 +2066,23 @@ export async function platformSearch(query: string): Promise<SearchResult> {
 // ============================================
 
 /** Convertir un tenant standalone en groupe */
-export async function convertTenantToGroup(tenantId: number): Promise<{ success: boolean; message: string }> {
+export async function convertTenantToGroup(tenantId: number, nbSubsidiaries: number = 1): Promise<{ success: boolean; message: string; max_subsidiaries: number }> {
   const response = await fetchWithAuth(`${API_URL}/api/platform/groups/tenants/${tenantId}/convert-to-group`, {
     method: 'POST',
-    body: JSON.stringify({ confirm: true }),
+    body: JSON.stringify({ confirm: true, nb_subsidiaries: nbSubsidiaries }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+/** Modifier le quota de filiales d'un groupe (SuperAdmin) */
+export async function updateGroupMaxSubsidiaries(
+  tenantId: number,
+  maxSubsidiaries: number,
+): Promise<{ success: boolean; message: string; max_subsidiaries: number; used_subsidiaries: number; remaining_subsidiaries: number }> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/groups/tenants/${tenantId}/max-subsidiaries`, {
+    method: 'PATCH',
+    body: JSON.stringify({ max_subsidiaries: maxSubsidiaries }),
   });
   if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
   return response.json();

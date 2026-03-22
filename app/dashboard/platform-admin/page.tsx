@@ -16,7 +16,7 @@ import {
   convertTenantToGroup, revertTenantToStandalone,
   getSubsidiaries, addSubsidiary, detachSubsidiary,
   listConversionRequests, reviewConversionRequest, markConversionAsPaid,
-  createPlatformTenant,
+  createPlatformTenant, updateGroupMaxSubsidiaries,
   type PlatformStats, type TenantListItem, type TenantDetail,
   type AuditLogItem, type SearchResult, type TenantUpdateData, type SubsidiaryItem,
   type ConversionRequestItem, type TenantCreateData,
@@ -75,6 +75,15 @@ export default function PlatformAdminDashboard() {
   const [showAddSubForm, setShowAddSubForm] = useState(false);
   const [addSubMode, setAddSubMode] = useState<'attach' | 'create'>('attach');
   const [addSubData, setAddSubData] = useState({ existing_tenant_slug: '', name: '', slug: '', email: '' });
+
+  // Modal conversion en groupe
+  const [showConvertModal, setShowConvertModal] = useState(false);
+  const [convertNbSubsidiaries, setConvertNbSubsidiaries] = useState(1);
+
+  // Édition quota filiales
+  const [editingMaxSubs, setEditingMaxSubs] = useState(false);
+  const [maxSubsInput, setMaxSubsInput] = useState(0);
+  const [savingMaxSubs, setSavingMaxSubs] = useState(false);
 
   // Création tenant
   const [showCreateTenant, setShowCreateTenant] = useState(false);
@@ -315,28 +324,41 @@ export default function PlatformAdminDashboard() {
 
   const handleConvertToGroup = () => {
     if (!selectedTenant) return;
-    setConfirmDialog({
-      title: 'Convertir en groupe',
-      message: `"${selectedTenant.name}" pourra ensuite avoir des filiales rattachées. Cette action est réversible si aucune filiale n’est attachée.`,
-      confirmLabel: 'Convertir',
-      variant: 'warning',
-      onConfirm: async () => {
-        try {
-          setGroupActionLoading(true);
-          await convertTenantToGroup(selectedTenant.id);
-          toast.success('Tenant converti en groupe ! Rattachez maintenant des filiales.');
-          const updated = await getTenantDetail(selectedTenant.id);
-          setSelectedTenant({ ...updated, is_group: true, group_type: 'group' });
-          setTenants(prev => prev.map(t => t.id === updated.id ? { ...t, is_group: true, group_type: 'group' } : t));
-          await loadSubsidiaries(selectedTenant.id);
-          setShowAddSubForm(true);
-        } catch (err: unknown) {
-          toast.error(err instanceof Error ? err.message : 'Erreur');
-        } finally {
-          setGroupActionLoading(false);
-        }
-      },
-    });
+    setConvertNbSubsidiaries(1);
+    setShowConvertModal(true);
+  };
+
+  const handleConvertToGroupConfirm = async () => {
+    if (!selectedTenant) return;
+    try {
+      setGroupActionLoading(true);
+      setShowConvertModal(false);
+      await convertTenantToGroup(selectedTenant.id, convertNbSubsidiaries);
+      toast.success(`Tenant converti en groupe avec ${convertNbSubsidiaries} filiale(s) autorisée(s) !`);
+      const updated = await getTenantDetail(selectedTenant.id);
+      setSelectedTenant({ ...updated, is_group: true, group_type: 'group' });
+      setTenants(prev => prev.map(t => t.id === updated.id ? { ...t, is_group: true, group_type: 'group' } : t));
+      await loadSubsidiaries(selectedTenant.id);
+      setShowAddSubForm(true);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erreur');
+    } finally {
+      setGroupActionLoading(false);
+    }
+  };
+
+  const handleUpdateMaxSubsidiaries = async () => {
+    if (!selectedTenant) return;
+    try {
+      setSavingMaxSubs(true);
+      await updateGroupMaxSubsidiaries(selectedTenant.id, maxSubsInput);
+      toast.success(`Quota mis à jour : ${maxSubsInput} filiale(s) autorisée(s)`);
+      setEditingMaxSubs(false);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erreur');
+    } finally {
+      setSavingMaxSubs(false);
+    }
   };
 
   const handleRevertToStandalone = () => {
@@ -1194,18 +1216,88 @@ export default function PlatformAdminDashboard() {
 
                 {/* Standalone → convertir en groupe */}
                 {selectedTenant.group_type !== 'subsidiary' && !selectedTenant.is_group && selectedTenant.group_type !== 'group' && (
-                  <div>
-                    <p className="text-xs text-purple-700 mb-3">Cette entreprise est autonome. Vous pouvez la convertir en groupe pour lui rattacher des filiales.</p>
-                    <button onClick={handleConvertToGroup} disabled={groupActionLoading}
-                      className="px-3 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 flex items-center gap-2 disabled:opacity-50">
-                      <GitBranch className="w-4 h-4" /> {groupActionLoading ? 'En cours...' : 'Convertir en groupe'}
-                    </button>
+                  <div className="space-y-3">
+                    <p className="text-xs text-purple-700">Cette entreprise est autonome. Vous pouvez la convertir en groupe pour lui rattacher des filiales.</p>
+                    {!showConvertModal ? (
+                      <button onClick={handleConvertToGroup} disabled={groupActionLoading}
+                        className="px-3 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 flex items-center gap-2 disabled:opacity-50">
+                        <GitBranch className="w-4 h-4" /> {groupActionLoading ? 'En cours...' : 'Convertir en groupe'}
+                      </button>
+                    ) : (
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 space-y-3">
+                        <p className="text-xs font-medium text-purple-800">Conversion de &quot;{selectedTenant.name}&quot; en groupe</p>
+                        <div>
+                          <label className="block text-xs text-purple-700 mb-1">Nombre de filiales autorisées *</label>
+                          <input
+                            type="number"
+                            min={1}
+                            value={convertNbSubsidiaries}
+                            onChange={e => setConvertNbSubsidiaries(Math.max(1, parseInt(e.target.value) || 1))}
+                            className="w-full px-3 py-1.5 border border-purple-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Ce nombre pourra être modifié ultérieurement.</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={handleConvertToGroupConfirm} disabled={groupActionLoading}
+                            className="px-3 py-1.5 bg-purple-600 text-white rounded text-xs hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1">
+                            <GitBranch className="w-3 h-3" /> {groupActionLoading ? 'En cours...' : 'Confirmer la conversion'}
+                          </button>
+                          <button onClick={() => setShowConvertModal(false)} className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded text-xs hover:bg-gray-200">
+                            Annuler
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {/* Groupe → afficher filiales + actions */}
                 {(selectedTenant.is_group || selectedTenant.group_type === 'group') && (
                   <div className="space-y-3">
+                    {/* Quota de filiales — affichage + édition */}
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-2.5">
+                      {!editingMaxSubs ? (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs text-purple-700 font-medium">
+                              Filiales : <span className="font-bold">{subsidiaries.length}</span> rattachée(s)
+                              {(selectedTenant as any).max_subsidiaries !== undefined && (
+                                <span className="text-purple-500"> / {(selectedTenant as any).max_subsidiaries} autorisée(s)</span>
+                              )}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => { setMaxSubsInput((selectedTenant as any).max_subsidiaries ?? subsidiaries.length); setEditingMaxSubs(true); }}
+                            className="text-xs text-purple-600 hover:text-purple-800 underline flex items-center gap-1 ml-2">
+                            <Edit2 className="w-3 h-3" /> Modifier quota
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <label className="block text-xs text-purple-700 font-medium">Nb de filiales autorisées</label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min={subsidiaries.length}
+                              value={maxSubsInput}
+                              onChange={e => setMaxSubsInput(Math.max(0, parseInt(e.target.value) || 0))}
+                              className="w-24 px-2 py-1 border border-purple-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            />
+                            <button onClick={handleUpdateMaxSubsidiaries} disabled={savingMaxSubs}
+                              className="px-2.5 py-1 bg-purple-600 text-white rounded text-xs hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1">
+                              <Save className="w-3 h-3" /> {savingMaxSubs ? 'Sauvegarde...' : 'Sauvegarder'}
+                            </button>
+                            <button onClick={() => setEditingMaxSubs(false)} className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded text-xs hover:bg-gray-200">
+                              Annuler
+                            </button>
+                          </div>
+                          {maxSubsInput < subsidiaries.length && (
+                            <p className="text-xs text-red-500">Le quota doit être ≥ {subsidiaries.length} (filiales déjà rattachées).</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-purple-700 font-medium">{subsidiaries.length} filiale(s) rattachée(s)</p>
                       <div className="flex gap-2">

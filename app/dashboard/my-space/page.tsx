@@ -617,6 +617,11 @@ export default function MyProfilePage() {
       if (!res.ok) throw new Error((await res.json()).detail || 'Erreur upload');
       const data = await res.json();
       setEmployee(prev => prev ? { ...prev, photo_url: data.photo_url } : prev);
+      // Persister dans localStorage pour que la Sidebar se mette à jour
+      if (data.photo_url) {
+        localStorage.setItem('employee_photo_url', data.photo_url);
+      }
+      window.dispatchEvent(new CustomEvent('user:photo-updated'));
       toast.success('Photo mise à jour !');
     } catch (err: any) {
       toast.error(err.message || 'Erreur lors de l\'upload');

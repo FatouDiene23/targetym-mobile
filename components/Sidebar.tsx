@@ -300,6 +300,7 @@ function SidebarInner() {
   const searchParams = useSearchParams();
   const [collapsed, setCollapsed] = useState(false);
   const [user, setUser] = useState<UserData | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [inMySpace, setInMySpace] = useState(false);
   const [inPerformance, setInPerformance] = useState(false);
   const [inLearning, setInLearning] = useState(false);
@@ -333,6 +334,13 @@ function SidebarInner() {
         console.error('Error parsing user data:', e);
       }
     }
+    setPhotoUrl(localStorage.getItem('employee_photo_url'));
+
+    const handlePhotoUpdate = () => {
+      setPhotoUrl(localStorage.getItem('employee_photo_url'));
+    };
+    window.addEventListener('user:photo-updated', handlePhotoUpdate);
+    return () => window.removeEventListener('user:photo-updated', handlePhotoUpdate);
   }, []);
 
   const userRole = normalizeRole(user?.role);
@@ -489,9 +497,13 @@ function SidebarInner() {
         )}
       </nav>
       <div className="p-4 border-t border-gray-700 flex-shrink-0">
-        <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium mx-auto">
-          {initials}
-        </div>
+        {photoUrl ? (
+          <img src={photoUrl} alt="Photo" className="w-10 h-10 rounded-full object-cover mx-auto border border-primary-400" />
+        ) : (
+          <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium mx-auto">
+            {initials}
+          </div>
+        )}
         <button 
           onClick={handleLogout} 
           className="mt-4 w-full flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" 
@@ -836,9 +848,13 @@ function SidebarInner() {
         {/* Footer User */}
         <div className="p-4 border-t border-gray-700 flex-shrink-0">
           <div className={`flex items-center ${collapsed ? 'justify-center' : ''}`} data-tour="user-menu">
-            <div className="w-9 h-9 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
-              {initials}
-            </div>
+            {photoUrl ? (
+              <img src={photoUrl} alt="Photo" className="w-9 h-9 rounded-full object-cover border border-primary-400 shrink-0" />
+            ) : (
+              <div className="w-9 h-9 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
+                {initials}
+              </div>
+            )}
             {!collapsed && (
               <div className="ml-3 flex-1">
                 <div className="text-sm font-medium text-white truncate">{displayName}</div>
@@ -993,9 +1009,13 @@ function SidebarInner() {
       {/* Footer User */}
       <div className="p-4 border-t border-gray-700 flex-shrink-0">
         <div className={`flex items-center ${collapsed ? 'justify-center' : ''}`} data-tour="user-menu">
-          <div className="w-9 h-9 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
-            {initials}
-          </div>
+          {photoUrl ? (
+            <img src={photoUrl} alt="Photo" className="w-9 h-9 rounded-full object-cover border border-primary-400 shrink-0" />
+          ) : (
+            <div className="w-9 h-9 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
+              {initials}
+            </div>
+          )}
           {!collapsed && (
             <div className="ml-3 flex-1">
               <div className="text-sm font-medium text-white truncate">{displayName}</div>

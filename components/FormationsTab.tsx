@@ -130,7 +130,17 @@ function AssignModal({ employees, courses, onSave, onClose }: AssignModalProps) 
                 type="text"
                 placeholder="Rechercher un collaborateur..."
                 value={empSearch}
-                onChange={e => setEmpSearch(e.target.value)}
+                onChange={e => {
+                  const val = e.target.value;
+                  setEmpSearch(val);
+                  // Si l'employé sélectionné disparaît des résultats filtrés, on réinitialise
+                  if (employeeId) {
+                    const selected = employees.find(emp => String(emp.id) === employeeId);
+                    if (selected && !empName(selected).toLowerCase().includes(val.toLowerCase())) {
+                      setEmployeeId('');
+                    }
+                  }
+                }}
                 className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
               />
             </div>
@@ -262,13 +272,17 @@ export default function FormationsTab({ employeesList = [] }: FormationsTabProps
     } catch {
       // Non-blocking
     }
-  }, [employeesList]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // tableau vide : on ne re-fetch pas à chaque changement de prop
 
+  useEffect(() => { loadAssignments(); }, [loadAssignments]);
+  useEffect(() => { loadCourses(); }, [loadCourses]);
+  useEffect(() => { loadEmployees(); }, [loadEmployees]);
+
+  // Sync prop → state si les employés sont chargés après le montage
   useEffect(() => {
-    loadAssignments();
-    loadCourses();
-    loadEmployees();
-  }, [loadAssignments, loadCourses, loadEmployees]);
+    if (employeesList.length > 0) setEmployees(employeesList);
+  }, [employeesList]);
 
   // ── Assign ──────────────────────────────────────────
 

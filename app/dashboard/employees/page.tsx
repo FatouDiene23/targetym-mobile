@@ -10,6 +10,7 @@ import DepartmentManagementTab from '@/components/DepartmentManagementTab';
 import ImportEmployeesTab from '@/components/ImportEmployeesTab';
 import SanctionsTab from '@/components/SanctionsTab';
 import AbsencesTab from '@/components/AbsencesTab';
+import FormationsTab from '@/components/FormationsTab';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { employeesTips } from '@/config/pageTips';
@@ -412,13 +413,13 @@ function EmployeesPageInner() {
   const [cardFilter, setCardFilter] = useState<string | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'employees' | 'leaves' | 'invitations' | 'orgchart' | 'documents' | 'departments' | 'import' | 'sanctions' | 'absences'>('employees');
+  const [activeTab, setActiveTab] = useState<'employees' | 'leaves' | 'invitations' | 'orgchart' | 'documents' | 'departments' | 'import' | 'sanctions' | 'absences' | 'formations'>('employees');
   // Réagir aux changements de ?tab= dans l'URL (sidebar navigation)
   useEffect(() => {
     const tab = searchParams.get('tab');
-    const validTabs = ['employees', 'leaves', 'invitations', 'orgchart', 'documents', 'departments', 'import', 'sanctions', 'absences'];
+    const validTabs = ['employees', 'leaves', 'invitations', 'orgchart', 'documents', 'departments', 'import', 'sanctions', 'absences', 'formations'];
     if (tab && validTabs.includes(tab)) {
-      setActiveTab(tab as 'employees' | 'leaves' | 'invitations' | 'orgchart' | 'documents' | 'departments' | 'import' | 'sanctions' | 'absences');
+      setActiveTab(tab as 'employees' | 'leaves' | 'invitations' | 'orgchart' | 'documents' | 'departments' | 'import' | 'sanctions' | 'absences' | 'formations');
     }
   }, [searchParams]);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -879,6 +880,7 @@ function EmployeesPageInner() {
     documents:   { title: 'Documents RH',      subtitle: 'Gestion des documents et contrats des collaborateurs' },
     leaves:      { title: 'Congés',            subtitle: 'Suivi et validation des demandes de congé' },
     absences:    { title: 'Absences',          subtitle: 'Déclaration et suivi des absences non planifiées' },
+    formations:  { title: 'Formations',         subtitle: 'Formations assignées aux collaborateurs' },
     sanctions:   { title: 'Sanctions',         subtitle: 'Gestion des mesures disciplinaires' },
     invitations: { title: 'Invitations',       subtitle: 'Inviter des collaborateurs à rejoindre la plateforme' },
     import:      { title: 'Import',            subtitle: 'Importer des collaborateurs en masse via fichier CSV' },
@@ -1347,6 +1349,13 @@ function EmployeesPageInner() {
         {/* ============================================ */}
         {activeTab === 'absences' && (
           <AbsencesTab employeesList={employees} />
+        )}
+
+        {/* ============================================ */}
+        {/* Tab: Formations */}
+        {/* ============================================ */}
+        {activeTab === 'formations' && (
+          <FormationsTab employeesList={employees} />
         )}
       </main>
 

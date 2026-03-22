@@ -244,6 +244,7 @@ const personnelNavigation: NavItem[] = [
   { name: 'Documents',    href: '/dashboard/employees?tab=documents',  icon: FileText,  roles: ['rh', 'admin', 'dg'] },
   { name: 'Congés',       href: '/dashboard/employees?tab=leaves',     icon: Calendar,  roles: ['rh', 'admin', 'dg'] },
   { name: 'Absences',     href: '/dashboard/employees?tab=absences',   icon: UserMinus, roles: ['rh', 'admin', 'dg', 'manager'] },
+  { name: 'Formations',   href: '/dashboard/employees?tab=formations', icon: BookOpen,  roles: ['rh', 'admin', 'dg'] },
   { name: 'Sanctions',    href: '/dashboard/employees?tab=sanctions',  icon: Shield,    roles: ['rh', 'admin', 'dg'] },
   { name: 'Invitations',  href: '/dashboard/employees?tab=invitations', icon: UserPlus,  roles: ['rh', 'admin', 'dg'] },
   { name: 'Import',       href: '/dashboard/employees?tab=import',     icon: ArrowUpRight, roles: ['rh', 'admin', 'dg'] },

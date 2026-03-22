@@ -50,6 +50,7 @@ interface Employee {
   date_of_birth?: string;
   address?: string;
   nationality?: string;
+  photo_url?: string;
 }
 
 interface SignatureData {
@@ -391,6 +392,10 @@ export default function MyProfilePage() {
   const [signatureUploading, setSignatureUploading] = useState(false);
   const [signatureMessage, setSignatureMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Photo de profil
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   
   // Certificat de travail
   const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
@@ -584,6 +589,40 @@ export default function MyProfilePage() {
       console.error('Erreur:', err);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Photo de profil
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !employee) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      toast.error('Format non accepté. Utilisez PNG, JPEG ou WebP.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Fichier trop volumineux (max 5 Mo).');
+      return;
+    }
+    setPhotoUploading(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`${API_URL}/api/employees/${employee.id}/photo`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (!res.ok) throw new Error((await res.json()).detail || 'Erreur upload');
+      const data = await res.json();
+      setEmployee(prev => prev ? { ...prev, photo_url: data.photo_url } : prev);
+      toast.success('Photo mise à jour !');
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur lors de l\'upload');
+    } finally {
+      setPhotoUploading(false);
+      if (photoInputRef.current) photoInputRef.current.value = '';
     }
   };
 
@@ -1064,9 +1103,38 @@ export default function MyProfilePage() {
           </div>
 
           <div className="flex flex-col md:flex-row items-start gap-6">
-            {/* Avatar */}
-            <div className="w-24 h-24 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white text-3xl font-bold shrink-0">
-              {employee.first_name[0]}{employee.last_name[0]}
+            {/* Avatar éditable */}
+            <div className="relative shrink-0 group">
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={handlePhotoUpload}
+              />
+              {employee.photo_url ? (
+                <img
+                  src={employee.photo_url}
+                  alt="Photo de profil"
+                  className="w-24 h-24 rounded-full object-cover border-2 border-primary-200"
+                />
+              ) : (
+                <div className="w-24 h-24 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+                  {employee.first_name[0]}{employee.last_name[0]}
+                </div>
+              )}
+              {/* Overlay caméra */}
+              <button
+                onClick={() => photoInputRef.current?.click()}
+                disabled={photoUploading}
+                className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                title="Changer la photo"
+              >
+                {photoUploading
+                  ? <Loader2 className="w-6 h-6 text-white animate-spin" />
+                  : <Upload className="w-6 h-6 text-white" />
+                }
+              </button>
             </div>
 
             {/* Info Grid */}

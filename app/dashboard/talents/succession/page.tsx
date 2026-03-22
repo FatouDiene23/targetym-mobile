@@ -255,6 +255,7 @@ function CreatePlanModal({ onClose, onCreate }: { onClose: () => void; onCreate:
   const [departments, setDepartments] = useState<any[]>([]);
   const [searchDept, setSearchDept] = useState('');
   const [showDeptDropdown, setShowDeptDropdown] = useState(false);
+  const [showPosDropdown, setShowPosDropdown] = useState(false);
 
   useEffect(() => {
     apiFetch('/api/employees/?page_size=200').then(data => {
@@ -268,6 +269,13 @@ function CreatePlanModal({ onClose, onCreate }: { onClose: () => void; onCreate:
 
   const filteredEmployees = employees.filter(e =>
     `${e.first_name} ${e.last_name}`.toLowerCase().includes(searchEmp.toLowerCase())
+  );
+
+  const allJobTitles = Array.from(new Set(
+    employees.map(e => e.job_title).filter(Boolean)
+  )).sort() as string[];
+  const filteredPositions = allJobTitles.filter(t =>
+    t.toLowerCase().includes((form.position_title || '').toLowerCase())
   );
 
   const selectedHolder = employees.find(e => e.id === form.current_holder_id);
@@ -288,8 +296,40 @@ function CreatePlanModal({ onClose, onCreate }: { onClose: () => void; onCreate:
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Poste</label>
-            <input value={form.position_title} onChange={e => setForm({ ...form, position_title: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Ex: Directeur Technique" />
+            <div className="relative">
+              {form.position_title && !showPosDropdown ? (
+                <div className="flex items-center justify-between px-3 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                  <span className="text-sm text-gray-900">{form.position_title}</span>
+                  <button onClick={() => { setForm({ ...form, position_title: '' }); }} className="text-gray-400 hover:text-red-500">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <input
+                    value={form.position_title}
+                    onChange={e => { setForm({ ...form, position_title: e.target.value }); setShowPosDropdown(true); }}
+                    onFocus={() => setShowPosDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowPosDropdown(false), 150)}
+                    placeholder="Ex: Directeur Technique"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                  {showPosDropdown && filteredPositions.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                      {filteredPositions.slice(0, 10).map((title, i) => (
+                        <button
+                          key={i}
+                          onMouseDown={() => { setForm({ ...form, position_title: title as string }); setShowPosDropdown(false); }}
+                          className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm text-gray-900"
+                        >
+                          {title as string}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Département</label>

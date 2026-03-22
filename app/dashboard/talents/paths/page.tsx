@@ -17,6 +17,7 @@ import {
 import { useTalents } from '../TalentsContext';
 import { CareerPath, CareerLevel, PromotionFactor, isRH, getInitials, apiFetch, ELIGIBILITY_LABELS } from '../shared';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import toast from 'react-hot-toast';
 
 export default function PathsPage() {
   const {
@@ -507,6 +508,7 @@ export default function PathsPage() {
               onClose={() => setEditLevelId(null)}
               onSave={async (data) => {
                 await updateLevel(editLevelId, data);
+                toast.success('Niveau mis à jour');
                 setEditLevelId(null);
               }}
             />
@@ -523,6 +525,7 @@ export default function PathsPage() {
               onClose={() => setEditFactorId(null)}
               onSave={async (data) => {
                 await updateFactor(editFactorId, data);
+                toast.success('Facteur mis à jour');
                 setEditFactorId(null);
               }}
             />
@@ -1110,7 +1113,7 @@ function AddFactorModalNew({ levelId, onClose, onAdd }: {
         threshold_value: thresholdValue || null,
         is_blocking: isBlocking,
       });
-    } catch { setSaving(false); }
+    } catch (e: any) { setSaving(false); toast.error(e?.message || "Erreur lors de l'ajout"); }
   };
 
   return (
@@ -1185,7 +1188,7 @@ function EditLevelModal({ level, onClose, onSave }: {
     setSaving(true);
     try {
       await onSave({ title, min_tenure_months: tenure, is_entry_level: isEntry, description: description || null });
-    } catch { setSaving(false); }
+    } catch (e: any) { setSaving(false); toast.error(e?.message || 'Erreur lors de la sauvegarde'); }
   };
 
   return (
@@ -1257,7 +1260,7 @@ function EditFactorModal({ factor, onClose, onSave }: {
         threshold_value: thresholdValue || null,
         is_blocking: isBlocking,
       });
-    } catch { setSaving(false); }
+    } catch (e: any) { setSaving(false); toast.error(e?.message || 'Erreur lors de la sauvegarde'); }
   };
 
   return (

@@ -354,6 +354,9 @@ export default function PlatformAdminDashboard() {
       await updateGroupMaxSubsidiaries(selectedTenant.id, maxSubsInput);
       toast.success(`Quota mis à jour : ${maxSubsInput} filiale(s) autorisée(s)`);
       setEditingMaxSubs(false);
+      // Mettre à jour le tenant sélectionné et la liste
+      setSelectedTenant(prev => prev ? { ...prev, max_subsidiaries: maxSubsInput } : prev);
+      setTenants(prev => prev.map(t => t.id === selectedTenant.id ? { ...t, max_subsidiaries: maxSubsInput } : t));
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Erreur');
     } finally {

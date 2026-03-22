@@ -212,27 +212,26 @@ export default function AIChatBox() {
     setSending(true);
 
     try {
-      // Extraire PDF si nécessaire
-      let resolvedFileText = fileText;
-      if (attachedFiles.length > 0 && !fileText) {
+      // Extraire PDF si nécessaire — toujours ré-extraire pour avoir tous les fichiers
+      let resolvedFileText = '';
+      if (attachedFiles.length > 0) {
         setExtractingPdf(true);
         try {
           let combinedText = '';
           for (const file of attachedFiles) {
-            const extracted = await extractPdfText(file);
-            if (extracted.text) combinedText += extracted.text + '\n\n';
-            if (extracted.cv_tmp_path) setCvTmpPath(extracted.cv_tmp_path);
-            if (extracted.cv_filename) setCvFilename(extracted.cv_filename);
+            try {
+              const extracted = await extractPdfText(file);
+              if (extracted.text) combinedText += extracted.text + '\n\n';
+              if (extracted.cv_tmp_path) setCvTmpPath(extracted.cv_tmp_path);
+              if (extracted.cv_filename) setCvFilename(extracted.cv_filename);
+            } catch {
+              toast(`Impossible d'extraire "${file.name}". Continuez avec les autres fichiers.`, { icon: '⚠️' });
+            }
           }
           resolvedFileText = combinedText.trim();
           if (!resolvedFileText) {
             toast('PDF(s) attaché(s) mais non lisible(s) (scan ?). Copiez-collez les informations directement.', { icon: '⚠️' });
-          } else {
-            setFileText(resolvedFileText);
           }
-        } catch {
-          toast('Impossible d\'extraire le PDF. Copiez-collez les informations.', { icon: '⚠️' });
-          resolvedFileText = '';
         } finally {
           setExtractingPdf(false);
         }

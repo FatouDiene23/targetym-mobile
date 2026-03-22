@@ -34,9 +34,19 @@ export default function ImpersonationBanner() {
     if (backupToken) localStorage.setItem('access_token', backupToken);
     if (backupUser) localStorage.setItem('user', backupUser);
 
+    // Restaurer la photo de profil du compte original
+    const backupPhoto = localStorage.getItem('employee_photo_url_backup');
+    if (backupPhoto) {
+      localStorage.setItem('employee_photo_url', backupPhoto);
+    } else {
+      localStorage.removeItem('employee_photo_url');
+    }
+    window.dispatchEvent(new CustomEvent('user:photo-updated'));
+
     // Nettoyer les données d'impersonation
     localStorage.removeItem('access_token_backup');
     localStorage.removeItem('user_backup');
+    localStorage.removeItem('employee_photo_url_backup');
     localStorage.removeItem('is_impersonating');
     localStorage.removeItem('impersonated_user_email');
     localStorage.removeItem('impersonated_by_email');

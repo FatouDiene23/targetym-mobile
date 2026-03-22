@@ -461,6 +461,8 @@ export default function PlatformAdminDashboard() {
           const currentUserObj = currentUser ? JSON.parse(currentUser) : null;
           localStorage.setItem('access_token_backup', currentToken || '');
           localStorage.setItem('user_backup', currentUser || '');
+          localStorage.setItem('employee_photo_url_backup', localStorage.getItem('employee_photo_url') || '');
+          localStorage.removeItem('employee_photo_url');
           // Appliquer le nouveau token
           localStorage.setItem('access_token', result.access_token);
           // Mettre à jour l'objet user pour que le sidebar affiche les bons menus

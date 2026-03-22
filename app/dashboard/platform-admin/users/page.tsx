@@ -123,6 +123,8 @@ export default function PlatformUsersManagement() {
           const currentUserObj = currentUser ? JSON.parse(currentUser) : null;
           localStorage.setItem('access_token_backup', currentToken || '');
           localStorage.setItem('user_backup', currentUser || '');
+          localStorage.setItem('employee_photo_url_backup', localStorage.getItem('employee_photo_url') || '');
+          localStorage.removeItem('employee_photo_url');
           localStorage.setItem('access_token', result.access_token);
           localStorage.setItem('user', JSON.stringify({
             id: result.impersonated_user_id,

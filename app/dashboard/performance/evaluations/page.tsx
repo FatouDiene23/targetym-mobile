@@ -525,10 +525,10 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
         </div>
         <div className="p-5 border-t bg-gray-50 flex justify-end gap-3">
           <button onClick={onClose} className="px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-100">{!canEdit && !canValidate ? 'Fermer' : 'Annuler'}</button>
-          {isEmployeeEditing && (
+          {canEdit && (evaluation.status === 'pending' || evaluation.status === 'in_progress') && (
             <button onClick={handleSubmit} disabled={saving} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg flex items-center disabled:opacity-50">
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-              {isPeerEval ? 'Envoyer mon évaluation' : 'Soumettre'}
+              {evaluation.type === 'self' ? 'Soumettre' : 'Envoyer mon évaluation'}
             </button>
           )}
           {canValidate && (

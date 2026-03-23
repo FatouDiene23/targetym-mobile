@@ -16,6 +16,7 @@ import {
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { talentsTips } from '@/config/pageTips';
+import toast from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
@@ -35,7 +36,6 @@ export default function NineBoxPage() {
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const isRHUser = isRH();
   const [autoComputing, setAutoComputing] = useState(false);
-  const [autoResult, setAutoResult] = useState<{ computed: number; period: string } | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleAutoCompute = () => setConfirmOpen(true);
@@ -44,16 +44,23 @@ export default function NineBoxPage() {
     const period = selectedPeriod || new Date().getFullYear() + '-annual';
     setConfirmOpen(false);
     setAutoComputing(true);
-    setAutoResult(null);
+    const toastId = toast.loading('Calcul en cours…');
     try {
       const res = await fetch(`${API_URL}/api/careers/ninebox/auto-compute?period=${encodeURIComponent(period)}`, {
         method: 'POST', headers: getAuthHeaders(),
       });
       if (res.ok) {
         const data = await res.json();
-        setAutoResult({ computed: data.computed, period: data.period });
+        toast.success(
+          `${data.computed} placement${data.computed > 1 ? 's' : ''} calculé${data.computed > 1 ? 's' : ''} pour ${data.period}`,
+          { id: toastId }
+        );
         loadNineBox(period || undefined, selectedDept || undefined);
+      } else {
+        toast.error('Erreur lors du calcul automatique', { id: toastId });
       }
+    } catch {
+      toast.error('Erreur réseau', { id: toastId });
     } finally { setAutoComputing(false); }
   };
 
@@ -161,11 +168,6 @@ export default function NineBoxPage() {
                 {autoComputing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
                 {autoComputing ? 'Calcul…' : 'Auto-calculer'}
               </button>
-            )}
-            {autoResult && (
-              <span className="text-xs text-green-600 bg-green-50 border border-green-200 px-2 py-1 rounded-lg">
-                ✓ {autoResult.computed} placement{autoResult.computed > 1 ? 's' : ''} calculé{autoResult.computed > 1 ? 's' : ''}
-              </span>
             )}
           </div>
         </div>

@@ -372,6 +372,14 @@ export default function CampaignsPage() {
     return () => window.removeEventListener('campaigns-add', handler);
   }, []);
 
+  // Ouvrir la modal si on arrive depuis la page Évaluations (bouton "Nouvelle Évaluation")
+  useEffect(() => {
+    if (sessionStorage.getItem('open-create-campaign') === 'true') {
+      sessionStorage.removeItem('open-create-campaign');
+      setShowModal(true);
+    }
+  }, []);
+
   const canManageCampaigns = ['admin', 'super_admin', 'rh', 'dg'].includes(userRole);
 
   const handleCancel = async (campaignId: number, campaignName: string) => {

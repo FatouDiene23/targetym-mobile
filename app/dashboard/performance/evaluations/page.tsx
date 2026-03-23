@@ -581,7 +581,10 @@ export default function EvaluationsPage() {
   useEffect(() => { loadData(); }, [loadData]);
 
   useEffect(() => {
-    const handler = () => router.push('/dashboard/performance/campaigns');
+    const handler = () => {
+      sessionStorage.setItem('open-create-campaign', 'true');
+      router.push('/dashboard/performance/campaigns');
+    };
     window.addEventListener('evaluations-add', handler);
     return () => window.removeEventListener('evaluations-add', handler);
   }, [router]);

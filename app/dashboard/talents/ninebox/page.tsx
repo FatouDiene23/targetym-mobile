@@ -22,7 +22,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 function getAuthHeaders(): HeadersInit {
   if (typeof window === 'undefined') return { 'Content-Type': 'application/json' };
   const raw = document.cookie.split('; ').find(r => r.startsWith('auth_token='));
-  const token = raw ? raw.split('=')[1] : localStorage.getItem('auth_token') ?? '';
+  const token = raw
+    ? raw.split('=')[1]
+    : (localStorage.getItem('access_token') ?? localStorage.getItem('auth_token') ?? '');
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 }
 

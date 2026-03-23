@@ -62,6 +62,8 @@ interface TalentsContextType {
   // Employee Careers
   employeeCareers: EmployeeCareer[];
   loadEmployeeCareers: (pathId?: number, eligibility?: string, search?: string, managerId?: number) => Promise<void>;
+  teamCareers: EmployeeCareer[];
+  loadTeamCareers: (managerId?: number, eligibility?: string, search?: string) => Promise<void>;
   assignEmployee: (employeeId: number, pathId: number, levelId: number) => Promise<void>;
   assignBulk: (employeeIds: number[], pathId: number, levelId: number) => Promise<void>;
   loadEmployeeCareerDetail: (employeeId: number) => Promise<any>;
@@ -118,6 +120,7 @@ export function TalentsProvider({ children }: { children: React.ReactNode }) {
   const [selectedPath, setSelectedPath] = useState<any>(null);
   const [attitudes, setAttitudes] = useState<Attitude[]>([]);
   const [employeeCareers, setEmployeeCareers] = useState<EmployeeCareer[]>([]);
+  const [teamCareers, setTeamCareers] = useState<EmployeeCareer[]>([]);
   const [promotions, setPromotions] = useState<PromotionRequest[]>([]);
   const [nineBoxData, setNineBoxData] = useState<NineBoxData | null>(null);
   const [successionPlans, setSuccessionPlans] = useState<SuccessionPlan[]>([]);
@@ -299,6 +302,17 @@ export function TalentsProvider({ children }: { children: React.ReactNode }) {
     } catch (e: any) { setError(e.message); }
   }, []);
 
+  const loadTeamCareers = useCallback(async (managerId?: number, eligibility?: string, search?: string) => {
+    try {
+      const params = new URLSearchParams();
+      if (managerId) params.set('manager_id', String(managerId));
+      if (eligibility) params.set('eligibility', eligibility);
+      if (search) params.set('search', search);
+      const data = await apiFetch(`/api/careers/employees/all?${params}`);
+      setTeamCareers(data);
+    } catch (e: any) { setError(e.message); }
+  }, []);
+
   const assignEmployee = useCallback(async (employeeId: number, pathId: number, levelId: number) => {
     await apiFetch('/api/careers/employees/assign', {
       method: 'POST', body: JSON.stringify({ employee_id: employeeId, career_path_id: pathId, level_id: levelId })
@@ -448,7 +462,7 @@ export function TalentsProvider({ children }: { children: React.ReactNode }) {
     createLevel, updateLevel, deleteLevel, reorderLevels,
     createCompetency, updateCompetency, deleteCompetency, linkTrainings,
     attitudes, loadAttitudes, linkAttitudes, createFactor, updateFactor, deleteFactor,
-    employeeCareers, loadEmployeeCareers, assignEmployee, assignBulk,
+    employeeCareers, loadEmployeeCareers, teamCareers, loadTeamCareers, assignEmployee, assignBulk,
     loadEmployeeCareerDetail, syncProgress, syncAllProgress, unassignCareer,
     promotions, loadPromotions, requestPromotion, decidePromotion, cancelPromotion,
     nineBoxData, loadNineBox, createNineBoxPlacement, bulkNineBoxPlacements,

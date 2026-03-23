@@ -21,7 +21,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 
 export default function TeamCareerPage() {
   const {
-    employeeCareers, loadEmployeeCareers,
+    teamCareers, loadTeamCareers,
     syncProgress, loadEmployeeCareerDetail,
     requestPromotion,
   } = useTalents();
@@ -46,10 +46,10 @@ export default function TeamCareerPage() {
   useEffect(() => {
     // Always filter by N-1 (current user's direct reports)
     const empId = getUserEmployeeId();
-    loadEmployeeCareers(undefined, undefined, undefined, empId || undefined);
+    loadTeamCareers(empId || undefined);
   }, []);
 
-  const filtered = employeeCareers.filter(ec => {
+  const filtered = teamCareers.filter(ec => {
     const matchSearch = !search || `${ec.first_name} ${ec.last_name} ${ec.path_name} ${ec.current_level_title}`
       .toLowerCase().includes(search.toLowerCase());
     const matchElig = !eligFilter || ec.eligibility_status === eligFilter;
@@ -74,7 +74,7 @@ export default function TeamCareerPage() {
     setSyncing(employeeId);
     try {
       await syncProgress(employeeId);
-      await loadEmployeeCareers();
+      await loadTeamCareers();
       if (selected?.employee_id === employeeId) {
         const res = await loadEmployeeCareerDetail(employeeId);
         setDetail(res);
@@ -100,7 +100,7 @@ export default function TeamCareerPage() {
           if (selected) {
             const res = await loadEmployeeCareerDetail(selected.employee_id);
             setDetail(res);
-            await loadEmployeeCareers();
+            await loadTeamCareers();
           }
           toast.success('Demande envoyée');
         } catch (e: any) {
@@ -112,7 +112,7 @@ export default function TeamCareerPage() {
     });
   };
 
-  const eligibleCount = employeeCareers.filter(e => e.eligibility_status === 'eligible').length;
+  const eligibleCount = teamCareers.filter(e => e.eligibility_status === 'eligible').length;
 
   return (
     <>
@@ -121,7 +121,7 @@ export default function TeamCareerPage() {
       )}
       <Header
         title="Mon Équipe"
-        subtitle={`${employeeCareers.length} collaborateur(s) · ${eligibleCount} éligible(s) à la promotion`}
+        subtitle={`${teamCareers.length} collaborateur(s) · ${eligibleCount} éligible(s) à la promotion`}
       />
       <main className="flex-1 flex overflow-hidden bg-gray-50" style={{ height: 'calc(100vh - 64px)' }}>
 

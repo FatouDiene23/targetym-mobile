@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import {
   Plus, X, Loader2, AlertCircle, Search, ChevronLeft, ChevronRight,
-  XCircle, Archive, RotateCcw, MoreVertical
+  XCircle, Archive, RotateCcw, MoreVertical, Users
 } from 'lucide-react';
 import PerformanceStats from '../components/PerformanceStats';
 import Header from '@/components/Header';
@@ -88,8 +88,17 @@ async function fetchEmployees(): Promise<Employee[]> {
   }
 }
 
+interface EvaluatorSelection { employee_id: number; peer_ids: number[]; direct_report_ids: number[]; }
+
 async function createCampaign(data: {
-  name: string; description?: string; type: string; start_date: string; end_date: string; employee_ids?: number[];
+  name: string; description?: string; type: string; period?: string; start_date: string; end_date: string;
+  employee_ids?: number[];
+  include_self_evaluation?: boolean;
+  include_manager_evaluation?: boolean;
+  include_peer_evaluation?: boolean;
+  include_direct_report_evaluation?: boolean;
+  weight_self?: number; weight_manager?: number; weight_peer?: number; weight_direct_report?: number;
+  evaluator_selections?: EvaluatorSelection[];
 }): Promise<{ success: boolean; error?: string }> {
   try {
     const response = await fetch(`${API_URL}/api/performance/campaigns`, {
@@ -255,77 +264,348 @@ function Pagination({ currentPage, totalPages, onPageChange }: {
   );
 }
 
+// =============================================
+// PEER SELECTOR — autocomplete de sélection multi-employés
+// =============================================
+function PeerSelector({ all, selected, onChange, maxSelectable, placeholder }: {
+  all: Employee[]; selected: number[]; onChange: (ids: number[]) => void; maxSelectable: number; placeholder: string;
+}) {
+  const [searchText, setSearchText] = useState('');
+  const [open, setOpen] = useState(false);
+
+  const filtered = all.filter(e =>
+    `${e.first_name} ${e.last_name}`.toLowerCase().includes(searchText.toLowerCase()) &&
+    !selected.includes(e.id)
+  );
+
+  const toggle = (id: number) => {
+    if (selected.length < maxSelectable) onChange([...selected, id]);
+    setSearchText('');
+  };
+
+  return (
+    <div className="relative">
+      <div className="flex flex-wrap gap-1 mb-1">
+        {selected.map(id => {
+          const emp = all.find(e => e.id === id);
+          if (!emp) return null;
+          return (
+            <span key={id} className="inline-flex items-center gap-1 bg-primary-100 text-primary-700 text-xs px-2 py-0.5 rounded-full">
+              {emp.first_name} {emp.last_name}
+              <button type="button" onClick={() => onChange(selected.filter(x => x !== id))} className="hover:text-primary-900"><X className="w-3 h-3" /></button>
+            </span>
+          );
+        })}
+      </div>
+      {selected.length < maxSelectable && (
+        <div className="relative">
+          <input
+            type="text" value={searchText}
+            onChange={(e) => { setSearchText(e.target.value); setOpen(true); }}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setTimeout(() => setOpen(false), 150)}
+            placeholder={placeholder}
+            className="w-full px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+          />
+          {open && filtered.length > 0 && (
+            <div className="absolute z-20 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+              {filtered.slice(0, 10).map(emp => (
+                <button key={emp.id} type="button" onMouseDown={() => toggle(emp.id)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-left">
+                  <div className="w-6 h-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs shrink-0">
+                    {emp.first_name[0]}{emp.last_name[0]}
+                  </div>
+                  {emp.first_name} {emp.last_name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============================================
+// CREATE CAMPAIGN MODAL — 2 étapes
+// =============================================
 function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
   isOpen: boolean; onClose: () => void; employees: Employee[]; onSuccess: () => void;
 }) {
+  const [step, setStep] = useState<1 | 2>(1);
+  // Step 1
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [campaignType, setCampaignType] = useState('annual');
+  const [period, setPeriod] = useState('annual');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedEmployees, setSelectedEmployees] = useState<number[]>([]);
+  const [includeSelf, setIncludeSelf] = useState(true);
+  const [includeManager, setIncludeManager] = useState(true);
+  const [includePeer, setIncludePeer] = useState(false);
+  const [includeDirectReport, setIncludeDirectReport] = useState(false);
+  const [weightSelf, setWeightSelf] = useState(50);
+  const [weightManager, setWeightManager] = useState(50);
+  const [weightPeer, setWeightPeer] = useState(0);
+  const [weightDirectReport, setWeightDirectReport] = useState(0);
+  // Step 2
+  const [evaluatorSelections, setEvaluatorSelections] = useState<EvaluatorSelection[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async () => {
+  const needsStep2 = includePeer || includeDirectReport;
+
+  // Recalcule les pondérations automatiquement quand on coche/décoche un type
+  useEffect(() => {
+    const active = [includeSelf, includeManager, includePeer, includeDirectReport].filter(Boolean).length;
+    if (active === 0) return;
+    const base = Math.floor(100 / active);
+    const rem = 100 - base * active;
+    setWeightSelf(includeSelf ? base + (rem > 0 && includeSelf ? rem : 0) : 0);
+    setWeightManager(includeManager ? base : 0);
+    setWeightPeer(includePeer ? base : 0);
+    setWeightDirectReport(includeDirectReport ? base : 0);
+  }, [includeSelf, includeManager, includePeer, includeDirectReport]);
+
+  // Init sélections étape 2
+  useEffect(() => {
+    if (step !== 2) return;
+    const emps = selectedEmployees.length > 0 ? employees.filter(e => selectedEmployees.includes(e.id)) : employees;
+    setEvaluatorSelections(emps.map(e => ({
+      employee_id: e.id, peer_ids: [], direct_report_ids: []
+    })));
+  }, [step, employees, selectedEmployees]);
+
+  const resetForm = () => {
+    setStep(1); setName(''); setDescription(''); setCampaignType('annual'); setPeriod('annual');
+    setStartDate(''); setEndDate(''); setSelectedEmployees([]);
+    setIncludeSelf(true); setIncludeManager(true); setIncludePeer(false); setIncludeDirectReport(false);
+    setEvaluatorSelections([]);
+  };
+
+  const handleStep1Next = () => {
     if (!name || !startDate || !endDate) { setError('Veuillez remplir tous les champs obligatoires'); return; }
+    setError('');
+    if (needsStep2) { setStep(2); } else { handleSubmit(); }
+  };
+
+  const handleSubmit = async () => {
     setError(''); setSaving(true);
-    const result = await createCampaign({ name, description: description || undefined, type: campaignType, start_date: startDate, end_date: endDate, employee_ids: selectedEmployees.length > 0 ? selectedEmployees : undefined });
+    const result = await createCampaign({
+      name, description: description || undefined, type: campaignType, period,
+      start_date: startDate, end_date: endDate,
+      employee_ids: selectedEmployees.length > 0 ? selectedEmployees : undefined,
+      include_self_evaluation: includeSelf, include_manager_evaluation: includeManager,
+      include_peer_evaluation: includePeer, include_direct_report_evaluation: includeDirectReport,
+      weight_self: weightSelf, weight_manager: weightManager,
+      weight_peer: weightPeer, weight_direct_report: weightDirectReport,
+      evaluator_selections: needsStep2 ? evaluatorSelections : undefined,
+    });
     setSaving(false);
-    if (result.success) { setName(''); setDescription(''); setCampaignType('annual'); setStartDate(''); setEndDate(''); setSelectedEmployees([]); onSuccess(); onClose(); }
+    if (result.success) { resetForm(); onSuccess(); onClose(); }
     else setError(result.error || 'Erreur lors de la création');
+  };
+
+  const updateSel = (empId: number, update: Partial<EvaluatorSelection>) => {
+    setEvaluatorSelections(prev =>
+      prev.map(s => s.employee_id === empId ? { ...s, ...update } : s)
+    );
   };
 
   if (!isOpen) return null;
 
+  const totalWeight = weightSelf + weightManager + weightPeer + weightDirectReport;
+  const activeTypeCount = [includeSelf, includeManager, includePeer, includeDirectReport].filter(Boolean).length;
+  const empList = selectedEmployees.length > 0 ? employees.filter(e => selectedEmployees.includes(e.id)) : employees;
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        {/* Header */}
         <div className="p-5 border-b flex items-center justify-between sticky top-0 bg-white z-10">
-          <h2 className="text-lg font-bold text-gray-900">Nouvelle Campagne</h2>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">
+              {step === 1 ? 'Nouvelle Campagne d\'Évaluation' : 'Sélection des évaluateurs'}
+            </h2>
+            {needsStep2 && (
+              <div className="flex items-center gap-2 mt-1.5">
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${step >= 1 ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'}`}>1</span>
+                <div className={`h-0.5 w-8 ${step >= 2 ? 'bg-primary-500' : 'bg-gray-200'}`} />
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${step >= 2 ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'}`}>2</span>
+                <span className="text-xs text-gray-400 ml-1">{step === 1 ? 'Informations' : 'Évaluateurs pairs'}</span>
+              </div>
+            )}
+          </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
+
         <div className="p-5 space-y-4">
           {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Nom de la campagne *</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Évaluation Annuelle 2025" className="w-full px-3 py-2.5 border rounded-lg text-sm" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Description optionnelle..." className="w-full px-3 py-2.5 border rounded-lg text-sm" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
-            <select value={campaignType} onChange={(e) => setCampaignType(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm">
-              <option value="annual">Évaluation Annuelle</option>
-              <option value="mid_year">Évaluation Mi-Année</option>
-              <option value="360">Feedback 360°</option>
-              <option value="probation">Fin de Période d&apos;Essai</option>
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Date de début *</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Date de fin *</label>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Employés concernés</label>
-            <p className="text-xs text-gray-500 mb-2">Laissez vide pour inclure tous les employés actifs</p>
-            <select multiple value={selectedEmployees.map(String)} onChange={(e) => setSelectedEmployees(Array.from(e.target.selectedOptions, o => parseInt(o.value)))} className="w-full px-3 py-2.5 border rounded-lg text-sm h-32">
-              {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}
-            </select>
-          </div>
+
+          {/* ── ETAPE 1 ── */}
+          {step === 1 && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nom de la campagne *</label>
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Évaluation Annuelle 2026" className="w-full px-3 py-2.5 border rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Description optionnelle..." className="w-full px-3 py-2.5 border rounded-lg text-sm" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Type d&apos;évaluation</label>
+                  <select value={campaignType} onChange={(e) => setCampaignType(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm">
+                    <option value="annual">Évaluation Annuelle</option>
+                    <option value="mid_year">Évaluation Mi-Année</option>
+                    <option value="360">Feedback 360°</option>
+                    <option value="probation">Fin de Période d&apos;Essai</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Périodicité</label>
+                  <select value={period} onChange={(e) => setPeriod(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm">
+                    <option value="annual">Annuelle</option>
+                    <option value="semester">Semestrielle</option>
+                    <option value="quarterly">Trimestrielle</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Date de début *</label>
+                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Date de fin *</label>
+                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
+                </div>
+              </div>
+
+              {/* Types d'évaluateurs */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Types d&apos;évaluateurs</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { label: 'Auto-évaluation', desc: 'L\'employé s\'évalue lui-même', checked: includeSelf, set: setIncludeSelf },
+                    { label: 'Manager', desc: 'Automatique via l\'organigramme', checked: includeManager, set: setIncludeManager },
+                    { label: 'Pairs (collègues)', desc: 'Sélectionnés à l\'étape suivante', checked: includePeer, set: setIncludePeer },
+                    { label: 'Collaborateurs directs', desc: 'Sélectionnés à l\'étape suivante', checked: includeDirectReport, set: setIncludeDirectReport },
+                  ].map(({ label, desc, checked, set }) => (
+                    <label key={label} className={`flex items-start gap-3 p-3 border rounded-xl cursor-pointer transition-colors ${checked ? 'bg-primary-50 border-primary-300' : 'hover:bg-gray-50 border-gray-200'}`}>
+                      <input type="checkbox" checked={checked} onChange={(e) => set(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{label}</p>
+                        <p className="text-xs text-gray-500">{desc}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pondérations — visible seulement si ≥ 2 types */}
+              {activeTypeCount >= 2 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Pondérations
+                    <span className={`ml-2 text-xs font-normal ${totalWeight === 100 ? 'text-green-600' : 'text-orange-500'}`}>
+                      Total : {totalWeight}% {totalWeight !== 100 ? '(doit être = 100%)' : '✓'}
+                    </span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {includeSelf && (
+                      <div><label className="text-xs text-gray-500 mb-1 block">Auto-évaluation</label>
+                        <div className="flex items-center gap-2"><input type="range" min={0} max={100} value={weightSelf} onChange={(e) => setWeightSelf(parseInt(e.target.value))} className="flex-1" /><span className="w-10 text-sm font-medium text-right">{weightSelf}%</span></div>
+                      </div>
+                    )}
+                    {includeManager && (
+                      <div><label className="text-xs text-gray-500 mb-1 block">Manager</label>
+                        <div className="flex items-center gap-2"><input type="range" min={0} max={100} value={weightManager} onChange={(e) => setWeightManager(parseInt(e.target.value))} className="flex-1" /><span className="w-10 text-sm font-medium text-right">{weightManager}%</span></div>
+                      </div>
+                    )}
+                    {includePeer && (
+                      <div><label className="text-xs text-gray-500 mb-1 block">Pairs</label>
+                        <div className="flex items-center gap-2"><input type="range" min={0} max={100} value={weightPeer} onChange={(e) => setWeightPeer(parseInt(e.target.value))} className="flex-1" /><span className="w-10 text-sm font-medium text-right">{weightPeer}%</span></div>
+                      </div>
+                    )}
+                    {includeDirectReport && (
+                      <div><label className="text-xs text-gray-500 mb-1 block">Collaborateurs</label>
+                        <div className="flex items-center gap-2"><input type="range" min={0} max={100} value={weightDirectReport} onChange={(e) => setWeightDirectReport(parseInt(e.target.value))} className="flex-1" /><span className="w-10 text-sm font-medium text-right">{weightDirectReport}%</span></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Employés */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Employés concernés</label>
+                <p className="text-xs text-gray-500 mb-2">Laissez vide pour inclure tous les employés actifs</p>
+                <select multiple value={selectedEmployees.map(String)} onChange={(e) => setSelectedEmployees(Array.from(e.target.selectedOptions, o => parseInt(o.value)))} className="w-full px-3 py-2.5 border rounded-lg text-sm h-32">
+                  {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}
+                </select>
+                {selectedEmployees.length > 0 && <p className="text-xs text-primary-600 mt-1">{selectedEmployees.length} employé(s) sélectionné(s)</p>}
+              </div>
+            </>
+          )}
+
+          {/* ── ETAPE 2 ── */}
+          {step === 2 && (
+            <>
+              <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-2">
+                <Users className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                <p className="text-sm text-blue-700">
+                  Pour chaque employé, sélectionnez les{includePeer ? ' <strong>pairs</strong>' : ''}{includePeer && includeDirectReport ? ' et' : ''}{includeDirectReport ? ' <strong>collaborateurs directs</strong>' : ''} qui les évalueront.
+                  {includeManager && <span className="block text-xs text-blue-600 mt-0.5">Les managers sont déjà assignés automatiquement via l&apos;organigramme.</span>}
+                </p>
+              </div>
+              <div className="space-y-4">
+                {empList.map(emp => {
+                  const sel = evaluatorSelections.find(s => s.employee_id === emp.id) || { employee_id: emp.id, peer_ids: [], direct_report_ids: [] };
+                  const others = employees.filter(e => e.id !== emp.id);
+                  return (
+                    <div key={emp.id} className="border border-gray-200 rounded-xl p-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-sm font-semibold shrink-0">
+                          {emp.first_name[0]}{emp.last_name[0]}
+                        </div>
+                        <span className="font-medium text-gray-900">{emp.first_name} {emp.last_name}</span>
+                      </div>
+                      {includePeer && (
+                        <div className="mb-4">
+                          <label className="text-xs font-semibold text-gray-600 mb-1.5 block">Pairs évaluateurs (max 3)</label>
+                          <PeerSelector all={others} selected={sel.peer_ids} onChange={(ids) => updateSel(emp.id, { peer_ids: ids })} maxSelectable={3} placeholder="Rechercher un collègue..." />
+                        </div>
+                      )}
+                      {includeDirectReport && (
+                        <div>
+                          <label className="text-xs font-semibold text-gray-600 mb-1.5 block">Collaborateurs directs évaluateurs (max 3)</label>
+                          <PeerSelector all={others} selected={sel.direct_report_ids} onChange={(ids) => updateSel(emp.id, { direct_report_ids: ids })} maxSelectable={3} placeholder="Rechercher un collaborateur..." />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
-        <div className="p-5 border-t bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
-          <button onClick={onClose} className="px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-100">Annuler</button>
-          <button onClick={handleSubmit} disabled={saving} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg flex items-center disabled:opacity-50">
-            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}Créer
+
+        {/* Footer */}
+        <div className="p-5 border-t bg-gray-50 flex justify-between gap-3 rounded-b-2xl sticky bottom-0">
+          {step === 2
+            ? <button onClick={() => setStep(1)} className="px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-100 flex items-center gap-1"><ChevronLeft className="w-4 h-4" />Retour</button>
+            : <button onClick={onClose} className="px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-100">Annuler</button>
+          }
+          <button
+            onClick={step === 1 ? handleStep1Next : handleSubmit}
+            disabled={saving}
+            className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg flex items-center gap-2 disabled:opacity-50"
+          >
+            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+            {step === 1 && needsStep2 ? <><ChevronRight className="w-4 h-4" />Suivant : sélectionner les évaluateurs</> : <><Plus className="w-4 h-4" />Créer la campagne</>}
           </button>
         </div>
       </div>

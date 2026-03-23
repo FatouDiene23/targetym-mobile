@@ -7,7 +7,7 @@ import { performance1Tips } from '@/config/pageTips';
 import { 
   Star, Users, ChevronRight, ChevronLeft, Plus, MessageSquare, Target, CheckCircle,
   Send, ThumbsUp, Eye, Edit, X, Loader2, AlertCircle, RotateCcw, Search, Calendar,
-  Clock, MapPin, TrendingUp, BarChart3
+  Clock, MapPin, TrendingUp, BarChart3, CheckSquare, Square, BookOpen
 } from 'lucide-react';
 import { 
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer
@@ -72,6 +72,16 @@ interface EvaluationCampaign {
   progress_percentage: number;
 }
 
+interface OneOnOneTask {
+  id: string;
+  title: string;
+  type: 'task' | 'training';
+  assignee: 'manager' | 'employee';
+  due_date?: string;
+  status: 'pending' | 'done';
+  completed_at?: string;
+}
+
 interface OneOnOne {
   id: number;
   employee_id: number;
@@ -86,6 +96,9 @@ interface OneOnOne {
   notes?: string;
   action_items?: string[];
   topics?: string[];
+  evaluation_score?: number;
+  evaluation_comment?: string;
+  tasks?: OneOnOneTask[];
 }
 
 interface Employee {
@@ -106,6 +119,7 @@ interface MyStats {
   feedbacks_given: number;
   one_on_ones_scheduled: number;
   one_on_ones_completed: number;
+  avg_one_on_one_score: number;
   okr_achievement: number;
   team_size: number;
 }
@@ -163,7 +177,7 @@ async function fetchMyStats(): Promise<MyStats> {
       scope: 'personal', avg_score: 0, evaluations_total: 0, evaluations_completed: 0,
       evaluations_pending: 0, evaluations_in_progress: 0, completion_rate: 0,
       feedbacks_received: 0, feedbacks_given: 0, one_on_ones_scheduled: 0,
-      one_on_ones_completed: 0, okr_achievement: 0, team_size: 0
+      one_on_ones_completed: 0, avg_one_on_one_score: 0, okr_achievement: 0, team_size: 0
     };
   }
 }
@@ -316,6 +330,42 @@ async function createOneOnOne(data: {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       return { success: false, error: errorData.detail || 'Erreur lors de la création' };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: 'Erreur de connexion' };
+  }
+}
+
+async function completeOneOnOne(id: number, data: {
+  notes: string;
+  mood?: string;
+  evaluation_score?: number;
+  evaluation_comment?: string;
+  tasks?: { title: string; type: string; assignee: string; due_date?: string }[];
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${API_URL}/api/performance/one-on-ones/${id}/complete`, {
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { success: false, error: errorData.detail || 'Erreur lors de la clôture' };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: 'Erreur de connexion' };
+  }
+}
+
+async function patchOneOnOneTask(meetingId: number, taskId: string, status: 'pending' | 'done'): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${API_URL}/api/performance/one-on-ones/${meetingId}/tasks/${taskId}?status=${status}`, {
+      method: 'PATCH', headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { success: false, error: errorData.detail || 'Erreur' };
     }
     return { success: true };
   } catch {
@@ -665,6 +715,163 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
           <button onClick={onClose} className="px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-100">Annuler</button>
           <button onClick={handleSubmit} disabled={saving} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg flex items-center disabled:opacity-50">
             {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}Créer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================
+// COMPLETE ONE-ON-ONE MODAL
+// =============================================
+
+function CompleteOneOnOneModal({ meeting, onClose, onSuccess, currentEmployeeId }: {
+  meeting: OneOnOne; onClose: () => void; onSuccess: () => void; currentEmployeeId?: number;
+}) {
+  const [notes, setNotes] = useState('');
+  const [mood, setMood] = useState<'positive' | 'neutral' | 'concerned' | ''>('');
+  const [score, setScore] = useState<number>(0);
+  const [comment, setComment] = useState('');
+  const [tasks, setTasks] = useState<{ title: string; type: 'task' | 'training'; assignee: 'manager' | 'employee'; due_date: string }[]>([]);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskType, setNewTaskType] = useState<'task' | 'training'>('task');
+  const [newTaskAssignee, setNewTaskAssignee] = useState<'employee' | 'manager'>('employee');
+  const [newTaskDue, setNewTaskDue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const addTask = () => {
+    if (!newTaskTitle.trim()) return;
+    setTasks(prev => [...prev, { title: newTaskTitle.trim(), type: newTaskType, assignee: newTaskAssignee, due_date: newTaskDue }]);
+    setNewTaskTitle(''); setNewTaskDue('');
+  };
+
+  const removeTask = (i: number) => setTasks(prev => prev.filter((_, idx) => idx !== i));
+
+  const handleSubmit = async () => {
+    if (!notes.trim() || notes.trim().length < 10) { setError('Les notes doivent contenir au moins 10 caractères'); return; }
+    setSaving(true);
+    const result = await completeOneOnOne(meeting.id, {
+      notes,
+      mood: mood || undefined,
+      evaluation_score: score > 0 ? score : undefined,
+      evaluation_comment: comment || undefined,
+      tasks: tasks.length > 0 ? tasks : undefined,
+    });
+    setSaving(false);
+    if (result.success) { onSuccess(); onClose(); }
+    else setError(result.error || 'Erreur');
+  };
+
+  const MOODS = [
+    { value: 'positive', label: '😊 Positif', color: 'bg-green-100 border-green-400 text-green-700' },
+    { value: 'neutral', label: '😐 Neutre', color: 'bg-yellow-100 border-yellow-400 text-yellow-700' },
+    { value: 'concerned', label: '😟 Préoccupé', color: 'bg-red-100 border-red-400 text-red-700' },
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-2xl my-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Clôturer le 1-on-1</h2>
+            <p className="text-sm text-gray-500">avec {meeting.employee_name}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-500" /></button>
+        </div>
+
+        <div className="p-5 space-y-5 max-h-[70vh] overflow-y-auto">
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Notes de l&apos;entretien <span className="text-red-500">*</span></label>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={4} placeholder="Résumé des échanges, points abordés, décisions prises..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-300 focus:border-primary-400 outline-none" />
+          </div>
+
+          {/* Mood */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Tonalité globale</label>
+            <div className="flex gap-2">
+              {MOODS.map(m => (
+                <button key={m.value} onClick={() => setMood(mood === m.value ? '' : m.value as typeof mood)}
+                  className={`flex-1 py-2 text-xs font-medium rounded-lg border-2 transition-all ${mood === m.value ? m.color : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}>
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Evaluation score */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <label className="block text-sm font-semibold text-gray-800 mb-1">Évaluation du collaborateur</label>
+            <p className="text-xs text-gray-500 mb-3">Cette note contribue à la note globale annuelle du collaborateur (pondération 20%)</p>
+            <div className="flex items-center gap-2 mb-3">
+              {[1,2,3,4,5].map(n => (
+                <button key={n} onClick={() => setScore(score === n ? 0 : n)}
+                  className={`transition-transform hover:scale-110 ${n <= score ? 'text-amber-400' : 'text-gray-300'}`}>
+                  <Star className="w-8 h-8 fill-current" />
+                </button>
+              ))}
+              {score > 0 && (
+                <span className="ml-2 text-sm font-medium text-amber-700">
+                  {['', 'Insuffisant', 'À améliorer', 'Satisfaisant', 'Très bien', 'Exceptionnel'][score]}
+                </span>
+              )}
+            </div>
+            <textarea value={comment} onChange={e => setComment(e.target.value)} rows={2} placeholder="Commentaire justifiant cette évaluation (optionnel)..." className="w-full border border-amber-200 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-amber-200 outline-none" />
+          </div>
+
+          {/* Tasks / Formations */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Tâches &amp; formations à suivre</label>
+            <p className="text-xs text-gray-500 mb-3">Accessibles et suivies par le manager et le collaborateur</p>
+
+            {/* Liste des tâches ajoutées */}
+            {tasks.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {tasks.map((t, i) => (
+                  <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm">
+                    {t.type === 'training' ? <BookOpen className="w-4 h-4 text-indigo-500 shrink-0" /> : <CheckSquare className="w-4 h-4 text-green-500 shrink-0" />}
+                    <span className="flex-1 text-gray-800">{t.title}</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">{t.assignee === 'manager' ? 'Manager' : 'Collaborateur'}</span>
+                    {t.due_date && <span className="text-xs text-gray-400">{t.due_date}</span>}
+                    <button onClick={() => removeTask(i)} className="text-gray-400 hover:text-red-500"><X className="w-3.5 h-3.5" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Formulaire ajout tâche */}
+            <div className="border border-dashed border-gray-300 rounded-xl p-3 space-y-2">
+              <input type="text" value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTask(); } }}
+                placeholder="Titre de la tâche ou formation..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-200 outline-none" />
+              <div className="flex gap-2">
+                <select value={newTaskType} onChange={e => setNewTaskType(e.target.value as 'task' | 'training')} className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm">
+                  <option value="task">📋 Tâche</option>
+                  <option value="training">🎓 Formation</option>
+                </select>
+                <select value={newTaskAssignee} onChange={e => setNewTaskAssignee(e.target.value as 'employee' | 'manager')} className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm">
+                  <option value="employee">👤 Collaborateur</option>
+                  <option value="manager">👔 Manager</option>
+                </select>
+                <input type="date" value={newTaskDue} onChange={e => setNewTaskDue(e.target.value)} className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm" />
+              </div>
+              <button onClick={addTask} disabled={!newTaskTitle.trim()} className="flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-700 disabled:opacity-40 font-medium">
+                <Plus className="w-4 h-4" />Ajouter
+              </button>
+            </div>
+          </div>
+
+          {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+        </div>
+
+        <div className="p-5 border-t bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
+          <button onClick={onClose} className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-100">Annuler</button>
+          <button onClick={handleSubmit} disabled={saving || !notes.trim()} className="px-5 py-2 bg-green-600 text-white text-sm rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 flex items-center gap-2">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+            Clôturer &amp; valider
           </button>
         </div>
       </div>
@@ -1065,6 +1272,8 @@ export default function PerformancePage() {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showCampaignModal, setShowCampaignModal] = useState(false);
   const [showOneOnOneModal, setShowOneOnOneModal] = useState(false);
+  const [showCompleteOneOnOneModal, setShowCompleteOneOnOneModal] = useState(false);
+  const [selectedOneOnOne, setSelectedOneOnOne] = useState<OneOnOne | null>(null);
   const [showEvalViewModal, setShowEvalViewModal] = useState(false);
   const [showEvalEditModal, setShowEvalEditModal] = useState(false);
   const [selectedEvaluation, setSelectedEvaluation] = useState<Evaluation | null>(null);
@@ -1440,7 +1649,22 @@ export default function PerformancePage() {
                             {meeting.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{meeting.location}</span>}
                           </div>
                         </div>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(meeting.status)}`}>{getStatusLabel(meeting.status)}</span>
+                        <div className="flex items-center gap-2">
+                          {meeting.status === 'completed' && meeting.evaluation_score && (
+                            <div className="flex items-center gap-0.5">
+                              {[1,2,3,4,5].map(n => (
+                                <Star key={n} className={`w-3.5 h-3.5 ${n <= meeting.evaluation_score! ? 'text-amber-400 fill-current' : 'text-gray-200'}`} />
+                              ))}
+                            </div>
+                          )}
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(meeting.status)}`}>{getStatusLabel(meeting.status)}</span>
+                          {meeting.status === 'scheduled' && canScheduleOneOnOne && (
+                            <button onClick={() => { setSelectedOneOnOne(meeting); setShowCompleteOneOnOneModal(true); }}
+                              className="px-3 py-1 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600 font-medium">
+                              Clôturer
+                            </button>
+                          )}
+                        </div>
                       </div>
                       {meeting.topics && meeting.topics.length > 0 && (
                         <div className="mt-3 pt-3 border-t">
@@ -1448,6 +1672,41 @@ export default function PerformancePage() {
                           <div className="flex flex-wrap gap-1">
                             {meeting.topics.map((topic, i) => (
                               <span key={i} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">{topic}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {meeting.notes && (
+                        <div className="mt-3 pt-3 border-t">
+                          <p className="text-xs text-gray-500 mb-1">Notes:</p>
+                          <p className="text-sm text-gray-700">{meeting.notes}</p>
+                          {meeting.evaluation_comment && <p className="text-xs text-amber-700 mt-1 italic">&ldquo;{meeting.evaluation_comment}&rdquo;</p>}
+                        </div>
+                      )}
+                      {meeting.tasks && meeting.tasks.length > 0 && (
+                        <div className="mt-3 pt-3 border-t">
+                          <p className="text-xs text-gray-500 mb-2">Suivi des actions:</p>
+                          <div className="space-y-1.5">
+                            {meeting.tasks.map(task => (
+                              <div key={task.id} className="flex items-center gap-2 text-sm">
+                                <button onClick={async () => {
+                                  const newStatus = task.status === 'done' ? 'pending' : 'done';
+                                  await patchOneOnOneTask(meeting.id, task.id, newStatus);
+                                  loadData();
+                                }} className="shrink-0">
+                                  {task.status === 'done'
+                                    ? <CheckSquare className="w-4 h-4 text-green-500" />
+                                    : <Square className="w-4 h-4 text-gray-300 hover:text-gray-500" />
+                                  }
+                                </button>
+                                {task.type === 'training'
+                                  ? <BookOpen className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                                  : <CheckCircle className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                }
+                                <span className={`flex-1 ${task.status === 'done' ? 'line-through text-gray-400' : 'text-gray-700'}`}>{task.title}</span>
+                                <span className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">{task.assignee === 'manager' ? 'Manager' : 'Collaborateur'}</span>
+                                {task.due_date && <span className="text-xs text-gray-400">{task.due_date}</span>}
+                              </div>
                             ))}
                           </div>
                         </div>
@@ -1469,6 +1728,14 @@ export default function PerformancePage() {
       <CreateFeedbackModal isOpen={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} employees={employees} onSuccess={loadData} />
       <CreateCampaignModal isOpen={showCampaignModal} onClose={() => setShowCampaignModal(false)} employees={employees} onSuccess={loadData} />
       <CreateOneOnOneModal isOpen={showOneOnOneModal} onClose={() => setShowOneOnOneModal(false)} employees={employees} onSuccess={loadData} />
+      {selectedOneOnOne && showCompleteOneOnOneModal && (
+        <CompleteOneOnOneModal
+          meeting={selectedOneOnOne}
+          currentEmployeeId={currentUser?.employee_id}
+          onClose={() => { setShowCompleteOneOnOneModal(false); setSelectedOneOnOne(null); }}
+          onSuccess={() => { setShowCompleteOneOnOneModal(false); setSelectedOneOnOne(null); loadData(); }}
+        />
+      )}
       <EvaluationViewModal isOpen={showEvalViewModal} onClose={() => setShowEvalViewModal(false)} evaluation={selectedEvaluation} />
       <EvaluationEditModal isOpen={showEvalEditModal} onClose={() => setShowEvalEditModal(false)} evaluation={selectedEvaluation} onSave={loadData} userRole={userRole} currentEmployeeId={currentUser?.employee_id} />
     </>

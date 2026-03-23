@@ -7,7 +7,7 @@
 
 import Header from '@/components/Header';
 import { useEffect, useState } from 'react';
-import { Target, User, Filter, Eye, Edit, ArrowRight, ArrowUpRight, Award } from 'lucide-react';
+import { Target, User, Filter, Eye, Edit, ArrowRight, ArrowUpRight, Award, RefreshCw, Zap } from 'lucide-react';
 import { useTalents } from '../TalentsContext';
 import {
   NineBoxEmployee, QUADRANT_LABELS, PERFORMANCE_LABELS, POTENTIAL_LABELS,
@@ -17,12 +17,40 @@ import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { talentsTips } from '@/config/pageTips';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
+
+function getAuthHeaders(): HeadersInit {
+  if (typeof window === 'undefined') return { 'Content-Type': 'application/json' };
+  const raw = document.cookie.split('; ').find(r => r.startsWith('auth_token='));
+  const token = raw ? raw.split('=')[1] : localStorage.getItem('auth_token') ?? '';
+  return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+}
+
 export default function NineBoxPage() {
   const { nineBoxData, loadNineBox } = useTalents();
   const [selectedPeriod, setSelectedPeriod] = useState<string>('');
   const [selectedDept, setSelectedDept] = useState<string>('');
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const isRHUser = isRH();
+  const [autoComputing, setAutoComputing] = useState(false);
+  const [autoResult, setAutoResult] = useState<{ computed: number; period: string } | null>(null);
+
+  const handleAutoCompute = async () => {
+    const period = selectedPeriod || new Date().getFullYear() + '-annual';
+    if (!confirm(`Calculer automatiquement la 9-box pour la période "${period}" depuis les évaluations, OKR et compétences ?`)) return;
+    setAutoComputing(true);
+    setAutoResult(null);
+    try {
+      const res = await fetch(`${API_URL}/api/careers/ninebox/auto-compute?period=${encodeURIComponent(period)}`, {
+        method: 'POST', headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAutoResult({ computed: data.computed, period: data.period });
+        loadNineBox(period || undefined, selectedDept || undefined);
+      }
+    } finally { setAutoComputing(false); }
+  };
 
   // Page Tour Hook
   const { showTips, dismissTips, resetTips } = usePageTour('talents');
@@ -113,11 +141,27 @@ export default function NineBoxPage() {
           )}
 
           {/* Stats inline */}
-          <div className="ml-auto flex gap-4 items-center text-sm">
+          <div className="ml-auto flex gap-3 items-center text-sm flex-wrap">
             <span className="text-gray-500">Total: <strong className="text-gray-900">{data?.total || 0}</strong></span>
             <span className="text-green-600">Stars: <strong>{data?.stats?.stars || 0}</strong></span>
             <span className="text-blue-600">Hauts Pot.: <strong>{data?.stats?.high_potentials || 0}</strong></span>
             <span className="text-red-600">À risque: <strong>{data?.stats?.at_risk || 0}</strong></span>
+            {isRHUser && (
+              <button
+                onClick={handleAutoCompute}
+                disabled={autoComputing}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:opacity-50 ml-2"
+                title="Calcule automatiquement depuis évaluations, OKR et compétences"
+              >
+                {autoComputing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                {autoComputing ? 'Calcul…' : 'Auto-calculer'}
+              </button>
+            )}
+            {autoResult && (
+              <span className="text-xs text-green-600 bg-green-50 border border-green-200 px-2 py-1 rounded-lg">
+                ✓ {autoResult.computed} placement{autoResult.computed > 1 ? 's' : ''} calculé{autoResult.computed > 1 ? 's' : ''}
+              </span>
+            )}
           </div>
         </div>
 

@@ -104,6 +104,10 @@ export interface Skill {
   name: string;
   category: string;
   description: string;
+  skill_type?: 'soft_skill' | 'technical' | 'management';
+  hierarchy_level?: string | null;
+  department?: string | null;
+  is_global?: boolean;
 }
 
 export interface DevelopmentPlan {

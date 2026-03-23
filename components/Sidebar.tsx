@@ -48,6 +48,7 @@ import {
   GitBranch,
   AlertTriangle,
   PenLine,
+  Brain,
 } from 'lucide-react';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
@@ -221,6 +222,7 @@ const learningNavigation: NavItem[] = [
   { name: 'Éval. Post-Formation', href: '/dashboard/learning/post-eval', icon: ClipboardCheck, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Analytics', href: '/dashboard/learning/analytics', icon: BarChart3, roles: ['rh', 'admin', 'dg'] },
   { name: 'Fournisseurs', href: '/dashboard/learning/providers', icon: Building2, roles: ['rh', 'admin', 'dg'] },
+  { name: 'Référentiel Compétences', href: '/dashboard/learning/referentiel', icon: Brain, roles: ['rh', 'admin', 'dg'] },
 ];
 
 // Sous-menu Talents & Carrière

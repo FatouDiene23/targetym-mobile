@@ -20,6 +20,7 @@ import Pagination from '@/components/Pagination';
 import { useTalents } from '../TalentsContext';
 import { getInitials, ELIGIBILITY_LABELS, formatDate } from '../shared';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CompetencyModal from './CompetencyModal';
 
 export default function AllEmployeesCareerPage() {
   const {
@@ -43,6 +44,7 @@ export default function AllEmployeesCareerPage() {
     onConfirm: () => void;
     danger?: boolean;
   } | null>(null);
+  const [competencyModal, setCompetencyModal] = useState<{ id: number; name: string } | null>(null);
 
   const { showTips, dismissTips, resetTips } = usePageTour('talentsEmployees');
 
@@ -267,6 +269,12 @@ export default function AllEmployeesCareerPage() {
                       </div>
                       <div className="flex gap-2 flex-shrink-0">
                         <button
+                          onClick={() => setCompetencyModal({ id: selected.employee_id, name: `${career.first_name} ${career.last_name}` })}
+                          className="px-3 py-1.5 text-sm border border-indigo-200 rounded-lg hover:bg-indigo-50 text-indigo-600 flex items-center gap-1.5"
+                        >
+                          🧠 Compétences
+                        </button>
+                        <button
                           onClick={() => handleSync(selected.employee_id)}
                           disabled={syncing === selected.employee_id}
                           className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 disabled:opacity-50 flex items-center gap-1.5"
@@ -415,6 +423,13 @@ export default function AllEmployeesCareerPage() {
           onConfirm={confirmDialog.onConfirm}
           onClose={() => setConfirmDialog(null)}
           danger={confirmDialog.danger}
+        />
+      )}
+      {competencyModal && (
+        <CompetencyModal
+          employeeId={competencyModal.id}
+          employeeName={competencyModal.name}
+          onClose={() => setCompetencyModal(null)}
         />
       )}
     </>

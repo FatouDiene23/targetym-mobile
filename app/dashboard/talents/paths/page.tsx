@@ -591,7 +591,7 @@ export default function PathsPage() {
 
         {/* Add Factor Modal */}
         {addFactorForLevel !== null && (
-          <AddFactorModal
+          <AddFactorModalNew
             levelId={addFactorForLevel}
             onClose={() => setAddFactorForLevel(null)}
             onAdd={async (data) => {

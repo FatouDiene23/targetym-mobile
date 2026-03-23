@@ -25,8 +25,10 @@ interface Evaluation {
   employee_job_title?: string;
   evaluator_id?: number;
   evaluator_name?: string;
-  type: 'self' | 'manager' | 'peer' | '360';
+  type: 'self' | 'manager' | 'peer' | 'direct_report' | '360';
   status: 'pending' | 'in_progress' | 'submitted' | 'validated' | 'cancelled';
+  period?: string;
+  weighted_score?: number;
   scores?: Record<string, { score: number; comment?: string }>;
   overall_score?: number;
   strengths?: string;
@@ -166,9 +168,20 @@ function getTypeLabel(type: string) {
   switch (type) {
     case 'self': return 'Auto-éval';
     case 'manager': return 'Manager';
-    case 'peer': return 'Pair';
+    case 'peer': return 'Collègue';
+    case 'direct_report': return 'Collaborateur';
     case '360': return '360°';
     default: return type;
+  }
+}
+
+function getTypeColor(type: string) {
+  switch (type) {
+    case 'self': return 'bg-purple-100 text-purple-700';
+    case 'manager': return 'bg-blue-100 text-blue-700';
+    case 'peer': return 'bg-teal-100 text-teal-700';
+    case 'direct_report': return 'bg-orange-100 text-orange-700';
+    default: return 'bg-gray-100 text-gray-600';
   }
 }
 
@@ -182,10 +195,12 @@ function getInitials(name: string | undefined): string {
 }
 
 function canUserEditEvaluation(evaluation: Evaluation, userRole: UserRole, currentEmployeeId?: number): boolean {
-  // Les évaluations annulées ne peuvent pas être modifiées
   if (evaluation.status === 'cancelled') return false;
-  
+
   if (evaluation.status === 'pending' || evaluation.status === 'in_progress') {
+    // L'évaluateur assigné peut toujours remplir son évaluation
+    if (evaluation.evaluator_id === currentEmployeeId) return true;
+    // Fallback : auto-éval sans evaluator_id explicite
     if (evaluation.type === 'self' && evaluation.employee_id === currentEmployeeId) return true;
   }
   if (evaluation.status === 'submitted') {
@@ -407,19 +422,30 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
 
   const canEdit = canUserEditEvaluation(evaluation, userRole, currentEmployeeId);
   const canValidate = canUserValidateEvaluation(evaluation, userRole, currentEmployeeId);
-  const isEmployeeEditing = evaluation.type === 'self' && evaluation.employee_id === currentEmployeeId && (evaluation.status === 'pending' || evaluation.status === 'in_progress');
-  const isManagerReviewing = canValidate || (canEdit && !isEmployeeEditing);
+  const isAutoEval = evaluation.type === 'self' && evaluation.employee_id === currentEmployeeId && (evaluation.status === 'pending' || evaluation.status === 'in_progress');
+  const isPeerEval = (evaluation.type === 'peer' || evaluation.type === 'direct_report' || evaluation.type === 'manager') && evaluation.evaluator_id === currentEmployeeId && (evaluation.status === 'pending' || evaluation.status === 'in_progress');
+  const isEmployeeEditing = isAutoEval || isPeerEval;
+  const isManagerReviewing = canValidate;
+
+  const modalTitle = isAutoEval
+    ? 'Mon Auto-Évaluation'
+    : isPeerEval
+    ? `Évaluation de ${evaluation.employee_name} (${getTypeLabel(evaluation.type)})`
+    : isManagerReviewing
+    ? 'Validation'
+    : 'Voir l\'Évaluation';
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-5 border-b flex items-center justify-between sticky top-0 bg-white z-10">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">
-              {isManagerReviewing ? 'Évaluer / Valider' : isEmployeeEditing ? 'Mon Auto-Évaluation' : 'Voir l\'Évaluation'}
-            </h2>
-            <p className="text-sm text-gray-500">{evaluation.employee_name} - {evaluation.employee_job_title}</p>
-            <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(evaluation.status)}`}>{getStatusLabel(evaluation.status)}</span>
+            <h2 className="text-lg font-bold text-gray-900">{modalTitle}</h2>
+            <p className="text-sm text-gray-500">{evaluation.employee_name} — {evaluation.employee_job_title}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(evaluation.status)}`}>{getStatusLabel(evaluation.status)}</span>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getTypeColor(evaluation.type)}`}>{getTypeLabel(evaluation.type)}</span>
+            </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
@@ -449,17 +475,23 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
           {isEmployeeEditing && (
             <>
               <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Points Forts</h4>
-                <textarea value={strengths} onChange={(e) => setStrengths(e.target.value)} rows={2} placeholder="Décrivez vos points forts..." className="w-full px-3 py-2 text-sm border rounded-lg" />
+                <h4 className="font-semibold text-gray-900 mb-2">
+                  {isAutoEval ? 'Points Forts' : 'Points Forts observés'}
+                </h4>
+                <textarea value={strengths} onChange={(e) => setStrengths(e.target.value)} rows={2} placeholder={isAutoEval ? 'Décrivez vos points forts...' : `Points forts de ${evaluation.employee_name}...`} className="w-full px-3 py-2 text-sm border rounded-lg" />
               </div>
               <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Axes d&apos;Amélioration</h4>
-                <textarea value={improvements} onChange={(e) => setImprovements(e.target.value)} rows={2} placeholder="Identifiez vos axes d'amélioration..." className="w-full px-3 py-2 text-sm border rounded-lg" />
+                <h4 className="font-semibold text-gray-900 mb-2">
+                  {isAutoEval ? "Axes d'Amélioration" : "Axes d'Amélioration observés"}
+                </h4>
+                <textarea value={improvements} onChange={(e) => setImprovements(e.target.value)} rows={2} placeholder={isAutoEval ? "Identifiez vos axes d'amélioration..." : `Axes d'amélioration pour ${evaluation.employee_name}...`} className="w-full px-3 py-2 text-sm border rounded-lg" />
               </div>
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Objectifs</h4>
-                <textarea value={goals} onChange={(e) => setGoals(e.target.value)} rows={2} placeholder="Vos objectifs pour la prochaine période..." className="w-full px-3 py-2 text-sm border rounded-lg" />
-              </div>
+              {isAutoEval && (
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Objectifs</h4>
+                  <textarea value={goals} onChange={(e) => setGoals(e.target.value)} rows={2} placeholder="Vos objectifs pour la prochaine période..." className="w-full px-3 py-2 text-sm border rounded-lg" />
+                </div>
+              )}
             </>
           )}
 
@@ -495,7 +527,8 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
           <button onClick={onClose} className="px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-100">{!canEdit && !canValidate ? 'Fermer' : 'Annuler'}</button>
           {isEmployeeEditing && (
             <button onClick={handleSubmit} disabled={saving} className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg flex items-center disabled:opacity-50">
-              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}Soumettre
+              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+              {isPeerEval ? 'Envoyer mon évaluation' : 'Soumettre'}
             </button>
           )}
           {canValidate && (
@@ -524,9 +557,10 @@ export default function EvaluationsPage() {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [userRole, setUserRole] = useState<UserRole>('employee');
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<'all' | 'to_complete'>('to_complete');
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [showCancelled, setShowCancelled] = useState(false); // ← NOUVEAU
+  const [showCancelled, setShowCancelled] = useState(false);
   const [page, setPage] = useState(1);
   const [selectedEvaluation, setSelectedEvaluation] = useState<Evaluation | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -552,8 +586,14 @@ export default function EvaluationsPage() {
     return () => window.removeEventListener('evaluations-add', handler);
   }, [router]);
 
-  // ✅ FILTRER LES ÉVALUATIONS - EXCLURE CANCELLED PAR DÉFAUT
-  const filteredEvaluations = evaluations.filter(e => {
+  // Évaluations que l'utilisateur doit remplir (il est l'évaluateur)
+  const toCompleteEvaluations = evaluations.filter(e =>
+    e.evaluator_id === currentUser?.employee_id &&
+    (e.status === 'pending' || e.status === 'in_progress')
+  );
+
+  // Filtre pour l'onglet "Toutes"
+  const allFilteredEvaluations = evaluations.filter(e => {
     if (!showCancelled && e.status === 'cancelled') return false;
     if (filterStatus !== 'all' && e.status !== filterStatus) return false;
     if (search) {
@@ -564,10 +604,11 @@ export default function EvaluationsPage() {
     }
     return true;
   });
-  
-  const paginatedEvaluations = filteredEvaluations.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
-  const totalPages = Math.ceil(filteredEvaluations.length / ITEMS_PER_PAGE);
-  
+
+  const activeList = tab === 'to_complete' ? toCompleteEvaluations : allFilteredEvaluations;
+  const paginatedEvaluations = activeList.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(activeList.length / ITEMS_PER_PAGE);
+
   // Compteur d'annulées
   const cancelledCount = evaluations.filter(e => e.status === 'cancelled').length;
 
@@ -589,10 +630,62 @@ export default function EvaluationsPage() {
       {/* Stats KPIs */}
       <PerformanceStats />
 
+      {/* Onglets */}
+      <div className="flex gap-1 mb-4 bg-white border border-gray-200 rounded-xl p-1 w-fit">
+        <button
+          onClick={() => { setTab('to_complete'); setPage(1); }}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            tab === 'to_complete' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          À compléter
+          {toCompleteEvaluations.length > 0 && (
+            <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold ${
+              tab === 'to_complete' ? 'bg-white text-primary-600' : 'bg-orange-500 text-white'
+            }`}>
+              {toCompleteEvaluations.length}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => { setTab('all'); setPage(1); }}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            tab === 'all' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          Toutes les évaluations
+        </button>
+      </div>
+
       {/* Content */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        {/* Filters */}
-        <div className="flex flex-wrap gap-4 mb-6">
+
+        {/* Banner À compléter */}
+        {tab === 'to_complete' && toCompleteEvaluations.length > 0 && (
+          <div className="mb-5 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-medium text-amber-800">
+                {toCompleteEvaluations.length} évaluation{toCompleteEvaluations.length > 1 ? 's' : ''} en attente de votre avis
+              </p>
+              <p className="text-sm text-amber-700 mt-0.5">
+                Cliquez sur &laquo;&nbsp;Remplir&nbsp;&raquo; pour soumettre votre évaluation avant la date limite.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Empty state À compléter */}
+        {tab === 'to_complete' && toCompleteEvaluations.length === 0 && (
+          <div className="py-12 text-center">
+            <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-3" />
+            <p className="text-gray-600 font-medium">Aucune évaluation en attente</p>
+            <p className="text-sm text-gray-400 mt-1">Vous n&apos;avez aucune évaluation à remplir pour le moment.</p>
+          </div>
+        )}
+
+        {/* Filters (onglet Toutes seulement) */}
+        {tab === 'all' && <div className="flex flex-wrap gap-4 mb-6">
           <div className="flex-1 min-w-[200px] relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input 
@@ -624,7 +717,7 @@ export default function EvaluationsPage() {
               <span>Afficher annulées ({cancelledCount})</span>
             </label>
           )}
-        </div>
+        </div>}
 
         {/* Evaluations List */}
         <div className="space-y-3">
@@ -672,7 +765,7 @@ export default function EvaluationsPage() {
                   </button>
                   {canEdit && !isCancelled && (
                     <button onClick={() => { setSelectedEvaluation(evaluation); setShowEditModal(true); }} className="flex items-center gap-1 px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg">
-                      <Edit className="w-4 h-4" />Éditer
+                      <Edit className="w-4 h-4" />{tab === 'to_complete' ? 'Remplir' : 'Éditer'}
                     </button>
                   )}
                   {canValidate && !isCancelled && (
@@ -684,7 +777,7 @@ export default function EvaluationsPage() {
               </div>
             );
           }) : (
-            <p className="text-gray-500 text-center py-8">Aucune évaluation trouvée</p>
+            tab === 'all' && <p className="text-gray-500 text-center py-8">Aucune évaluation trouvée</p>
           )}
         </div>
 

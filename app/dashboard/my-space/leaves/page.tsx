@@ -253,6 +253,11 @@ function NewLeaveRequestModal({
                   </option>
                 ))}
               </select>
+              {leaveTypes.length === 0 && (
+                <p className="mt-1 text-xs text-amber-600">
+                  Aucun type de congé disponible. Contactez votre administrateur.
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

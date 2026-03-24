@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import {
   Calendar, Clock, MapPin, X, Loader2, AlertCircle, Search,
-  ChevronLeft, ChevronRight, Video, ClipboardCheck, Star
+  ChevronLeft, ChevronRight, Video, ClipboardCheck, Star, Plus, Trash2, ListTodo
 } from 'lucide-react';
 import PerformanceStats from '../components/PerformanceStats';
 import Header from '@/components/Header';
@@ -107,6 +107,27 @@ async function completeOneOnOne(id: number, data: {
     return { success: true };
   } catch {
     return { success: false, error: 'Erreur de connexion' };
+  }
+}
+
+async function createTask(data: {
+  title: string;
+  assigned_to_id: number;
+  due_date: string;
+  priority: string;
+  description?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${API_URL}/api/tasks`, {
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      return { success: false, error: err.detail || 'Erreur création tâche' };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: 'Erreur réseau' };
   }
 }
 
@@ -297,33 +318,95 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
 // EVALUATE MODAL
 // =============================================
 
+interface TaskDraft {
+  id: string;
+  title: string;
+  assigned_to_id: number;
+  due_date: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+}
+
 function EvaluateModal({ meeting, onClose, onSuccess }: {
   meeting: OneOnOne; onClose: () => void; onSuccess: () => void;
 }) {
   const [notes, setNotes] = useState('');
   const [score, setScore] = useState<number>(0);
   const [comment, setComment] = useState('');
-  const [actionItems, setActionItems] = useState('');
+  const [tasks, setTasks] = useState<TaskDraft[]>([]);
   const [saving, setSaving] = useState(false);
+
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 7);
+  const defaultDue = tomorrow.toISOString().split('T')[0];
+
+  const addTask = () => {
+    setTasks(prev => [...prev, {
+      id: crypto.randomUUID(),
+      title: '',
+      assigned_to_id: meeting.employee_id,
+      due_date: defaultDue,
+      priority: 'medium',
+    }]);
+  };
+
+  const updateTask = (id: string, field: keyof TaskDraft, value: string | number) => {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
+  };
+
+  const removeTask = (id: string) => setTasks(prev => prev.filter(t => t.id !== id));
 
   const handleSubmit = async () => {
     if (notes.trim().length < 10) { toast.error('Les notes doivent contenir au moins 10 caractères'); return; }
+    const invalidTask = tasks.find(t => !t.title.trim());
+    if (invalidTask) { toast.error('Toutes les tâches doivent avoir un titre'); return; }
+
     setSaving(true);
+    const toastId = toast.loading('Enregistrement en cours…');
+
+    // 1. Complete the one-on-one
     const result = await completeOneOnOne(meeting.id, {
       notes: notes.trim(),
       evaluation_score: score > 0 ? score : undefined,
       evaluation_comment: comment.trim() || undefined,
-      action_items: actionItems.split('\n').map(a => a.trim()).filter(a => a.length > 0),
+      action_items: tasks.map(t => t.title.trim()).filter(Boolean),
     });
+
+    if (!result.success) {
+      toast.error(result.error || 'Erreur', { id: toastId });
+      setSaving(false);
+      return;
+    }
+
+    // 2. Create tasks
+    let taskErrors = 0;
+    for (const task of tasks) {
+      const res = await createTask({
+        title: task.title.trim(),
+        assigned_to_id: task.assigned_to_id,
+        due_date: task.due_date,
+        priority: task.priority,
+        description: `Issue du 1-on-1 avec ${task.assigned_to_id === meeting.employee_id ? meeting.manager_name : meeting.employee_name}`,
+      });
+      if (!res.success) taskErrors++;
+    }
+
     setSaving(false);
-    if (result.success) { toast.success('Entretien évalué'); onSuccess(); onClose(); }
-    else toast.error(result.error || 'Erreur');
+    if (taskErrors > 0) {
+      toast.success(`Entretien évalué · ${taskErrors} tâche(s) non créée(s)`, { id: toastId });
+    } else if (tasks.length > 0) {
+      toast.success(`Entretien évalué · ${tasks.length} tâche(s) créée(s)`, { id: toastId });
+    } else {
+      toast.success('Entretien évalué', { id: toastId });
+    }
+    onSuccess();
+    onClose();
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
-        <div className="p-5 border-b flex items-center justify-between">
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="p-5 border-b flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center">
               <ClipboardCheck className="w-5 h-5 text-green-600" />
@@ -335,56 +418,116 @@ function EvaluateModal({ meeting, onClose, onSuccess }: {
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
-        <div className="p-5 space-y-4">
+
+        {/* Scrollable body */}
+        <div className="p-5 space-y-5 overflow-y-auto">
           {/* Notes */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Notes de l&apos;entretien <span className="text-red-500">*</span></label>
             <textarea
               value={notes} onChange={e => setNotes(e.target.value)}
-              rows={4} placeholder="Résumé des points abordés, décisions prises... (min 10 car.)"
+              rows={4} placeholder="Résumé des points abordés, décisions prises… (min 10 car.)"
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
             />
           </div>
+
           {/* Score */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Qualité de l&apos;entretien</label>
             <div className="flex items-center gap-1">
               {[1, 2, 3, 4, 5].map(n => (
-                <button
-                  key={n} type="button"
-                  onClick={() => setScore(score === n ? 0 : n)}
-                  className={`p-1 transition-colors ${n <= score ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`}
-                >
+                <button key={n} type="button" onClick={() => setScore(score === n ? 0 : n)}
+                  className={`p-1 transition-colors ${n <= score ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`}>
                   <Star className="w-7 h-7 fill-current" />
                 </button>
               ))}
               {score > 0 && <span className="ml-2 text-sm text-gray-500">{['', 'Mauvais', 'Passable', 'Bien', 'Très bien', 'Excellent'][score]}</span>}
             </div>
           </div>
+
           {/* Comment */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Commentaire évaluation</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Commentaire</label>
             <textarea
               value={comment} onChange={e => setComment(e.target.value)}
-              rows={2} placeholder="Observations sur la qualité de l'entretien..."
+              rows={2} placeholder="Observations sur la qualité de l'entretien…"
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
             />
           </div>
-          {/* Action items */}
+
+          {/* Tasks section */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Actions de suivi</label>
-            <textarea
-              value={actionItems} onChange={e => setActionItems(e.target.value)}
-              rows={3} placeholder="Une action par ligne..."
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-            />
+            <div className="flex items-center justify-between mb-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                <ListTodo className="w-4 h-4 text-blue-500" />
+                Tâches de suivi
+                {tasks.length > 0 && <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">{tasks.length}</span>}
+              </label>
+              <button type="button" onClick={addTask}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                <Plus className="w-3.5 h-3.5" /> Ajouter une tâche
+              </button>
+            </div>
+
+            {tasks.length === 0 ? (
+              <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center">
+                <p className="text-sm text-gray-400">Aucune tâche — cliquez « Ajouter » pour créer des actions de suivi visibles dans <span className="font-medium">Mes Tâches</span></p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {tasks.map((task, i) => (
+                  <div key={task.id} className="flex gap-2 items-start bg-gray-50 rounded-xl p-3 border border-gray-100">
+                    <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center font-bold mt-2 shrink-0">{i + 1}</span>
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <input
+                        type="text" placeholder="Titre de la tâche *"
+                        value={task.title} onChange={e => updateTask(task.id, 'title', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 sm:col-span-2"
+                      />
+                      <select
+                        value={task.assigned_to_id}
+                        onChange={e => updateTask(task.id, 'assigned_to_id', parseInt(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-400"
+                      >
+                        <option value={meeting.employee_id}>→ {meeting.employee_name} (collaborateur)</option>
+                        <option value={meeting.manager_id}>→ {meeting.manager_name} (moi)</option>
+                      </select>
+                      <div className="flex gap-2">
+                        <input
+                          type="date" value={task.due_date}
+                          onChange={e => updateTask(task.id, 'due_date', e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-400"
+                        />
+                        <select
+                          value={task.priority}
+                          onChange={e => updateTask(task.id, 'priority', e.target.value)}
+                          className="w-28 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-400"
+                        >
+                          <option value="low">Faible</option>
+                          <option value="medium">Moyenne</option>
+                          <option value="high">Haute</option>
+                          <option value="urgent">Urgente</option>
+                        </select>
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => removeTask(task.id)}
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg mt-1 shrink-0">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-        <div className="p-5 border-t bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
+
+        {/* Footer */}
+        <div className="p-5 border-t bg-gray-50 flex justify-end gap-3 rounded-b-2xl shrink-0">
           <button onClick={onClose} className="px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-100">Annuler</button>
-          <button onClick={handleSubmit} disabled={saving} className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg flex items-center gap-2 hover:bg-green-700 disabled:opacity-50">
+          <button onClick={handleSubmit} disabled={saving}
+            className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg flex items-center gap-2 hover:bg-green-700 disabled:opacity-50">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardCheck className="w-4 h-4" />}
-            Marquer comme terminé
+            Marquer comme terminé{tasks.length > 0 ? ` · ${tasks.length} tâche(s)` : ''}
           </button>
         </div>
       </div>

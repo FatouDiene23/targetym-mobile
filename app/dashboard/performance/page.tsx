@@ -117,6 +117,7 @@ async function fetchFeedbacks(): Promise<FeedbackItem[]> {
 
 async function createFeedback(data: { 
   to_employee_id: number; type: string; message: string; is_public: boolean;
+  interaction_type?: string;
   attitudes?: { attitude_id: number; sentiment: string }[];
 }): Promise<{ success: boolean; error?: string }> {
   try {
@@ -610,6 +611,7 @@ function CreateFeedbackModal({ isOpen, onClose, employees, attitudes, onSuccess 
 }) {
   const [toEmployee, setToEmployee] = useState('');
   const [feedbackType, setFeedbackType] = useState<FeedbackType>('recognition');
+  const [interactionType, setInteractionType] = useState('');
   const [message, setMessage] = useState('');
   const [isPublic, setIsPublic] = useState(true);
   const [selectedAttitudes, setSelectedAttitudes] = useState<Map<number, 'recognition' | 'improvement'>>(new Map());
@@ -628,11 +630,12 @@ function CreateFeedbackModal({ isOpen, onClose, employees, attitudes, onSuccess 
     
     const result = await createFeedback({ 
       to_employee_id: parseInt(toEmployee), type: feedbackType, message: message.trim(), is_public: isPublic,
+      interaction_type: interactionType || undefined,
       attitudes: attitudesPayload.length > 0 ? attitudesPayload : undefined
     });
     setSaving(false);
     if (result.success) { 
-      setToEmployee(''); setMessage(''); setFeedbackType('recognition'); setIsPublic(true); setSelectedAttitudes(new Map());
+      setToEmployee(''); setMessage(''); setFeedbackType('recognition'); setIsPublic(true); setSelectedAttitudes(new Map()); setInteractionType('');
       onSuccess(); onClose(); 
     } else setError(result.error || 'Erreur lors de la création');
   };
@@ -669,6 +672,32 @@ function CreateFeedbackModal({ isOpen, onClose, employees, attitudes, onSuccess 
               {feedbackTypes.map(type => (
                 <button key={type.value} onClick={() => setFeedbackType(type.value)} className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${feedbackType === type.value ? type.color : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
                   {type.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Type d&apos;interaction</label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: 'request', label: '📋 Requête' },
+                { value: 'file', label: '📁 Dossier' },
+                { value: 'project', label: '🗂️ Projet' },
+                { value: 'mission', label: '🎯 Mission' },
+                { value: 'other', label: '💼 Autres' },
+              ].map(item => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => setInteractionType(interactionType === item.value ? '' : item.value)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                    interactionType === item.value
+                      ? 'bg-blue-100 text-blue-700 border-blue-300'
+                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {item.label}
                 </button>
               ))}
             </div>

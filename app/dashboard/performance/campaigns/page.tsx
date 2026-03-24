@@ -220,6 +220,13 @@ function getTypeLabel(type: string) {
     case 'mid_year': return 'Mi-année';
     case '360': return '360°';
     case 'probation': return 'Période d\'essai';
+    case 'evaluation_360': return 'Évaluation 360°';
+    case 'entretien_1on1': return 'Entretien Éval. 1-1';
+    case 'coaching_1on1': return 'Coaching 1:1';
+    case 'revue_hebdo': return 'Revue Hebdo';
+    case 'feedback_360': return 'Feedback 360°';
+    case 'prise_de_fonction': return 'Prise de Fonction';
+    case 'prise_dessai': return 'Prise d\'essai';
     default: return type;
   }
 }
@@ -458,10 +465,17 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Type d&apos;évaluation</label>
                   <select value={campaignType} onChange={(e) => setCampaignType(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm">
-                    <option value="annual">Évaluation Annuelle</option>
+                                    <option value="annual">Évaluation Annuelle</option>
                     <option value="mid_year">Évaluation Mi-Année</option>
                     <option value="360">Feedback 360°</option>
                     <option value="probation">Fin de Période d&apos;Essai</option>
+                    <option value="evaluation_360">Évaluation 360°</option>
+                    <option value="entretien_1on1">Entretien d&apos;Évaluation 1-1</option>
+                    <option value="coaching_1on1">Session Coaching 1:1</option>
+                    <option value="revue_hebdo">Revue de Perf Hebdo</option>
+                    <option value="feedback_360">Feedback 360°</option>
+                    <option value="prise_de_fonction">Évaluation Prise de Fonction</option>
+                    <option value="prise_dessai">Évaluation de Prise d&apos;Essai</option>
                   </select>
                 </div>
                 <div>

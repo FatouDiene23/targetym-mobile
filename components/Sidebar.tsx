@@ -207,7 +207,8 @@ const performanceNavigation: NavItem[] = [
   { name: 'Campagnes', href: '/dashboard/performance/campaigns', icon: Target, roles: ['rh', 'admin', 'dg'] },
   { name: 'Évaluations', href: '/dashboard/performance/evaluations', icon: Star, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Objectifs', href: '/dashboard/performance/objectives', icon: TrendingUp, roles: ['manager', 'rh', 'admin', 'dg'] },
-  { name: '1-on-1', href: '/dashboard/performance/one-on-one', icon: UserCheck, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+  { name: 'Coaching 1-1', href: '/dashboard/performance/one-on-one', icon: UserCheck, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+  { name: 'Évaluation 1-1', href: '/dashboard/performance/evaluation-1-on-1', icon: ClipboardCheck, roles: ['manager', 'rh', 'admin', 'dg'] },
 ];
 
 // Sous-menu Formation & Développement

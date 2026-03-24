@@ -414,7 +414,7 @@ function EvaluateModal({ meeting, onClose, onSuccess }: {
               <ClipboardCheck className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Évaluer l&apos;entretien</h2>
+              <h2 className="text-lg font-bold text-gray-900">Report d&apos;entretien</h2>
               <p className="text-sm text-gray-500">{meeting.employee_name}</p>
             </div>
           </div>
@@ -649,7 +649,7 @@ export default function OneOnOnePage() {
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors shrink-0"
                   >
                     <ClipboardCheck className="w-3.5 h-3.5" />
-                    Évaluer
+                    Report
                   </button>
                 )}
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(meeting.status)}`}>{getStatusLabel(meeting.status)}</span>

@@ -380,6 +380,7 @@ function EvaluateModal({ meeting, onClose, onSuccess }: {
 
     // 2. Create tasks
     let taskErrors = 0;
+    const taskErrorMessages: string[] = [];
     for (const task of tasks) {
       const res = await createTask({
         title: task.title.trim(),
@@ -389,12 +390,16 @@ function EvaluateModal({ meeting, onClose, onSuccess }: {
         is_administrative: true,
         description: `Issue du 1-on-1 avec ${task.assigned_to_id === meeting.employee_id ? meeting.manager_name : meeting.employee_name}`,
       });
-      if (!res.success) taskErrors++;
+      if (!res.success) {
+        taskErrors++;
+        if (res.error) taskErrorMessages.push(res.error);
+      }
     }
 
     setSaving(false);
     if (taskErrors > 0) {
-      toast.success(`Entretien évalué · ${taskErrors} tâche(s) non créée(s)`, { id: toastId });
+      const errDetail = taskErrorMessages.length > 0 ? ` (${taskErrorMessages[0]})` : '';
+      toast.error(`${taskErrors} tâche(s) non créée(s)${errDetail}`, { id: toastId });
     } else if (tasks.length > 0) {
       toast.success(`Entretien évalué · ${tasks.length} tâche(s) créée(s)`, { id: toastId });
     } else {

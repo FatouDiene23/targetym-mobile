@@ -315,6 +315,7 @@ function EvaluationReportModal({ session, onClose, onSuccess }: {
     }
 
     let taskErrors = 0;
+    const taskErrorMessages: string[] = [];
     for (const task of tasks.filter(t => t.title.trim())) {
       const res = await createTask({
         title: task.title.trim(),
@@ -324,12 +325,16 @@ function EvaluationReportModal({ session, onClose, onSuccess }: {
         is_administrative: true,
         description: `Plan d'amélioration issu du coaching 1-1 avec ${session.manager_name || 'le manager'}`,
       });
-      if (!res.success) taskErrors++;
+      if (!res.success) {
+        taskErrors++;
+        if ('error' in res && res.error) taskErrorMessages.push(res.error as string);
+      }
     }
 
     setSaving(false);
     if (taskErrors > 0) {
-      toast.success(`Rapport enregistré · ${taskErrors} tâche(s) non créée(s)`, { id: toastId });
+      const errDetail = taskErrorMessages.length > 0 ? ` (${taskErrorMessages[0]})` : '';
+      toast.error(`${taskErrors} tâche(s) non créée(s)${errDetail}`, { id: toastId });
     } else if (tasks.filter(t => t.title.trim()).length > 0) {
       toast.success(`Rapport enregistré · ${tasks.filter(t => t.title.trim()).length} tâche(s) créée(s)`, { id: toastId });
     } else {

@@ -28,6 +28,9 @@ import {
   Calendar,
   Send,
   ArrowUpRight,
+  Lock,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
@@ -424,6 +427,14 @@ export default function SettingsPage() {
   const [loadingSecurity, setLoadingSecurity] = useState(false);
   const [savingSecurity, setSavingSecurity] = useState(false);
 
+  // États pour le changement de mot de passe
+  const [passwordForm, setPasswordForm] = useState({ current: '', newPwd: '', confirm: '' });
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [showCurrentPwd, setShowCurrentPwd] = useState(false);
+  const [showNewPwd, setShowNewPwd] = useState(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
+
   // États pour les préférences de notifications
   const [notifPrefs, setNotifPrefs] = useState<{ key: string; label: string; description: string; enabled: boolean }[]>([]);
   const [loadingNotifPrefs, setLoadingNotifPrefs] = useState(false);
@@ -587,6 +598,42 @@ export default function SettingsPage() {
       setLoadingSecurity(false);
     }
   }, []);
+
+  const handleChangePassword = async () => {
+    if (!passwordForm.current || !passwordForm.newPwd || !passwordForm.confirm) {
+      toast.error('Veuillez remplir tous les champs');
+      return;
+    }
+    if (passwordForm.newPwd.length < 8) {
+      toast.error('Le nouveau mot de passe doit contenir au moins 8 caractères');
+      return;
+    }
+    if (passwordForm.newPwd !== passwordForm.confirm) {
+      toast.error('Les mots de passe ne correspondent pas');
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${API_URL}/api/auth/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ current_password: passwordForm.current, new_password: passwordForm.newPwd }),
+      });
+      if (res.ok) {
+        toast.success('Mot de passe modifié avec succès');
+        setPasswordForm({ current: '', newPwd: '', confirm: '' });
+        setShowPasswordSection(false);
+      } else {
+        const err = await res.json();
+        toast.error(err.detail || 'Erreur lors du changement de mot de passe');
+      }
+    } catch {
+      toast.error('Erreur de connexion');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
 
   const saveSecuritySettings = async () => {
     setSavingSecurity(true);
@@ -1981,6 +2028,92 @@ export default function SettingsPage() {
                     <strong>Important :</strong> Les utilisateurs qui n&apos;ont pas encore configuré leur 2FA seront invités
                     à scanner un QR code lors de leur prochaine connexion. Assurez-vous de les prévenir au préalable.
                   </p>
+                </div>
+
+                {/* Section Changer le mot de passe */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                        <Lock className="w-5 h-5 text-primary-600" />
+                        Mon mot de passe
+                      </h3>
+                      <p className="text-sm text-gray-500 mt-1">Modifiez votre mot de passe de connexion.</p>
+                    </div>
+                    {!showPasswordSection && (
+                      <button
+                        onClick={() => setShowPasswordSection(true)}
+                        className="px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
+                      >
+                        Changer le mot de passe
+                      </button>
+                    )}
+                  </div>
+
+                  {showPasswordSection && (
+                    <div className="mt-5 space-y-4 max-w-md">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe actuel</label>
+                        <div className="relative">
+                          <input
+                            type={showCurrentPwd ? 'text' : 'password'}
+                            value={passwordForm.current}
+                            onChange={(e) => setPasswordForm(prev => ({ ...prev, current: e.target.value }))}
+                            className="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                            placeholder="Votre mot de passe actuel"
+                          />
+                          <button type="button" onClick={() => setShowCurrentPwd(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            {showCurrentPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Nouveau mot de passe</label>
+                        <div className="relative">
+                          <input
+                            type={showNewPwd ? 'text' : 'password'}
+                            value={passwordForm.newPwd}
+                            onChange={(e) => setPasswordForm(prev => ({ ...prev, newPwd: e.target.value }))}
+                            className="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                            placeholder="Minimum 8 caractères"
+                          />
+                          <button type="button" onClick={() => setShowNewPwd(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            {showNewPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Confirmer le nouveau mot de passe</label>
+                        <div className="relative">
+                          <input
+                            type={showConfirmPwd ? 'text' : 'password'}
+                            value={passwordForm.confirm}
+                            onChange={(e) => setPasswordForm(prev => ({ ...prev, confirm: e.target.value }))}
+                            className="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                            placeholder="Répétez le nouveau mot de passe"
+                          />
+                          <button type="button" onClick={() => setShowConfirmPwd(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            {showConfirmPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          onClick={handleChangePassword}
+                          disabled={changingPassword}
+                          className="flex items-center gap-2 px-5 py-2.5 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 disabled:opacity-50 transition-colors"
+                        >
+                          {changingPassword ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement...</> : <><Lock className="w-4 h-4" />Enregistrer</>}
+                        </button>
+                        <button
+                          onClick={() => { setShowPasswordSection(false); setPasswordForm({ current: '', newPwd: '', confirm: '' }); }}
+                          className="px-4 py-2.5 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg transition-colors"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

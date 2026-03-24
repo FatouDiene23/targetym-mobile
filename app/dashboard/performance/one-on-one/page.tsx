@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import {
   Calendar, Clock, MapPin, X, Loader2, AlertCircle, Search,
-  ChevronLeft, ChevronRight, Video
+  ChevronLeft, ChevronRight, Video, ClipboardCheck, Star
 } from 'lucide-react';
 import PerformanceStats from '../components/PerformanceStats';
 import Header from '@/components/Header';
@@ -86,6 +87,26 @@ async function fetchEmployees(managerId?: number): Promise<Employee[]> {
     return data.items || [];
   } catch {
     return [];
+  }
+}
+
+async function completeOneOnOne(id: number, data: {
+  notes: string;
+  evaluation_score?: number;
+  evaluation_comment?: string;
+  action_items?: string[];
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${API_URL}/api/performance/one-on-ones/${id}/complete`, {
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { success: false, error: errorData.detail || 'Erreur lors de la mise à jour' };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: 'Erreur de connexion' };
   }
 }
 
@@ -273,6 +294,105 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
 }
 
 // =============================================
+// EVALUATE MODAL
+// =============================================
+
+function EvaluateModal({ meeting, onClose, onSuccess }: {
+  meeting: OneOnOne; onClose: () => void; onSuccess: () => void;
+}) {
+  const [notes, setNotes] = useState('');
+  const [score, setScore] = useState<number>(0);
+  const [comment, setComment] = useState('');
+  const [actionItems, setActionItems] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async () => {
+    if (notes.trim().length < 10) { toast.error('Les notes doivent contenir au moins 10 caractères'); return; }
+    setSaving(true);
+    const result = await completeOneOnOne(meeting.id, {
+      notes: notes.trim(),
+      evaluation_score: score > 0 ? score : undefined,
+      evaluation_comment: comment.trim() || undefined,
+      action_items: actionItems.split('\n').map(a => a.trim()).filter(a => a.length > 0),
+    });
+    setSaving(false);
+    if (result.success) { toast.success('Entretien évalué'); onSuccess(); onClose(); }
+    else toast.error(result.error || 'Erreur');
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
+        <div className="p-5 border-b flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center">
+              <ClipboardCheck className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Évaluer l&apos;entretien</h2>
+              <p className="text-sm text-gray-500">{meeting.employee_name}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-5 space-y-4">
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Notes de l&apos;entretien <span className="text-red-500">*</span></label>
+            <textarea
+              value={notes} onChange={e => setNotes(e.target.value)}
+              rows={4} placeholder="Résumé des points abordés, décisions prises... (min 10 car.)"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            />
+          </div>
+          {/* Score */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Qualité de l&apos;entretien</label>
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map(n => (
+                <button
+                  key={n} type="button"
+                  onClick={() => setScore(score === n ? 0 : n)}
+                  className={`p-1 transition-colors ${n <= score ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`}
+                >
+                  <Star className="w-7 h-7 fill-current" />
+                </button>
+              ))}
+              {score > 0 && <span className="ml-2 text-sm text-gray-500">{['', 'Mauvais', 'Passable', 'Bien', 'Très bien', 'Excellent'][score]}</span>}
+            </div>
+          </div>
+          {/* Comment */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Commentaire évaluation</label>
+            <textarea
+              value={comment} onChange={e => setComment(e.target.value)}
+              rows={2} placeholder="Observations sur la qualité de l'entretien..."
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            />
+          </div>
+          {/* Action items */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Actions de suivi</label>
+            <textarea
+              value={actionItems} onChange={e => setActionItems(e.target.value)}
+              rows={3} placeholder="Une action par ligne..."
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            />
+          </div>
+        </div>
+        <div className="p-5 border-t bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
+          <button onClick={onClose} className="px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-100">Annuler</button>
+          <button onClick={handleSubmit} disabled={saving} className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg flex items-center gap-2 hover:bg-green-700 disabled:opacity-50">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardCheck className="w-4 h-4" />}
+            Marquer comme terminé
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================
 // MAIN PAGE
 // =============================================
 
@@ -284,6 +404,7 @@ export default function OneOnOnePage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
+  const [evaluating, setEvaluating] = useState<OneOnOne | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -377,6 +498,15 @@ export default function OneOnOnePage() {
                     Rejoindre
                   </a>
                 )}
+                {meeting.status === 'scheduled' && new Date(meeting.scheduled_date) < new Date() && canScheduleOneOnOne && (
+                  <button
+                    onClick={() => setEvaluating(meeting)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors shrink-0"
+                  >
+                    <ClipboardCheck className="w-3.5 h-3.5" />
+                    Évaluer
+                  </button>
+                )}
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(meeting.status)}`}>{getStatusLabel(meeting.status)}</span>
               </div>
               {meeting.topics && meeting.topics.length > 0 && (
@@ -399,8 +529,9 @@ export default function OneOnOnePage() {
         <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
 
-      {/* Modal */}
+      {/* Modals */}
       <CreateOneOnOneModal isOpen={showModal} onClose={() => setShowModal(false)} employees={employees} onSuccess={loadData} />
+      {evaluating && <EvaluateModal meeting={evaluating} onClose={() => setEvaluating(null)} onSuccess={loadData} />}
       </main>
     </>
   );

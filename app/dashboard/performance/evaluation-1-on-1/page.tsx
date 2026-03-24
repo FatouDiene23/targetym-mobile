@@ -78,7 +78,7 @@ async function fetchCurrentUser(): Promise<CurrentUser | null> {
 
 async function fetchCompletedSessions(): Promise<OneOnOne[]> {
   try {
-    const res = await fetch(`${API_URL}/api/performance/one-on-ones?page_size=200&status=completed`, { headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/performance/one-on-ones?page_size=100&status=completed`, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error('API error');
     const data = await res.json();
     return data.items || [];

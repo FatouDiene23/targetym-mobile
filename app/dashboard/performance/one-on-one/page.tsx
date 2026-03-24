@@ -115,6 +115,7 @@ async function createTask(data: {
   assigned_to_id: number;
   due_date: string;
   priority: string;
+  is_administrative: boolean;
   description?: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
@@ -385,6 +386,7 @@ function EvaluateModal({ meeting, onClose, onSuccess }: {
         assigned_to_id: task.assigned_to_id,
         due_date: task.due_date,
         priority: task.priority,
+        is_administrative: true,
         description: `Issue du 1-on-1 avec ${task.assigned_to_id === meeting.employee_id ? meeting.manager_name : meeting.employee_name}`,
       });
       if (!res.success) taskErrors++;

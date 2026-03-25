@@ -12,7 +12,7 @@ import { COUNTRIES } from '@/data/countries';
 interface EditEmployeeModalProps {
   employee: Employee;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (patch?: Partial<Employee>) => void;
 }
 
 const ROLE_OPTIONS: { value: EmployeeRole; label: string; description: string }[] = [
@@ -223,7 +223,20 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
           console.error('Error uploading photo:', photoErr);
         }
       }
-      onSuccess();
+      onSuccess({
+        marital_status: formData.marital_status || null,
+        spouse_name: formData.spouse_name || null,
+        spouse_birth_date: formData.spouse_birth_date || null,
+        work_email: formData.work_email || null,
+        work_phone: formData.work_phone || null,
+        has_disability: formData.has_disability ?? null,
+        disability_description: formData.disability_description || null,
+        emergency_contact_name: formData.emergency_contact_name || null,
+        emergency_contact_phone: formData.emergency_contact_phone || null,
+        comex_member: formData.comex_member || null,
+        hrbp: formData.hrbp || null,
+        salary_category: formData.salary_category || null,
+      });
       onClose();
     } catch (err) {
       if (err instanceof Error) {

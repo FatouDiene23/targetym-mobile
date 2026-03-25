@@ -860,14 +860,17 @@ function EmployeesPageInner() {
   };
 
   const handleExport = () => exportEmployeesToCSV(filteredEmployees);
-  const handleSuccess = async () => {
+  const handleSuccess = async (patch?: Partial<Employee>) => {
     const prevSelectedId = selectedEmployee?.id;
     setSelectedEmployee(null);
     await loadAllData();
     if (prevSelectedId) {
       try {
         const updated = await getEmployee(prevSelectedId);
-        setSelectedEmployee(updated);
+        const merged = patch
+          ? { ...updated, ...Object.fromEntries(Object.entries(patch).filter(([, v]) => v != null)) }
+          : updated;
+        setSelectedEmployee(merged as Employee);
       } catch { /* si supprimé, on ne re-sélectionne pas */ }
     }
   };

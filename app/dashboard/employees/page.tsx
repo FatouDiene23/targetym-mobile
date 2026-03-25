@@ -26,7 +26,7 @@ import {
   Trash2, UserX, MoreHorizontal, Layers
 } from 'lucide-react';
 import { 
-  getEmployees, getEmployeeStats, getDepartments, getDepartmentsTree, exportEmployeesToCSV,
+  getEmployees, getEmployee, getEmployeeStats, getDepartments, getDepartmentsTree, exportEmployeesToCSV,
   getLeaveRequests, approveLeaveRequest, rejectLeaveRequest,
   type Employee, type EmployeeStats, type Department, type DepartmentWithChildren, type LeaveRequest
 } from '@/lib/api';
@@ -860,7 +860,17 @@ function EmployeesPageInner() {
   };
 
   const handleExport = () => exportEmployeesToCSV(filteredEmployees);
-  const handleSuccess = () => { loadAllData(); setSelectedEmployee(null); };
+  const handleSuccess = async () => {
+    const prevSelectedId = selectedEmployee?.id;
+    setSelectedEmployee(null);
+    await loadAllData();
+    if (prevSelectedId) {
+      try {
+        const updated = await getEmployee(prevSelectedId);
+        setSelectedEmployee(updated);
+      } catch { /* si supprimé, on ne re-sélectionne pas */ }
+    }
+  };
   const hasActiveFilter = selectedDepartment !== 'Tous' || selectedLocation !== 'Tous' || searchTerm !== '' || cardFilter !== null;
 
   // Handler for opening employee profile from Documents tab

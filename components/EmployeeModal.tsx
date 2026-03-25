@@ -903,48 +903,41 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
               </div>
 
               {/* Info Familiale */}
-              {(employee.marital_status || employee.spouse_name) && (
-                <div className="bg-gray-50 rounded-xl p-5">
-                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
-                    <span className="w-4 h-4 mr-2 text-center">👨‍👩‍👧</span>Informations Familiales
-                  </h3>
-                  <div className="space-y-2">
-                    {employee.marital_status && (
-                      <div className="flex justify-between"><span className="text-sm text-gray-500">Situation</span><span className="text-sm font-medium text-gray-900 capitalize">{employee.marital_status}</span></div>
-                    )}
-                    {employee.spouse_name && (
-                      <div className="flex justify-between"><span className="text-sm text-gray-500">Conjoint(e)</span><span className="text-sm font-medium text-gray-900">{employee.spouse_name}</span></div>
-                    )}
-                    {employee.spouse_birth_date && (
-                      <div className="flex justify-between"><span className="text-sm text-gray-500">Naissance conjoint(e)</span><span className="text-sm font-medium text-gray-900">{new Date(employee.spouse_birth_date).toLocaleDateString('fr-FR')}</span></div>
-                    )}
-                  </div>
+              <div className="bg-gray-50 rounded-xl p-5">
+                <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
+                  <span className="w-4 h-4 mr-2 text-center">👨‍👩‍👧</span>Informations Familiales
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between"><span className="text-sm text-gray-500">Situation</span><span className="text-sm font-medium text-gray-900 capitalize">{employee.marital_status || '-'}</span></div>
+                  {employee.spouse_name && (
+                    <div className="flex justify-between"><span className="text-sm text-gray-500">Conjoint(e)</span><span className="text-sm font-medium text-gray-900">{employee.spouse_name}</span></div>
+                  )}
+                  {employee.spouse_birth_date && (
+                    <div className="flex justify-between"><span className="text-sm text-gray-500">Naissance conjoint(e)</span><span className="text-sm font-medium text-gray-900">{new Date(employee.spouse_birth_date).toLocaleDateString('fr-FR')}</span></div>
+                  )}
                 </div>
-              )}
+              </div>
 
               {/* Info Médicale & Urgence */}
-              {(employee.has_disability || employee.emergency_contact_name) && (
-                <div className="bg-gray-50 rounded-xl p-5">
-                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
-                    <span className="w-4 h-4 mr-2 text-center">🏥</span>Information Médicale
-                  </h3>
-                  <div className="space-y-2">
-                    {employee.has_disability && (
-                      <div>
-                        <div className="flex items-center gap-2"><span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">Situation de handicap</span></div>
-                        {employee.disability_description && <p className="text-sm text-gray-600 mt-1">{employee.disability_description}</p>}
-                      </div>
-                    )}
-                    {employee.emergency_contact_name && (
-                      <div className="border-t border-gray-200 pt-2 mt-2">
-                        <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Contact d&apos;urgence</p>
-                        <div className="flex justify-between"><span className="text-sm text-gray-500">Nom</span><span className="text-sm font-medium text-gray-900">{employee.emergency_contact_name}</span></div>
-                        {employee.emergency_contact_phone && <div className="flex justify-between mt-1"><span className="text-sm text-gray-500">Téléphone</span><span className="text-sm font-medium text-gray-900">{employee.emergency_contact_phone}</span></div>}
-                      </div>
-                    )}
+              <div className="bg-gray-50 rounded-xl p-5">
+                <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
+                  <span className="w-4 h-4 mr-2 text-center">🏥</span>Information Médicale
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Situation de handicap</span>
+                    <span className="text-sm font-medium text-gray-900">{employee.has_disability ? 'Oui' : 'Non'}</span>
+                  </div>
+                  {employee.has_disability && employee.disability_description && (
+                    <p className="text-sm text-gray-600">{employee.disability_description}</p>
+                  )}
+                  <div className="border-t border-gray-200 pt-2 mt-2">
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Contact d&apos;urgence</p>
+                    <div className="flex justify-between"><span className="text-sm text-gray-500">Nom</span><span className="text-sm font-medium text-gray-900">{employee.emergency_contact_name || '-'}</span></div>
+                    {employee.emergency_contact_phone && <div className="flex justify-between mt-1"><span className="text-sm text-gray-500">Téléphone</span><span className="text-sm font-medium text-gray-900">{employee.emergency_contact_phone}</span></div>}
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* Poste & Organisation */}
               <div className="bg-gray-50 rounded-xl p-5">
@@ -957,9 +950,9 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                   <div><p className="text-xs text-gray-500">Département</p><p className="text-sm font-medium text-gray-900">{displayDepartment}</p></div>
                   <div><p className="text-xs text-gray-500">Manager</p><p className="text-sm font-medium text-gray-900">{displayManager}</p></div>
                   <div><p className="text-xs text-gray-500">Site</p><p className="text-sm font-medium text-gray-900">{displayLocation}</p></div>
-                  {employee.comex_member && <div><p className="text-xs text-gray-500">Membre COMEX</p><p className="text-sm font-medium text-gray-900">{employee.comex_member}</p></div>}
-                  {employee.hrbp && <div><p className="text-xs text-gray-500">HRBP</p><p className="text-sm font-medium text-gray-900">{employee.hrbp}</p></div>}
-                  {employee.salary_category && <div><p className="text-xs text-gray-500">Catégorie salariale</p><p className="text-sm font-medium text-gray-900">{employee.salary_category}</p></div>}
+                  <div><p className="text-xs text-gray-500">Membre COMEX</p><p className="text-sm font-medium text-gray-900">{employee.comex_member || '-'}</p></div>
+                  <div><p className="text-xs text-gray-500">HRBP</p><p className="text-sm font-medium text-gray-900">{employee.hrbp || '-'}</p></div>
+                  <div><p className="text-xs text-gray-500">Catégorie salariale</p><p className="text-sm font-medium text-gray-900">{employee.salary_category || '-'}</p></div>
                 </div>
               </div>
             </div>

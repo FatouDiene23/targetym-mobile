@@ -36,6 +36,7 @@ async function apiFetch(url: string, options?: RequestInit) {
 
 interface Employee {
   id: number;
+  employee_id?: string;
   name?: string;
   first_name?: string;
   last_name?: string;
@@ -61,12 +62,15 @@ interface Employee {
   onLeave?: boolean;
   role?: string;
   salary?: number;
+  net_salary?: number;
   salaire_brut?: number;
   part_variable?: number;
   currency?: string;
   contract_type?: string;
   classification?: string;
   coefficient?: string;
+  contract_end_date?: string;
+  probation_end_date?: string;
   nationality?: string;
   address?: string;
   photo_url?: string;
@@ -753,6 +757,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
             <div className="text-white">
               <h2 className="text-xl font-bold">{displayName}</h2>
               <p className="text-primary-100">{displayPosition}</p>
+              {employee.employee_id && <p className="text-white/70 text-xs mt-0.5">Matricule : {employee.employee_id}</p>}
               <div className="flex items-center gap-2 mt-1">
                 {isOnLeave ? (
                   <span className="px-2 py-0.5 bg-green-400/30 text-white text-xs rounded-full">En congés</span>
@@ -947,6 +952,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                   <Briefcase className="w-4 h-4 mr-2 text-primary-500" />Poste & Organisation
                 </h3>
                 <div className="space-y-3">
+                  {employee.employee_id && <div><p className="text-xs text-gray-500">Matricule</p><p className="text-sm font-medium text-gray-900">{employee.employee_id}</p></div>}
                   <div><p className="text-xs text-gray-500">Poste</p><p className="text-sm font-medium text-gray-900">{displayPosition}</p></div>
                   <div><p className="text-xs text-gray-500">Département</p><p className="text-sm font-medium text-gray-900">{displayDepartment}</p></div>
                   <div><p className="text-xs text-gray-500">Manager</p><p className="text-sm font-medium text-gray-900">{displayManager}</p></div>
@@ -968,13 +974,15 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                 <div className="space-y-3">
                   <div className="flex justify-between"><span className="text-sm text-gray-500">Type</span><span className="text-sm font-medium text-gray-900">{contractTypeDisplay}</span></div>
                   <div className="flex justify-between"><span className="text-sm text-gray-500">Date d&apos;entrée</span><span className="text-sm font-medium text-gray-900">{displayHireDate ? new Date(displayHireDate).toLocaleDateString('fr-FR') : '-'}</span></div>
+                  {(employee as any).contract_end_date && <div className="flex justify-between"><span className="text-sm text-gray-500">Fin de contrat</span><span className="text-sm font-medium text-gray-900">{new Date((employee as any).contract_end_date).toLocaleDateString('fr-FR')}</span></div>}
+                  {(employee as any).probation_end_date && <div className="flex justify-between"><span className="text-sm text-gray-500">Fin période d&apos;essai</span><span className="text-sm font-medium text-gray-900">{new Date((employee as any).probation_end_date).toLocaleDateString('fr-FR')}</span></div>}
                   {employee.classification && <div className="flex justify-between"><span className="text-sm text-gray-500">Classification</span><span className="text-sm font-medium text-gray-900">{employee.classification}</span></div>}
                   {employee.coefficient && <div className="flex justify-between"><span className="text-sm text-gray-500">Coefficient</span><span className="text-sm font-medium text-gray-900">{employee.coefficient}</span></div>}
                 </div>
               </div>
 
               {/* Rémunération */}
-              {(employee.salaire_brut != null || employee.part_variable != null || (employee.salary != null && employee.salary > 0)) && (
+              {(employee.salaire_brut != null || employee.net_salary != null || employee.part_variable != null || (employee.salary != null && employee.salary > 0)) && (
                 <div className="bg-gray-50 rounded-xl p-5">
                   <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                     <DollarSign className="w-4 h-4 mr-2 text-primary-500" />Rémunération
@@ -984,6 +992,12 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-500">Salaire brut mensuel</span>
                         <span className="text-sm font-bold text-gray-900">{formatCurrency(employee.salaire_brut, employee.currency || 'XOF')}</span>
+                      </div>
+                    )}
+                    {employee.net_salary != null && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-500">Salaire net mensuel</span>
+                        <span className="text-sm font-semibold text-gray-900">{formatCurrency(employee.net_salary, employee.currency || 'XOF')}</span>
                       </div>
                     )}
                     {employee.part_variable != null && (

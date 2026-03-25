@@ -23,6 +23,7 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   '/dashboard/learning/analytics':    { title: 'Analytics Formation',              subtitle: 'Suivi des formations et performances' },
   '/dashboard/learning/providers':    { title: 'Fournisseurs de Formation',        subtitle: 'Organismes et prestataires de formation' },
   '/dashboard/learning/referentiel':   { title: 'Référentiel Compétences',         subtitle: 'Compétences par niveau hiérarchique, département et type' },
+  '/dashboard/learning/plan-formation': { title: 'Plan de Formation',              subtitle: 'Plans annuels de formation — budget, actions, calendrier' },
 };
 
 function LearningContent({ children }: { children: React.ReactNode }) {

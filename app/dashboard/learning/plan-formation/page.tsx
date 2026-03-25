@@ -1,0 +1,1232 @@
+'use client';
+
+// ============================================
+// PLAN DE FORMATION — Page principale
+// File: app/dashboard/learning/plan-formation/page.tsx
+// ============================================
+
+import { useState, useEffect, useCallback } from 'react';
+import {
+  Plus, Search, Eye, Edit, Copy, X, ChevronLeft,
+  Calendar, Target, Users, DollarSign, FileText,
+  BarChart3, Clock, CheckCircle, AlertTriangle, RefreshCw,
+} from 'lucide-react';
+import { useLearning } from '../LearningContext';
+import { API_URL, getAuthHeaders, hasPermission } from '../shared';
+import toast from 'react-hot-toast';
+
+// ============================================
+// TYPES
+// ============================================
+
+interface TrainingPlan {
+  id: number;
+  tenant_id: number;
+  parent_plan_id: number | null;
+  title: string;
+  description: string | null;
+  year: number;
+  start_date: string | null;
+  end_date: string | null;
+  plan_level: string;
+  status: string;
+  budget_ceiling: number | null;
+  currency: string;
+  created_by_id: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+  actions_count?: number;
+  needs_count?: number;
+  schedules_count?: number;
+}
+
+interface PlanAction {
+  id: number;
+  plan_id: number;
+  course_id: number | null;
+  title: string | null;
+  target_type: string;
+  target_id: number | null;
+  is_mandatory: boolean;
+  modality: string;
+  provider_id: number | null;
+  unit_cost: number | null;
+  billing_mode: string | null;
+  max_participants: number | null;
+  course_title: string | null;
+  provider_name: string | null;
+  created_at: string | null;
+}
+
+interface PlanSchedule {
+  id: number;
+  plan_id: number;
+  action_id: number;
+  start_date: string | null;
+  end_date: string | null;
+  quarter: string | null;
+  status: string;
+  location: string | null;
+  trainer_id: number | null;
+  external_trainer: string | null;
+  max_participants: number | null;
+  action_title: string | null;
+  trainer_name: string | null;
+  enrolled_count: number;
+  created_at: string | null;
+}
+
+interface PlanNeed {
+  id: number;
+  plan_id: number;
+  employee_id: number;
+  employee_name: string | null;
+  source: string[] | null;
+  skill_target: string | null;
+  priority: string;
+  year: number | null;
+  status: string;
+  created_at: string | null;
+}
+
+interface BudgetLine {
+  action_id: number;
+  action_title: string | null;
+  course_title: string | null;
+  modality: string | null;
+  unit_cost: number | null;
+  billing_mode: string | null;
+  scheduled_sessions: number;
+  total_participants: number;
+  estimated_cost: number;
+}
+
+interface BudgetSummary {
+  plan_id: number;
+  budget_ceiling: number | null;
+  currency: string;
+  total_estimated: number;
+  budget_remaining: number | null;
+  budget_usage_percent: number | null;
+  actions_count: number;
+  lines: BudgetLine[];
+}
+
+// ============================================
+// HELPERS
+// ============================================
+
+const PLAN_STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
+  draft:     { label: 'Brouillon', bg: 'bg-gray-100',   text: 'text-gray-700' },
+  submitted: { label: 'Soumis',    bg: 'bg-amber-100',  text: 'text-amber-700' },
+  approved:  { label: 'Approuvé',  bg: 'bg-blue-100',   text: 'text-blue-700' },
+  active:    { label: 'Actif',     bg: 'bg-green-100',  text: 'text-green-700' },
+  closed:    { label: 'Clôturé',   bg: 'bg-gray-100',   text: 'text-gray-600' },
+  cancelled: { label: 'Annulé',    bg: 'bg-red-100',    text: 'text-red-700' },
+};
+
+const LEVEL_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
+  group:      { label: 'Groupe',   bg: 'bg-purple-100', text: 'text-purple-700' },
+  subsidiary: { label: 'Filiale',  bg: 'bg-indigo-100', text: 'text-indigo-700' },
+  local:      { label: 'Local',    bg: 'bg-teal-100',   text: 'text-teal-700' },
+};
+
+const MODALITY_LABELS: Record<string, string> = {
+  presentiel: 'Présentiel',
+  distanciel: 'Distanciel',
+  blended:    'Blended',
+  elearning:  'E-learning',
+};
+
+const QUARTER_LABELS = ['T1', 'T2', 'T3', 'T4'];
+
+const PRIORITY_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
+  high:   { label: 'Haute',   bg: 'bg-red-100',    text: 'text-red-700' },
+  medium: { label: 'Moyenne', bg: 'bg-amber-100',  text: 'text-amber-700' },
+  low:    { label: 'Basse',   bg: 'bg-green-100',  text: 'text-green-700' },
+};
+
+const SCHEDULE_STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
+  planned:     { label: 'Planifié',  bg: 'bg-gray-100',  text: 'text-gray-700' },
+  in_progress: { label: 'En cours',  bg: 'bg-blue-100',  text: 'text-blue-700' },
+  completed:   { label: 'Terminé',   bg: 'bg-green-100', text: 'text-green-700' },
+  cancelled:   { label: 'Annulé',    bg: 'bg-red-100',   text: 'text-red-700' },
+};
+
+const NEED_STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
+  identified: { label: 'Identifié', bg: 'bg-gray-100',  text: 'text-gray-700' },
+  planned:    { label: 'Planifié',  bg: 'bg-blue-100',  text: 'text-blue-700' },
+  completed:  { label: 'Terminé',   bg: 'bg-green-100', text: 'text-green-700' },
+  cancelled:  { label: 'Annulé',    bg: 'bg-red-100',   text: 'text-red-700' },
+};
+
+function StatusBadge({ config, status }: { config: Record<string, { label: string; bg: string; text: string }>; status: string }) {
+  const c = config[status] || { label: status, bg: 'bg-gray-100', text: 'text-gray-700' };
+  return <span className={`px-2 py-0.5 text-xs font-medium rounded ${c.bg} ${c.text}`}>{c.label}</span>;
+}
+
+function formatCurrency(amount: number | null | undefined, currency = 'XOF'): string {
+  if (amount == null) return '—';
+  return new Intl.NumberFormat('fr-FR', { style: 'decimal', maximumFractionDigits: 0 }).format(amount) + ' ' + currency;
+}
+
+function formatDate(d: string | null): string {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+const currentYear = new Date().getFullYear();
+const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
+
+export default function PlanFormationPage() {
+  const { userRole } = useLearning();
+  const canManage = hasPermission(userRole, 'create_course'); // admin, dg, dga, rh
+
+  // ── List view state ──
+  const [plans, setPlans] = useState<TrainingPlan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filterYear, setFilterYear] = useState<number | ''>('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // ── Detail view state ──
+  const [selectedPlan, setSelectedPlan] = useState<TrainingPlan | null>(null);
+  const [detailTab, setDetailTab] = useState<'actions' | 'calendar' | 'needs' | 'budget'>('actions');
+  const [actions, setActions] = useState<PlanAction[]>([]);
+  const [schedules, setSchedules] = useState<PlanSchedule[]>([]);
+  const [needs, setNeeds] = useState<PlanNeed[]>([]);
+  const [budget, setBudget] = useState<BudgetSummary | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  // ── Modals ──
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editPlan, setEditPlan] = useState<TrainingPlan | null>(null);
+
+  // ── Create form ──
+  const [newPlan, setNewPlan] = useState({
+    title: '',
+    year: currentYear,
+    plan_level: 'local',
+    start_date: '',
+    end_date: '',
+    budget_ceiling: '',
+    currency: 'XOF',
+    description: '',
+  });
+
+  // ============================================
+  // API — Fetch plans list
+  // ============================================
+
+  const fetchPlans = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (filterYear) params.append('year', String(filterYear));
+      if (filterStatus) params.append('status', filterStatus);
+      params.append('page_size', '100');
+
+      const res = await fetch(`${API_URL}/api/training-plans/?${params}`, { headers: getAuthHeaders() });
+      if (!res.ok) throw new Error('Erreur chargement');
+      const data = await res.json();
+      setPlans(data.items || []);
+    } catch {
+      toast.error('Erreur lors du chargement des plans');
+    } finally {
+      setLoading(false);
+    }
+  }, [filterYear, filterStatus]);
+
+  useEffect(() => { fetchPlans(); }, [fetchPlans]);
+
+  // ============================================
+  // API — Fetch plan detail (actions, schedule, needs, budget)
+  // ============================================
+
+  const fetchPlanDetail = useCallback(async (planId: number) => {
+    setDetailLoading(true);
+    try {
+      const headers = getAuthHeaders();
+      const [detailRes, actionsRes, scheduleRes, needsRes, budgetRes] = await Promise.all([
+        fetch(`${API_URL}/api/training-plans/${planId}`, { headers }),
+        fetch(`${API_URL}/api/training-plans/${planId}/actions`, { headers }),
+        fetch(`${API_URL}/api/training-plans/${planId}/schedule`, { headers }),
+        fetch(`${API_URL}/api/training-plans/${planId}/needs`, { headers }),
+        fetch(`${API_URL}/api/training-plans/${planId}/budget`, { headers }),
+      ]);
+
+      if (detailRes.ok) {
+        const detail = await detailRes.json();
+        setSelectedPlan(detail);
+      }
+      if (actionsRes.ok) {
+        const d = await actionsRes.json();
+        setActions(d.items || []);
+      }
+      if (scheduleRes.ok) {
+        const d = await scheduleRes.json();
+        setSchedules(d.items || []);
+      }
+      if (needsRes.ok) {
+        const d = await needsRes.json();
+        setNeeds(d.items || []);
+      }
+      if (budgetRes.ok) {
+        setBudget(await budgetRes.json());
+      }
+    } catch {
+      toast.error('Erreur lors du chargement du détail');
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
+
+  // ============================================
+  // API — Create plan
+  // ============================================
+
+  const handleCreatePlan = async () => {
+    if (!newPlan.title.trim() || !newPlan.year) {
+      toast.error('Le titre et l\'année sont obligatoires');
+      return;
+    }
+    try {
+      const body: Record<string, unknown> = {
+        title: newPlan.title.trim(),
+        year: newPlan.year,
+        plan_level: newPlan.plan_level,
+        currency: newPlan.currency || 'XOF',
+      };
+      if (newPlan.description) body.description = newPlan.description;
+      if (newPlan.start_date) body.start_date = newPlan.start_date;
+      if (newPlan.end_date) body.end_date = newPlan.end_date;
+      if (newPlan.budget_ceiling) body.budget_ceiling = parseFloat(newPlan.budget_ceiling);
+
+      const res = await fetch(`${API_URL}/api/training-plans/`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Erreur création');
+      }
+      toast.success('Plan de formation créé');
+      setShowCreateModal(false);
+      setNewPlan({ title: '', year: currentYear, plan_level: 'local', start_date: '', end_date: '', budget_ceiling: '', currency: 'XOF', description: '' });
+      fetchPlans();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erreur lors de la création');
+    }
+  };
+
+  // ============================================
+  // API — Update plan
+  // ============================================
+
+  const handleUpdatePlan = async () => {
+    if (!editPlan) return;
+    try {
+      const body: Record<string, unknown> = {};
+      if (editPlan.title) body.title = editPlan.title;
+      if (editPlan.description !== undefined) body.description = editPlan.description;
+      if (editPlan.year) body.year = editPlan.year;
+      if (editPlan.plan_level) body.plan_level = editPlan.plan_level;
+      if (editPlan.status) body.status = editPlan.status;
+      if (editPlan.budget_ceiling !== null) body.budget_ceiling = editPlan.budget_ceiling;
+      if (editPlan.currency) body.currency = editPlan.currency;
+      if (editPlan.start_date) body.start_date = editPlan.start_date;
+      if (editPlan.end_date) body.end_date = editPlan.end_date;
+
+      const res = await fetch(`${API_URL}/api/training-plans/${editPlan.id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error('Erreur mise à jour');
+      toast.success('Plan mis à jour');
+      setShowEditModal(false);
+      setEditPlan(null);
+      fetchPlans();
+      if (selectedPlan?.id === editPlan.id) fetchPlanDetail(editPlan.id);
+    } catch {
+      toast.error('Erreur lors de la mise à jour');
+    }
+  };
+
+  // ============================================
+  // API — Soft delete plan
+  // ============================================
+
+  const handleDeletePlan = async (planId: number) => {
+    if (!confirm('Annuler ce plan de formation ?')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/training-plans/${planId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) throw new Error('Erreur suppression');
+      toast.success('Plan annulé');
+      if (selectedPlan?.id === planId) setSelectedPlan(null);
+      fetchPlans();
+    } catch {
+      toast.error('Erreur lors de l\'annulation');
+    }
+  };
+
+  // ============================================
+  // API — Duplicate plan
+  // ============================================
+
+  const handleDuplicatePlan = async (plan: TrainingPlan) => {
+    try {
+      const body = {
+        title: `${plan.title} (copie)`,
+        year: plan.year,
+        plan_level: plan.plan_level,
+        budget_ceiling: plan.budget_ceiling,
+        currency: plan.currency,
+        description: plan.description,
+        start_date: plan.start_date,
+        end_date: plan.end_date,
+      };
+      const res = await fetch(`${API_URL}/api/training-plans/`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error('Erreur duplication');
+      toast.success('Plan dupliqué');
+      fetchPlans();
+    } catch {
+      toast.error('Erreur lors de la duplication');
+    }
+  };
+
+  // ============================================
+  // Filtered plans
+  // ============================================
+
+  const filteredPlans = plans.filter(p => {
+    if (searchQuery && !p.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    return true;
+  });
+
+  // ============================================
+  // DETAIL VIEW
+  // ============================================
+
+  if (selectedPlan) {
+    return (
+      <div className="space-y-6">
+        {/* Back button + header */}
+        <div className="flex items-center gap-4">
+          <button onClick={() => setSelectedPlan(null)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-bold text-gray-900">{selectedPlan.title}</h2>
+              <StatusBadge config={PLAN_STATUS_CONFIG} status={selectedPlan.status} />
+              <StatusBadge config={LEVEL_CONFIG} status={selectedPlan.plan_level} />
+            </div>
+            <p className="text-sm text-gray-500 mt-1">
+              {selectedPlan.year} &middot; {formatDate(selectedPlan.start_date)} — {formatDate(selectedPlan.end_date)}
+              {selectedPlan.budget_ceiling && <> &middot; Plafond : {formatCurrency(selectedPlan.budget_ceiling, selectedPlan.currency)}</>}
+            </p>
+          </div>
+          {canManage && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setEditPlan({ ...selectedPlan }); setShowEditModal(true); }}
+                className="px-3 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-1.5"
+              >
+                <Edit className="w-4 h-4" /> Modifier
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Stats cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
+            <p className="text-xs text-gray-500">Actions</p>
+            <p className="text-xl font-bold text-gray-900">{selectedPlan.actions_count ?? actions.length}</p>
+          </div>
+          <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
+            <p className="text-xs text-gray-500">Sessions</p>
+            <p className="text-xl font-bold text-gray-900">{selectedPlan.schedules_count ?? schedules.length}</p>
+          </div>
+          <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
+            <p className="text-xs text-gray-500">Besoins</p>
+            <p className="text-xl font-bold text-gray-900">{selectedPlan.needs_count ?? needs.length}</p>
+          </div>
+          <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
+            <p className="text-xs text-gray-500">Budget estimé</p>
+            <p className="text-xl font-bold text-gray-900">
+              {budget ? formatCurrency(budget.total_estimated, budget.currency) : '—'}
+            </p>
+          </div>
+        </div>
+
+        {/* Detail tabs */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="border-b border-gray-200">
+            <nav className="flex">
+              {([
+                { key: 'actions' as const, label: 'Actions', icon: Target, count: actions.length },
+                { key: 'calendar' as const, label: 'Calendrier', icon: Calendar, count: schedules.length },
+                { key: 'needs' as const, label: 'Besoins', icon: Users, count: needs.length },
+                { key: 'budget' as const, label: 'Budget', icon: DollarSign },
+              ]).map(tab => (
+                <button
+                  key={tab.key}
+                  onClick={() => setDetailTab(tab.key)}
+                  className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    detailTab === tab.key
+                      ? 'border-primary-500 text-primary-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <tab.icon className="w-4 h-4" />
+                  {tab.label}
+                  {tab.count !== undefined && (
+                    <span className="ml-1 text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{tab.count}</span>
+                  )}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          <div className="p-5">
+            {detailLoading ? (
+              <div className="flex justify-center py-12">
+                <RefreshCw className="w-6 h-6 animate-spin text-primary-500" />
+              </div>
+            ) : (
+              <>
+                {detailTab === 'actions' && <ActionsTab actions={actions} />}
+                {detailTab === 'calendar' && <CalendarTab schedules={schedules} />}
+                {detailTab === 'needs' && <NeedsTab needs={needs} />}
+                {detailTab === 'budget' && <BudgetTab budget={budget} />}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================
+  // LIST VIEW
+  // ============================================
+
+  return (
+    <div className="space-y-6">
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="flex flex-wrap gap-3 items-center">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Rechercher un plan..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-56"
+            />
+          </div>
+
+          {/* Year filter */}
+          <select
+            value={filterYear}
+            onChange={e => setFilterYear(e.target.value ? parseInt(e.target.value) : '')}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+          >
+            <option value="">Toutes les années</option>
+            {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+
+          {/* Status filter */}
+          <select
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+          >
+            <option value="">Tous statuts</option>
+            {Object.entries(PLAN_STATUS_CONFIG).map(([k, v]) => (
+              <option key={k} value={k}>{v.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {canManage && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 flex items-center gap-2 text-sm font-medium transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Nouveau Plan
+          </button>
+        )}
+      </div>
+
+      {/* Plans table */}
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <RefreshCw className="w-8 h-8 animate-spin text-primary-500" />
+        </div>
+      ) : filteredPlans.length === 0 ? (
+        <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
+          <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-500 font-medium">Aucun plan de formation</p>
+          <p className="text-sm text-gray-400 mt-1">
+            {canManage ? 'Créez votre premier plan avec le bouton ci-dessus.' : 'Aucun plan disponible pour le moment.'}
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Titre</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Année</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Niveau</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Statut</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-600">Budget</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Période</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-600">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filteredPlans.map(plan => (
+                  <tr key={plan.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => { setSelectedPlan(plan); fetchPlanDetail(plan.id); setDetailTab('actions'); }}
+                        className="text-left font-medium text-gray-900 hover:text-primary-600 transition-colors"
+                      >
+                        {plan.title}
+                      </button>
+                      {plan.description && (
+                        <p className="text-xs text-gray-400 mt-0.5 truncate max-w-xs">{plan.description}</p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">{plan.year}</td>
+                    <td className="px-4 py-3">
+                      <StatusBadge config={LEVEL_CONFIG} status={plan.plan_level} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge config={PLAN_STATUS_CONFIG} status={plan.status} />
+                    </td>
+                    <td className="px-4 py-3 text-right text-gray-700">
+                      {plan.budget_ceiling
+                        ? formatCurrency(plan.budget_ceiling, plan.currency)
+                        : <span className="text-gray-400">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {plan.start_date && plan.end_date
+                        ? `${formatDate(plan.start_date)} — ${formatDate(plan.end_date)}`
+                        : '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-1">
+                        <button
+                          onClick={() => { setSelectedPlan(plan); fetchPlanDetail(plan.id); setDetailTab('actions'); }}
+                          className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-primary-600 transition-colors"
+                          title="Voir le détail"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        {canManage && (
+                          <>
+                            <button
+                              onClick={() => { setEditPlan({ ...plan }); setShowEditModal(true); }}
+                              className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-primary-600 transition-colors"
+                              title="Modifier"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDuplicatePlan(plan)}
+                              className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-indigo-600 transition-colors"
+                              title="Dupliquer"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── Create Modal ── */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Nouveau Plan de Formation</h2>
+                <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
+                <input
+                  type="text"
+                  value={newPlan.title}
+                  onChange={e => setNewPlan(p => ({ ...p, title: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="Plan de formation 2026"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Année *</label>
+                  <select
+                    value={newPlan.year}
+                    onChange={e => setNewPlan(p => ({ ...p, year: parseInt(e.target.value) }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Niveau</label>
+                  <select
+                    value={newPlan.plan_level}
+                    onChange={e => setNewPlan(p => ({ ...p, plan_level: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="local">Local</option>
+                    <option value="subsidiary">Filiale</option>
+                    <option value="group">Groupe</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date début</label>
+                  <input
+                    type="date"
+                    value={newPlan.start_date}
+                    onChange={e => setNewPlan(p => ({ ...p, start_date: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date fin</label>
+                  <input
+                    type="date"
+                    value={newPlan.end_date}
+                    onChange={e => setNewPlan(p => ({ ...p, end_date: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Plafond budgétaire</label>
+                  <input
+                    type="number"
+                    value={newPlan.budget_ceiling}
+                    onChange={e => setNewPlan(p => ({ ...p, budget_ceiling: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Devise</label>
+                  <select
+                    value={newPlan.currency}
+                    onChange={e => setNewPlan(p => ({ ...p, currency: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="XOF">XOF (FCFA)</option>
+                    <option value="EUR">EUR</option>
+                    <option value="USD">USD</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={newPlan.description}
+                  onChange={e => setNewPlan(p => ({ ...p, description: e.target.value }))}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 resize-none"
+                  placeholder="Description du plan..."
+                />
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex gap-3">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleCreatePlan}
+                className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-medium text-sm"
+              >
+                Créer le plan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Modal ── */}
+      {showEditModal && editPlan && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Modifier le plan</h2>
+                <button onClick={() => { setShowEditModal(false); setEditPlan(null); }} className="p-2 hover:bg-gray-100 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Titre</label>
+                <input
+                  type="text"
+                  value={editPlan.title}
+                  onChange={e => setEditPlan(p => p ? { ...p, title: e.target.value } : p)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Année</label>
+                  <select
+                    value={editPlan.year}
+                    onChange={e => setEditPlan(p => p ? { ...p, year: parseInt(e.target.value) } : p)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+                  <select
+                    value={editPlan.status}
+                    onChange={e => setEditPlan(p => p ? { ...p, status: e.target.value } : p)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    {Object.entries(PLAN_STATUS_CONFIG).map(([k, v]) => (
+                      <option key={k} value={k}>{v.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Niveau</label>
+                  <select
+                    value={editPlan.plan_level}
+                    onChange={e => setEditPlan(p => p ? { ...p, plan_level: e.target.value } : p)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="local">Local</option>
+                    <option value="subsidiary">Filiale</option>
+                    <option value="group">Groupe</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Plafond budgétaire</label>
+                  <input
+                    type="number"
+                    value={editPlan.budget_ceiling ?? ''}
+                    onChange={e => setEditPlan(p => p ? { ...p, budget_ceiling: e.target.value ? parseFloat(e.target.value) : null } : p)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date début</label>
+                  <input
+                    type="date"
+                    value={editPlan.start_date ?? ''}
+                    onChange={e => setEditPlan(p => p ? { ...p, start_date: e.target.value || null } : p)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date fin</label>
+                  <input
+                    type="date"
+                    value={editPlan.end_date ?? ''}
+                    onChange={e => setEditPlan(p => p ? { ...p, end_date: e.target.value || null } : p)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={editPlan.description ?? ''}
+                  onChange={e => setEditPlan(p => p ? { ...p, description: e.target.value } : p)}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 resize-none"
+                />
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex gap-3">
+              <button
+                onClick={() => { setShowEditModal(false); setEditPlan(null); }}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm"
+              >
+                Annuler
+              </button>
+              {canManage && editPlan.status !== 'cancelled' && (
+                <button
+                  onClick={() => handleDeletePlan(editPlan.id)}
+                  className="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 font-medium text-sm"
+                >
+                  Annuler le plan
+                </button>
+              )}
+              <button
+                onClick={handleUpdatePlan}
+                className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-medium text-sm"
+              >
+                Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ============================================
+// SUB-COMPONENTS — Detail Tabs
+// ============================================
+
+function ActionsTab({ actions }: { actions: PlanAction[] }) {
+  if (actions.length === 0) {
+    return (
+      <div className="text-center py-10">
+        <Target className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+        <p className="text-gray-500">Aucune action dans ce plan</p>
+      </div>
+    );
+  }
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-gray-200">
+            <th className="text-left px-3 py-2 text-gray-600 font-medium">Formation</th>
+            <th className="text-left px-3 py-2 text-gray-600 font-medium">Modalité</th>
+            <th className="text-left px-3 py-2 text-gray-600 font-medium">Cible</th>
+            <th className="text-left px-3 py-2 text-gray-600 font-medium">Prestataire</th>
+            <th className="text-right px-3 py-2 text-gray-600 font-medium">Coût unit.</th>
+            <th className="text-center px-3 py-2 text-gray-600 font-medium">Oblig.</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-50">
+          {actions.map(action => (
+            <tr key={action.id} className="hover:bg-gray-50">
+              <td className="px-3 py-2.5">
+                <p className="font-medium text-gray-900">{action.title || action.course_title || '—'}</p>
+                {action.course_title && action.title && action.course_title !== action.title && (
+                  <p className="text-xs text-gray-400">{action.course_title}</p>
+                )}
+              </td>
+              <td className="px-3 py-2.5 text-gray-600">
+                {MODALITY_LABELS[action.modality] || action.modality}
+              </td>
+              <td className="px-3 py-2.5">
+                <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
+                  {action.target_type === 'individual' ? 'Individuel' :
+                   action.target_type === 'department' ? 'Département' :
+                   action.target_type === 'job' ? 'Poste' :
+                   action.target_type === 'level' ? 'Niveau' :
+                   action.target_type === 'group' ? 'Groupe' : action.target_type}
+                </span>
+              </td>
+              <td className="px-3 py-2.5 text-gray-600">{action.provider_name || '—'}</td>
+              <td className="px-3 py-2.5 text-right text-gray-700">
+                {action.unit_cost ? formatCurrency(action.unit_cost) : '—'}
+              </td>
+              <td className="px-3 py-2.5 text-center">
+                {action.is_mandatory ? (
+                  <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded font-medium">Oui</span>
+                ) : (
+                  <span className="text-xs text-gray-400">—</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function CalendarTab({ schedules }: { schedules: PlanSchedule[] }) {
+  if (schedules.length === 0) {
+    return (
+      <div className="text-center py-10">
+        <Calendar className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+        <p className="text-gray-500">Aucune session planifiée</p>
+      </div>
+    );
+  }
+
+  // Group by quarter
+  const byQuarter: Record<string, PlanSchedule[]> = {};
+  for (const s of schedules) {
+    const q = s.quarter || 'Non assigné';
+    if (!byQuarter[q]) byQuarter[q] = [];
+    byQuarter[q].push(s);
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Timeline by quarter */}
+      <div className="grid grid-cols-4 gap-3 mb-4">
+        {QUARTER_LABELS.map(q => {
+          const items = byQuarter[q] || [];
+          const completed = items.filter(s => s.status === 'completed').length;
+          return (
+            <div key={q} className="bg-gray-50 rounded-lg p-3 text-center">
+              <p className="text-sm font-bold text-gray-700">{q}</p>
+              <p className="text-2xl font-bold text-primary-600 mt-1">{items.length}</p>
+              <p className="text-xs text-gray-500">{completed}/{items.length} terminées</p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Sessions list */}
+      <div className="space-y-3">
+        {schedules.map(s => (
+          <div key={s.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
+            <div className="flex-shrink-0 w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-primary-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-gray-900 text-sm">{s.action_title || '—'}</p>
+              <p className="text-xs text-gray-500">
+                {formatDate(s.start_date)} — {formatDate(s.end_date)}
+                {s.location && <> &middot; {s.location}</>}
+                {s.trainer_name && <> &middot; {s.trainer_name}</>}
+                {s.external_trainer && <> &middot; {s.external_trainer}</>}
+              </p>
+            </div>
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <span className="text-xs text-gray-500">{s.enrolled_count} inscrits</span>
+              {s.quarter && (
+                <span className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded font-medium">{s.quarter}</span>
+              )}
+              <StatusBadge config={SCHEDULE_STATUS_CONFIG} status={s.status} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NeedsTab({ needs }: { needs: PlanNeed[] }) {
+  if (needs.length === 0) {
+    return (
+      <div className="text-center py-10">
+        <Users className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+        <p className="text-gray-500">Aucun besoin identifié</p>
+      </div>
+    );
+  }
+
+  // Group by source
+  const sourceCount: Record<string, number> = {};
+  for (const n of needs) {
+    for (const s of n.source || ['Autre']) {
+      sourceCount[s] = (sourceCount[s] || 0) + 1;
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Source summary pills */}
+      <div className="flex flex-wrap gap-2">
+        {Object.entries(sourceCount).map(([src, count]) => (
+          <span key={src} className="px-3 py-1 text-xs font-medium bg-primary-50 text-primary-700 rounded-full">
+            {src} ({count})
+          </span>
+        ))}
+      </div>
+
+      {/* Needs table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="text-left px-3 py-2 text-gray-600 font-medium">Employé</th>
+              <th className="text-left px-3 py-2 text-gray-600 font-medium">Compétence cible</th>
+              <th className="text-left px-3 py-2 text-gray-600 font-medium">Source</th>
+              <th className="text-left px-3 py-2 text-gray-600 font-medium">Priorité</th>
+              <th className="text-left px-3 py-2 text-gray-600 font-medium">Statut</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {needs.map(need => (
+              <tr key={need.id} className="hover:bg-gray-50">
+                <td className="px-3 py-2.5 font-medium text-gray-900">{need.employee_name || '—'}</td>
+                <td className="px-3 py-2.5 text-gray-700">{need.skill_target || '—'}</td>
+                <td className="px-3 py-2.5">
+                  <div className="flex flex-wrap gap-1">
+                    {(need.source || []).map(s => (
+                      <span key={s} className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">{s}</span>
+                    ))}
+                  </div>
+                </td>
+                <td className="px-3 py-2.5">
+                  <StatusBadge config={PRIORITY_CONFIG} status={need.priority} />
+                </td>
+                <td className="px-3 py-2.5">
+                  <StatusBadge config={NEED_STATUS_CONFIG} status={need.status} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function BudgetTab({ budget }: { budget: BudgetSummary | null }) {
+  if (!budget) {
+    return (
+      <div className="text-center py-10">
+        <DollarSign className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+        <p className="text-gray-500">Données budgétaires indisponibles</p>
+      </div>
+    );
+  }
+
+  const isOverBudget = budget.budget_remaining !== null && budget.budget_remaining < 0;
+  const usageColor = isOverBudget ? 'text-red-600' : (budget.budget_usage_percent && budget.budget_usage_percent > 80 ? 'text-amber-600' : 'text-green-600');
+
+  return (
+    <div className="space-y-6">
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-gray-50 rounded-xl px-4 py-3">
+          <p className="text-xs text-gray-500">Budget total estimé</p>
+          <p className="text-lg font-bold text-gray-900">{formatCurrency(budget.total_estimated, budget.currency)}</p>
+        </div>
+        <div className="bg-gray-50 rounded-xl px-4 py-3">
+          <p className="text-xs text-gray-500">Plafond budgétaire</p>
+          <p className="text-lg font-bold text-gray-900">{budget.budget_ceiling ? formatCurrency(budget.budget_ceiling, budget.currency) : '—'}</p>
+        </div>
+        <div className="bg-gray-50 rounded-xl px-4 py-3">
+          <p className="text-xs text-gray-500">Restant</p>
+          <p className={`text-lg font-bold ${budget.budget_remaining != null ? usageColor : 'text-gray-400'}`}>
+            {budget.budget_remaining != null ? formatCurrency(budget.budget_remaining, budget.currency) : '—'}
+          </p>
+        </div>
+        <div className="bg-gray-50 rounded-xl px-4 py-3">
+          <p className="text-xs text-gray-500">Utilisation</p>
+          <p className={`text-lg font-bold ${budget.budget_usage_percent != null ? usageColor : 'text-gray-400'}`}>
+            {budget.budget_usage_percent != null ? `${budget.budget_usage_percent}%` : '—'}
+          </p>
+        </div>
+      </div>
+
+      {/* Budget bar */}
+      {budget.budget_ceiling && budget.budget_ceiling > 0 && (
+        <div>
+          <div className="flex justify-between text-xs text-gray-500 mb-1">
+            <span>0 {budget.currency}</span>
+            <span>{formatCurrency(budget.budget_ceiling, budget.currency)}</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div
+              className={`h-3 rounded-full transition-all ${isOverBudget ? 'bg-red-500' : (budget.budget_usage_percent && budget.budget_usage_percent > 80 ? 'bg-amber-500' : 'bg-green-500')}`}
+              style={{ width: `${Math.min(budget.budget_usage_percent || 0, 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Over-budget alert */}
+      {isOverBudget && (
+        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+          <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-red-800">Dépassement budgétaire</p>
+            <p className="text-xs text-red-600 mt-0.5">Le budget estimé dépasse le plafond de {formatCurrency(Math.abs(budget.budget_remaining!), budget.currency)}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Cost lines */}
+      {budget.lines.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">Action</th>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">Modalité</th>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">Facturation</th>
+                <th className="text-right px-3 py-2 text-gray-600 font-medium">Coût unit.</th>
+                <th className="text-right px-3 py-2 text-gray-600 font-medium">Sessions</th>
+                <th className="text-right px-3 py-2 text-gray-600 font-medium">Participants</th>
+                <th className="text-right px-3 py-2 text-gray-600 font-medium">Estimé</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {budget.lines.map(line => (
+                <tr key={line.action_id} className="hover:bg-gray-50">
+                  <td className="px-3 py-2.5 font-medium text-gray-900">{line.action_title || line.course_title || '—'}</td>
+                  <td className="px-3 py-2.5 text-gray-600">{line.modality ? (MODALITY_LABELS[line.modality] || line.modality) : '—'}</td>
+                  <td className="px-3 py-2.5 text-gray-600 text-xs">
+                    {line.billing_mode === 'per_participant' ? 'Par participant' :
+                     line.billing_mode === 'per_session' ? 'Par session' :
+                     line.billing_mode === 'forfait' ? 'Forfait' : '—'}
+                  </td>
+                  <td className="px-3 py-2.5 text-right text-gray-700">{line.unit_cost ? formatCurrency(line.unit_cost) : '—'}</td>
+                  <td className="px-3 py-2.5 text-right text-gray-700">{line.scheduled_sessions}</td>
+                  <td className="px-3 py-2.5 text-right text-gray-700">{line.total_participants}</td>
+                  <td className="px-3 py-2.5 text-right font-medium text-gray-900">{formatCurrency(line.estimated_cost)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-gray-300">
+                <td colSpan={6} className="px-3 py-2.5 text-right font-bold text-gray-900">Total estimé</td>
+                <td className="px-3 py-2.5 text-right font-bold text-gray-900">{formatCurrency(budget.total_estimated, budget.currency)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}

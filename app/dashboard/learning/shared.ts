@@ -275,6 +275,9 @@ export const hasPermission = (userRole: string, action: string): boolean => {
     'view_requests': ['admin', 'dg', 'dga', 'rh'],
     'request_course': ['manager', 'employee'],
     'view_team': ['manager'],
+    'create_training_plan': ['admin', 'dg', 'dga', 'rh'],
+    'manage_training_plan': ['admin', 'dg', 'dga', 'rh'],
+    'submit_need': ['admin', 'dg', 'dga', 'rh', 'manager', 'employee'],
   };
   const allowedRoles = permissions[action] || [];
   return allowedRoles.includes(userRole.toLowerCase());
@@ -406,6 +409,52 @@ export const getAuthHeaders = () => {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json'
   };
+};
+
+// ============================================
+// TRAINING PLAN STATUS HELPERS
+// ============================================
+
+export const getTrainingPlanStatusColor = (status: string) => {
+  const colors: Record<string, string> = {
+    'draft': 'bg-gray-100 text-gray-700',
+    'submitted': 'bg-amber-100 text-amber-700',
+    'approved': 'bg-blue-100 text-blue-700',
+    'active': 'bg-green-100 text-green-700',
+    'closed': 'bg-gray-100 text-gray-600',
+    'cancelled': 'bg-red-100 text-red-700',
+  };
+  return colors[status] || 'bg-gray-100 text-gray-700';
+};
+
+export const getTrainingPlanStatusLabel = (status: string) => {
+  const labels: Record<string, string> = {
+    'draft': 'Brouillon',
+    'submitted': 'Soumis',
+    'approved': 'Approuvé',
+    'active': 'Actif',
+    'closed': 'Clôturé',
+    'cancelled': 'Annulé',
+  };
+  return labels[status] || status;
+};
+
+export const getPlanLevelColor = (level: string) => {
+  const colors: Record<string, string> = {
+    'group': 'bg-purple-100 text-purple-700',
+    'subsidiary': 'bg-indigo-100 text-indigo-700',
+    'local': 'bg-teal-100 text-teal-700',
+  };
+  return colors[level] || 'bg-gray-100 text-gray-700';
+};
+
+export const getPlanLevelLabel = (level: string) => {
+  const labels: Record<string, string> = {
+    'group': 'Groupe',
+    'subsidiary': 'Filiale',
+    'local': 'Local',
+  };
+  return labels[level] || level;
 };
 
 export const categories = ['Tous', 'Soft Skills', 'Technique', 'Management', 'Commercial', 'Innovation', 'Juridique'];

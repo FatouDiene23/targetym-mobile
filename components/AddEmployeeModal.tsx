@@ -876,15 +876,6 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
             </div>
-              <textarea
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="Adresse complète"
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
-              />
-            </div>
             <div className="col-span-2 mt-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <label className="flex items-start cursor-pointer">
                 <input

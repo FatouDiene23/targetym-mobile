@@ -199,7 +199,6 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
         nationality: formData.nationality || null,
         probation_end_date: formData.probation_end_date || null,
         contract_end_date: formData.contract_end_date || null,
-        photo_url: formData.photo_url || null,
         address: formData.address || null,
         marital_status: formData.marital_status || null,
         spouse_name: formData.spouse_name || null,
@@ -214,16 +213,20 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
         hrbp: formData.hrbp || null,
         salary_category: formData.salary_category || null,
       } as Partial<EmployeeCreate>);
-      // Upload photo si un nouveau fichier est sélectionné
+      // Upload photo via endpoint dédié (séparé du PUT principal)
+      let savedPhotoUrl: string | undefined = formData.photo_url || undefined;
       if (photoFile) {
         try {
           const result = await uploadEmployeePhoto(employee.id, photoFile);
           setPhotoPreview(result.photo_url);
+          savedPhotoUrl = result.photo_url;
         } catch (photoErr) {
           console.error('Error uploading photo:', photoErr);
+          // savedPhotoUrl garde l'ancienne valeur (formData.photo_url)
         }
       }
       onSuccess({
+        photo_url: savedPhotoUrl,
         marital_status: formData.marital_status || undefined,
         spouse_name: formData.spouse_name || undefined,
         spouse_birth_date: formData.spouse_birth_date || undefined,

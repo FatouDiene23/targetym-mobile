@@ -1236,21 +1236,41 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
   }, [role, employeeId]);
 
   const handleSubmit = async () => {
+    const effectiveEmployeeId = formData.employee_id || employeeId;
+    if (!effectiveEmployeeId) {
+      toast.error('Employé non identifié. Veuillez rafraîchir la page.');
+      return;
+    }
     if (!formData.subject || !formData.departure_location || !formData.destination || !formData.start_date || !formData.end_date) {
       toast.error('Veuillez remplir tous les champs obligatoires');
       return;
     }
 
+    const payload = {
+      employee_id: effectiveEmployeeId,
+      subject: formData.subject,
+      description: formData.description || null,
+      departure_location: formData.departure_location,
+      destination: formData.destination,
+      destination_country: formData.destination_country || null,
+      trip_type: formData.trip_type || null,
+      start_date: formData.start_date,
+      end_date: formData.end_date,
+      transport_type: formData.transport_type,
+      transport_details: formData.transport_details || null,
+      accommodation_type: formData.accommodation_type || null,
+      accommodation_details: formData.accommodation_details || null,
+      estimated_budget: formData.estimated_budget ? parseFloat(formData.estimated_budget) : null,
+      as_draft: formData.as_draft,
+    };
+
+    console.log('[CreateMission] Payload envoyé:', payload);
+
     try {
       setSubmitting(true);
       await apiFetch('/api/missions/', {
         method: 'POST',
-        body: JSON.stringify({
-          ...formData,
-          employee_id: formData.employee_id || employeeId,
-          estimated_budget: formData.estimated_budget ? parseFloat(formData.estimated_budget) : null,
-          accommodation_type: formData.accommodation_type || null,
-        }),
+        body: JSON.stringify(payload),
       });
       onSuccess();
     } catch (err: any) {

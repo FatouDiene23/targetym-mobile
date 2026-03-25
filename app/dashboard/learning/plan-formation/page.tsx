@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Search, Eye, Edit, Copy, X, ChevronLeft,
   Calendar, Target, Users, DollarSign, FileText,
-  BarChart3, Clock, CheckCircle, AlertTriangle, RefreshCw,
+  BarChart3, Clock, CheckCircle, AlertTriangle, RefreshCw, MapPin,
 } from 'lucide-react';
 import { useLearning } from '../LearningContext';
 import { API_URL, getAuthHeaders, hasPermission } from '../shared';
@@ -226,6 +226,31 @@ export default function PlanFormationPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editPlan, setEditPlan] = useState<TrainingPlan | null>(null);
+
+  // ── Add Action modal ──
+  const [showAddAction, setShowAddAction] = useState(false);
+  const [coursesList, setCoursesList] = useState<{ id: number; title: string }[]>([]);
+  const [providersList, setProvidersList] = useState<{ id: number; name: string }[]>([]);
+  const [newAction, setNewAction] = useState({
+    title: '', course_id: '', modality: 'presentiel', target_type: 'individual',
+    target_id: '', is_mandatory: false, provider_id: '', unit_cost: '',
+    billing_mode: '', max_participants: '',
+  });
+
+  // ── Add Need modal ──
+  const [showAddNeed, setShowAddNeed] = useState(false);
+  const [employeesList, setEmployeesList] = useState<{ id: number; name: string }[]>([]);
+  const [newNeed, setNewNeed] = useState({
+    employee_id: '', skill_target: '', source: [] as string[], priority: 'medium',
+  });
+
+  // ── Add Schedule modal ──
+  const [showAddSchedule, setShowAddSchedule] = useState(false);
+  const [scheduleForAction, setScheduleForAction] = useState<PlanAction | null>(null);
+  const [newSchedule, setNewSchedule] = useState({
+    start_date: '', end_date: '', quarter: '', location: '',
+    trainer_id: '', external_trainer: '', max_participants: '',
+  });
 
   // ── Create form ──
   const [newPlan, setNewPlan] = useState({
@@ -458,6 +483,153 @@ export default function PlanFormationPage() {
   };
 
   // ============================================
+  // API — Fetch dropdown data (courses, providers, employees)
+  // ============================================
+
+  const fetchDropdownData = useCallback(async () => {
+    const headers = getAuthHeaders();
+    try {
+      const [coursesRes, providersRes, employeesRes] = await Promise.all([
+        fetch(`${API_URL}/api/learning/courses/?page_size=500`, { headers }),
+        fetch(`${API_URL}/api/training/providers`, { headers }),
+        fetch(`${API_URL}/api/employees/?page_size=500`, { headers }),
+      ]);
+      if (coursesRes.ok) {
+        const d = await coursesRes.json();
+        setCoursesList((d.items || d).map((c: { id: number; title: string }) => ({ id: c.id, title: c.title })));
+      }
+      if (providersRes.ok) {
+        const d = await providersRes.json();
+        setProvidersList((d.items || d).filter((p: { is_active?: boolean }) => p.is_active !== false).map((p: { id: number; name: string }) => ({ id: p.id, name: p.name })));
+      }
+      if (employeesRes.ok) {
+        const d = await employeesRes.json();
+        setEmployeesList((d.items || d).map((e: { id: number; first_name: string; last_name: string }) => ({ id: e.id, name: `${e.first_name} ${e.last_name}` })));
+      }
+    } catch { /* silently fail */ }
+  }, []);
+
+  // ============================================
+  // API — Create action
+  // ============================================
+
+  const handleCreateAction = async () => {
+    if (!selectedPlan) return;
+    if (!newAction.title && !newAction.course_id) {
+      toast.error('Un titre ou une formation du catalogue est requis');
+      return;
+    }
+    try {
+      const body: Record<string, unknown> = {
+        modality: newAction.modality,
+        target_type: newAction.target_type,
+        is_mandatory: newAction.is_mandatory,
+      };
+      if (newAction.title) body.title = newAction.title;
+      if (newAction.course_id) body.course_id = parseInt(newAction.course_id);
+      if (newAction.target_id) body.target_id = parseInt(newAction.target_id);
+      if (newAction.provider_id) body.provider_id = parseInt(newAction.provider_id);
+      if (newAction.unit_cost) body.unit_cost = parseFloat(newAction.unit_cost);
+      if (newAction.billing_mode) body.billing_mode = newAction.billing_mode;
+      if (newAction.max_participants) body.max_participants = parseInt(newAction.max_participants);
+
+      const res = await fetch(`${API_URL}/api/training-plans/${selectedPlan.id}/actions`, {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Erreur création action');
+      }
+      toast.success('Action ajoutée au plan');
+      setShowAddAction(false);
+      setNewAction({ title: '', course_id: '', modality: 'presentiel', target_type: 'individual', target_id: '', is_mandatory: false, provider_id: '', unit_cost: '', billing_mode: '', max_participants: '' });
+      fetchPlanDetail(selectedPlan.id);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    }
+  };
+
+  // ============================================
+  // API — Create need
+  // ============================================
+
+  const handleCreateNeed = async () => {
+    if (!selectedPlan) return;
+    if (!newNeed.employee_id) {
+      toast.error('L\'employé est obligatoire');
+      return;
+    }
+    try {
+      const body: Record<string, unknown> = {
+        employee_id: parseInt(newNeed.employee_id),
+        priority: newNeed.priority,
+        year: selectedPlan.year,
+      };
+      if (newNeed.skill_target) body.skill_target = newNeed.skill_target;
+      if (newNeed.source.length > 0) body.source = newNeed.source;
+
+      const res = await fetch(`${API_URL}/api/training-plans/${selectedPlan.id}/needs`, {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Erreur création besoin');
+      }
+      toast.success('Besoin de formation ajouté');
+      setShowAddNeed(false);
+      setNewNeed({ employee_id: '', skill_target: '', source: [], priority: 'medium' });
+      fetchPlanDetail(selectedPlan.id);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    }
+  };
+
+  // ============================================
+  // API — Create schedule
+  // ============================================
+
+  const handleCreateSchedule = async () => {
+    if (!selectedPlan || !scheduleForAction) return;
+    try {
+      const body: Record<string, unknown> = {
+        action_id: scheduleForAction.id,
+      };
+      if (newSchedule.start_date) body.start_date = newSchedule.start_date;
+      if (newSchedule.end_date) body.end_date = newSchedule.end_date;
+      if (newSchedule.quarter) body.quarter = newSchedule.quarter;
+      if (newSchedule.location) body.location = newSchedule.location;
+      if (newSchedule.trainer_id) body.trainer_id = parseInt(newSchedule.trainer_id);
+      if (newSchedule.external_trainer) body.external_trainer = newSchedule.external_trainer;
+      if (newSchedule.max_participants) body.max_participants = parseInt(newSchedule.max_participants);
+
+      const res = await fetch(`${API_URL}/api/training-plans/${selectedPlan.id}/schedule`, {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Erreur création session');
+      }
+      toast.success('Session planifiée');
+      setShowAddSchedule(false);
+      setScheduleForAction(null);
+      setNewSchedule({ start_date: '', end_date: '', quarter: '', location: '', trainer_id: '', external_trainer: '', max_participants: '' });
+      fetchPlanDetail(selectedPlan.id);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    }
+  };
+
+  // Auto-calculate quarter from start_date
+  const autoQuarter = (dateStr: string): string => {
+    if (!dateStr) return '';
+    const month = new Date(dateStr).getMonth() + 1;
+    if (month <= 3) return 'T1';
+    if (month <= 6) return 'T2';
+    if (month <= 9) return 'T3';
+    return 'T4';
+  };
+
+  // ============================================
   // Filtered plans
   // ============================================
 
@@ -559,9 +731,22 @@ export default function PlanFormationPage() {
               </div>
             ) : (
               <>
-                {detailTab === 'actions' && <ActionsTab actions={actions} />}
+                {detailTab === 'actions' && (
+                  <ActionsTab
+                    actions={actions}
+                    canManage={canManage}
+                    onAddAction={() => { fetchDropdownData(); setShowAddAction(true); }}
+                    onScheduleAction={(action) => { fetchDropdownData(); setScheduleForAction(action); setShowAddSchedule(true); }}
+                  />
+                )}
                 {detailTab === 'calendar' && <CalendarTab schedules={schedules} />}
-                {detailTab === 'needs' && <NeedsTab needs={needs} />}
+                {detailTab === 'needs' && (
+                  <NeedsTab
+                    needs={needs}
+                    canManage={canManage}
+                    onAddNeed={() => { fetchDropdownData(); setShowAddNeed(true); }}
+                  />
+                )}
                 {detailTab === 'budget' && <BudgetTab budget={budget} />}
               </>
             )}
@@ -1012,6 +1197,319 @@ export default function PlanFormationPage() {
           </div>
         </div>
       )}
+
+      {/* ── Add Action Modal ── */}
+      {showAddAction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Ajouter une action</h2>
+                <button onClick={() => setShowAddAction(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Titre {!newAction.course_id && '*'}</label>
+                <input
+                  type="text"
+                  value={newAction.title}
+                  onChange={e => setNewAction(p => ({ ...p, title: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  placeholder="Titre de l'action (requis si pas de formation liée)"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Formation du catalogue</label>
+                <select
+                  value={newAction.course_id}
+                  onChange={e => setNewAction(p => ({ ...p, course_id: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">— Aucune (formation libre) —</option>
+                  {coursesList.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Modalité</label>
+                  <select
+                    value={newAction.modality}
+                    onChange={e => setNewAction(p => ({ ...p, modality: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="presentiel">Présentiel</option>
+                    <option value="distanciel">Distanciel</option>
+                    <option value="blended">Blended</option>
+                    <option value="elearning">E-learning</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Type de cible</label>
+                  <select
+                    value={newAction.target_type}
+                    onChange={e => setNewAction(p => ({ ...p, target_type: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="individual">Individuel</option>
+                    <option value="job">Poste</option>
+                    <option value="department">Département</option>
+                    <option value="group">Groupe</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label>
+                <select
+                  value={newAction.provider_id}
+                  onChange={e => setNewAction(p => ({ ...p, provider_id: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">— Aucun —</option>
+                  {providersList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Coût unitaire</label>
+                  <input
+                    type="number"
+                    value={newAction.unit_cost}
+                    onChange={e => setNewAction(p => ({ ...p, unit_cost: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mode de facturation</label>
+                  <select
+                    value={newAction.billing_mode}
+                    onChange={e => setNewAction(p => ({ ...p, billing_mode: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">— Non défini —</option>
+                    <option value="per_participant">Par participant</option>
+                    <option value="per_session">Par session</option>
+                    <option value="forfait">Forfait</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nb participants max</label>
+                  <input
+                    type="number"
+                    value={newAction.max_participants}
+                    onChange={e => setNewAction(p => ({ ...p, max_participants: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                    placeholder="—"
+                  />
+                </div>
+                <div className="flex items-end pb-1">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newAction.is_mandatory}
+                      onChange={e => setNewAction(p => ({ ...p, is_mandatory: e.target.checked }))}
+                      className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-gray-700">Action obligatoire</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex gap-3">
+              <button onClick={() => setShowAddAction(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm">Annuler</button>
+              <button onClick={handleCreateAction} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-medium text-sm">Ajouter</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Add Need Modal ── */}
+      {showAddNeed && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Ajouter un besoin</h2>
+                <button onClick={() => setShowAddNeed(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Employé *</label>
+                <select
+                  value={newNeed.employee_id}
+                  onChange={e => setNewNeed(p => ({ ...p, employee_id: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">— Sélectionner —</option>
+                  {employeesList.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Compétence cible</label>
+                <input
+                  type="text"
+                  value={newNeed.skill_target}
+                  onChange={e => setNewNeed(p => ({ ...p, skill_target: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  placeholder="Ex: Leadership, Excel avancé..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
+                <div className="flex flex-wrap gap-2">
+                  {['OKR', 'Performance', 'Obligatoire', 'Manager', 'Employé'].map(src => {
+                    const isSelected = newNeed.source.includes(src);
+                    return (
+                      <button
+                        key={src}
+                        type="button"
+                        onClick={() => {
+                          setNewNeed(p => ({
+                            ...p,
+                            source: isSelected
+                              ? p.source.filter(s => s !== src)
+                              : [...p.source, src],
+                          }));
+                        }}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                          isSelected
+                            ? 'bg-primary-100 text-primary-700 border-primary-300'
+                            : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {src}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Priorité</label>
+                <select
+                  value={newNeed.priority}
+                  onChange={e => setNewNeed(p => ({ ...p, priority: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="high">Haute</option>
+                  <option value="medium">Moyenne</option>
+                  <option value="low">Faible</option>
+                </select>
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex gap-3">
+              <button onClick={() => setShowAddNeed(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm">Annuler</button>
+              <button onClick={handleCreateNeed} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-medium text-sm">Ajouter</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Add Schedule Modal ── */}
+      {showAddSchedule && scheduleForAction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Planifier une session</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">{scheduleForAction.title || scheduleForAction.course_title || 'Action'}</p>
+                </div>
+                <button onClick={() => { setShowAddSchedule(false); setScheduleForAction(null); }} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date début</label>
+                  <input
+                    type="date"
+                    value={newSchedule.start_date}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setNewSchedule(p => ({ ...p, start_date: val, quarter: autoQuarter(val) }));
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date fin</label>
+                  <input
+                    type="date"
+                    value={newSchedule.end_date}
+                    onChange={e => setNewSchedule(p => ({ ...p, end_date: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Trimestre</label>
+                  <select
+                    value={newSchedule.quarter}
+                    onChange={e => setNewSchedule(p => ({ ...p, quarter: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">Auto-calculé</option>
+                    <option value="T1">T1 (Jan-Mar)</option>
+                    <option value="T2">T2 (Avr-Jun)</option>
+                    <option value="T3">T3 (Jul-Sep)</option>
+                    <option value="T4">T4 (Oct-Déc)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Lieu</label>
+                  <input
+                    type="text"
+                    value={newSchedule.location}
+                    onChange={e => setNewSchedule(p => ({ ...p, location: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                    placeholder="Salle, site..."
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Formateur interne</label>
+                <select
+                  value={newSchedule.trainer_id}
+                  onChange={e => setNewSchedule(p => ({ ...p, trainer_id: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">— Aucun —</option>
+                  {employeesList.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Formateur externe</label>
+                <input
+                  type="text"
+                  value={newSchedule.external_trainer}
+                  onChange={e => setNewSchedule(p => ({ ...p, external_trainer: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  placeholder="Nom du formateur externe"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nb participants max</label>
+                <input
+                  type="number"
+                  value={newSchedule.max_participants}
+                  onChange={e => setNewSchedule(p => ({ ...p, max_participants: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  placeholder="—"
+                />
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex gap-3">
+              <button onClick={() => { setShowAddSchedule(false); setScheduleForAction(null); }} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm">Annuler</button>
+              <button onClick={handleCreateSchedule} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-medium text-sm">Planifier</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1021,64 +1519,88 @@ export default function PlanFormationPage() {
 // SUB-COMPONENTS — Detail Tabs
 // ============================================
 
-function ActionsTab({ actions }: { actions: PlanAction[] }) {
-  if (actions.length === 0) {
-    return (
-      <div className="text-center py-10">
-        <Target className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-        <p className="text-gray-500">Aucune action dans ce plan</p>
-      </div>
-    );
-  }
+function ActionsTab({ actions, canManage, onAddAction, onScheduleAction }: { actions: PlanAction[]; canManage: boolean; onAddAction: () => void; onScheduleAction: (action: PlanAction) => void }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-gray-200">
-            <th className="text-left px-3 py-2 text-gray-600 font-medium">Formation</th>
-            <th className="text-left px-3 py-2 text-gray-600 font-medium">Modalité</th>
-            <th className="text-left px-3 py-2 text-gray-600 font-medium">Cible</th>
-            <th className="text-left px-3 py-2 text-gray-600 font-medium">Prestataire</th>
-            <th className="text-right px-3 py-2 text-gray-600 font-medium">Coût unit.</th>
-            <th className="text-center px-3 py-2 text-gray-600 font-medium">Oblig.</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-50">
-          {actions.map(action => (
-            <tr key={action.id} className="hover:bg-gray-50">
-              <td className="px-3 py-2.5">
-                <p className="font-medium text-gray-900">{action.title || action.course_title || '—'}</p>
-                {action.course_title && action.title && action.course_title !== action.title && (
-                  <p className="text-xs text-gray-400">{action.course_title}</p>
-                )}
-              </td>
-              <td className="px-3 py-2.5 text-gray-600">
-                {MODALITY_LABELS[action.modality] || action.modality}
-              </td>
-              <td className="px-3 py-2.5">
-                <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
-                  {action.target_type === 'individual' ? 'Individuel' :
-                   action.target_type === 'department' ? 'Département' :
-                   action.target_type === 'job' ? 'Poste' :
-                   action.target_type === 'level' ? 'Niveau' :
-                   action.target_type === 'group' ? 'Groupe' : action.target_type}
-                </span>
-              </td>
-              <td className="px-3 py-2.5 text-gray-600">{action.provider_name || '—'}</td>
-              <td className="px-3 py-2.5 text-right text-gray-700">
-                {action.unit_cost ? formatCurrency(action.unit_cost) : '—'}
-              </td>
-              <td className="px-3 py-2.5 text-center">
-                {action.is_mandatory ? (
-                  <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded font-medium">Oui</span>
-                ) : (
-                  <span className="text-xs text-gray-400">—</span>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-4">
+      {canManage && (
+        <div className="flex justify-end">
+          <button
+            onClick={onAddAction}
+            className="px-3 py-1.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 flex items-center gap-1.5 text-sm font-medium transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Ajouter une action
+          </button>
+        </div>
+      )}
+
+      {actions.length === 0 ? (
+        <div className="text-center py-10">
+          <Target className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+          <p className="text-gray-500">Aucune action dans ce plan</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">Formation</th>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">Modalité</th>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">Cible</th>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">Prestataire</th>
+                <th className="text-right px-3 py-2 text-gray-600 font-medium">Coût unit.</th>
+                <th className="text-center px-3 py-2 text-gray-600 font-medium">Oblig.</th>
+                {canManage && <th className="text-center px-3 py-2 text-gray-600 font-medium">Planifier</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {actions.map(action => (
+                <tr key={action.id} className="hover:bg-gray-50">
+                  <td className="px-3 py-2.5">
+                    <p className="font-medium text-gray-900">{action.title || action.course_title || '—'}</p>
+                    {action.course_title && action.title && action.course_title !== action.title && (
+                      <p className="text-xs text-gray-400">{action.course_title}</p>
+                    )}
+                  </td>
+                  <td className="px-3 py-2.5 text-gray-600">
+                    {MODALITY_LABELS[action.modality] || action.modality}
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
+                      {action.target_type === 'individual' ? 'Individuel' :
+                       action.target_type === 'department' ? 'Département' :
+                       action.target_type === 'job' ? 'Poste' :
+                       action.target_type === 'level' ? 'Niveau' :
+                       action.target_type === 'group' ? 'Groupe' : action.target_type}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5 text-gray-600">{action.provider_name || '—'}</td>
+                  <td className="px-3 py-2.5 text-right text-gray-700">
+                    {action.unit_cost ? formatCurrency(action.unit_cost) : '—'}
+                  </td>
+                  <td className="px-3 py-2.5 text-center">
+                    {action.is_mandatory ? (
+                      <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded font-medium">Oui</span>
+                    ) : (
+                      <span className="text-xs text-gray-400">—</span>
+                    )}
+                  </td>
+                  {canManage && (
+                    <td className="px-3 py-2.5 text-center">
+                      <button
+                        onClick={() => onScheduleAction(action)}
+                        className="p-1.5 hover:bg-primary-50 rounded-lg text-gray-400 hover:text-primary-600 transition-colors"
+                        title="Planifier une session"
+                      >
+                        <Calendar className="w-4 h-4" />
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -1148,16 +1670,7 @@ function CalendarTab({ schedules }: { schedules: PlanSchedule[] }) {
   );
 }
 
-function NeedsTab({ needs }: { needs: PlanNeed[] }) {
-  if (needs.length === 0) {
-    return (
-      <div className="text-center py-10">
-        <Users className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-        <p className="text-gray-500">Aucun besoin identifié</p>
-      </div>
-    );
-  }
-
+function NeedsTab({ needs, canManage, onAddNeed }: { needs: PlanNeed[]; canManage: boolean; onAddNeed: () => void }) {
   // Group by source
   const sourceCount: Record<string, number> = {};
   for (const n of needs) {
@@ -1168,50 +1681,66 @@ function NeedsTab({ needs }: { needs: PlanNeed[] }) {
 
   return (
     <div className="space-y-4">
-      {/* Source summary pills */}
-      <div className="flex flex-wrap gap-2">
-        {Object.entries(sourceCount).map(([src, count]) => (
-          <span key={src} className="px-3 py-1 text-xs font-medium bg-primary-50 text-primary-700 rounded-full">
-            {src} ({count})
-          </span>
-        ))}
+      {/* Header with add button */}
+      <div className="flex items-center justify-between">
+        <div className="flex flex-wrap gap-2">
+          {Object.entries(sourceCount).map(([src, count]) => (
+            <span key={src} className="px-3 py-1 text-xs font-medium bg-primary-50 text-primary-700 rounded-full">
+              {src} ({count})
+            </span>
+          ))}
+        </div>
+        {canManage && (
+          <button
+            onClick={onAddNeed}
+            className="px-3 py-1.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 flex items-center gap-1.5 text-sm font-medium transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Ajouter un besoin
+          </button>
+        )}
       </div>
 
-      {/* Needs table */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left px-3 py-2 text-gray-600 font-medium">Employé</th>
-              <th className="text-left px-3 py-2 text-gray-600 font-medium">Compétence cible</th>
-              <th className="text-left px-3 py-2 text-gray-600 font-medium">Source</th>
-              <th className="text-left px-3 py-2 text-gray-600 font-medium">Priorité</th>
-              <th className="text-left px-3 py-2 text-gray-600 font-medium">Statut</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {needs.map(need => (
-              <tr key={need.id} className="hover:bg-gray-50">
-                <td className="px-3 py-2.5 font-medium text-gray-900">{need.employee_name || '—'}</td>
-                <td className="px-3 py-2.5 text-gray-700">{need.skill_target || '—'}</td>
-                <td className="px-3 py-2.5">
-                  <div className="flex flex-wrap gap-1">
-                    {(need.source || []).map(s => (
-                      <span key={s} className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">{s}</span>
-                    ))}
-                  </div>
-                </td>
-                <td className="px-3 py-2.5">
-                  <StatusBadge config={PRIORITY_CONFIG} status={need.priority} />
-                </td>
-                <td className="px-3 py-2.5">
-                  <StatusBadge config={NEED_STATUS_CONFIG} status={need.status} />
-                </td>
+      {needs.length === 0 ? (
+        <div className="text-center py-10">
+          <Users className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+          <p className="text-gray-500">Aucun besoin identifié</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">Employé</th>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">Compétence cible</th>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">Source</th>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">Priorité</th>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">Statut</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {needs.map(need => (
+                <tr key={need.id} className="hover:bg-gray-50">
+                  <td className="px-3 py-2.5 font-medium text-gray-900">{need.employee_name || '—'}</td>
+                  <td className="px-3 py-2.5 text-gray-700">{need.skill_target || '—'}</td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex flex-wrap gap-1">
+                      {(need.source || []).map(s => (
+                        <span key={s} className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">{s}</span>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <StatusBadge config={PRIORITY_CONFIG} status={need.priority} />
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <StatusBadge config={NEED_STATUS_CONFIG} status={need.status} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

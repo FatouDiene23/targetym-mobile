@@ -88,7 +88,10 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
   });
 
   // Si 401, essayer de rafraîchir le token et réessayer
-  if (response.status === 401) {
+  // MAIS : ne jamais refresher pendant une impersonation (le refresh_token est celui du super admin,
+  // pas de l'utilisateur impersonné — cela remplacerait silencieusement le token d'impersonation)
+  const isImpersonating = typeof window !== 'undefined' && localStorage.getItem('is_impersonating') === 'true';
+  if (response.status === 401 && !isImpersonating) {
     const refreshed = await refreshAccessToken();
     if (refreshed) {
       // Réessayer la requête avec le nouveau token

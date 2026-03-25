@@ -783,11 +783,11 @@ export default function SettingsPage() {
           }
         })
         .catch(() => {});
-      fetch(`${API_URL}/api/employees?limit=1`, { headers: getAuthHeaders() })
+      fetch(`${API_URL}/api/employees/stats`, { headers: getAuthHeaders() })
         .then(r => r.ok ? r.json() : null)
         .then(data => {
-          if (data?.total !== undefined) setEmployeeCount(data.total);
-          else if (Array.isArray(data)) setEmployeeCount(data.length);
+          if (data?.active !== undefined) setEmployeeCount(data.active);
+          else if (data?.total !== undefined) setEmployeeCount(data.total);
         })
         .catch(() => {});
     }

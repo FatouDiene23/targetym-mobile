@@ -188,6 +188,22 @@ export interface Employee {
   updated_at?: string;
   probation_end_date?: string;
   contract_end_date?: string;
+  // Famille
+  marital_status?: string;
+  spouse_name?: string;
+  spouse_birth_date?: string;
+  // Adresse pro
+  work_email?: string;
+  work_phone?: string;
+  // Médical
+  has_disability?: boolean;
+  disability_description?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  // Organisation
+  comex_member?: string;
+  hrbp?: string;
+  salary_category?: string;
 }
 
 export interface EmployeeCreate {
@@ -218,6 +234,22 @@ export interface EmployeeCreate {
   address?: string;
   probation_end_date?: string;
   contract_end_date?: string;
+  // Famille
+  marital_status?: string;
+  spouse_name?: string;
+  spouse_birth_date?: string;
+  // Adresse pro
+  work_email?: string;
+  work_phone?: string;
+  // Médical
+  has_disability?: boolean;
+  disability_description?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  // Organisation
+  comex_member?: string;
+  hrbp?: string;
+  salary_category?: string;
 }
 
 export interface EmployeeStats {

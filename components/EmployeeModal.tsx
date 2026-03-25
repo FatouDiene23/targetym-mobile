@@ -10,7 +10,7 @@ import {
   BookOpen, AlertTriangle, Plus, Trash2, ChevronDown, ChevronUp, Maximize2, Minimize2, Gift,
   UserMinus, UserCheck
 } from 'lucide-react';
-import { getEmployeeAccessStatus, activateEmployeeAccess, deactivateEmployeeAccess, type AccessStatus } from '@/lib/api';
+import { getEmployeeAccessStatus, activateEmployeeAccess, type AccessStatus } from '@/lib/api';
 import EmployeeDocuments from '@/components/EmployeeDocuments';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -324,7 +324,6 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
   const [accessStatus, setAccessStatus] = useState<AccessStatus | null>(null);
   const [isLoadingAccess, setIsLoadingAccess] = useState(true);
   const [isActivating, setIsActivating] = useState(false);
-  const [isDeactivating, setIsDeactivating] = useState(false);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [leaveBalance, setLeaveBalance] = useState<LeaveBalanceData | null>(null);
@@ -534,22 +533,6 @@ export default function EmployeeModal({ employee, onClose, onEdit }: EmployeeMod
       setAccessStatus({ has_access: true, user_id: result.user_id, is_active: true, is_verified: false, last_login: null, role: result.role });
     } catch (err) { setError(err instanceof Error ? err.message : "Erreur lors de l'activation"); }
     finally { setIsActivating(false); }
-  }
-
-  async function handleDeactivateAccess() {
-    setConfirmDialog({
-      isOpen: true,
-      title: 'Désactiver l\'accès',
-      message: 'Êtes-vous sûr de vouloir désactiver l\'accès de cet employé ?',
-      danger: true,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        setIsDeactivating(true); setError('');
-        try { await deactivateEmployeeAccess(employee.id); setAccessStatus(prev => prev ? { ...prev, is_active: false } : null); }
-        catch (err) { setError(err instanceof Error ? err.message : "Erreur lors de la désactivation"); }
-        finally { setIsDeactivating(false); }
-      },
-    });
   }
 
   async function handleToggleStatus() {
@@ -845,12 +828,6 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                         <span className="text-sm text-gray-500">Dernière connexion</span>
                         <span className="text-sm text-gray-900">{new Date(accessStatus.last_login).toLocaleDateString('fr-FR')}</span>
                       </div>
-                    )}
-                    {accessStatus.is_active && (
-                      <button onClick={handleDeactivateAccess} disabled={isDeactivating}
-                        className="w-full mt-2 px-3 py-2 text-sm text-red-600 font-medium border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50 flex items-center justify-center">
-                        {isDeactivating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Désactiver l&apos;accès
-                      </button>
                     )}
                   </div>
                 ) : (

@@ -328,16 +328,39 @@ function SidebarInner() {
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
+    let employeeId: number | undefined;
     if (userStr) {
       try {
         const userData = JSON.parse(userStr);
         setUser(userData);
         setIsManager(userData.role?.toLowerCase() === 'manager' || userData.is_manager === true);
+        employeeId = userData.employee_id;
       } catch (e) {
         console.error('Error parsing user data:', e);
       }
     }
-    setPhotoUrl(localStorage.getItem('employee_photo_url'));
+
+    const cachedPhoto = localStorage.getItem('employee_photo_url');
+    if (cachedPhoto) {
+      setPhotoUrl(cachedPhoto);
+    } else if (employeeId) {
+      // Photo absente du cache (ex: après connexion) — on la récupère depuis l'API
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+        fetch(`${apiUrl}/employees/${employeeId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then(r => r.ok ? r.json() : null)
+          .then(emp => {
+            if (emp?.photo_url) {
+              localStorage.setItem('employee_photo_url', emp.photo_url);
+              setPhotoUrl(emp.photo_url);
+            }
+          })
+          .catch(() => {});
+      }
+    }
 
     const handlePhotoUpdate = () => {
       setPhotoUrl(localStorage.getItem('employee_photo_url'));

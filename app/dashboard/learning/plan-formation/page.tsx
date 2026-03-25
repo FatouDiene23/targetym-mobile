@@ -179,12 +179,32 @@ const currentYear = new Date().getFullYear();
 const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
 // ============================================
+// TENANT INFO TYPE
+// ============================================
+
+interface TenantSubsidiary {
+  id: number;
+  name: string;
+}
+
+interface TenantGroupInfo {
+  is_group: boolean;
+  group_type: 'standalone' | 'group' | 'subsidiary';
+  parent_tenant_id: number | null;
+  subsidiaries: TenantSubsidiary[];
+}
+
+// ============================================
 // MAIN COMPONENT
 // ============================================
 
 export default function PlanFormationPage() {
   const { userRole } = useLearning();
   const canManage = hasPermission(userRole, 'create_course'); // admin, dg, dga, rh
+
+  // ── Tenant group info ──
+  const [tenantInfo, setTenantInfo] = useState<TenantGroupInfo | null>(null);
+  const [excludedSubIds, setExcludedSubIds] = useState<Set<number>>(new Set());
 
   // ── List view state ──
   const [plans, setPlans] = useState<TrainingPlan[]>([]);
@@ -218,6 +238,30 @@ export default function PlanFormationPage() {
     currency: 'XOF',
     description: '',
   });
+
+  // ============================================
+  // API — Fetch tenant group info
+  // ============================================
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/training-plans/tenant-info`, { headers: getAuthHeaders() });
+        if (res.ok) {
+          const data = await res.json();
+          setTenantInfo(data);
+          // Si tenant simple (ni groupe ni filiale), forcer plan_level à 'local'
+          if (data.group_type === 'standalone') {
+            setNewPlan(p => ({ ...p, plan_level: 'local' }));
+          }
+          // Si filiale, masquer 'group' → default à 'local'
+          if (data.parent_tenant_id != null) {
+            setNewPlan(p => ({ ...p, plan_level: 'local' }));
+          }
+        }
+      } catch { /* silently fail */ }
+    })();
+  }, []);
 
   // ============================================
   // API — Fetch plans list
@@ -306,6 +350,10 @@ export default function PlanFormationPage() {
       if (newPlan.start_date) body.start_date = newPlan.start_date;
       if (newPlan.end_date) body.end_date = newPlan.end_date;
       if (newPlan.budget_ceiling) body.budget_ceiling = parseFloat(newPlan.budget_ceiling);
+      // Envoyer les filiales exclues si plan groupe
+      if (newPlan.plan_level === 'group' && excludedSubIds.size > 0) {
+        body.excluded_subsidiary_ids = Array.from(excludedSubIds);
+      }
 
       const res = await fetch(`${API_URL}/api/training-plans/`, {
         method: 'POST',
@@ -319,6 +367,7 @@ export default function PlanFormationPage() {
       toast.success('Plan de formation créé');
       setShowCreateModal(false);
       setNewPlan({ title: '', year: currentYear, plan_level: 'local', start_date: '', end_date: '', budget_ceiling: '', currency: 'XOF', description: '' });
+      setExcludedSubIds(new Set());
       fetchPlans();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Erreur lors de la création');
@@ -706,19 +755,66 @@ export default function PlanFormationPage() {
                     {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Niveau</label>
-                  <select
-                    value={newPlan.plan_level}
-                    onChange={e => setNewPlan(p => ({ ...p, plan_level: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="local">Local</option>
-                    <option value="subsidiary">Filiale</option>
-                    <option value="group">Groupe</option>
-                  </select>
-                </div>
+                {/* Niveau — adapté selon le type de tenant */}
+                {tenantInfo?.group_type !== 'standalone' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Niveau</label>
+                    <select
+                      value={newPlan.plan_level}
+                      onChange={e => { setNewPlan(p => ({ ...p, plan_level: e.target.value })); setExcludedSubIds(new Set()); }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="local">Local</option>
+                      {/* Filiale : afficher local + subsidiary uniquement */}
+                      {tenantInfo?.parent_tenant_id != null && (
+                        <option value="subsidiary">Filiale</option>
+                      )}
+                      {/* Groupe : afficher les 3 niveaux */}
+                      {tenantInfo?.is_group && !tenantInfo?.parent_tenant_id && (
+                        <>
+                          <option value="subsidiary">Filiale</option>
+                          <option value="group">Groupe</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+                )}
               </div>
+
+              {/* Section filiales — visible si groupe ET plan_level = group */}
+              {tenantInfo?.is_group && newPlan.plan_level === 'group' && tenantInfo.subsidiaries.length > 0 && (
+                <div className="border border-purple-200 bg-purple-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-medium text-purple-800">Filiales concernées</label>
+                    <span className="text-xs text-purple-600 font-medium">
+                      {tenantInfo.subsidiaries.length - excludedSubIds.size} filiale{tenantInfo.subsidiaries.length - excludedSubIds.size !== 1 ? 's' : ''} sur {tenantInfo.subsidiaries.length} concernée{tenantInfo.subsidiaries.length - excludedSubIds.size !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {tenantInfo.subsidiaries.map(sub => {
+                      const isIncluded = !excludedSubIds.has(sub.id);
+                      return (
+                        <label key={sub.id} className="flex items-center gap-2 cursor-pointer hover:bg-purple-100 rounded px-2 py-1 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={isIncluded}
+                            onChange={() => {
+                              setExcludedSubIds(prev => {
+                                const next = new Set(prev);
+                                if (isIncluded) next.add(sub.id);
+                                else next.delete(sub.id);
+                                return next;
+                              });
+                            }}
+                            className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                          />
+                          <span className="text-sm text-gray-800">{sub.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date début</label>

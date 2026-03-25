@@ -862,6 +862,7 @@ function EmployeesPageInner() {
   const handleExport = () => exportEmployeesToCSV(filteredEmployees);
   const handleSuccess = async (patch?: Partial<Employee>) => {
     const prevSelectedId = selectedEmployee?.id;
+    const isEdit = patch !== undefined;
     setSelectedEmployee(null);
     await loadAllData();
     if (prevSelectedId) {
@@ -871,6 +872,10 @@ function EmployeesPageInner() {
           ? { ...updated, ...Object.fromEntries(Object.entries(patch).filter(([, v]) => v != null && v !== undefined)) }
           : updated;
         setSelectedEmployee(merged as Employee);
+        if (isEdit) {
+          toast.success('Employé mis à jour avec succès');
+          setShowViewModal(true);
+        }
       } catch { /* si supprimé, on ne re-sélectionne pas */ }
     }
   };

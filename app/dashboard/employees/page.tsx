@@ -868,7 +868,7 @@ function EmployeesPageInner() {
       try {
         const updated = await getEmployee(prevSelectedId);
         const merged = patch
-          ? { ...updated, ...Object.fromEntries(Object.entries(patch).filter(([, v]) => v != null)) }
+          ? { ...updated, ...Object.fromEntries(Object.entries(patch).filter(([, v]) => v != null && v !== undefined)) }
           : updated;
         setSelectedEmployee(merged as Employee);
       } catch { /* si supprimé, on ne re-sélectionne pas */ }

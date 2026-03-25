@@ -224,18 +224,18 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
         }
       }
       onSuccess({
-        marital_status: formData.marital_status || null,
-        spouse_name: formData.spouse_name || null,
-        spouse_birth_date: formData.spouse_birth_date || null,
-        work_email: formData.work_email || null,
-        work_phone: formData.work_phone || null,
-        has_disability: formData.has_disability ?? null,
-        disability_description: formData.disability_description || null,
-        emergency_contact_name: formData.emergency_contact_name || null,
-        emergency_contact_phone: formData.emergency_contact_phone || null,
-        comex_member: formData.comex_member || null,
-        hrbp: formData.hrbp || null,
-        salary_category: formData.salary_category || null,
+        marital_status: formData.marital_status || undefined,
+        spouse_name: formData.spouse_name || undefined,
+        spouse_birth_date: formData.spouse_birth_date || undefined,
+        work_email: formData.work_email || undefined,
+        work_phone: formData.work_phone || undefined,
+        has_disability: formData.has_disability ?? undefined,
+        disability_description: formData.disability_description || undefined,
+        emergency_contact_name: formData.emergency_contact_name || undefined,
+        emergency_contact_phone: formData.emergency_contact_phone || undefined,
+        comex_member: formData.comex_member || undefined,
+        hrbp: formData.hrbp || undefined,
+        salary_category: formData.salary_category || undefined,
       });
       onClose();
     } catch (err) {

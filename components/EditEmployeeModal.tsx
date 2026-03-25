@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Loader2, Trash2 } from 'lucide-react';
+import { X, Loader2, Trash2, Camera } from 'lucide-react';
 import { 
-  updateEmployee, deleteEmployee, getDepartments, getEmployees, 
+  updateEmployee, deleteEmployee, getDepartments, getEmployees, uploadEmployeePhoto,
   type Employee, type EmployeeCreate, type Department, type GenderType, type ContractType, type StatusType, type EmployeeRole 
 } from '@/lib/api';
 import NationalitySelect from '@/components/NationalitySelect';
@@ -73,7 +73,9 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
   const [departments, setDepartments] = useState<Department[]>([]);
   const [managers, setManagers] = useState<Employee[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string>(employee.photo_url || '');
+
   const [formData, setFormData] = useState({
     employee_id: employee.employee_id || '',
     first_name: employee.first_name || '',
@@ -212,6 +214,15 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
         hrbp: formData.hrbp || null,
         salary_category: formData.salary_category || null,
       } as Partial<EmployeeCreate>);
+      // Upload photo si un nouveau fichier est sélectionné
+      if (photoFile) {
+        try {
+          const result = await uploadEmployeePhoto(employee.id, photoFile);
+          setPhotoPreview(result.photo_url);
+        } catch (photoErr) {
+          console.error('Error uploading photo:', photoErr);
+        }
+      }
       onSuccess();
       onClose();
     } catch (err) {
@@ -252,6 +263,16 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
       setFormData(prev => ({ ...prev, [name]: checked }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setPhotoPreview(reader.result as string);
+      reader.readAsDataURL(file);
     }
   };
 
@@ -648,17 +669,27 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               <p className="text-xs text-gray-500 mt-1">Prime ou commission variable mensuelle</p>
             </div>
 
-            {/* Photo */}
+            {/* Photo de profil */}
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">URL de la photo</label>
-              <input
-                type="url"
-                name="photo_url"
-                value={formData.photo_url}
-                onChange={handleChange}
-                placeholder="https://..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-2">Photo de profil</label>
+              <div className="flex items-center gap-4">
+                {photoPreview ? (
+                  <img src={photoPreview} alt="Photo de profil" className="w-16 h-16 rounded-full object-cover border border-gray-200 flex-shrink-0" />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-300 flex-shrink-0">
+                    <Camera className="w-6 h-6" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handlePhotoChange}
+                    className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 cursor-pointer"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">PNG, JPEG, WebP — max 5 Mo</p>
+                </div>
+              </div>
             </div>
 
             {/* === INFO FAMILIALE === */}

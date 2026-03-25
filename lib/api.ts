@@ -539,6 +539,27 @@ export async function deleteEmployee(id: number): Promise<void> {
   }
 }
 
+export async function uploadEmployeePhoto(id: number, file: File): Promise<{ photo_url: string }> {
+  const token = localStorage.getItem('access_token');
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_URL}/api/employees/${id}/photo`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
+  }
+
+  return response.json();
+}
+
 export async function getEmployeeStats(params?: { subsidiary_tenant_id?: number }): Promise<EmployeeStats> {
   const queryParams = new URLSearchParams();
   if (params?.subsidiary_tenant_id) queryParams.set('subsidiary_tenant_id', params.subsidiary_tenant_id.toString());

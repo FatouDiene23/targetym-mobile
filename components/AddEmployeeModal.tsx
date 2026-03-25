@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, ChevronLeft, Key } from 'lucide-react';
+import { Loader2, ChevronLeft, Key, Camera } from 'lucide-react';
 import { 
-  createEmployee, getDepartments, getEmployees, activateEmployeeAccess,
-  type Department, type Employee, type GenderType, type ContractType, type StatusType, type EmployeeRole 
+  createEmployee, getDepartments, getEmployees, activateEmployeeAccess, uploadEmployeePhoto,
+  type Department, type Employee, type GenderType, type ContractType, type StatusType, type EmployeeRole
 } from '@/lib/api';
 import NationalitySelect from '@/components/NationalitySelect';
 import { COUNTRIES } from '@/data/countries';
@@ -32,6 +32,8 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [createdEmployee, setCreatedEmployee] = useState<{ id: number; email: string } | null>(null);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string>('');
   
   const [formData, setFormData] = useState({
     employee_id: '',
@@ -62,6 +64,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
     create_access: false,
     photo_url: '',
     probation_end_date: '',
+    // photo file handled separately
     contract_end_date: '',
     // Famille
     marital_status: '',
@@ -171,6 +174,15 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
         salary_category: formData.salary_category || undefined,
       });
       
+      // Upload photo si sélectionnée
+      if (photoFile && newEmployee.id) {
+        try {
+          await uploadEmployeePhoto(newEmployee.id, photoFile);
+        } catch (photoErr) {
+          console.error('Error uploading photo:', photoErr);
+        }
+      }
+
       // Si on doit créer un compte d'accès
       if (formData.create_access && newEmployee.id) {
         try {
@@ -204,6 +216,16 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
       setFormData(prev => ({ ...prev, [name]: checked }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setPhotoPreview(reader.result as string);
+      reader.readAsDataURL(file);
     }
   };
 
@@ -864,17 +886,27 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               />
             </div>
 
-            {/* Photo */}
+            {/* Photo de profil */}
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">URL de la photo</label>
-              <input
-                type="url"
-                name="photo_url"
-                value={formData.photo_url}
-                onChange={handleChange}
-                placeholder="https://..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-2">Photo de profil</label>
+              <div className="flex items-center gap-4">
+                {photoPreview ? (
+                  <img src={photoPreview} alt="Prévisualisation" className="w-16 h-16 rounded-full object-cover border border-gray-200 flex-shrink-0" />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-300 flex-shrink-0">
+                    <Camera className="w-6 h-6" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handlePhotoChange}
+                    className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 cursor-pointer"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">PNG, JPEG, WebP — max 5 Mo</p>
+                </div>
+              </div>
             </div>
             <div className="col-span-2 mt-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <label className="flex items-start cursor-pointer">

@@ -741,8 +741,14 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
         {/* ==================== HEADER ==================== */}
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-primary-500 to-primary-600">
           <div className="flex items-center">
-            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-white text-xl font-bold mr-4">
-              {displayName.split(' ').map(n => n[0]).join('').substring(0, 2)}
+            <div className="w-16 h-16 rounded-full overflow-hidden mr-4 flex-shrink-0">
+              {employee.photo_url ? (
+                <img src={employee.photo_url} alt={displayName} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-white/20 flex items-center justify-center text-white text-xl font-bold">
+                  {displayName.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                </div>
+              )}
             </div>
             <div className="text-white">
               <h2 className="text-xl font-bold">{displayName}</h2>

@@ -184,6 +184,8 @@ export interface Employee {
   role?: EmployeeRole;
   nationality?: string;
   address?: string;
+  photo_url?: string;
+  signature_url?: string;
   created_at: string;
   updated_at?: string;
   probation_end_date?: string;
@@ -232,6 +234,7 @@ export interface EmployeeCreate {
   coefficient?: string | null;
   nationality?: string;
   address?: string;
+  photo_url?: string;
   probation_end_date?: string;
   contract_end_date?: string;
   // Famille

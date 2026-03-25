@@ -60,6 +60,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
     nationality: '',
     address: '',
     create_access: false,
+    photo_url: '',
     probation_end_date: '',
     contract_end_date: '',
     // Famille
@@ -155,6 +156,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
         address: formData.address || undefined,
         probation_end_date: formData.probation_end_date || undefined,
         contract_end_date: formData.contract_end_date || undefined,
+        photo_url: formData.photo_url || undefined,
         marital_status: formData.marital_status || undefined,
         spouse_name: formData.spouse_name || undefined,
         spouse_birth_date: formData.spouse_birth_date || undefined,
@@ -862,7 +864,27 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               />
             </div>
 
-            {/* Créer un compte d'accès */}
+            {/* Photo */}
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">URL de la photo</label>
+              <input
+                type="url"
+                name="photo_url"
+                value={formData.photo_url}
+                onChange={handleChange}
+                placeholder="https://..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+              <textarea
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="Adresse complète"
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
+              />
+            </div>
             <div className="col-span-2 mt-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <label className="flex items-start cursor-pointer">
                 <input

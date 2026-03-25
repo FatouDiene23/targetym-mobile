@@ -101,6 +101,24 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
     nationality: employee.nationality || '',
     probation_end_date: (employee as any).probation_end_date?.split('T')[0] || '',
     contract_end_date: (employee as any).contract_end_date?.split('T')[0] || '',
+    photo_url: employee.photo_url || '',
+    address: employee.address || '',
+    // Famille
+    marital_status: employee.marital_status || '',
+    spouse_name: employee.spouse_name || '',
+    spouse_birth_date: employee.spouse_birth_date?.split('T')[0] || '',
+    // Adresse pro
+    work_email: employee.work_email || '',
+    work_phone: employee.work_phone || '',
+    // Médical
+    has_disability: employee.has_disability || false,
+    disability_description: employee.disability_description || '',
+    emergency_contact_name: employee.emergency_contact_name || '',
+    emergency_contact_phone: employee.emergency_contact_phone || '',
+    // Organisation
+    comex_member: employee.comex_member || '',
+    hrbp: employee.hrbp || '',
+    salary_category: employee.salary_category || '',
   });
 
   useEffect(() => {
@@ -179,6 +197,20 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
         nationality: formData.nationality || null,
         probation_end_date: formData.probation_end_date || null,
         contract_end_date: formData.contract_end_date || null,
+        photo_url: formData.photo_url || null,
+        address: formData.address || null,
+        marital_status: formData.marital_status || null,
+        spouse_name: formData.spouse_name || null,
+        spouse_birth_date: formData.spouse_birth_date || null,
+        work_email: formData.work_email || null,
+        work_phone: formData.work_phone || null,
+        has_disability: formData.has_disability || null,
+        disability_description: formData.disability_description || null,
+        emergency_contact_name: formData.emergency_contact_name || null,
+        emergency_contact_phone: formData.emergency_contact_phone || null,
+        comex_member: formData.comex_member || null,
+        hrbp: formData.hrbp || null,
+        salary_category: formData.salary_category || null,
       } as Partial<EmployeeCreate>);
       onSuccess();
       onClose();
@@ -614,6 +646,231 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
               <p className="text-xs text-gray-500 mt-1">Prime ou commission variable mensuelle</p>
+            </div>
+
+            {/* Photo */}
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">URL de la photo</label>
+              <input
+                type="url"
+                name="photo_url"
+                value={formData.photo_url}
+                onChange={handleChange}
+                placeholder="https://..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            {/* === INFO FAMILIALE === */}
+            <div className="col-span-2 mt-4 mb-1">
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">Informations Familiales</h3>
+            </div>
+
+            {/* Situation matrimoniale */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Situation matrimoniale</label>
+              <select
+                name="marital_status"
+                value={formData.marital_status}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              >
+                <option value="">Non renseigné</option>
+                <option value="celibataire">Célibataire</option>
+                <option value="marie">Marié(e)</option>
+                <option value="concubinage">Concubinage</option>
+                <option value="divorce">Divorcé(e)</option>
+                <option value="veuvage">Veuvage</option>
+                <option value="autre">Autre</option>
+              </select>
+            </div>
+
+            {/* Âge (calculé depuis date de naissance) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Âge</label>
+              <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 text-sm">
+                {formData.date_of_birth
+                  ? `${Math.floor((new Date().getTime() - new Date(formData.date_of_birth).getTime()) / (365.25 * 24 * 3600 * 1000))} ans`
+                  : 'Renseigner la date de naissance'}
+              </div>
+            </div>
+
+            {/* Conjoint(e) - Nom & Prénom */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Conjoint(e) — Nom & Prénom</label>
+              <input
+                type="text"
+                name="spouse_name"
+                value={formData.spouse_name}
+                onChange={handleChange}
+                placeholder="Nom et prénom du conjoint"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            {/* Conjoint(e) - Date de naissance */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Conjoint(e) — Date de naissance</label>
+              <input
+                type="date"
+                name="spouse_birth_date"
+                value={formData.spouse_birth_date}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            {/* === ADRESSE PROFESSIONNELLE === */}
+            <div className="col-span-2 mt-4 mb-1">
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">Adresse Professionnelle</h3>
+            </div>
+
+            {/* Email professionnel */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email professionnel</label>
+              <input
+                type="email"
+                name="work_email"
+                value={formData.work_email}
+                onChange={handleChange}
+                placeholder="prenom.nom@entreprise.com"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            {/* Téléphone professionnel */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone professionnel</label>
+              <input
+                type="tel"
+                name="work_phone"
+                value={formData.work_phone}
+                onChange={handleChange}
+                placeholder="+225 07 00 00 00"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            {/* === INFORMATION MÉDICALE === */}
+            <div className="col-span-2 mt-4 mb-1">
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">Information Médicale</h3>
+            </div>
+
+            {/* Handicap */}
+            <div className="flex items-center">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="has_disability"
+                  checked={formData.has_disability}
+                  onChange={handleChange}
+                  className="w-4 h-4 text-primary-500 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <span className="ml-2 text-sm text-gray-700">Situation de handicap</span>
+              </label>
+            </div>
+
+            {/* Nature du handicap (conditionnel) */}
+            {formData.has_disability && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nature du handicap</label>
+                <input
+                  type="text"
+                  name="disability_description"
+                  value={formData.disability_description}
+                  onChange={handleChange}
+                  placeholder="Décrire la nature du handicap"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                />
+              </div>
+            )}
+
+            {/* Contact urgence - Nom & Prénom */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Personne à contacter — Nom & Prénom</label>
+              <input
+                type="text"
+                name="emergency_contact_name"
+                value={formData.emergency_contact_name}
+                onChange={handleChange}
+                placeholder="Nom et prénom"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            {/* Contact urgence - Téléphone */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Personne à contacter — Téléphone</label>
+              <input
+                type="tel"
+                name="emergency_contact_phone"
+                value={formData.emergency_contact_phone}
+                onChange={handleChange}
+                placeholder="+225 07 00 00 00"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            {/* === ORGANISATION === */}
+            <div className="col-span-2 mt-4 mb-1">
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">Organisation</h3>
+            </div>
+
+            {/* Membre COMEX */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Membre COMEX</label>
+              <input
+                type="text"
+                name="comex_member"
+                value={formData.comex_member}
+                onChange={handleChange}
+                placeholder="Nom et prénom du membre COMEX"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            {/* HRBP */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">HRBP</label>
+              <input
+                type="text"
+                name="hrbp"
+                value={formData.hrbp}
+                onChange={handleChange}
+                placeholder="Nom et prénom du HRBP"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            {/* Catégorie salariale */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie salariale</label>
+              <input
+                type="text"
+                name="salary_category"
+                value={formData.salary_category}
+                onChange={handleChange}
+                placeholder="Ex: Cadre A, Employé B..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            {/* === ADRESSE PERSONNELLE === */}
+            <div className="col-span-2 mt-4 mb-1">
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">Adresse Personnelle</h3>
+            </div>
+
+            {/* Adresse */}
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
+              <textarea
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="Adresse complète"
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
+              />
             </div>
           </div>
 

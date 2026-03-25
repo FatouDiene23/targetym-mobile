@@ -134,6 +134,7 @@ export default function PlatformUsersManagement() {
             role: result.user_role || result.employee_role || 'employee',
             is_manager: result.is_manager || false,
             tenant_id: result.impersonated_tenant_id,
+            employee_id: result.employee_id || null,
           }));
           localStorage.setItem('is_impersonating', 'true');
           localStorage.setItem('impersonated_user_email', result.impersonated_user_email);

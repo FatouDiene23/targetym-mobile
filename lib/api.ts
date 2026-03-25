@@ -2020,6 +2020,7 @@ export interface ImpersonationResponse {
   impersonated_tenant_id?: number;
   first_name?: string;
   last_name?: string;
+  employee_id?: number;
   employee_role?: string;
   user_role?: string;
   is_manager?: boolean;

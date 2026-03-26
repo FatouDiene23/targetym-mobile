@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import {
+import { 
   Calendar, Clock, CheckCircle, XCircle, AlertCircle,
   Download, RefreshCw, Users, Settings, BarChart3, CalendarDays,
-  ChevronLeft, ChevronRight, X, Search, Plus, Brain, Sparkles,
-  RotateCcw, UserPlus, Upload, FileDown
+  ChevronLeft, ChevronRight, X, Search, Plus, Brain, Sparkles
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Pagination from '@/components/Pagination';
@@ -23,28 +22,12 @@ interface LeaveType {
   name: string;
   code: string;
   default_days: number;
+  is_annual?: boolean;
+  accrual_rate?: number;
+  max_carryover?: number | null;
   is_active: boolean;
   requires_justification?: boolean;
   description?: string;
-  is_annual?: boolean;
-  is_system?: boolean;
-  accrual_rate?: number | null;
-  max_carryover?: number | null;
-}
-
-interface Employee {
-  id: number;
-  first_name: string;
-  last_name: string;
-  employee_id?: number;
-}
-
-interface CurrentUser {
-  id: number;
-  employee_id: number | null;
-  role: string;
-  first_name?: string;
-  last_name?: string;
 }
 
 interface LeaveRequest {
@@ -119,23 +102,10 @@ function getAuthHeaders(): HeadersInit {
   };
 }
 
-async function getLeaveTypes(activeOnly: boolean = false): Promise<LeaveType[]> {
-  try {
-    const url = activeOnly ? `${API_URL}/api/leaves/types?active_only=true` : `${API_URL}/api/leaves/types`;
-    const response = await fetch(url, { headers: getAuthHeaders() });
-    if (!response.ok) {
-      console.error('getLeaveTypes failed:', response.status, response.statusText);
-      return [];
-    }
-    const data = await response.json();
-    // API may return array directly or wrapped in { items: [...] }
-    const types = Array.isArray(data) ? data : (data.items || data.types || []);
-    console.log('getLeaveTypes loaded:', types.length, 'types');
-    return types;
-  } catch (e) {
-    console.error('getLeaveTypes error:', e);
-    return [];
-  }
+async function getLeaveTypes(): Promise<LeaveType[]> {
+  const response = await fetch(`${API_URL}/api/leaves/types`, { headers: getAuthHeaders() });
+  if (!response.ok) return [];
+  return response.json();
 }
 
 async function getLeaveRequests(params: {
@@ -215,26 +185,12 @@ async function approveLeaveRequest(requestId: number, approved: boolean, rejecti
 }
 
 async function createLeaveType(data: Partial<LeaveType>): Promise<LeaveType> {
-  const payload = {
-    name: data.name,
-    code: data.code,
-    default_days: data.default_days || 0,
-    is_active: data.is_active !== false,
-    is_annual: data.is_annual || false,
-    accrual_rate: data.accrual_rate || null,
-    max_carryover: data.max_carryover || null,
-  };
-  console.log('createLeaveType payload:', payload);
   const response = await fetch(`${API_URL}/api/leaves/types`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify(payload),
+    body: JSON.stringify(data),
   });
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    console.error('createLeaveType error:', response.status, err);
-    throw new Error(err.detail || err.message || `Erreur ${response.status}: ${response.statusText}`);
-  }
+  if (!response.ok) throw new Error('Erreur');
   return response.json();
 }
 
@@ -244,11 +200,7 @@ async function updateLeaveType(id: number, data: Partial<LeaveType>): Promise<Le
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
   });
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    console.error('updateLeaveType error:', response.status, err);
-    throw new Error(err.detail || err.message || `Erreur ${response.status}`);
-  }
+  if (!response.ok) throw new Error('Erreur');
   return response.json();
 }
 
@@ -258,97 +210,6 @@ async function initializeAllBalances(year: number): Promise<void> {
     headers: getAuthHeaders(),
   });
   if (!response.ok) throw new Error('Erreur');
-}
-
-async function initializeEmployeeBalance(employeeId: number, data: {
-  leave_type_id: number;
-  year: number;
-  initial_balance: number;
-}): Promise<void> {
-  const response = await fetch(`${API_URL}/api/leaves/balance/${employeeId}/initialize`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.detail || 'Erreur initialisation solde');
-  }
-}
-
-async function yearEndRollover(year: number): Promise<{ employees_processed: number }> {
-  const response = await fetch(`${API_URL}/api/leaves/balance/year-end-rollover?year=${year}`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-  });
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.detail || 'Erreur report annuel');
-  }
-  return response.json();
-}
-
-async function getEmployees(): Promise<Employee[]> {
-  const response = await fetch(`${API_URL}/api/employees?status=active&page_size=500`, { headers: getAuthHeaders() });
-  if (!response.ok) return [];
-  const data = await response.json();
-  return data.items || data;
-}
-
-async function getDirectReports(managerId: number): Promise<Employee[]> {
-  try {
-    const response = await fetch(`${API_URL}/api/employees/${managerId}/direct-reports`, { headers: getAuthHeaders() });
-    if (!response.ok) {
-      // Fallback: query by manager_id
-      const fallback = await fetch(`${API_URL}/api/employees?manager_id=${managerId}&status=active&page_size=500`, { headers: getAuthHeaders() });
-      if (!fallback.ok) return [];
-      const data = await fallback.json();
-      return data.items || data;
-    }
-    const data = await response.json();
-    return Array.isArray(data) ? data : (data.items || data.employees || []);
-  } catch {
-    return [];
-  }
-}
-
-async function getCurrentUser(): Promise<CurrentUser | null> {
-  try {
-    const response = await fetch(`${API_URL}/api/auth/me`, { headers: getAuthHeaders() });
-    if (!response.ok) {
-      // Fallback to localStorage
-      const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
-      if (userStr) {
-        const u = JSON.parse(userStr);
-        return { id: u.id, employee_id: u.employee_id || null, role: (u.role || 'employee').toLowerCase(), first_name: u.first_name, last_name: u.last_name };
-      }
-      return null;
-    }
-    const u = await response.json();
-    return { id: u.id, employee_id: u.employee_id || null, role: (u.role || 'employee').toLowerCase(), first_name: u.first_name, last_name: u.last_name };
-  } catch {
-    return null;
-  }
-}
-
-function getUserFromStorage(): { role: string; employeeId: number | null; userId: number | null; firstName?: string; lastName?: string } {
-  if (typeof window === 'undefined') return { role: 'employee', employeeId: null, userId: null };
-  try {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      return {
-        role: (user.role || 'employee').toLowerCase(),
-        employeeId: user.employee_id || null,
-        userId: user.id || null,
-        firstName: user.first_name,
-        lastName: user.last_name,
-      };
-    }
-  } catch (e) {
-    console.error('Error parsing user from localStorage:', e);
-  }
-  return { role: 'employee', employeeId: null, userId: null };
 }
 
 async function submitLeaveRequest(data: {
@@ -552,7 +413,7 @@ function LeaveTypesModal({
   onRefresh: () => void;
 }) {
   const [editingType, setEditingType] = useState<LeaveType | null>(null);
-  const [newType, setNewType] = useState<Partial<LeaveType>>({ name: '', code: '', default_days: 0, is_annual: false, accrual_rate: null, max_carryover: null });
+  const [newType, setNewType] = useState({ name: '', code: '', default_days: 0, is_annual: false, accrual_rate: 2.0, max_carryover: null as number | null });
   const [showAddForm, setShowAddForm] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -561,32 +422,25 @@ function LeaveTypesModal({
     setSaving(true);
     try {
       await updateLeaveType(editingType.id, editingType);
-      toast.success('Type de congé modifié');
       onRefresh();
       setEditingType(null);
     } catch (e) {
-      console.error('handleSaveEdit error:', e);
-      toast.error(e instanceof Error ? e.message : 'Erreur lors de la modification');
+      console.error(e);
     } finally {
       setSaving(false);
     }
   };
 
   const handleAddType = async () => {
-    if (!newType.name || !newType.code) {
-      toast.error('Le nom et le code sont obligatoires');
-      return;
-    }
+    if (!newType.name || !newType.code) return;
     setSaving(true);
     try {
       await createLeaveType({ ...newType, is_active: true });
-      toast.success('Type de congé ajouté');
       onRefresh();
-      setNewType({ name: '', code: '', default_days: 0, is_annual: false, accrual_rate: null, max_carryover: null });
+      setNewType({ name: '', code: '', default_days: 0, is_annual: false, accrual_rate: 2.0, max_carryover: null });
       setShowAddForm(false);
     } catch (e) {
-      console.error('handleAddType error:', e);
-      toast.error(e instanceof Error ? e.message : 'Erreur lors de l\'ajout');
+      console.error(e);
     } finally {
       setSaving(false);
     }
@@ -611,77 +465,84 @@ function LeaveTypesModal({
           </div>
 
           <div className="space-y-3">
-            {leaveTypes.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                <p className="text-sm">Aucun type de congé trouvé.</p>
-                <p className="text-xs text-gray-400 mt-1">Ajoutez un type ci-dessous ou vérifiez la connexion API.</p>
-              </div>
-            )}
             {leaveTypes.map((type) => (
-              <div key={type.id} className="p-4 bg-gray-50 rounded-lg">
+              <div key={type.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 {editingType?.id === type.id ? (
-                  <div className="flex-1 space-y-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      value={editingType.name}
+                      onChange={(e) => setEditingType({ ...editingType, name: e.target.value })}
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      placeholder="Nom"
+                    />
+                    <input
+                      type="text"
+                      value={editingType.code}
+                      onChange={(e) => setEditingType({ ...editingType, code: e.target.value })}
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      placeholder="Code"
+                    />
+                    <label className="flex items-center gap-2 text-sm col-span-full">
                       <input
-                        type="text"
-                        value={editingType.name}
-                        onChange={(e) => setEditingType({ ...editingType, name: e.target.value })}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        placeholder="Nom"
+                        type="checkbox"
+                        checked={!!editingType.is_annual}
+                        onChange={(e) => setEditingType({ ...editingType, is_annual: e.target.checked })}
+                        className="rounded border-gray-300"
                       />
-                      <input
-                        type="text"
-                        value={editingType.code}
-                        onChange={(e) => setEditingType({ ...editingType, code: e.target.value })}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        placeholder="Code"
-                      />
+                      Congé annuel (acquisition mensuelle)
+                    </label>
+                    {editingType.is_annual ? (
+                      <>
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={editingType.accrual_rate ?? 2}
+                          onChange={(e) => setEditingType({ ...editingType, accrual_rate: parseFloat(e.target.value) || 0 })}
+                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          placeholder="Taux mensuel (j/mois)"
+                        />
+                        <input
+                          type="number"
+                          value={editingType.max_carryover ?? ''}
+                          onChange={(e) => setEditingType({ ...editingType, max_carryover: e.target.value ? parseInt(e.target.value) : null })}
+                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          placeholder="Plafond report (vide = illimité)"
+                        />
+                      </>
+                    ) : (
                       <input
                         type="number"
                         value={editingType.default_days}
                         onChange={(e) => setEditingType({ ...editingType, default_days: parseInt(e.target.value) || 0 })}
                         className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        placeholder="Jours"
+                        placeholder="Quota (jours)"
                       />
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <label className="flex items-center gap-2 text-sm text-gray-700">
-                        <input
-                          type="checkbox"
-                          checked={editingType.is_annual || false}
-                          onChange={(e) => setEditingType({ ...editingType, is_annual: e.target.checked })}
-                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                        />
-                        Congés annuels
-                      </label>
-                      {editingType.is_annual && (
-                        <>
-                          <div className="flex items-center gap-1">
-                            <label className="text-xs text-gray-500">Taux acq./mois</label>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={editingType.accrual_rate ?? ''}
-                              onChange={(e) => setEditingType({ ...editingType, accrual_rate: e.target.value ? parseFloat(e.target.value) : null })}
-                              className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
-                              placeholder="2.08"
-                            />
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <label className="text-xs text-gray-500">Plafond report</label>
-                            <input
-                              type="number"
-                              value={editingType.max_carryover ?? ''}
-                              onChange={(e) => setEditingType({ ...editingType, max_carryover: e.target.value ? parseInt(e.target.value) : null })}
-                              className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
-                              placeholder="Illimité"
-                            />
-                          </div>
-                        </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-900">{type.name}</span>
+                      <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">{type.code}</span>
+                      {type.is_annual ? (
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Annuel &mdash; {type.accrual_rate ?? 2}j/mois</span>
+                      ) : (
+                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Spécial &mdash; {type.default_days} j</span>
+                      )}
+                      {!type.is_active && (
+                        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">Inactif</span>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    {type.is_annual && type.max_carryover != null && (
+                      <p className="text-xs text-gray-500 mt-0.5">Plafond report : {type.max_carryover} j</p>
+                    )}
+                  </div>
+                )}
+                
+                <div className="flex gap-2 ml-4">
+                  {editingType?.id === type.id ? (
+                    <>
                       <button
                         onClick={() => setEditingType(null)}
                         className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-200 rounded-lg"
@@ -695,112 +556,73 @@ function LeaveTypesModal({
                       >
                         {saving ? '...' : 'Sauver'}
                       </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900">{type.name}</span>
-                        <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">{type.code}</span>
-                        {!type.is_active && (
-                          <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">Inactif</span>
-                        )}
-                        {type.is_system && (
-                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Système</span>
-                        )}
-                        {type.is_annual && (
-                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Annuel</span>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-500">
-                        {type.default_days} jours par défaut
-                        {type.is_annual && type.accrual_rate && (
-                          <span className="ml-2 text-xs text-green-600">({type.accrual_rate} j/mois)</span>
-                        )}
-                        {type.is_annual && type.max_carryover != null && (
-                          <span className="ml-2 text-xs text-blue-600">(report max: {type.max_carryover} j)</span>
-                        )}
-                      </p>
-                    </div>
-                    <div className="flex gap-2 ml-4">
-                      {!type.is_system ? (
-                        <button
-                          onClick={() => setEditingType(type)}
-                          className="px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg"
-                        >
-                          Modifier
-                        </button>
-                      ) : (
-                        <span className="px-3 py-1.5 text-xs text-gray-400">Non modifiable</span>
-                      )}
-                    </div>
-                  </div>
-                )}
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setEditingType(type)}
+                      className="px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg"
+                    >
+                      Modifier
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
 
           {/* Add new type */}
           {showAddForm ? (
-            <div className="mt-4 p-4 border-2 border-dashed border-gray-300 rounded-lg space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="mt-4 p-4 border-2 border-dashed border-gray-300 rounded-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                 <input
                   type="text"
-                  value={newType.name || ''}
+                  value={newType.name}
                   onChange={(e) => setNewType({ ...newType, name: e.target.value })}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   placeholder="Nom du type"
                 />
                 <input
                   type="text"
-                  value={newType.code || ''}
+                  value={newType.code}
                   onChange={(e) => setNewType({ ...newType, code: e.target.value.toUpperCase() })}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   placeholder="Code (ex: CP)"
                 />
-                <input
-                  type="number"
-                  value={newType.default_days || ''}
-                  onChange={(e) => setNewType({ ...newType, default_days: parseInt(e.target.value) || 0 })}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  placeholder="Jours par défaut"
-                />
-              </div>
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 text-sm text-gray-700">
+                <label className="flex items-center gap-2 text-sm col-span-full">
                   <input
                     type="checkbox"
-                    checked={newType.is_annual || false}
+                    checked={newType.is_annual}
                     onChange={(e) => setNewType({ ...newType, is_annual: e.target.checked })}
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    className="rounded border-gray-300"
                   />
-                  Congés annuels (acquisition mensuelle)
+                  Congé annuel (acquisition mensuelle)
                 </label>
-                {newType.is_annual && (
+                {newType.is_annual ? (
                   <>
-                    <div className="flex items-center gap-1">
-                      <label className="text-xs text-gray-500 whitespace-nowrap">Taux acq./mois</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={newType.accrual_rate ?? ''}
-                        onChange={(e) => setNewType({ ...newType, accrual_rate: e.target.value ? parseFloat(e.target.value) : null })}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
-                        placeholder="2.08"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <label className="text-xs text-gray-500 whitespace-nowrap">Plafond report</label>
-                      <input
-                        type="number"
-                        value={newType.max_carryover ?? ''}
-                        onChange={(e) => setNewType({ ...newType, max_carryover: e.target.value ? parseInt(e.target.value) : null })}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
-                        placeholder="Illimité"
-                      />
-                    </div>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={newType.accrual_rate}
+                      onChange={(e) => setNewType({ ...newType, accrual_rate: parseFloat(e.target.value) || 0 })}
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      placeholder="Taux mensuel (j/mois)"
+                    />
+                    <input
+                      type="number"
+                      value={newType.max_carryover ?? ''}
+                      onChange={(e) => setNewType({ ...newType, max_carryover: e.target.value ? parseInt(e.target.value) : null })}
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      placeholder="Plafond report (vide = illimité)"
+                    />
                   </>
+                ) : (
+                  <input
+                    type="number"
+                    value={newType.default_days || ''}
+                    onChange={(e) => setNewType({ ...newType, default_days: parseInt(e.target.value) || 0 })}
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    placeholder="Quota (jours)"
+                  />
                 )}
               </div>
               <div className="flex gap-2">
@@ -1155,68 +977,8 @@ function NewLeaveRequestModal({
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Role-based employee list
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
-  const [availableEmployees, setAvailableEmployees] = useState<Employee[]>([]);
-  const [employeesLoading, setEmployeesLoading] = useState(false);
-
   const [okrImpact, setOkrImpact] = useState<OkrImpact | null>(null);
   const [okrLoading, setOkrLoading] = useState(false);
-
-  // Load current user and appropriate employee list when modal opens
-  useEffect(() => {
-    if (!isOpen) return;
-    let cancelled = false;
-
-    (async () => {
-      setEmployeesLoading(true);
-      try {
-        // Get current user info
-        let user = await getCurrentUser();
-        if (!user) {
-          const stored = getUserFromStorage();
-          if (stored.userId) {
-            user = { id: stored.userId, employee_id: stored.employeeId, role: stored.role, first_name: stored.firstName, last_name: stored.lastName };
-          }
-        }
-        if (cancelled) return;
-        setCurrentUser(user);
-
-        const role = user?.role || 'employee';
-        const empId = user?.employee_id;
-
-        if (role === 'employee') {
-          // Employee: can only create for themselves — no list needed
-          if (empId) {
-            setEmployeeId(String(empId));
-          }
-          setAvailableEmployees([]);
-        } else if (role === 'manager') {
-          // Manager: self + direct reports
-          const reports = empId ? await getDirectReports(empId) : [];
-          if (cancelled) return;
-          // Add self to the list if not already present
-          const selfEntry: Employee = { id: empId!, first_name: user?.first_name || '', last_name: user?.last_name || '' };
-          const hasself = reports.some(r => r.id === empId);
-          const list = hasself ? reports : [selfEntry, ...reports];
-          setAvailableEmployees(list);
-          if (empId) setEmployeeId(String(empId));
-        } else {
-          // rh, admin, dg: all active employees
-          const allEmps = await getEmployees();
-          if (cancelled) return;
-          setAvailableEmployees(allEmps);
-          if (empId) setEmployeeId(String(empId));
-        }
-      } catch (e) {
-        console.error('Error loading employees for leave request:', e);
-      } finally {
-        if (!cancelled) setEmployeesLoading(false);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [isOpen]);
 
   // Fetch OKR impact whenever employee + both dates are set
   useEffect(() => {
@@ -1269,8 +1031,6 @@ function NewLeaveRequestModal({
     high: 'bg-red-50 border-red-200 text-red-800',
   };
 
-  const userRole = currentUser?.role || 'employee';
-
   if (!isOpen) return null;
 
   return (
@@ -1289,38 +1049,18 @@ function NewLeaveRequestModal({
           </div>
 
           <div className="space-y-4">
-            {/* Employee selector — role-based */}
+            {/* Employee ID */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Employé <span className="text-red-500">*</span>
+                ID Employé <span className="text-red-500">*</span>
               </label>
-              {employeesLoading ? (
-                <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-400">
-                  <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
-                  Chargement...
-                </div>
-              ) : userRole === 'employee' ? (
-                // Employee: read-only display of own name
-                <div className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-700">
-                  {currentUser?.first_name} {currentUser?.last_name}
-                  <input type="hidden" value={employeeId} />
-                </div>
-              ) : (
-                // Manager / RH / Admin / DG: dropdown
-                <select
-                  value={employeeId}
-                  onChange={(e) => setEmployeeId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                >
-                  <option value="">-- Sélectionner un employé --</option>
-                  {availableEmployees.map(emp => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.first_name} {emp.last_name}
-                      {emp.id === currentUser?.employee_id ? ' (moi)' : ''}
-                    </option>
-                  ))}
-                </select>
-              )}
+              <input
+                type="number"
+                value={employeeId}
+                onChange={(e) => setEmployeeId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                placeholder="ex: 42"
+              />
             </div>
 
             {/* Leave type */}
@@ -1466,33 +1206,17 @@ export default function LeavesManagementPage() {
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const [showNewLeaveModal, setShowNewLeaveModal] = useState(false);
 
-  // Individual balance initialization
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [initBalanceForm, setInitBalanceForm] = useState({ employee_id: '', leave_type_id: '', year: new Date().getFullYear(), initial_balance: '' });
-  const [initBalanceLoading, setInitBalanceLoading] = useState(false);
-
-  // Year-end rollover
-  const [rolloverYear, setRolloverYear] = useState(new Date().getFullYear() - 1);
-  const [rolloverLoading, setRolloverLoading] = useState(false);
-  const [rolloverResult, setRolloverResult] = useState<number | null>(null);
-
-  // CSV Import
-  const [csvImporting, setCsvImporting] = useState(false);
-  const [csvResult, setCsvResult] = useState<{ success: number; errors: { line: number; error: string }[] } | null>(null);
-
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [typesData, deptData, statsData, employeesData] = await Promise.all([
+      const [typesData, deptData, statsData] = await Promise.all([
         getLeaveTypes(),
         getDepartments(),
-        getLeaveStats(),
-        getEmployees()
+        getLeaveStats()
       ]);
       setLeaveTypes(typesData);
       setDepartments(deptData);
       setStats(statsData);
-      setEmployees(employeesData);
     } catch (e) {
       console.error(e);
     } finally {
@@ -1782,311 +1506,37 @@ export default function LeavesManagementPage() {
         )}
 
         {activeTab === 'settings' && (
-          <div className="space-y-6">
-            {/* Row 1: Types + Init annuelle */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Settings className="w-5 h-5 text-primary-600" />
-                  Types de congés
-                </h3>
-                <p className="text-gray-500 text-sm mb-4">
-                  Configurez les différents types de congés disponibles.
-                </p>
-                <button
-                  onClick={() => setShowTypesModal(true)}
-                  className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-                >
-                  Gérer les types
-                </button>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <RefreshCw className="w-5 h-5 text-primary-600" />
-                  Initialisation annuelle
-                </h3>
-                <p className="text-gray-500 text-sm mb-4">
-                  Initialisez les soldes de congés pour tous les employés.
-                </p>
-                <button
-                  onClick={() => setShowInitModal(true)}
-                  className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-                >
-                  Initialiser les soldes
-                </button>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Settings className="w-5 h-5 text-primary-600" />
+                Types de congés
+              </h3>
+              <p className="text-gray-500 text-sm mb-4">
+                Configurez les différents types de congés disponibles.
+              </p>
+              <button
+                onClick={() => setShowTypesModal(true)}
+                className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+              >
+                Gérer les types
+              </button>
             </div>
 
-            {/* Row 2: Initialisation individuelle + Report annuel */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Initialisation individuelle */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-primary-600" />
-                  Initialisation individuelle
-                </h3>
-                <p className="text-gray-500 text-sm mb-4">
-                  Définir le solde initial d&apos;un employé pour un type de congé annuel.
-                </p>
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Employé</label>
-                    <select
-                      value={initBalanceForm.employee_id}
-                      onChange={(e) => setInitBalanceForm({ ...initBalanceForm, employee_id: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    >
-                      <option value="">Sélectionner... ({employees.length} employés)</option>
-                      {employees.map((emp) => (
-                        <option key={emp.id} value={emp.id}>
-                          {emp.first_name} {emp.last_name}
-                        </option>
-                      ))}
-                    </select>
-                    {employees.length === 0 && !loading && (
-                      <p className="mt-1 text-xs text-amber-600">Aucun employé trouvé. Vérifiez les permissions.</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Type de congé</label>
-                    <select
-                      value={initBalanceForm.leave_type_id}
-                      onChange={(e) => setInitBalanceForm({ ...initBalanceForm, leave_type_id: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    >
-                      <option value="">Sélectionner...</option>
-                      {(() => {
-                        const annualTypes = leaveTypes.filter(t => t.is_annual && t.is_active);
-                        const typesToShow = annualTypes.length > 0 ? annualTypes : leaveTypes.filter(t => t.is_active);
-                        return typesToShow.map((t) => (
-                          <option key={t.id} value={t.id}>{t.name} ({t.code})</option>
-                        ));
-                      })()}
-                    </select>
-                    {leaveTypes.filter(t => t.is_active).length === 0 && (
-                      <p className="mt-1 text-xs text-amber-600">Aucun type de congé actif trouvé. Vérifiez la configuration.</p>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Année</label>
-                      <select
-                        value={initBalanceForm.year}
-                        onChange={(e) => setInitBalanceForm({ ...initBalanceForm, year: parseInt(e.target.value) })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                      >
-                        {[2024, 2025, 2026, 2027].map(y => (
-                          <option key={y} value={y}>{y}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Solde initial (jours)</label>
-                      <input
-                        type="number"
-                        value={initBalanceForm.initial_balance}
-                        onChange={(e) => setInitBalanceForm({ ...initBalanceForm, initial_balance: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        placeholder="ex: 25"
-                      />
-                    </div>
-                  </div>
-                  <button
-                    onClick={async () => {
-                      if (!initBalanceForm.employee_id || !initBalanceForm.leave_type_id || !initBalanceForm.initial_balance) {
-                        toast.error('Veuillez remplir tous les champs');
-                        return;
-                      }
-                      setInitBalanceLoading(true);
-                      try {
-                        await initializeEmployeeBalance(parseInt(initBalanceForm.employee_id), {
-                          leave_type_id: parseInt(initBalanceForm.leave_type_id),
-                          year: initBalanceForm.year,
-                          initial_balance: parseFloat(initBalanceForm.initial_balance),
-                        });
-                        toast.success('Solde initialisé avec succès');
-                        setInitBalanceForm({ ...initBalanceForm, initial_balance: '' });
-                      } catch (err) {
-                        toast.error(err instanceof Error ? err.message : 'Erreur');
-                      } finally {
-                        setInitBalanceLoading(false);
-                      }
-                    }}
-                    disabled={initBalanceLoading || !initBalanceForm.employee_id || !initBalanceForm.leave_type_id || !initBalanceForm.initial_balance}
-                    className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {initBalanceLoading ? (
-                      <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Enregistrement...</>
-                    ) : (
-                      'Enregistrer'
-                    )}
-                  </button>
-
-                  {/* CSV Import */}
-                  <div className="pt-4 border-t border-gray-200">
-                    <p className="text-xs font-medium text-gray-600 mb-2">Import en masse via CSV</p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          const csv = 'employee_id,leave_type_id,year,initial_balance\n1,1,2026,25\n2,1,2026,30';
-                          const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = 'template_soldes_initiaux.csv';
-                          a.click();
-                          URL.revokeObjectURL(url);
-                        }}
-                        className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-xs flex items-center justify-center gap-1"
-                      >
-                        <FileDown className="w-3.5 h-3.5" />
-                        Template CSV
-                      </button>
-                      <label className="flex-1 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-xs flex items-center justify-center gap-1 cursor-pointer">
-                        <Upload className="w-3.5 h-3.5" />
-                        {csvImporting ? 'Import...' : 'Importer CSV'}
-                        <input
-                          type="file"
-                          accept=".csv"
-                          className="hidden"
-                          disabled={csvImporting}
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            setCsvImporting(true);
-                            setCsvResult(null);
-                            try {
-                              const text = await file.text();
-                              const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-                              if (lines.length < 2) {
-                                toast.error('Le fichier CSV est vide ou ne contient que l\'en-tête');
-                                return;
-                              }
-                              // Skip header
-                              const dataLines = lines.slice(1);
-                              let success = 0;
-                              const errors: { line: number; error: string }[] = [];
-
-                              for (let i = 0; i < dataLines.length; i++) {
-                                const cols = dataLines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-                                if (cols.length < 4) {
-                                  errors.push({ line: i + 2, error: 'Nombre de colonnes insuffisant' });
-                                  continue;
-                                }
-                                const [empId, ltId, yr, bal] = cols;
-                                if (!empId || !ltId || !yr || !bal) {
-                                  errors.push({ line: i + 2, error: 'Valeur(s) manquante(s)' });
-                                  continue;
-                                }
-                                try {
-                                  await initializeEmployeeBalance(parseInt(empId), {
-                                    leave_type_id: parseInt(ltId),
-                                    year: parseInt(yr),
-                                    initial_balance: parseFloat(bal),
-                                  });
-                                  success++;
-                                } catch (err) {
-                                  errors.push({ line: i + 2, error: err instanceof Error ? err.message : 'Erreur' });
-                                }
-                              }
-                              setCsvResult({ success, errors });
-                              if (success > 0) toast.success(`${success} solde(s) initialisé(s)`);
-                              if (errors.length > 0) toast.error(`${errors.length} erreur(s) lors de l'import`);
-                            } catch (err) {
-                              toast.error('Erreur de lecture du fichier CSV');
-                              console.error(err);
-                            } finally {
-                              setCsvImporting(false);
-                              // Reset input
-                              e.target.value = '';
-                            }
-                          }}
-                        />
-                      </label>
-                    </div>
-                    {csvResult && (
-                      <div className="mt-3 p-3 bg-gray-50 rounded-lg text-xs">
-                        <p className="font-medium text-gray-900 mb-1">
-                          Résultat : {csvResult.success} succès, {csvResult.errors.length} erreur(s)
-                        </p>
-                        {csvResult.errors.length > 0 && (
-                          <div className="mt-2 max-h-32 overflow-y-auto space-y-1">
-                            {csvResult.errors.map((err, i) => (
-                              <p key={i} className="text-red-600">
-                                Ligne {err.line} : {err.error}
-                              </p>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Report annuel */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <RotateCcw className="w-5 h-5 text-primary-600" />
-                  Report annuel
-                </h3>
-                <p className="text-gray-500 text-sm mb-4">
-                  Effectuer le report des soldes de congés non utilisés vers l&apos;année suivante
-                  (selon les plafonds de report configurés par type).
-                </p>
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Année à clôturer</label>
-                    <select
-                      value={rolloverYear}
-                      onChange={(e) => { setRolloverYear(parseInt(e.target.value)); setRolloverResult(null); }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    >
-                      {[2024, 2025, 2026].map(y => (
-                        <option key={y} value={y}>{y}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                    <p className="text-sm text-amber-800">
-                      <strong>Attention :</strong> Cette action va reporter les soldes non utilisés de {rolloverYear} vers {rolloverYear + 1} pour tous les employés.
-                      Cette opération est irréversible.
-                    </p>
-                  </div>
-                  {rolloverResult !== null && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                      <p className="text-sm text-green-800">
-                        Report effectué avec succès pour <strong>{rolloverResult}</strong> employé(s).
-                      </p>
-                    </div>
-                  )}
-                  <button
-                    onClick={async () => {
-                      if (!confirm(`Êtes-vous sûr de vouloir effectuer le report annuel de ${rolloverYear} ? Cette action est irréversible.`)) return;
-                      setRolloverLoading(true);
-                      setRolloverResult(null);
-                      try {
-                        const result = await yearEndRollover(rolloverYear);
-                        setRolloverResult(result.employees_processed);
-                        toast.success(`Report effectué pour ${result.employees_processed} employé(s)`);
-                      } catch (err) {
-                        toast.error(err instanceof Error ? err.message : 'Erreur lors du report');
-                      } finally {
-                        setRolloverLoading(false);
-                      }
-                    }}
-                    disabled={rolloverLoading}
-                    className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {rolloverLoading ? (
-                      <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Traitement...</>
-                    ) : (
-                      <><RotateCcw className="w-4 h-4" /> Effectuer le report annuel</>
-                    )}
-                  </button>
-                </div>
-              </div>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <RefreshCw className="w-5 h-5 text-primary-600" />
+                Initialisation annuelle
+              </h3>
+              <p className="text-gray-500 text-sm mb-4">
+                Initialisez les soldes de congés pour tous les employés.
+              </p>
+              <button
+                onClick={() => setShowInitModal(true)}
+                className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+              >
+                Initialiser les soldes
+              </button>
             </div>
           </div>
         )}

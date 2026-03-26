@@ -233,12 +233,14 @@ function NewLeaveRequestModal({
   onClose,
   leaveTypes,
   employeeId,
+  balances,
   onSuccess
 }: {
   isOpen: boolean;
   onClose: () => void;
   leaveTypes: LeaveType[];
   employeeId: number;
+  balances: LeaveBalanceSummary | null;
   onSuccess: () => void;
 }) {
   const [formData, setFormData] = useState({
@@ -321,13 +323,26 @@ function NewLeaveRequestModal({
                 required
               >
                 <option value="">Sélectionner...</option>
-                {leaveTypes.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.name} ({type.code})
-                  </option>
-                ))}
+                {leaveTypes.map((type) => {
+                  const bal = balances?.balances.find((b) => b.leave_type_id === type.id);
+                  return (
+                    <option key={type.id} value={type.id}>
+                      {type.name} ({type.code}){bal ? ` \u2014 ${bal.available} j disponibles` : ''}
+                    </option>
+                  );
+                })}
               </select>
             </div>
+
+            {formData.leave_type_id && (() => {
+              const bal = balances?.balances.find((b) => b.leave_type_id === parseInt(formData.leave_type_id));
+              return bal ? (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800">
+                  Solde disponible\u00a0: <span className="font-bold">{bal.available} jour{bal.available !== 1 ? 's' : ''}</span>
+                  {bal.pending > 0 && <span className="ml-2 text-xs text-amber-600">({bal.pending} j en attente)</span>}
+                </div>
+              ) : null;
+            })()}
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -341,15 +356,7 @@ function NewLeaveRequestModal({
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   required
                 />
-                <label className="flex items-center gap-2 mt-2 text-sm text-gray-600">
-                  <input
-                    type="checkbox"
-                    checked={formData.start_half_day}
-                    onChange={(e) => setFormData({ ...formData, start_half_day: e.target.checked })}
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  Demi-journée (après-midi)
-                </label>
+
               </div>
 
               <div>
@@ -363,15 +370,7 @@ function NewLeaveRequestModal({
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   required
                 />
-                <label className="flex items-center gap-2 mt-2 text-sm text-gray-600">
-                  <input
-                    type="checkbox"
-                    checked={formData.end_half_day}
-                    onChange={(e) => setFormData({ ...formData, end_half_day: e.target.checked })}
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  Demi-journée (matin)
-                </label>
+
               </div>
             </div>
 
@@ -662,6 +661,7 @@ export default function MyLeavesPage() {
           onClose={() => setShowModal(false)}
           leaveTypes={leaveTypes}
           employeeId={employeeId}
+          balances={balances}
           onSuccess={loadData}
         />
       )}

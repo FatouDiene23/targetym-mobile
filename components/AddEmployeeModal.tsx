@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Loader2, ChevronLeft, Key, Camera } from 'lucide-react';
 import { 
-  createEmployee, getDepartments, getEmployees, activateEmployeeAccess, uploadEmployeePhoto,
+  createEmployee, getDepartments, getEmployees, activateEmployeeAccess, uploadEmployeePhoto, fetchWithAuth, API_URL,
   type Department, type Employee, type GenderType, type ContractType, type StatusType, type EmployeeRole
 } from '@/lib/api';
 import NationalitySelect from '@/components/NationalitySelect';
@@ -180,6 +180,15 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
           await uploadEmployeePhoto(newEmployee.id, photoFile);
         } catch (photoErr) {
           console.error('Error uploading photo:', photoErr);
+        }
+      }
+
+      // Initialiser automatiquement les soldes de congés (non-bloquant)
+      if (newEmployee.id) {
+        try {
+          await fetchWithAuth(`${API_URL}/api/leaves/balances/initialize/${newEmployee.id}`, { method: 'POST' });
+        } catch {
+          // Non-bloquant : l'initialisation peut être faite manuellement
         }
       }
 

@@ -307,16 +307,19 @@ async function updateBalanceAllocated(balanceId: number, allocated: number, carr
 }
 
 async function resolveMatricule(matricule: string): Promise<number | null> {
+  const trimmed = matricule.trim();
+  if (!trimmed) return null;
   try {
     const response = await fetch(
-      `${API_URL}/api/employees/?employee_id=${encodeURIComponent(matricule)}&page_size=1`,
+      `${API_URL}/api/employees/?employee_id=${encodeURIComponent(trimmed)}&page_size=1`,
       { headers: getAuthHeaders() }
     );
     if (!response.ok) return null;
     const data = await response.json();
-    const items = data.items || data || [];
-    if (items.length > 0) return items[0].id;
-    return null;
+    const items = Array.isArray(data) ? data : (data.items || []);
+    console.log(`resolveMatricule(${trimmed}):`, items);
+    if (items.length === 0) return null;
+    return items[0].id;
   } catch {
     return null;
   }

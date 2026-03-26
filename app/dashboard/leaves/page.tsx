@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { 
+import {
   Calendar, Clock, CheckCircle, XCircle, AlertCircle,
   Download, RefreshCw, Users, Settings, BarChart3, CalendarDays,
-  ChevronLeft, ChevronRight, X, Search, Plus, Brain, Sparkles
+  ChevronLeft, ChevronRight, X, Search, Plus, Brain, Sparkles,
+  Upload, FileDown, Save
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Pagination from '@/components/Pagination';
@@ -129,7 +130,8 @@ function getAuthHeaders(): HeadersInit {
 async function getLeaveTypes(): Promise<LeaveType[]> {
   const response = await fetch(`${API_URL}/api/leaves/types`, { headers: getAuthHeaders() });
   if (!response.ok) return [];
-  return response.json();
+  const data = await response.json();
+  return Array.isArray(data) ? data : (data.items || []);
 }
 
 async function getLeaveRequests(params: {
@@ -237,10 +239,56 @@ async function initializeAllBalances(year: number): Promise<void> {
 }
 
 async function getEmployeesList(): Promise<EmployeeShort[]> {
-  const response = await fetch(`${API_URL}/api/employees/?page_size=500`, { headers: getAuthHeaders() });
+  const response = await fetch(`${API_URL}/api/employees/?status=active&page_size=500`, { headers: getAuthHeaders() });
   if (!response.ok) return [];
   const data = await response.json();
   return data.items || data || [];
+}
+
+async function getDirectReports(managerId: number): Promise<EmployeeShort[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/employees/${managerId}/direct-reports`, { headers: getAuthHeaders() });
+    if (response.ok) {
+      const data = await response.json();
+      return Array.isArray(data) ? data : (data.items || data.employees || []);
+    }
+    // Fallback: query by manager_id
+    const fallback = await fetch(`${API_URL}/api/employees/?manager_id=${managerId}&status=active&page_size=500`, { headers: getAuthHeaders() });
+    if (!fallback.ok) return [];
+    const data = await fallback.json();
+    return data.items || data || [];
+  } catch {
+    return [];
+  }
+}
+
+async function getEmployeeById(id: number): Promise<EmployeeShort | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/employees/${id}`, { headers: getAuthHeaders() });
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
+}
+
+function getUserFromStorage(): { role: string; employeeId: number | null; firstName?: string; lastName?: string } {
+  if (typeof window === 'undefined') return { role: 'employee', employeeId: null };
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      return {
+        role: (user.role || 'employee').toLowerCase(),
+        employeeId: user.employee_id || null,
+        firstName: user.first_name,
+        lastName: user.last_name,
+      };
+    }
+  } catch (e) {
+    console.error('Error parsing user from localStorage:', e);
+  }
+  return { role: 'employee', employeeId: null };
 }
 
 async function getEmployeeBalancesForYear(employeeId: number, year: number): Promise<EmployeeBalance[]> {
@@ -1040,8 +1088,66 @@ function NewLeaveRequestModal({
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Role-based employee selector
+  const [userRole, setUserRole] = useState('employee');
+  const [selfName, setSelfName] = useState('');
+  const [employeesList, setEmployeesList] = useState<{ id: number; first_name: string; last_name: string }[]>([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
+
   const [okrImpact, setOkrImpact] = useState<OkrImpact | null>(null);
   const [okrLoading, setOkrLoading] = useState(false);
+
+  // Load employee list based on role when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+
+    (async () => {
+      setLoadingEmployees(true);
+      const stored = getUserFromStorage();
+      const role = stored.role;
+      const empId = stored.employeeId;
+      if (!cancelled) setUserRole(role);
+
+      try {
+        if (role === 'employee') {
+          // Employee: only themselves
+          if (empId) {
+            setEmployeeId(String(empId));
+            // Fetch name to display
+            const me = await getEmployeeById(empId);
+            if (!cancelled && me) {
+              setSelfName(`${me.first_name} ${me.last_name}`);
+            } else if (!cancelled) {
+              setSelfName(stored.firstName && stored.lastName ? `${stored.firstName} ${stored.lastName}` : `Employé #${empId}`);
+            }
+          }
+          setEmployeesList([]);
+        } else if (role === 'manager') {
+          // Manager: self + direct reports
+          const reports = empId ? await getDirectReports(empId) : [];
+          if (cancelled) return;
+          const selfEntry = { id: empId!, first_name: stored.firstName || '', last_name: stored.lastName || '' };
+          const hasSelf = reports.some(r => r.id === empId);
+          const list = hasSelf ? reports : [selfEntry, ...reports];
+          setEmployeesList(list);
+          if (empId) setEmployeeId(String(empId));
+        } else {
+          // rh, admin, dg, super_admin: all active employees
+          const allEmps = await getEmployeesList();
+          if (cancelled) return;
+          setEmployeesList(allEmps);
+          if (empId) setEmployeeId(String(empId));
+        }
+      } catch (e) {
+        console.error('Error loading employees for leave modal:', e);
+      } finally {
+        if (!cancelled) setLoadingEmployees(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [isOpen]);
 
   // Fetch OKR impact whenever employee + both dates are set
   useEffect(() => {
@@ -1094,6 +1200,8 @@ function NewLeaveRequestModal({
     high: 'bg-red-50 border-red-200 text-red-800',
   };
 
+  const storedUser = getUserFromStorage();
+
   if (!isOpen) return null;
 
   return (
@@ -1112,18 +1220,35 @@ function NewLeaveRequestModal({
           </div>
 
           <div className="space-y-4">
-            {/* Employee ID */}
+            {/* Employee — role-based selector */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ID Employé <span className="text-red-500">*</span>
+                Employé <span className="text-red-500">*</span>
               </label>
-              <input
-                type="number"
-                value={employeeId}
-                onChange={(e) => setEmployeeId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                placeholder="ex: 42"
-              />
+              {loadingEmployees ? (
+                <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-400">
+                  <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
+                  Chargement...
+                </div>
+              ) : userRole === 'employee' ? (
+                <div className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-700">
+                  {selfName || 'Chargement...'}
+                </div>
+              ) : (
+                <select
+                  value={employeeId}
+                  onChange={(e) => setEmployeeId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  <option value="">-- Sélectionner un employé --</option>
+                  {employeesList.map(emp => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.first_name} {emp.last_name}
+                      {emp.id === storedUser.employeeId ? ' (moi)' : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Leave type */}
@@ -1247,9 +1372,15 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
   const [balances, setBalances] = useState<EmployeeBalance[]>([]);
   const [loadingEmployees, setLoadingEmployees] = useState(true);
   const [loadingBalances, setLoadingBalances] = useState(false);
-  const [editing, setEditing] = useState<Record<number, { allocated: string; initial_balance: string; carried_over: string }>>({});
-  const [saving, setSaving] = useState<number | null>(null);
+  // Inline-editable values for every row (keyed by balance id)
+  const [edits, setEdits] = useState<Record<number, { allocated: string; initial_balance: string; carried_over: string }>>({});
+  const [savingAll, setSavingAll] = useState(false);
   const [initializing, setInitializing] = useState(false);
+
+  // CSV import
+  const [csvImporting, setCsvImporting] = useState(false);
+  const [csvProgress, setCsvProgress] = useState('');
+  const [csvResult, setCsvResult] = useState<{ success: number; errors: { line: number; error: string }[] } | null>(null);
 
   useEffect(() => {
     getEmployeesList().then((list) => {
@@ -1263,7 +1394,16 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
     try {
       const data = await getEmployeeBalancesForYear(empId, year);
       setBalances(data);
-      setEditing({});
+      // Pre-populate edits for every row so fields are immediately editable
+      const initial: Record<number, { allocated: string; initial_balance: string; carried_over: string }> = {};
+      data.forEach((bal) => {
+        initial[bal.id] = {
+          allocated: String(bal.allocated),
+          initial_balance: String(bal.initial_balance),
+          carried_over: String(bal.carried_over),
+        };
+      });
+      setEdits(initial);
     } finally {
       setLoadingBalances(false);
     }
@@ -1287,47 +1427,170 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
     }
   };
 
-  const startEdit = (bal: EmployeeBalance) => {
-    setEditing((prev) => ({
-      ...prev,
-      [bal.id]: {
-        allocated: String(bal.allocated),
-        initial_balance: String(bal.initial_balance),
-        carried_over: String(bal.carried_over),
-      },
-    }));
+  // Detect which rows actually changed vs. original balance data
+  const getModifiedRows = () => {
+    return balances.filter((bal) => {
+      const e = edits[bal.id];
+      if (!e) return false;
+      return (
+        String(bal.allocated) !== e.allocated ||
+        String(bal.initial_balance) !== e.initial_balance ||
+        String(bal.carried_over) !== e.carried_over
+      );
+    });
   };
 
-  const cancelEdit = (balId: number) => {
-    setEditing((prev) => { const next = { ...prev }; delete next[balId]; return next; });
-  };
-
-  const saveBalance = async (bal: EmployeeBalance) => {
-    const edits = editing[bal.id];
-    if (!edits) return;
-    setSaving(bal.id);
+  const handleSaveAll = async () => {
+    const modified = getModifiedRows();
+    if (modified.length === 0) {
+      toast('Aucune modification détectée');
+      return;
+    }
+    setSavingAll(true);
     try {
-      const allocated = parseFloat(edits.allocated) || 0;
-      const carriedOver = parseFloat(edits.carried_over) || 0;
-      const initialBalance = parseFloat(edits.initial_balance) || 0;
-      // Update allocated + carried_over
-      await updateBalanceAllocated(bal.id, allocated, carriedOver);
-      // Update initial_balance separately
-      await setInitialBalance(selectedEmployeeId as number, bal.leave_type_id, initialBalance, selectedYear);
+      const results = await Promise.allSettled(
+        modified.map(async (bal) => {
+          const e = edits[bal.id];
+          const allocated = parseFloat(e.allocated) || 0;
+          const carriedOver = parseFloat(e.carried_over) || 0;
+          const initialBalance = parseFloat(e.initial_balance) || 0;
+          await updateBalanceAllocated(bal.id, allocated, carriedOver);
+          await setInitialBalance(selectedEmployeeId as number, bal.leave_type_id, initialBalance, selectedYear);
+        })
+      );
+      const failures = results.filter((r) => r.status === 'rejected');
+      const selectedEmp = employees.find((e) => e.id === selectedEmployeeId);
+      const empName = selectedEmp ? `${selectedEmp.first_name} ${selectedEmp.last_name}` : '';
+      if (failures.length === 0) {
+        toast.success(`Soldes enregistrés pour ${empName}`);
+      } else {
+        toast.error(`${failures.length} erreur(s) sur ${modified.length} lignes`);
+      }
       await loadBalances(selectedEmployeeId as number, selectedYear);
-      toast.success(`Solde mis à jour : ${bal.leave_type_name}`);
     } catch {
       toast.error('Erreur lors de la sauvegarde');
     } finally {
-      setSaving(null);
+      setSavingAll(false);
     }
+  };
+
+  const handleCsvImport = async (file: File) => {
+    setCsvImporting(true);
+    setCsvResult(null);
+    setCsvProgress('Lecture du fichier...');
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+      if (lines.length < 2) {
+        toast.error('Le fichier CSV est vide ou ne contient que l\'en-tête');
+        return;
+      }
+      const dataLines = lines.slice(1); // skip header
+      let success = 0;
+      const errors: { line: number; error: string }[] = [];
+
+      for (let i = 0; i < dataLines.length; i++) {
+        setCsvProgress(`Traitement ligne ${i + 1}/${dataLines.length}...`);
+        const cols = dataLines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+        if (cols.length < 4) {
+          errors.push({ line: i + 2, error: 'Nombre de colonnes insuffisant (attendu: 4)' });
+          continue;
+        }
+        const [empId, ltId, yr, bal] = cols;
+        if (!empId || !ltId || !yr || !bal) {
+          errors.push({ line: i + 2, error: 'Valeur(s) manquante(s)' });
+          continue;
+        }
+        try {
+          await setInitialBalance(parseInt(empId), parseInt(ltId), parseFloat(bal), parseInt(yr));
+          success++;
+        } catch (err) {
+          errors.push({ line: i + 2, error: err instanceof Error ? err.message : 'Erreur API' });
+        }
+      }
+      setCsvResult({ success, errors });
+      setCsvProgress('');
+      if (success > 0) toast.success(`${success} solde(s) initialisé(s)`);
+      if (errors.length > 0) toast.error(`${errors.length} erreur(s) lors de l'import`);
+      // Reload current view if applicable
+      if (selectedEmployeeId) loadBalances(selectedEmployeeId as number, selectedYear);
+    } catch (err) {
+      toast.error('Erreur de lecture du fichier CSV');
+      console.error(err);
+    } finally {
+      setCsvImporting(false);
+      setCsvProgress('');
+    }
+  };
+
+  const downloadCsvTemplate = () => {
+    const csv = 'employee_id,leave_type_id,year,initial_balance\n1,1,2026,10\n2,1,2026,25';
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'template_soldes_initiaux.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const selectedEmployee = employees.find((e) => e.id === selectedEmployeeId);
   const years = [currentYear - 1, currentYear, currentYear + 1];
+  const hasChanges = getModifiedRows().length > 0;
 
   return (
     <div className="space-y-6">
+      {/* CSV Import section */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <Upload className="w-5 h-5 text-primary-600" />
+          Import CSV des soldes initiaux
+        </h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Importez les soldes initiaux de plusieurs employés en une seule opération via un fichier CSV.
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={downloadCsvTemplate}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2 text-sm"
+          >
+            <FileDown className="w-4 h-4" />
+            Télécharger le template
+          </button>
+          <label className={`px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2 text-sm cursor-pointer ${csvImporting ? 'opacity-50 pointer-events-none' : ''}`}>
+            <Upload className="w-4 h-4" />
+            {csvImporting ? csvProgress || 'Import...' : 'Importer CSV'}
+            <input
+              type="file"
+              accept=".csv"
+              className="hidden"
+              disabled={csvImporting}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleCsvImport(file);
+                e.target.value = '';
+              }}
+            />
+          </label>
+        </div>
+        {csvResult && (
+          <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm">
+            <p className="font-medium text-gray-900 mb-1">
+              Résultat : {csvResult.success} succès, {csvResult.errors.length} erreur(s)
+            </p>
+            {csvResult.errors.length > 0 && (
+              <div className="mt-2 max-h-40 overflow-y-auto space-y-1">
+                {csvResult.errors.map((err, i) => (
+                  <p key={i} className="text-xs text-red-600">
+                    Ligne {err.line} : {err.error}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Sélecteurs */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex flex-wrap gap-4 items-end">
@@ -1379,7 +1642,7 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
         )}
       </div>
 
-      {/* Table des soldes */}
+      {/* Table des soldes — all fields directly editable */}
       {selectedEmployeeId && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
@@ -1403,102 +1666,88 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
               </button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                  <tr>
-                    <th className="px-4 py-3 text-left">Type de congé</th>
-                    <th className="px-4 py-3 text-right">Alloué</th>
-                    <th className="px-4 py-3 text-right">Solde initial</th>
-                    <th className="px-4 py-3 text-right">Report N-1</th>
-                    <th className="px-4 py-3 text-right">Pris</th>
-                    <th className="px-4 py-3 text-right">En attente</th>
-                    <th className="px-4 py-3 text-right font-semibold text-gray-700">Disponible</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {balances.map((bal) => {
-                    const isEditing = !!editing[bal.id];
-                    const edits = editing[bal.id];
-                    const isSaving = saving === bal.id;
-                    return (
-                      <tr key={bal.id} className={isEditing ? 'bg-amber-50' : 'hover:bg-gray-50'}>
-                        <td className="px-4 py-3">
-                          <div className="font-medium text-gray-900">{bal.leave_type_name}</div>
-                          <div className="text-xs text-gray-400">{bal.leave_type_code}{bal.accrual_rate ? ` · ${bal.accrual_rate} j/mois` : ''}</div>
-                        </td>
-                        {isEditing ? (
-                          <>
-                            <td className="px-4 py-3 text-right">
-                              <input
-                                type="number" min="0" step="0.5"
-                                value={edits.allocated}
-                                onChange={(e) => setEditing((prev) => ({ ...prev, [bal.id]: { ...prev[bal.id], allocated: e.target.value } }))}
-                                className="w-20 px-2 py-1 border border-amber-300 rounded text-right text-sm focus:ring-1 focus:ring-amber-400"
-                              />
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <input
-                                type="number" min="0" step="0.5"
-                                value={edits.initial_balance}
-                                onChange={(e) => setEditing((prev) => ({ ...prev, [bal.id]: { ...prev[bal.id], initial_balance: e.target.value } }))}
-                                className="w-20 px-2 py-1 border border-amber-300 rounded text-right text-sm focus:ring-1 focus:ring-amber-400"
-                              />
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <input
-                                type="number" min="0" step="0.5"
-                                value={edits.carried_over}
-                                onChange={(e) => setEditing((prev) => ({ ...prev, [bal.id]: { ...prev[bal.id], carried_over: e.target.value } }))}
-                                className="w-20 px-2 py-1 border border-amber-300 rounded text-right text-sm focus:ring-1 focus:ring-amber-400"
-                              />
-                            </td>
-                          </>
-                        ) : (
-                          <>
-                            <td className="px-4 py-3 text-right text-gray-700">{bal.allocated} j</td>
-                            <td className="px-4 py-3 text-right text-gray-700">{bal.initial_balance} j</td>
-                            <td className="px-4 py-3 text-right text-gray-700">{bal.carried_over} j</td>
-                          </>
-                        )}
-                        <td className="px-4 py-3 text-right text-gray-500">{bal.taken} j</td>
-                        <td className="px-4 py-3 text-right text-amber-600">{bal.pending} j</td>
-                        <td className={`px-4 py-3 text-right font-semibold ${bal.available < 0 ? 'text-red-600' : 'text-green-700'}`}>
-                          {bal.available} j
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {isEditing ? (
-                            <div className="flex justify-end gap-2">
-                              <button
-                                onClick={() => saveBalance(bal)}
-                                disabled={isSaving}
-                                className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 disabled:opacity-50"
-                              >
-                                {isSaving ? '...' : 'Sauver'}
-                              </button>
-                              <button
-                                onClick={() => cancelEdit(bal.id)}
-                                className="px-3 py-1 border border-gray-300 text-gray-600 rounded text-xs hover:bg-gray-50"
-                              >
-                                Annuler
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => startEdit(bal)}
-                              className="px-3 py-1 border border-gray-300 text-gray-600 rounded text-xs hover:bg-gray-50"
-                            >
-                              Modifier
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Type de congé</th>
+                      <th className="px-4 py-3 text-right">Alloué</th>
+                      <th className="px-4 py-3 text-right">Solde initial</th>
+                      <th className="px-4 py-3 text-right">Report N-1</th>
+                      <th className="px-4 py-3 text-right">Pris</th>
+                      <th className="px-4 py-3 text-right">En attente</th>
+                      <th className="px-4 py-3 text-right font-semibold text-gray-700">Disponible</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {balances.map((bal) => {
+                      const e = edits[bal.id] || { allocated: String(bal.allocated), initial_balance: String(bal.initial_balance), carried_over: String(bal.carried_over) };
+                      const changed =
+                        String(bal.allocated) !== e.allocated ||
+                        String(bal.initial_balance) !== e.initial_balance ||
+                        String(bal.carried_over) !== e.carried_over;
+                      return (
+                        <tr key={bal.id} className={changed ? 'bg-amber-50' : 'hover:bg-gray-50'}>
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-gray-900">{bal.leave_type_name}</div>
+                            <div className="text-xs text-gray-400">{bal.leave_type_code}{bal.accrual_rate ? ` · ${bal.accrual_rate} j/mois` : ''}</div>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <input
+                              type="number" min="0" step="0.5"
+                              value={e.allocated}
+                              onChange={(ev) => setEdits((prev) => ({ ...prev, [bal.id]: { ...prev[bal.id], allocated: ev.target.value } }))}
+                              className="w-20 px-2 py-1 border border-gray-300 rounded text-right text-sm focus:ring-1 focus:ring-primary-400 focus:border-primary-400"
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <input
+                              type="number" min="0" step="0.5"
+                              value={e.initial_balance}
+                              onChange={(ev) => setEdits((prev) => ({ ...prev, [bal.id]: { ...prev[bal.id], initial_balance: ev.target.value } }))}
+                              className="w-20 px-2 py-1 border border-gray-300 rounded text-right text-sm focus:ring-1 focus:ring-primary-400 focus:border-primary-400"
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <input
+                              type="number" min="0" step="0.5"
+                              value={e.carried_over}
+                              onChange={(ev) => setEdits((prev) => ({ ...prev, [bal.id]: { ...prev[bal.id], carried_over: ev.target.value } }))}
+                              className="w-20 px-2 py-1 border border-gray-300 rounded text-right text-sm focus:ring-1 focus:ring-primary-400 focus:border-primary-400"
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-right text-gray-500">{bal.taken} j</td>
+                          <td className="px-4 py-3 text-right text-amber-600">{bal.pending} j</td>
+                          <td className={`px-4 py-3 text-right font-semibold ${bal.available < 0 ? 'text-red-600' : 'text-green-700'}`}>
+                            {bal.available} j
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Global save button */}
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+                <button
+                  onClick={handleSaveAll}
+                  disabled={savingAll || !hasChanges}
+                  className={`px-5 py-2.5 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors ${
+                    hasChanges
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  } disabled:opacity-50`}
+                >
+                  {savingAll ? (
+                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Enregistrement...</>
+                  ) : (
+                    <><Save className="w-4 h-4" /> Enregistrer tout</>
+                  )}
+                </button>
+              </div>
+            </>
           )}
         </div>
       )}

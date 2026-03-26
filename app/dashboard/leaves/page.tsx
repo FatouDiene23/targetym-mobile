@@ -62,6 +62,30 @@ interface Department {
   name: string;
 }
 
+interface EmployeeShort {
+  id: number;
+  first_name: string;
+  last_name: string;
+  department_name?: string;
+  hire_date?: string;
+}
+
+interface EmployeeBalance {
+  id: number;
+  leave_type_id: number;
+  leave_type_name: string;
+  leave_type_code: string;
+  year: number;
+  initial_balance: number;
+  allocated: number;
+  carried_over: number;
+  taken: number;
+  pending: number;
+  available: number;
+  accrual_rate?: number;
+  is_annual?: boolean;
+}
+
 interface OkrAtRisk {
   id: number;
   title: string;
@@ -210,6 +234,45 @@ async function initializeAllBalances(year: number): Promise<void> {
     headers: getAuthHeaders(),
   });
   if (!response.ok) throw new Error('Erreur');
+}
+
+async function getEmployeesList(): Promise<EmployeeShort[]> {
+  const response = await fetch(`${API_URL}/api/employees/?page_size=500`, { headers: getAuthHeaders() });
+  if (!response.ok) return [];
+  const data = await response.json();
+  return data.items || data || [];
+}
+
+async function getEmployeeBalancesForYear(employeeId: number, year: number): Promise<EmployeeBalance[]> {
+  const response = await fetch(`${API_URL}/api/leaves/balances/${employeeId}?year=${year}`, { headers: getAuthHeaders() });
+  if (!response.ok) return [];
+  const data = await response.json();
+  return data.balances || [];
+}
+
+async function updateBalanceAllocated(balanceId: number, allocated: number, carriedOver: number): Promise<void> {
+  const response = await fetch(`${API_URL}/api/leaves/balances/${balanceId}?allocated=${allocated}&carried_over=${carriedOver}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Erreur mise à jour');
+}
+
+async function setInitialBalance(employeeId: number, leaveTypeId: number, initialBalance: number, year: number): Promise<void> {
+  const response = await fetch(`${API_URL}/api/leaves/balance/${employeeId}/initialize`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ leave_type_id: leaveTypeId, initial_balance: initialBalance, year }),
+  });
+  if (!response.ok) throw new Error('Erreur solde initial');
+}
+
+async function initializeEmployeeBalances(employeeId: number, year: number): Promise<void> {
+  const response = await fetch(`${API_URL}/api/leaves/balances/initialize/${employeeId}?year=${year}`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Erreur initialisation');
 }
 
 async function submitLeaveRequest(data: {
@@ -1173,11 +1236,289 @@ function NewLeaveRequestModal({
 }
 
 // ============================================
+// EMPLOYEE BALANCES TAB
+// ============================================
+
+function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
+  const currentYear = new Date().getFullYear();
+  const [employees, setEmployees] = useState<EmployeeShort[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | ''>('');
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [balances, setBalances] = useState<EmployeeBalance[]>([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(true);
+  const [loadingBalances, setLoadingBalances] = useState(false);
+  const [editing, setEditing] = useState<Record<number, { allocated: string; initial_balance: string; carried_over: string }>>({});
+  const [saving, setSaving] = useState<number | null>(null);
+  const [initializing, setInitializing] = useState(false);
+
+  useEffect(() => {
+    getEmployeesList().then((list) => {
+      setEmployees(list);
+      setLoadingEmployees(false);
+    });
+  }, []);
+
+  const loadBalances = useCallback(async (empId: number, year: number) => {
+    setLoadingBalances(true);
+    try {
+      const data = await getEmployeeBalancesForYear(empId, year);
+      setBalances(data);
+      setEditing({});
+    } finally {
+      setLoadingBalances(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedEmployeeId) loadBalances(selectedEmployeeId as number, selectedYear);
+  }, [selectedEmployeeId, selectedYear, loadBalances]);
+
+  const handleInitialize = async () => {
+    if (!selectedEmployeeId) return;
+    setInitializing(true);
+    try {
+      await initializeEmployeeBalances(selectedEmployeeId as number, selectedYear);
+      await loadBalances(selectedEmployeeId as number, selectedYear);
+      toast.success('Soldes initialisés');
+    } catch {
+      toast.error('Erreur lors de l\'initialisation');
+    } finally {
+      setInitializing(false);
+    }
+  };
+
+  const startEdit = (bal: EmployeeBalance) => {
+    setEditing((prev) => ({
+      ...prev,
+      [bal.id]: {
+        allocated: String(bal.allocated),
+        initial_balance: String(bal.initial_balance),
+        carried_over: String(bal.carried_over),
+      },
+    }));
+  };
+
+  const cancelEdit = (balId: number) => {
+    setEditing((prev) => { const next = { ...prev }; delete next[balId]; return next; });
+  };
+
+  const saveBalance = async (bal: EmployeeBalance) => {
+    const edits = editing[bal.id];
+    if (!edits) return;
+    setSaving(bal.id);
+    try {
+      const allocated = parseFloat(edits.allocated) || 0;
+      const carriedOver = parseFloat(edits.carried_over) || 0;
+      const initialBalance = parseFloat(edits.initial_balance) || 0;
+      // Update allocated + carried_over
+      await updateBalanceAllocated(bal.id, allocated, carriedOver);
+      // Update initial_balance separately
+      await setInitialBalance(selectedEmployeeId as number, bal.leave_type_id, initialBalance, selectedYear);
+      await loadBalances(selectedEmployeeId as number, selectedYear);
+      toast.success(`Solde mis à jour : ${bal.leave_type_name}`);
+    } catch {
+      toast.error('Erreur lors de la sauvegarde');
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const selectedEmployee = employees.find((e) => e.id === selectedEmployeeId);
+  const years = [currentYear - 1, currentYear, currentYear + 1];
+
+  return (
+    <div className="space-y-6">
+      {/* Sélecteurs */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex flex-wrap gap-4 items-end">
+          <div className="flex-1 min-w-[260px]">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Employé</label>
+            {loadingEmployees ? (
+              <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
+            ) : (
+              <select
+                value={selectedEmployeeId}
+                onChange={(e) => setSelectedEmployeeId(e.target.value ? parseInt(e.target.value) : '')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="">Sélectionner un employé...</option>
+                {employees.map((emp) => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.first_name} {emp.last_name}{emp.department_name ? ` — ${emp.department_name}` : ''}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Année</label>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            >
+              {years.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+          {selectedEmployeeId && (
+            <button
+              onClick={handleInitialize}
+              disabled={initializing}
+              className="px-4 py-2 border border-primary-300 text-primary-700 rounded-lg hover:bg-primary-50 flex items-center gap-2 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${initializing ? 'animate-spin' : ''}`} />
+              {balances.length === 0 ? 'Initialiser les soldes' : 'Réinitialiser'}
+            </button>
+          )}
+        </div>
+        {selectedEmployee && (
+          <p className="mt-3 text-sm text-gray-500">
+            {selectedEmployee.first_name} {selectedEmployee.last_name}
+            {selectedEmployee.hire_date && ` · Embauché(e) le ${new Date(selectedEmployee.hire_date).toLocaleDateString('fr-FR')}`}
+          </p>
+        )}
+      </div>
+
+      {/* Table des soldes */}
+      {selectedEmployeeId && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900">
+              Soldes {selectedYear}
+              {loadingBalances && <span className="ml-2 text-xs text-gray-400">(chargement...)</span>}
+            </h3>
+            <span className="text-sm text-gray-500">{balances.length} type{balances.length !== 1 ? 's' : ''}</span>
+          </div>
+
+          {!loadingBalances && balances.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <AlertCircle className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+              <p>Aucun solde pour {selectedYear}.</p>
+              <button
+                onClick={handleInitialize}
+                disabled={initializing}
+                className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+              >
+                Initialiser les soldes
+              </button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Type de congé</th>
+                    <th className="px-4 py-3 text-right">Alloué</th>
+                    <th className="px-4 py-3 text-right">Solde initial</th>
+                    <th className="px-4 py-3 text-right">Report N-1</th>
+                    <th className="px-4 py-3 text-right">Pris</th>
+                    <th className="px-4 py-3 text-right">En attente</th>
+                    <th className="px-4 py-3 text-right font-semibold text-gray-700">Disponible</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {balances.map((bal) => {
+                    const isEditing = !!editing[bal.id];
+                    const edits = editing[bal.id];
+                    const isSaving = saving === bal.id;
+                    return (
+                      <tr key={bal.id} className={isEditing ? 'bg-amber-50' : 'hover:bg-gray-50'}>
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-gray-900">{bal.leave_type_name}</div>
+                          <div className="text-xs text-gray-400">{bal.leave_type_code}{bal.accrual_rate ? ` · ${bal.accrual_rate} j/mois` : ''}</div>
+                        </td>
+                        {isEditing ? (
+                          <>
+                            <td className="px-4 py-3 text-right">
+                              <input
+                                type="number" min="0" step="0.5"
+                                value={edits.allocated}
+                                onChange={(e) => setEditing((prev) => ({ ...prev, [bal.id]: { ...prev[bal.id], allocated: e.target.value } }))}
+                                className="w-20 px-2 py-1 border border-amber-300 rounded text-right text-sm focus:ring-1 focus:ring-amber-400"
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <input
+                                type="number" min="0" step="0.5"
+                                value={edits.initial_balance}
+                                onChange={(e) => setEditing((prev) => ({ ...prev, [bal.id]: { ...prev[bal.id], initial_balance: e.target.value } }))}
+                                className="w-20 px-2 py-1 border border-amber-300 rounded text-right text-sm focus:ring-1 focus:ring-amber-400"
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <input
+                                type="number" min="0" step="0.5"
+                                value={edits.carried_over}
+                                onChange={(e) => setEditing((prev) => ({ ...prev, [bal.id]: { ...prev[bal.id], carried_over: e.target.value } }))}
+                                className="w-20 px-2 py-1 border border-amber-300 rounded text-right text-sm focus:ring-1 focus:ring-amber-400"
+                              />
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="px-4 py-3 text-right text-gray-700">{bal.allocated} j</td>
+                            <td className="px-4 py-3 text-right text-gray-700">{bal.initial_balance} j</td>
+                            <td className="px-4 py-3 text-right text-gray-700">{bal.carried_over} j</td>
+                          </>
+                        )}
+                        <td className="px-4 py-3 text-right text-gray-500">{bal.taken} j</td>
+                        <td className="px-4 py-3 text-right text-amber-600">{bal.pending} j</td>
+                        <td className={`px-4 py-3 text-right font-semibold ${bal.available < 0 ? 'text-red-600' : 'text-green-700'}`}>
+                          {bal.available} j
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {isEditing ? (
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => saveBalance(bal)}
+                                disabled={isSaving}
+                                className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 disabled:opacity-50"
+                              >
+                                {isSaving ? '...' : 'Sauver'}
+                              </button>
+                              <button
+                                onClick={() => cancelEdit(bal.id)}
+                                className="px-3 py-1 border border-gray-300 text-gray-600 rounded text-xs hover:bg-gray-50"
+                              >
+                                Annuler
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => startEdit(bal)}
+                              className="px-3 py-1 border border-gray-300 text-gray-600 rounded text-xs hover:bg-gray-50"
+                            >
+                              Modifier
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!selectedEmployeeId && (
+        <div className="text-center py-16 text-gray-400">
+          <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p>Sélectionnez un employé pour voir et modifier ses soldes.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
 // MAIN PAGE
 // ============================================
 
 export default function LeavesManagementPage() {
-  const [activeTab, setActiveTab] = useState<'requests' | 'calendar' | 'settings'>('requests');
+  const [activeTab, setActiveTab] = useState<'requests' | 'calendar' | 'settings' | 'balances'>('requests');
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [totalRequests, setTotalRequests] = useState(0);
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
@@ -1367,6 +1708,7 @@ export default function LeavesManagementPage() {
           {[
             { key: 'requests', label: 'Demandes', icon: Clock },
             { key: 'calendar', label: 'Calendrier', icon: CalendarDays },
+            { key: 'balances', label: 'Soldes', icon: BarChart3 },
             { key: 'settings', label: 'Paramètres', icon: Settings },
           ].map((tab) => (
             <button
@@ -1503,6 +1845,10 @@ export default function LeavesManagementPage() {
             onPrevMonth={handlePrevMonth}
             onNextMonth={handleNextMonth}
           />
+        )}
+
+        {activeTab === 'balances' && (
+          <EmployeeBalancesTab leaveTypes={leaveTypes} />
         )}
 
         {activeTab === 'settings' && (

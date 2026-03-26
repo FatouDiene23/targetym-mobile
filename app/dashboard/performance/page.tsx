@@ -4,13 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   ThumbsUp, Send, X, Loader2, AlertCircle, Search,
   ChevronLeft, ChevronRight, BarChart3, Check, Trash2, MessageCircle,
-  Hourglass, Bell, Eye, ClipboardList, Handshake, Wrench, Target, Brain,
-  Globe, Zap, ShieldCheck, Heart, HeartPulse, TrendingUp, Clock, Cog,
+  Hourglass, Bell, Eye, FileText, Handshake, Wrench, Target, Brain,
+  Globe, Zap, Shield, Heart, HeartPulse, TrendingUp, Clock, Cog,
   type LucideProps
 } from 'lucide-react';
 
 const ATTITUDE_ICONS: Record<string, React.ComponentType<LucideProps>> = {
-  Hourglass, Bell, Eye, Clipboard, Handshake, Wrench, Target, Brain,
+  Hourglass, Bell, Eye, FileText, Handshake, Wrench, Target, Brain,
   Globe, Zap, Shield, Heart, HeartPulse, TrendingUp, Clock, Cog,
 };
 

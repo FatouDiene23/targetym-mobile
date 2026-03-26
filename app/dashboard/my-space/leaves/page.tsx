@@ -5,8 +5,8 @@ import toast from 'react-hot-toast';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { myLeavesTips } from '@/config/pageTips';
-import { 
-  Calendar, Plus, X, AlertCircle, Clock, CheckCircle, XCircle
+import {
+  Calendar, Plus, X, AlertCircle, Clock, CheckCircle, XCircle, Info, ChevronDown, ChevronUp
 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -29,6 +29,9 @@ interface LeaveBalance {
   pending: number;
   carried_over: number;
   available: number;
+  initial_balance?: number;
+  accrued?: number;
+  accrual_rate?: number;
 }
 
 interface LeaveBalanceSummary {
@@ -151,6 +154,77 @@ function StatusBadge({ status }: { status: string }) {
       {config.icon}
       {config.label}
     </span>
+  );
+}
+
+function BalanceCard({ balance }: { balance: LeaveBalance }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-medium text-gray-900">{balance.leave_type_name}</span>
+        <span className="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded">
+          {balance.leave_type_code}
+        </span>
+      </div>
+      <div className="text-2xl font-bold text-primary-600 mb-2">
+        {balance.available}
+        <span className="text-sm font-normal text-gray-500"> jours disponibles</span>
+      </div>
+      <div className="flex gap-4 text-xs text-gray-500 mb-2">
+        <span>Pris: {balance.taken}</span>
+        {balance.pending > 0 && (
+          <span className="text-yellow-600">En attente: {balance.pending}</span>
+        )}
+      </div>
+
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 font-medium"
+      >
+        <Info className="w-3.5 h-3.5" />
+        Détail du solde
+        {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+      </button>
+
+      {expanded && (
+        <div className="mt-3 pt-3 border-t border-gray-200 space-y-1.5 text-xs text-gray-600">
+          {balance.initial_balance !== undefined && (
+            <div className="flex justify-between">
+              <span>Solde initial (N-1)</span>
+              <span className="font-medium text-gray-900">{balance.initial_balance} j</span>
+            </div>
+          )}
+          {balance.carried_over > 0 && (
+            <div className="flex justify-between">
+              <span>Report N-1</span>
+              <span className="font-medium text-gray-900">{balance.carried_over} j</span>
+            </div>
+          )}
+          {balance.accrued !== undefined && (
+            <div className="flex justify-between">
+              <span>Acquis cette année {balance.accrual_rate ? `(${balance.accrual_rate}×mois)` : ''}</span>
+              <span className="font-medium text-gray-900">{balance.accrued} j</span>
+            </div>
+          )}
+          <div className="flex justify-between">
+            <span>Pris</span>
+            <span className="font-medium text-gray-900">-{balance.taken} j</span>
+          </div>
+          {balance.pending > 0 && (
+            <div className="flex justify-between">
+              <span>En attente</span>
+              <span className="font-medium text-yellow-600">-{balance.pending} j</span>
+            </div>
+          )}
+          <div className="flex justify-between pt-1.5 border-t border-gray-200 font-semibold text-gray-900">
+            <span>Disponible</span>
+            <span>{balance.available} j</span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -485,27 +559,7 @@ export default function MyLeavesPage() {
           {balances && balances.balances.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" data-tour="leave-balance">
               {balances.balances.map((balance) => (
-                <div 
-                  key={balance.id} 
-                  className="bg-gray-50 rounded-lg p-4 border border-gray-100"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-900">{balance.leave_type_name}</span>
-                    <span className="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded">
-                      {balance.leave_type_code}
-                    </span>
-                  </div>
-                  <div className="text-2xl font-bold text-primary-600 mb-2">
-                    {balance.available}
-                    <span className="text-sm font-normal text-gray-500"> / {balance.allocated}</span>
-                  </div>
-                  <div className="flex gap-4 text-xs text-gray-500">
-                    <span>Pris: {balance.taken}</span>
-                    {balance.pending > 0 && (
-                      <span className="text-yellow-600">En attente: {balance.pending}</span>
-                    )}
-                  </div>
-                </div>
+                <BalanceCard key={balance.id} balance={balance} />
               ))}
             </div>
           ) : (

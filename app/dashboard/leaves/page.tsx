@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { 
+import {
   Calendar, Clock, CheckCircle, XCircle, AlertCircle,
   Download, RefreshCw, Users, Settings, BarChart3, CalendarDays,
-  ChevronLeft, ChevronRight, X, Search, Plus, Brain, Sparkles
+  ChevronLeft, ChevronRight, X, Search, Plus, Brain, Sparkles,
+  RotateCcw, UserPlus
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Pagination from '@/components/Pagination';
@@ -25,6 +26,16 @@ interface LeaveType {
   is_active: boolean;
   requires_justification?: boolean;
   description?: string;
+  is_annual?: boolean;
+  is_system?: boolean;
+  accrual_rate?: number | null;
+  max_carryover?: number | null;
+}
+
+interface Employee {
+  id: number;
+  first_name: string;
+  last_name: string;
 }
 
 interface LeaveRequest {
@@ -207,6 +218,41 @@ async function initializeAllBalances(year: number): Promise<void> {
     headers: getAuthHeaders(),
   });
   if (!response.ok) throw new Error('Erreur');
+}
+
+async function initializeEmployeeBalance(employeeId: number, data: {
+  leave_type_id: number;
+  year: number;
+  initial_balance: number;
+}): Promise<void> {
+  const response = await fetch(`${API_URL}/api/leaves/balance/${employeeId}/initialize`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Erreur initialisation solde');
+  }
+}
+
+async function yearEndRollover(year: number): Promise<{ employees_processed: number }> {
+  const response = await fetch(`${API_URL}/api/leaves/balance/year-end-rollover?year=${year}`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Erreur report annuel');
+  }
+  return response.json();
+}
+
+async function getEmployees(): Promise<Employee[]> {
+  const response = await fetch(`${API_URL}/api/employees?page_size=500`, { headers: getAuthHeaders() });
+  if (!response.ok) return [];
+  const data = await response.json();
+  return data.items || data;
 }
 
 async function submitLeaveRequest(data: {
@@ -410,7 +456,7 @@ function LeaveTypesModal({
   onRefresh: () => void;
 }) {
   const [editingType, setEditingType] = useState<LeaveType | null>(null);
-  const [newType, setNewType] = useState({ name: '', code: '', default_days: 0 });
+  const [newType, setNewType] = useState<Partial<LeaveType>>({ name: '', code: '', default_days: 0, is_annual: false, accrual_rate: null, max_carryover: null });
   const [showAddForm, setShowAddForm] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -463,47 +509,69 @@ function LeaveTypesModal({
 
           <div className="space-y-3">
             {leaveTypes.map((type) => (
-              <div key={type.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div key={type.id} className="p-4 bg-gray-50 rounded-lg">
                 {editingType?.id === type.id ? (
-                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <input
-                      type="text"
-                      value={editingType.name}
-                      onChange={(e) => setEditingType({ ...editingType, name: e.target.value })}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                      placeholder="Nom"
-                    />
-                    <input
-                      type="text"
-                      value={editingType.code}
-                      onChange={(e) => setEditingType({ ...editingType, code: e.target.value })}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                      placeholder="Code"
-                    />
-                    <input
-                      type="number"
-                      value={editingType.default_days}
-                      onChange={(e) => setEditingType({ ...editingType, default_days: parseInt(e.target.value) || 0 })}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                      placeholder="Jours"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">{type.name}</span>
-                      <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">{type.code}</span>
-                      {!type.is_active && (
-                        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">Inactif</span>
+                  <div className="flex-1 space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <input
+                        type="text"
+                        value={editingType.name}
+                        onChange={(e) => setEditingType({ ...editingType, name: e.target.value })}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        placeholder="Nom"
+                      />
+                      <input
+                        type="text"
+                        value={editingType.code}
+                        onChange={(e) => setEditingType({ ...editingType, code: e.target.value })}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        placeholder="Code"
+                      />
+                      <input
+                        type="number"
+                        value={editingType.default_days}
+                        onChange={(e) => setEditingType({ ...editingType, default_days: parseInt(e.target.value) || 0 })}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        placeholder="Jours"
+                      />
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={editingType.is_annual || false}
+                          onChange={(e) => setEditingType({ ...editingType, is_annual: e.target.checked })}
+                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        />
+                        Congés annuels
+                      </label>
+                      {editingType.is_annual && (
+                        <>
+                          <div className="flex items-center gap-1">
+                            <label className="text-xs text-gray-500">Taux acq./mois</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={editingType.accrual_rate ?? ''}
+                              onChange={(e) => setEditingType({ ...editingType, accrual_rate: e.target.value ? parseFloat(e.target.value) : null })}
+                              className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
+                              placeholder="2.08"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <label className="text-xs text-gray-500">Plafond report</label>
+                            <input
+                              type="number"
+                              value={editingType.max_carryover ?? ''}
+                              onChange={(e) => setEditingType({ ...editingType, max_carryover: e.target.value ? parseInt(e.target.value) : null })}
+                              className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
+                              placeholder="Illimité"
+                            />
+                          </div>
+                        </>
                       )}
                     </div>
-                    <p className="text-sm text-gray-500">{type.default_days} jours par défaut</p>
-                  </div>
-                )}
-                
-                <div className="flex gap-2 ml-4">
-                  {editingType?.id === type.id ? (
-                    <>
+                    <div className="flex gap-2">
                       <button
                         onClick={() => setEditingType(null)}
                         className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-200 rounded-lg"
@@ -517,34 +585,66 @@ function LeaveTypesModal({
                       >
                         {saving ? '...' : 'Sauver'}
                       </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => setEditingType(type)}
-                      className="px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg"
-                    >
-                      Modifier
-                    </button>
-                  )}
-                </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">{type.name}</span>
+                        <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">{type.code}</span>
+                        {!type.is_active && (
+                          <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">Inactif</span>
+                        )}
+                        {type.is_system && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Système</span>
+                        )}
+                        {type.is_annual && (
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Annuel</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        {type.default_days} jours par défaut
+                        {type.is_annual && type.accrual_rate && (
+                          <span className="ml-2 text-xs text-green-600">({type.accrual_rate} j/mois)</span>
+                        )}
+                        {type.is_annual && type.max_carryover != null && (
+                          <span className="ml-2 text-xs text-blue-600">(report max: {type.max_carryover} j)</span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      {!type.is_system ? (
+                        <button
+                          onClick={() => setEditingType(type)}
+                          className="px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg"
+                        >
+                          Modifier
+                        </button>
+                      ) : (
+                        <span className="px-3 py-1.5 text-xs text-gray-400">Non modifiable</span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
 
           {/* Add new type */}
           {showAddForm ? (
-            <div className="mt-4 p-4 border-2 border-dashed border-gray-300 rounded-lg">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+            <div className="mt-4 p-4 border-2 border-dashed border-gray-300 rounded-lg space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <input
                   type="text"
-                  value={newType.name}
+                  value={newType.name || ''}
                   onChange={(e) => setNewType({ ...newType, name: e.target.value })}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   placeholder="Nom du type"
                 />
                 <input
                   type="text"
-                  value={newType.code}
+                  value={newType.code || ''}
                   onChange={(e) => setNewType({ ...newType, code: e.target.value.toUpperCase() })}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   placeholder="Code (ex: CP)"
@@ -556,6 +656,42 @@ function LeaveTypesModal({
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   placeholder="Jours par défaut"
                 />
+              </div>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={newType.is_annual || false}
+                    onChange={(e) => setNewType({ ...newType, is_annual: e.target.checked })}
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  Congés annuels (acquisition mensuelle)
+                </label>
+                {newType.is_annual && (
+                  <>
+                    <div className="flex items-center gap-1">
+                      <label className="text-xs text-gray-500 whitespace-nowrap">Taux acq./mois</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={newType.accrual_rate ?? ''}
+                        onChange={(e) => setNewType({ ...newType, accrual_rate: e.target.value ? parseFloat(e.target.value) : null })}
+                        className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
+                        placeholder="2.08"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <label className="text-xs text-gray-500 whitespace-nowrap">Plafond report</label>
+                      <input
+                        type="number"
+                        value={newType.max_carryover ?? ''}
+                        onChange={(e) => setNewType({ ...newType, max_carryover: e.target.value ? parseInt(e.target.value) : null })}
+                        className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
+                        placeholder="Illimité"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
               <div className="flex gap-2">
                 <button
@@ -1138,17 +1274,29 @@ export default function LeavesManagementPage() {
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const [showNewLeaveModal, setShowNewLeaveModal] = useState(false);
 
+  // Individual balance initialization
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [initBalanceForm, setInitBalanceForm] = useState({ employee_id: '', leave_type_id: '', year: new Date().getFullYear(), initial_balance: '' });
+  const [initBalanceLoading, setInitBalanceLoading] = useState(false);
+
+  // Year-end rollover
+  const [rolloverYear, setRolloverYear] = useState(new Date().getFullYear() - 1);
+  const [rolloverLoading, setRolloverLoading] = useState(false);
+  const [rolloverResult, setRolloverResult] = useState<number | null>(null);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [typesData, deptData, statsData] = await Promise.all([
+      const [typesData, deptData, statsData, employeesData] = await Promise.all([
         getLeaveTypes(),
         getDepartments(),
-        getLeaveStats()
+        getLeaveStats(),
+        getEmployees()
       ]);
       setLeaveTypes(typesData);
       setDepartments(deptData);
       setStats(statsData);
+      setEmployees(employeesData);
     } catch (e) {
       console.error(e);
     } finally {
@@ -1438,37 +1586,201 @@ export default function LeavesManagementPage() {
         )}
 
         {activeTab === 'settings' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Settings className="w-5 h-5 text-primary-600" />
-                Types de congés
-              </h3>
-              <p className="text-gray-500 text-sm mb-4">
-                Configurez les différents types de congés disponibles.
-              </p>
-              <button
-                onClick={() => setShowTypesModal(true)}
-                className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-              >
-                Gérer les types
-              </button>
+          <div className="space-y-6">
+            {/* Row 1: Types + Init annuelle */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-primary-600" />
+                  Types de congés
+                </h3>
+                <p className="text-gray-500 text-sm mb-4">
+                  Configurez les différents types de congés disponibles.
+                </p>
+                <button
+                  onClick={() => setShowTypesModal(true)}
+                  className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                >
+                  Gérer les types
+                </button>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5 text-primary-600" />
+                  Initialisation annuelle
+                </h3>
+                <p className="text-gray-500 text-sm mb-4">
+                  Initialisez les soldes de congés pour tous les employés.
+                </p>
+                <button
+                  onClick={() => setShowInitModal(true)}
+                  className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                >
+                  Initialiser les soldes
+                </button>
+              </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <RefreshCw className="w-5 h-5 text-primary-600" />
-                Initialisation annuelle
-              </h3>
-              <p className="text-gray-500 text-sm mb-4">
-                Initialisez les soldes de congés pour tous les employés.
-              </p>
-              <button
-                onClick={() => setShowInitModal(true)}
-                className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-              >
-                Initialiser les soldes
-              </button>
+            {/* Row 2: Initialisation individuelle + Report annuel */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Initialisation individuelle */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <UserPlus className="w-5 h-5 text-primary-600" />
+                  Initialisation individuelle
+                </h3>
+                <p className="text-gray-500 text-sm mb-4">
+                  Définir le solde initial d&apos;un employé pour un type de congé annuel.
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Employé</label>
+                    <select
+                      value={initBalanceForm.employee_id}
+                      onChange={(e) => setInitBalanceForm({ ...initBalanceForm, employee_id: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    >
+                      <option value="">Sélectionner...</option>
+                      {employees.map((emp) => (
+                        <option key={emp.id} value={emp.id}>
+                          {emp.first_name} {emp.last_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Type de congé (annuels)</label>
+                    <select
+                      value={initBalanceForm.leave_type_id}
+                      onChange={(e) => setInitBalanceForm({ ...initBalanceForm, leave_type_id: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    >
+                      <option value="">Sélectionner...</option>
+                      {leaveTypes.filter(t => t.is_annual && t.is_active).map((t) => (
+                        <option key={t.id} value={t.id}>{t.name} ({t.code})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Année</label>
+                      <select
+                        value={initBalanceForm.year}
+                        onChange={(e) => setInitBalanceForm({ ...initBalanceForm, year: parseInt(e.target.value) })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      >
+                        {[2024, 2025, 2026, 2027].map(y => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Solde initial (jours)</label>
+                      <input
+                        type="number"
+                        value={initBalanceForm.initial_balance}
+                        onChange={(e) => setInitBalanceForm({ ...initBalanceForm, initial_balance: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        placeholder="ex: 25"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!initBalanceForm.employee_id || !initBalanceForm.leave_type_id || !initBalanceForm.initial_balance) {
+                        toast.error('Veuillez remplir tous les champs');
+                        return;
+                      }
+                      setInitBalanceLoading(true);
+                      try {
+                        await initializeEmployeeBalance(parseInt(initBalanceForm.employee_id), {
+                          leave_type_id: parseInt(initBalanceForm.leave_type_id),
+                          year: initBalanceForm.year,
+                          initial_balance: parseFloat(initBalanceForm.initial_balance),
+                        });
+                        toast.success('Solde initialisé avec succès');
+                        setInitBalanceForm({ ...initBalanceForm, initial_balance: '' });
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : 'Erreur');
+                      } finally {
+                        setInitBalanceLoading(false);
+                      }
+                    }}
+                    disabled={initBalanceLoading || !initBalanceForm.employee_id || !initBalanceForm.leave_type_id || !initBalanceForm.initial_balance}
+                    className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {initBalanceLoading ? (
+                      <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Enregistrement...</>
+                    ) : (
+                      'Enregistrer'
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Report annuel */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <RotateCcw className="w-5 h-5 text-primary-600" />
+                  Report annuel
+                </h3>
+                <p className="text-gray-500 text-sm mb-4">
+                  Effectuer le report des soldes de congés non utilisés vers l&apos;année suivante
+                  (selon les plafonds de report configurés par type).
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Année à clôturer</label>
+                    <select
+                      value={rolloverYear}
+                      onChange={(e) => { setRolloverYear(parseInt(e.target.value)); setRolloverResult(null); }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    >
+                      {[2024, 2025, 2026].map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                    <p className="text-sm text-amber-800">
+                      <strong>Attention :</strong> Cette action va reporter les soldes non utilisés de {rolloverYear} vers {rolloverYear + 1} pour tous les employés.
+                      Cette opération est irréversible.
+                    </p>
+                  </div>
+                  {rolloverResult !== null && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <p className="text-sm text-green-800">
+                        Report effectué avec succès pour <strong>{rolloverResult}</strong> employé(s).
+                      </p>
+                    </div>
+                  )}
+                  <button
+                    onClick={async () => {
+                      if (!confirm(`Êtes-vous sûr de vouloir effectuer le report annuel de ${rolloverYear} ? Cette action est irréversible.`)) return;
+                      setRolloverLoading(true);
+                      setRolloverResult(null);
+                      try {
+                        const result = await yearEndRollover(rolloverYear);
+                        setRolloverResult(result.employees_processed);
+                        toast.success(`Report effectué pour ${result.employees_processed} employé(s)`);
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : 'Erreur lors du report');
+                      } finally {
+                        setRolloverLoading(false);
+                      }
+                    }}
+                    disabled={rolloverLoading}
+                    className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {rolloverLoading ? (
+                      <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Traitement...</>
+                    ) : (
+                      <><RotateCcw className="w-4 h-4" /> Effectuer le report annuel</>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

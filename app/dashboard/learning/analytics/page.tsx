@@ -75,7 +75,7 @@ export default function AnalyticsPage() {
     setPlanLoading(true);
     setPlanError(null);
     try {
-      const res = await fetch(`${API_URL}/training-plans/analytics?year=${year}`, {
+      const res = await fetch(`${API_URL}/api/training-plans/analytics?year=${year}`, {
         headers: getAuthHeaders(),
       });
       if (!res.ok) throw new Error('Erreur lors du chargement des analytics');

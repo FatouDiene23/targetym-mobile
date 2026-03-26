@@ -6,7 +6,7 @@ import {
   Calendar, Clock, CheckCircle, XCircle, AlertCircle,
   Download, RefreshCw, Users, Settings, BarChart3, CalendarDays,
   ChevronLeft, ChevronRight, X, Search, Plus, Brain, Sparkles,
-  RotateCcw, UserPlus
+  RotateCcw, UserPlus, Upload, FileDown
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Pagination from '@/components/Pagination';
@@ -36,6 +36,15 @@ interface Employee {
   id: number;
   first_name: string;
   last_name: string;
+  employee_id?: number;
+}
+
+interface CurrentUser {
+  id: number;
+  employee_id: number | null;
+  role: string;
+  first_name?: string;
+  last_name?: string;
 }
 
 interface LeaveRequest {
@@ -110,10 +119,23 @@ function getAuthHeaders(): HeadersInit {
   };
 }
 
-async function getLeaveTypes(): Promise<LeaveType[]> {
-  const response = await fetch(`${API_URL}/api/leaves/types`, { headers: getAuthHeaders() });
-  if (!response.ok) return [];
-  return response.json();
+async function getLeaveTypes(activeOnly: boolean = false): Promise<LeaveType[]> {
+  try {
+    const url = activeOnly ? `${API_URL}/api/leaves/types?active_only=true` : `${API_URL}/api/leaves/types`;
+    const response = await fetch(url, { headers: getAuthHeaders() });
+    if (!response.ok) {
+      console.error('getLeaveTypes failed:', response.status, response.statusText);
+      return [];
+    }
+    const data = await response.json();
+    // API may return array directly or wrapped in { items: [...] }
+    const types = Array.isArray(data) ? data : (data.items || data.types || []);
+    console.log('getLeaveTypes loaded:', types.length, 'types');
+    return types;
+  } catch (e) {
+    console.error('getLeaveTypes error:', e);
+    return [];
+  }
 }
 
 async function getLeaveRequests(params: {
@@ -193,12 +215,26 @@ async function approveLeaveRequest(requestId: number, approved: boolean, rejecti
 }
 
 async function createLeaveType(data: Partial<LeaveType>): Promise<LeaveType> {
+  const payload = {
+    name: data.name,
+    code: data.code,
+    default_days: data.default_days || 0,
+    is_active: data.is_active !== false,
+    is_annual: data.is_annual || false,
+    accrual_rate: data.accrual_rate || null,
+    max_carryover: data.max_carryover || null,
+  };
+  console.log('createLeaveType payload:', payload);
   const response = await fetch(`${API_URL}/api/leaves/types`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
-  if (!response.ok) throw new Error('Erreur');
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    console.error('createLeaveType error:', response.status, err);
+    throw new Error(err.detail || err.message || `Erreur ${response.status}: ${response.statusText}`);
+  }
   return response.json();
 }
 
@@ -208,7 +244,11 @@ async function updateLeaveType(id: number, data: Partial<LeaveType>): Promise<Le
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error('Erreur');
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    console.error('updateLeaveType error:', response.status, err);
+    throw new Error(err.detail || err.message || `Erreur ${response.status}`);
+  }
   return response.json();
 }
 
@@ -249,10 +289,66 @@ async function yearEndRollover(year: number): Promise<{ employees_processed: num
 }
 
 async function getEmployees(): Promise<Employee[]> {
-  const response = await fetch(`${API_URL}/api/employees?page_size=500`, { headers: getAuthHeaders() });
+  const response = await fetch(`${API_URL}/api/employees?status=active&page_size=500`, { headers: getAuthHeaders() });
   if (!response.ok) return [];
   const data = await response.json();
   return data.items || data;
+}
+
+async function getDirectReports(managerId: number): Promise<Employee[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/employees/${managerId}/direct-reports`, { headers: getAuthHeaders() });
+    if (!response.ok) {
+      // Fallback: query by manager_id
+      const fallback = await fetch(`${API_URL}/api/employees?manager_id=${managerId}&status=active&page_size=500`, { headers: getAuthHeaders() });
+      if (!fallback.ok) return [];
+      const data = await fallback.json();
+      return data.items || data;
+    }
+    const data = await response.json();
+    return Array.isArray(data) ? data : (data.items || data.employees || []);
+  } catch {
+    return [];
+  }
+}
+
+async function getCurrentUser(): Promise<CurrentUser | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/auth/me`, { headers: getAuthHeaders() });
+    if (!response.ok) {
+      // Fallback to localStorage
+      const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        return { id: u.id, employee_id: u.employee_id || null, role: (u.role || 'employee').toLowerCase(), first_name: u.first_name, last_name: u.last_name };
+      }
+      return null;
+    }
+    const u = await response.json();
+    return { id: u.id, employee_id: u.employee_id || null, role: (u.role || 'employee').toLowerCase(), first_name: u.first_name, last_name: u.last_name };
+  } catch {
+    return null;
+  }
+}
+
+function getUserFromStorage(): { role: string; employeeId: number | null; userId: number | null; firstName?: string; lastName?: string } {
+  if (typeof window === 'undefined') return { role: 'employee', employeeId: null, userId: null };
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      return {
+        role: (user.role || 'employee').toLowerCase(),
+        employeeId: user.employee_id || null,
+        userId: user.id || null,
+        firstName: user.first_name,
+        lastName: user.last_name,
+      };
+    }
+  } catch (e) {
+    console.error('Error parsing user from localStorage:', e);
+  }
+  return { role: 'employee', employeeId: null, userId: null };
 }
 
 async function submitLeaveRequest(data: {
@@ -465,25 +561,32 @@ function LeaveTypesModal({
     setSaving(true);
     try {
       await updateLeaveType(editingType.id, editingType);
+      toast.success('Type de congé modifié');
       onRefresh();
       setEditingType(null);
     } catch (e) {
-      console.error(e);
+      console.error('handleSaveEdit error:', e);
+      toast.error(e instanceof Error ? e.message : 'Erreur lors de la modification');
     } finally {
       setSaving(false);
     }
   };
 
   const handleAddType = async () => {
-    if (!newType.name || !newType.code) return;
+    if (!newType.name || !newType.code) {
+      toast.error('Le nom et le code sont obligatoires');
+      return;
+    }
     setSaving(true);
     try {
       await createLeaveType({ ...newType, is_active: true });
+      toast.success('Type de congé ajouté');
       onRefresh();
-      setNewType({ name: '', code: '', default_days: 0 });
+      setNewType({ name: '', code: '', default_days: 0, is_annual: false, accrual_rate: null, max_carryover: null });
       setShowAddForm(false);
     } catch (e) {
-      console.error(e);
+      console.error('handleAddType error:', e);
+      toast.error(e instanceof Error ? e.message : 'Erreur lors de l\'ajout');
     } finally {
       setSaving(false);
     }
@@ -508,6 +611,13 @@ function LeaveTypesModal({
           </div>
 
           <div className="space-y-3">
+            {leaveTypes.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                <p className="text-sm">Aucun type de congé trouvé.</p>
+                <p className="text-xs text-gray-400 mt-1">Ajoutez un type ci-dessous ou vérifiez la connexion API.</p>
+              </div>
+            )}
             {leaveTypes.map((type) => (
               <div key={type.id} className="p-4 bg-gray-50 rounded-lg">
                 {editingType?.id === type.id ? (
@@ -1045,8 +1155,68 @@ function NewLeaveRequestModal({
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Role-based employee list
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [availableEmployees, setAvailableEmployees] = useState<Employee[]>([]);
+  const [employeesLoading, setEmployeesLoading] = useState(false);
+
   const [okrImpact, setOkrImpact] = useState<OkrImpact | null>(null);
   const [okrLoading, setOkrLoading] = useState(false);
+
+  // Load current user and appropriate employee list when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+
+    (async () => {
+      setEmployeesLoading(true);
+      try {
+        // Get current user info
+        let user = await getCurrentUser();
+        if (!user) {
+          const stored = getUserFromStorage();
+          if (stored.userId) {
+            user = { id: stored.userId, employee_id: stored.employeeId, role: stored.role, first_name: stored.firstName, last_name: stored.lastName };
+          }
+        }
+        if (cancelled) return;
+        setCurrentUser(user);
+
+        const role = user?.role || 'employee';
+        const empId = user?.employee_id;
+
+        if (role === 'employee') {
+          // Employee: can only create for themselves — no list needed
+          if (empId) {
+            setEmployeeId(String(empId));
+          }
+          setAvailableEmployees([]);
+        } else if (role === 'manager') {
+          // Manager: self + direct reports
+          const reports = empId ? await getDirectReports(empId) : [];
+          if (cancelled) return;
+          // Add self to the list if not already present
+          const selfEntry: Employee = { id: empId!, first_name: user?.first_name || '', last_name: user?.last_name || '' };
+          const hasself = reports.some(r => r.id === empId);
+          const list = hasself ? reports : [selfEntry, ...reports];
+          setAvailableEmployees(list);
+          if (empId) setEmployeeId(String(empId));
+        } else {
+          // rh, admin, dg: all active employees
+          const allEmps = await getEmployees();
+          if (cancelled) return;
+          setAvailableEmployees(allEmps);
+          if (empId) setEmployeeId(String(empId));
+        }
+      } catch (e) {
+        console.error('Error loading employees for leave request:', e);
+      } finally {
+        if (!cancelled) setEmployeesLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [isOpen]);
 
   // Fetch OKR impact whenever employee + both dates are set
   useEffect(() => {
@@ -1099,6 +1269,8 @@ function NewLeaveRequestModal({
     high: 'bg-red-50 border-red-200 text-red-800',
   };
 
+  const userRole = currentUser?.role || 'employee';
+
   if (!isOpen) return null;
 
   return (
@@ -1117,18 +1289,38 @@ function NewLeaveRequestModal({
           </div>
 
           <div className="space-y-4">
-            {/* Employee ID */}
+            {/* Employee selector — role-based */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ID Employé <span className="text-red-500">*</span>
+                Employé <span className="text-red-500">*</span>
               </label>
-              <input
-                type="number"
-                value={employeeId}
-                onChange={(e) => setEmployeeId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                placeholder="ex: 42"
-              />
+              {employeesLoading ? (
+                <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-400">
+                  <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
+                  Chargement...
+                </div>
+              ) : userRole === 'employee' ? (
+                // Employee: read-only display of own name
+                <div className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-700">
+                  {currentUser?.first_name} {currentUser?.last_name}
+                  <input type="hidden" value={employeeId} />
+                </div>
+              ) : (
+                // Manager / RH / Admin / DG: dropdown
+                <select
+                  value={employeeId}
+                  onChange={(e) => setEmployeeId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  <option value="">-- Sélectionner un employé --</option>
+                  {availableEmployees.map(emp => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.first_name} {emp.last_name}
+                      {emp.id === currentUser?.employee_id ? ' (moi)' : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Leave type */}
@@ -1283,6 +1475,10 @@ export default function LeavesManagementPage() {
   const [rolloverYear, setRolloverYear] = useState(new Date().getFullYear() - 1);
   const [rolloverLoading, setRolloverLoading] = useState(false);
   const [rolloverResult, setRolloverResult] = useState<number | null>(null);
+
+  // CSV Import
+  const [csvImporting, setCsvImporting] = useState(false);
+  const [csvResult, setCsvResult] = useState<{ success: number; errors: { line: number; error: string }[] } | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -1641,26 +1837,36 @@ export default function LeavesManagementPage() {
                       onChange={(e) => setInitBalanceForm({ ...initBalanceForm, employee_id: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                     >
-                      <option value="">Sélectionner...</option>
+                      <option value="">Sélectionner... ({employees.length} employés)</option>
                       {employees.map((emp) => (
                         <option key={emp.id} value={emp.id}>
                           {emp.first_name} {emp.last_name}
                         </option>
                       ))}
                     </select>
+                    {employees.length === 0 && !loading && (
+                      <p className="mt-1 text-xs text-amber-600">Aucun employé trouvé. Vérifiez les permissions.</p>
+                    )}
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Type de congé (annuels)</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Type de congé</label>
                     <select
                       value={initBalanceForm.leave_type_id}
                       onChange={(e) => setInitBalanceForm({ ...initBalanceForm, leave_type_id: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                     >
                       <option value="">Sélectionner...</option>
-                      {leaveTypes.filter(t => t.is_annual && t.is_active).map((t) => (
-                        <option key={t.id} value={t.id}>{t.name} ({t.code})</option>
-                      ))}
+                      {(() => {
+                        const annualTypes = leaveTypes.filter(t => t.is_annual && t.is_active);
+                        const typesToShow = annualTypes.length > 0 ? annualTypes : leaveTypes.filter(t => t.is_active);
+                        return typesToShow.map((t) => (
+                          <option key={t.id} value={t.id}>{t.name} ({t.code})</option>
+                        ));
+                      })()}
                     </select>
+                    {leaveTypes.filter(t => t.is_active).length === 0 && (
+                      <p className="mt-1 text-xs text-amber-600">Aucun type de congé actif trouvé. Vérifiez la configuration.</p>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -1716,6 +1922,106 @@ export default function LeavesManagementPage() {
                       'Enregistrer'
                     )}
                   </button>
+
+                  {/* CSV Import */}
+                  <div className="pt-4 border-t border-gray-200">
+                    <p className="text-xs font-medium text-gray-600 mb-2">Import en masse via CSV</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          const csv = 'employee_id,leave_type_id,year,initial_balance\n1,1,2026,25\n2,1,2026,30';
+                          const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = 'template_soldes_initiaux.csv';
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-xs flex items-center justify-center gap-1"
+                      >
+                        <FileDown className="w-3.5 h-3.5" />
+                        Template CSV
+                      </button>
+                      <label className="flex-1 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-xs flex items-center justify-center gap-1 cursor-pointer">
+                        <Upload className="w-3.5 h-3.5" />
+                        {csvImporting ? 'Import...' : 'Importer CSV'}
+                        <input
+                          type="file"
+                          accept=".csv"
+                          className="hidden"
+                          disabled={csvImporting}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setCsvImporting(true);
+                            setCsvResult(null);
+                            try {
+                              const text = await file.text();
+                              const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+                              if (lines.length < 2) {
+                                toast.error('Le fichier CSV est vide ou ne contient que l\'en-tête');
+                                return;
+                              }
+                              // Skip header
+                              const dataLines = lines.slice(1);
+                              let success = 0;
+                              const errors: { line: number; error: string }[] = [];
+
+                              for (let i = 0; i < dataLines.length; i++) {
+                                const cols = dataLines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+                                if (cols.length < 4) {
+                                  errors.push({ line: i + 2, error: 'Nombre de colonnes insuffisant' });
+                                  continue;
+                                }
+                                const [empId, ltId, yr, bal] = cols;
+                                if (!empId || !ltId || !yr || !bal) {
+                                  errors.push({ line: i + 2, error: 'Valeur(s) manquante(s)' });
+                                  continue;
+                                }
+                                try {
+                                  await initializeEmployeeBalance(parseInt(empId), {
+                                    leave_type_id: parseInt(ltId),
+                                    year: parseInt(yr),
+                                    initial_balance: parseFloat(bal),
+                                  });
+                                  success++;
+                                } catch (err) {
+                                  errors.push({ line: i + 2, error: err instanceof Error ? err.message : 'Erreur' });
+                                }
+                              }
+                              setCsvResult({ success, errors });
+                              if (success > 0) toast.success(`${success} solde(s) initialisé(s)`);
+                              if (errors.length > 0) toast.error(`${errors.length} erreur(s) lors de l'import`);
+                            } catch (err) {
+                              toast.error('Erreur de lecture du fichier CSV');
+                              console.error(err);
+                            } finally {
+                              setCsvImporting(false);
+                              // Reset input
+                              e.target.value = '';
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                    {csvResult && (
+                      <div className="mt-3 p-3 bg-gray-50 rounded-lg text-xs">
+                        <p className="font-medium text-gray-900 mb-1">
+                          Résultat : {csvResult.success} succès, {csvResult.errors.length} erreur(s)
+                        </p>
+                        {csvResult.errors.length > 0 && (
+                          <div className="mt-2 max-h-32 overflow-y-auto space-y-1">
+                            {csvResult.errors.map((err, i) => (
+                              <p key={i} className="text-red-600">
+                                Ligne {err.line} : {err.error}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

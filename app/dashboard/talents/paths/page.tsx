@@ -940,6 +940,14 @@ function AddLevelModal({ pathId, existingCount, onClose, onAdd }: {
 // AddCompetencyModal
 // ============================================
 
+interface LearningSkill {
+  id: number;
+  name: string;
+  description?: string;
+  skill_type: string;
+  category: string;
+}
+
 function AddCompetencyModal({ levelId, onClose, onAdd }: {
   levelId: number;
   onClose: () => void;
@@ -952,6 +960,53 @@ function AddCompetencyModal({ levelId, onClose, onAdd }: {
   const [isMandatory, setIsMandatory] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Skill picker
+  const [skills, setSkills] = useState<LearningSkill[]>([]);
+  const [skillSearch, setSkillSearch] = useState('');
+  const [selectedSkillId, setSelectedSkillId] = useState<number | null>(null);
+  const [showPicker, setShowPicker] = useState(false);
+
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
+
+  useEffect(() => {
+    fetch(`${apiUrl}/api/learning/skills/`, { headers: getAuthHeaders() })
+      .then(r => r.ok ? r.json() : [])
+      .then(setSkills)
+      .catch(() => {});
+  }, []);
+
+  const SKILL_TYPE_COLORS: Record<string, string> = {
+    soft_skill: 'bg-purple-100 text-purple-700',
+    technical:  'bg-blue-100 text-blue-700',
+    management: 'bg-green-100 text-green-700',
+  };
+  const SKILL_TYPE_LABELS: Record<string, string> = {
+    soft_skill: 'Soft Skill',
+    technical:  'Technique',
+    management: 'Management',
+  };
+
+  const filteredSkills = skills.filter(s =>
+    s.name.toLowerCase().includes(skillSearch.toLowerCase()) ||
+    (s.category || '').toLowerCase().includes(skillSearch.toLowerCase())
+  );
+
+  const selectSkill = (skill: LearningSkill) => {
+    setName(skill.name);
+    setDesc(skill.description ?? '');
+    setSelectedSkillId(skill.id);
+    setShowPicker(false);
+    setSkillSearch('');
+  };
+
+  const clearSkill = () => {
+    setSelectedSkillId(null);
+    setName('');
+    setDesc('');
+  };
+
+  const selectedSkill = skills.find(s => s.id === selectedSkillId);
+
   const handleSubmit = async () => {
     if (!name.trim()) return;
     setSaving(true);
@@ -962,6 +1017,7 @@ function AddCompetencyModal({ levelId, onClose, onAdd }: {
         performance_threshold: perfThreshold,
         attitude_threshold: attThreshold,
         is_mandatory: isMandatory,
+        skill_id: selectedSkillId,
       });
     } catch { setSaving(false); }
   };
@@ -974,6 +1030,74 @@ function AddCompetencyModal({ levelId, onClose, onAdd }: {
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <div className="space-y-4">
+
+          {/* Skill picker from Formation & Développement */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Depuis le référentiel Formation &amp; Développement
+            </label>
+            {selectedSkill ? (
+              <div className="flex items-center gap-2 px-3 py-2 border border-primary-300 bg-primary-50 rounded-lg text-sm">
+                <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${SKILL_TYPE_COLORS[selectedSkill.skill_type] ?? 'bg-gray-100 text-gray-600'}`}>
+                  {SKILL_TYPE_LABELS[selectedSkill.skill_type] ?? selectedSkill.skill_type}
+                </span>
+                <span className="flex-1 font-medium text-gray-800">{selectedSkill.name}</span>
+                <button onClick={clearSkill} className="text-gray-400 hover:text-red-500">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowPicker(v => !v)}
+                className="w-full px-3 py-2 border border-dashed border-gray-300 text-gray-500 rounded-lg text-sm text-left hover:border-primary-400 hover:text-primary-600 transition-colors"
+              >
+                {skills.length > 0
+              ? `Choisir parmi ${skills.length} compétence${skills.length > 1 ? 's' : ''} définies…`
+                  : 'Aucune compétence dans le référentiel'}
+              </button>
+            )}
+
+            {showPicker && skills.length > 0 && (
+              <div className="mt-1 border border-gray-200 rounded-lg shadow-lg bg-white overflow-hidden">
+                <div className="p-2 border-b border-gray-100">
+                  <input
+                    autoFocus
+                    value={skillSearch}
+                    onChange={e => setSkillSearch(e.target.value)}
+                    placeholder="Rechercher…"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:outline-none focus:border-primary-400"
+                  />
+                </div>
+                <ul className="max-h-48 overflow-y-auto">
+                  {filteredSkills.length === 0 ? (
+                    <li className="px-3 py-3 text-sm text-gray-400 text-center">Aucun résultat</li>
+                  ) : filteredSkills.map(s => (
+                    <li key={s.id}>
+                      <button
+                        type="button"
+                        onClick={() => selectSkill(s)}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-50 text-sm"
+                      >
+                        <span className={`px-1.5 py-0.5 rounded text-xs font-medium flex-shrink-0 ${SKILL_TYPE_COLORS[s.skill_type] ?? 'bg-gray-100 text-gray-600'}`}>
+                          {SKILL_TYPE_LABELS[s.skill_type] ?? s.skill_type}
+                        </span>
+                        <span className="font-medium text-gray-800">{s.name}</span>
+                        {s.category && <span className="text-xs text-gray-400 ml-auto">{s.category}</span>}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs text-gray-400">ou saisir manuellement</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nom de la compétence *</label>
             <input value={name} onChange={e => setName(e.target.value)}

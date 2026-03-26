@@ -642,8 +642,9 @@ export default function PlanFormationPage() {
   // DETAIL VIEW
   // ============================================
 
-  if (selectedPlan) {
-    return (
+  return (
+    <div className="space-y-6">
+      {selectedPlan && (
       <div className="space-y-6">
         {/* Back button + header */}
         <div className="flex items-center gap-4">
@@ -753,15 +754,10 @@ export default function PlanFormationPage() {
           </div>
         </div>
       </div>
-    );
-  }
+      )}
 
-  // ============================================
-  // LIST VIEW
-  // ============================================
-
-  return (
-    <div className="space-y-6">
+      {!selectedPlan && (
+      <>
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="flex flex-wrap gap-3 items-center">
@@ -904,6 +900,8 @@ export default function PlanFormationPage() {
             </table>
           </div>
         </div>
+      )}
+      </>
       )}
 
       {/* ── Create Modal ── */}

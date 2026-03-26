@@ -349,7 +349,7 @@ function SidebarInner() {
       const token = localStorage.getItem('access_token');
       if (token) {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-        fetch(`${apiUrl}/employees/${employeeId}`, {
+        fetch(`${apiUrl}/api/employees/${employeeId}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
           .then(r => r.ok ? r.json() : null)

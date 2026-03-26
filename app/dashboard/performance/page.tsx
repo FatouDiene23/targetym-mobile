@@ -3,8 +3,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   ThumbsUp, Send, X, Loader2, AlertCircle, Search,
-  ChevronLeft, ChevronRight, BarChart3, Check, Trash2, MessageCircle
+  ChevronLeft, ChevronRight, BarChart3, Check, Trash2, MessageCircle,
+  Hourglass, Bell, Eye, ClipboardList, Handshake, Wrench, Target, Brain,
+  Globe, Zap, ShieldCheck, Heart, HeartPulse, TrendingUp, Clock, Cog,
+  type LucideProps
 } from 'lucide-react';
+
+const ATTITUDE_ICONS: Record<string, React.ComponentType<LucideProps>> = {
+  Hourglass, Bell, Eye, ClipboardList, Handshake, Wrench, Target, Brain,
+  Globe, Zap, ShieldCheck, Heart, HeartPulse, TrendingUp, Clock, Cog,
+};
+
+function AttitudeIcon({ name, className = 'w-4 h-4' }: { name: string; className?: string }) {
+  const Icon = ATTITUDE_ICONS[name];
+  if (!Icon) return <span className="text-xs opacity-60">{name}</span>;
+  return <Icon className={className} />;
+}
 import Header from '@/components/Header';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
@@ -384,7 +398,7 @@ function FeedbackCard({ feedback, onLike, onDelete, currentEmployeeId }: { feedb
                     ? 'bg-green-50 text-green-700 border border-green-200'
                     : 'bg-amber-50 text-amber-700 border border-amber-200'
                 }`}>
-                  <span>{att.icon}</span>
+                  <AttitudeIcon name={att.icon} className="w-3 h-3" />
                   <span>{att.name}</span>
                   <span className="font-bold">{att.sentiment === 'recognition' ? '+1' : '−1'}</span>
                 </span>
@@ -570,7 +584,7 @@ function AttitudeSelector({
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-base">{att.icon}</span>
+                    <AttitudeIcon name={att.icon} className="w-4 h-4 text-gray-500" />
                     <span className="text-sm text-gray-700">{att.name}</span>
                   </div>
                   <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${
@@ -796,7 +810,7 @@ function AttitudeScoresDashboard({ scores }: { scores: EmployeeAttitudeScores | 
             {/* Nom + barre */}
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span>{att.attitude_icon}</span>
+                <AttitudeIcon name={att.attitude_icon} className="w-4 h-4 text-gray-500" />
                 <span className="text-sm font-medium text-gray-700">{att.attitude_name}</span>
                 {att.total_feedbacks > 0 && (
                   <span className="text-xs text-gray-400">({att.total_feedbacks} avis)</span>

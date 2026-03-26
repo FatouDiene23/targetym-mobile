@@ -240,6 +240,8 @@ export default function PlanFormationPage() {
   // ── Add Need modal ──
   const [showAddNeed, setShowAddNeed] = useState(false);
   const [employeesList, setEmployeesList] = useState<{ id: number; name: string }[]>([]);
+  const [skillsList, setSkillsList] = useState<{ id: number; name: string }[]>([]);
+  const [manualSkillEntry, setManualSkillEntry] = useState(false);
   const [newNeed, setNewNeed] = useState({
     employee_id: '', skill_target: '', source: [] as string[], priority: 'medium',
   });
@@ -489,10 +491,11 @@ export default function PlanFormationPage() {
   const fetchDropdownData = useCallback(async () => {
     const headers = getAuthHeaders();
     try {
-      const [coursesRes, providersRes, employeesRes] = await Promise.all([
+      const [coursesRes, providersRes, employeesRes, skillsRes] = await Promise.all([
         fetch(`${API_URL}/api/learning/courses/?page_size=500`, { headers }),
         fetch(`${API_URL}/api/training/providers`, { headers }),
         fetch(`${API_URL}/api/employees/?page_size=500`, { headers }),
+        fetch(`${API_URL}/api/learning/skills/?page_size=500`, { headers }),
       ]);
       if (coursesRes.ok) {
         const d = await coursesRes.json();
@@ -505,6 +508,10 @@ export default function PlanFormationPage() {
       if (employeesRes.ok) {
         const d = await employeesRes.json();
         setEmployeesList((d.items || d).map((e: { id: number; first_name: string; last_name: string }) => ({ id: e.id, name: `${e.first_name} ${e.last_name}` })));
+      }
+      if (skillsRes.ok) {
+        const d = await skillsRes.json();
+        setSkillsList((d.items || d).map((s: { id: number; name: string }) => ({ id: s.id, name: s.name })));
       }
     } catch { /* silently fail */ }
   }, []);
@@ -577,6 +584,7 @@ export default function PlanFormationPage() {
       }
       toast.success('Besoin de formation ajouté');
       setShowAddNeed(false);
+      setManualSkillEntry(false);
       setNewNeed({ employee_id: '', skill_target: '', source: [], priority: 'medium' });
       fetchPlanDetail(selectedPlan.id);
     } catch (e: unknown) {
@@ -1348,13 +1356,42 @@ export default function PlanFormationPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Compétence cible</label>
-                <input
-                  type="text"
-                  value={newNeed.skill_target}
-                  onChange={e => setNewNeed(p => ({ ...p, skill_target: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                  placeholder="Ex: Leadership, Excel avancé..."
-                />
+                {manualSkillEntry ? (
+                  <>
+                    <input
+                      type="text"
+                      value={newNeed.skill_target}
+                      onChange={e => setNewNeed(p => ({ ...p, skill_target: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                      placeholder="Ex: Leadership, Excel avancé..."
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { setManualSkillEntry(false); setNewNeed(p => ({ ...p, skill_target: '' })); }}
+                      className="mt-1 text-xs text-primary-600 hover:text-primary-700 font-medium"
+                    >
+                      Choisir depuis le référentiel
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <select
+                      value={newNeed.skill_target}
+                      onChange={e => setNewNeed(p => ({ ...p, skill_target: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="">— Sélectionner une compétence —</option>
+                      {skillsList.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => { setManualSkillEntry(true); setNewNeed(p => ({ ...p, skill_target: '' })); }}
+                      className="mt-1 text-xs text-primary-600 hover:text-primary-700 font-medium"
+                    >
+                      Saisir manuellement
+                    </button>
+                  </>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>

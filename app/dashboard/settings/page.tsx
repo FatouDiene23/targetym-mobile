@@ -38,6 +38,7 @@ import { settingsTips } from '@/config/pageTips';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { usePlan, PLAN_LABELS, PLAN_LEVEL, PLAN_PRICING } from '@/hooks/usePlan';
 import { UpgradeModal } from '@/components/PlanGate';
+import SignatureCanvas from '@/components/SignatureCanvas';
 import { getIntegrations, connectIntegration, disconnectIntegration, syncIntegration, type Integration,
   requestGroupConversion, getMyConversionRequestStatus, getMyGroupContext, createMySubsidiary,
   type ConversionRequestItem, type SubsidiaryItem } from '@/lib/api';
@@ -402,6 +403,7 @@ export default function SettingsPage() {
   const [loadingCertSettings, setLoadingCertSettings] = useState(false);
   const [savingCertSettings, setSavingCertSettings] = useState(false);
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
+  const [showSignatureCanvas, setShowSignatureCanvas] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -905,6 +907,17 @@ export default function SettingsPage() {
         }
       },
     });
+  };
+
+  const handleSignatureDraw = async (base64: string) => {
+    setShowSignatureCanvas(false);
+    const byteString = atob(base64);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+    const blob = new Blob([ab], { type: 'image/png' });
+    const file = new File([blob], 'signature.png', { type: 'image/png' });
+    await handleFileUpload('signature', file);
   };
 
   // Composant pour upload de fichier
@@ -1818,7 +1831,62 @@ export default function SettingsPage() {
                   ) : (
                     <div className="grid md:grid-cols-3 gap-4">
                       <FileUploadBox fileType="logo" label="Logo de l'entreprise" icon={ImageIcon} currentUrl={certificateSettings.certificate_logo} />
-                      <FileUploadBox fileType="signature" label="Signature du signataire" icon={PenTool} currentUrl={certificateSettings.certificate_signature} />
+
+                      {/* Signature du signataire — système de signature électronique */}
+                      <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-primary-300 transition-colors">
+                        <div className="flex flex-col items-center">
+                          {certificateSettings.certificate_signature ? (
+                            <div className="relative w-full">
+                              <img src={`${API_URL}${certificateSettings.certificate_signature}`} alt="Signature du signataire" className="max-h-24 mx-auto object-contain rounded-lg" />
+                              <button onClick={() => handleFileDelete('signature')} className="absolute -top-2 -right-2 p-1 bg-red-100 text-red-600 rounded-full hover:bg-red-200">
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                                <PenTool className="w-6 h-6 text-gray-400" />
+                              </div>
+                              <p className="text-sm font-medium text-gray-700 mb-1">Signature du signataire</p>
+                              <p className="text-xs text-gray-500 mb-3">Dessinez ou importez</p>
+                            </>
+                          )}
+
+                          {showSignatureCanvas ? (
+                            <div className="w-full mt-3">
+                              <SignatureCanvas
+                                onConfirm={handleSignatureDraw}
+                                onCancel={() => setShowSignatureCanvas(false)}
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-2 w-full mt-2">
+                              <button
+                                type="button"
+                                onClick={() => setShowSignatureCanvas(true)}
+                                disabled={uploadingFile === 'signature'}
+                                className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50"
+                              >
+                                {uploadingFile === 'signature' ? (
+                                  <><Loader2 className="w-4 h-4 animate-spin" /> Enregistrement...</>
+                                ) : (
+                                  <><PenTool className="w-4 h-4" /> Dessiner la signature</>
+                                )}
+                              </button>
+                              <label className={`cursor-pointer flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                uploadingFile === 'signature' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                              }`}>
+                                <Upload className="w-4 h-4" />
+                                {certificateSettings.certificate_signature ? 'Changer (fichier)' : 'Uploader un fichier'}
+                                <input type="file" accept="image/png,image/jpeg,image/jpg" className="hidden" disabled={uploadingFile === 'signature'}
+                                  onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFileUpload('signature', file); }}
+                                />
+                              </label>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
                       <FileUploadBox fileType="stamp" label="Cachet de l'entreprise" icon={Stamp} currentUrl={certificateSettings.certificate_stamp} />
                     </div>
                   )}

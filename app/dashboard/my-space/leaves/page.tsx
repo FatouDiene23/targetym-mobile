@@ -66,6 +66,8 @@ interface LeaveType {
   code: string;
   default_days: number;
   is_active: boolean;
+  is_annual?: boolean;
+  accrual_rate?: number;
 }
 
 // ============================================
@@ -325,9 +327,19 @@ function NewLeaveRequestModal({
                 <option value="">Sélectionner...</option>
                 {leaveTypes.map((type) => {
                   const bal = balances?.balances.find((b) => b.leave_type_id === type.id);
+                  let suffix = '';
+                  if (bal) {
+                    suffix = ` \u2014 ${bal.available} j disponibles`;
+                  } else if (type.is_annual) {
+                    suffix = type.accrual_rate ? ` \u2014 ${type.accrual_rate} j/mois` : '';
+                  } else if (type.default_days > 0) {
+                    suffix = ` \u2014 quota : ${type.default_days} j/an`;
+                  } else {
+                    suffix = ' \u2014 sans quota fixe';
+                  }
                   return (
                     <option key={type.id} value={type.id}>
-                      {type.name} ({type.code}){bal ? ` \u2014 ${bal.available} j disponibles` : ''}
+                      {type.name} ({type.code}){suffix}
                     </option>
                   );
                 })}
@@ -335,13 +347,40 @@ function NewLeaveRequestModal({
             </div>
 
             {formData.leave_type_id && (() => {
-              const bal = balances?.balances.find((b) => b.leave_type_id === parseInt(formData.leave_type_id));
-              return bal ? (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800">
-                  Solde disponible\u00a0: <span className="font-bold">{bal.available} jour{bal.available !== 1 ? 's' : ''}</span>
-                  {bal.pending > 0 && <span className="ml-2 text-xs text-amber-600">({bal.pending} j en attente)</span>}
-                </div>
-              ) : null;
+              const typeId = parseInt(formData.leave_type_id);
+              const bal = balances?.balances.find((b) => b.leave_type_id === typeId);
+              const leaveType = leaveTypes.find((t) => t.id === typeId);
+              if (bal) {
+                return (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800">
+                    Solde disponible : <span className="font-bold">{bal.available} jour{bal.available !== 1 ? 's' : ''}</span>
+                    {bal.pending > 0 && <span className="ml-2 text-xs text-amber-600">({bal.pending} j en attente)</span>}
+                  </div>
+                );
+              } else if (leaveType) {
+                if (leaveType.is_annual) {
+                  return (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                      Acquisition mensuelle : <span className="font-bold">{leaveType.accrual_rate ?? 2} j/mois</span>
+                      <span className="ml-2 text-xs text-blue-600">(solde à initialiser)</span>
+                    </div>
+                  );
+                } else if (leaveType.default_days > 0) {
+                  return (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                      Forfait annuel : <span className="font-bold">{leaveType.default_days} jours</span>
+                      <span className="ml-2 text-xs text-blue-600">(solde à initialiser)</span>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700">
+                      Ce type de congé ne nécessite pas de solde prédéfini.
+                    </div>
+                  );
+                }
+              }
+              return null;
             })()}
 
             <div className="grid grid-cols-2 gap-4">

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Loader2, ChevronLeft, Key, Camera } from 'lucide-react';
 import { 
-  createEmployee, getDepartments, getEmployees, activateEmployeeAccess, uploadEmployeePhoto, fetchWithAuth, API_URL
+  createEmployee, getDepartments, getEmployees, activateEmployeeAccess, uploadEmployeePhoto, fetchWithAuth, API_URL,
   type Department, type Employee, type GenderType, type ContractType, type StatusType, type EmployeeRole
 } from '@/lib/api';
 import NationalitySelect from '@/components/NationalitySelect';

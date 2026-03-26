@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Plus, Search, Eye, Edit, Copy, X, ChevronLeft,
+  Plus, Search, Eye, Edit, Copy, X, ChevronLeft, Trash2,
   Calendar, Target, Users, DollarSign, FileText,
   BarChart3, Clock, CheckCircle, AlertTriangle, RefreshCw, MapPin,
 } from 'lucide-react';
@@ -227,8 +227,9 @@ export default function PlanFormationPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editPlan, setEditPlan] = useState<TrainingPlan | null>(null);
 
-  // ── Add Action modal ──
+  // ── Add/Edit Action modal ──
   const [showAddAction, setShowAddAction] = useState(false);
+  const [editingActionId, setEditingActionId] = useState<number | null>(null);
   const [coursesList, setCoursesList] = useState<{ id: number; title: string }[]>([]);
   const [providersList, setProvidersList] = useState<{ id: number; name: string }[]>([]);
   const [newAction, setNewAction] = useState({
@@ -549,7 +550,63 @@ export default function PlanFormationPage() {
       }
       toast.success('Action ajoutée au plan');
       setShowAddAction(false);
+      setEditingActionId(null);
       setNewAction({ title: '', course_id: '', modality: 'presentiel', target_type: 'individual', target_id: '', is_mandatory: false, provider_id: '', unit_cost: '', billing_mode: '', max_participants: '' });
+      fetchPlanDetail(selectedPlan.id);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    }
+  };
+
+  const handleUpdateAction = async () => {
+    if (!selectedPlan || !editingActionId) return;
+    if (!newAction.title && !newAction.course_id) {
+      toast.error('Un titre ou une formation du catalogue est requis');
+      return;
+    }
+    try {
+      const body: Record<string, unknown> = {
+        modality: newAction.modality,
+        target_type: newAction.target_type,
+        is_mandatory: newAction.is_mandatory,
+      };
+      if (newAction.title) body.title = newAction.title;
+      if (newAction.course_id) body.course_id = parseInt(newAction.course_id);
+      if (newAction.target_id) body.target_id = parseInt(newAction.target_id);
+      if (newAction.provider_id) body.provider_id = parseInt(newAction.provider_id);
+      if (newAction.unit_cost) body.unit_cost = parseFloat(newAction.unit_cost);
+      if (newAction.billing_mode) body.billing_mode = newAction.billing_mode;
+      if (newAction.max_participants) body.max_participants = parseInt(newAction.max_participants);
+
+      const res = await fetch(`${API_URL}/api/training-plans/${selectedPlan.id}/actions/${editingActionId}`, {
+        method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Erreur modification action');
+      }
+      toast.success('Action modifiée');
+      setShowAddAction(false);
+      setEditingActionId(null);
+      setNewAction({ title: '', course_id: '', modality: 'presentiel', target_type: 'individual', target_id: '', is_mandatory: false, provider_id: '', unit_cost: '', billing_mode: '', max_participants: '' });
+      fetchPlanDetail(selectedPlan.id);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    }
+  };
+
+  const handleDeleteAction = async (actionId: number) => {
+    if (!selectedPlan) return;
+    if (!window.confirm('Supprimer cette action du plan ?')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/training-plans/${selectedPlan.id}/actions/${actionId}`, {
+        method: 'DELETE', headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Erreur suppression action');
+      }
+      toast.success('Action supprimée');
       fetchPlanDetail(selectedPlan.id);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Erreur');
@@ -744,7 +801,22 @@ export default function PlanFormationPage() {
                   <ActionsTab
                     actions={actions}
                     canManage={canManage}
-                    onAddAction={() => { fetchDropdownData(); setShowAddAction(true); }}
+                    currency={selectedPlan?.currency || 'XOF'}
+                    onAddAction={() => { fetchDropdownData(); setEditingActionId(null); setShowAddAction(true); }}
+                    onEditAction={(action) => {
+                      fetchDropdownData();
+                      setEditingActionId(action.id);
+                      setNewAction({
+                        title: action.title || '', course_id: action.course_id ? String(action.course_id) : '',
+                        modality: action.modality || 'presentiel', target_type: action.target_type || 'individual',
+                        target_id: action.target_id ? String(action.target_id) : '', is_mandatory: action.is_mandatory,
+                        provider_id: action.provider_id ? String(action.provider_id) : '',
+                        unit_cost: action.unit_cost ? String(action.unit_cost) : '',
+                        billing_mode: action.billing_mode || '', max_participants: action.max_participants ? String(action.max_participants) : '',
+                      });
+                      setShowAddAction(true);
+                    }}
+                    onDeleteAction={(actionId) => handleDeleteAction(actionId)}
                     onScheduleAction={(action) => { fetchDropdownData(); setScheduleForAction(action); setShowAddSchedule(true); }}
                   />
                 )}
@@ -1210,8 +1282,8 @@ export default function PlanFormationPage() {
           <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Ajouter une action</h2>
-                <button onClick={() => setShowAddAction(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+                <h2 className="text-xl font-bold text-gray-900">{editingActionId ? 'Modifier l\'action' : 'Ajouter une action'}</h2>
+                <button onClick={() => { setShowAddAction(false); setEditingActionId(null); }} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
               </div>
             </div>
             <div className="p-6 space-y-4">
@@ -1277,7 +1349,7 @@ export default function PlanFormationPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Coût unitaire</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Coût unitaire ({selectedPlan?.currency || 'XOF'})</label>
                   <input
                     type="number"
                     value={newAction.unit_cost}
@@ -1325,8 +1397,8 @@ export default function PlanFormationPage() {
               </div>
             </div>
             <div className="p-6 border-t border-gray-200 flex gap-3">
-              <button onClick={() => setShowAddAction(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm">Annuler</button>
-              <button onClick={handleCreateAction} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-medium text-sm">Ajouter</button>
+              <button onClick={() => { setShowAddAction(false); setEditingActionId(null); }} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm">Annuler</button>
+              <button onClick={editingActionId ? handleUpdateAction : handleCreateAction} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-medium text-sm">{editingActionId ? 'Enregistrer' : 'Ajouter'}</button>
             </div>
           </div>
         </div>
@@ -1554,7 +1626,7 @@ export default function PlanFormationPage() {
 // SUB-COMPONENTS — Detail Tabs
 // ============================================
 
-function ActionsTab({ actions, canManage, onAddAction, onScheduleAction }: { actions: PlanAction[]; canManage: boolean; onAddAction: () => void; onScheduleAction: (action: PlanAction) => void }) {
+function ActionsTab({ actions, canManage, currency, onAddAction, onEditAction, onDeleteAction, onScheduleAction }: { actions: PlanAction[]; canManage: boolean; currency: string; onAddAction: () => void; onEditAction: (action: PlanAction) => void; onDeleteAction: (actionId: number) => void; onScheduleAction: (action: PlanAction) => void }) {
   return (
     <div className="space-y-4">
       {canManage && (
@@ -1584,7 +1656,7 @@ function ActionsTab({ actions, canManage, onAddAction, onScheduleAction }: { act
                 <th className="text-left px-3 py-2 text-gray-600 font-medium">Prestataire</th>
                 <th className="text-right px-3 py-2 text-gray-600 font-medium">Coût unit.</th>
                 <th className="text-center px-3 py-2 text-gray-600 font-medium">Oblig.</th>
-                {canManage && <th className="text-center px-3 py-2 text-gray-600 font-medium">Planifier</th>}
+                {canManage && <th className="text-center px-3 py-2 text-gray-600 font-medium">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -1610,7 +1682,7 @@ function ActionsTab({ actions, canManage, onAddAction, onScheduleAction }: { act
                   </td>
                   <td className="px-3 py-2.5 text-gray-600">{action.provider_name || '—'}</td>
                   <td className="px-3 py-2.5 text-right text-gray-700">
-                    {action.unit_cost ? formatCurrency(action.unit_cost) : '—'}
+                    {action.unit_cost ? formatCurrency(action.unit_cost, currency) : '—'}
                   </td>
                   <td className="px-3 py-2.5 text-center">
                     {action.is_mandatory ? (
@@ -1621,13 +1693,29 @@ function ActionsTab({ actions, canManage, onAddAction, onScheduleAction }: { act
                   </td>
                   {canManage && (
                     <td className="px-3 py-2.5 text-center">
-                      <button
-                        onClick={() => onScheduleAction(action)}
-                        className="p-1.5 hover:bg-primary-50 rounded-lg text-gray-400 hover:text-primary-600 transition-colors"
-                        title="Planifier une session"
-                      >
-                        <Calendar className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => onEditAction(action)}
+                          className="p-1.5 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600 transition-colors"
+                          title="Modifier"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => onDeleteAction(action.id)}
+                          className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-600 transition-colors"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => onScheduleAction(action)}
+                          className="p-1.5 hover:bg-primary-50 rounded-lg text-gray-400 hover:text-primary-600 transition-colors"
+                          title="Planifier une session"
+                        >
+                          <Calendar className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   )}
                 </tr>
@@ -1871,10 +1959,10 @@ function BudgetTab({ budget }: { budget: BudgetSummary | null }) {
                      line.billing_mode === 'per_session' ? 'Par session' :
                      line.billing_mode === 'forfait' ? 'Forfait' : '—'}
                   </td>
-                  <td className="px-3 py-2.5 text-right text-gray-700">{line.unit_cost ? formatCurrency(line.unit_cost) : '—'}</td>
+                  <td className="px-3 py-2.5 text-right text-gray-700">{line.unit_cost ? formatCurrency(line.unit_cost, budget.currency) : '—'}</td>
                   <td className="px-3 py-2.5 text-right text-gray-700">{line.scheduled_sessions}</td>
                   <td className="px-3 py-2.5 text-right text-gray-700">{line.total_participants}</td>
-                  <td className="px-3 py-2.5 text-right font-medium text-gray-900">{formatCurrency(line.estimated_cost)}</td>
+                  <td className="px-3 py-2.5 text-right font-medium text-gray-900">{formatCurrency(line.estimated_cost, budget.currency)}</td>
                 </tr>
               ))}
             </tbody>

@@ -271,7 +271,7 @@ export default function PromotionsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {(filterStatus === '' ? employeeCareers : employeeCareers.filter(ec => ec.eligibility_status === filterStatus)).map(ec => {
+                  {employeeCareers.map(ec => {
                     const eligInfo = ELIGIBILITY_LABELS[ec.eligibility_status] || ELIGIBILITY_LABELS.not_eligible;
                     const progress = ec.total_count ? Math.round(((ec.validated_count || 0) / ec.total_count) * 100) : 0;
 

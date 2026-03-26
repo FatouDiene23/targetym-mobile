@@ -71,6 +71,7 @@ const TYPE_LABELS: Record<string, string> = {
   tardiness: 'Retard',
   early_departure: 'Départ anticipé',
   unauthorized_absence: 'Absence non autorisée',
+  sick_leave: 'Arrêt maladie',
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {

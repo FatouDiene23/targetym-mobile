@@ -198,15 +198,10 @@ async function fetchEmployees(): Promise<Employee[]> {
 
 async function fetchAttitudes(): Promise<AttitudeItem[]> {
   try {
+    await fetch(`${API_URL}/api/performance/attitudes/initialize`, { method: 'POST', headers: getAuthHeaders() });
     const response = await fetch(`${API_URL}/api/attitudes?active_only=true`, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error('API error');
-    const data = await response.json();
-    if (data.length === 0) {
-      await fetch(`${API_URL}/api/performance/attitudes/initialize`, { method: 'POST', headers: getAuthHeaders() });
-      const retry = await fetch(`${API_URL}/api/attitudes?active_only=true`, { headers: getAuthHeaders() });
-      if (retry.ok) return await retry.json();
-    }
-    return data;
+    return await response.json();
   } catch { return []; }
 }
 

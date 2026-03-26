@@ -249,6 +249,7 @@ export default function PlanFormationPage() {
 
   // ── Add Schedule modal ──
   const [showAddSchedule, setShowAddSchedule] = useState(false);
+  const [manualTrainerEntry, setManualTrainerEntry] = useState(false);
   const [scheduleForAction, setScheduleForAction] = useState<PlanAction | null>(null);
   const [newSchedule, setNewSchedule] = useState({
     start_date: '', end_date: '', quarter: '', location: '',
@@ -677,6 +678,7 @@ export default function PlanFormationPage() {
       toast.success('Session planifiée');
       setShowAddSchedule(false);
       setScheduleForAction(null);
+      setManualTrainerEntry(false);
       setNewSchedule({ start_date: '', end_date: '', quarter: '', location: '', trainer_id: '', external_trainer: '', max_participants: '' });
       fetchPlanDetail(selectedPlan.id);
     } catch (e: unknown) {
@@ -1591,13 +1593,42 @@ export default function PlanFormationPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Formateur externe</label>
-                <input
-                  type="text"
-                  value={newSchedule.external_trainer}
-                  onChange={e => setNewSchedule(p => ({ ...p, external_trainer: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                  placeholder="Nom du formateur externe"
-                />
+                {manualTrainerEntry ? (
+                  <>
+                    <input
+                      type="text"
+                      value={newSchedule.external_trainer}
+                      onChange={e => setNewSchedule(p => ({ ...p, external_trainer: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                      placeholder="Nom du formateur externe"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { setManualTrainerEntry(false); setNewSchedule(p => ({ ...p, external_trainer: '' })); }}
+                      className="mt-1 text-xs text-primary-600 hover:text-primary-700 font-medium"
+                    >
+                      Choisir depuis la liste
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <select
+                      value={newSchedule.external_trainer}
+                      onChange={e => setNewSchedule(p => ({ ...p, external_trainer: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="">— Sélectionner un fournisseur —</option>
+                      {providersList.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => { setManualTrainerEntry(true); setNewSchedule(p => ({ ...p, external_trainer: '' })); }}
+                      className="mt-1 text-xs text-primary-600 hover:text-primary-700 font-medium"
+                    >
+                      Saisir manuellement
+                    </button>
+                  </>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nb participants max</label>

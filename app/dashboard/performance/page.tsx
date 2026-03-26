@@ -10,8 +10,8 @@ import {
 } from 'lucide-react';
 
 const ATTITUDE_ICONS: Record<string, React.ComponentType<LucideProps>> = {
-  Hourglass, Bell, Eye, ClipboardList, Handshake, Wrench, Target, Brain,
-  Globe, Zap, ShieldCheck, Heart, HeartPulse, TrendingUp, Clock, Cog,
+  Hourglass, Bell, Eye, Clipboard, Handshake, Wrench, Target, Brain,
+  Globe, Zap, Shield, Heart, HeartPulse, TrendingUp, Clock, Cog,
 };
 
 function AttitudeIcon({ name, className = 'w-4 h-4' }: { name: string; className?: string }) {

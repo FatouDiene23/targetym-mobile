@@ -306,6 +306,22 @@ async function updateBalanceAllocated(balanceId: number, allocated: number, carr
   if (!response.ok) throw new Error('Erreur mise à jour');
 }
 
+async function resolveMatricule(matricule: string): Promise<number | null> {
+  try {
+    const response = await fetch(
+      `${API_URL}/api/employees/?employee_id=${encodeURIComponent(matricule)}&page_size=1`,
+      { headers: getAuthHeaders() }
+    );
+    if (!response.ok) return null;
+    const data = await response.json();
+    const items = data.items || data || [];
+    if (items.length > 0) return items[0].id;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 async function setInitialBalance(employeeId: number, leaveTypeId: number, initialBalance: number, year: number): Promise<void> {
   const response = await fetch(`${API_URL}/api/leaves/balance/${employeeId}/initialize`, {
     method: 'POST',
@@ -1489,28 +1505,73 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
       let success = 0;
       const errors: { line: number; error: string }[] = [];
 
+      // Cache resolved matricules to avoid duplicate API calls
+      const matriculeCache = new Map<string, number | null>();
+
+      const resolveLeaveTypeCode = (code: string): number | null => {
+        const found = leaveTypes.find(t => t.code.toUpperCase() === code.toUpperCase());
+        return found ? found.id : null;
+      };
+
       for (let i = 0; i < dataLines.length; i++) {
+        const lineNum = i + 2;
         setCsvProgress(`Traitement ligne ${i + 1}/${dataLines.length}...`);
         const cols = dataLines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
         if (cols.length < 4) {
-          errors.push({ line: i + 2, error: 'Nombre de colonnes insuffisant (attendu: 4)' });
+          errors.push({ line: lineNum, error: 'Nombre de colonnes insuffisant (attendu: 4 — matricule, leave_type_code, year, initial_balance)' });
           continue;
         }
-        const [empId, ltId, yr, bal] = cols;
-        if (!empId || !ltId || !yr || !bal) {
-          errors.push({ line: i + 2, error: 'Valeur(s) manquante(s)' });
+        const [matricule, ltCode, yr, bal] = cols;
+        if (!matricule || !ltCode || !yr || !bal) {
+          errors.push({ line: lineNum, error: 'Valeur(s) manquante(s)' });
           continue;
         }
+
+        // 1. Resolve matricule → employee id
+        let employeeId: number | null;
+        if (matriculeCache.has(matricule)) {
+          employeeId = matriculeCache.get(matricule)!;
+        } else {
+          employeeId = await resolveMatricule(matricule);
+          matriculeCache.set(matricule, employeeId);
+        }
+        if (employeeId === null) {
+          errors.push({ line: lineNum, error: `Matricule "${matricule}" introuvable` });
+          continue;
+        }
+
+        // 2. Resolve leave type code → leave_type_id
+        const leaveTypeId = resolveLeaveTypeCode(ltCode);
+        if (leaveTypeId === null) {
+          errors.push({ line: lineNum, error: `Type de congé "${ltCode}" introuvable` });
+          continue;
+        }
+
+        // 3. Validate year
+        const yearNum = parseInt(yr);
+        if (isNaN(yearNum) || yearNum < 2020 || yearNum > 2030) {
+          errors.push({ line: lineNum, error: `Année invalide "${yr}" (attendu: 2020-2030)` });
+          continue;
+        }
+
+        // 4. Validate initial_balance
+        const balNum = parseFloat(bal);
+        if (isNaN(balNum) || balNum < 0) {
+          errors.push({ line: lineNum, error: `Solde initial invalide "${bal}" (attendu: nombre >= 0)` });
+          continue;
+        }
+
+        // 5. Call API
         try {
-          await setInitialBalance(parseInt(empId), parseInt(ltId), parseFloat(bal), parseInt(yr));
+          await setInitialBalance(employeeId, leaveTypeId, balNum, yearNum);
           success++;
         } catch (err) {
-          errors.push({ line: i + 2, error: err instanceof Error ? err.message : 'Erreur API' });
+          errors.push({ line: lineNum, error: err instanceof Error ? err.message : 'Erreur API' });
         }
       }
       setCsvResult({ success, errors });
       setCsvProgress('');
-      if (success > 0) toast.success(`${success} solde(s) initialisé(s)`);
+      if (success > 0) toast.success(`${success} solde(s) importé(s) avec succès`);
       if (errors.length > 0) toast.error(`${errors.length} erreur(s) lors de l'import`);
       // Reload current view if applicable
       if (selectedEmployeeId) loadBalances(selectedEmployeeId as number, selectedYear);
@@ -1524,7 +1585,7 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
   };
 
   const downloadCsvTemplate = () => {
-    const csv = 'employee_id,leave_type_id,year,initial_balance\n1,1,2026,10\n2,1,2026,25';
+    const csv = 'matricule,leave_type_code,year,initial_balance\nEMP001,CA,2026,10\nEMP002,RTT,2026,25';
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1548,6 +1609,7 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
         </h3>
         <p className="text-sm text-gray-500 mb-4">
           Importez les soldes initiaux de plusieurs employés en une seule opération via un fichier CSV.
+          Colonnes attendues : matricule, leave_type_code (ex: CA, RTT), year, initial_balance.
         </p>
         <div className="flex gap-3">
           <button

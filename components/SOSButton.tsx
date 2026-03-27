@@ -23,10 +23,11 @@ const CATEGORIES = [
 
 export default function SOSButton() {
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<'form' | 'confirm' | 'done'>('form');
+  const [step, setStep] = useState<'form' | 'confirm' | 'done' | 'deleted'>('form');
   const [category, setCategory] = useState('general');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [alertId, setAlertId] = useState<number | null>(null);
 
   function handleOpen() {
     setStep('form');
@@ -48,6 +49,8 @@ export default function SOSButton() {
         body: JSON.stringify({ category, message: message.trim() || null, is_anonymous: false }),
       });
       if (!res.ok) throw new Error('Erreur serveur');
+      const data = await res.json();
+      setAlertId(data.id);
       setStep('done');
     } catch {
       toast.error("Impossible d'envoyer l'alerte. Réessayez.");
@@ -191,6 +194,46 @@ export default function SOSButton() {
                   </p>
                 </div>
                 <button onClick={handleClose} className="w-full px-4 py-2.5 text-sm text-white bg-primary-500 hover:bg-primary-600 rounded-xl font-medium">
+                  Fermer
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!alertId) return;
+                    setIsLoading(true);
+                    try {
+                      const res = await fetch(`${API_URL}/api/sos/${alertId}`, {
+                        method: 'DELETE',
+                        headers: getAuthHeaders(),
+                      });
+                      if (!res.ok) throw new Error('Erreur serveur');
+                      setStep('deleted');
+                    } catch {
+                      toast.error("Impossible de supprimer l'alerte. Réessayez.");
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  disabled={isLoading}
+                  className="w-full px-4 py-2.5 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-xl font-medium border border-red-200 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+                  Annuler et supprimer l&apos;alerte
+                </button>
+              </div>
+            )}
+
+            {step === 'deleted' && (
+              <div className="p-6 text-center space-y-4">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+                  <span className="text-3xl">🗑️</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">Alerte supprimée</h3>
+                  <p className="text-sm text-gray-500">
+                    Votre alerte a bien été annulée et supprimée.
+                  </p>
+                </div>
+                <button onClick={handleClose} className="w-full px-4 py-2.5 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium">
                   Fermer
                 </button>
               </div>

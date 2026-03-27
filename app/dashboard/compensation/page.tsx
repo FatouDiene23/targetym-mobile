@@ -385,8 +385,14 @@ export default function CompensationPage() {
   const loadAgreements = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/api/cb/agreements`, { headers: getAuthHeaders() });
-      if (res.ok) setAgreements(await res.json());
-    } catch { /* ignore */ }
+      if (res.ok) {
+        const data = await res.json();
+        console.log('[C&B] Agreements chargées:', data.length);
+        setAgreements(data);
+      } else {
+        console.warn('[C&B] Erreur chargement agreements:', res.status);
+      }
+    } catch (err) { console.error('[C&B] loadAgreements error:', err); }
   }, []);
 
   const loadGrids = useCallback(async () => {
@@ -424,9 +430,16 @@ export default function CompensationPage() {
 
   const loadCategories = useCallback(async (agreementId: number) => {
     try {
+      console.log('[C&B] Chargement catégories pour agreement:', agreementId);
       const res = await fetch(`${API_URL}/api/cb/agreements/${agreementId}/categories`, { headers: getAuthHeaders() });
-      if (res.ok) setCategories(await res.json());
-    } catch { /* ignore */ }
+      if (res.ok) {
+        const data = await res.json();
+        console.log('[C&B] Catégories chargées:', data.length);
+        setCategories(data);
+      } else {
+        console.warn('[C&B] Erreur chargement catégories:', res.status);
+      }
+    } catch (err) { console.error('[C&B] loadCategories error:', err); }
   }, []);
 
   useEffect(() => {
@@ -1085,7 +1098,7 @@ export default function CompensationPage() {
                   {agreements.map((ag) => (
                     <div
                       key={ag.id}
-                      onClick={() => { setSelectedAgreement(ag); loadCategories(ag.id); }}
+                      onClick={() => { console.log('[C&B] CC sélectionnée:', ag.id, ag.name); setSelectedAgreement(ag); setImportProgress(null); loadCategories(ag.id); }}
                       className="bg-gray-50 rounded-xl p-4 border border-gray-100 hover:border-primary-200 hover:shadow-sm cursor-pointer transition-all flex items-center justify-between"
                     >
                       <div>

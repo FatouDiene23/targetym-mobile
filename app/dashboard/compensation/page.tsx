@@ -7,8 +7,9 @@ import {
   Plus, RefreshCw, ChevronRight, AlertTriangle, CheckCircle, XCircle,
   Eye, Send, ThumbsUp, ThumbsDown, Download, Search, Filter,
   Briefcase, BarChart3, Layers, Star, ArrowRight, Mail,
-  X, ChevronDown,
+  X, ChevronDown, Upload, FileDown, Loader2,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
@@ -287,6 +288,7 @@ export default function CompensationPage() {
   const [gridConformity, setGridConformity] = useState('');
   const [simPage, setSimPage] = useState(1);
   const [searchEval, setSearchEval] = useState('');
+  const [evalManualTitle, setEvalManualTitle] = useState(false);
 
   // Modals
   const [showAddMenu, setShowAddMenu] = useState(false);
@@ -297,6 +299,7 @@ export default function CompensationPage() {
   const [showSimDetail, setShowSimDetail] = useState<Simulation | null>(null);
   const [selectedAgreement, setSelectedAgreement] = useState<CollectiveAgreement | null>(null);
   const [categories, setCategories] = useState<CcCategory[]>([]);
+  const [importProgress, setImportProgress] = useState<{ current: number; total: number; errors: { line: number; message: string }[]; done: boolean } | null>(null);
 
   // Eval form
   const [evalForm, setEvalForm] = useState({
@@ -458,6 +461,7 @@ export default function CompensationPage() {
       if (res.ok) {
         showToast('Pesée créée avec succès');
         setShowEvalModal(false);
+        setEvalManualTitle(false);
         setEvalForm({ job_title: '', job_family: '', country: '', currency: 'XOF', scores: { impact: 3, communication: 3, innovation: 3, knowledge: 3 }, market_p25: '', market_p50: '', market_p75: '' });
         loadEvaluations();
       } else {
@@ -528,6 +532,94 @@ export default function CompensationPage() {
       }
     } catch { showToast('Erreur réseau'); }
     setSubmitting(false);
+  };
+
+  const downloadCategoryTemplate = () => {
+    const header = 'category_code,category_label,min_salary,currency,mercer_band_min,mercer_band_max\n';
+    const examples =
+      'I,Manœuvre ordinaire,45000,XOF,Band 1,Band 2\n' +
+      'II,Ouvrier spécialisé,55000,XOF,Band 2,Band 3\n' +
+      'III-A,Agent de maîtrise,75000,XOF,Band 3,Band 4\n';
+    const blob = new Blob([header + examples], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'template_categories_cc.csv';
+    a.click();
+  };
+
+  const VALID_CURRENCIES = ['XOF', 'XAF', 'GNF', 'EUR', 'USD'];
+
+  const handleCategoryFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedAgreement) return;
+    e.target.value = '';
+
+    let rows: Record<string, string>[] = [];
+
+    try {
+      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '' });
+      } else {
+        const text = await file.text();
+        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length < 2) { showToast('Fichier vide ou sans données'); return; }
+        const headers = lines[0].split(',').map(h => h.trim());
+        for (let i = 1; i < lines.length; i++) {
+          const vals = lines[i].split(',').map(v => v.trim());
+          const row: Record<string, string> = {};
+          headers.forEach((h, j) => { row[h] = vals[j] || ''; });
+          rows.push(row);
+        }
+      }
+    } catch {
+      showToast('Erreur de lecture du fichier');
+      return;
+    }
+
+    if (!rows.length) { showToast('Aucune ligne trouvée dans le fichier'); return; }
+
+    const progress = { current: 0, total: rows.length, errors: [] as { line: number; message: string }[], done: false };
+    setImportProgress({ ...progress });
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const lineNum = i + 2;
+      progress.current = i + 1;
+      setImportProgress({ ...progress });
+
+      const code = (row['category_code'] || '').trim();
+      const label = (row['category_label'] || '').trim();
+      const salaryStr = (row['min_salary'] || '').trim();
+      const currency = (row['currency'] || '').trim().toUpperCase();
+      const bandMin = (row['mercer_band_min'] || '').trim() || null;
+      const bandMax = (row['mercer_band_max'] || '').trim() || null;
+      const salary = parseFloat(salaryStr);
+
+      if (!code) { progress.errors.push({ line: lineNum, message: 'category_code obligatoire' }); continue; }
+      if (isNaN(salary) || salary <= 0) { progress.errors.push({ line: lineNum, message: `min_salary invalide : "${salaryStr}"` }); continue; }
+      if (!currency || !VALID_CURRENCIES.includes(currency)) { progress.errors.push({ line: lineNum, message: `currency invalide : "${currency}" (attendu : ${VALID_CURRENCIES.join(', ')})` }); continue; }
+
+      try {
+        const res = await fetch(`${API_URL}/api/cb/agreements/${selectedAgreement.id}/categories`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ category_code: code, category_label: label || code, min_salary: salary, currency, mercer_band_min: bandMin, mercer_band_max: bandMax }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          progress.errors.push({ line: lineNum, message: err.detail || `Erreur ${res.status}` });
+        }
+      } catch {
+        progress.errors.push({ line: lineNum, message: 'Erreur réseau' });
+      }
+    }
+
+    progress.done = true;
+    setImportProgress({ ...progress });
+    loadCategories(selectedAgreement.id);
   };
 
   const createSimulation = async () => {
@@ -631,7 +723,7 @@ export default function CompensationPage() {
   };
 
   const filteredEvals = searchEval
-    ? evaluations.filter(e => (e.job_title || '').toLowerCase().includes(searchEval.toLowerCase()))
+    ? evaluations.filter(e => (e.job_title || '') === searchEval)
     : evaluations;
 
   // ═════════════════════════════════════════════════════════
@@ -776,16 +868,16 @@ export default function CompensationPage() {
             <div>
               {/* Toolbar */}
               <div className="flex flex-wrap items-center gap-3 mb-5">
-                <div className="relative flex-1 min-w-[200px]">
-                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Rechercher un poste..."
-                    value={searchEval}
-                    onChange={(e) => setSearchEval(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-                  />
-                </div>
+                <select
+                  value={searchEval}
+                  onChange={(e) => { setSearchEval(e.target.value); setEvalPage(1); }}
+                  className="flex-1 min-w-[200px] px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500 outline-none"
+                >
+                  <option value="">Tous les postes</option>
+                  {departments.map(d => (
+                    <option key={d.id} value={d.name}>{d.name}</option>
+                  ))}
+                </select>
                 <select value={evalConformity} onChange={(e) => { setEvalConformity(e.target.value); setEvalPage(1); }}
                   className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
                   <option value="">Toute conformité</option>
@@ -899,15 +991,68 @@ export default function CompensationPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                     <h4 className="text-sm font-semibold text-gray-700">Catégories</h4>
-                    <button
-                      onClick={() => setShowCategoryModal(true)}
-                      className="px-3 py-1.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-xs font-medium flex items-center gap-1"
-                    >
-                      <Plus className="w-3.5 h-3.5" /> Ajouter une catégorie
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={downloadCategoryTemplate}
+                        className="px-2.5 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 text-xs font-medium text-gray-600 flex items-center gap-1"
+                      >
+                        <FileDown className="w-3.5 h-3.5" /> Template CSV
+                      </button>
+                      <label className="px-2.5 py-1.5 border border-blue-200 bg-blue-50 rounded-lg hover:bg-blue-100 text-xs font-medium text-blue-700 flex items-center gap-1 cursor-pointer">
+                        <Upload className="w-3.5 h-3.5" /> Importer CSV
+                        <input
+                          type="file"
+                          accept=".csv,.xlsx,.xls"
+                          onChange={handleCategoryFileImport}
+                          className="hidden"
+                        />
+                      </label>
+                      <button
+                        onClick={() => setShowCategoryModal(true)}
+                        className="px-3 py-1.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-xs font-medium flex items-center gap-1"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Ajouter
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Import progress */}
+                  {importProgress && (
+                    <div className="mb-4 bg-gray-50 rounded-xl border border-gray-100 p-4">
+                      {!importProgress.done ? (
+                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                          <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
+                          Traitement ligne {importProgress.current}/{importProgress.total}...
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex items-center gap-2 text-sm font-medium mb-1">
+                            <CheckCircle className="w-4 h-4 text-green-500" />
+                            <span className="text-gray-900">
+                              {importProgress.total - importProgress.errors.length} catégorie(s) importée(s)
+                              {importProgress.errors.length > 0 && (
+                                <span className="text-red-600 ml-1">, {importProgress.errors.length} erreur(s)</span>
+                              )}
+                            </span>
+                          </div>
+                          {importProgress.errors.length > 0 && (
+                            <div className="mt-2 max-h-32 overflow-y-auto space-y-1">
+                              {importProgress.errors.map((err, i) => (
+                                <p key={i} className="text-xs text-red-600">
+                                  Ligne {err.line} : {err.message}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+                          <button onClick={() => setImportProgress(null)} className="text-xs text-primary-500 hover:text-primary-600 mt-2">
+                            Fermer
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-left text-xs text-gray-500 border-b border-gray-100">
@@ -1176,17 +1321,42 @@ export default function CompensationPage() {
                 <button onClick={() => setShowEvalModal(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
               </div>
               <div className="p-5 space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Intitulé du poste *</label>
-                    <input value={evalForm.job_title} onChange={(e) => setEvalForm(f => ({ ...f, job_title: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
+                {/* Poste : select ou saisie manuelle */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs text-gray-500">Intitulé du poste *</label>
+                    <button
+                      type="button"
+                      onClick={() => { setEvalManualTitle(!evalManualTitle); setEvalForm(f => ({ ...f, job_title: '' })); }}
+                      className="text-[11px] text-primary-500 hover:text-primary-600 font-medium"
+                    >
+                      {evalManualTitle ? 'Choisir depuis la liste' : 'Saisir manuellement'}
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Famille de poste</label>
-                    <input value={evalForm.job_family} onChange={(e) => setEvalForm(f => ({ ...f, job_family: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
-                  </div>
+                  {evalManualTitle ? (
+                    <input
+                      value={evalForm.job_title}
+                      onChange={(e) => setEvalForm(f => ({ ...f, job_title: e.target.value }))}
+                      placeholder="Ex : Directeur Commercial"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                    />
+                  ) : (
+                    <select
+                      value={evalForm.job_title}
+                      onChange={(e) => setEvalForm(f => ({ ...f, job_title: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500 outline-none"
+                    >
+                      <option value="">Sélectionner un poste...</option>
+                      {departments.map(d => (
+                        <option key={d.id} value={d.name}>{d.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Famille de poste</label>
+                  <input value={evalForm.job_family} onChange={(e) => setEvalForm(f => ({ ...f, job_family: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>

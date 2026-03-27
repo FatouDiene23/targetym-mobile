@@ -49,6 +49,7 @@ import {
   AlertTriangle,
   PenLine,
   Brain,
+  Scale,
 } from 'lucide-react';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
@@ -81,6 +82,7 @@ interface UserData {
   role?: string;
   employee_id?: number;
   is_manager?: boolean;
+  is_juriste?: boolean;
 }
 
 // ============================================
@@ -168,6 +170,12 @@ const navigation: NavItem[] = [
     name: 'Gestion des Départs',
     href: '/dashboard/departures',
     icon: UserMinus,
+    roles: ['rh', 'admin', 'dg'],
+  },
+  {
+    name: 'Contentieux',
+    href: '/dashboard/contentieux',
+    icon: Scale,
     roles: ['rh', 'admin', 'dg'],
   },
   {
@@ -344,8 +352,10 @@ function SidebarInner() {
     const cachedPhoto = localStorage.getItem('employee_photo_url');
     if (cachedPhoto) {
       setPhotoUrl(cachedPhoto);
-    } else if (employeeId) {
-      // Photo absente du cache (ex: après connexion) — on la récupère depuis l'API
+    }
+
+    // Récupérer les données employé (photo + is_juriste)
+    if (employeeId) {
       const token = localStorage.getItem('access_token');
       if (token) {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
@@ -354,9 +364,12 @@ function SidebarInner() {
         })
           .then(r => r.ok ? r.json() : null)
           .then(emp => {
-            if (emp?.photo_url) {
+            if (emp?.photo_url && !cachedPhoto) {
               localStorage.setItem('employee_photo_url', emp.photo_url);
               setPhotoUrl(emp.photo_url);
+            }
+            if (emp?.is_juriste) {
+              setUser((prev: UserData | null) => prev ? { ...prev, is_juriste: true } : prev);
             }
           })
           .catch(() => {});
@@ -406,7 +419,13 @@ function SidebarInner() {
       });
   }, [hasFeature]);
 
-  const filteredNavigation = applyPlanGating(navigation.filter(item => hasAccess(item, userRole, isManager)));
+  const isJuriste = user?.is_juriste === true;
+  const filteredNavigation = applyPlanGating(navigation.filter(item => {
+    // Juriste voit Contentieux mais PAS Gestion du Personnel
+    if (isJuriste && item.href === '/dashboard/contentieux') return true;
+    if (isJuriste && item.href === '/dashboard/employees') return false;
+    return hasAccess(item, userRole, isManager);
+  }));
   const filteredMySpaceNav = mySpaceNavigation
     .filter(item => hasAccess(item, userRole, isManager))
     .filter(item => {

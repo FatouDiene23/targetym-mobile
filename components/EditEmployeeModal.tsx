@@ -121,6 +121,8 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
     comex_member: employee.comex_member || '',
     hrbp: employee.hrbp || '',
     salary_category: employee.salary_category || '',
+    // Juridique
+    is_juriste: employee.is_juriste || false,
   });
 
   useEffect(() => {
@@ -182,6 +184,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
         department_id: formData.department_id ? parseInt(formData.department_id) : undefined,
         manager_id: formData.manager_id ? parseInt(formData.manager_id) : null,
         is_manager: formData.is_manager,
+        is_juriste: formData.is_juriste,
         role: formData.role,
         hire_date: formData.hire_date || undefined,
         date_of_birth: formData.date_of_birth || undefined,
@@ -498,6 +501,20 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                   className="w-4 h-4 text-primary-500 border-gray-300 rounded focus:ring-primary-500"
                 />
                 <span className="ml-2 text-sm text-gray-700">Est un manager</span>
+              </label>
+            </div>
+
+            {/* Est juriste */}
+            <div className="flex items-center">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="is_juriste"
+                  checked={formData.is_juriste}
+                  onChange={handleChange}
+                  className="w-4 h-4 text-primary-500 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <span className="ml-2 text-sm text-gray-700">Juriste (accès module Contentieux)</span>
               </label>
             </div>
 

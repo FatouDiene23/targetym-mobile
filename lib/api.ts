@@ -209,6 +209,8 @@ export interface Employee {
   comex_member?: string;
   hrbp?: string;
   salary_category?: string;
+  // Juridique
+  is_juriste?: boolean;
 }
 
 export interface EmployeeCreate {
@@ -256,6 +258,8 @@ export interface EmployeeCreate {
   comex_member?: string;
   hrbp?: string;
   salary_category?: string;
+  // Juridique
+  is_juriste?: boolean;
 }
 
 export interface EmployeeStats {

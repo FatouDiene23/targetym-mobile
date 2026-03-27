@@ -241,7 +241,7 @@ function TeasingPage() {
         {/* CTA */}
         <div className="text-center">
           <a
-            href="mailto:cb@hcgroup.africa?subject=Demande de démo — Module C%26B&body=Bonjour, je souhaite une démonstration du module Compensation %26 Benefits."
+            href="mailto:contact@agiltym.com?subject=Demande de démo — Module C%26B&body=Bonjour, je souhaite une démonstration du module Compensation %26 Benefits."
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors font-medium shadow-sm"
           >
             <Mail className="w-5 h-5" />
@@ -289,6 +289,7 @@ export default function CompensationPage() {
   const [searchEval, setSearchEval] = useState('');
 
   // Modals
+  const [showAddMenu, setShowAddMenu] = useState(false);
   const [showEvalModal, setShowEvalModal] = useState(false);
   const [showAgreementModal, setShowAgreementModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -642,6 +643,39 @@ export default function CompensationPage() {
       <Header title="Compensation & Benefits" subtitle="Pesées IPE, conventions collectives et simulations salariales" />
 
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
+        {/* Bouton + Ajouter (visible uniquement si module activé) */}
+        {hasCbModule && (
+          <div className="flex justify-end mb-4 relative">
+            <button
+              onClick={() => setShowAddMenu(!showAddMenu)}
+              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm font-medium flex items-center gap-1.5 shadow-sm"
+            >
+              <Plus className="w-4 h-4" /> Ajouter
+              <ChevronDown className={`w-4 h-4 transition-transform ${showAddMenu ? 'rotate-180' : ''}`} />
+            </button>
+            {showAddMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowAddMenu(false)} />
+                <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 w-56">
+                  <button
+                    onClick={() => { setShowAddMenu(false); setShowEvalModal(true); }}
+                    className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2.5 text-gray-700"
+                  >
+                    <Scale className="w-4 h-4 text-blue-500" />
+                    Nouvelle pesée IPE
+                  </button>
+                  <button
+                    onClick={() => { setShowAddMenu(false); setShowSimModal(true); }}
+                    className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2.5 text-gray-700"
+                  >
+                    <Calculator className="w-4 h-4 text-amber-500" />
+                    Nouvelle simulation
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
         {/* Toast */}
         {toast && (
           <div className="fixed top-4 right-4 z-50 bg-gray-900 text-white px-4 py-2.5 rounded-lg shadow-lg text-sm flex items-center gap-2 animate-in fade-in">

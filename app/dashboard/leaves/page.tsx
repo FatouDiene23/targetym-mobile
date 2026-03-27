@@ -230,6 +230,14 @@ async function updateLeaveType(id: number, data: Partial<LeaveType>): Promise<Le
   return response.json();
 }
 
+async function deleteLeaveType(id: number): Promise<void> {
+  const response = await fetch(`${API_URL}/api/leaves/types/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Erreur');
+}
+
 async function initializeAllBalances(year: number): Promise<void> {
   const response = await fetch(`${API_URL}/api/leaves/balances/initialize-all?year=${year}`, {
     method: 'POST',
@@ -546,6 +554,7 @@ function LeaveTypesModal({
   const [newType, setNewType] = useState({ name: '', code: '', default_days: 0, is_annual: false, accrual_rate: 2.0, max_carryover: null as number | null });
   const [showAddForm, setShowAddForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const handleSaveEdit = async () => {
     if (!editingType) return;
@@ -573,6 +582,19 @@ function LeaveTypesModal({
       console.error(e);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteType = async (type: LeaveType) => {
+    if (!confirm(`Supprimer le type "${type.name}" ? Cette action le désactivera définitivement.`)) return;
+    setDeletingId(type.id);
+    try {
+      await deleteLeaveType(type.id);
+      onRefresh();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -688,12 +710,21 @@ function LeaveTypesModal({
                       </button>
                     </>
                   ) : (
-                    <button
-                      onClick={() => setEditingType(type)}
-                      className="px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg"
-                    >
-                      Modifier
-                    </button>
+                    <>
+                      <button
+                        onClick={() => setEditingType(type)}
+                        className="px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg"
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        onClick={() => handleDeleteType(type)}
+                        disabled={deletingId === type.id}
+                        className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                      >
+                        {deletingId === type.id ? '...' : 'Supprimer'}
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

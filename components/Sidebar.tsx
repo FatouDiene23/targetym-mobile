@@ -50,6 +50,7 @@ import {
   PenLine,
   Brain,
   Scale,
+  DollarSign,
 } from 'lucide-react';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
@@ -177,6 +178,13 @@ const navigation: NavItem[] = [
     href: '/dashboard/contentieux',
     icon: Scale,
     roles: ['rh', 'admin', 'dg'],
+  },
+  {
+    name: 'Compensation & Benefits',
+    href: '/dashboard/compensation',
+    icon: DollarSign,
+    roles: ['admin', 'dg', 'rh'],
+    dataTour: 'sidebar-compensation'
   },
   {
     name: 'Certificats',

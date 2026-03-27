@@ -74,12 +74,31 @@ function getAuthHeaders(): HeadersInit {
 // API FUNCTIONS
 // ============================================
 
+function parseArrayField(value: unknown): string[] | null {
+  if (!value) return null;
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : null; } catch { return null; }
+  }
+  return null;
+}
+
+function normalizeJob(job: Job): Job {
+  return {
+    ...job,
+    responsibilities: parseArrayField(job.responsibilities),
+    requirements: parseArrayField(job.requirements),
+    nice_to_have: parseArrayField(job.nice_to_have),
+    benefits: parseArrayField(job.benefits),
+  };
+}
+
 async function fetchOpenJobs(): Promise<Job[]> {
   try {
     const res = await fetch(`${API_URL}/api/recruitment/jobs?status=active&page_size=100`, { headers: getAuthHeaders() });
     if (!res.ok) return [];
     const data = await res.json();
-    return data.items || [];
+    return (data.items || []).map(normalizeJob);
   } catch { return []; }
 }
 

@@ -384,11 +384,13 @@ export default function AIChatBox() {
     }
   };
 
+  const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.txt', '.xlsx', '.xls', '.csv'];
+
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const allFiles = Array.from(e.target.files || []);
-    const validFiles = allFiles.filter(f => f.name.toLowerCase().endsWith('.pdf'));
-    const rejected = allFiles.filter(f => !f.name.toLowerCase().endsWith('.pdf'));
-    if (rejected.length > 0) toast.error('Seuls les fichiers PDF sont acceptés.');
+    const validFiles = allFiles.filter(f => ACCEPTED_EXTENSIONS.some(ext => f.name.toLowerCase().endsWith(ext)));
+    const rejected = allFiles.filter(f => !ACCEPTED_EXTENSIONS.some(ext => f.name.toLowerCase().endsWith(ext)));
+    if (rejected.length > 0) toast.error('Formats acceptés : PDF, DOCX, DOC, TXT, XLSX, XLS, CSV.');
     if (validFiles.length === 0) return;
     setAttachedFiles(prev => [...prev, ...validFiles]);
     setFileText(''); // reset, sera extrait à l'envoi
@@ -676,7 +678,7 @@ export default function AIChatBox() {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".pdf"
+                    accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv"
                     multiple
                     className="hidden"
                     onChange={handleFileSelect}
@@ -688,7 +690,7 @@ export default function AIChatBox() {
                         ? 'bg-indigo-100 border-indigo-300 text-indigo-700'
                         : 'border-gray-300 text-gray-500 hover:bg-gray-50'
                     }`}
-                    title="Joindre un ou plusieurs PDF"
+                    title="Joindre un fichier (PDF, Excel, CSV, DOCX, TXT)"
                   >
                     <Paperclip size={18} />
                   </button>

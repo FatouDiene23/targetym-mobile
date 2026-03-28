@@ -144,7 +144,7 @@ function ResourcePlayerModal({ resource, onClose }: { resource: Resource; onClos
                 <video
                   controls
                   className="w-full rounded-xl"
-                  src={resource.video_url}
+                  src={mediaUrl(resource.video_url)}
                 >
                   Votre navigateur ne supporte pas la lecture vidéo.
                 </video>
@@ -233,6 +233,30 @@ function ResourceFormModal({
   const [saving, setSaving] = useState(false);
   const [thumbMode, setThumbMode] = useState<'url' | 'upload'>('url');
   const [uploadingThumb, setUploadingThumb] = useState(false);
+  const [videoMode, setVideoMode] = useState<'url' | 'upload'>('url');
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+
+  const handleVideoUpload = async (file: File) => {
+    setUploadingVideo(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${API_URL}/api/media/upload-video`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd,
+      });
+      if (!res.ok) throw new Error('Erreur upload');
+      const data = await res.json();
+      setForm(f => ({ ...f, video_url: data.url }));
+      toast.success('Vidéo uploadée');
+    } catch {
+      toast.error('Échec de l\'upload vidéo');
+    } finally {
+      setUploadingVideo(false);
+    }
+  };
 
   const handleThumbUpload = async (file: File) => {
     setUploadingThumb(true);
@@ -348,15 +372,52 @@ function ResourceFormModal({
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {form.resource_type === 'pdf' ? 'URL du fichier PDF' : 'URL de la vidéo / lien'}
-            </label>
-            <input
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
-              value={form.video_url}
-              onChange={e => setForm(f => ({ ...f, video_url: e.target.value }))}
-              placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..."
-            />
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700">
+                {form.resource_type === 'pdf' ? 'URL du fichier PDF' : form.resource_type === 'video' ? 'Vidéo' : 'URL du lien'}
+              </label>
+              {form.resource_type === 'video' && (
+                <div className="flex rounded-md border border-gray-200 overflow-hidden text-xs">
+                  <button type="button" onClick={() => { setVideoMode('url'); setForm(f => ({ ...f, video_url: '' })); }}
+                    className={`flex items-center gap-1 px-2 py-1 transition-colors ${videoMode === 'url' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+                    <Link className="w-3 h-3" /> URL
+                  </button>
+                  <button type="button" onClick={() => { setVideoMode('upload'); setForm(f => ({ ...f, video_url: '' })); }}
+                    className={`flex items-center gap-1 px-2 py-1 transition-colors ${videoMode === 'upload' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+                    <Upload className="w-3 h-3" /> Upload
+                  </button>
+                </div>
+              )}
+            </div>
+            {form.resource_type === 'video' && videoMode === 'upload' ? (
+              <>
+                <label className={`flex flex-col items-center justify-center w-full h-16 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${uploadingVideo ? 'border-blue-300 bg-blue-50' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'}`}>
+                  {uploadingVideo ? (
+                    <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 text-gray-400" />
+                      <span className="text-xs text-gray-400">MP4, WebM, MOV — max 200 Mo</span>
+                    </>
+                  )}
+                  <input type="file" className="hidden" accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-msvideo"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleVideoUpload(f); }} />
+                </label>
+                {form.video_url && (
+                  <div className="mt-1 flex items-center gap-2 text-xs text-green-600 bg-green-50 rounded-lg px-3 py-2">
+                    <span className="truncate">{form.video_url}</span>
+                    <button type="button" onClick={() => setForm(f => ({ ...f, video_url: '' }))} className="ml-auto text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <input
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                value={form.video_url}
+                onChange={e => setForm(f => ({ ...f, video_url: e.target.value }))}
+                placeholder={form.resource_type === 'video' ? 'https://youtube.com/watch?v=... ou https://vimeo.com/...' : 'https://'}
+              />
+            )}
             {form.resource_type === 'pdf' && (
               <input
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 mt-2"

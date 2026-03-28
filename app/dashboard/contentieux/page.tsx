@@ -984,7 +984,7 @@ export default function ContentieuxPage() {
 
       {/* Pipeline visuel */}
       <div className="bg-white rounded-xl shadow-sm border p-4 mb-6 w-full">
-        <div className="grid grid-cols-4 md:grid-cols-8 gap-2 w-full">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 w-full">
           {STAGES.map((s) => {
             const count = stageCounts[s.key] || 0;
             const isActive = filterStage === s.key;
@@ -993,7 +993,7 @@ export default function ContentieuxPage() {
               <button
                 key={s.key}
                 onClick={() => { setFilterStage(isActive ? '' : s.key); setPage(1); }}
-                className={`flex flex-col items-center px-2 py-3 rounded-lg text-xs font-medium transition-all whitespace-nowrap border ${
+                className={`flex flex-col items-center px-2 py-3 rounded-lg text-xs font-medium transition-all h-auto border ${
                   isActive
                     ? `ring-2 ring-offset-1 ring-primary-500 ${s.bg} ${s.color}`
                     : `${s.bg} text-gray-600 hover:shadow-sm border-transparent`
@@ -1001,7 +1001,7 @@ export default function ContentieuxPage() {
               >
                 <StageIcon className={`w-5 h-5 mb-1 ${s.iconColor}`} />
                 <span className="text-lg font-bold">{count}</span>
-                <span className="text-center leading-tight">{s.label}</span>
+                <span className="text-xs text-center leading-tight whitespace-normal break-words">{s.label}</span>
               </button>
             );
           })}

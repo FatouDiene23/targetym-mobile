@@ -523,7 +523,7 @@ export default function ContentieuxPage() {
     const isClosed = d.status.startsWith('clos');
 
     return (
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className="p-6 w-full">
         {/* Back button + header */}
         <button onClick={() => setSelectedDispute(null)} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4">
           <ChevronLeft className="w-4 h-4" /> Retour a la liste
@@ -973,7 +973,7 @@ export default function ContentieuxPage() {
   // ══════════════════════════════════════════════════════════════════════
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 w-full">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -983,38 +983,34 @@ export default function ContentieuxPage() {
       </div>
 
       {/* Pipeline visuel */}
-      <div className="bg-white rounded-xl shadow-sm border p-4 mb-6">
-        <div className="flex items-center gap-1 overflow-x-auto pb-1">
-          {STAGES.map((s, i) => {
+      <div className="bg-white rounded-xl shadow-sm border p-4 mb-6 w-full">
+        <div className="grid grid-cols-4 md:grid-cols-8 gap-2 w-full">
+          {STAGES.map((s) => {
             const count = stageCounts[s.key] || 0;
             const isActive = filterStage === s.key;
             const StageIcon = s.icon;
             return (
-              <div key={s.key} className="flex items-center">
-                <button
-                  onClick={() => { setFilterStage(isActive ? '' : s.key); setPage(1); }}
-                  className={`flex flex-col items-center px-3 py-2.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap min-w-[100px] border ${
-                    isActive
-                      ? `ring-2 ring-offset-1 ring-primary-500 ${s.bg} ${s.color}`
-                      : `${s.bg} text-gray-600 hover:shadow-sm border-transparent`
-                  }`}
-                >
-                  <StageIcon className={`w-5 h-5 mb-1 ${s.iconColor}`} />
-                  <span className="text-lg font-bold">{count}</span>
-                  <span>{s.label}</span>
-                </button>
-                {i < STAGES.length - 1 && (
-                  <ChevronRight className="w-4 h-4 text-gray-300 mx-0.5 flex-shrink-0" />
-                )}
-              </div>
+              <button
+                key={s.key}
+                onClick={() => { setFilterStage(isActive ? '' : s.key); setPage(1); }}
+                className={`flex flex-col items-center px-2 py-3 rounded-lg text-xs font-medium transition-all whitespace-nowrap border ${
+                  isActive
+                    ? `ring-2 ring-offset-1 ring-primary-500 ${s.bg} ${s.color}`
+                    : `${s.bg} text-gray-600 hover:shadow-sm border-transparent`
+                }`}
+              >
+                <StageIcon className={`w-5 h-5 mb-1 ${s.iconColor}`} />
+                <span className="text-lg font-bold">{count}</span>
+                <span className="text-center leading-tight">{s.label}</span>
+              </button>
             );
           })}
         </div>
       </div>
 
       {/* Filters + Actions */}
-      <div className="bg-white rounded-xl shadow-sm border p-4 mb-6">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="bg-white rounded-xl shadow-sm border p-4 mb-6 w-full">
+        <div className="flex flex-wrap items-center gap-3 w-full">
           <div className="relative flex-1 min-w-[250px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
@@ -1091,7 +1087,7 @@ export default function ContentieuxPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border overflow-hidden w-full">
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="w-8 h-8 animate-spin text-primary-500" />

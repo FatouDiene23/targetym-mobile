@@ -86,6 +86,12 @@ function estimateReadTime(content: string): number {
   return Math.max(1, Math.ceil(words / 200));
 }
 
+/** Préfixe l'URL avec API_URL si c'est un chemin relatif (upload backend) */
+function mediaUrl(url?: string): string {
+  if (!url) return '';
+  return url.startsWith('/') ? `${API_URL}${url}` : url;
+}
+
 // ============================================
 // COMPOSANT MODAL ÉDITEUR DE POST
 // ============================================
@@ -367,7 +373,7 @@ function PostReaderModal({ post, onClose }: { post: BlogPost; onClose: () => voi
         <div className="flex-1 overflow-y-auto p-6">
           {post.cover_image_url && (
             <img
-              src={post.cover_image_url}
+              src={mediaUrl(post.cover_image_url)}
               alt={post.title}
               className="w-full h-56 object-cover rounded-xl mb-6"
             />
@@ -568,7 +574,7 @@ export default function BlogPage() {
               <div className="flex flex-col md:flex-row">
                 {featuredPost.cover_image_url ? (
                   <img
-                    src={featuredPost.cover_image_url}
+                    src={mediaUrl(featuredPost.cover_image_url)}
                     alt={featuredPost.title}
                     className="w-full md:w-80 h-48 md:h-auto object-cover flex-shrink-0"
                   />
@@ -645,7 +651,7 @@ export default function BlogPage() {
                 >
                   {post.cover_image_url ? (
                     <img
-                      src={post.cover_image_url}
+                      src={mediaUrl(post.cover_image_url)}
                       alt={post.title}
                       className="w-full h-40 object-cover"
                     />

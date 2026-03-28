@@ -89,6 +89,12 @@ function getEmbedUrl(url: string): string | null {
   return getYoutubeEmbedUrl(url) || getVimeoEmbedUrl(url) || null;
 }
 
+/** Préfixe l'URL avec API_URL si c'est un chemin relatif (upload backend) */
+function mediaUrl(url?: string): string {
+  if (!url) return '';
+  return url.startsWith('/') ? `${API_URL}${url}` : url;
+}
+
 function TypeIcon({ type }: { type: string }) {
   switch (type) {
     case 'video':   return <Video className="w-4 h-4 text-red-500" />;
@@ -784,7 +790,7 @@ export default function ResourcesPage() {
                 {/* Thumbnail */}
                 <div className="relative w-full h-40 bg-gradient-to-br from-slate-100 to-gray-200 overflow-hidden">
                   {r.thumbnail_url ? (
-                    <img src={r.thumbnail_url} alt={r.title} className="w-full h-full object-cover" />
+                    <img src={mediaUrl(r.thumbnail_url)} alt={r.title} className="w-full h-full object-cover" />
                   ) : embedUrl ? (
                     <img
                       src={`https://img.youtube.com/vi/${embedUrl.split('/embed/')[1]?.split('?')[0]}/hqdefault.jpg`}

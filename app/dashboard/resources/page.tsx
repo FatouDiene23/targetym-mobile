@@ -60,7 +60,7 @@ interface UserInfo {
   role: string;
 }
 
-const ADMIN_ROLES = ['admin', 'dg', 'rh', 'super_admin'];
+const ADMIN_ROLES = ['superadmintech', 'super_admin', 'superadmin', 'platform_admin'];
 
 // ============================================
 // HELPERS

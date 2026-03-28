@@ -59,8 +59,8 @@ interface UserInfo {
   role: string;
 }
 
-const EDITOR_ROLES = ['admin', 'dg', 'rh', 'manager', 'super_admin'];
-const ADMIN_ROLES  = ['admin', 'dg', 'rh', 'super_admin'];
+const EDITOR_ROLES = ['superadmintech', 'super_admin', 'superadmin', 'platform_admin'];
+const ADMIN_ROLES  = ['superadmintech', 'super_admin', 'superadmin', 'platform_admin'];
 
 const EMPTY_FORM: BlogPostForm = {
   title: '',

@@ -51,7 +51,6 @@ import {
   Brain,
   Scale,
   DollarSign,
-  PlayCircle,
 } from 'lucide-react';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
@@ -133,18 +132,6 @@ const navigation: NavItem[] = [
     icon: GraduationCap,
     roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
     dataTour: 'sidebar-learning'
-  },
-  {
-    name: 'Blog',
-    href: '/dashboard/blog',
-    icon: PenLine,
-    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
-  },
-  {
-    name: 'Ressources',
-    href: '/dashboard/resources',
-    icon: PlayCircle,
-    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
   },
   { 
     name: 'Performance & Feedback', 

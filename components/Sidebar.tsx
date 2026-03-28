@@ -174,7 +174,7 @@ const navigation: NavItem[] = [
     roles: ['rh', 'admin', 'dg'],
   },
   {
-    name: 'Contentieux',
+    name: 'Gestion des Contentieux',
     href: '/dashboard/contentieux',
     icon: Scale,
     roles: ['rh', 'admin', 'dg'],

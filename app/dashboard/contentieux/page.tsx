@@ -5,6 +5,8 @@ import {
   Scale, Search, Plus, Loader2, X, ChevronLeft, ChevronRight,
   Calendar, User, Filter, Upload, Download, Trash2, FileText,
   Clock, ArrowRight, Eye, Edit3, Gavel, AlertCircle,
+  Users, Handshake, CheckCircle, AlertTriangle, BookOpen, Archive,
+  type LucideIcon,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { fetchWithAuth, API_URL, getEmployees, type Employee } from '@/lib/api';
@@ -80,24 +82,24 @@ interface SimpleEmployee {
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
-const STAGES = [
-  { key: 'convocation_it', label: 'Convocation IT', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  { key: 'entretien_it', label: 'Entretien IT', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
-  { key: 'conciliation', label: 'Conciliation', color: 'bg-purple-100 text-purple-700 border-purple-200' },
-  { key: 'accord_amiable', label: 'Accord amiable', color: 'bg-green-100 text-green-700 border-green-200' },
-  { key: 'contentieux', label: 'Contentieux', color: 'bg-orange-100 text-orange-700 border-orange-200' },
-  { key: 'audience', label: 'Audience', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-  { key: 'jugement', label: 'Jugement', color: 'bg-red-100 text-red-700 border-red-200' },
-  { key: 'cloture', label: 'Cloture', color: 'bg-gray-100 text-gray-700 border-gray-200' },
+const STAGES: { key: string; label: string; color: string; icon: LucideIcon; bg: string; iconColor: string; dotColor: string }[] = [
+  { key: 'convocation_it', label: 'Convocation IT', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: FileText, bg: 'bg-orange-50', iconColor: 'text-orange-500', dotColor: 'bg-orange-500' },
+  { key: 'entretien_it', label: 'Entretien IT', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Users, bg: 'bg-blue-50', iconColor: 'text-blue-500', dotColor: 'bg-blue-500' },
+  { key: 'conciliation', label: 'Conciliation', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: Handshake, bg: 'bg-purple-50', iconColor: 'text-purple-500', dotColor: 'bg-purple-500' },
+  { key: 'accord_amiable', label: 'Accord amiable', color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle, bg: 'bg-green-50', iconColor: 'text-green-500', dotColor: 'bg-green-500' },
+  { key: 'contentieux', label: 'Contentieux', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertTriangle, bg: 'bg-red-50', iconColor: 'text-red-500', dotColor: 'bg-red-500' },
+  { key: 'audience', label: 'Audience', color: 'bg-indigo-100 text-indigo-700 border-indigo-200', icon: Calendar, bg: 'bg-indigo-50', iconColor: 'text-indigo-500', dotColor: 'bg-indigo-500' },
+  { key: 'jugement', label: 'Jugement', color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: BookOpen, bg: 'bg-yellow-50', iconColor: 'text-yellow-500', dotColor: 'bg-yellow-500' },
+  { key: 'cloture', label: 'Cloture', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: Archive, bg: 'bg-gray-50', iconColor: 'text-gray-500', dotColor: 'bg-gray-400' },
 ];
 
 const STATUSES: Record<string, { label: string; color: string }> = {
   ouvert: { label: 'Ouvert', color: 'bg-blue-100 text-blue-700' },
-  en_cours: { label: 'En cours', color: 'bg-yellow-100 text-yellow-700' },
-  suspendu: { label: 'Suspendu', color: 'bg-gray-100 text-gray-600' },
+  en_cours: { label: 'En cours', color: 'bg-orange-100 text-orange-700' },
+  suspendu: { label: 'Suspendu', color: 'bg-yellow-100 text-yellow-700' },
   clos_accord: { label: 'Clos (accord)', color: 'bg-green-100 text-green-700' },
-  clos_jugement: { label: 'Clos (jugement)', color: 'bg-emerald-100 text-emerald-700' },
-  clos_abandon: { label: 'Clos (abandon)', color: 'bg-slate-100 text-slate-600' },
+  clos_jugement: { label: 'Clos (jugement)', color: 'bg-gray-100 text-gray-700' },
+  clos_abandon: { label: 'Clos (abandon)', color: 'bg-red-100 text-red-700' },
 };
 
 const AUDIENCE_TYPES: Record<string, string> = {
@@ -108,7 +110,7 @@ const AUDIENCE_TYPES: Record<string, string> = {
 };
 
 function getStageInfo(key: string) {
-  return STAGES.find(s => s.key === key) || { key, label: key, color: 'bg-gray-100 text-gray-600 border-gray-200' };
+  return STAGES.find(s => s.key === key) || { key, label: key, color: 'bg-gray-100 text-gray-600 border-gray-200', icon: AlertCircle as LucideIcon, bg: 'bg-gray-50', iconColor: 'text-gray-500', dotColor: 'bg-gray-400' };
 }
 
 function getStatusInfo(key: string) {
@@ -535,7 +537,8 @@ export default function ContentieuxPage() {
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusInfo.color}`}>
                   {statusInfo.label}
                 </span>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${stageInfo.color}`}>
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${stageInfo.color}`}>
+                  <stageInfo.icon className="w-3.5 h-3.5" />
                   {stageInfo.label}
                 </span>
               </div>
@@ -609,14 +612,18 @@ export default function ContentieuxPage() {
                     ) : (
                       <div className="relative">
                         <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200" />
-                        {(d.stages_history || []).map((h, i) => {
+                        {(d.stages_history || []).map((h) => {
                           const si = getStageInfo(h.stage);
+                          const HistIcon = si.icon;
                           return (
-                            <div key={h.id} className="relative pl-10 pb-6">
-                              <div className={`absolute left-2.5 top-1 w-3 h-3 rounded-full border-2 border-white ${i === 0 ? 'bg-primary-500' : 'bg-gray-300'}`} />
-                              <div className="bg-gray-50 rounded-lg p-4">
+                            <div key={h.id} className="relative pl-12 pb-6">
+                              <div className={`absolute left-1.5 top-1 w-6 h-6 rounded-full flex items-center justify-center ${si.dotColor}`}>
+                                <HistIcon className="w-3.5 h-3.5 text-white" />
+                              </div>
+                              <div className={`${si.bg} rounded-lg p-4 border ${si.color.split(' ').find(c => c.startsWith('border-')) || ''}`}>
                                 <div className="flex items-center gap-2 mb-1">
-                                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${si.color}`}>
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${si.color}`}>
+                                    <HistIcon className="w-3 h-3" />
                                     {si.label}
                                   </span>
                                   <span className="text-xs text-gray-400">{formatDateTime(h.started_at)}</span>
@@ -980,14 +987,19 @@ export default function ContentieuxPage() {
         <div className="flex items-center gap-1 overflow-x-auto pb-1">
           {STAGES.map((s, i) => {
             const count = stageCounts[s.key] || 0;
+            const isActive = filterStage === s.key;
+            const StageIcon = s.icon;
             return (
               <div key={s.key} className="flex items-center">
                 <button
-                  onClick={() => { setFilterStage(filterStage === s.key ? '' : s.key); setPage(1); }}
-                  className={`flex flex-col items-center px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap min-w-[90px] ${
-                    filterStage === s.key ? 'ring-2 ring-primary-500 ' + s.color : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                  onClick={() => { setFilterStage(isActive ? '' : s.key); setPage(1); }}
+                  className={`flex flex-col items-center px-3 py-2.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap min-w-[100px] border ${
+                    isActive
+                      ? `ring-2 ring-offset-1 ring-primary-500 ${s.bg} ${s.color}`
+                      : `${s.bg} text-gray-600 hover:shadow-sm border-transparent`
                   }`}
                 >
+                  <StageIcon className={`w-5 h-5 mb-1 ${s.iconColor}`} />
                   <span className="text-lg font-bold">{count}</span>
                   <span>{s.label}</span>
                 </button>
@@ -1127,7 +1139,8 @@ export default function ContentieuxPage() {
                           <p className="text-sm text-gray-700 max-w-[200px] truncate" title={d.title}>{d.title}</p>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${stageInfo.color}`}>
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${stageInfo.color}`}>
+                            <stageInfo.icon className="w-3 h-3" />
                             {stageInfo.label}
                           </span>
                         </td>

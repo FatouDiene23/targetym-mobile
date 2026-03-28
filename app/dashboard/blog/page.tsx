@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import {
   PenLine, Plus, Search, Eye, Pencil, Trash2, Loader2,
   Tag, Calendar, Clock, ChevronLeft, X, BookOpen, Globe, FileText,
+  Upload, Link,
 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -114,6 +115,30 @@ function PostEditorModal({
       : { ...EMPTY_FORM }
   );
   const [saving, setSaving] = useState(false);
+  const [coverMode, setCoverMode] = useState<'url' | 'upload'>('url');
+  const [uploadingCover, setUploadingCover] = useState(false);
+
+  const handleCoverUpload = async (file: File) => {
+    setUploadingCover(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${API_URL}/api/media/upload`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd,
+      });
+      if (!res.ok) throw new Error('Erreur upload');
+      const data = await res.json();
+      setForm(f => ({ ...f, cover_image_url: data.url }));
+      toast.success('Image uploadée');
+    } catch {
+      toast.error('Échec de l\'upload');
+    } finally {
+      setUploadingCover(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!form.title.trim()) { toast.error('Le titre est obligatoire'); return; }
@@ -194,13 +219,66 @@ function PostEditorModal({
 
           {/* Image de couverture */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Image de couverture (URL)</label>
-            <input
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 outline-none"
-              placeholder="https://..."
-              value={form.cover_image_url}
-              onChange={e => setForm(f => ({ ...f, cover_image_url: e.target.value }))}
-            />
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700">Image de couverture</label>
+              <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs">
+                <button
+                  type="button"
+                  onClick={() => setCoverMode('url')}
+                  className={`flex items-center gap-1 px-3 py-1.5 transition-colors ${coverMode === 'url' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                >
+                  <Link className="w-3 h-3" /> URL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCoverMode('upload')}
+                  className={`flex items-center gap-1 px-3 py-1.5 transition-colors ${coverMode === 'upload' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                >
+                  <Upload className="w-3 h-3" /> Upload
+                </button>
+              </div>
+            </div>
+
+            {coverMode === 'url' ? (
+              <input
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 outline-none"
+                placeholder="https://..."
+                value={form.cover_image_url}
+                onChange={e => setForm(f => ({ ...f, cover_image_url: e.target.value }))}
+              />
+            ) : (
+              <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${uploadingCover ? 'border-blue-300 bg-blue-50' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'}`}>
+                {uploadingCover ? (
+                  <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                ) : (
+                  <>
+                    <Upload className="w-6 h-6 text-gray-400 mb-1" />
+                    <span className="text-xs text-gray-500">Cliquer pour choisir une image</span>
+                    <span className="text-xs text-gray-400">JPEG, PNG, WebP — max 5 Mo</span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleCoverUpload(f); }}
+                />
+              </label>
+            )}
+
+            {form.cover_image_url && (
+              <div className="mt-2 relative w-full h-24 rounded-lg overflow-hidden border border-gray-200">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={form.cover_image_url.startsWith('/') ? `${API_URL}${form.cover_image_url}` : form.cover_image_url} alt="Aperçu" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, cover_image_url: '' }))}
+                  className="absolute top-1 right-1 bg-white/80 hover:bg-white rounded-full p-1 text-gray-600"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Catégorie + Tags */}

@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import {
   PlayCircle, Plus, Search, Pencil, Trash2, Loader2, X,
   FolderOpen, Clock, Eye, Video, FileText, Link2, BookOpen,
-  ExternalLink, ChevronDown, ChevronUp, Settings,
+  ExternalLink, ChevronDown, ChevronUp, Settings, Upload, Link,
 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -225,6 +225,30 @@ function ResourceFormModal({
     is_published: resource?.is_published ?? true,
   });
   const [saving, setSaving] = useState(false);
+  const [thumbMode, setThumbMode] = useState<'url' | 'upload'>('url');
+  const [uploadingThumb, setUploadingThumb] = useState(false);
+
+  const handleThumbUpload = async (file: File) => {
+    setUploadingThumb(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${API_URL}/api/media/upload`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd,
+      });
+      if (!res.ok) throw new Error('Erreur upload');
+      const data = await res.json();
+      setForm(f => ({ ...f, thumbnail_url: data.url }));
+      toast.success('Image uploadée');
+    } catch {
+      toast.error('Échec de l\'upload');
+    } finally {
+      setUploadingThumb(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!form.title.trim()) { toast.error('Le titre est obligatoire'); return; }
@@ -349,13 +373,63 @@ function ResourceFormModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Thumbnail (URL)</label>
-              <input
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
-                value={form.thumbnail_url}
-                onChange={e => setForm(f => ({ ...f, thumbnail_url: e.target.value }))}
-                placeholder="https://..."
-              />
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">Thumbnail</label>
+                <div className="flex rounded-md border border-gray-200 overflow-hidden text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setThumbMode('url')}
+                    className={`flex items-center gap-1 px-2 py-1 transition-colors ${thumbMode === 'url' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    <Link className="w-3 h-3" /> URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setThumbMode('upload')}
+                    className={`flex items-center gap-1 px-2 py-1 transition-colors ${thumbMode === 'upload' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    <Upload className="w-3 h-3" /> Upload
+                  </button>
+                </div>
+              </div>
+              {thumbMode === 'url' ? (
+                <input
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                  value={form.thumbnail_url}
+                  onChange={e => setForm(f => ({ ...f, thumbnail_url: e.target.value }))}
+                  placeholder="https://..."
+                />
+              ) : (
+                <label className={`flex flex-col items-center justify-center w-full h-16 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${uploadingThumb ? 'border-blue-300 bg-blue-50' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'}`}>
+                  {uploadingThumb ? (
+                    <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 text-gray-400" />
+                      <span className="text-xs text-gray-400">Choisir une image</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleThumbUpload(f); }}
+                  />
+                </label>
+              )}
+              {form.thumbnail_url && (
+                <div className="mt-1 relative w-full h-14 rounded-lg overflow-hidden border border-gray-200">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={form.thumbnail_url.startsWith('/') ? `${API_URL}${form.thumbnail_url}` : form.thumbnail_url} alt="Aperçu" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, thumbnail_url: '' }))}
+                    className="absolute top-0.5 right-0.5 bg-white/80 hover:bg-white rounded-full p-0.5 text-gray-600"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-3">

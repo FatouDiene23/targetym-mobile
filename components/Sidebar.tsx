@@ -51,6 +51,7 @@ import {
   Brain,
   Scale,
   DollarSign,
+  PlayCircle,
 } from 'lucide-react';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
@@ -809,7 +810,7 @@ function SidebarInner() {
   // ============================================
   // MODE SUPER_ADMIN UNIQUEMENT
   // ============================================
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'super_admin';
+  const isSuperAdmin = ['SUPER_ADMIN', 'super_admin', 'superadmin', 'superadmintech', 'platform_admin'].includes(user?.role ?? '');
   
   if (isSuperAdmin) {
     return (
@@ -867,6 +868,30 @@ function SidebarInner() {
           >
             <Users className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
             {!collapsed && <span className="text-sm font-medium">Gestion des Utilisateurs</span>}
+          </Link>
+          <Link 
+            href="/dashboard/blog" 
+            className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+              pathname.startsWith('/dashboard/blog')
+                ? 'bg-primary-500 text-white' 
+                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+            }`} 
+            title={collapsed ? 'Blog' : undefined}
+          >
+            <PenLine className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
+            {!collapsed && <span className="text-sm font-medium">Blog</span>}
+          </Link>
+          <Link 
+            href="/dashboard/resources" 
+            className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+              pathname.startsWith('/dashboard/resources')
+                ? 'bg-primary-500 text-white' 
+                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+            }`} 
+            title={collapsed ? 'Ressources' : undefined}
+          >
+            <PlayCircle className={`w-5 h-5 ${collapsed ? 'mx-auto' : 'mr-3'}`} />
+            {!collapsed && <span className="text-sm font-medium">Ressources</span>}
           </Link>
           <Link 
             href="/dashboard/help-admin" 

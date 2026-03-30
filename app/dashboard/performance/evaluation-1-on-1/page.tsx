@@ -554,10 +554,12 @@ export default function Evaluation1on1Page() {
   const [page, setPage] = useState(1);
   const [evaluating, setEvaluating] = useState<OneOnOne | null>(null);
   const [showEvaluated, setShowEvaluated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [, data] = await Promise.all([fetchCurrentUser(), fetchCompletedSessions()]);
+    const [user, data] = await Promise.all([fetchCurrentUser(), fetchCompletedSessions()]);
+    setCurrentUser(user);
     setSessions(data);
     setLoading(false);
   }, []);
@@ -594,12 +596,24 @@ export default function Evaluation1on1Page() {
       <Header title="Évaluations 1-1" />
       <main className="flex-1 p-6 max-w-5xl mx-auto w-full">
 
-        {/* Title */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Évaluations 1-1</h1>
-          <p className="text-gray-500 mt-1">
+        {/* Subtitle + Action */}
+        <div className="mb-6 flex items-center justify-between">
+          <p className="text-gray-500">
             Rapports d&apos;évaluation des sessions de Coaching 1-1 terminées
           </p>
+          {currentUser && currentUser.role !== 'employee' && (
+            <button
+              onClick={() => {
+                const pending = sessions.find(s => !s.evaluation_score);
+                if (pending) setEvaluating(pending);
+                else toast('Aucune session en attente d\u2019évaluation', { icon: '\u2139\ufe0f' });
+              }}
+              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Nouvelle évaluation
+            </button>
+          )}
         </div>
 
         {/* Stats */}

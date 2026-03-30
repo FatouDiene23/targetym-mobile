@@ -137,8 +137,10 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
       try {
         const skillsRes = await fetchWithAuth(`${API_URL}/api/learning/skills/`);
-        const skills: TenantSkill[] = Array.isArray(skillsRes) ? skillsRes : [];
-        setAvailableSkills(skills);
+        if (skillsRes.ok) {
+          const json = await skillsRes.json();
+          setAvailableSkills(Array.isArray(json) ? json : []);
+        }
       } catch {
         // Pas de compétences configurées, skip
       }
@@ -156,6 +158,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
       entries.map(([skillId, level]) =>
         fetchWithAuth(`${API_URL}/api/learning/employee-skills/`, {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ employee_id: employeeId, skill_id: parseInt(skillId), current_level: level }),
         })
       )

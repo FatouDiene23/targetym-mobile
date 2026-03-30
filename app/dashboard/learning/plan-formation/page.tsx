@@ -6,6 +6,7 @@
 // ============================================
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Plus, Search, Eye, Edit, Copy, X, ChevronLeft, Trash2,
   Calendar, Target, Users, DollarSign, FileText,
@@ -200,7 +201,15 @@ interface TenantGroupInfo {
 
 export default function PlanFormationPage() {
   const { userRole } = useLearning();
+  const router = useRouter();
   const canManage = hasPermission(userRole, 'create_course'); // admin, dg, dga, rh
+
+  // Redirect unauthorized roles
+  useEffect(() => {
+    if (userRole === 'employee' || userRole === 'manager') {
+      router.replace('/dashboard/learning');
+    }
+  }, [userRole, router]);
 
   // ── Tenant group info ──
   const [tenantInfo, setTenantInfo] = useState<TenantGroupInfo | null>(null);

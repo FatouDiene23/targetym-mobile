@@ -121,6 +121,7 @@ interface Simulation {
   notes: string | null;
   lines?: SimulationLine[];
   lines_count?: number;
+  excluded_no_salary?: number;
 }
 
 interface SimulationLine {
@@ -157,9 +158,10 @@ const conformityBadge = (status: string) => {
 const simStatusBadge = (status: string) => {
   const map: Record<string, { bg: string; text: string; label: string }> = {
     brouillon: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Brouillon' },
-    soumis:    { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Soumis' },
+    soumis:    { bg: 'bg-amber-100', text: 'text-amber-700', label: 'En attente d\u2019approbation DG' },
     approuve:  { bg: 'bg-green-100', text: 'text-green-700', label: 'Approuvé' },
     rejete:    { bg: 'bg-red-100', text: 'text-red-700', label: 'Rejeté' },
+    applique:  { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Appliqué' },
   };
   const s = map[status] || map.brouillon;
   return <span className={`px-2 py-0.5 rounded text-xs font-medium ${s.bg} ${s.text}`}>{s.label}</span>;
@@ -870,6 +872,158 @@ export default function CompensationPage() {
     } catch { showToast('Erreur réseau'); }
   };
 
+  const applySimulation = async (id: number, linesCount: number) => {
+    if (!window.confirm(`Appliquer les augmentations à ${linesCount} employé(s) ?\nCette action mettra à jour les salaires définitivement.`)) return;
+    try {
+      const res = await fetch(`${API_URL}/api/cb/simulations/${id}/apply`, {
+        method: 'POST', headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        showToast(`${data.applied} salaire(s) mis à jour${data.errors > 0 ? `, ${data.errors} erreur(s)` : ''}`);
+        loadSimulations();
+        viewSimulation(id);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.detail || 'Erreur lors de l\'application');
+      }
+    } catch { showToast('Erreur réseau'); }
+  };
+
+  // ── Import simulation from CSV/Excel ──
+  const [simImportProgress, setSimImportProgress] = useState<{ current: number; total: number; errors: { line: number; message: string }[]; done: boolean } | null>(null);
+
+  const downloadSimTemplate = () => {
+    const header = 'matricule,current_salary,proposed_salary,proposed_increase_pct,currency';
+    const examples = [
+      'EMP001,1500000,1575000,5,XOF',
+      'EMP002,2000000,2100000,5,XOF',
+    ];
+    const csv = [header, ...examples].join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'template_simulation.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSimFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    let rows: Record<string, string>[] = [];
+    try {
+      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '' });
+      } else {
+        const text = await file.text();
+        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length < 2) { showToast('Fichier vide ou sans données'); return; }
+        const headers = lines[0].split(',').map(h => h.trim());
+        for (let i = 1; i < lines.length; i++) {
+          const vals = lines[i].split(',').map(v => v.trim());
+          const row: Record<string, string> = {};
+          headers.forEach((h, j) => { row[h] = vals[j] || ''; });
+          rows.push(row);
+        }
+      }
+    } catch { showToast('Erreur de lecture du fichier'); return; }
+
+    if (!rows.length) { showToast('Aucune ligne trouvée'); return; }
+
+    // Validate all rows first
+    const validLines: { matricule: string; current_salary: number; proposed_salary: number; proposed_increase_pct: number; currency: string }[] = [];
+    const importErrors: { line: number; message: string }[] = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const lineNum = i + 2;
+      const matricule = (row['matricule'] || '').trim();
+      const currentSal = parseFloat(row['current_salary'] || '');
+      const proposedSal = parseFloat(row['proposed_salary'] || '');
+      const pct = parseFloat(row['proposed_increase_pct'] || '');
+      const currency = (row['currency'] || 'XOF').trim().toUpperCase();
+
+      if (!matricule) { importErrors.push({ line: lineNum, message: 'matricule obligatoire' }); continue; }
+      if (isNaN(currentSal) || currentSal <= 0) { importErrors.push({ line: lineNum, message: `current_salary invalide : "${row['current_salary']}"` }); continue; }
+      if (isNaN(proposedSal) || proposedSal <= 0) { importErrors.push({ line: lineNum, message: `proposed_salary invalide : "${row['proposed_salary']}"` }); continue; }
+      if (isNaN(pct)) { importErrors.push({ line: lineNum, message: `proposed_increase_pct invalide : "${row['proposed_increase_pct']}"` }); continue; }
+
+      validLines.push({ matricule, current_salary: currentSal, proposed_salary: proposedSal, proposed_increase_pct: pct, currency });
+    }
+
+    if (validLines.length === 0) {
+      showToast(`Aucune ligne valide (${importErrors.length} erreur(s))`);
+      return;
+    }
+
+    // Create simulation with manual lines
+    const progress = { current: 0, total: validLines.length, errors: [...importErrors], done: false };
+    setSimImportProgress({ ...progress });
+
+    try {
+      // 1. Create the simulation shell
+      const simBody = {
+        title: `Import ${file.name} — ${new Date().toLocaleDateString('fr-FR')}`,
+        year: new Date().getFullYear(),
+        budget_type: 'amount',
+        budget_value: validLines.reduce((s, l) => s + (l.proposed_salary - l.current_salary), 0),
+        currency: validLines[0].currency,
+        policy: 'uniforme',
+        scope_type: 'all',
+        scope_id: null,
+      };
+      const simRes = await fetch(`${API_URL}/api/cb/simulations`, {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(simBody),
+      });
+      if (!simRes.ok) {
+        const err = await simRes.json().catch(() => ({}));
+        showToast(err.detail || 'Erreur création simulation');
+        setSimImportProgress(null);
+        return;
+      }
+      const sim = await simRes.json();
+
+      // 2. Add lines one by one
+      for (let i = 0; i < validLines.length; i++) {
+        const line = validLines[i];
+        progress.current = i + 1;
+        setSimImportProgress({ ...progress });
+
+        try {
+          const lineRes = await fetch(`${API_URL}/api/cb/simulations/${sim.id}/lines`, {
+            method: 'POST', headers: getAuthHeaders(),
+            body: JSON.stringify({
+              matricule: line.matricule,
+              current_salary: line.current_salary,
+              proposed_salary: line.proposed_salary,
+              proposed_increase_pct: line.proposed_increase_pct,
+            }),
+          });
+          if (!lineRes.ok) {
+            const err = await lineRes.json().catch(() => ({}));
+            progress.errors.push({ line: i + 2, message: err.detail || `Erreur ${lineRes.status} — matricule ${line.matricule}` });
+          }
+        } catch {
+          progress.errors.push({ line: i + 2, message: `Erreur réseau — matricule ${line.matricule}` });
+        }
+      }
+
+      progress.done = true;
+      setSimImportProgress({ ...progress });
+      loadSimulations();
+    } catch {
+      showToast('Erreur réseau');
+      setSimImportProgress(null);
+    }
+  };
+
   const exportGridsCSV = () => {
     if (!grids.length) return;
     const header = 'ID,Pays,Devise,P25,P50,P75,Minimum CC,Conformite\n';
@@ -1491,7 +1645,7 @@ export default function CompensationPage() {
                         {showSimDetail.status === 'brouillon' && (
                           <button onClick={() => simAction(showSimDetail.id, 'submit')}
                             className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-medium hover:bg-blue-600 flex items-center gap-1">
-                            <Send className="w-3.5 h-3.5" /> Soumettre
+                            <Send className="w-3.5 h-3.5" /> Soumettre pour approbation
                           </button>
                         )}
                         {showSimDetail.status === 'soumis' && ['dg', 'super_admin'].includes(userRole) && (
@@ -1509,10 +1663,31 @@ export default function CompensationPage() {
                             </button>
                           </>
                         )}
+                        {showSimDetail.status === 'approuve' && ['admin', 'rh', 'super_admin'].includes(userRole) && (
+                          <button onClick={() => applySimulation(showSimDetail.id, showSimDetail.lines?.length || showSimDetail.lines_count || 0)}
+                            className="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-medium hover:bg-purple-700 flex items-center gap-1">
+                            <CheckCircle className="w-3.5 h-3.5" /> Appliquer les augmentations
+                          </button>
+                        )}
+                        {showSimDetail.status === 'rejete' && (
+                          <button onClick={() => { setShowSimDetail(null); setShowSimModal(true); }}
+                            className="px-3 py-1.5 bg-gray-500 text-white rounded-lg text-xs font-medium hover:bg-gray-600 flex items-center gap-1">
+                            <Edit className="w-3.5 h-3.5" /> Modifier
+                          </button>
+                        )}
                       </div>
                     </div>
                     {showSimDetail.notes && (
-                      <p className="text-xs text-gray-500 mt-2 bg-white p-2 rounded border border-gray-100">{showSimDetail.notes}</p>
+                      <div className={`mt-2 p-2.5 rounded border text-xs ${showSimDetail.status === 'rejete' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-white border-gray-100 text-gray-500'}`}>
+                        {showSimDetail.status === 'rejete' && <span className="font-medium">Motif de rejet : </span>}
+                        {showSimDetail.notes}
+                      </div>
+                    )}
+                    {showSimDetail.excluded_no_salary != null && showSimDetail.excluded_no_salary > 0 && (
+                      <div className="mt-2 p-2.5 rounded border bg-amber-50 border-amber-200 text-xs text-amber-700">
+                        <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />
+                        {showSimDetail.excluded_no_salary} employé(s) exclu(s) car salaire non renseigné
+                      </div>
                     )}
                   </div>
 
@@ -1552,15 +1727,64 @@ export default function CompensationPage() {
               ) : (
                 // ── Liste simulations ──
                 <div>
-                  <div className="flex items-center justify-between mb-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                     <h3 className="text-sm font-semibold text-gray-700">Simulations de révision salariale</h3>
-                    <button
-                      onClick={() => setShowSimModal(true)}
-                      className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm font-medium flex items-center gap-1.5"
-                    >
-                      <Plus className="w-4 h-4" /> Nouvelle simulation
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={downloadSimTemplate}
+                        className="px-3 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium flex items-center gap-1.5"
+                      >
+                        <FileDown className="w-4 h-4" /> Template
+                      </button>
+                      <label className="px-3 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium flex items-center gap-1.5 cursor-pointer">
+                        <Upload className="w-4 h-4" /> Importer simulation
+                        <input
+                          type="file"
+                          accept=".csv,.xlsx,.xls"
+                          onChange={handleSimFileImport}
+                          className="hidden"
+                        />
+                      </label>
+                      <button
+                        onClick={() => setShowSimModal(true)}
+                        className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm font-medium flex items-center gap-1.5"
+                      >
+                        <Plus className="w-4 h-4" /> Nouvelle simulation
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Sim import progress */}
+                  {simImportProgress && (
+                    <div className="mb-4 bg-gray-50 rounded-xl border border-gray-100 p-4">
+                      {!simImportProgress.done ? (
+                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                          <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
+                          Traitement ligne {simImportProgress.current}/{simImportProgress.total}...
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex items-center gap-2 text-sm font-medium mb-1">
+                            <CheckCircle className="w-4 h-4 text-green-500" />
+                            <span className="text-gray-900">
+                              {simImportProgress.total - simImportProgress.errors.length} ligne(s) importée(s)
+                              {simImportProgress.errors.length > 0 && (
+                                <span className="text-red-600 ml-1">, {simImportProgress.errors.length} erreur(s)</span>
+                              )}
+                            </span>
+                          </div>
+                          {simImportProgress.errors.length > 0 && (
+                            <div className="mt-2 max-h-40 overflow-y-auto space-y-1">
+                              {simImportProgress.errors.map((err, i) => (
+                                <p key={i} className="text-xs text-red-600">Ligne {err.line} : {err.message}</p>
+                              ))}
+                            </div>
+                          )}
+                          <button onClick={() => setSimImportProgress(null)} className="text-xs text-primary-500 hover:text-primary-600 mt-2">Fermer</button>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="grid gap-3">
                     {simulations.map((sim) => (

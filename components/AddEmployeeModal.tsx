@@ -1,13 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, ChevronLeft, Key, Camera } from 'lucide-react';
+import { Loader2, ChevronLeft, Key, Camera, Brain, ChevronRight } from 'lucide-react';
 import { 
   createEmployee, getDepartments, getEmployees, activateEmployeeAccess, uploadEmployeePhoto, fetchWithAuth, API_URL,
   type Department, type Employee, type GenderType, type ContractType, type StatusType, type EmployeeRole
 } from '@/lib/api';
 import NationalitySelect from '@/components/NationalitySelect';
 import { COUNTRIES } from '@/data/countries';
+
+interface TenantSkill {
+  id: number;
+  name: string;
+  category: string;
+  skill_type: string;
+  hierarchy_level: string | null;
+  is_global: boolean;
+}
 
 interface AddEmployeeModalProps {
   onClose: () => void;
@@ -34,6 +43,11 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>('');
+  const [availableSkills, setAvailableSkills] = useState<TenantSkill[]>([]);
+  const [showSkillsStep, setShowSkillsStep] = useState(false);
+  const [skillLevels, setSkillLevels] = useState<Record<number, number>>({});
+  const [isSavingSkills, setIsSavingSkills] = useState(false);
+  const [pendingAccessCreate, setPendingAccessCreate] = useState(false);
   
   const [formData, setFormData] = useState({
     employee_id: '',
@@ -120,11 +134,48 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
       const empResponse = await getEmployees({ page_size: 500, status: 'active' });
       const allManagers = (empResponse.items || []).filter(e => e.is_manager);
       setManagers(allManagers);
+
+      try {
+        const skillsRes = await fetchWithAuth(`${API_URL}/api/learning/skills/`);
+        const skills: TenantSkill[] = Array.isArray(skillsRes) ? skillsRes : [];
+        setAvailableSkills(skills);
+      } catch {
+        // Pas de compétences configurées, skip
+      }
     } catch (err) {
       console.error('Error loading data:', err);
     } finally {
       setIsLoadingData(false);
     }
+  }
+
+  async function handleSaveSkills(employeeId: number) {
+    setIsSavingSkills(true);
+    const entries = Object.entries(skillLevels).filter(([, level]) => level > 0);
+    await Promise.allSettled(
+      entries.map(([skillId, level]) =>
+        fetchWithAuth(`${API_URL}/api/learning/employee-skills/`, {
+          method: 'POST',
+          body: JSON.stringify({ employee_id: employeeId, skill_id: parseInt(skillId), current_level: level }),
+        })
+      )
+    );
+    setIsSavingSkills(false);
+  }
+
+  async function proceedAfterSkills() {
+    if (!createdEmployee) return;
+    await handleSaveSkills(createdEmployee.id);
+    if (pendingAccessCreate) {
+      try {
+        const accessResult = await activateEmployeeAccess(createdEmployee.id, false);
+        setTempPassword(accessResult.temp_password);
+        setShowSkillsStep(false);
+        return;
+      } catch { /* non-bloquant */ }
+    }
+    onSuccess();
+    onClose();
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -195,11 +246,20 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
         }
       }
 
-      // Si on doit créer un compte d'accès
+      // Stocker l'employé créé pour l'étape compétences
+      setCreatedEmployee({ id: newEmployee.id, email: newEmployee.email });
+      setPendingAccessCreate(formData.create_access);
+
+      // Si des compétences sont disponibles, afficher l'étape compétences
+      if (availableSkills.length > 0) {
+        setShowSkillsStep(true);
+        return;
+      }
+
+      // Sinon, continuer le flux normal
       if (formData.create_access && newEmployee.id) {
         try {
           const accessResult = await activateEmployeeAccess(newEmployee.id, false);
-          setCreatedEmployee({ id: newEmployee.id, email: newEmployee.email });
           setTempPassword(accessResult.temp_password);
           return;
         } catch (accessErr) {
@@ -245,6 +305,76 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
     onSuccess();
     onClose();
   };
+
+  // ── Étape compétences initiales ──────────────────────────────────────────
+  if (showSkillsStep && createdEmployee) {
+    const skillsByType: Record<string, TenantSkill[]> = {};
+    for (const s of availableSkills) {
+      const group = s.skill_type === 'technical' ? 'Compétences techniques'
+        : s.skill_type === 'soft_skill' ? 'Soft skills'
+        : 'Management';
+      skillsByType[group] = [...(skillsByType[group] || []), s];
+    }
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center">
+              <Brain className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Compétences initiales</h2>
+              <p className="text-xs text-gray-500">Définissez les niveaux de départ pour ce collaborateur (0 = non évalué)</p>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {Object.entries(skillsByType).map(([group, skills]) => (
+              <div key={group}>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">{group}</h3>
+                <div className="space-y-3">
+                  {skills.map(skill => (
+                    <div key={skill.id} className="flex items-center gap-4">
+                      <span className="flex-1 text-sm text-gray-800">{skill.name}</span>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          step={5}
+                          value={skillLevels[skill.id] ?? 0}
+                          onChange={e => setSkillLevels(prev => ({ ...prev, [skill.id]: parseInt(e.target.value) }))}
+                          className="w-32 accent-purple-500"
+                        />
+                        <span className="w-10 text-center text-sm font-medium text-gray-700">
+                          {skillLevels[skill.id] ?? 0}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+            <button
+              onClick={() => { setShowSkillsStep(false); proceedAfterSkills(); }}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Passer cette étape
+            </button>
+            <button
+              onClick={proceedAfterSkills}
+              disabled={isSavingSkills}
+              className="flex items-center gap-2 px-5 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50"
+            >
+              {isSavingSkills ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
+              Enregistrer et continuer
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Afficher le mot de passe temporaire si compte créé
   if (tempPassword && createdEmployee) {

@@ -1113,25 +1113,66 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
               <EmployeeDocuments employeeId={employee.id} employeeName={displayName} readOnly={false} />
 
               <div className="bg-gray-50 rounded-xl p-5">
-                <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
-                  <BookOpen className="w-4 h-4 mr-2 text-primary-500" />Compétences
+                <h3 className="font-semibold text-gray-900 mb-4 flex items-center justify-between">
+                  <span className="flex items-center">
+                    <BookOpen className="w-4 h-4 mr-2 text-primary-500" />Compétences
+                  </span>
+                  {skills.length > 0 && (
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      Math.round(skills.reduce((a,s)=>a+s.current_level,0)/skills.length) >= 70
+                        ? 'bg-green-100 text-green-700'
+                        : Math.round(skills.reduce((a,s)=>a+s.current_level,0)/skills.length) >= 40
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : 'bg-red-100 text-red-700'
+                    }`}>
+                      Score global : {Math.round(skills.reduce((a,s)=>a+s.current_level,0)/skills.length)}%
+                    </span>
+                  )}
                 </h3>
                 {isLoadingSkills ? (
                   <div className="flex items-center justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
                 ) : skills.length > 0 ? (
-                  <div className="space-y-3">
-                    {skills.map(s => (
-                      <div key={s.id}>
-                        <div className="flex justify-between mb-1">
-                          <span className="text-sm text-gray-700">{s.skill_name}</span>
-                          <span className="text-xs font-medium text-gray-500">{s.current_level}{s.target_level ? `/${s.target_level}` : '%'}</span>
+                  <>
+                    <div className="space-y-3">
+                      {skills.map(s => (
+                        <div key={s.id}>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-sm text-gray-700">{s.skill_name}</span>
+                            <span className="text-xs font-medium text-gray-500">{s.current_level}{s.target_level ? `/${s.target_level}` : '%'}</span>
+                          </div>
+                          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all" style={{
+                              width: `${Math.min(s.current_level, 100)}%`,
+                              backgroundColor: s.current_level >= 70 ? '#22c55e' : s.current_level >= 40 ? '#f59e0b' : '#ef4444'
+                            }} />
+                          </div>
                         </div>
-                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div className="h-full bg-primary-500 rounded-full transition-all" style={{ width: `${Math.min(s.current_level, 100)}%` }} />
+                      ))}
+                    </div>
+
+                    {/* Recommandation IA */}
+                    {(() => {
+                      const weak = skills.filter(s => s.current_level < 50).sort((a,b) => a.current_level - b.current_level);
+                      if (weak.length === 0) return (
+                        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700 flex items-start gap-2">
+                          <span>✅</span>
+                          <span>Toutes les compétences sont à un niveau satisfaisant. Continuez à maintenir ce niveau.</span>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      );
+                      return (
+                        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                          <p className="font-semibold mb-1">💡 Recommandation IA</p>
+                          <p>
+                            {weak.length === 1
+                              ? `La compétence "${weak[0].skill_name}" (${weak[0].current_level}%) nécessite un renforcement prioritaire.`
+                              : `${weak.length} compétences à renforcer en priorité : ${weak.slice(0,3).map(s=>`"${s.skill_name}" (${s.current_level}%)`).join(', ')}${weak.length > 3 ? '...' : '.'}`
+                            }
+                          </p>
+                          <p className="mt-1 text-amber-700">Consultez le module Learning & Development pour les formations disponibles.</p>
+                        </div>
+                      );
+                    })()}
+                  </>
                 ) : (
                   <p className="text-sm text-gray-400 text-center py-3">Aucune compétence évaluée</p>
                 )}

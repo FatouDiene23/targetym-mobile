@@ -7,7 +7,7 @@ import {
   Plus, RefreshCw, ChevronRight, AlertTriangle, CheckCircle, XCircle,
   Eye, Send, ThumbsUp, ThumbsDown, Download, Search, Filter,
   Briefcase, BarChart3, Layers, Star, ArrowRight, Mail,
-  X, ChevronDown, Upload, FileDown, Loader2, Edit, Archive,
+  X, ChevronDown, Upload, FileDown, Loader2, Edit, Archive, Settings, Save,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -22,6 +22,12 @@ const getAuthHeaders = () => {
 };
 
 // ── Types ───────────────────────────────────────────────────
+
+interface MeritConfig {
+  merit_grid: Record<string, number>;
+  min_seniority_months: number;
+  apply_prorata: boolean;
+}
 
 interface TenantConfig {
   id: number;
@@ -119,9 +125,12 @@ interface Simulation {
   approved_by_id: number | null;
   approved_at: string | null;
   notes: string | null;
+  policy_config?: Record<string, unknown> | null;
   lines?: SimulationLine[];
   lines_count?: number;
   excluded_no_salary?: number;
+  excluded_no_evaluation?: number;
+  excluded_seniority?: number;
 }
 
 interface SimulationLine {
@@ -172,7 +181,7 @@ const fmt = (n: number | null | undefined, currency = 'XOF') => {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency, maximumFractionDigits: 0 }).format(n);
 };
 
-type TabId = 'dashboard' | 'evaluations' | 'agreements' | 'grids' | 'simulations';
+type TabId = 'dashboard' | 'evaluations' | 'agreements' | 'grids' | 'simulations' | 'configuration';
 
 // ═════════════════════════════════════════════════════════════
 // TEASING PAGE
@@ -332,6 +341,20 @@ export default function CompensationPage() {
     scope_type: 'all', scope_id: null as number | null,
   });
 
+  // Merit config
+  const [meritConfig, setMeritConfig] = useState<MeritConfig>({
+    merit_grid: { '5': 8, '4': 5, '3': 3, '2': 1, '1': 0 },
+    min_seniority_months: 0,
+    apply_prorata: false,
+  });
+  // Local merit form in simulation modal (pre-filled from config)
+  const [simMeritGrid, setSimMeritGrid] = useState<Record<string, number>>({ '5': 8, '4': 5, '3': 3, '2': 1, '1': 0 });
+  const [simMeritSeniority, setSimMeritSeniority] = useState(0);
+  const [simMeritProrata, setSimMeritProrata] = useState(false);
+  // Config tab form
+  const [configCurrency, setConfigCurrency] = useState('XOF');
+  const [configCountry, setConfigCountry] = useState('');
+
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState('');
 
@@ -362,6 +385,8 @@ export default function CompensationPage() {
       if (res.ok) {
         const data = await res.json();
         setConfig(data);
+        setConfigCurrency(data.default_currency || 'XOF');
+        setConfigCountry(data.default_country || '');
         setHasCbModule(true);
       } else {
         setHasCbModule(false);
@@ -449,6 +474,56 @@ export default function CompensationPage() {
     } catch (err) { console.error('[C&B] loadCategories error:', err); }
   }, []);
 
+  const loadMeritConfig = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/cb/config/merit`, { headers: getAuthHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        setMeritConfig(data);
+        setSimMeritGrid(data.merit_grid || { '5': 8, '4': 5, '3': 3, '2': 1, '1': 0 });
+        setSimMeritSeniority(data.min_seniority_months || 0);
+        setSimMeritProrata(data.apply_prorata || false);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const saveMeritConfig = async (grid: Record<string, number>, seniority: number, prorata: boolean) => {
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API_URL}/api/cb/config/merit`, {
+        method: 'PUT', headers: getAuthHeaders(),
+        body: JSON.stringify({ merit_grid: grid, min_seniority_months: seniority, apply_prorata: prorata }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMeritConfig(data);
+        showToast('Configuration mérite enregistrée');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.detail || 'Erreur');
+      }
+    } catch { showToast('Erreur réseau'); }
+    setSubmitting(false);
+  };
+
+  const saveGeneralConfig = async () => {
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API_URL}/api/cb/config`, {
+        method: 'PUT', headers: getAuthHeaders(),
+        body: JSON.stringify({ default_currency: configCurrency, default_country: configCountry || null }),
+      });
+      if (res.ok) {
+        setConfig(await res.json());
+        showToast('Configuration générale enregistrée');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.detail || 'Erreur');
+      }
+    } catch { showToast('Erreur réseau'); }
+    setSubmitting(false);
+  };
+
   useEffect(() => {
     if (!hasCbModule) return;
     loadEvaluations();
@@ -456,7 +531,8 @@ export default function CompensationPage() {
     loadGrids();
     loadSimulations();
     loadDepartments();
-  }, [hasCbModule, loadEvaluations, loadAgreements, loadGrids, loadSimulations, loadDepartments]);
+    loadMeritConfig();
+  }, [hasCbModule, loadEvaluations, loadAgreements, loadGrids, loadSimulations, loadDepartments, loadMeritConfig]);
 
   // ── Actions ───────────────────────────────────────────────
 
@@ -828,6 +904,13 @@ export default function CompensationPage() {
   const createSimulation = async () => {
     setSubmitting(true);
     try {
+      // If merit policy, save merit config first so backend uses latest values
+      if (simForm.policy === 'merit') {
+        await fetch(`${API_URL}/api/cb/config/merit`, {
+          method: 'PUT', headers: getAuthHeaders(),
+          body: JSON.stringify({ merit_grid: simMeritGrid, min_seniority_months: simMeritSeniority, apply_prorata: simMeritProrata }),
+        });
+      }
       const body = {
         ...simForm,
         budget_value: parseFloat(simForm.budget_value) || 0,
@@ -838,7 +921,15 @@ export default function CompensationPage() {
       });
       if (res.ok) {
         const sim = await res.json();
-        showToast(`Simulation créée — ${sim.lines_count || 0} ligne(s) générée(s)`);
+        if (simForm.policy === 'merit') {
+          const parts = [`${sim.lines_count || 0} inclus`];
+          if (sim.excluded_seniority) parts.push(`${sim.excluded_seniority} exclu(s) ancienneté`);
+          if (sim.excluded_no_evaluation) parts.push(`${sim.excluded_no_evaluation} exclu(s) sans évaluation`);
+          if (sim.excluded_no_salary) parts.push(`${sim.excluded_no_salary} exclu(s) sans salaire`);
+          showToast(`Simulation mérite créée — ${parts.join(', ')}`);
+        } else {
+          showToast(`Simulation créée — ${sim.lines_count || 0} ligne(s) générée(s)`);
+        }
         setShowSimModal(false);
         setSimForm({ title: '', year: new Date().getFullYear(), budget_type: 'percentage', budget_value: '', currency: 'XOF', policy: 'uniforme', scope_type: 'all', scope_id: null });
         loadSimulations();
@@ -1066,6 +1157,7 @@ export default function CompensationPage() {
     { id: 'agreements', label: 'Conventions Collectives', icon: Building2 },
     { id: 'grids', label: 'Grilles Salariales', icon: Layers },
     { id: 'simulations', label: 'Simulateur', icon: Calculator },
+    { id: 'configuration', label: 'Configuration', icon: Settings },
   ];
 
   const totalScore = Object.values(evalForm.scores).reduce((a, b) => a + b, 0);
@@ -1636,7 +1728,7 @@ export default function CompensationPage() {
                         <div className="flex gap-3 mt-1 text-xs text-gray-500">
                           <span>Année : {showSimDetail.year}</span>
                           <span>Budget : {showSimDetail.budget_value}{showSimDetail.budget_type === 'percentage' ? '%' : ` ${showSimDetail.currency}`}</span>
-                          <span>Politique : {showSimDetail.policy}</span>
+                          <span>Politique : {showSimDetail.policy === 'merit' ? 'Mérite' : showSimDetail.policy}</span>
                           <span>Périmètre : {showSimDetail.scope_type}</span>
                         </div>
                       </div>
@@ -1683,12 +1775,28 @@ export default function CompensationPage() {
                         {showSimDetail.notes}
                       </div>
                     )}
-                    {showSimDetail.excluded_no_salary != null && showSimDetail.excluded_no_salary > 0 && (
-                      <div className="mt-2 p-2.5 rounded border bg-amber-50 border-amber-200 text-xs text-amber-700">
-                        <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />
-                        {showSimDetail.excluded_no_salary} employé(s) exclu(s) car salaire non renseigné
+                    {(showSimDetail.excluded_no_salary || showSimDetail.excluded_no_evaluation || showSimDetail.excluded_seniority) ? (
+                      <div className="mt-2 space-y-1.5">
+                        {showSimDetail.excluded_no_salary != null && showSimDetail.excluded_no_salary > 0 && (
+                          <div className="p-2.5 rounded border bg-amber-50 border-amber-200 text-xs text-amber-700">
+                            <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />
+                            {showSimDetail.excluded_no_salary} employé(s) exclu(s) — salaire non renseigné
+                          </div>
+                        )}
+                        {showSimDetail.excluded_no_evaluation != null && showSimDetail.excluded_no_evaluation > 0 && (
+                          <div className="p-2.5 rounded border bg-orange-50 border-orange-200 text-xs text-orange-700">
+                            <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />
+                            {showSimDetail.excluded_no_evaluation} employé(s) exclu(s) — aucune évaluation disponible
+                          </div>
+                        )}
+                        {showSimDetail.excluded_seniority != null && showSimDetail.excluded_seniority > 0 && (
+                          <div className="p-2.5 rounded border bg-blue-50 border-blue-200 text-xs text-blue-700">
+                            <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />
+                            {showSimDetail.excluded_seniority} employé(s) exclu(s) — ancienneté insuffisante
+                          </div>
+                        )}
                       </div>
-                    )}
+                    ) : null}
                   </div>
 
                   {/* Lignes */}
@@ -1699,6 +1807,7 @@ export default function CompensationPage() {
                           <th className="pb-2 pr-3">Employé</th>
                           <th className="pb-2 pr-3">Poste</th>
                           <th className="pb-2 pr-3">Salaire actuel</th>
+                          {showSimDetail.policy === 'merit' && <th className="pb-2 pr-3">Score perf.</th>}
                           <th className="pb-2 pr-3">Augm. %</th>
                           <th className="pb-2 pr-3">Salaire proposé</th>
                           <th className="pb-2 pr-3">Min. CC</th>
@@ -1706,19 +1815,40 @@ export default function CompensationPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {(showSimDetail.lines || []).map((l) => (
-                          <tr key={l.id} className="border-b border-gray-50">
-                            <td className="py-2 pr-3 font-medium text-gray-900">{l.employee_name || `#${l.employee_id}`}</td>
-                            <td className="py-2 pr-3 text-gray-600 text-xs">{l.employee_job_title || '-'}</td>
-                            <td className="py-2 pr-3 text-gray-600">{fmt(l.current_salary, showSimDetail.currency)}</td>
-                            <td className="py-2 pr-3 text-gray-600">+{l.proposed_increase_pct}%</td>
-                            <td className="py-2 pr-3 font-medium text-green-700">{fmt(l.proposed_salary, showSimDetail.currency)}</td>
-                            <td className="py-2 pr-3 text-gray-500 text-xs">{fmt(l.cc_minimum, showSimDetail.currency)}</td>
-                            <td className="py-2">{conformityBadge(l.conformity_status)}</td>
-                          </tr>
-                        ))}
+                        {(showSimDetail.lines || []).map((l) => {
+                          // Reverse-lookup score from merit grid for this increase_pct
+                          const meritGrid = showSimDetail.policy_config?.merit_grid as Record<string, number> | undefined;
+                          let scoreLabel = '-';
+                          if (showSimDetail.policy === 'merit' && meritGrid) {
+                            const entry = Object.entries(meritGrid).find(([, pct]) => Math.abs(pct - l.proposed_increase_pct) < 0.01);
+                            if (entry) scoreLabel = `${entry[0]} / 5`;
+                            else {
+                              // With prorata the pct differs — find closest match
+                              const closest = Object.entries(meritGrid)
+                                .filter(([, pct]) => pct > 0 && l.proposed_increase_pct > 0 && l.proposed_increase_pct <= pct)
+                                .sort((a, b) => a[1] - b[1])[0];
+                              if (closest) scoreLabel = `${closest[0]} / 5`;
+                            }
+                          }
+                          return (
+                            <tr key={l.id} className="border-b border-gray-50">
+                              <td className="py-2 pr-3 font-medium text-gray-900">{l.employee_name || `#${l.employee_id}`}</td>
+                              <td className="py-2 pr-3 text-gray-600 text-xs">{l.employee_job_title || '-'}</td>
+                              <td className="py-2 pr-3 text-gray-600">{fmt(l.current_salary, showSimDetail.currency)}</td>
+                              {showSimDetail.policy === 'merit' && (
+                                <td className="py-2 pr-3">
+                                  <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 text-xs font-medium">{scoreLabel}</span>
+                                </td>
+                              )}
+                              <td className="py-2 pr-3 text-gray-600">+{l.proposed_increase_pct}%</td>
+                              <td className="py-2 pr-3 font-medium text-green-700">{fmt(l.proposed_salary, showSimDetail.currency)}</td>
+                              <td className="py-2 pr-3 text-gray-500 text-xs">{fmt(l.cc_minimum, showSimDetail.currency)}</td>
+                              <td className="py-2">{conformityBadge(l.conformity_status)}</td>
+                            </tr>
+                          );
+                        })}
                         {(!showSimDetail.lines || showSimDetail.lines.length === 0) && (
-                          <tr><td colSpan={7} className="py-6 text-center text-gray-400">Aucune ligne</td></tr>
+                          <tr><td colSpan={showSimDetail.policy === 'merit' ? 8 : 7} className="py-6 text-center text-gray-400">Aucune ligne</td></tr>
                         )}
                       </tbody>
                     </table>
@@ -1798,7 +1928,7 @@ export default function CompensationPage() {
                           <div className="flex gap-3 mt-1 text-xs text-gray-500">
                             <span>{sim.year}</span>
                             <span>{sim.budget_value}{sim.budget_type === 'percentage' ? '%' : ` ${sim.currency}`}</span>
-                            <span>{sim.policy}</span>
+                            <span>{sim.policy === 'merit' ? 'Mérite' : sim.policy}</span>
                             <span>{sim.lines_count || 0} ligne(s)</span>
                           </div>
                         </div>
@@ -1817,6 +1947,106 @@ export default function CompensationPage() {
             </div>
           )}
         </div>
+
+          {/* ── TAB: Configuration ──────────────────────────── */}
+          {activeTab === 'configuration' && (
+            <div className="space-y-6">
+              {/* Section Grille de mérite */}
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
+                <div className="flex items-center justify-between p-5 border-b border-gray-100">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                      <Star className="w-4 h-4 text-amber-500" /> Grille de mérite
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">Configure les augmentations basées sur les scores de performance</p>
+                  </div>
+                </div>
+                <div className="p-5 space-y-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Ancienneté minimale (mois)</label>
+                      <input type="number" min={0} value={meritConfig.min_seniority_months}
+                        onChange={(e) => setMeritConfig(c => ({ ...c, min_seniority_months: parseInt(e.target.value) || 0 }))}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
+                    </div>
+                    <div className="flex items-end pb-1">
+                      <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                        <input type="checkbox" checked={meritConfig.apply_prorata}
+                          onChange={(e) => setMeritConfig(c => ({ ...c, apply_prorata: e.target.checked }))}
+                          className="rounded border-gray-300 text-primary-500 focus:ring-primary-500" />
+                        Appliquer le prorata
+                      </label>
+                    </div>
+                  </div>
+                  <div className="max-w-md">
+                    <label className="block text-xs text-gray-500 mb-2">Correspondance score → % augmentation</label>
+                    <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                      <div className="grid grid-cols-2 text-xs font-medium text-gray-500 bg-gray-100 px-4 py-2 border-b border-gray-200">
+                        <span>Score performance</span><span>% Augmentation</span>
+                      </div>
+                      {['5', '4', '3', '2', '1'].map(score => (
+                        <div key={score} className="grid grid-cols-2 items-center px-4 py-2.5 border-b border-gray-100 last:border-0">
+                          <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">{score}</span>
+                            {score === '5' ? 'Exceptionnel' : score === '4' ? 'Très bon' : score === '3' ? 'Satisfaisant' : score === '2' ? 'À améliorer' : 'Insuffisant'}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <input type="number" min={0} max={100} step={0.5}
+                              value={meritConfig.merit_grid[score] ?? 0}
+                              onChange={(e) => setMeritConfig(c => ({ ...c, merit_grid: { ...c.merit_grid, [score]: parseFloat(e.target.value) || 0 } }))}
+                              className="w-24 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-primary-500 outline-none bg-white" />
+                            <span className="text-xs text-gray-400">%</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="pt-2">
+                    <button onClick={() => saveMeritConfig(meritConfig.merit_grid, meritConfig.min_seniority_months, meritConfig.apply_prorata)}
+                      disabled={submitting}
+                      className="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50 flex items-center gap-1.5">
+                      <Save className="w-4 h-4" /> {submitting ? 'Enregistrement...' : 'Enregistrer la grille'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section Paramètres généraux */}
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
+                <div className="flex items-center justify-between p-5 border-b border-gray-100">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                      <Settings className="w-4 h-4 text-gray-500" /> Paramètres généraux
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">Devise et pays par défaut du module C&B</p>
+                  </div>
+                </div>
+                <div className="p-5 space-y-4">
+                  <div className="grid grid-cols-2 gap-4 max-w-md">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Devise par défaut</label>
+                      <input value={configCurrency} onChange={(e) => setConfigCurrency(e.target.value)}
+                        placeholder="XOF"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Pays par défaut (ISO)</label>
+                      <input value={configCountry} onChange={(e) => setConfigCountry(e.target.value)}
+                        placeholder="SN"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
+                    </div>
+                  </div>
+                  <div className="pt-2">
+                    <button onClick={saveGeneralConfig}
+                      disabled={submitting}
+                      className="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50 flex items-center gap-1.5">
+                      <Save className="w-4 h-4" /> {submitting ? 'Enregistrement...' : 'Enregistrer'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
         {/* ═══════════════════════════════════════════════════ */}
         {/* MODALS                                             */}
@@ -2054,7 +2284,7 @@ export default function CompensationPage() {
         {/* ── Modal Nouvelle Simulation ───────────────────── */}
         {showSimModal && (
           <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowSimModal(false)}>
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between p-5 border-b border-gray-100">
                 <h3 className="font-semibold text-gray-900">Nouvelle simulation</h3>
                 <button onClick={() => setShowSimModal(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
@@ -2095,13 +2325,62 @@ export default function CompensationPage() {
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Politique d&apos;augmentation</label>
-                  <select value={simForm.policy} onChange={(e) => setSimForm(f => ({ ...f, policy: e.target.value }))}
+                  <select value={simForm.policy} onChange={(e) => {
+                    setSimForm(f => ({ ...f, policy: e.target.value }));
+                    if (e.target.value === 'merit') {
+                      setSimMeritGrid(meritConfig.merit_grid);
+                      setSimMeritSeniority(meritConfig.min_seniority_months);
+                      setSimMeritProrata(meritConfig.apply_prorata);
+                    }
+                  }}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
                     <option value="uniforme">Uniforme (meme % pour tous)</option>
                     <option value="anciennete">Par ancienneté</option>
                     <option value="categorie">Par catégorie</option>
+                    <option value="merit">Mérite (Performance)</option>
                   </select>
                 </div>
+                {simForm.policy === 'merit' && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+                    <h4 className="text-xs font-semibold text-amber-800 flex items-center gap-1.5"><Star className="w-3.5 h-3.5" /> Configuration mérite</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Ancienneté min. (mois)</label>
+                        <input type="number" min={0} value={simMeritSeniority} onChange={(e) => setSimMeritSeniority(parseInt(e.target.value) || 0)}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none bg-white" />
+                      </div>
+                      <div className="flex items-end pb-1">
+                        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                          <input type="checkbox" checked={simMeritProrata} onChange={(e) => setSimMeritProrata(e.target.checked)}
+                            className="rounded border-gray-300 text-primary-500 focus:ring-primary-500" />
+                          Appliquer le prorata
+                        </label>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-2">Grille mérite</label>
+                      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                        <div className="grid grid-cols-2 text-xs font-medium text-gray-500 bg-gray-50 px-3 py-1.5 border-b border-gray-100">
+                          <span>Score</span><span>% Augmentation</span>
+                        </div>
+                        {['5', '4', '3', '2', '1'].map(score => (
+                          <div key={score} className="grid grid-cols-2 items-center px-3 py-1.5 border-b border-gray-50 last:border-0">
+                            <span className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                              {score} <span className="text-xs text-gray-400">/ 5</span>
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <input type="number" min={0} max={100} step={0.5}
+                                value={simMeritGrid[score] ?? 0}
+                                onChange={(e) => setSimMeritGrid(g => ({ ...g, [score]: parseFloat(e.target.value) || 0 }))}
+                                className="w-20 px-2 py-1 border border-gray-200 rounded text-sm text-right focus:ring-2 focus:ring-primary-500 outline-none" />
+                              <span className="text-xs text-gray-400">%</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Périmètre</label>

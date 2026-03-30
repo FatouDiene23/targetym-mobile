@@ -7,7 +7,7 @@ import {
   Plus, RefreshCw, ChevronRight, AlertTriangle, CheckCircle, XCircle,
   Eye, Send, ThumbsUp, ThumbsDown, Download, Search, Filter,
   Briefcase, BarChart3, Layers, Star, ArrowRight, Mail,
-  X, ChevronDown, Upload, FileDown, Loader2,
+  X, ChevronDown, Upload, FileDown, Loader2, Edit, Archive,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -60,6 +60,7 @@ interface JobEvaluation {
   conformity_status: string;
   evaluated_by_id: number | null;
   evaluated_at: string | null;
+  is_archived: boolean;
   salary_grid?: SalaryGrid | null;
 }
 
@@ -289,10 +290,12 @@ export default function CompensationPage() {
   const [simPage, setSimPage] = useState(1);
   const [searchEval, setSearchEval] = useState('');
   const [evalManualTitle, setEvalManualTitle] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   // Modals
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showEvalModal, setShowEvalModal] = useState(false);
+  const [editingEvalId, setEditingEvalId] = useState<number | null>(null);
   const [showAgreementModal, setShowAgreementModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showSimModal, setShowSimModal] = useState(false);
@@ -374,6 +377,7 @@ export default function CompensationPage() {
       const params = new URLSearchParams({ page: String(evalPage), page_size: '20' });
       if (evalCountry) params.set('country', evalCountry);
       if (evalConformity) params.set('conformity_status', evalConformity);
+      if (showArchived) params.set('include_archived', 'true');
       const res = await fetch(`${API_URL}/api/cb/evaluations?${params}`, { headers: getAuthHeaders() });
       if (res.ok) {
         const data = await res.json();
@@ -381,7 +385,7 @@ export default function CompensationPage() {
         setEvalTotal(data.total);
       }
     } catch { /* ignore */ }
-  }, [evalPage, evalCountry, evalConformity]);
+  }, [evalPage, evalCountry, evalConformity, showArchived]);
 
   const loadAgreements = useCallback(async () => {
     try {
@@ -484,6 +488,70 @@ export default function CompensationPage() {
       }
     } catch { showToast('Erreur réseau'); }
     setSubmitting(false);
+  };
+
+  const updateEvaluation = async () => {
+    if (!editingEvalId) return;
+    setSubmitting(true);
+    try {
+      const body = {
+        job_title: evalForm.job_title,
+        job_family: evalForm.job_family,
+        country: evalForm.country,
+        currency: evalForm.currency,
+        scores: evalForm.scores,
+        market_p25: evalForm.market_p25 ? parseFloat(evalForm.market_p25) : null,
+        market_p50: evalForm.market_p50 ? parseFloat(evalForm.market_p50) : null,
+        market_p75: evalForm.market_p75 ? parseFloat(evalForm.market_p75) : null,
+      };
+      const res = await fetch(`${API_URL}/api/cb/evaluations/${editingEvalId}`, {
+        method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        showToast('Pesée mise à jour');
+        setShowEvalModal(false);
+        setEditingEvalId(null);
+        setEvalManualTitle(false);
+        setEvalForm({ job_title: '', job_family: '', country: '', currency: 'XOF', scores: { impact: 3, communication: 3, innovation: 3, knowledge: 3 }, market_p25: '', market_p50: '', market_p75: '' });
+        loadEvaluations();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.detail || 'Erreur lors de la mise à jour');
+      }
+    } catch { showToast('Erreur réseau'); }
+    setSubmitting(false);
+  };
+
+  const archiveEvaluation = async (id: number) => {
+    if (!window.confirm('Archiver cette pesée ? Elle ne sera plus visible dans la liste active.')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/cb/evaluations/${id}/archive`, {
+        method: 'PATCH', headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        showToast('Pesée archivée');
+        loadEvaluations();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.detail || 'Erreur lors de l\'archivage');
+      }
+    } catch { showToast('Erreur réseau'); }
+  };
+
+  const openEditEval = (ev: JobEvaluation) => {
+    setEditingEvalId(ev.id);
+    setEvalManualTitle(true);
+    setEvalForm({
+      job_title: ev.job_title || '',
+      job_family: ev.job_family || '',
+      country: ev.country || '',
+      currency: ev.currency || 'XOF',
+      scores: { impact: ev.scores?.impact ?? 3, communication: ev.scores?.communication ?? 3, innovation: ev.scores?.innovation ?? 3, knowledge: ev.scores?.knowledge ?? 3 },
+      market_p25: ev.market_p25 ? String(ev.market_p25) : '',
+      market_p50: ev.market_p50 ? String(ev.market_p50) : '',
+      market_p75: ev.market_p75 ? String(ev.market_p75) : '',
+    });
+    setShowEvalModal(true);
   };
 
   const reconcileEvaluation = async (id: number) => {
@@ -883,7 +951,7 @@ export default function CompensationPage() {
                 <div className="fixed inset-0 z-40" onClick={() => setShowAddMenu(false)} />
                 <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 w-56">
                   <button
-                    onClick={() => { setShowAddMenu(false); setShowEvalModal(true); }}
+                    onClick={() => { setShowAddMenu(false); setEditingEvalId(null); setShowEvalModal(true); }}
                     className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2.5 text-gray-700"
                   >
                     <Scale className="w-4 h-4 text-blue-500" />
@@ -1019,6 +1087,15 @@ export default function CompensationPage() {
                   <option value="bloquant">Bloquant</option>
                   <option value="non_evalue">Non évalué</option>
                 </select>
+                <label className="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={showArchived}
+                    onChange={e => { setShowArchived(e.target.checked); setEvalPage(1); }}
+                    className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  Archivées
+                </label>
                 <button
                   onClick={downloadEvalTemplate}
                   className="px-3 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium flex items-center gap-1.5"
@@ -1035,7 +1112,7 @@ export default function CompensationPage() {
                   />
                 </label>
                 <button
-                  onClick={() => setShowEvalModal(true)}
+                  onClick={() => { setEditingEvalId(null); setEvalForm({ job_title: '', job_family: '', country: '', currency: 'XOF', scores: { impact: 3, communication: 3, innovation: 3, knowledge: 3 }, market_p25: '', market_p50: '', market_p75: '' }); setEvalManualTitle(false); setShowEvalModal(true); }}
                   className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm font-medium flex items-center gap-1.5"
                 >
                   <Plus className="w-4 h-4" /> Nouvelle pesée
@@ -1106,15 +1183,40 @@ export default function CompensationPage() {
                         <td className="py-2.5 pr-3 text-gray-600 text-xs">{fmt(ev.market_p25, ev.currency || 'XOF')}</td>
                         <td className="py-2.5 pr-3 text-gray-600 text-xs">{fmt(ev.market_p50, ev.currency || 'XOF')}</td>
                         <td className="py-2.5 pr-3 text-gray-600 text-xs">{fmt(ev.market_p75, ev.currency || 'XOF')}</td>
-                        <td className="py-2.5 pr-3">{conformityBadge(ev.conformity_status)}</td>
+                        <td className="py-2.5 pr-3">
+                          <div className="flex items-center gap-1.5">
+                            {conformityBadge(ev.conformity_status)}
+                            {ev.is_archived && (
+                              <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-xs font-medium">Archivé</span>
+                            )}
+                          </div>
+                        </td>
                         <td className="py-2.5">
-                          <button
-                            onClick={() => reconcileEvaluation(ev.id)}
-                            className="px-2.5 py-1 bg-purple-50 text-purple-700 rounded text-xs font-medium hover:bg-purple-100 transition-colors flex items-center gap-1"
-                            title="Réconcilier avec la CC"
-                          >
-                            <RefreshCw className="w-3 h-3" /> Réconcilier
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => openEditEval(ev)}
+                              className="p-1.5 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600 transition-colors"
+                              title="Modifier"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            {!ev.is_archived && (
+                              <button
+                                onClick={() => archiveEvaluation(ev.id)}
+                                className="p-1.5 hover:bg-amber-50 rounded-lg text-gray-400 hover:text-amber-600 transition-colors"
+                                title="Archiver"
+                              >
+                                <Archive className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => reconcileEvaluation(ev.id)}
+                              className="px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs font-medium hover:bg-purple-100 transition-colors flex items-center gap-1"
+                              title="Réconcilier avec la CC"
+                            >
+                              <RefreshCw className="w-3 h-3" /> Réconcilier
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1498,11 +1600,11 @@ export default function CompensationPage() {
 
         {/* ── Modal Nouvelle Pesée IPE ────────────────────── */}
         {showEvalModal && (
-          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowEvalModal(false)}>
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => { setShowEvalModal(false); setEditingEvalId(null); }}>
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between p-5 border-b border-gray-100">
-                <h3 className="font-semibold text-gray-900">Nouvelle pesée IPE</h3>
-                <button onClick={() => setShowEvalModal(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+                <h3 className="font-semibold text-gray-900">{editingEvalId ? 'Modifier la pesée' : 'Nouvelle pesée IPE'}</h3>
+                <button onClick={() => { setShowEvalModal(false); setEditingEvalId(null); }} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
               </div>
               <div className="p-5 space-y-4">
                 {/* Poste : select ou saisie manuelle */}
@@ -1602,11 +1704,11 @@ export default function CompensationPage() {
                 </div>
               </div>
               <div className="flex justify-end gap-2 p-5 border-t border-gray-100">
-                <button onClick={() => setShowEvalModal(false)}
+                <button onClick={() => { setShowEvalModal(false); setEditingEvalId(null); }}
                   className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">Annuler</button>
-                <button onClick={createEvaluation} disabled={submitting || !evalForm.job_title}
+                <button onClick={editingEvalId ? updateEvaluation : createEvaluation} disabled={submitting || !evalForm.job_title}
                   className="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
-                  {submitting ? 'Création...' : 'Créer la pesée'}
+                  {submitting ? (editingEvalId ? 'Mise à jour...' : 'Création...') : (editingEvalId ? 'Enregistrer' : 'Créer la pesée')}
                 </button>
               </div>
             </div>

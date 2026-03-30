@@ -2006,34 +2006,73 @@ export default function PlanFormationPage() {
                   <option value="level">Niveau</option>
                 </select>
               </div>
-              {newTarget.target_type === 'department' && departmentsList.length > 0 ? (
+              {newTarget.target_type === 'department' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Département *</label>
-                  <select
-                    value={newTarget.target_id}
-                    onChange={e => {
-                      const deptId = e.target.value;
-                      const dept = departmentsList.find(d => String(d.id) === deptId);
-                      setNewTarget(p => ({ ...p, target_id: deptId, target_label: dept?.name || '' }));
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="">— Sélectionner —</option>
-                    {departmentsList.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
+                  {departmentsList.length > 0 ? (
+                    <select
+                      value={newTarget.target_id}
+                      onChange={e => {
+                        const deptId = e.target.value;
+                        const dept = departmentsList.find(d => String(d.id) === deptId);
+                        setNewTarget(p => ({ ...p, target_id: deptId, target_label: dept?.name || '' }));
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="">— Sélectionner —</option>
+                      {departmentsList.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
+                  ) : (
+                    <p className="text-sm text-gray-400 italic">Aucun département disponible</p>
+                  )}
                 </div>
-              ) : (
+              )}
+              {newTarget.target_type === 'profile' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {newTarget.target_type === 'profile' ? 'Profil concerné *' : 'Niveau concerné *'}
-                  </label>
-                  <input
-                    type="text"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Profil concerné *</label>
+                  <select
                     value={newTarget.target_label}
                     onChange={e => setNewTarget(p => ({ ...p, target_label: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                    placeholder={newTarget.target_type === 'profile' ? 'Ex: Managers, Commerciaux' : 'Ex: Senior, Junior'}
-                  />
+                  >
+                    <option value="">— Sélectionner un profil —</option>
+                    <optgroup label="Front Office">
+                      <option value="Commercial">Commercial</option>
+                      <option value="Support Clients">Support Clients</option>
+                      <option value="Formateur">Formateur</option>
+                      <option value="Coach">Coach</option>
+                    </optgroup>
+                    <optgroup label="Middle Office">
+                      <option value="Communication">Communication</option>
+                      <option value="Marketing">Marketing</option>
+                      <option value="Opérations">Opérations</option>
+                      <option value="Projets">Projets</option>
+                    </optgroup>
+                    <optgroup label="Back Office">
+                      <option value="RH">RH</option>
+                      <option value="IT">IT</option>
+                      <option value="Finance">Finance</option>
+                      <option value="Juridique">Juridique</option>
+                      <option value="Conformité">Conformité</option>
+                      <option value="Services Généraux">Services Généraux</option>
+                    </optgroup>
+                  </select>
+                </div>
+              )}
+              {newTarget.target_type === 'level' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Niveau *</label>
+                  <select
+                    value={newTarget.target_label}
+                    onChange={e => setNewTarget(p => ({ ...p, target_label: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">— Sélectionner —</option>
+                    <option value="Débutant">Débutant</option>
+                    <option value="Intermédiaire">Intermédiaire</option>
+                    <option value="Confirmé">Confirmé</option>
+                    <option value="Senior">Senior</option>
+                  </select>
                 </div>
               )}
             </div>

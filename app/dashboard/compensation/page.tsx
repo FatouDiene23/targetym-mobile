@@ -300,6 +300,7 @@ export default function CompensationPage() {
   const [selectedAgreement, setSelectedAgreement] = useState<CollectiveAgreement | null>(null);
   const [categories, setCategories] = useState<CcCategory[]>([]);
   const [importProgress, setImportProgress] = useState<{ current: number; total: number; errors: { line: number; message: string }[]; done: boolean } | null>(null);
+  const [evalImportProgress, setEvalImportProgress] = useState<{ current: number; total: number; errors: { line: number; message: string }[]; done: boolean } | null>(null);
 
   // Eval form
   const [evalForm, setEvalForm] = useState({
@@ -500,6 +501,125 @@ export default function CompensationPage() {
         showToast(err.detail || 'Erreur de réconciliation');
       }
     } catch { showToast('Erreur réseau'); }
+  };
+
+  // ── Download eval import template ──
+  const downloadEvalTemplate = () => {
+    const header = 'job_title,job_family,country,impact,communication,innovation,knowledge,market_p25,market_p50,market_p75,currency';
+    const examples = [
+      'Directeur Commercial,Commercial,SN,4,3,3,4,2500000,3000000,3500000,XOF',
+      'Responsable RH,RH,CI,3,4,2,4,1800000,2200000,2800000,XOF',
+      'Comptable Senior,Finance,CM,2,2,2,4,1200000,1500000,1800000,XOF',
+    ];
+    const csv = [header, ...examples].join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'template_pesees_ipe.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ── Import evaluations from CSV/Excel ──
+  const handleEvalFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    let rows: Record<string, string>[] = [];
+
+    try {
+      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '' });
+      } else {
+        const text = await file.text();
+        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length < 2) { showToast('Fichier vide ou sans données'); return; }
+        const headers = lines[0].split(',').map(h => h.trim());
+        for (let i = 1; i < lines.length; i++) {
+          const vals = lines[i].split(',').map(v => v.trim());
+          const row: Record<string, string> = {};
+          headers.forEach((h, j) => { row[h] = vals[j] || ''; });
+          rows.push(row);
+        }
+      }
+    } catch {
+      showToast('Erreur de lecture du fichier');
+      return;
+    }
+
+    if (!rows.length) { showToast('Aucune ligne trouvée dans le fichier'); return; }
+
+    const VALID_COUNTRY_RE = /^[A-Z]{2}$/;
+    const progress = { current: 0, total: rows.length, errors: [] as { line: number; message: string }[], done: false };
+    setEvalImportProgress({ ...progress });
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const lineNum = i + 2;
+      progress.current = i + 1;
+      setEvalImportProgress({ ...progress });
+
+      // Parse fields
+      const job_title = (row['job_title'] || '').trim();
+      const job_family = (row['job_family'] || '').trim();
+      const country = (row['country'] || '').trim().toUpperCase();
+      const currency = (row['currency'] || 'XOF').trim().toUpperCase();
+      const impact = parseInt(row['impact'] || '');
+      const communication = parseInt(row['communication'] || '');
+      const innovation = parseInt(row['innovation'] || '');
+      const knowledge = parseInt(row['knowledge'] || '');
+      const p25 = parseFloat(row['market_p25'] || '');
+      const p50 = parseFloat(row['market_p50'] || '');
+      const p75 = parseFloat(row['market_p75'] || '');
+
+      // Validate
+      if (!job_title) { progress.errors.push({ line: lineNum, message: 'job_title obligatoire' }); continue; }
+      if (country && !VALID_COUNTRY_RE.test(country)) { progress.errors.push({ line: lineNum, message: `country invalide : "${country}" (code ISO 2 lettres attendu)` }); continue; }
+      for (const [name, val] of [['impact', impact], ['communication', communication], ['innovation', innovation], ['knowledge', knowledge]] as [string, number][]) {
+        if (isNaN(val) || val < 1 || val > 5) { progress.errors.push({ line: lineNum, message: `${name} doit être un entier entre 1 et 5 (reçu : "${row[name]}")` }); break; }
+      }
+      if (progress.errors.length > 0 && progress.errors[progress.errors.length - 1].line === lineNum) continue;
+      if (!VALID_CURRENCIES.includes(currency)) { progress.errors.push({ line: lineNum, message: `currency invalide : "${currency}" (attendu : ${VALID_CURRENCIES.join(', ')})` }); continue; }
+      if (!isNaN(p25) || !isNaN(p50) || !isNaN(p75)) {
+        if (isNaN(p25) || p25 <= 0 || isNaN(p50) || p50 <= 0 || isNaN(p75) || p75 <= 0) {
+          progress.errors.push({ line: lineNum, message: 'market_p25, p50, p75 doivent être des nombres > 0' }); continue;
+        }
+        if (!(p25 < p50 && p50 < p75)) {
+          progress.errors.push({ line: lineNum, message: `p25 < p50 < p75 requis (reçu : ${p25}, ${p50}, ${p75})` }); continue;
+        }
+      }
+
+      try {
+        const body: Record<string, unknown> = {
+          job_title,
+          job_family: job_family || null,
+          country: country || null,
+          currency,
+          scores: { impact, communication, innovation, knowledge },
+          market_p25: !isNaN(p25) ? p25 : null,
+          market_p50: !isNaN(p50) ? p50 : null,
+          market_p75: !isNaN(p75) ? p75 : null,
+        };
+        const res = await fetch(`${API_URL}/api/cb/evaluations`, {
+          method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          progress.errors.push({ line: lineNum, message: err.detail || `Erreur ${res.status}` });
+        }
+      } catch {
+        progress.errors.push({ line: lineNum, message: 'Erreur réseau' });
+      }
+    }
+
+    progress.done = true;
+    setEvalImportProgress({ ...progress });
+    loadEvaluations();
   };
 
   const createAgreement = async () => {
@@ -900,12 +1020,63 @@ export default function CompensationPage() {
                   <option value="non_evalue">Non évalué</option>
                 </select>
                 <button
+                  onClick={downloadEvalTemplate}
+                  className="px-3 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium flex items-center gap-1.5"
+                >
+                  <FileDown className="w-4 h-4" /> Template
+                </button>
+                <label className="px-3 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium flex items-center gap-1.5 cursor-pointer">
+                  <Upload className="w-4 h-4" /> Importer CSV
+                  <input
+                    type="file"
+                    accept=".csv,.xlsx,.xls"
+                    onChange={handleEvalFileImport}
+                    className="hidden"
+                  />
+                </label>
+                <button
                   onClick={() => setShowEvalModal(true)}
                   className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm font-medium flex items-center gap-1.5"
                 >
                   <Plus className="w-4 h-4" /> Nouvelle pesée
                 </button>
               </div>
+
+              {/* Eval import progress */}
+              {evalImportProgress && (
+                <div className="mb-4 bg-gray-50 rounded-xl border border-gray-100 p-4">
+                  {!evalImportProgress.done ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-700">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
+                      Traitement pesée {evalImportProgress.current}/{evalImportProgress.total}...
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center gap-2 text-sm font-medium mb-1">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-gray-900">
+                          {evalImportProgress.total - evalImportProgress.errors.length} pesée(s) importée(s)
+                          {evalImportProgress.errors.length > 0 && (
+                            <span className="text-red-600 ml-1">, {evalImportProgress.errors.length} erreur(s)</span>
+                          )}
+                        </span>
+                      </div>
+                      {evalImportProgress.errors.length > 0 && (
+                        <div className="mt-2 max-h-40 overflow-y-auto space-y-1">
+                          {evalImportProgress.errors.map((err, i) => (
+                            <p key={i} className="text-xs text-red-600">
+                              Ligne {err.line} : {err.message}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                      <button onClick={() => setEvalImportProgress(null)} className="text-xs text-primary-500 hover:text-primary-600 mt-2">
+                        Fermer
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Table */}
               <div className="overflow-x-auto">

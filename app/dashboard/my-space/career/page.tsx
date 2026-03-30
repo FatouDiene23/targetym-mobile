@@ -203,12 +203,19 @@ function calculateSeniority(hireDate: string): { years: number; months: number; 
 }
 
 function formatSalary(amount: number, currency?: string): string {
-  const curr = currency || 'XOF';
-  try {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: curr, maximumFractionDigits: 0 }).format(amount);
-  } catch {
-    return `${amount.toLocaleString('fr-FR')} ${curr}`;
+  const label = currency === 'XOF' || !currency ? 'FCFA' : currency;
+
+  if (amount < 1_000) {
+    return `${amount} ${label}`;
   }
+  if (amount < 1_000_000) {
+    const k = amount / 1_000;
+    const display = Number.isInteger(k) ? k.toString() : k.toFixed(1).replace('.', ',').replace(/,0$/, '');
+    return `${display}K ${label}`;
+  }
+  const m = amount / 1_000_000;
+  const display = Number.isInteger(m) ? m.toString() : m.toFixed(1).replace('.', ',').replace(/,0$/, '');
+  return `${display}M ${label}`;
 }
 
 // ============================================

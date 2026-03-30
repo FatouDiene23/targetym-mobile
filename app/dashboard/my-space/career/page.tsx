@@ -351,7 +351,7 @@ function StatCard({ icon, label, value, sublabel, color, href }: {
         </div>
         {href && <ArrowUpRight className="w-4 h-4 text-gray-400" />}
       </div>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
+      <p className="text-lg md:text-2xl font-bold text-gray-900 truncate">{value}</p>
       <p className="text-sm text-gray-500">{label}</p>
       {sublabel && <p className="text-xs text-gray-400 mt-1">{sublabel}</p>}
     </div>
@@ -441,7 +441,7 @@ function SalaryChart({ history, currentSalary, currency }: {
       
       {data.length === 1 ? (
         <div className="text-center py-4">
-          <p className="text-3xl font-bold text-green-600">{formatSalary(data[0].amount, currency)}</p>
+          <p className="text-2xl md:text-3xl font-bold text-green-600 truncate">{formatSalary(data[0].amount, currency)}</p>
           <p className="text-sm text-gray-500 mt-1">Salaire actuel</p>
         </div>
       ) : (
@@ -585,6 +585,23 @@ export default function MyCareerPage() {
     return timelineEvents.filter(e => filterConfig.types.includes(e.type));
   }, [timelineEvents, activeFilter]);
 
+  // Unified current salary: prefer latest salary history entry, fallback to employee.salary
+  const currentSalaryValue = useMemo(() => {
+    if (salaryHistory.length > 0) {
+      const sorted = [...salaryHistory].sort((a, b) => b.effective_date.localeCompare(a.effective_date));
+      return sorted[0].amount;
+    }
+    return employee?.salary ?? null;
+  }, [salaryHistory, employee]);
+
+  const currentSalaryCurrency = useMemo(() => {
+    if (salaryHistory.length > 0) {
+      const sorted = [...salaryHistory].sort((a, b) => b.effective_date.localeCompare(a.effective_date));
+      return sorted[0].currency;
+    }
+    return employee?.currency;
+  }, [salaryHistory, employee]);
+
   // Seniority
   const seniority = useMemo(() => {
     if (!employee?.hire_date) return null;
@@ -704,11 +721,11 @@ export default function MyCareerPage() {
             color="bg-amber-50"
             href="/dashboard/performance/evaluations"
           />
-          {employee.salary && (
+          {currentSalaryValue && (
             <StatCard
               icon={<DollarSign className="w-5 h-5 text-green-600" />}
               label="Salaire actuel"
-              value={formatSalary(employee.salary, employee.currency)}
+              value={formatSalary(currentSalaryValue, currentSalaryCurrency)}
               color="bg-green-50"
             />
           )}
@@ -751,16 +768,16 @@ export default function MyCareerPage() {
           </div>
 
           {/* Salary chart */}
-          {(salaryHistory.length > 0 || employee.salary) && (
-            <SalaryChart 
-              history={salaryHistory} 
-              currentSalary={employee.salary} 
-              currency={employee.currency} 
+          {(salaryHistory.length > 0 || currentSalaryValue) && (
+            <SalaryChart
+              history={salaryHistory}
+              currentSalary={currentSalaryValue ?? undefined}
+              currency={currentSalaryCurrency}
             />
           )}
 
           {/* If no salary data, show a quick-links card instead */}
-          {salaryHistory.length === 0 && !employee.salary && (
+          {salaryHistory.length === 0 && !currentSalaryValue && (
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <ExternalLink className="w-4 h-4 text-primary-600" />

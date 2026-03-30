@@ -296,7 +296,7 @@ export default function PlanFormationPage() {
 
   // ── Add Objective modal ──
   const [showAddObjective, setShowAddObjective] = useState(false);
-  const [okrList, setOkrList] = useState<{ id: number; title: string }[]>([]);
+  const [okrList, setOkrList] = useState<{ id: number; title: string; period: string; progress: number }[]>([]);
   const [newObjective, setNewObjective] = useState({
     title: '', objective_type: 'autre', okr_id: '', description: '',
   });
@@ -569,7 +569,7 @@ export default function PlanFormationPage() {
         fetch(`${API_URL}/api/training/providers`, { headers }),
         fetch(`${API_URL}/api/employees/?page_size=500`, { headers }),
         fetch(`${API_URL}/api/learning/skills/?page_size=500`, { headers }),
-        fetch(`${API_URL}/api/okr/objectives?page_size=500`, { headers }),
+        fetch(`${API_URL}/api/okr/objectives?page_size=100`, { headers }),
         fetch(`${API_URL}/api/departments/`, { headers }),
       ]);
       if (coursesRes.ok) {
@@ -590,7 +590,9 @@ export default function PlanFormationPage() {
       }
       if (okrRes.ok) {
         const d = await okrRes.json();
-        setOkrList((d.items || d).map((o: { id: number; title: string }) => ({ id: o.id, title: o.title })));
+        setOkrList((d.items || d).map((o: { id: number; title: string; period: string; progress: number }) => ({
+          id: o.id, title: o.title, period: o.period || '', progress: o.progress ?? 0,
+        })));
       }
       if (deptsRes.ok) {
         const d = await deptsRes.json();
@@ -1884,7 +1886,14 @@ export default function PlanFormationPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Type d&apos;objectif</label>
                 <select
                   value={newObjective.objective_type}
-                  onChange={e => setNewObjective(p => ({ ...p, objective_type: e.target.value }))}
+                  onChange={e => {
+                    const type = e.target.value;
+                    setNewObjective(p => ({
+                      ...p,
+                      objective_type: type,
+                      okr_id: type !== 'okr' ? '' : p.okr_id,
+                    }));
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="okr">OKR</option>
@@ -1905,25 +1914,54 @@ export default function PlanFormationPage() {
                   placeholder="Titre de l'objectif"
                 />
               </div>
-              {newObjective.objective_type === 'okr' && okrList.length > 0 && (
+              {newObjective.objective_type === 'okr' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Lier à un OKR existant</label>
-                  <select
-                    value={newObjective.okr_id}
-                    onChange={e => {
-                      const okrId = e.target.value;
-                      const okr = okrList.find(o => String(o.id) === okrId);
-                      setNewObjective(p => ({
-                        ...p,
-                        okr_id: okrId,
-                        title: okr && !p.title ? okr.title : p.title,
-                      }));
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="">— Aucun (objectif libre) —</option>
-                    {okrList.map(o => <option key={o.id} value={o.id}>{o.title}</option>)}
-                  </select>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">OKR lié</label>
+                  {okrList.length > 0 ? (
+                    <>
+                      <select
+                        value={newObjective.okr_id}
+                        onChange={e => {
+                          const okrId = e.target.value;
+                          const okr = okrList.find(o => String(o.id) === okrId);
+                          setNewObjective(p => ({
+                            ...p,
+                            okr_id: okrId,
+                            title: okr ? okr.title : p.title,
+                          }));
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                      >
+                        <option value="">— Sélectionner un OKR —</option>
+                        {okrList.map(o => (
+                          <option key={o.id} value={o.id}>
+                            {o.title} — {o.period} ({Math.round(o.progress)}%)
+                          </option>
+                        ))}
+                      </select>
+                      {newObjective.okr_id && (() => {
+                        const selected = okrList.find(o => String(o.id) === newObjective.okr_id);
+                        if (!selected) return null;
+                        return (
+                          <div className="mt-2 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                            <p className="text-sm font-medium text-indigo-900">{selected.title}</p>
+                            <div className="flex items-center gap-3 mt-1.5">
+                              <span className="text-xs text-indigo-600">Période : {selected.period}</span>
+                              <span className="text-xs text-indigo-600">Progression : {Math.round(selected.progress)}%</span>
+                            </div>
+                            <div className="w-full bg-indigo-200 rounded-full h-1.5 mt-1.5">
+                              <div
+                                className={`h-1.5 rounded-full ${selected.progress >= 100 ? 'bg-green-500' : selected.progress >= 50 ? 'bg-indigo-500' : 'bg-amber-500'}`}
+                                style={{ width: `${Math.min(selected.progress, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-400 italic">Aucun OKR disponible</p>
+                  )}
                 </div>
               )}
               <div>

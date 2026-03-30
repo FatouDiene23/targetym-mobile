@@ -11,6 +11,7 @@ import {
   Plus, Search, Eye, Edit, Copy, X, ChevronLeft, Trash2,
   Calendar, Target, Users, DollarSign, FileText,
   BarChart3, Clock, CheckCircle, AlertTriangle, RefreshCw, MapPin,
+  Crosshair, Building2, Link,
 } from 'lucide-react';
 import { useLearning } from '../LearningContext';
 import { API_URL, getAuthHeaders, hasPermission } from '../shared';
@@ -39,6 +40,8 @@ interface TrainingPlan {
   actions_count?: number;
   needs_count?: number;
   schedules_count?: number;
+  objectives_count?: number;
+  targets_count?: number;
 }
 
 interface PlanAction {
@@ -54,6 +57,7 @@ interface PlanAction {
   unit_cost: number | null;
   billing_mode: string | null;
   max_participants: number | null;
+  objective_id: number | null;
   course_title: string | null;
   provider_name: string | null;
   created_at: string | null;
@@ -113,6 +117,29 @@ interface BudgetSummary {
   lines: BudgetLine[];
 }
 
+interface PlanObjective {
+  id: number;
+  plan_id: number;
+  okr_id: number | null;
+  title: string;
+  objective_type: string;
+  description: string | null;
+  progress_pct: number;
+  created_by_id: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+  okr_title: string | null;
+}
+
+interface PlanTarget {
+  id: number;
+  plan_id: number;
+  target_type: string;
+  target_id: number | null;
+  target_label: string;
+  created_at: string | null;
+}
+
 // ============================================
 // HELPERS
 // ============================================
@@ -152,6 +179,15 @@ const SCHEDULE_STATUS_CONFIG: Record<string, { label: string; bg: string; text: 
   in_progress: { label: 'En cours',  bg: 'bg-blue-100',  text: 'text-blue-700' },
   completed:   { label: 'Terminé',   bg: 'bg-green-100', text: 'text-green-700' },
   cancelled:   { label: 'Annulé',    bg: 'bg-red-100',   text: 'text-red-700' },
+};
+
+const OBJECTIVE_TYPE_LABELS: Record<string, string> = {
+  okr: 'OKR',
+  excellence_operationnelle: 'Excellence opérationnelle',
+  developpement_competences: 'Développement compétences',
+  conformite_reglementaire: 'Conformité réglementaire',
+  managerial: 'Managérial',
+  autre: 'Autre',
 };
 
 const NEED_STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
@@ -224,10 +260,12 @@ export default function PlanFormationPage() {
 
   // ── Detail view state ──
   const [selectedPlan, setSelectedPlan] = useState<TrainingPlan | null>(null);
-  const [detailTab, setDetailTab] = useState<'actions' | 'calendar' | 'needs' | 'budget'>('actions');
+  const [detailTab, setDetailTab] = useState<'actions' | 'calendar' | 'needs' | 'objectives' | 'targets' | 'budget'>('actions');
   const [actions, setActions] = useState<PlanAction[]>([]);
   const [schedules, setSchedules] = useState<PlanSchedule[]>([]);
   const [needs, setNeeds] = useState<PlanNeed[]>([]);
+  const [objectives, setObjectives] = useState<PlanObjective[]>([]);
+  const [targets, setTargets] = useState<PlanTarget[]>([]);
   const [budget, setBudget] = useState<BudgetSummary | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
@@ -244,7 +282,7 @@ export default function PlanFormationPage() {
   const [newAction, setNewAction] = useState({
     title: '', course_id: '', modality: 'presentiel', target_type: 'individual',
     target_id: '', is_mandatory: false, provider_id: '', unit_cost: '',
-    billing_mode: '', max_participants: '',
+    billing_mode: '', max_participants: '', objective_id: '',
   });
 
   // ── Add Need modal ──
@@ -254,6 +292,20 @@ export default function PlanFormationPage() {
   const [manualSkillEntry, setManualSkillEntry] = useState(false);
   const [newNeed, setNewNeed] = useState({
     employee_id: '', skill_target: '', source: [] as string[], priority: 'medium',
+  });
+
+  // ── Add Objective modal ──
+  const [showAddObjective, setShowAddObjective] = useState(false);
+  const [okrList, setOkrList] = useState<{ id: number; title: string }[]>([]);
+  const [newObjective, setNewObjective] = useState({
+    title: '', objective_type: 'autre', okr_id: '', description: '',
+  });
+
+  // ── Add Target modal ──
+  const [showAddTarget, setShowAddTarget] = useState(false);
+  const [departmentsList, setDepartmentsList] = useState<{ id: number; name: string }[]>([]);
+  const [newTarget, setNewTarget] = useState({
+    target_type: 'department', target_id: '', target_label: '',
   });
 
   // ── Add Schedule modal ──
@@ -334,12 +386,14 @@ export default function PlanFormationPage() {
     setDetailLoading(true);
     try {
       const headers = getAuthHeaders();
-      const [detailRes, actionsRes, scheduleRes, needsRes, budgetRes] = await Promise.all([
+      const [detailRes, actionsRes, scheduleRes, needsRes, budgetRes, objectivesRes, targetsRes] = await Promise.all([
         fetch(`${API_URL}/api/training-plans/${planId}`, { headers }),
         fetch(`${API_URL}/api/training-plans/${planId}/actions`, { headers }),
         fetch(`${API_URL}/api/training-plans/${planId}/schedule`, { headers }),
         fetch(`${API_URL}/api/training-plans/${planId}/needs`, { headers }),
         fetch(`${API_URL}/api/training-plans/${planId}/budget`, { headers }),
+        fetch(`${API_URL}/api/training-plans/${planId}/objectives`, { headers }),
+        fetch(`${API_URL}/api/training-plans/${planId}/targets`, { headers }),
       ]);
 
       if (detailRes.ok) {
@@ -360,6 +414,14 @@ export default function PlanFormationPage() {
       }
       if (budgetRes.ok) {
         setBudget(await budgetRes.json());
+      }
+      if (objectivesRes.ok) {
+        const d = await objectivesRes.json();
+        setObjectives(d.items || []);
+      }
+      if (targetsRes.ok) {
+        const d = await targetsRes.json();
+        setTargets(d.items || []);
       }
     } catch {
       toast.error('Erreur lors du chargement du détail');
@@ -502,11 +564,13 @@ export default function PlanFormationPage() {
   const fetchDropdownData = useCallback(async () => {
     const headers = getAuthHeaders();
     try {
-      const [coursesRes, providersRes, employeesRes, skillsRes] = await Promise.all([
+      const [coursesRes, providersRes, employeesRes, skillsRes, okrRes, deptsRes] = await Promise.all([
         fetch(`${API_URL}/api/learning/courses/?page_size=500`, { headers }),
         fetch(`${API_URL}/api/training/providers`, { headers }),
         fetch(`${API_URL}/api/employees/?page_size=500`, { headers }),
         fetch(`${API_URL}/api/learning/skills/?page_size=500`, { headers }),
+        fetch(`${API_URL}/api/okr/objectives?page_size=500`, { headers }),
+        fetch(`${API_URL}/api/departments/`, { headers }),
       ]);
       if (coursesRes.ok) {
         const d = await coursesRes.json();
@@ -523,6 +587,14 @@ export default function PlanFormationPage() {
       if (skillsRes.ok) {
         const d = await skillsRes.json();
         setSkillsList((d.items || d).map((s: { id: number; name: string }) => ({ id: s.id, name: s.name })));
+      }
+      if (okrRes.ok) {
+        const d = await okrRes.json();
+        setOkrList((d.items || d).map((o: { id: number; title: string }) => ({ id: o.id, title: o.title })));
+      }
+      if (deptsRes.ok) {
+        const d = await deptsRes.json();
+        setDepartmentsList((d.items || d).map((dept: { id: number; name: string }) => ({ id: dept.id, name: dept.name })));
       }
     } catch { /* silently fail */ }
   }, []);
@@ -550,6 +622,7 @@ export default function PlanFormationPage() {
       if (newAction.unit_cost) body.unit_cost = parseFloat(newAction.unit_cost);
       if (newAction.billing_mode) body.billing_mode = newAction.billing_mode;
       if (newAction.max_participants) body.max_participants = parseInt(newAction.max_participants);
+      if (newAction.objective_id) body.objective_id = parseInt(newAction.objective_id);
 
       const res = await fetch(`${API_URL}/api/training-plans/${selectedPlan.id}/actions`, {
         method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body),
@@ -561,7 +634,7 @@ export default function PlanFormationPage() {
       toast.success('Action ajoutée au plan');
       setShowAddAction(false);
       setEditingActionId(null);
-      setNewAction({ title: '', course_id: '', modality: 'presentiel', target_type: 'individual', target_id: '', is_mandatory: false, provider_id: '', unit_cost: '', billing_mode: '', max_participants: '' });
+      setNewAction({ title: '', course_id: '', modality: 'presentiel', target_type: 'individual', target_id: '', is_mandatory: false, provider_id: '', unit_cost: '', billing_mode: '', max_participants: '', objective_id: '' });
       fetchPlanDetail(selectedPlan.id);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Erreur');
@@ -587,6 +660,7 @@ export default function PlanFormationPage() {
       if (newAction.unit_cost) body.unit_cost = parseFloat(newAction.unit_cost);
       if (newAction.billing_mode) body.billing_mode = newAction.billing_mode;
       if (newAction.max_participants) body.max_participants = parseInt(newAction.max_participants);
+      if (newAction.objective_id) body.objective_id = parseInt(newAction.objective_id);
 
       const res = await fetch(`${API_URL}/api/training-plans/${selectedPlan.id}/actions/${editingActionId}`, {
         method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(body),
@@ -598,7 +672,7 @@ export default function PlanFormationPage() {
       toast.success('Action modifiée');
       setShowAddAction(false);
       setEditingActionId(null);
-      setNewAction({ title: '', course_id: '', modality: 'presentiel', target_type: 'individual', target_id: '', is_mandatory: false, provider_id: '', unit_cost: '', billing_mode: '', max_participants: '' });
+      setNewAction({ title: '', course_id: '', modality: 'presentiel', target_type: 'individual', target_id: '', is_mandatory: false, provider_id: '', unit_cost: '', billing_mode: '', max_participants: '', objective_id: '' });
       fetchPlanDetail(selectedPlan.id);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Erreur');
@@ -706,6 +780,103 @@ export default function PlanFormationPage() {
   };
 
   // ============================================
+  // API — Create / Delete objective
+  // ============================================
+
+  const handleCreateObjective = async () => {
+    if (!selectedPlan) return;
+    if (!newObjective.title.trim()) {
+      toast.error('Le titre de l\'objectif est obligatoire');
+      return;
+    }
+    try {
+      const body: Record<string, unknown> = {
+        title: newObjective.title.trim(),
+        objective_type: newObjective.objective_type,
+      };
+      if (newObjective.okr_id) body.okr_id = parseInt(newObjective.okr_id);
+      if (newObjective.description) body.description = newObjective.description;
+
+      const res = await fetch(`${API_URL}/api/training-plans/${selectedPlan.id}/objectives`, {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Erreur création objectif');
+      }
+      toast.success('Objectif ajouté');
+      setShowAddObjective(false);
+      setNewObjective({ title: '', objective_type: 'autre', okr_id: '', description: '' });
+      fetchPlanDetail(selectedPlan.id);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    }
+  };
+
+  const handleDeleteObjective = async (objectiveId: number) => {
+    if (!selectedPlan) return;
+    if (!window.confirm('Supprimer cet objectif ?')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/training-plans/${selectedPlan.id}/objectives/${objectiveId}`, {
+        method: 'DELETE', headers: getAuthHeaders(),
+      });
+      if (!res.ok) throw new Error('Erreur suppression');
+      toast.success('Objectif supprimé');
+      fetchPlanDetail(selectedPlan.id);
+    } catch {
+      toast.error('Erreur lors de la suppression');
+    }
+  };
+
+  // ============================================
+  // API — Create / Delete target
+  // ============================================
+
+  const handleCreateTarget = async () => {
+    if (!selectedPlan) return;
+    if (!newTarget.target_label.trim()) {
+      toast.error('Le libellé de la cible est obligatoire');
+      return;
+    }
+    try {
+      const body: Record<string, unknown> = {
+        target_type: newTarget.target_type,
+        target_label: newTarget.target_label.trim(),
+      };
+      if (newTarget.target_id) body.target_id = parseInt(newTarget.target_id);
+
+      const res = await fetch(`${API_URL}/api/training-plans/${selectedPlan.id}/targets`, {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Erreur création cible');
+      }
+      toast.success('Cible ajoutée');
+      setShowAddTarget(false);
+      setNewTarget({ target_type: 'department', target_id: '', target_label: '' });
+      fetchPlanDetail(selectedPlan.id);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    }
+  };
+
+  const handleDeleteTarget = async (targetId: number) => {
+    if (!selectedPlan) return;
+    if (!window.confirm('Supprimer cette cible ?')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/training-plans/${selectedPlan.id}/targets/${targetId}`, {
+        method: 'DELETE', headers: getAuthHeaders(),
+      });
+      if (!res.ok) throw new Error('Erreur suppression');
+      toast.success('Cible supprimée');
+      fetchPlanDetail(selectedPlan.id);
+    } catch {
+      toast.error('Erreur lors de la suppression');
+    }
+  };
+
+  // ============================================
   // Filtered plans
   // ============================================
 
@@ -751,7 +922,7 @@ export default function PlanFormationPage() {
         </div>
 
         {/* Stats cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
             <p className="text-xs text-gray-500">Actions</p>
             <p className="text-xl font-bold text-gray-900">{selectedPlan.actions_count ?? actions.length}</p>
@@ -763,6 +934,14 @@ export default function PlanFormationPage() {
           <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
             <p className="text-xs text-gray-500">Besoins</p>
             <p className="text-xl font-bold text-gray-900">{selectedPlan.needs_count ?? needs.length}</p>
+          </div>
+          <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
+            <p className="text-xs text-gray-500">Objectifs</p>
+            <p className="text-xl font-bold text-gray-900">{selectedPlan.objectives_count ?? objectives.length}</p>
+          </div>
+          <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
+            <p className="text-xs text-gray-500">Cibles</p>
+            <p className="text-xl font-bold text-gray-900">{selectedPlan.targets_count ?? targets.length}</p>
           </div>
           <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
             <p className="text-xs text-gray-500">Budget estimé</p>
@@ -780,6 +959,8 @@ export default function PlanFormationPage() {
                 { key: 'actions' as const, label: 'Actions', icon: Target, count: actions.length },
                 { key: 'calendar' as const, label: 'Calendrier', icon: Calendar, count: schedules.length },
                 { key: 'needs' as const, label: 'Besoins', icon: Users, count: needs.length },
+                { key: 'objectives' as const, label: 'Objectifs', icon: Crosshair, count: objectives.length },
+                { key: 'targets' as const, label: 'Cibles', icon: Building2, count: targets.length },
                 { key: 'budget' as const, label: 'Budget', icon: DollarSign },
               ]).map(tab => (
                 <button
@@ -824,6 +1005,7 @@ export default function PlanFormationPage() {
                         provider_id: action.provider_id ? String(action.provider_id) : '',
                         unit_cost: action.unit_cost ? String(action.unit_cost) : '',
                         billing_mode: action.billing_mode || '', max_participants: action.max_participants ? String(action.max_participants) : '',
+                        objective_id: action.objective_id ? String(action.objective_id) : '',
                       });
                       setShowAddAction(true);
                     }}
@@ -837,6 +1019,22 @@ export default function PlanFormationPage() {
                     needs={needs}
                     canManage={canManage}
                     onAddNeed={() => { fetchDropdownData(); setShowAddNeed(true); }}
+                  />
+                )}
+                {detailTab === 'objectives' && (
+                  <ObjectivesTab
+                    objectives={objectives}
+                    canManage={canManage}
+                    onAddObjective={() => { fetchDropdownData(); setShowAddObjective(true); }}
+                    onDeleteObjective={handleDeleteObjective}
+                  />
+                )}
+                {detailTab === 'targets' && (
+                  <TargetsTab
+                    targets={targets}
+                    canManage={canManage}
+                    onAddTarget={() => { fetchDropdownData(); setShowAddTarget(true); }}
+                    onDeleteTarget={handleDeleteTarget}
                   />
                 )}
                 {detailTab === 'budget' && <BudgetTab budget={budget} />}
@@ -1383,6 +1581,19 @@ export default function PlanFormationPage() {
                   </select>
                 </div>
               </div>
+              {objectives.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Objectif lié</label>
+                  <select
+                    value={newAction.objective_id}
+                    onChange={e => setNewAction(p => ({ ...p, objective_id: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">— Aucun —</option>
+                    {objectives.map(o => <option key={o.id} value={o.id}>{o.title}</option>)}
+                  </select>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nb participants max</label>
@@ -1657,6 +1868,144 @@ export default function PlanFormationPage() {
           </div>
         </div>
       )}
+
+      {/* ── Add Objective Modal ── */}
+      {showAddObjective && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Ajouter un objectif</h2>
+                <button onClick={() => setShowAddObjective(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Type d&apos;objectif</label>
+                <select
+                  value={newObjective.objective_type}
+                  onChange={e => setNewObjective(p => ({ ...p, objective_type: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="okr">OKR</option>
+                  <option value="excellence_operationnelle">Excellence opérationnelle</option>
+                  <option value="developpement_competences">Développement compétences</option>
+                  <option value="conformite_reglementaire">Conformité réglementaire</option>
+                  <option value="managerial">Managérial</option>
+                  <option value="autre">Autre</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
+                <input
+                  type="text"
+                  value={newObjective.title}
+                  onChange={e => setNewObjective(p => ({ ...p, title: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  placeholder="Titre de l'objectif"
+                />
+              </div>
+              {newObjective.objective_type === 'okr' && okrList.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Lier à un OKR existant</label>
+                  <select
+                    value={newObjective.okr_id}
+                    onChange={e => {
+                      const okrId = e.target.value;
+                      const okr = okrList.find(o => String(o.id) === okrId);
+                      setNewObjective(p => ({
+                        ...p,
+                        okr_id: okrId,
+                        title: okr && !p.title ? okr.title : p.title,
+                      }));
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">— Aucun (objectif libre) —</option>
+                    {okrList.map(o => <option key={o.id} value={o.id}>{o.title}</option>)}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={newObjective.description}
+                  onChange={e => setNewObjective(p => ({ ...p, description: e.target.value }))}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 resize-none"
+                  placeholder="Description de l'objectif..."
+                />
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex gap-3">
+              <button onClick={() => setShowAddObjective(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm">Annuler</button>
+              <button onClick={handleCreateObjective} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-medium text-sm">Ajouter</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Add Target Modal ── */}
+      {showAddTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Ajouter une cible</h2>
+                <button onClick={() => setShowAddTarget(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Type de cible</label>
+                <select
+                  value={newTarget.target_type}
+                  onChange={e => setNewTarget(p => ({ ...p, target_type: e.target.value, target_id: '', target_label: '' }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="department">Département</option>
+                  <option value="profile">Profil</option>
+                  <option value="level">Niveau</option>
+                </select>
+              </div>
+              {newTarget.target_type === 'department' && departmentsList.length > 0 ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Département *</label>
+                  <select
+                    value={newTarget.target_id}
+                    onChange={e => {
+                      const deptId = e.target.value;
+                      const dept = departmentsList.find(d => String(d.id) === deptId);
+                      setNewTarget(p => ({ ...p, target_id: deptId, target_label: dept?.name || '' }));
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">— Sélectionner —</option>
+                    {departmentsList.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {newTarget.target_type === 'profile' ? 'Profil concerné *' : 'Niveau concerné *'}
+                  </label>
+                  <input
+                    type="text"
+                    value={newTarget.target_label}
+                    onChange={e => setNewTarget(p => ({ ...p, target_label: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                    placeholder={newTarget.target_type === 'profile' ? 'Ex: Managers, Commerciaux' : 'Ex: Senior, Junior'}
+                  />
+                </div>
+              )}
+            </div>
+            <div className="p-6 border-t border-gray-200 flex gap-3">
+              <button onClick={() => setShowAddTarget(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm">Annuler</button>
+              <button onClick={handleCreateTarget} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-medium text-sm">Ajouter</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1898,6 +2247,143 @@ function NeedsTab({ needs, canManage, onAddNeed }: { needs: PlanNeed[]; canManag
                   <td className="px-3 py-2.5">
                     <StatusBadge config={NEED_STATUS_CONFIG} status={need.status} />
                   </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ObjectivesTab({ objectives, canManage, onAddObjective, onDeleteObjective }: { objectives: PlanObjective[]; canManage: boolean; onAddObjective: () => void; onDeleteObjective: (id: number) => void }) {
+  return (
+    <div className="space-y-4">
+      {canManage && (
+        <div className="flex justify-end">
+          <button
+            onClick={onAddObjective}
+            className="px-3 py-1.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 flex items-center gap-1.5 text-sm font-medium transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Ajouter un objectif
+          </button>
+        </div>
+      )}
+
+      {objectives.length === 0 ? (
+        <div className="text-center py-10">
+          <Crosshair className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+          <p className="text-gray-500">Aucun objectif défini pour ce plan</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {objectives.map(obj => (
+            <div key={obj.id} className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs px-2 py-0.5 bg-primary-100 text-primary-700 rounded font-medium">
+                      {OBJECTIVE_TYPE_LABELS[obj.objective_type] || obj.objective_type}
+                    </span>
+                    {obj.okr_id && obj.okr_title && (
+                      <span className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded flex items-center gap-1">
+                        <Link className="w-3 h-3" /> OKR: {obj.okr_title}
+                      </span>
+                    )}
+                  </div>
+                  <p className="font-medium text-gray-900">{obj.title}</p>
+                  {obj.description && <p className="text-sm text-gray-500 mt-1">{obj.description}</p>}
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  {/* Progress bar */}
+                  <div className="w-24">
+                    <div className="flex justify-between text-xs text-gray-500 mb-0.5">
+                      <span>{obj.progress_pct}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all ${obj.progress_pct >= 100 ? 'bg-green-500' : obj.progress_pct >= 50 ? 'bg-primary-500' : 'bg-amber-500'}`}
+                        style={{ width: `${Math.min(obj.progress_pct, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                  {canManage && (
+                    <button
+                      onClick={() => onDeleteObjective(obj.id)}
+                      className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-600 transition-colors"
+                      title="Supprimer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TargetsTab({ targets, canManage, onAddTarget, onDeleteTarget }: { targets: PlanTarget[]; canManage: boolean; onAddTarget: () => void; onDeleteTarget: (id: number) => void }) {
+  const TARGET_TYPE_LABELS: Record<string, string> = {
+    department: 'Département',
+    profile: 'Profil',
+    level: 'Niveau',
+  };
+
+  return (
+    <div className="space-y-4">
+      {canManage && (
+        <div className="flex justify-end">
+          <button
+            onClick={onAddTarget}
+            className="px-3 py-1.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 flex items-center gap-1.5 text-sm font-medium transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Ajouter une cible
+          </button>
+        </div>
+      )}
+
+      {targets.length === 0 ? (
+        <div className="text-center py-10">
+          <Building2 className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+          <p className="text-gray-500">Aucune cible définie pour ce plan</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">Type</th>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">Libellé</th>
+                <th className="text-left px-3 py-2 text-gray-600 font-medium">Date ajout</th>
+                {canManage && <th className="text-center px-3 py-2 text-gray-600 font-medium">Actions</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {targets.map(t => (
+                <tr key={t.id} className="hover:bg-gray-50">
+                  <td className="px-3 py-2.5">
+                    <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded font-medium">
+                      {TARGET_TYPE_LABELS[t.target_type] || t.target_type}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5 font-medium text-gray-900">{t.target_label}</td>
+                  <td className="px-3 py-2.5 text-gray-500">{formatDate(t.created_at)}</td>
+                  {canManage && (
+                    <td className="px-3 py-2.5 text-center">
+                      <button
+                        onClick={() => onDeleteTarget(t.id)}
+                        className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-600 transition-colors"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

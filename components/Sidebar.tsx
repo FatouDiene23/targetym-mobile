@@ -283,8 +283,9 @@ const personnelNavigation: NavItem[] = [
 
 // Sous-menu Paie
 const paieNavigation: NavItem[] = [
-  { name: 'Rubriques',     href: '/dashboard/paie/rubriques', icon: Settings2,  roles: ['admin', 'rh', 'dg'] },
-  { name: 'Runs mensuels', href: '/dashboard/paie/runs',      icon: PlayCircle, roles: ['admin', 'rh', 'dg'] },
+  { name: 'Rubriques',        href: '/dashboard/paie/rubriques', icon: Settings2,  roles: ['admin', 'rh', 'dg'] },
+  { name: 'Profils employés', href: '/dashboard/paie/profils',   icon: Users,      roles: ['admin', 'rh', 'dg'] },
+  { name: 'Runs mensuels',    href: '/dashboard/paie/runs',      icon: PlayCircle, roles: ['admin', 'rh', 'dg'] },
 ];
 
 // Sous-menu People Analytics

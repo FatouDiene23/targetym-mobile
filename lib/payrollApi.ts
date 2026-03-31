@@ -203,6 +203,81 @@ export async function lockPeriod(year: number, month: number): Promise<void> {
   if (!r.ok) throw new Error(`${r.status}`);
 }
 
+// ── Profils de paie employés ──────────────────────────────────────────────────
+
+export interface EmployeePayrollProfile {
+  id: number;
+  employee_id: number;
+  tenant_id: number;
+  classification: string | null;
+  salary_scale_id: number | null;
+  contract_type: 'cdi' | 'cdd' | 'stage' | 'consultant' | null;
+  base_salary: number | null;
+  transport_allowance: number | null;
+  housing_allowance: number | null;
+  family_parts: number | null;
+  ipres_enrolled: boolean;
+  ipm_enrolled: boolean;
+  css_enrolled: boolean;
+  cfce_enrolled: boolean;
+  bank_name: string | null;
+  bank_account_number: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface EmployeePayrollProfileCreate {
+  base_salary?: number;
+  transport_allowance?: number;
+  housing_allowance?: number;
+  family_parts?: number;
+  contract_type?: 'cdi' | 'cdd' | 'stage' | 'consultant';
+  classification?: string;
+  ipres_enrolled: boolean;
+  ipm_enrolled: boolean;
+  css_enrolled: boolean;
+  cfce_enrolled: boolean;
+  bank_name?: string;
+  bank_account_number?: string;
+}
+
+export async function getEmployeePayrollProfile(employeeId: number): Promise<EmployeePayrollProfile | null> {
+  const r = await fetchWithAuth(`${API_URL}/api/payroll/employees/${employeeId}/profile`);
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
+
+export async function createEmployeePayrollProfile(
+  employeeId: number,
+  data: EmployeePayrollProfileCreate,
+): Promise<EmployeePayrollProfile> {
+  const r = await fetchWithAuth(`${API_URL}/api/payroll/employees/${employeeId}/profile`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.detail || `${r.status}`);
+  }
+  return r.json();
+}
+
+export async function updateEmployeePayrollProfile(
+  employeeId: number,
+  data: Partial<EmployeePayrollProfileCreate>,
+): Promise<EmployeePayrollProfile> {
+  const r = await fetchWithAuth(`${API_URL}/api/payroll/employees/${employeeId}/profile`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.detail || `${r.status}`);
+  }
+  return r.json();
+}
+
 // ── Runs ──────────────────────────────────────────────────────────────────────
 
 export async function getRuns(): Promise<{ items: PayrollRun[]; total: number }> {

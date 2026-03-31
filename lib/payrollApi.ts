@@ -131,8 +131,9 @@ export interface PayVariable {
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
-export async function getPayrollConfig(): Promise<PayrollConfig> {
+export async function getPayrollConfig(): Promise<PayrollConfig | null> {
   const r = await fetchWithAuth(`${API_URL}/api/payroll/config`);
+  if (r.status === 404) return null;
   if (!r.ok) throw new Error(`${r.status}`);
   return r.json();
 }

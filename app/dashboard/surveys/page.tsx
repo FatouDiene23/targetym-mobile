@@ -535,9 +535,9 @@ export default function SurveysPage() {
                         <ResponsiveContainer width="100%" height={200}>
                           <BarChart data={Object.entries(qr.distribution).map(([k, v]) => ({ name: k, count: v }))}>
                             <XAxis dataKey="name" />
-                            <YAxis allowDecimals={false} />
-                            <Tooltip />
-                            <Bar dataKey="count" fill={BAR_COLOR} radius={[4, 4, 0, 0]} />
+                            <YAxis allowDecimals={false} label={{ value: 'Réponses', angle: -90, position: 'insideLeft' }} />
+                            <Tooltip formatter={(value: number) => [`${value} réponses`, '']} />
+                            <Bar dataKey="count" name="Réponses" fill={BAR_COLOR} radius={[4, 4, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -573,10 +573,10 @@ export default function SurveysPage() {
                     {qr.question_type === 'choix_multiple' && qr.distribution && (
                       <ResponsiveContainer width="100%" height={200}>
                         <BarChart data={Object.entries(qr.distribution).map(([k, v]) => ({ name: k, count: v }))} layout="vertical">
-                          <XAxis type="number" allowDecimals={false} />
+                          <XAxis type="number" allowDecimals={false} label={{ value: 'Réponses', position: 'insideBottom', offset: -5 }} />
                           <YAxis type="category" dataKey="name" width={150} />
-                          <Tooltip />
-                          <Bar dataKey="count" fill={BAR_COLOR} radius={[0, 4, 4, 0]} />
+                          <Tooltip formatter={(value: number) => [`${value} réponses`, '']} />
+                          <Bar dataKey="count" name="Réponses" fill={BAR_COLOR} radius={[0, 4, 4, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     )}

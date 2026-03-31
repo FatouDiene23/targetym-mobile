@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Loader2, ChevronRight, CheckCircle, Clock, AlertCircle,
-  Star, ThumbsUp, ThumbsDown, MessageSquare, Send,
+  ThumbsUp, ThumbsDown, MessageSquare, Send, Lock, Edit3,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { fetchWithAuth, API_URL } from '@/lib/api';
@@ -41,11 +41,15 @@ interface MyResponseData {
 // ── Component ───────────────────────────────────────────────────────────────
 
 export default function MySurveysPage() {
-  const [surveys, setSurveys] = useState<Survey[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
+  const [pendingSurveys, setPendingSurveys] = useState<Survey[]>([]);
+  const [completedSurveys, setCompletedSurveys] = useState<Survey[]>([]);
+  const [loadingPending, setLoadingPending] = useState(true);
+  const [loadingCompleted, setLoadingCompleted] = useState(true);
 
   // Respond view
   const [activeSurvey, setActiveSurvey] = useState<Survey | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<number, { value?: string; text?: string }>>({});
   const [currentQ, setCurrentQ] = useState(0);
@@ -65,46 +69,78 @@ export default function MySurveysPage() {
     return res.json();
   }, []);
 
-  // ── Load my pending surveys ────────────────────────────────────────────
+  // ── Load surveys ───────────────────────────────────────────────────────
 
-  const loadSurveys = useCallback(async () => {
-    setLoading(true);
+  const loadPending = useCallback(async () => {
+    setLoadingPending(true);
     try {
       const data = await apiFetch('/api/surveys/my-surveys');
-      setSurveys(data);
+      setPendingSurveys(data);
     } catch {
       // silent
     } finally {
-      setLoading(false);
+      setLoadingPending(false);
     }
   }, [apiFetch]);
 
-  useEffect(() => { loadSurveys(); }, [loadSurveys]);
+  const loadCompleted = useCallback(async () => {
+    setLoadingCompleted(true);
+    try {
+      const data = await apiFetch('/api/surveys/my-surveys?status=completee');
+      setCompletedSurveys(data);
+    } catch {
+      // silent
+    } finally {
+      setLoadingCompleted(false);
+    }
+  }, [apiFetch]);
 
-  // ── Open respond view ──────────────────────────────────────────────────
+  useEffect(() => {
+    loadPending();
+    loadCompleted();
+  }, [loadPending, loadCompleted]);
 
-  const openRespond = useCallback(async (survey: Survey) => {
+  // ── Open respond / edit view ───────────────────────────────────────────
+
+  const openRespond = useCallback(async (survey: Survey, editMode = false) => {
     setActiveSurvey(survey);
+    setIsEditing(editMode);
     setCurrentQ(0);
     setAnswers({});
     setSubmitted(false);
     setAlreadyCompleted(false);
 
     try {
-      // Check if already answered
-      try {
-        const myResp: MyResponseData = await apiFetch(`/api/surveys/${survey.id}/my-response`);
-        if (myResp.status === 'completee') {
-          setAlreadyCompleted(true);
-          return;
-        }
-      } catch {
-        // no response yet, that's ok
-      }
-
       // Load questions
       const qs = await apiFetch(`/api/surveys/${survey.id}/questions`);
       setQuestions(qs);
+
+      // If editing, pre-fill answers
+      if (editMode) {
+        try {
+          const myResp: MyResponseData = await apiFetch(`/api/surveys/${survey.id}/my-response`);
+          if (myResp.answers) {
+            const prefilled: Record<number, { value?: string; text?: string }> = {};
+            for (const a of myResp.answers) {
+              prefilled[a.question_id] = { value: a.answer_value || undefined, text: a.answer_text || undefined };
+            }
+            setAnswers(prefilled);
+          }
+        } catch {
+          // no existing response
+        }
+      } else {
+        // Check if already answered (for pending mode)
+        try {
+          const myResp: MyResponseData = await apiFetch(`/api/surveys/${survey.id}/my-response`);
+          if (myResp.status === 'completee') {
+            setAlreadyCompleted(true);
+            return;
+          }
+        } catch {
+          // no response yet
+        }
+      }
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -140,8 +176,9 @@ export default function MySurveysPage() {
         }),
       });
       setSubmitted(true);
-      // Remove from list
-      setSurveys(prev => prev.filter(s => s.id !== activeSurvey.id));
+      // Refresh lists
+      loadPending();
+      loadCompleted();
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -254,7 +291,7 @@ export default function MySurveysPage() {
     }
   };
 
-  // ── Respond view ────────────────────────────────────────────────────────
+  // ── Respond / Edit view ─────────────────────────────────────────────────
 
   if (activeSurvey) {
     // Thank you screen
@@ -264,19 +301,25 @@ export default function MySurveysPage() {
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
             <CheckCircle className="w-10 h-10 text-green-500" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">Merci pour votre réponse !</h2>
-          <p className="text-gray-500">Votre participation contribue à améliorer l&apos;environnement de travail.</p>
-          {activeSurvey.is_anonymous && (
+          <h2 className="text-2xl font-bold text-gray-900">
+            {isEditing ? 'Réponses mises à jour !' : 'Merci pour votre réponse !'}
+          </h2>
+          <p className="text-gray-500">
+            {isEditing
+              ? 'Vos modifications ont bien été enregistrées.'
+              : "Votre participation contribue à améliorer l'environnement de travail."}
+          </p>
+          {activeSurvey.is_anonymous && !isEditing && (
             <p className="text-sm text-purple-600 bg-purple-50 rounded-lg px-4 py-2 inline-block">Vos réponses sont anonymes</p>
           )}
-          <button onClick={() => { setActiveSurvey(null); setSubmitted(false); }} className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm font-medium">
+          <button onClick={() => { setActiveSurvey(null); setSubmitted(false); setIsEditing(false); }} className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm font-medium">
             Retour à mes enquêtes
           </button>
         </div>
       );
     }
 
-    // Already completed
+    // Already completed (from pending tab click)
     if (alreadyCompleted) {
       return (
         <div className="p-6 max-w-lg mx-auto text-center space-y-6 mt-16">
@@ -304,11 +347,16 @@ export default function MySurveysPage() {
       <div className="p-6 max-w-xl mx-auto space-y-6">
         {/* Header */}
         <div>
-          <button onClick={() => setActiveSurvey(null)} className="text-sm text-gray-500 hover:text-gray-700 mb-4">
+          <button onClick={() => { setActiveSurvey(null); setIsEditing(false); }} className="text-sm text-gray-500 hover:text-gray-700 mb-4">
             &larr; Retour aux enquêtes
           </button>
-          <h1 className="text-xl font-bold text-gray-900">{activeSurvey.title}</h1>
-          {activeSurvey.is_anonymous && (
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-gray-900">{activeSurvey.title}</h1>
+            {isEditing && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Modification</span>
+            )}
+          </div>
+          {activeSurvey.is_anonymous && !isEditing && (
             <p className="text-sm text-purple-600 mt-1">Enquête anonyme — vos réponses ne seront pas associées à votre nom</p>
           )}
         </div>
@@ -331,7 +379,7 @@ export default function MySurveysPage() {
             {q.is_required && <span className="text-red-500 text-sm mt-1">*</span>}
           </div>
           <p className="text-xs text-gray-400 mb-4">
-            {q.question_type === 'likert_5' && 'Évaluez de 1 (pas du tout d\'accord) à 5 (tout à fait d\'accord)'}
+            {q.question_type === 'likert_5' && "Évaluez de 1 (pas du tout d'accord) à 5 (tout à fait d'accord)"}
             {q.question_type === 'likert_10' && 'Évaluez de 1 à 10'}
             {q.question_type === 'oui_non' && 'Répondez par Oui ou Non'}
             {q.question_type === 'choix_multiple' && 'Sélectionnez une option'}
@@ -364,7 +412,7 @@ export default function MySurveysPage() {
               disabled={submitting}
               className="px-5 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm font-medium flex items-center gap-1 disabled:opacity-50"
             >
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Soumettre</>}
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> {isEditing ? 'Mettre à jour' : 'Soumettre'}</>}
             </button>
           )}
         </div>
@@ -374,47 +422,133 @@ export default function MySurveysPage() {
 
   // ── List view ───────────────────────────────────────────────────────────
 
+  const isLoadingTab = activeTab === 'pending' ? loadingPending : loadingCompleted;
+  const currentSurveys = activeTab === 'pending' ? pendingSurveys : completedSurveys;
+
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Mes Enquêtes</h1>
-        <p className="text-gray-500 text-sm mt-1">Enquêtes en attente de votre réponse</p>
+        <p className="text-gray-500 text-sm mt-1">Répondez aux enquêtes et consultez votre historique</p>
       </div>
 
-      {loading ? (
+      {/* Tabs */}
+      <div className="border-b border-gray-200">
+        <nav className="flex -mb-px space-x-8">
+          <button
+            onClick={() => setActiveTab('pending')}
+            className={`py-3 px-1 border-b-2 text-sm font-medium flex items-center gap-2 ${
+              activeTab === 'pending'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            En attente
+            {pendingSurveys.length > 0 && (
+              <span className="bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {pendingSurveys.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('completed')}
+            className={`py-3 px-1 border-b-2 text-sm font-medium flex items-center gap-2 ${
+              activeTab === 'completed'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <CheckCircle className="w-4 h-4" />
+            Complétées
+          </button>
+        </nav>
+      </div>
+
+      {/* Content */}
+      {isLoadingTab ? (
         <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
-      ) : surveys.length === 0 ? (
+      ) : currentSurveys.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 text-center py-16">
-          <CheckCircle className="w-12 h-12 mx-auto mb-3 text-green-300" />
-          <p className="font-medium text-gray-700">Aucune enquête en attente</p>
-          <p className="text-sm text-gray-400 mt-1">Vous avez répondu à toutes les enquêtes</p>
+          {activeTab === 'pending' ? (
+            <>
+              <CheckCircle className="w-12 h-12 mx-auto mb-3 text-green-300" />
+              <p className="font-medium text-gray-700">Aucune enquête en attente</p>
+              <p className="text-sm text-gray-400 mt-1">Vous avez répondu à toutes les enquêtes</p>
+            </>
+          ) : (
+            <>
+              <MessageSquare className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p className="font-medium text-gray-700">Aucune enquête complétée</p>
+              <p className="text-sm text-gray-400 mt-1">Vos enquêtes répondues apparaîtront ici</p>
+            </>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
-          {surveys.map(s => (
+          {currentSurveys.map(s => (
             <div key={s.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:border-primary-300 transition-colors">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-medium text-gray-900">{s.title}</h3>
+                    {activeTab === 'completed' && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                        Complétée
+                      </span>
+                    )}
                     {s.is_anonymous && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">Anonyme</span>
                     )}
                   </div>
                   {s.description && <p className="text-sm text-gray-500 mt-1 line-clamp-2">{s.description}</p>}
                   <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" />
-                      {s.end_date ? `Avant le ${new Date(s.end_date).toLocaleDateString('fr-FR')}` : 'Pas de date limite'}
-                    </span>
+                    {activeTab === 'pending' && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" />
+                        {s.end_date ? `Avant le ${new Date(s.end_date).toLocaleDateString('fr-FR')}` : 'Pas de date limite'}
+                      </span>
+                    )}
+                    {activeTab === 'completed' && s.created_at && (
+                      <span className="flex items-center gap-1">
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        Répondu
+                      </span>
+                    )}
                   </div>
                 </div>
-                <button
-                  onClick={() => openRespond(s)}
-                  className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm font-medium flex items-center gap-1 shrink-0 ml-4"
-                >
-                  Répondre <ChevronRight className="w-4 h-4" />
-                </button>
+
+                {/* Actions */}
+                <div className="shrink-0 ml-4">
+                  {activeTab === 'pending' ? (
+                    <button
+                      onClick={() => openRespond(s)}
+                      className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm font-medium flex items-center gap-1"
+                    >
+                      Répondre <ChevronRight className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    // Completed tab actions
+                    <>
+                      {s.is_anonymous ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-500">
+                          <Lock className="w-3.5 h-3.5" /> Anonyme - modification impossible
+                        </span>
+                      ) : s.status === 'cloturee' || s.status === 'archivee' ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-500">
+                          <Lock className="w-3.5 h-3.5" /> Clôturée
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => openRespond(s, true)}
+                          className="px-4 py-2 border border-primary-500 text-primary-600 rounded-lg hover:bg-primary-50 text-sm font-medium flex items-center gap-1"
+                        >
+                          <Edit3 className="w-4 h-4" /> Modifier mes réponses
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           ))}

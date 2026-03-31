@@ -184,6 +184,12 @@ const navigation: NavItem[] = [
     roles: ['rh', 'admin', 'dg'],
   },
   {
+    name: 'Enquêtes',
+    href: '/dashboard/surveys',
+    icon: ClipboardList,
+    roles: ['rh', 'admin', 'dg', 'manager'],
+  },
+  {
     name: 'Compensation & Benefits',
     href: '/dashboard/compensation',
     icon: DollarSign,
@@ -223,6 +229,7 @@ const mySpaceNavigation: NavItem[] = [
   { name: 'Daily Checklist', href: '/dashboard/my-space/daily-checklist', icon: CheckSquare, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Offres Internes', href: '/dashboard/my-space/internal-jobs', icon: Briefcase, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Mes Documents', href: '/dashboard/my-space/documents', icon: FileText, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-documents' },
+  { name: 'Mes Enquêtes', href: '/dashboard/my-space/surveys', icon: MessageSquare, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Mes Sanctions', href: '/dashboard/my-space/sanctions', icon: Shield, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Processus de Départ', href: '/dashboard/my-space/resignation', icon: UserMinus, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
 ];

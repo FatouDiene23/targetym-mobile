@@ -298,7 +298,7 @@ export default function RunsPage() {
                   </button>
 
                   {/* Récap */}
-                  {(run.status === 'simulated' || run.status === 'validated') && (
+                  {(run.status === 'simulation' || run.status === 'validated') && (
                     <button
                       onClick={() => router.push(`/dashboard/paie/runs/${run.id}/recap`)}
                       className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition"
@@ -324,7 +324,7 @@ export default function RunsPage() {
                   )}
 
                   {/* Valider */}
-                  {run.status === 'simulated' && (
+                  {run.status === 'simulation' && (
                     <button
                       onClick={() => handleValidate(run)}
                       disabled={actionLoading === run.id}

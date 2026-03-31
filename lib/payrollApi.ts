@@ -53,7 +53,7 @@ export interface PayrollRun {
   tenant_id: number;
   period_year: number;
   period_month: number;
-  status: 'draft' | 'simulated' | 'validated' | 'cancelled';
+  status: 'draft' | 'simulation' | 'validated' | 'cancelled';
   total_brut: number | null;
   total_net: number | null;
   total_charges_patronales: number | null;
@@ -352,7 +352,7 @@ export function formatXOF(amount: number | null | undefined): string {
 
 export const RUN_STATUS: Record<string, { label: string; color: string }> = {
   draft:     { label: 'Brouillon',  color: 'bg-gray-100 text-gray-700' },
-  simulated: { label: 'Simulé',     color: 'bg-blue-100 text-blue-700' },
+  simulation: { label: 'Simulé',     color: 'bg-blue-100 text-blue-700' },
   validated: { label: 'Validé',     color: 'bg-green-100 text-green-700' },
   cancelled: { label: 'Annulé',     color: 'bg-red-100 text-red-700' },
 };

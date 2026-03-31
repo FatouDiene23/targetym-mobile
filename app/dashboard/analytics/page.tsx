@@ -21,6 +21,8 @@ import {
   Zap, GraduationCap, Building2, ArrowUpRight, ArrowDownRight,
   RefreshCw, FileText, FileSpreadsheet, Brain, Eye, Banknote
 } from "lucide-react";
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { analyticsTips } from '@/config/pageTips';
@@ -1839,6 +1841,179 @@ export default function PeopleAnalyticsPage() {
 
 
   // ============================================
+  // EXPORT EXCEL & PDF
+  // ============================================
+
+  const TAB_NAMES = ['overview', 'effectif', 'performance', 'talents', 'formation', 'engagement', 'recrutement', 'masse-salariale', 'impact-formation'];
+
+  function getExportData(): { headers: string[]; rows: (string | number)[][] } {
+    const tab = TAB_NAMES[activeTab] ?? 'overview';
+    switch (tab) {
+      case 'effectif':
+        if (headcountByDept.length) {
+          return {
+            headers: Object.keys(headcountByDept[0]),
+            rows: headcountByDept.map((r: any) => Object.values(r)),
+          };
+        }
+        if (effectifsEvolution.length) {
+          return {
+            headers: Object.keys(effectifsEvolution[0]),
+            rows: effectifsEvolution.map((r: any) => Object.values(r)),
+          };
+        }
+        break;
+      case 'performance':
+        if (perfByManager.length) {
+          return {
+            headers: Object.keys(perfByManager[0]),
+            rows: perfByManager.map((r: any) => Object.values(r)),
+          };
+        }
+        return {
+          headers: ['name', 'score', 'objectifs'],
+          rows: performanceByTeam.map((r) => [r.name, r.score, r.objectifs]),
+        };
+      case 'talents':
+        if (nineboxData.length) {
+          return {
+            headers: Object.keys(nineboxData[0]),
+            rows: nineboxData.map((r: any) => Object.values(r)),
+          };
+        }
+        return {
+          headers: ['nom', 'poste', 'risque', 'raison', 'departement'],
+          rows: talentRisks.map((r) => [r.nom, r.poste, r.risque, r.raison, r.departement]),
+        };
+      case 'formation':
+        if (formationByCategory.length) {
+          return {
+            headers: Object.keys(formationByCategory[0]),
+            rows: formationByCategory.map((r: any) => Object.values(r)),
+          };
+        }
+        return {
+          headers: ['name', 'prevu', 'realise'],
+          rows: formationExecution.map((r) => [r.name, r.prevu, r.realise]),
+        };
+      case 'recrutement':
+        if (recrutementData?.pipeline?.length) {
+          return {
+            headers: Object.keys(recrutementData.pipeline[0]),
+            rows: recrutementData.pipeline.map((r: any) => Object.values(r)),
+          };
+        }
+        return {
+          headers: ['name', 'candidatures', 'entretiens', 'embauches'],
+          rows: recrutementMetrics.map((r) => [r.name, r.candidatures, r.entretiens, r.embauches]),
+        };
+      case 'masse-salariale':
+        if (salaireByDept.length) {
+          return {
+            headers: Object.keys(salaireByDept[0]),
+            rows: salaireByDept.map((r: any) => Object.values(r)),
+          };
+        }
+        if (salaireEvolution.length) {
+          return {
+            headers: Object.keys(salaireEvolution[0]),
+            rows: salaireEvolution.map((r: any) => Object.values(r)),
+          };
+        }
+        break;
+      case 'impact-formation':
+        if (trainingPlans.length) {
+          return {
+            headers: Object.keys(trainingPlans[0]),
+            rows: trainingPlans.map((r: any) => Object.values(r)),
+          };
+        }
+        break;
+      default:
+        // overview
+        if (overview) {
+          return {
+            headers: Object.keys(overview),
+            rows: [Object.values(overview)],
+          };
+        }
+        break;
+    }
+    return { headers: [], rows: [] };
+  }
+
+  function handleExportExcel() {
+    const tabName = TAB_NAMES[activeTab] ?? 'overview';
+    const date = new Date().toISOString().slice(0, 10);
+    const filename = `people-analytics-${tabName}-${date}.xlsx`;
+
+    const { headers, rows } = getExportData();
+    if (!headers.length) return;
+
+    const wsData = [headers, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, tabName);
+    XLSX.writeFile(wb, filename);
+  }
+
+  function handleExportPDF() {
+    const tabName = TAB_NAMES[activeTab] ?? 'overview';
+    const date = new Date().toISOString().slice(0, 10);
+    const filename = `people-analytics-${tabName}-${date}.pdf`;
+
+    const { headers, rows } = getExportData();
+    const doc = new jsPDF({ orientation: 'landscape' });
+
+    // Title
+    doc.setFontSize(16);
+    doc.text(`People Analytics — ${(SECTION_HEADERS[currentSection] ?? SECTION_HEADERS['overview']).title}`, 14, 18);
+    doc.setFontSize(10);
+    doc.text(`Exporté le ${date} | Période : ${period}${department ? ` | Département : ${department}` : ''}`, 14, 26);
+
+    if (!headers.length) {
+      doc.text('Aucune donnée disponible pour cet onglet.', 14, 40);
+      doc.save(filename);
+      return;
+    }
+
+    // Table
+    const startY = 34;
+    const cellPadding = 4;
+    const colWidth = Math.min(40, (doc.internal.pageSize.getWidth() - 28) / headers.length);
+
+    // Header row
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    headers.forEach((h, i) => {
+      doc.setFillColor(59, 130, 246);
+      doc.setTextColor(255, 255, 255);
+      doc.rect(14 + i * colWidth, startY, colWidth, 8, 'F');
+      doc.text(String(h).substring(0, 12), 14 + i * colWidth + 2, startY + 5.5);
+    });
+
+    // Data rows
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    rows.forEach((row, rIdx) => {
+      const y = startY + 8 + rIdx * 7;
+      if (y > doc.internal.pageSize.getHeight() - 15) {
+        doc.addPage();
+      }
+      const currentY = y > doc.internal.pageSize.getHeight() - 15 ? 20 + (rIdx % 30) * 7 : y;
+      if (rIdx % 2 === 0) {
+        doc.setFillColor(243, 244, 246);
+        doc.rect(14, currentY - cellPadding, colWidth * headers.length, 7, 'F');
+      }
+      row.forEach((cell, cIdx) => {
+        doc.text(String(cell ?? '').substring(0, 15), 14 + cIdx * colWidth + 2, currentY + 1.5);
+      });
+    });
+
+    doc.save(filename);
+  }
+
+  // ============================================
   // RENDER PRINCIPAL
   // ============================================
 
@@ -1912,11 +2087,11 @@ export default function PeopleAnalyticsPage() {
 
           {/* Export buttons */}
           <div data-tour="analytics-export" className="flex gap-2">
-            <button className="flex items-center gap-2 px-3 py-2 border rounded-lg text-sm hover:bg-gray-50 transition-colors">
+            <button onClick={handleExportExcel} className="flex items-center gap-2 px-3 py-2 border rounded-lg text-sm hover:bg-gray-50 transition-colors">
               <FileSpreadsheet size={14} />
               Excel
             </button>
-            <button className="flex items-center gap-2 px-3 py-2 border rounded-lg text-sm hover:bg-gray-50 transition-colors">
+            <button onClick={handleExportPDF} className="flex items-center gap-2 px-3 py-2 border rounded-lg text-sm hover:bg-gray-50 transition-colors">
               <FileText size={14} />
               PDF
             </button>

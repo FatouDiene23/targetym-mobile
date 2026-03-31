@@ -19,7 +19,7 @@ import {
   BarChart3, PieChart as PieChartIcon, Activity, Shield, Star,
   Zap, GraduationCap, Building2, ArrowUpRight, ArrowDownRight,
   RefreshCw, FileText, FileSpreadsheet, Brain, Eye, Banknote,
-  LayoutDashboard
+  LayoutDashboard, DollarSign
 } from "lucide-react";
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
@@ -333,15 +333,15 @@ export default function PeopleAnalyticsPage() {
 
   // --- Tabs ---
   const tabs = [
-    { label: "Vue d'ensemble", icon: <Eye size={16} /> },
-    { label: "Effectif & Structure", icon: <Users size={16} /> },
-    { label: "Performance", icon: <Target size={16} /> },
-    { label: "Talents", icon: <Star size={16} /> },
-    { label: "Formation", icon: <GraduationCap size={16} /> },
-    { label: "Engagement", icon: <Heart size={16} /> },
-    { label: "Recrutement", icon: <Briefcase size={16} /> },
-    { label: "Masse Salariale", icon: <Banknote size={16} /> },
-    { label: "Impact Formation", icon: <LayoutDashboard size={16} /> },
+    { label: "Vue d'ensemble", icon: <LayoutDashboard className="w-5 h-5" /> },
+    { label: "Effectif & Structure", icon: <Users className="w-5 h-5" /> },
+    { label: "Performance", icon: <TrendingUp className="w-5 h-5" /> },
+    { label: "Talents", icon: <Star className="w-5 h-5" /> },
+    { label: "Formation", icon: <GraduationCap className="w-5 h-5" /> },
+    { label: "Engagement", icon: <Heart className="w-5 h-5" /> },
+    { label: "Recrutement", icon: <UserPlus className="w-5 h-5" /> },
+    { label: "Masse Salariale", icon: <DollarSign className="w-5 h-5" /> },
+    { label: "Impact Formation", icon: <BarChart3 className="w-5 h-5" /> },
   ];
 
 
@@ -1939,22 +1939,28 @@ export default function PeopleAnalyticsPage() {
 
       {/* Layout : Sidebar verticale + Contenu */}
       <div className="flex gap-6">
-        {/* Navigation verticale */}
+        {/* Navigation verticale — style identique au module Formation & Développement */}
         <nav className="w-56 flex-shrink-0">
-          <div className="bg-white rounded-xl border sticky top-6">
-            <div className="p-2">
+          <div className="bg-gray-900 rounded-xl sticky top-6 flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="h-14 flex items-center px-4 border-b border-gray-700 flex-shrink-0">
+              <BarChart3 className="w-5 h-5 text-primary-400 mr-3 flex-shrink-0" />
+              <span className="font-semibold text-white text-sm truncate">People Analytics</span>
+            </div>
+            {/* Nav items */}
+            <div className="py-4 px-3 space-y-1 overflow-y-auto">
               {tabs.map((tab, i) => (
                 <button
                   key={i}
                   onClick={() => setActiveTab(i)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-0.5 ${
+                  className={`w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     activeTab === i
-                      ? "bg-blue-50 text-blue-700 border border-blue-200"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 border border-transparent"
+                      ? "bg-primary-500/20 text-primary-400 border-l-2 border-primary-500"
+                      : "text-gray-400 hover:bg-gray-800 hover:text-white border-l-2 border-transparent"
                   }`}
                 >
-                  <span className={activeTab === i ? "text-blue-600" : "text-gray-400"}>{tab.icon}</span>
-                  {tab.label}
+                  <span className="w-5 h-5 mr-3 flex-shrink-0">{tab.icon}</span>
+                  <span className="truncate">{tab.label}</span>
                 </button>
               ))}
             </div>

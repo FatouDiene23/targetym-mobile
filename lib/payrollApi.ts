@@ -18,6 +18,24 @@ export interface PayrollConfig {
   activated_at: string | null;
   created_at: string;
   updated_at: string;
+  // Identifiants employeur
+  ninea: string | null;
+  ipres_employer_number: string | null;
+  css_employer_number: string | null;
+  convention_collective: string | null;
+  company_address: string | null;
+}
+
+export interface PayrollBulletinHeader {
+  company_name: string;
+  company_email: string | null;
+  company_phone: string | null;
+  company_address: string | null;
+  ninea: string | null;
+  ipres_employer_number: string | null;
+  css_employer_number: string | null;
+  convention_collective: string | null;
+  currency_code: string;
 }
 
 export interface PayComponent {
@@ -115,6 +133,12 @@ export interface PayVariable {
 
 export async function getPayrollConfig(): Promise<PayrollConfig> {
   const r = await fetchWithAuth(`${API_URL}/api/payroll/config`);
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
+
+export async function getPayrollBulletinHeader(): Promise<PayrollBulletinHeader> {
+  const r = await fetchWithAuth(`${API_URL}/api/payroll/config/bulletin-header`);
   if (!r.ok) throw new Error(`${r.status}`);
   return r.json();
 }

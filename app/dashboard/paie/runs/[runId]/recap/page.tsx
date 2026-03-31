@@ -10,11 +10,12 @@ import toast from 'react-hot-toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import Link from 'next/link';
 import Header from '@/components/Header';
-import { getEmployees, type Employee } from '@/lib/api';
+import { getEmployees, getEmployee, type Employee } from '@/lib/api';
 import {
   getRun, getSlips, getSlip, simulateRun, validateRun,
-  formatXOF, MONTHS_FR, RUN_STATUS,
-  type PayrollRun, type PaySlip, type PaySlipLine,
+  formatXOF, MONTHS_FR, RUN_STATUS, getPayrollBulletinHeader,
+  type PayrollRun, type PaySlip, type PaySlipLine, type PayrollBulletinHeader,
+  getEmployeePayrollProfile, type EmployeePayrollProfile,
 } from '@/lib/payrollApi';
 
 // ── Composants ────────────────────────────────────────────────────────────────
@@ -56,76 +57,191 @@ function SlipLinesModal({
   const patronal = slip.lines.filter(l => l.component_type === 'employer_contribution');
 
   const handlePrint = () => {
-    const tableRows = (lines: PaySlipLine[]) => lines.map(l => `
-      <tr>
-        <td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;">${l.component_name}</td>
-        <td style="padding:6px 8px;text-align:right;color:#9ca3af;border-bottom:1px solid #f3f4f6;font-size:11px;">
-          ${l.base_amount != null ? `Base\u00a0: ${l.base_amount.toLocaleString('fr-SN')}` : ''}
-          ${l.rate != null ? ` \u00d7 ${(l.rate * 100).toFixed(2)}%` : ''}
-        </td>
-        <td style="padding:6px 8px;text-align:right;font-weight:600;border-bottom:1px solid #f3f4f6;">${l.amount.toLocaleString('fr-SN')}</td>
-      </tr>`).join('');
+    (async () => {
+      // Open the window first (must be in sync context to avoid popup blocker)
+      const win = window.open('', '_blank', 'width=860,height=760');
+      if (!win) { toast.error('Popup bloqué — autorisez les popups pour ce site'); return; }
+      win.document.write('<html><body><p style="font-family:sans-serif;padding:20px;color:#6b7280;">Génération du bulletin…</p></body></html>');
 
-    const section = (title: string, color: string, lines: PaySlipLine[]) => lines.length === 0 ? '' : `
-      <tr><td colspan="3" style="padding:10px 8px 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:${color};">${title}</td></tr>
-      ${tableRows(lines)}`;
+      try {
+        const [header, profile, employee] = await Promise.all([
+          getPayrollBulletinHeader().catch(() => null),
+          getEmployeePayrollProfile(slip.employee_id).catch(() => null),
+          getEmployee(slip.employee_id).catch(() => null),
+        ]);
 
-    const html = `<!DOCTYPE html><html lang="fr">
+        const fmt = (n: number | null | undefined) =>
+          n != null ? n.toLocaleString('fr-SN') + ' XOF' : '—';
+
+        const contractLabels: Record<string, string> = {
+          cdi: 'CDI', cdd: 'CDD', stage: 'Stage', consultant: 'Consultant',
+        };
+
+        const maskBan = (s: string | null | undefined) => {
+          if (!s) return '—';
+          return s.length > 4 ? '*'.repeat(s.length - 4) + s.slice(-4) : s;
+        };
+
+        const tableRows = (lines: PaySlipLine[]) => lines.map(l => `
+          <tr>
+            <td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;">${l.component_name}</td>
+            <td style="padding:6px 8px;text-align:right;color:#9ca3af;border-bottom:1px solid #f3f4f6;font-size:11px;">
+              ${l.base_amount != null ? `Base\u00a0: ${l.base_amount.toLocaleString('fr-SN')}` : ''}
+              ${l.rate != null ? ` \u00d7 ${(l.rate * 100).toFixed(2)}%` : ''}
+            </td>
+            <td style="padding:6px 8px;text-align:right;font-weight:600;border-bottom:1px solid #f3f4f6;">${l.amount.toLocaleString('fr-SN')}</td>
+          </tr>`).join('');
+
+        const section = (title: string, color: string, lines: PaySlipLine[]) =>
+          lines.length === 0 ? '' : `
+          <tr><td colspan="3" style="padding:10px 8px 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:${color};">${title}</td></tr>
+          ${tableRows(lines)}`;
+
+        const infoRow = (label: string, value: string) =>
+          `<div style="display:flex;gap:4px;margin-bottom:4px;">
+            <span style="color:#9ca3af;min-width:120px;font-size:11px;">${label}</span>
+            <span style="font-size:11px;font-weight:500;">${value}</span>
+          </div>`;
+
+        const hireDate = employee?.hire_date
+          ? new Date(employee.hire_date).toLocaleDateString('fr-FR') : '—';
+
+        const html = `<!DOCTYPE html><html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Bulletin — ${empName} — ${MONTHS_FR[run.period_month - 1]} ${run.period_year}</title>
+  <title>Bulletin de paie — ${empName} — ${MONTHS_FR[run.period_month - 1]} ${run.period_year}</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1f2937; margin: 0; padding: 24px; }
-    @media print { @page { margin: 15mm; } .no-print { display: none; } }
-    .page { max-width: 700px; margin: 0 auto; }
-    .header-bar { background: #1d4ed8; color: white; padding: 16px 20px; border-radius: 8px; margin-bottom: 20px; }
-    .header-bar h1 { color: white; font-size: 16px; font-weight: 700; margin: 0 0 8px; }
-    .header-bar .meta { display: flex; gap: 20px; font-size: 12px; opacity: 0.85; flex-wrap: wrap; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px; }
-    .summary { background: #f9fafb; border-radius: 8px; padding: 14px 16px; font-size: 13px; margin-top: 16px; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color: #1f2937; margin: 0; padding: 24px; font-size: 13px; }
+    @media print { @page { margin: 12mm; size: A4; } .no-print { display: none !important; } body { padding: 0; } }
+    .page { max-width: 720px; margin: 0 auto; }
+
+    /* En-tête employeur / titre */
+    .slip-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1d4ed8; padding-bottom: 14px; margin-bottom: 16px; }
+    .company-block h1 { font-size: 16px; font-weight: 800; color: #1d4ed8; margin: 0 0 4px; }
+    .company-block p { margin: 0; font-size: 11px; color: #6b7280; line-height: 1.5; }
+    .slip-title { text-align: right; }
+    .slip-title h2 { font-size: 18px; font-weight: 800; color: #1f2937; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .slip-title p { margin: 0; font-size: 12px; color: #6b7280; }
+
+    /* Blocs employé / contrat */
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .info-block { background: #f9fafb; border-radius: 8px; padding: 12px 14px; }
+    .info-block h3 { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #9ca3af; margin: 0 0 8px; }
+
+    /* Tableau des lignes */
+    table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; }
+    table th { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #9ca3af; padding: 6px 8px; border-bottom: 2px solid #e5e7eb; text-align: left; }
+    table th:last-child, table td:last-child { text-align: right; }
+    table th:nth-child(2), table td:nth-child(2) { text-align: right; }
+
+    /* Récapitulatif */
+    .summary { background: #f9fafb; border-radius: 8px; padding: 14px 16px; font-size: 13px; }
     .summary-row { display: flex; justify-content: space-between; padding: 4px 0; }
-    .summary-row.total { font-size: 15px; font-weight: 700; border-top: 1px solid #e5e7eb; margin-top: 8px; padding-top: 10px; }
-    .green { color: #15803d; } .red { color: #dc2626; } .orange { color: #ea580c; }
-    .footer { margin-top: 40px; font-size: 11px; color: #9ca3af; text-align: center; }
+    .summary-row.total { font-size: 16px; font-weight: 800; border-top: 2px solid #1d4ed8; margin-top: 10px; padding-top: 10px; color: #1d4ed8; }
+    .summary-row.sub { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+    .red { color: #dc2626; } .green { color: #16a34a; }
+
+    /* Pied de page */
+    .payment-row { margin-top: 14px; padding: 10px 14px; background: #eff6ff; border-radius: 8px; font-size: 12px; color: #1d4ed8; }
+    .legal { margin-top: 20px; font-size: 10px; color: #9ca3af; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 10px; }
     .no-print { margin-top: 24px; text-align: center; padding-bottom: 16px; }
     .btn-print { background: #1d4ed8; color: white; border: none; padding: 10px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
-    .btn-print:hover { background: #1e40af; }
   </style>
 </head>
 <body>
   <div class="page">
-    <div class="header-bar">
-      <h1>Bulletin de paie</h1>
-      <div class="meta">
-        <span>Employ\u00e9 : ${empName}</span>
-        <span>P\u00e9riode : ${MONTHS_FR[run.period_month - 1]} ${run.period_year}</span>
-        <span>\u00c9mis le : ${new Date().toLocaleDateString('fr-FR')}</span>
+
+    <!-- En-tête -->
+    <div class="slip-header">
+      <div class="company-block">
+        <h1>${header?.company_name ?? 'Entreprise'}</h1>
+        ${header?.company_address ? `<p>${header.company_address.replace(/\n/g, '<br>')}</p>` : ''}
+        ${header?.company_phone ? `<p>Tél : ${header.company_phone}</p>` : ''}
+        ${header?.ninea ? `<p>NINEA : <strong>${header.ninea}</strong></p>` : ''}
+        ${header?.ipres_employer_number ? `<p>N° IPRES employeur : <strong>${header.ipres_employer_number}</strong></p>` : ''}
+        ${header?.css_employer_number ? `<p>N° CSS employeur : <strong>${header.css_employer_number}</strong></p>` : ''}
+        ${header?.convention_collective ? `<p>Conv. collective : ${header.convention_collective}</p>` : ''}
+      </div>
+      <div class="slip-title">
+        <h2>Bulletin de Paie</h2>
+        <p>${MONTHS_FR[run.period_month - 1]} ${run.period_year}</p>
+        <p style="margin-top:6px;font-size:11px;color:#9ca3af;">Émis le ${new Date().toLocaleDateString('fr-FR')}</p>
       </div>
     </div>
-    <table><tbody>
-      ${section('Gains', '#15803d', gains)}
-      ${section('Retenues salariales', '#dc2626', deductions)}
-      ${section('Charges patronales', '#ea580c', patronal)}
-    </tbody></table>
-    <div class="summary">
-      <div class="summary-row"><span style="color:#6b7280;">Salaire brut</span><span style="font-weight:600;">${formatXOF(slip.brut_total)}</span></div>
-      <div class="summary-row"><span style="color:#6b7280;">Cotisations salariales</span><span style="font-weight:600;" class="red">- ${formatXOF(slip.cotisations_salariales)}</span></div>
-      <div class="summary-row"><span style="color:#6b7280;">IR</span><span style="font-weight:600;" class="red">- ${formatXOF(slip.ir_amount)}</span></div>
-      <div class="summary-row total"><span>Net \u00e0 payer</span><span class="green">${formatXOF(slip.net_a_payer)}</span></div>
-      <div class="summary-row" style="margin-top:8px;"><span style="color:#9ca3af;font-size:11px;">Charges patronales</span><span style="color:#9ca3af;font-size:11px;">${formatXOF(slip.charges_patronales)}</span></div>
+
+    <!-- Infos employé / contrat -->
+    <div class="info-grid">
+      <div class="info-block">
+        <h3>Employé</h3>
+        ${infoRow('Nom', empName)}
+        ${infoRow('Matricule', employee?.employee_id ?? '—')}
+        ${employee?.department_name ? infoRow('Service', employee.department_name) : ''}
+        ${employee?.job_title ? infoRow('Poste', employee.job_title) : ''}
+        ${infoRow('Date d\'entrée', hireDate)}
+      </div>
+      <div class="info-block">
+        <h3>Contrat &amp; Rémunération</h3>
+        ${infoRow('Type de contrat', contractLabels[profile?.contract_type ?? ''] ?? profile?.contract_type ?? (employee?.contract_type ?? '—'))}
+        ${infoRow('Classification', profile?.classification ?? employee?.classification ?? '—')}
+        ${infoRow('Parts fiscales', profile?.family_parts != null ? String(profile.family_parts) : '—')}
+        ${profile?.bank_name ? infoRow('Banque', profile.bank_name) : ''}
+        ${infoRow('RIB', maskBan(profile?.bank_account_number))}
+      </div>
     </div>
-    <div class="footer">Document g\u00e9n\u00e9r\u00e9 automatiquement \u2014 Targetym</div>
+
+    <!-- Lignes du bulletin -->
+    <table>
+      <thead>
+        <tr>
+          <th>Rubrique</th>
+          <th style="text-align:right;">Base / Taux</th>
+          <th style="text-align:right;">Montant (XOF)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${section('Gains', '#15803d', gains)}
+        ${section('Retenues salariales', '#dc2626', deductions)}
+        ${section('Charges patronales', '#ea580c', patronal)}
+      </tbody>
+    </table>
+
+    <!-- Récapitulatif -->
+    <div class="summary">
+      <div class="summary-row"><span style="color:#6b7280;">Salaire brut</span><span style="font-weight:600;">${fmt(slip.brut_total)}</span></div>
+      <div class="summary-row"><span style="color:#6b7280;">Cotisations salariales</span><span class="red" style="font-weight:600;">− ${fmt(slip.cotisations_salariales)}</span></div>
+      <div class="summary-row"><span style="color:#6b7280;">Impôt sur le revenu (IR)</span><span class="red" style="font-weight:600;">− ${fmt(slip.ir_amount)}</span></div>
+      <div class="summary-row total"><span>Net à Payer</span><span>${fmt(slip.net_a_payer)}</span></div>
+      <div class="summary-row sub"><span>Charges patronales (à la charge de l'employeur)</span><span>${fmt(slip.charges_patronales)}</span></div>
+    </div>
+
+    <!-- Mode de paiement -->
+    ${profile?.bank_account_number ? `
+    <div class="payment-row">
+      Paiement par virement bancaire — ${profile.bank_name ?? ''} — RIB : ${maskBan(profile.bank_account_number)}
+    </div>` : ''}
+
+    <!-- Mention légale -->
+    <div class="legal">
+      Conserver ce bulletin de paie sans limitation de durée (Code du Travail sénégalais, art. L.103).<br>
+      Document généré par Targetym RH — ${new Date().toLocaleDateString('fr-FR')}
+    </div>
+
     <div class="no-print">
       <button class="btn-print" onclick="window.print();">Imprimer / Sauvegarder en PDF</button>
     </div>
   </div>
 </body></html>`;
 
-    const win = window.open('', '_blank', 'width=820,height=720');
-    if (!win) { toast.error('Popup bloqu\u00e9 — autorisez les popups pour ce site'); return; }
-    win.document.write(html);
-    win.document.close();
-    win.focus();
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+        win.focus();
+      } catch {
+        win.close();
+        toast.error('Erreur lors de la génération du bulletin');
+      }
+    })();
   };
 
   const LineTable = ({ lines, title, colorClass }: { lines: PaySlipLine[]; title: string; colorClass: string }) => (

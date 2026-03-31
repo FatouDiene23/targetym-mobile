@@ -822,6 +822,14 @@ function LeaveTypesModal({
           )}
         </div>
       </div>
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        danger={confirmDialog.danger}
+      />
     </div>
   );
 }
@@ -2268,14 +2276,6 @@ export default function LeavesManagementPage() {
         onClose={() => setShowNewLeaveModal(false)}
         leaveTypes={leaveTypes}
         onSuccess={() => { loadRequests(); loadData(); }}
-      />
-      <ConfirmDialog
-        isOpen={confirmDialog.open}
-        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
-        onConfirm={confirmDialog.onConfirm}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        danger={confirmDialog.danger}
       />
     </>
   );

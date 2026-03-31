@@ -395,17 +395,7 @@ export default function PeopleAnalyticsPage() {
     </div>
   );
 
-  const renderBadge = (type: string) => {
-    const styles: Record<string, string> = {
-      real: "bg-green-50 text-green-700 border-green-200",
-      hardcoded: "bg-amber-50 text-amber-700 border-amber-200",
-    };
-    return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${styles[type] || ""}`}>
-        {type === "real" ? "📊 Données réelles" : "📋 Données simulées"}
-      </span>
-    );
-  };
+
 
   const AlertIcon = ({ type }: { type: string }) => {
     if (type === "AlertTriangle") return <AlertTriangle size={16} />;
@@ -525,8 +515,7 @@ export default function PeopleAnalyticsPage() {
         <div className="flex items-center gap-2 mb-4">
           <Brain size={20} className="text-purple-600" />
           <h3 className="font-semibold text-gray-900">Alertes & Recommandations</h3>
-          {renderBadge("real")}
-        </div>
+                  </div>
         {alertesIA.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-4">Aucune alerte — tous les indicateurs sont dans la norme.</p>
         ) : (
@@ -566,8 +555,7 @@ export default function PeopleAnalyticsPage() {
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Évolution des effectifs</h3>
-            {renderBadge("real")}
-          </div>
+                      </div>
           <ResponsiveContainer width="100%" height={250}>
             <AreaChart data={effectifsEvolution}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -585,7 +573,6 @@ export default function PeopleAnalyticsPage() {
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Performance par équipe</h3>
-            {renderBadge(byDept.length > 0 ? "real" : "real")}
           </div>
           {byDept.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
@@ -636,8 +623,7 @@ export default function PeopleAnalyticsPage() {
 
   const renderEffectif = () => (
     <div className="space-y-6">
-      {renderBadge("real")}
-
+      
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-3">
         {renderKPICard("Effectif total", overview?.total_employees ?? "—", <Users size={20} className="text-blue-600" />, "bg-blue-50")}
@@ -741,8 +727,7 @@ export default function PeopleAnalyticsPage() {
 
     return (
     <div className="space-y-6">
-      {renderBadge("real")}
-
+      
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
         {renderKPICard(
@@ -780,8 +765,7 @@ export default function PeopleAnalyticsPage() {
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Score moyen par département</h3>
-            {renderBadge("real")}
-          </div>
+                      </div>
           {byDept.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={byDept} layout="vertical">
@@ -808,8 +792,7 @@ export default function PeopleAnalyticsPage() {
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Distribution des évaluations</h3>
-            {renderBadge("real")}
-          </div>
+                      </div>
           {dist.some((d: any) => d.count > 0) ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={dist}>
@@ -838,8 +821,7 @@ export default function PeopleAnalyticsPage() {
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Statut des OKR</h3>
-            {renderBadge("real")}
-          </div>
+                      </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { label: "On Track", value: okr.on_track, color: "text-green-600 bg-green-50", border: "border-green-200" },
@@ -860,8 +842,7 @@ export default function PeopleAnalyticsPage() {
       <div className="bg-white rounded-xl border p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-900">Performance par manager</h3>
-          {renderBadge("real")}
-        </div>
+                  </div>
         {perfByManager.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -918,8 +899,7 @@ export default function PeopleAnalyticsPage() {
 
     return (
     <div className="space-y-6">
-      {renderBadge("real")}
-
+      
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-3">
         {renderKPICard(
@@ -955,8 +935,7 @@ export default function PeopleAnalyticsPage() {
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Distribution 9-Box</h3>
-            {renderBadge("real")}
-          </div>
+                      </div>
           {hasNinebox ? (
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -989,8 +968,7 @@ export default function PeopleAnalyticsPage() {
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Couverture de succession</h3>
-            {renderBadge("real")}
-          </div>
+                      </div>
           <div className="space-y-4 overflow-y-auto max-h-72">
             {plans.length > 0 ? plans.map((s: any, i: number) => (
               <div key={i} className="flex items-center gap-4">
@@ -1047,8 +1025,7 @@ export default function PeopleAnalyticsPage() {
 
     return (
     <div className="space-y-6">
-      {renderBadge("real")}
-
+      
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
         {renderKPICard(
@@ -1086,8 +1063,7 @@ export default function PeopleAnalyticsPage() {
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Formations par catégorie</h3>
-            {renderBadge("real")}
-          </div>
+                      </div>
           {hasCat ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={formationByCategory}>
@@ -1113,8 +1089,7 @@ export default function PeopleAnalyticsPage() {
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Évolution mensuelle</h3>
-            {renderBadge("real")}
-          </div>
+                      </div>
           {hasEvol ? (
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={formationEvolution}>
@@ -1173,8 +1148,7 @@ export default function PeopleAnalyticsPage() {
     const hasAbsence = absenteismeByDept.length > 0;
     return (
     <div className="space-y-6">
-      {renderBadge("real")}
-
+      
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
         {renderKPICard("Index engagement", "—", <Heart size={20} className="text-pink-600" />, "bg-pink-50", "Fonctionnalité à venir")}
@@ -1188,8 +1162,7 @@ export default function PeopleAnalyticsPage() {
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Tendance engagement & satisfaction</h3>
-            {renderBadge("real")}
-          </div>
+                      </div>
           <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
             <Heart size={40} className="mb-3 opacity-30" />
             <p className="text-sm font-medium">Données non disponibles</p>
@@ -1201,8 +1174,7 @@ export default function PeopleAnalyticsPage() {
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Facteurs de satisfaction</h3>
-            {renderBadge("real")}
-          </div>
+                      </div>
           <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
             <Star size={40} className="mb-3 opacity-30" />
             <p className="text-sm font-medium">Données non disponibles</p>
@@ -1215,8 +1187,7 @@ export default function PeopleAnalyticsPage() {
       <div className="bg-white rounded-xl border p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-900">Absentéisme par département</h3>
-          {renderBadge("real")}
-        </div>
+                  </div>
         {hasAbsence ? (
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={absenteismeByDept}>
@@ -1273,8 +1244,6 @@ export default function PeopleAnalyticsPage() {
 
     return (
     <div className="space-y-6">
-      {renderBadge(hasReal ? "real" : "hardcoded")}
-
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-3">
         {renderKPICard(
@@ -1361,7 +1330,6 @@ export default function PeopleAnalyticsPage() {
       <div className="bg-white rounded-xl border p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-900">Sources de recrutement</h3>
-          {renderBadge(sources.length > 0 ? "real" : "hardcoded")}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -1405,8 +1373,7 @@ export default function PeopleAnalyticsPage() {
 
   const renderMasseSalariale = () => (
     <div className="space-y-6">
-      {renderBadge("real")}
-
+      
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-3">
         {renderKPICard(
@@ -1664,8 +1631,7 @@ export default function PeopleAnalyticsPage() {
 
     return (
       <div className="space-y-6">
-        {renderBadge("real")}
-
+        
         {/* KPIs globaux */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-3">
           {renderKPICard(
@@ -1710,8 +1676,7 @@ export default function PeopleAnalyticsPage() {
           <div className="bg-white rounded-xl border p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-900">Employés formés par département</h3>
-              {renderBadge("real")}
-            </div>
+                          </div>
             {deptChartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={deptChartData}>
@@ -1739,8 +1704,7 @@ export default function PeopleAnalyticsPage() {
           <div className="bg-white rounded-xl border p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-900">Impact sur les OKR</h3>
-              {renderBadge("real")}
-            </div>
+                          </div>
             {plansWithOkr.length > 0 ? (
               <div className="space-y-4 max-h-[300px] overflow-y-auto">
                 {plansWithOkr.map((okr: any, i: number) => {

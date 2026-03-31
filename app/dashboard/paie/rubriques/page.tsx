@@ -22,6 +22,7 @@ const CALC_TYPES = [
   { value: 'lookup_table',           label: 'Barème (table de taux)' },
   { value: 'progressive',            label: 'Barème progressif (IR)' },
   { value: 'formula',                label: 'Formule personnalisée' },
+  { value: 'manual_variable',        label: 'Variable manuelle (saisie par période)' },
 ];
 
 function getDefaultParams(calcType: string): Record<string, unknown> {
@@ -32,6 +33,7 @@ function getDefaultParams(calcType: string): Record<string, unknown> {
     case 'lookup_table':            return { table_code: '', base: 'brut' };
     case 'progressive':             return { base: 'taxable' };
     case 'formula':                 return { formula: '' };
+    case 'manual_variable':         return {};
     default:                        return {};
   }
 }

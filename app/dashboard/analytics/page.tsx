@@ -22,7 +22,6 @@ import {
   RefreshCw, FileText, FileSpreadsheet, Brain, Eye, Banknote
 } from "lucide-react";
 import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { analyticsTips } from '@/config/pageTips';
@@ -1958,59 +1957,7 @@ export default function PeopleAnalyticsPage() {
   }
 
   function handleExportPDF() {
-    const tabName = TAB_NAMES[activeTab] ?? 'overview';
-    const date = new Date().toISOString().slice(0, 10);
-    const filename = `people-analytics-${tabName}-${date}.pdf`;
-
-    const { headers, rows } = getExportData();
-    const doc = new jsPDF({ orientation: 'landscape' });
-
-    // Title
-    doc.setFontSize(16);
-    doc.text(`People Analytics — ${(SECTION_HEADERS[currentSection] ?? SECTION_HEADERS['overview']).title}`, 14, 18);
-    doc.setFontSize(10);
-    doc.text(`Exporté le ${date} | Période : ${period}${department ? ` | Département : ${department}` : ''}`, 14, 26);
-
-    if (!headers.length) {
-      doc.text('Aucune donnée disponible pour cet onglet.', 14, 40);
-      doc.save(filename);
-      return;
-    }
-
-    // Table
-    const startY = 34;
-    const cellPadding = 4;
-    const colWidth = Math.min(40, (doc.internal.pageSize.getWidth() - 28) / headers.length);
-
-    // Header row
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    headers.forEach((h, i) => {
-      doc.setFillColor(59, 130, 246);
-      doc.setTextColor(255, 255, 255);
-      doc.rect(14 + i * colWidth, startY, colWidth, 8, 'F');
-      doc.text(String(h).substring(0, 12), 14 + i * colWidth + 2, startY + 5.5);
-    });
-
-    // Data rows
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(0, 0, 0);
-    rows.forEach((row, rIdx) => {
-      const y = startY + 8 + rIdx * 7;
-      if (y > doc.internal.pageSize.getHeight() - 15) {
-        doc.addPage();
-      }
-      const currentY = y > doc.internal.pageSize.getHeight() - 15 ? 20 + (rIdx % 30) * 7 : y;
-      if (rIdx % 2 === 0) {
-        doc.setFillColor(243, 244, 246);
-        doc.rect(14, currentY - cellPadding, colWidth * headers.length, 7, 'F');
-      }
-      row.forEach((cell, cIdx) => {
-        doc.text(String(cell ?? '').substring(0, 15), 14 + cIdx * colWidth + 2, currentY + 1.5);
-      });
-    });
-
-    doc.save(filename);
+    window.print();
   }
 
   // ============================================
@@ -2031,6 +1978,14 @@ export default function PeopleAnalyticsPage() {
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto">
+      {/* Print CSS */}
+      <style>{`
+        @media print {
+          nav, aside, .sidebar, .no-print, [data-tour] > div { display: none !important; }
+          .print-content { width: 100% !important; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      `}</style>
       {showTips && (
         <PageTourTips
           tips={analyticsTips}

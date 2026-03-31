@@ -53,7 +53,7 @@ import {
   DollarSign,
   PlayCircle,
 } from 'lucide-react';
-import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense, useCallback } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
 import { usePlan, FEATURE_OKR, FEATURE_CAREERS, FEATURE_LEARNING, FEATURE_PERFORMANCE, FEATURE_ANALYTICS, FEATURE_DEPARTURES, FEATURE_CERTIFICATES, FEATURE_DOCUMENTS, FEATURE_TASKS, getRequiredPlanLabel } from '@/hooks/usePlan';
 import { PlanBadge } from '@/components/PlanGate';
@@ -320,6 +320,8 @@ function SidebarInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [user, setUser] = useState<UserData | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [inMySpace, setInMySpace] = useState(false);
@@ -329,6 +331,26 @@ function SidebarInner() {
   const [inPersonnel, setInPersonnel] = useState(false);
   const [isManager, setIsManager] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Détecter mobile
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Fermer la sidebar mobile lors de la navigation
+  useEffect(() => {
+    if (isMobile) setMobileOpen(false);
+  }, [pathname, isMobile]);
+
+  // Écouter l'event pour ouvrir/fermer la sidebar mobile
+  useEffect(() => {
+    const handleToggle = () => setMobileOpen(prev => !prev);
+    window.addEventListener('toggle-mobile-sidebar', handleToggle);
+    return () => window.removeEventListener('toggle-mobile-sidebar', handleToggle);
+  }, []);
 
   // Plan gating
   const { hasFeature } = usePlan();
@@ -408,7 +430,7 @@ function SidebarInner() {
     localStorage.removeItem('impersonated_user_email');
     localStorage.removeItem('impersonated_by_email');
     localStorage.removeItem('impersonated_tenant_slug');
-    window.location.href = 'https://www.targetym.ai/login';
+    window.location.replace('/login/index.html');
   };
 
   // Apply plan gating: add disabled + disabledReason based on feature access
@@ -1219,12 +1241,69 @@ function SidebarInner() {
 }
 
 // ============================================
+// MOBILE SIDEBAR WRAPPER
+// ============================================
+function MobileSidebarWrapper({ children }: { children: React.ReactNode }) {
+  const [isMobile, setIsMobile] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    const handleToggle = () => setOpen(prev => !prev);
+    window.addEventListener('toggle-mobile-sidebar', handleToggle);
+    return () => window.removeEventListener('toggle-mobile-sidebar', handleToggle);
+  }, []);
+
+  // Fermer quand on clique un lien (navigation)
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('a') && open) {
+        setTimeout(() => setOpen(false), 100);
+      }
+    };
+    if (open) document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [open]);
+
+  if (!isMobile) return <>{children}</>;
+
+  return (
+    <>
+      {/* Overlay sombre */}
+      {open && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40"
+          onClick={() => setOpen(false)}
+        />
+      )}
+      {/* Sidebar en drawer */}
+      <div
+        className={`fixed top-0 left-0 h-full z-50 transition-transform duration-300 ${
+          open ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {children}
+      </div>
+    </>
+  );
+}
+
+// ============================================
 // SIDEBAR COMPONENT
 // ============================================
 export default function Sidebar() {
   return (
-    <Suspense fallback={null}>
-      <SidebarInner />
-    </Suspense>
+    <MobileSidebarWrapper>
+      <Suspense fallback={null}>
+        <SidebarInner />
+      </Suspense>
+    </MobileSidebarWrapper>
   );
 }

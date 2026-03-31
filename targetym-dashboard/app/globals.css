@@ -102,6 +102,66 @@ body {
 }
 
 /* ============================================
+   RESPONSIVE MOBILE STYLES
+   ============================================ */
+
+/* Grids — passer en 1 colonne sur mobile */
+@media (max-width: 1023px) {
+  /* Grids 2/3/4/5/6 colonnes → 1 colonne */
+  .grid-cols-2, .grid-cols-3, .grid-cols-4, .grid-cols-5, .grid-cols-6 {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+
+  /* Tables — scroll horizontal */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Padding réduit sur les pages */
+  .p-6, .p-8 {
+    padding: 1rem !important;
+  }
+  .px-6, .px-8 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Texte des titres plus petit */
+  .text-3xl {
+    font-size: 1.5rem !important;
+    line-height: 2rem !important;
+  }
+  .text-4xl {
+    font-size: 1.75rem !important;
+    line-height: 2.25rem !important;
+  }
+
+  /* Cacher les éléments desktop-only */
+  .hidden-mobile {
+    display: none !important;
+  }
+
+  /* Flex wrap sur mobile */
+  .flex-nowrap {
+    flex-wrap: wrap !important;
+  }
+
+  /* Cards KPI — empiler */
+  .gap-6 {
+    gap: 1rem !important;
+  }
+}
+
+/* Grids 2 colonnes sur tablette */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .grid-cols-3, .grid-cols-4, .grid-cols-5, .grid-cols-6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* ============================================
    APP TOUR ANIMATIONS
    ============================================ */
 

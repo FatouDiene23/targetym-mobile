@@ -329,7 +329,26 @@ function DashboardContent({
     <div className="flex min-h-screen bg-gray-50">
       <ImpersonationBanner />
       <Sidebar />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto min-w-0">
+        {/* Barre mobile avec hamburger */}
+        <div className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+          <button
+            onClick={() => window.dispatchEvent(new Event('toggle-mobile-sidebar'))}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            aria-label="Menu"
+          >
+            <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <div className="flex items-center space-x-2">
+            <div className="w-7 h-7 bg-primary-500 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-xs">T</span>
+            </div>
+            <span className="font-bold text-gray-900 text-sm">Targetym AI</span>
+          </div>
+          <div className="w-10" />
+        </div>
         {/* Bandeau contexte groupe — visible uniquement sur Dashboard et People Analytics */}
         {showGroupContextSwitcher && <GroupContextSwitcher />}
         {children}

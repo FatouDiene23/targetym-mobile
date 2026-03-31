@@ -11,7 +11,7 @@ import {
   Plus, Search, Eye, Edit, Copy, X, ChevronLeft, Trash2,
   Calendar, Target, Users, DollarSign, FileText,
   BarChart3, Clock, CheckCircle, AlertTriangle, RefreshCw, MapPin,
-  Crosshair, Building2, Link,
+  Crosshair, Building2, Link, TrendingUp, Star, ArrowUp, ArrowDown,
 } from 'lucide-react';
 import { useLearning } from '../LearningContext';
 import { API_URL, getAuthHeaders, hasPermission } from '../shared';
@@ -260,7 +260,7 @@ export default function PlanFormationPage() {
 
   // ── Detail view state ──
   const [selectedPlan, setSelectedPlan] = useState<TrainingPlan | null>(null);
-  const [detailTab, setDetailTab] = useState<'actions' | 'calendar' | 'needs' | 'objectives' | 'targets' | 'budget'>('actions');
+  const [detailTab, setDetailTab] = useState<'actions' | 'calendar' | 'needs' | 'objectives' | 'targets' | 'budget' | 'analytics'>('actions');
   const [actions, setActions] = useState<PlanAction[]>([]);
   const [schedules, setSchedules] = useState<PlanSchedule[]>([]);
   const [needs, setNeeds] = useState<PlanNeed[]>([]);
@@ -961,9 +961,10 @@ export default function PlanFormationPage() {
                 { key: 'actions' as const, label: 'Actions', icon: Target, count: actions.length },
                 { key: 'calendar' as const, label: 'Calendrier', icon: Calendar, count: schedules.length },
                 { key: 'needs' as const, label: 'Besoins', icon: Users, count: needs.length },
+                { key: 'budget' as const, label: 'Budget', icon: DollarSign },
                 { key: 'objectives' as const, label: 'Objectifs', icon: Crosshair, count: objectives.length },
                 { key: 'targets' as const, label: 'Cibles', icon: Building2, count: targets.length },
-                { key: 'budget' as const, label: 'Budget', icon: DollarSign },
+                { key: 'analytics' as const, label: 'Analytics', icon: BarChart3 },
               ]).map(tab => (
                 <button
                   key={tab.key}
@@ -1040,6 +1041,17 @@ export default function PlanFormationPage() {
                   />
                 )}
                 {detailTab === 'budget' && <BudgetTab budget={budget} />}
+                {detailTab === 'analytics' && selectedPlan && (
+                  <AnalyticsTab
+                    plan={selectedPlan}
+                    actions={actions}
+                    schedules={schedules}
+                    needs={needs}
+                    objectives={objectives}
+                    budget={budget}
+                    onSwitchTab={() => setDetailTab('actions')}
+                  />
+                )}
               </>
             )}
           </div>
@@ -2578,6 +2590,330 @@ function BudgetTab({ budget }: { budget: BudgetSummary | null }) {
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+// ============================================
+// ANALYTICS TAB
+// ============================================
+
+interface AnalyticsData {
+  satisfaction: { avg_score: number; total_evaluations: number } | null;
+  skills: { id: number; name: string; avg_before: number | null; avg_after: number | null }[];
+  okrs: { id: number; title: string; progress: number }[];
+}
+
+function AnalyticsTab({
+  plan, actions, schedules, needs, objectives, budget, onSwitchTab,
+}: {
+  plan: TrainingPlan;
+  actions: PlanAction[];
+  schedules: PlanSchedule[];
+  needs: PlanNeed[];
+  objectives: PlanObjective[];
+  budget: BudgetSummary | null;
+  onSwitchTab: () => void;
+}) {
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({ satisfaction: null, skills: [], okrs: [] });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      setLoading(true);
+      const headers = getAuthHeaders();
+      const result: AnalyticsData = { satisfaction: null, skills: [], okrs: [] };
+
+      try {
+        // Fetch satisfaction from assignments
+        const assignRes = await fetch(`${API_URL}/api/learning/assignments/?plan_id=${plan.id}`, { headers });
+        if (assignRes.ok) {
+          const data = await assignRes.json();
+          const items = data.items || data.results || [];
+          const scored = items.filter((a: { satisfaction_score?: number | null }) => a.satisfaction_score != null);
+          if (scored.length > 0) {
+            const avg = scored.reduce((sum: number, a: { satisfaction_score: number }) => sum + a.satisfaction_score, 0) / scored.length;
+            result.satisfaction = { avg_score: Math.round(avg * 10) / 10, total_evaluations: scored.length };
+          }
+        }
+
+        // Fetch skills data
+        const skillsRes = await fetch(`${API_URL}/api/learning/skills/`, { headers });
+        if (skillsRes.ok) {
+          const data = await skillsRes.json();
+          const allSkills = data.items || data.results || [];
+          const needSkills = new Set(needs.map(n => n.skill_target?.toLowerCase()).filter(Boolean));
+          result.skills = allSkills
+            .filter((s: { name: string }) => needSkills.has(s.name?.toLowerCase()))
+            .map((s: { id: number; name: string; avg_before?: number | null; avg_after?: number | null }) => ({
+              id: s.id,
+              name: s.name,
+              avg_before: s.avg_before ?? null,
+              avg_after: s.avg_after ?? null,
+            }));
+        }
+
+        // Fetch OKR objectives
+        const okrObjectives = objectives.filter(o => o.okr_id != null);
+        const okrResults = await Promise.all(
+          okrObjectives.map(async (o) => {
+            try {
+              const res = await fetch(`${API_URL}/api/okr/objectives/${o.okr_id}`, { headers });
+              if (res.ok) {
+                const d = await res.json();
+                return { id: d.id, title: d.title || o.okr_title || o.title, progress: d.progress_pct ?? d.progress ?? 0 };
+              }
+            } catch { /* ignore */ }
+            return { id: o.okr_id!, title: o.okr_title || o.title, progress: o.progress_pct ?? 0 };
+          })
+        );
+        result.okrs = okrResults;
+      } catch { /* ignore */ }
+
+      setAnalyticsData(result);
+      setLoading(false);
+    };
+
+    fetchAnalytics();
+  }, [plan.id, needs, objectives]);
+
+  // KPI calculations
+  const completedActions = actions.filter(a => schedules.some(s => s.action_id === a.id && s.status === 'completed'));
+  const completedSessions = schedules.filter(s => s.status === 'completed');
+  const totalEnrolled = schedules.reduce((sum, s) => sum + (s.enrolled_count || 0), 0);
+  const completedEnrolled = completedSessions.reduce((sum, s) => sum + (s.enrolled_count || 0), 0);
+  const targetEmployees = needs.length;
+
+  const kpiActionsPercent = actions.length > 0 ? Math.round((completedActions.length / actions.length) * 100) : 0;
+  const kpiEmployeesPercent = targetEmployees > 0 ? Math.round((completedEnrolled / targetEmployees) * 100) : 0;
+  const kpiSessionsPercent = schedules.length > 0 ? Math.round((completedSessions.length / schedules.length) * 100) : 0;
+
+  // Budget calculations
+  const budgetEstimated = budget?.budget_ceiling ?? budget?.total_estimated ?? 0;
+  const budgetReal = budget?.total_estimated ?? 0;
+  const budgetConsumedPercent = budgetEstimated > 0 ? Math.round((budgetReal / budgetEstimated) * 100) : 0;
+  const isOverBudget = budget?.budget_remaining != null && budget.budget_remaining < 0;
+
+  // Check if there is any meaningful data
+  const hasData = actions.length > 0 || schedules.length > 0 || needs.length > 0;
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <RefreshCw className="w-6 h-6 animate-spin text-primary-500" />
+      </div>
+    );
+  }
+
+  if (!hasData) {
+    return (
+      <div className="text-center py-16">
+        <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+        <p className="text-gray-500 text-sm max-w-sm mx-auto mb-4">
+          Les analytics se remplissent au fur et à mesure que les formations sont réalisées
+        </p>
+        <button
+          onClick={onSwitchTab}
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
+        >
+          <Target className="w-4 h-4" />
+          Voir les actions
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+
+      {/* Section 1 — Taux de réalisation */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-primary-500" />
+          Taux de réalisation
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <KPICard
+            label="Actions réalisées"
+            value={`${completedActions.length} / ${actions.length}`}
+            percent={kpiActionsPercent}
+          />
+          <KPICard
+            label="Employés formés"
+            value={`${completedEnrolled} / ${targetEmployees || totalEnrolled || '—'}`}
+            percent={kpiEmployeesPercent}
+          />
+          <KPICard
+            label="Sessions complétées"
+            value={`${completedSessions.length} / ${schedules.length}`}
+            percent={kpiSessionsPercent}
+          />
+        </div>
+      </div>
+
+      {/* Section 2 — Progression des OKR liés */}
+      {analyticsData.okrs.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <Crosshair className="w-4 h-4 text-primary-500" />
+            Progression des OKR liés
+          </h3>
+          <div className="space-y-3">
+            {analyticsData.okrs.map(okr => {
+              const color = okr.progress > 70 ? 'green' : okr.progress >= 40 ? 'amber' : 'red';
+              return (
+                <div key={okr.id} className="bg-gray-50 rounded-xl px-4 py-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-gray-900">{okr.title}</p>
+                    <span className={`px-2 py-0.5 text-xs font-medium rounded ${color === 'green' ? 'bg-green-100 text-green-700' : color === 'amber' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                      {okr.progress}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all ${color === 'green' ? 'bg-green-500' : color === 'amber' ? 'bg-amber-500' : 'bg-red-500'}`}
+                      style={{ width: `${Math.min(okr.progress, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Section 3 — Impact sur les compétences */}
+      {analyticsData.skills.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <Target className="w-4 h-4 text-primary-500" />
+            Impact sur les compétences
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left px-3 py-2 text-gray-600 font-medium">Compétence</th>
+                  <th className="text-right px-3 py-2 text-gray-600 font-medium">Avant</th>
+                  <th className="text-right px-3 py-2 text-gray-600 font-medium">Après</th>
+                  <th className="text-right px-3 py-2 text-gray-600 font-medium">Delta</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {analyticsData.skills.map(skill => {
+                  const hasBoth = skill.avg_before != null && skill.avg_after != null;
+                  const delta = hasBoth ? (skill.avg_after! - skill.avg_before!) : null;
+                  return (
+                    <tr key={skill.id} className="hover:bg-gray-50">
+                      <td className="px-3 py-2.5 font-medium text-gray-900">{skill.name}</td>
+                      <td className="px-3 py-2.5 text-right text-gray-600">{skill.avg_before != null ? skill.avg_before.toFixed(1) : '—'}</td>
+                      <td className="px-3 py-2.5 text-right text-gray-600">{skill.avg_after != null ? skill.avg_after.toFixed(1) : '—'}</td>
+                      <td className="px-3 py-2.5 text-right">
+                        {delta != null ? (
+                          <span className={`inline-flex items-center gap-1 font-medium ${delta >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {delta >= 0 ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
+                            {Math.abs(delta).toFixed(1)}
+                          </span>
+                        ) : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Section 4 — Budget consommé */}
+      {budget && (
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-primary-500" />
+            Budget consommé
+          </h3>
+          <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div>
+                <p className="text-xs text-gray-500">Budget estimé</p>
+                <p className="text-lg font-bold text-gray-900">{formatCurrency(budgetEstimated, budget.currency)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Budget réel</p>
+                <p className="text-lg font-bold text-gray-900">{formatCurrency(budgetReal, budget.currency)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Consommé</p>
+                <p className={`text-lg font-bold ${isOverBudget ? 'text-red-600' : budgetConsumedPercent > 80 ? 'text-amber-600' : 'text-green-600'}`}>
+                  {budgetConsumedPercent}%
+                </p>
+              </div>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <div
+                className={`h-3 rounded-full transition-all ${isOverBudget ? 'bg-red-500' : budgetConsumedPercent > 80 ? 'bg-amber-500' : 'bg-green-500'}`}
+                style={{ width: `${Math.min(budgetConsumedPercent, 100)}%` }}
+              />
+            </div>
+            {isOverBudget && (
+              <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-red-700">Dépassement budgétaire de {formatCurrency(Math.abs(budget.budget_remaining!), budget.currency)}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Section 5 — Satisfaction formations */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <Star className="w-4 h-4 text-primary-500" />
+          Satisfaction formations
+        </h3>
+        {analyticsData.satisfaction ? (
+          <div className="bg-gray-50 rounded-xl p-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <Star
+                    key={i}
+                    className={`w-5 h-5 ${i <= Math.round(analyticsData.satisfaction!.avg_score) ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
+                  />
+                ))}
+              </div>
+              <div>
+                <span className="text-2xl font-bold text-gray-900">{analyticsData.satisfaction.avg_score}</span>
+                <span className="text-sm text-gray-500"> / 5</span>
+              </div>
+              <span className="text-xs text-gray-500">({analyticsData.satisfaction.total_evaluations} évaluation{analyticsData.satisfaction.total_evaluations > 1 ? 's' : ''})</span>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-gray-50 rounded-xl p-4 text-center">
+            <p className="text-sm text-gray-400">Aucune évaluation post-formation disponible</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function KPICard({ label, value, percent }: { label: string; value: string; percent: number }) {
+  const color = percent >= 70 ? 'green' : percent >= 40 ? 'amber' : 'red';
+  return (
+    <div className="bg-gray-50 rounded-xl px-4 py-3 space-y-2">
+      <p className="text-xs text-gray-500">{label}</p>
+      <div className="flex items-end justify-between">
+        <p className="text-lg font-bold text-gray-900">{value}</p>
+        <span className={`text-sm font-semibold ${color === 'green' ? 'text-green-600' : color === 'amber' ? 'text-amber-600' : 'text-red-600'}`}>{percent}%</span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2">
+        <div
+          className={`h-2 rounded-full transition-all ${color === 'green' ? 'bg-green-500' : color === 'amber' ? 'bg-amber-500' : 'bg-red-500'}`}
+          style={{ width: `${Math.min(percent, 100)}%` }}
+        />
+      </div>
     </div>
   );
 }

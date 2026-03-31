@@ -6,6 +6,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -18,8 +19,7 @@ import {
   AlertCircle, Info, ChevronRight, Download, Filter, Calendar,
   BarChart3, PieChart as PieChartIcon, Activity, Shield, Star,
   Zap, GraduationCap, Building2, ArrowUpRight, ArrowDownRight,
-  RefreshCw, FileText, FileSpreadsheet, Brain, Eye, Banknote,
-  LayoutDashboard, DollarSign
+  RefreshCw, FileText, FileSpreadsheet, Brain, Eye, Banknote
 } from "lucide-react";
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
@@ -167,9 +167,34 @@ async function fetchAPI(endpoint: string, params?: Record<string, string>) {
 // COMPOSANT PRINCIPAL
 // ============================================
 
+// Mapping section URL → index onglet
+const SECTION_TO_TAB: Record<string, number> = {
+  'overview': 0,
+  'effectif': 1,
+  'performance': 2,
+  'talents': 3,
+  'formation': 4,
+  'engagement': 5,
+  'recrutement': 6,
+  'masse-salariale': 7,
+  'impact-formation': 8,
+};
+const TAB_TO_SECTION = Object.entries(SECTION_TO_TAB).reduce<Record<number, string>>(
+  (acc, [k, v]) => { acc[v] = k; return acc; }, {}
+);
+
 export default function PeopleAnalyticsPage() {
+  // --- Navigation par query param ?section= ---
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const currentSection = searchParams.get('section') ?? 'overview';
+  const activeTab = SECTION_TO_TAB[currentSection] ?? 0;
+  const setActiveTab = useCallback((idx: number) => {
+    const section = TAB_TO_SECTION[idx] ?? 'overview';
+    router.push(`/dashboard/analytics?section=${section}`);
+  }, [router]);
+
   // --- State ---
-  const [activeTab, setActiveTab] = useState(0);
   const [period, setPeriod] = useState("1A");
   const [department, setDepartment] = useState("");
   const [departments, setDepartments] = useState<string[]>([]);
@@ -329,20 +354,6 @@ export default function PeopleAnalyticsPage() {
   useEffect(() => {
     fetchRealData();
   }, [fetchRealData]);
-
-
-  // --- Tabs ---
-  const tabs = [
-    { label: "Vue d'ensemble", icon: <LayoutDashboard className="w-5 h-5" /> },
-    { label: "Effectif & Structure", icon: <Users className="w-5 h-5" /> },
-    { label: "Performance", icon: <TrendingUp className="w-5 h-5" /> },
-    { label: "Talents", icon: <Star className="w-5 h-5" /> },
-    { label: "Formation", icon: <GraduationCap className="w-5 h-5" /> },
-    { label: "Engagement", icon: <Heart className="w-5 h-5" /> },
-    { label: "Recrutement", icon: <UserPlus className="w-5 h-5" /> },
-    { label: "Masse Salariale", icon: <DollarSign className="w-5 h-5" /> },
-    { label: "Impact Formation", icon: <BarChart3 className="w-5 h-5" /> },
-  ];
 
 
   // ============================================
@@ -1937,52 +1948,18 @@ export default function PeopleAnalyticsPage() {
         </div>
       </div>
 
-      {/* Layout : Sidebar verticale + Contenu */}
-      <div className="flex gap-6">
-        {/* Navigation verticale — style identique au module Formation & Développement */}
-        <nav className="w-56 flex-shrink-0">
-          <div className="bg-gray-900 rounded-xl sticky top-6 flex flex-col overflow-hidden">
-            {/* Header */}
-            <div className="h-14 flex items-center px-4 border-b border-gray-700 flex-shrink-0">
-              <BarChart3 className="w-5 h-5 text-primary-400 mr-3 flex-shrink-0" />
-              <span className="font-semibold text-white text-sm truncate">People Analytics</span>
-            </div>
-            {/* Nav items */}
-            <div className="py-4 px-3 space-y-1 overflow-y-auto">
-              {tabs.map((tab, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveTab(i)}
-                  className={`w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    activeTab === i
-                      ? "bg-primary-500/20 text-primary-400 border-l-2 border-primary-500"
-                      : "text-gray-400 hover:bg-gray-800 hover:text-white border-l-2 border-transparent"
-                  }`}
-                >
-                  <span className="w-5 h-5 mr-3 flex-shrink-0">{tab.icon}</span>
-                  <span className="truncate">{tab.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </nav>
-
-        {/* Contenu principal */}
-        <div className="flex-1 min-w-0">
-          {/* Loading */}
-          {loading && (
-            <div className="flex items-center justify-center py-12">
-              <RefreshCw size={24} className="animate-spin text-blue-600" />
-              <span className="ml-3 text-gray-500">Chargement des données...</span>
-            </div>
-          )}
-
-          {/* Content */}
-          {!loading && (
-            <div>{tabRenderers[activeTab]()}</div>
-          )}
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <RefreshCw size={24} className="animate-spin text-blue-600" />
+          <span className="ml-3 text-gray-500">Chargement des données...</span>
         </div>
-      </div>
+      )}
+
+      {/* Content */}
+      {!loading && (
+        <div>{tabRenderers[activeTab]()}</div>
+      )}
     </div>
   );
 }

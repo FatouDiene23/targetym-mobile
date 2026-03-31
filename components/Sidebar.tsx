@@ -53,6 +53,7 @@ import {
   DollarSign,
   PlayCircle,
   Settings2,
+  Heart,
 } from 'lucide-react';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
@@ -286,6 +287,19 @@ const paieNavigation: NavItem[] = [
   { name: 'Runs mensuels', href: '/dashboard/paie/runs',      icon: PlayCircle, roles: ['admin', 'rh', 'dg'] },
 ];
 
+// Sous-menu People Analytics
+const analyticsNavigation: NavItem[] = [
+  { name: "Vue d'ensemble",     href: '/dashboard/analytics?section=overview',         icon: LayoutDashboard, roles: ['rh', 'admin', 'dg'] },
+  { name: 'Effectif & Structure', href: '/dashboard/analytics?section=effectif',       icon: Users,           roles: ['rh', 'admin', 'dg'] },
+  { name: 'Performance',        href: '/dashboard/analytics?section=performance',      icon: TrendingUp,      roles: ['rh', 'admin', 'dg'] },
+  { name: 'Talents',            href: '/dashboard/analytics?section=talents',          icon: Star,            roles: ['rh', 'admin', 'dg'] },
+  { name: 'Formation',          href: '/dashboard/analytics?section=formation',        icon: GraduationCap,   roles: ['rh', 'admin', 'dg'] },
+  { name: 'Engagement',         href: '/dashboard/analytics?section=engagement',       icon: Heart,           roles: ['rh', 'admin', 'dg'] },
+  { name: 'Recrutement',        href: '/dashboard/analytics?section=recrutement',      icon: UserPlus,        roles: ['rh', 'admin', 'dg'] },
+  { name: 'Masse Salariale',    href: '/dashboard/analytics?section=masse-salariale',  icon: DollarSign,      roles: ['rh', 'admin', 'dg'] },
+  { name: 'Impact Formation',   href: '/dashboard/analytics?section=impact-formation', icon: BarChart3,       roles: ['rh', 'admin', 'dg'] },
+];
+
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
@@ -341,6 +355,7 @@ function SidebarInner() {
   const [inTalents, setInTalents] = useState(false);
   const [inPersonnel, setInPersonnel] = useState(false);
   const [inPaie, setInPaie] = useState(false);
+  const [inAnalytics, setInAnalytics] = useState(false);
   const [isManager, setIsManager] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -357,6 +372,7 @@ function SidebarInner() {
     setInTalents(pathname.startsWith('/dashboard/talents'));
     setInPersonnel(pathname.startsWith('/dashboard/employees'));
     setInPaie(pathname.startsWith('/dashboard/paie'));
+    setInAnalytics(pathname.startsWith('/dashboard/analytics'));
   }, [pathname]);
 
   useEffect(() => {
@@ -461,6 +477,7 @@ function SidebarInner() {
   const filteredTalentsNav = talentsNavigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredPersonnelNav = personnelNavigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredPaieNav = paieNavigation.filter(item => hasAccess(item, userRole, isManager));
+  const filteredAnalyticsNav = analyticsNavigation.filter(item => hasAccess(item, userRole, isManager));
 
   const NavItemComponent = ({ item, isCollapsed, showTooltip = false }: { item: NavItem; isCollapsed: boolean; showTooltip?: boolean }) => {
     const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
@@ -510,7 +527,7 @@ function SidebarInner() {
   // ============================================
   // ICON SIDEBAR (shared by sub-menu modes)
   // ============================================
-  const IconSidebar = ({ activeModule }: { activeModule: 'my-space' | 'performance' | 'learning' | 'talents' | 'personnel' | 'paie' }) => (
+  const IconSidebar = ({ activeModule }: { activeModule: 'my-space' | 'performance' | 'learning' | 'talents' | 'personnel' | 'paie' | 'analytics' }) => (
     <aside className="w-20 bg-dark h-screen flex flex-col border-r border-gray-700 overflow-hidden">
       <div className="h-16 flex items-center justify-center border-b border-gray-700 flex-shrink-0">
         <Link href="/dashboard">
@@ -536,7 +553,7 @@ function SidebarInner() {
             );
           }
           // Determine active module href path
-          const modulePath = activeModule === 'my-space' ? '/dashboard/my-space' : activeModule === 'performance' ? '/dashboard/performance' : activeModule === 'talents' ? '/dashboard/talents' : activeModule === 'personnel' ? '/dashboard/employees' : activeModule === 'paie' ? '/dashboard/paie' : '/dashboard/learning';
+          const modulePath = activeModule === 'my-space' ? '/dashboard/my-space' : activeModule === 'performance' ? '/dashboard/performance' : activeModule === 'talents' ? '/dashboard/talents' : activeModule === 'personnel' ? '/dashboard/employees' : activeModule === 'paie' ? '/dashboard/paie' : activeModule === 'analytics' ? '/dashboard/analytics' : '/dashboard/learning';
           const isModuleItem = item.href === modulePath;
           const isActive = isModuleItem 
             ? true 
@@ -838,6 +855,53 @@ function SidebarInner() {
           <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
             {filteredPaieNav.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-primary-500/20 text-primary-400 border-l-2 border-primary-500'
+                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5 mr-3" />
+                  <span className="text-sm font-medium">{item.name}</span>
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="p-4 border-t border-gray-700 flex-shrink-0">
+            <Link
+              href="/dashboard"
+              className="flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Retour au menu
+            </Link>
+          </div>
+        </aside>
+      </div>
+    );
+  }
+
+  // ============================================
+  // MODE PEOPLE ANALYTICS
+  // ============================================
+  if (inAnalytics) {
+    const currentSection = searchParams.get('section') ?? 'overview';
+    return (
+      <div className="flex h-screen sticky top-0">
+        <IconSidebar activeModule="analytics" />
+        <aside className="w-56 bg-gray-900 h-screen flex flex-col overflow-hidden">
+          <div className="h-16 flex items-center px-4 border-b border-gray-700 flex-shrink-0">
+            <BarChart3 className="w-5 h-5 text-primary-400 mr-3 flex-shrink-0" />
+            <span className="font-semibold text-white text-sm truncate">People Analytics</span>
+          </div>
+          <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
+            {filteredAnalyticsNav.map((item) => {
+              const itemSection = item.href.split('?section=')[1] ?? 'overview';
+              const isActive = currentSection === itemSection;
               return (
                 <Link
                   key={item.name}

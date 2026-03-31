@@ -18,7 +18,8 @@ import {
   AlertCircle, Info, ChevronRight, Download, Filter, Calendar,
   BarChart3, PieChart as PieChartIcon, Activity, Shield, Star,
   Zap, GraduationCap, Building2, ArrowUpRight, ArrowDownRight,
-  RefreshCw, FileText, FileSpreadsheet, Brain, Eye, Banknote
+  RefreshCw, FileText, FileSpreadsheet, Brain, Eye, Banknote,
+  LayoutDashboard
 } from "lucide-react";
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
@@ -212,6 +213,11 @@ export default function PeopleAnalyticsPage() {
   // Recrutement
   const [recrutementData, setRecrutementData] = useState<any>(null);
 
+  // Impact Formation (plans de formation)
+  const [trainingPlans, setTrainingPlans] = useState<any[]>([]);
+  const [trainingPlanAnalytics, setTrainingPlanAnalytics] = useState<any>(null);
+  const [subsidiariesList, setSubsidiariesList] = useState<any[]>([]);
+
   // --- Fetch données réelles ---
   const fetchRealData = useCallback(async () => {
     setLoading(true);
@@ -244,6 +250,9 @@ export default function PeopleAnalyticsPage() {
         nineboxRes,
         successionRes,
         recrutRes,
+        trainingPlansRes,
+        trainingPlanAnalyticsRes,
+        subsidiariesRes,
       ] = await Promise.allSettled([
         fetchAPI("/api/analytics/overview", params),
         fetchAPI("/api/analytics/effectifs/evolution", params),
@@ -266,6 +275,9 @@ export default function PeopleAnalyticsPage() {
         fetchAPI("/api/analytics/talents/ninebox", scopedParams),
         fetchAPI("/api/analytics/talents/succession", scopedParams),
         fetchAPI("/api/recruitment/analytics", scopedParams),
+        fetchAPI("/api/training-plans", scopedParams),
+        fetchAPI("/api/training-plans/analytics", params),
+        fetchAPI("/api/platform/groups/subsidiaries", {}),
       ]);
 
       if (overviewRes.status === "fulfilled") setOverview(overviewRes.value);
@@ -298,6 +310,15 @@ export default function PeopleAnalyticsPage() {
       if (nineboxRes.status === "fulfilled") setNineboxData(nineboxRes.value);
       if (successionRes.status === "fulfilled") setSuccessionData(successionRes.value);
       if (recrutRes.status === "fulfilled") setRecrutementData(recrutRes.value);
+      if (trainingPlansRes.status === "fulfilled") {
+        const plans = Array.isArray(trainingPlansRes.value) ? trainingPlansRes.value : (trainingPlansRes.value?.items ?? []);
+        setTrainingPlans(plans);
+      }
+      if (trainingPlanAnalyticsRes.status === "fulfilled") setTrainingPlanAnalytics(trainingPlanAnalyticsRes.value);
+      if (subsidiariesRes.status === "fulfilled") {
+        const subs = Array.isArray(subsidiariesRes.value) ? subsidiariesRes.value : (subsidiariesRes.value?.subsidiaries ?? []);
+        setSubsidiariesList(subs);
+      }
     } catch (err) {
       console.error("Erreur fetch analytics:", err);
     } finally {
@@ -320,6 +341,7 @@ export default function PeopleAnalyticsPage() {
     { label: "Engagement", icon: <Heart size={16} /> },
     { label: "Recrutement", icon: <Briefcase size={16} /> },
     { label: "Masse Salariale", icon: <Banknote size={16} /> },
+    { label: "Impact Formation", icon: <LayoutDashboard size={16} /> },
   ];
 
 
@@ -1560,6 +1582,276 @@ export default function PeopleAnalyticsPage() {
 
 
   // ============================================
+  // TAB 8 - IMPACT FORMATION
+  // ============================================
+
+  const renderImpactFormation = () => {
+    // Calculs depuis les plans de formation
+    const activePlans = trainingPlans.filter((p: any) => p.status === 'active' || p.status === 'en_cours');
+    const allPlans = trainingPlans;
+
+    // KPIs calculés
+    const nbPlansActifs = activePlans.length;
+    const tauxRealisationMoyen = allPlans.length > 0
+      ? Math.round(allPlans.reduce((sum: number, p: any) => sum + (p.completion_rate ?? p.progress_pct ?? 0), 0) / allPlans.length)
+      : 0;
+
+    // Employés formés (depuis analytics ou somme des actions)
+    const tpa = trainingPlanAnalytics;
+    const nbEmployesFormes = tpa?.total_employees_trained ?? tpa?.employees_trained ?? 0;
+    const budgetTotal = tpa?.total_budget ?? allPlans.reduce((s: number, p: any) => s + (p.budget_total ?? p.budget ?? 0), 0);
+    const budgetConsomme = tpa?.budget_consumed ?? allPlans.reduce((s: number, p: any) => s + (p.budget_consumed ?? p.budget_used ?? 0), 0);
+    const satisfactionScore = tpa?.avg_satisfaction ?? 0;
+
+    // Formations par département
+    const formationsByDept: Record<string, number> = {};
+    allPlans.forEach((p: any) => {
+      const dept = p.department ?? p.department_name ?? 'Non assigné';
+      formationsByDept[dept] = (formationsByDept[dept] || 0) + (p.nb_employees ?? p.participants ?? 1);
+    });
+    const deptChartData = Object.entries(formationsByDept).map(([name, value]) => ({ name, employes: value }));
+    const deptColors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
+
+    // Impact OKR
+    const okrImpacts: any[] = tpa?.okr_impacts ?? [];
+    // Si pas d'analytics dédié, construire depuis les plans avec okr_id
+    const plansWithOkr = okrImpacts.length === 0
+      ? allPlans.filter((p: any) => p.okr_id || p.objective_id).map((p: any) => ({
+          title: p.okr_title ?? p.objective_title ?? `OKR #${p.okr_id ?? p.objective_id}`,
+          progress_before: p.progress_before ?? 0,
+          progress_current: p.progress_pct ?? p.completion_rate ?? 0,
+          delta: (p.progress_pct ?? p.completion_rate ?? 0) - (p.progress_before ?? 0),
+        }))
+      : okrImpacts;
+
+    // Top formations par impact
+    const topFormations: any[] = tpa?.top_formations ?? allPlans
+      .sort((a: any, b: any) => (b.completion_rate ?? b.progress_pct ?? 0) - (a.completion_rate ?? a.progress_pct ?? 0))
+      .slice(0, 10)
+      .map((p: any) => ({
+        name: p.title ?? p.name ?? 'Sans titre',
+        participants: p.nb_employees ?? p.participants ?? 0,
+        satisfaction: p.satisfaction ?? 0,
+        okr_impact: p.okr_impact ?? '—',
+        delta_competences: p.delta_competences ?? '—',
+      }));
+
+    // Vue groupe — comparaison filiales
+    const hasSubsidiaries = subsidiariesList.length > 0;
+
+    return (
+      <div className="space-y-6">
+        {renderBadge("real")}
+
+        {/* KPIs globaux */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-3">
+          {renderKPICard(
+            "Plans actifs",
+            nbPlansActifs || "—",
+            <BookOpen size={20} className="text-blue-600" />,
+            "bg-blue-50",
+            `${allPlans.length} plans au total`
+          )}
+          {renderKPICard(
+            "Taux de réalisation",
+            allPlans.length > 0 ? `${tauxRealisationMoyen}%` : "—",
+            <Target size={20} className="text-green-600" />,
+            "bg-green-50",
+            "Moyenne toutes formations"
+          )}
+          {renderKPICard(
+            "Employés formés",
+            nbEmployesFormes || "—",
+            <Users size={20} className="text-purple-600" />,
+            "bg-purple-50",
+            "Cette année"
+          )}
+          {renderKPICard(
+            "Budget formation",
+            budgetTotal > 0 ? `${formatXOF(budgetConsomme)} / ${formatXOF(budgetTotal)}` : "—",
+            <Banknote size={20} className="text-amber-600" />,
+            "bg-amber-50",
+            budgetTotal > 0 ? `${Math.round((budgetConsomme / budgetTotal) * 100)}% consommé` : undefined
+          )}
+          {renderKPICard(
+            "Satisfaction",
+            satisfactionScore > 0 ? `${satisfactionScore} / 5` : "—",
+            <Star size={20} className="text-pink-600" />,
+            "bg-pink-50",
+            "Score moyen des formations"
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Graphique — Formations par département */}
+          <div className="bg-white rounded-xl border p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-900">Employés formés par département</h3>
+              {renderBadge("real")}
+            </div>
+            {deptChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={deptChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(v: number) => [v, "Employés formés"]} />
+                  <Bar dataKey="employes" name="Employés formés" radius={[4, 4, 0, 0]}>
+                    {deptChartData.map((_: any, i: number) => (
+                      <Cell key={i} fill={deptColors[i % deptColors.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
+                <Building2 size={40} className="mb-3 opacity-30" />
+                <p className="text-sm font-medium">Aucune donnée par département</p>
+                <p className="text-xs mt-1">Créez des plans de formation pour voir la répartition</p>
+              </div>
+            )}
+          </div>
+
+          {/* Impact sur les OKR */}
+          <div className="bg-white rounded-xl border p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-900">Impact sur les OKR</h3>
+              {renderBadge("real")}
+            </div>
+            {plansWithOkr.length > 0 ? (
+              <div className="space-y-4 max-h-[300px] overflow-y-auto">
+                {plansWithOkr.map((okr: any, i: number) => {
+                  const delta = okr.delta ?? ((okr.progress_current ?? 0) - (okr.progress_before ?? 0));
+                  const isPositive = delta >= 0;
+                  return (
+                    <div key={i} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-medium text-gray-900 truncate flex-1">{okr.title}</p>
+                        <span className={`flex items-center gap-1 text-sm font-semibold ${isPositive ? "text-green-600" : "text-red-600"}`}>
+                          {isPositive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                          {isPositive ? "+" : ""}{delta}%
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <span>Avant : {okr.progress_before ?? 0}%</span>
+                        <span>Actuel : {okr.progress_current ?? 0}%</span>
+                      </div>
+                      <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-blue-500 transition-all"
+                          style={{ width: `${Math.min(okr.progress_current ?? 0, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
+                <Target size={40} className="mb-3 opacity-30" />
+                <p className="text-sm font-medium">Aucun OKR lié aux formations</p>
+                <p className="text-xs mt-1">Associez des OKR à vos plans de formation</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Tableau — Top formations par impact */}
+        <div className="bg-white rounded-xl border p-6">
+          <h3 className="font-semibold text-gray-900 mb-4">Top formations par impact</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-gray-500">
+                  <th className="pb-3 font-medium">Formation</th>
+                  <th className="pb-3 font-medium text-center">Nb participants</th>
+                  <th className="pb-3 font-medium text-center">Satisfaction</th>
+                  <th className="pb-3 font-medium text-center">Impact OKR</th>
+                  <th className="pb-3 font-medium text-center">Δ Compétences</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topFormations.length > 0 ? topFormations.map((f: any, i: number) => (
+                  <tr key={i} className="border-b last:border-0 hover:bg-gray-50">
+                    <td className="py-3 font-medium text-gray-900">{f.name}</td>
+                    <td className="py-3 text-center">{f.participants}</td>
+                    <td className="py-3 text-center">
+                      {f.satisfaction > 0 ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Star size={12} className="text-amber-500" />
+                          {f.satisfaction}
+                        </span>
+                      ) : "—"}
+                    </td>
+                    <td className="py-3 text-center">{f.okr_impact}</td>
+                    <td className="py-3 text-center">{f.delta_competences}</td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-gray-400">
+                      Aucune formation disponible
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Vue groupe — Comparaison filiales */}
+        {hasSubsidiaries && (
+          <div className="bg-white rounded-xl border p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Building2 size={20} className="text-indigo-600" />
+              <h3 className="font-semibold text-gray-900">Comparaison filiales</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-gray-500">
+                    <th className="pb-3 font-medium">Filiale</th>
+                    <th className="pb-3 font-medium text-center">Plans actifs</th>
+                    <th className="pb-3 font-medium text-center">Employés formés</th>
+                    <th className="pb-3 font-medium text-center">Taux réalisation</th>
+                    <th className="pb-3 font-medium text-right">Budget consommé</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subsidiariesList.map((sub: any, i: number) => (
+                    <tr key={i} className="border-b last:border-0 hover:bg-gray-50">
+                      <td className="py-3 font-medium text-gray-900">{sub.name ?? sub.company_name ?? `Filiale #${sub.id}`}</td>
+                      <td className="py-3 text-center">{sub.active_plans ?? "—"}</td>
+                      <td className="py-3 text-center">{sub.employees_trained ?? "—"}</td>
+                      <td className="py-3 text-center">
+                        {sub.completion_rate != null ? (
+                          <div className="flex items-center gap-2 justify-center">
+                            <div className="w-16 h-2 bg-gray-100 rounded-full overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-green-500"
+                                style={{ width: `${Math.min(sub.completion_rate, 100)}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-medium">{sub.completion_rate}%</span>
+                          </div>
+                        ) : "—"}
+                      </td>
+                      <td className="py-3 text-right">{sub.budget_consumed != null ? `${formatXOF(sub.budget_consumed)} XOF` : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {subsidiariesList.length === 0 && (
+                <p className="text-center text-gray-400 py-8 text-sm">Aucune filiale disponible</p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+
+  // ============================================
   // RENDER PRINCIPAL
   // ============================================
 
@@ -1572,6 +1864,7 @@ export default function PeopleAnalyticsPage() {
     renderEngagement,
     renderRecrutement,
     renderMasseSalariale,
+    renderImpactFormation,
   ];
 
   return (
@@ -1644,36 +1937,46 @@ export default function PeopleAnalyticsPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 border-b mb-6 overflow-x-auto pb-px">
-        {tabs.map((tab, i) => (
-          <button
-            key={i}
-            onClick={() => setActiveTab(i)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-              activeTab === i
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-          >
-            {tab.icon}
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* Layout : Sidebar verticale + Contenu */}
+      <div className="flex gap-6">
+        {/* Navigation verticale */}
+        <nav className="w-56 flex-shrink-0">
+          <div className="bg-white rounded-xl border sticky top-6">
+            <div className="p-2">
+              {tabs.map((tab, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveTab(i)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-0.5 ${
+                    activeTab === i
+                      ? "bg-blue-50 text-blue-700 border border-blue-200"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 border border-transparent"
+                  }`}
+                >
+                  <span className={activeTab === i ? "text-blue-600" : "text-gray-400"}>{tab.icon}</span>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </nav>
 
-      {/* Loading */}
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <RefreshCw size={24} className="animate-spin text-blue-600" />
-          <span className="ml-3 text-gray-500">Chargement des données...</span>
+        {/* Contenu principal */}
+        <div className="flex-1 min-w-0">
+          {/* Loading */}
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <RefreshCw size={24} className="animate-spin text-blue-600" />
+              <span className="ml-3 text-gray-500">Chargement des données...</span>
+            </div>
+          )}
+
+          {/* Content */}
+          {!loading && (
+            <div>{tabRenderers[activeTab]()}</div>
+          )}
         </div>
-      )}
-
-      {/* Content */}
-      {!loading && (
-        <div>{tabRenderers[activeTab]()}</div>
-      )}
+      </div>
     </div>
   );
 }

@@ -84,12 +84,12 @@ export default function LoginPage() {
             <button className="flex-1 py-2 px-4 bg-white rounded-md shadow-sm text-sm font-semibold text-gray-900">
               Connexion
             </button>
-            <button
-              className="flex-1 py-2 px-4 text-sm font-medium text-gray-500"
-              onClick={() => setError('Veuillez contacter votre administrateur pour créer un compte.')}
+            <a
+              href="/register/index.html"
+              className="flex-1 py-2 px-4 text-sm font-medium text-gray-500 text-center"
             >
               Essai gratuit
-            </button>
+            </a>
           </div>
 
           {/* Error */}
@@ -152,9 +152,9 @@ export default function LoginPage() {
                 />
                 <span className="text-sm text-gray-600">Se souvenir de moi</span>
               </label>
-              <span className="text-sm text-blue-600 font-medium cursor-pointer hover:text-blue-700">
+              <a href="/forgot-password/index.html" className="text-sm text-blue-600 font-medium hover:text-blue-700">
                 Mot de passe oublié ?
-              </span>
+              </a>
             </div>
 
             {/* Submit */}

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import {
   ClipboardList, ChevronDown, ChevronRight, Loader2, CheckCircle2,
-  Receipt, Users, TrendingUp, TrendingDown, Wallet, X,
+  Receipt, Users, TrendingUp, TrendingDown, Wallet, X, Printer,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -43,15 +43,90 @@ function StatCard({
 function SlipLinesModal({
   slip,
   empName,
+  run,
   onClose,
 }: {
   slip: PaySlip;
   empName: string;
+  run: PayrollRun;
   onClose: () => void;
 }) {
   const gains = slip.lines.filter(l => l.component_type === 'earning');
   const deductions = slip.lines.filter(l => l.component_type === 'deduction');
   const patronal = slip.lines.filter(l => l.component_type === 'employer_contribution');
+
+  const handlePrint = () => {
+    const tableRows = (lines: PaySlipLine[]) => lines.map(l => `
+      <tr>
+        <td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;">${l.component_name}</td>
+        <td style="padding:6px 8px;text-align:right;color:#9ca3af;border-bottom:1px solid #f3f4f6;font-size:11px;">
+          ${l.base_amount != null ? `Base\u00a0: ${l.base_amount.toLocaleString('fr-SN')}` : ''}
+          ${l.rate != null ? ` \u00d7 ${(l.rate * 100).toFixed(2)}%` : ''}
+        </td>
+        <td style="padding:6px 8px;text-align:right;font-weight:600;border-bottom:1px solid #f3f4f6;">${l.amount.toLocaleString('fr-SN')}</td>
+      </tr>`).join('');
+
+    const section = (title: string, color: string, lines: PaySlipLine[]) => lines.length === 0 ? '' : `
+      <tr><td colspan="3" style="padding:10px 8px 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:${color};">${title}</td></tr>
+      ${tableRows(lines)}`;
+
+    const html = `<!DOCTYPE html><html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Bulletin — ${empName} — ${MONTHS_FR[run.period_month - 1]} ${run.period_year}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1f2937; margin: 0; padding: 24px; }
+    @media print { @page { margin: 15mm; } .no-print { display: none; } }
+    .page { max-width: 700px; margin: 0 auto; }
+    .header-bar { background: #1d4ed8; color: white; padding: 16px 20px; border-radius: 8px; margin-bottom: 20px; }
+    .header-bar h1 { color: white; font-size: 16px; font-weight: 700; margin: 0 0 8px; }
+    .header-bar .meta { display: flex; gap: 20px; font-size: 12px; opacity: 0.85; flex-wrap: wrap; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px; }
+    .summary { background: #f9fafb; border-radius: 8px; padding: 14px 16px; font-size: 13px; margin-top: 16px; }
+    .summary-row { display: flex; justify-content: space-between; padding: 4px 0; }
+    .summary-row.total { font-size: 15px; font-weight: 700; border-top: 1px solid #e5e7eb; margin-top: 8px; padding-top: 10px; }
+    .green { color: #15803d; } .red { color: #dc2626; } .orange { color: #ea580c; }
+    .footer { margin-top: 40px; font-size: 11px; color: #9ca3af; text-align: center; }
+    .no-print { margin-top: 24px; text-align: center; padding-bottom: 16px; }
+    .btn-print { background: #1d4ed8; color: white; border: none; padding: 10px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-print:hover { background: #1e40af; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header-bar">
+      <h1>Bulletin de paie</h1>
+      <div class="meta">
+        <span>Employ\u00e9 : ${empName}</span>
+        <span>P\u00e9riode : ${MONTHS_FR[run.period_month - 1]} ${run.period_year}</span>
+        <span>\u00c9mis le : ${new Date().toLocaleDateString('fr-FR')}</span>
+      </div>
+    </div>
+    <table><tbody>
+      ${section('Gains', '#15803d', gains)}
+      ${section('Retenues salariales', '#dc2626', deductions)}
+      ${section('Charges patronales', '#ea580c', patronal)}
+    </tbody></table>
+    <div class="summary">
+      <div class="summary-row"><span style="color:#6b7280;">Salaire brut</span><span style="font-weight:600;">${formatXOF(slip.brut_total)}</span></div>
+      <div class="summary-row"><span style="color:#6b7280;">Cotisations salariales</span><span style="font-weight:600;" class="red">- ${formatXOF(slip.cotisations_salariales)}</span></div>
+      <div class="summary-row"><span style="color:#6b7280;">IR</span><span style="font-weight:600;" class="red">- ${formatXOF(slip.ir_amount)}</span></div>
+      <div class="summary-row total"><span>Net \u00e0 payer</span><span class="green">${formatXOF(slip.net_a_payer)}</span></div>
+      <div class="summary-row" style="margin-top:8px;"><span style="color:#9ca3af;font-size:11px;">Charges patronales</span><span style="color:#9ca3af;font-size:11px;">${formatXOF(slip.charges_patronales)}</span></div>
+    </div>
+    <div class="footer">Document g\u00e9n\u00e9r\u00e9 automatiquement \u2014 Targetym</div>
+    <div class="no-print">
+      <button class="btn-print" onclick="window.print();">Imprimer / Sauvegarder en PDF</button>
+    </div>
+  </div>
+</body></html>`;
+
+    const win = window.open('', '_blank', 'width=820,height=720');
+    if (!win) { toast.error('Popup bloqu\u00e9 — autorisez les popups pour ce site'); return; }
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+  };
 
   const LineTable = ({ lines, title, colorClass }: { lines: PaySlipLine[]; title: string; colorClass: string }) => (
     lines.length > 0 ? (
@@ -84,11 +159,21 @@ function SlipLinesModal({
         <div className="flex items-center justify-between p-5 border-b sticky top-0 bg-white">
           <div>
             <h2 className="font-semibold text-gray-800">{empName}</h2>
-            <p className="text-xs text-gray-400">Bulletin de paie</p>
+            <p className="text-xs text-gray-400">Bulletin de paie — {MONTHS_FR[run.period_month - 1]} {run.period_year}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition"
+              title="Imprimer / Exporter PDF"
+            >
+              <Printer className="w-4 h-4" />
+              Imprimer
+            </button>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="p-5 space-y-2">
@@ -152,7 +237,7 @@ export default function RecapPage() {
       setRun(runData);
       setEmployees(empsData);
 
-      if (runData.status === 'simulated' || runData.status === 'validated') {
+      if (runData.status === 'simulation' || runData.status === 'validated') {
         const slipsData = await getSlips(runIdNum);
         setSlips(slipsData);
       }
@@ -275,7 +360,7 @@ export default function RecapPage() {
                 >
                   Variables
                 </Link>
-                {status === 'draft' && (
+                {(status === 'draft' || status === 'simulation') && (
                   <button
                     onClick={handleSimulate}
                     disabled={actionLoading}
@@ -285,7 +370,7 @@ export default function RecapPage() {
                     Simuler
                   </button>
                 )}
-                {status === 'simulated' && (
+                {status === 'simulation' && (
                   <button
                     onClick={handleValidate}
                     disabled={actionLoading}
@@ -299,7 +384,7 @@ export default function RecapPage() {
             </div>
 
             {/* Stats */}
-            {(status === 'simulated' || status === 'validated') && (
+            {(status === 'simulation' || status === 'validated') && (
               <div className="grid grid-cols-4 gap-4 mb-6">
                 <StatCard
                   label="Masse salariale brute"
@@ -329,7 +414,7 @@ export default function RecapPage() {
             )}
 
             {/* Bulletins */}
-            {(status === 'simulated' || status === 'validated') && slips.length > 0 && (
+            {(status === 'simulation' || status === 'validated') && slips.length > 0 && (
               <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
                 <div className="px-4 py-3 border-b bg-gray-50">
                   <h2 className="font-medium text-gray-700 text-sm">Bulletins de paie</h2>
@@ -391,6 +476,7 @@ export default function RecapPage() {
         <SlipLinesModal
           slip={detailSlip}
           empName={empName(detailSlip.employee_id)}
+          run={run!}
           onClose={() => setDetailSlip(null)}
         />
       )}

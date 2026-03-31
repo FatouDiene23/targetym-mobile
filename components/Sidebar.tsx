@@ -44,6 +44,7 @@ import {
   Lightbulb,
   UserMinus,
   Receipt,
+  Banknote,
   Building2,
   GitBranch,
   AlertTriangle,
@@ -192,7 +193,7 @@ const navigation: NavItem[] = [
   {
     name: 'Paie',
     href: '/dashboard/paie',
-    icon: Receipt,
+    icon: Banknote,
     roles: ['admin', 'dg', 'rh'],
   },
   {

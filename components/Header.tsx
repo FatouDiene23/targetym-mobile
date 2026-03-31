@@ -206,6 +206,7 @@ const HIDDEN_ADD_ROUTES = [
   '/dashboard/employees',
   '/dashboard/compensation',
   '/dashboard/performance/evaluation-1-on-1',
+  '/dashboard/paie',
 ];
 
 // ============================================

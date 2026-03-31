@@ -1146,10 +1146,22 @@ export default function PeopleAnalyticsPage() {
   // ============================================
 
   const renderEngagement = () => {
-    const hasAbsence = absenteismeByDept.length > 0;
+    const WORKING_DAYS: Record<string, number> = { "1M": 22, "3M": 66, "6M": 130, "1A": 260 };
+    const joursOuvrables = WORKING_DAYS[period] ?? 260;
+
+    // Recalculate taux from raw jours/employes using the correct formula
+    const absenteismeData = absenteismeByDept.map((d: any) => {
+      const employes = d.employes ?? d.nb_employes ?? 0;
+      const jours = d.jours ?? d.jours_absence ?? 0;
+      const divisor = employes * joursOuvrables;
+      const taux = divisor > 0 ? Math.min(+(jours / divisor * 100).toFixed(1), 100) : 0;
+      return { ...d, taux, jours, employes, joursOuvrables };
+    });
+
+    const hasAbsence = absenteismeData.length > 0;
     return (
     <div className="space-y-6">
-      
+
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
         {renderKPICard("Index engagement", "—", <Heart size={20} className="text-pink-600" />, "bg-pink-50", "Fonctionnalité à venir")}
@@ -1191,10 +1203,10 @@ export default function PeopleAnalyticsPage() {
                   </div>
         {hasAbsence ? (
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={absenteismeByDept}>
+            <BarChart data={absenteismeData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="department" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} unit="%" />
+              <YAxis tick={{ fontSize: 11 }} unit="%" domain={[0, 'auto']} />
               <Tooltip content={({ active, payload }: any) => {
                 if (!active || !payload?.length) return null;
                 const d = payload[0].payload;
@@ -1204,11 +1216,12 @@ export default function PeopleAnalyticsPage() {
                     <p>Taux : <span className="font-medium">{d.taux}%</span></p>
                     <p>Jours d&apos;absence : <span className="font-medium">{d.jours}j</span></p>
                     <p>Employés : <span className="font-medium">{d.employes}</span></p>
+                    <p>Période : <span className="font-medium">{d.joursOuvrables} jours ouvrables</span></p>
                   </div>
                 );
               }} />
               <Bar dataKey="taux" name="Taux d'absentéisme" radius={[4, 4, 0, 0]}>
-                {absenteismeByDept.map((entry, i) => (
+                {absenteismeData.map((entry: any, i: number) => (
                   <Cell key={i} fill={entry.taux > 5 ? "#ef4444" : entry.taux > 3 ? "#f59e0b" : "#10b981"} />
                 ))}
               </Bar>

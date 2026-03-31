@@ -6,6 +6,7 @@ import {
   ToggleLeft, ToggleRight, Receipt,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import Header from '@/components/Header';
 import {
   getComponents, createComponent, updateComponent, deactivateComponent,
@@ -401,6 +402,7 @@ export default function RubriquesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<PayComponent | undefined>(undefined);
   const [deactivating, setDeactivating] = useState<number | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; danger?: boolean }>({ open: false, title: '', message: '', onConfirm: () => {} });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -433,18 +435,25 @@ export default function RubriquesPage() {
     setModalOpen(false);
   };
 
-  const handleDeactivate = async (c: PayComponent) => {
-    if (!confirm(`Désactiver « ${c.name} » ?`)) return;
-    setDeactivating(c.id);
-    try {
-      await deactivateComponent(c.id);
-      toast.success('Rubrique désactivée');
-      setComponents(prev => prev.map(x => x.id === c.id ? { ...x, is_active: false } : x));
-    } catch {
-      toast.error('Erreur désactivation');
-    } finally {
-      setDeactivating(null);
-    }
+  const handleDeactivate = (c: PayComponent) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Désactiver la rubrique',
+      message: `Désactiver « ${c.name} » ? Elle n'apparaîtra plus dans les nouveaux calculs.`,
+      danger: true,
+      onConfirm: async () => {
+        setDeactivating(c.id);
+        try {
+          await deactivateComponent(c.id);
+          toast.success('Rubrique désactivée');
+          setComponents(prev => prev.map(x => x.id === c.id ? { ...x, is_active: false } : x));
+        } catch {
+          toast.error('Erreur désactivation');
+        } finally {
+          setDeactivating(null);
+        }
+      },
+    });
   };
 
   const visible = showInactive ? components : components.filter(c => c.is_active);
@@ -599,6 +608,14 @@ export default function RubriquesPage() {
           onSaved={handleSaved}
         />
       )}
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        danger={confirmDialog.danger}
+      />
     </div>
   );
 }

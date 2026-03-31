@@ -6,6 +6,7 @@ import {
   Receipt, Eye, Zap, CheckCircle2, Calendar,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import {
@@ -131,6 +132,7 @@ export default function RunsPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; danger?: boolean }>({ open: false, title: '', message: '', onConfirm: () => {} });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -151,32 +153,45 @@ export default function RunsPage() {
     setModalOpen(false);
   };
 
-  const handleSimulate = async (run: PayrollRun) => {
-    if (!confirm(`Simuler la paie de ${MONTHS_FR[run.period_month - 1]} ${run.period_year} ?`)) return;
-    setActionLoading(run.id);
-    try {
-      const updated = await simulateRun(run.id);
-      toast.success('Simulation terminée');
-      setRuns(prev => prev.map(r => r.id === updated.id ? updated : r));
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur simulation');
-    } finally {
-      setActionLoading(null);
-    }
+  const handleSimulate = (run: PayrollRun) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Simuler la paie',
+      message: `Simuler la paie de ${MONTHS_FR[run.period_month - 1]} ${run.period_year} ?`,
+      onConfirm: async () => {
+        setActionLoading(run.id);
+        try {
+          const updated = await simulateRun(run.id);
+          toast.success('Simulation terminée');
+          setRuns(prev => prev.map(r => r.id === updated.id ? updated : r));
+        } catch (err: unknown) {
+          toast.error(err instanceof Error ? err.message : 'Erreur simulation');
+        } finally {
+          setActionLoading(null);
+        }
+      },
+    });
   };
 
-  const handleValidate = async (run: PayrollRun) => {
-    if (!confirm(`Valider définitivement la paie de ${MONTHS_FR[run.period_month - 1]} ${run.period_year} ?\n\nCette action est irréversible.`)) return;
-    setActionLoading(run.id);
-    try {
-      const updated = await validateRun(run.id);
-      toast.success('Paie validée définitivement');
-      setRuns(prev => prev.map(r => r.id === updated.id ? updated : r));
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur validation');
-    } finally {
-      setActionLoading(null);
-    }
+  const handleValidate = (run: PayrollRun) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Valider la paie',
+      message: `Valider définitivement la paie de ${MONTHS_FR[run.period_month - 1]} ${run.period_year} ? Cette action est irréversible.`,
+      danger: true,
+      onConfirm: async () => {
+        setActionLoading(run.id);
+        try {
+          const updated = await validateRun(run.id);
+          toast.success('Paie validée définitivement');
+          setRuns(prev => prev.map(r => r.id === updated.id ? updated : r));
+        } catch (err: unknown) {
+          toast.error(err instanceof Error ? err.message : 'Erreur validation');
+        } finally {
+          setActionLoading(null);
+        }
+      },
+    });
   };
 
   return (
@@ -331,6 +346,14 @@ export default function RunsPage() {
       {modalOpen && (
         <NewRunModal onClose={() => setModalOpen(false)} onCreated={handleCreated} />
       )}
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        onClose={() => setConfirmDialog(p => ({ ...p, open: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        danger={confirmDialog.danger}
+      />
     </div>
   );
 }

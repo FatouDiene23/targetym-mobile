@@ -6,6 +6,7 @@
 // ============================================
 
 import { useState, useEffect, useCallback } from 'react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { useRouter } from 'next/navigation';
 import {
   Plus, Search, Eye, Edit, Copy, X, ChevronLeft, Trash2,
@@ -248,6 +249,7 @@ export default function PlanFormationPage() {
   }, [userRole, router]);
 
   // ── Tenant group info ──
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; danger?: boolean }>({ open: false, title: '', message: '', onConfirm: () => {} });
   const [tenantInfo, setTenantInfo] = useState<TenantGroupInfo | null>(null);
   const [excludedSubIds, setExcludedSubIds] = useState<Set<number>>(new Set());
 
@@ -512,20 +514,27 @@ export default function PlanFormationPage() {
   // API — Soft delete plan
   // ============================================
 
-  const handleDeletePlan = async (planId: number) => {
-    if (!confirm('Annuler ce plan de formation ?')) return;
-    try {
-      const res = await fetch(`${API_URL}/api/training-plans/${planId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error('Erreur suppression');
-      toast.success('Plan annulé');
-      if (selectedPlan?.id === planId) setSelectedPlan(null);
-      fetchPlans();
-    } catch {
-      toast.error('Erreur lors de l\'annulation');
-    }
+  const handleDeletePlan = (planId: number) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Annuler le plan de formation',
+      message: 'Annuler ce plan de formation ? Il sera archivé et ne pourra plus être modifié.',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/training-plans/${planId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+          });
+          if (!res.ok) throw new Error('Erreur suppression');
+          toast.success('Plan annulé');
+          if (selectedPlan?.id === planId) setSelectedPlan(null);
+          fetchPlans();
+        } catch {
+          toast.error("Erreur lors de l'annulation");
+        }
+      },
+    });
   };
 
   // ============================================
@@ -681,22 +690,29 @@ export default function PlanFormationPage() {
     }
   };
 
-  const handleDeleteAction = async (actionId: number) => {
+  const handleDeleteAction = (actionId: number) => {
     if (!selectedPlan) return;
-    if (!window.confirm('Supprimer cette action du plan ?')) return;
-    try {
-      const res = await fetch(`${API_URL}/api/training-plans/${selectedPlan.id}/actions/${actionId}`, {
-        method: 'DELETE', headers: getAuthHeaders(),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || 'Erreur suppression action');
-      }
-      toast.success('Action supprimée');
-      fetchPlanDetail(selectedPlan.id);
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Erreur');
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Supprimer l\'action',
+      message: 'Supprimer cette action du plan ? Cette action est irréversible.',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/training-plans/${selectedPlan.id}/actions/${actionId}`, {
+            method: 'DELETE', headers: getAuthHeaders(),
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.detail || 'Erreur suppression action');
+          }
+          toast.success('Action supprimée');
+          fetchPlanDetail(selectedPlan.id);
+        } catch (e: unknown) {
+          toast.error(e instanceof Error ? e.message : 'Erreur');
+        }
+      },
+    });
   };
 
   // ============================================
@@ -815,19 +831,26 @@ export default function PlanFormationPage() {
     }
   };
 
-  const handleDeleteObjective = async (objectiveId: number) => {
+  const handleDeleteObjective = (objectiveId: number) => {
     if (!selectedPlan) return;
-    if (!window.confirm('Supprimer cet objectif ?')) return;
-    try {
-      const res = await fetch(`${API_URL}/api/training-plans/${selectedPlan.id}/objectives/${objectiveId}`, {
-        method: 'DELETE', headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error('Erreur suppression');
-      toast.success('Objectif supprimé');
-      fetchPlanDetail(selectedPlan.id);
-    } catch {
-      toast.error('Erreur lors de la suppression');
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Supprimer l\'objectif',
+      message: 'Supprimer cet objectif ? Cette action est irréversible.',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/training-plans/${selectedPlan.id}/objectives/${objectiveId}`, {
+            method: 'DELETE', headers: getAuthHeaders(),
+          });
+          if (!res.ok) throw new Error('Erreur suppression');
+          toast.success('Objectif supprimé');
+          fetchPlanDetail(selectedPlan.id);
+        } catch {
+          toast.error('Erreur lors de la suppression');
+        }
+      },
+    });
   };
 
   // ============================================
@@ -863,19 +886,26 @@ export default function PlanFormationPage() {
     }
   };
 
-  const handleDeleteTarget = async (targetId: number) => {
+  const handleDeleteTarget = (targetId: number) => {
     if (!selectedPlan) return;
-    if (!window.confirm('Supprimer cette cible ?')) return;
-    try {
-      const res = await fetch(`${API_URL}/api/training-plans/${selectedPlan.id}/targets/${targetId}`, {
-        method: 'DELETE', headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error('Erreur suppression');
-      toast.success('Cible supprimée');
-      fetchPlanDetail(selectedPlan.id);
-    } catch {
-      toast.error('Erreur lors de la suppression');
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Supprimer la cible',
+      message: 'Supprimer cette cible ? Cette action est irréversible.',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/training-plans/${selectedPlan.id}/targets/${targetId}`, {
+            method: 'DELETE', headers: getAuthHeaders(),
+          });
+          if (!res.ok) throw new Error('Erreur suppression');
+          toast.success('Cible supprimée');
+          fetchPlanDetail(selectedPlan.id);
+        } catch {
+          toast.error('Erreur lors de la suppression');
+        }
+      },
+    });
   };
 
   // ============================================
@@ -2095,6 +2125,14 @@ export default function PlanFormationPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        danger={confirmDialog.danger}
+      />
     </div>
   );
 }

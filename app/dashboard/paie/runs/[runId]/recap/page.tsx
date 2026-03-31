@@ -7,6 +7,7 @@ import {
   Receipt, Users, TrendingUp, TrendingDown, Wallet, X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import { getEmployees, type Employee } from '@/lib/api';
@@ -139,6 +140,7 @@ export default function RecapPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [detailSlip, setDetailSlip] = useState<PaySlip | null>(null);
   const [loadingSlipId, setLoadingSlipId] = useState<number | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; danger?: boolean }>({ open: false, title: '', message: '', onConfirm: () => {} });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -179,36 +181,49 @@ export default function RecapPage() {
     finally { setLoadingSlipId(null); }
   };
 
-  const handleSimulate = async () => {
+  const handleSimulate = () => {
     if (!run) return;
-    if (!confirm('Lancer la simulation de paie ?')) return;
-    setActionLoading(true);
-    try {
-      const updated = await simulateRun(run.id);
-      toast.success('Simulation terminée');
-      setRun(updated);
-      const slipsData = await getSlips(runIdNum);
-      setSlips(slipsData);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur simulation');
-    } finally {
-      setActionLoading(false);
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Lancer la simulation',
+      message: 'Lancer la simulation de paie ? Les bulletins existants seront recalculés.',
+      onConfirm: async () => {
+        setActionLoading(true);
+        try {
+          const updated = await simulateRun(run.id);
+          toast.success('Simulation terminée');
+          setRun(updated);
+          const slipsData = await getSlips(runIdNum);
+          setSlips(slipsData);
+        } catch (err: unknown) {
+          toast.error(err instanceof Error ? err.message : 'Erreur simulation');
+        } finally {
+          setActionLoading(false);
+        }
+      },
+    });
   };
 
-  const handleValidate = async () => {
+  const handleValidate = () => {
     if (!run) return;
-    if (!confirm(`Valider définitivement la paie de ${MONTHS_FR[run.period_month - 1]} ${run.period_year} ?\n\nCette action est irréversible.`)) return;
-    setActionLoading(true);
-    try {
-      const updated = await validateRun(run.id);
-      toast.success('Paie validée !');
-      setRun(updated);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur validation');
-    } finally {
-      setActionLoading(false);
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Valider la paie',
+      message: `Valider définitivement la paie de ${MONTHS_FR[run.period_month - 1]} ${run.period_year} ? Cette action est irréversible.`,
+      danger: true,
+      onConfirm: async () => {
+        setActionLoading(true);
+        try {
+          const updated = await validateRun(run.id);
+          toast.success('Paie validée !');
+          setRun(updated);
+        } catch (err: unknown) {
+          toast.error(err instanceof Error ? err.message : 'Erreur validation');
+        } finally {
+          setActionLoading(false);
+        }
+      },
+    });
   };
 
   const status = run?.status ?? 'draft';
@@ -379,6 +394,14 @@ export default function RecapPage() {
           onClose={() => setDetailSlip(null)}
         />
       )}
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        danger={confirmDialog.danger}
+      />
     </div>
   );
 }

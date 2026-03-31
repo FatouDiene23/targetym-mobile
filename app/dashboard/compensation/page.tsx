@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/Header';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import {
   DollarSign, Scale, Shield, TrendingUp, Calculator, FileText, Building2,
   Plus, RefreshCw, ChevronRight, AlertTriangle, CheckCircle, XCircle,
@@ -263,6 +264,14 @@ function TeasingPage() {
           <p className="text-xs text-gray-400 mt-3">Notre équipe vous contacte sous 24 h.</p>
         </div>
       </main>
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        danger={confirmDialog.danger}
+      />
     </div>
   );
 }
@@ -273,6 +282,7 @@ function TeasingPage() {
 
 export default function CompensationPage() {
   // Auth & role
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; danger?: boolean }>({ open: false, title: '', message: '', onConfirm: () => {} });
   const [userRole, setUserRole] = useState('');
   const [hasCbModule, setHasCbModule] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
@@ -600,8 +610,12 @@ export default function CompensationPage() {
     setSubmitting(false);
   };
 
-  const archiveEvaluation = async (id: number) => {
-    if (!window.confirm('Archiver cette pesée ? Elle ne sera plus visible dans la liste active.')) return;
+  const archiveEvaluation = (id: number) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Archiver la pesée',
+      message: 'Archiver cette pesée ? Elle ne sera plus visible dans la liste active.',
+      onConfirm: async () => {
     try {
       const res = await fetch(`${API_URL}/api/cb/evaluations/${id}/archive`, {
         method: 'PATCH', headers: getAuthHeaders(),
@@ -614,6 +628,8 @@ export default function CompensationPage() {
         showToast(err.detail || 'Erreur lors de l\'archivage');
       }
     } catch { showToast('Erreur réseau'); }
+      },
+    });
   };
 
   const openEditEval = (ev: JobEvaluation) => {
@@ -963,8 +979,13 @@ export default function CompensationPage() {
     } catch { showToast('Erreur réseau'); }
   };
 
-  const applySimulation = async (id: number, linesCount: number) => {
-    if (!window.confirm(`Appliquer les augmentations à ${linesCount} employé(s) ?\nCette action mettra à jour les salaires définitivement.`)) return;
+  const applySimulation = (id: number, linesCount: number) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Appliquer les augmentations',
+      message: `Appliquer les augmentations à ${linesCount} employé(s) ? Cette action mettra à jour les salaires définitivement.`,
+      danger: true,
+      onConfirm: async () => {
     try {
       const res = await fetch(`${API_URL}/api/cb/simulations/${id}/apply`, {
         method: 'POST', headers: getAuthHeaders(),
@@ -976,9 +997,11 @@ export default function CompensationPage() {
         viewSimulation(id);
       } else {
         const err = await res.json().catch(() => ({}));
-        showToast(err.detail || 'Erreur lors de l\'application');
+        showToast(err.detail || "Erreur lors de l'application");
       }
     } catch { showToast('Erreur réseau'); }
+      },
+    });
   };
 
   // ── Import simulation from CSV/Excel ──

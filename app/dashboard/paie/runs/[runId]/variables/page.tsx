@@ -7,6 +7,7 @@ import {
   Receipt, Pencil, AlertCircle, User,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import { getEmployees, type Employee } from '@/lib/api';
@@ -181,6 +182,7 @@ export default function VariablesPage() {
   const [editing, setEditing] = useState<PayVariable | undefined>(undefined);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [locking, setLocking] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; danger?: boolean }>({ open: false, title: '', message: '', onConfirm: () => {} });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -217,32 +219,46 @@ export default function VariablesPage() {
     setEditing(undefined);
   };
 
-  const handleDelete = async (v: PayVariable) => {
-    if (!confirm(`Supprimer la variable ?`)) return;
-    setDeletingId(v.id);
-    try {
-      await deleteVariable(v.id);
-      toast.success('Variable supprimée');
-      setVariables(prev => prev.filter(x => x.id !== v.id));
-    } catch {
-      toast.error('Erreur suppression');
-    } finally {
-      setDeletingId(null);
-    }
+  const handleDelete = (v: PayVariable) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Supprimer la variable',
+      message: 'Supprimer cette variable de paie ? Cette action est irréversible.',
+      danger: true,
+      onConfirm: async () => {
+        setDeletingId(v.id);
+        try {
+          await deleteVariable(v.id);
+          toast.success('Variable supprimée');
+          setVariables(prev => prev.filter(x => x.id !== v.id));
+        } catch {
+          toast.error('Erreur suppression');
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   };
 
-  const handleLock = async () => {
-    if (!confirm(`Verrouiller la période ${MONTHS_FR[periodMonth - 1]} ${periodYear} ?\n\nAucune variable ne pourra être modifiée après verrouillage.`)) return;
-    setLocking(true);
-    try {
-      await lockPeriod(periodYear, periodMonth);
-      toast.success('Période verrouillée');
-      setRunStatus('simulated'); // hint visuel
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur verrouillage');
-    } finally {
-      setLocking(false);
-    }
+  const handleLock = () => {
+    setConfirmDialog({
+      open: true,
+      title: 'Verrouiller la période',
+      message: `Verrouiller la période ${MONTHS_FR[periodMonth - 1]} ${periodYear} ? Aucune variable ne pourra être modifiée après verrouillage.`,
+      danger: true,
+      onConfirm: async () => {
+        setLocking(true);
+        try {
+          await lockPeriod(periodYear, periodMonth);
+          toast.success('Période verrouillée');
+          setRunStatus('simulated'); // hint visuel
+        } catch (err: unknown) {
+          toast.error(err instanceof Error ? err.message : 'Erreur verrouillage');
+        } finally {
+          setLocking(false);
+        }
+      },
+    });
   };
 
   const isLocked = runStatus !== 'draft';
@@ -411,6 +427,14 @@ export default function VariablesPage() {
           onSaved={handleSaved}
         />
       )}
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        danger={confirmDialog.danger}
+      />
     </div>
   );
 }

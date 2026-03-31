@@ -5,6 +5,8 @@
 // File: app/dashboard/learning/providers/page.tsx
 // ============================================
 
+import { useState } from 'react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { useLearning } from '../LearningContext';
 import { hasPermission } from '../shared';
 import { Plus, Edit, Ban, Globe, Mail, Phone, User, Tag, CheckCircle } from 'lucide-react';
@@ -18,6 +20,7 @@ export default function ProvidersPage() {
   } = useLearning();
 
   const isAdmin = hasPermission(userRole, 'create_course');
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; danger?: boolean }>({ open: false, title: '', message: '', onConfirm: () => {} });
 
   if (!isAdmin) {
     return (
@@ -107,7 +110,7 @@ export default function ProvidersPage() {
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => { if (confirm(`Désactiver "${provider.name}" ?`)) deactivateProvider(provider.id); }}
+                      onClick={() => setConfirmDialog({ open: true, title: 'Désactiver le fournisseur', message: `Désactiver "${provider.name}" ? Il ne sera plus disponible pour de nouvelles formations.`, danger: true, onConfirm: () => deactivateProvider(provider.id) })}
                       className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       title="Désactiver"
                     >
@@ -148,6 +151,14 @@ export default function ProvidersPage() {
           )}
         </>
       )}
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        danger={confirmDialog.danger}
+      />
     </div>
   );
 }

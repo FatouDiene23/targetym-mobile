@@ -9,6 +9,7 @@ import {
   Upload, FileDown, Save
 } from 'lucide-react';
 import Header from '@/components/Header';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import Pagination from '@/components/Pagination';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
@@ -555,6 +556,7 @@ function LeaveTypesModal({
   const [showAddForm, setShowAddForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; danger?: boolean }>({ open: false, title: '', message: '', onConfirm: () => {} });
 
   const handleSaveEdit = async () => {
     if (!editingType) return;
@@ -585,17 +587,24 @@ function LeaveTypesModal({
     }
   };
 
-  const handleDeleteType = async (type: LeaveType) => {
-    if (!confirm(`Supprimer le type "${type.name}" ? Cette action le désactivera définitivement.`)) return;
-    setDeletingId(type.id);
-    try {
-      await deleteLeaveType(type.id);
-      onRefresh();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setDeletingId(null);
-    }
+  const handleDeleteType = (type: LeaveType) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Supprimer le type de congé',
+      message: `Supprimer le type "${type.name}" ? Cette action le désactivera définitivement.`,
+      danger: true,
+      onConfirm: async () => {
+        setDeletingId(type.id);
+        try {
+          await deleteLeaveType(type.id);
+          onRefresh();
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   };
 
   if (!isOpen) return null;
@@ -2259,6 +2268,14 @@ export default function LeavesManagementPage() {
         onClose={() => setShowNewLeaveModal(false)}
         leaveTypes={leaveTypes}
         onSuccess={() => { loadRequests(); loadData(); }}
+      />
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        danger={confirmDialog.danger}
       />
     </>
   );

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Header from '@/components/Header';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import {
   PenLine, FileText, Plus, X, Loader2, CheckCircle2,
   Clock, XCircle, Trash2, Send, Ban, Download,
@@ -126,6 +127,7 @@ export default function SignaturesPage() {
   });
   const [selectedSignatories, setSelectedSignatories] = useState<number[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; danger?: boolean }>({ open: false, title: '', message: '', onConfirm: () => {} });
 
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
@@ -254,34 +256,47 @@ export default function SignaturesPage() {
     }
   };
 
-  const handleCancel = async (docId: number) => {
-    if (!confirm('Annuler ce document ?')) return;
-    try {
-      const res = await fetch(`${API_URL}/api/signatures/documents/${docId}/cancel`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error();
-      toast.success('Document annulé');
-      fetchAll();
-    } catch {
-      toast.error('Erreur lors de l\'annulation');
-    }
+  const handleCancel = (docId: number) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Annuler le document',
+      message: 'Annuler ce document ? Les signataires ne pourront plus signer.',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/signatures/documents/${docId}/cancel`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+          });
+          if (!res.ok) throw new Error();
+          toast.success('Document annulé');
+          fetchAll();
+        } catch {
+          toast.error("Erreur lors de l'annulation");
+        }
+      },
+    });
   };
 
-  const handleDelete = async (docId: number) => {
-    if (!confirm('Supprimer définitivement ce document ?')) return;
-    try {
-      const res = await fetch(`${API_URL}/api/signatures/documents/${docId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error();
-      toast.success('Document supprimé');
-      fetchAll();
-    } catch {
-      toast.error('Erreur lors de la suppression');
-    }
+  const handleDelete = (docId: number) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Supprimer le document',
+      message: 'Supprimer définitivement ce document ? Cette action est irréversible.',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/signatures/documents/${docId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+          });
+          if (!res.ok) throw new Error();
+          toast.success('Document supprimé');
+          fetchAll();
+        } catch {
+          toast.error('Erreur lors de la suppression');
+        }
+      },
+    });
   };
 
   const handleDownloadFinalPdf = async (doc: DocumentOut) => {
@@ -646,6 +661,14 @@ export default function SignaturesPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        danger={confirmDialog.danger}
+      />
     </div>
   );
 }

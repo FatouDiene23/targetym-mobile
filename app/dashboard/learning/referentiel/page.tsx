@@ -6,6 +6,7 @@
 // ============================================
 
 import { useState, useCallback, useEffect } from 'react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { useLearning } from '../LearningContext';
 import { hasPermission } from '../shared';
 import type { Skill } from '../shared';
@@ -79,6 +80,7 @@ function getAuthHeaders(): HeadersInit {
 export default function ReferentielPage() {
   const { userRole, skills, fetchSkillsPublic } = useLearning() as any;
 
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; danger?: boolean }>({ open: false, title: '', message: '', onConfirm: () => {} });
   const [allSkills, setAllSkills] = useState<Skill[]>(skills ?? []);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('');
@@ -149,10 +151,17 @@ export default function ReferentielPage() {
     finally { setSaving(false); }
   };
 
-  const deleteSkill = async (id: number) => {
-    if (!confirm('Supprimer cette compétence ?')) return;
-    await fetch(`${API_URL}/api/learning/skills/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
-    fetchSkills();
+  const deleteSkill = (id: number) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Supprimer la compétence',
+      message: 'Supprimer cette compétence définitivement ?',
+      danger: true,
+      onConfirm: async () => {
+        await fetch(`${API_URL}/api/learning/skills/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+        fetchSkills();
+      },
+    });
   };
 
   const filtered = allSkills.filter(s => {
@@ -343,6 +352,14 @@ export default function ReferentielPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        danger={confirmDialog.danger}
+      />
     </div>
   );
 }

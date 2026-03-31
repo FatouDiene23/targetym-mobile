@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Settings2, Plus, Loader2, X, Pencil, Trash2, ChevronUp, ChevronDown,
-  ToggleLeft, ToggleRight, Receipt, AlertCircle,
+  ToggleLeft, ToggleRight, Receipt,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
@@ -16,13 +16,165 @@ import {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const CALC_TYPES = [
-  { value: 'fixed', label: 'Montant fixe' },
-  { value: 'rate_on_base', label: 'Taux sur base' },
-  { value: 'rate_on_component', label: 'Taux sur rubrique' },
-  { value: 'formula', label: 'Formule' },
-  { value: 'tax_table', label: 'Barème fiscal' },
-  { value: 'manual_variable', label: 'Variable manuelle' },
+  { value: 'fixed_amount',           label: 'Montant fixe' },
+  { value: 'rate_with_cap',          label: 'Taux avec plafond' },
+  { value: 'rate_with_floor_and_cap',label: 'Taux avec plancher et plafond' },
+  { value: 'lookup_table',           label: 'Barème (table de taux)' },
+  { value: 'progressive',            label: 'Barème progressif (IR)' },
+  { value: 'formula',                label: 'Formule personnalisée' },
 ];
+
+function getDefaultParams(calcType: string): Record<string, unknown> {
+  switch (calcType) {
+    case 'fixed_amount':            return { amount: 0 };
+    case 'rate_with_cap':           return { rate: 0.0, cap: 0, base: 'brut' };
+    case 'rate_with_floor_and_cap': return { rate: 0.0, floor: 0, cap: 0, base: 'brut' };
+    case 'lookup_table':            return { table_code: '', base: 'brut' };
+    case 'progressive':             return { base: 'taxable' };
+    case 'formula':                 return { formula: '' };
+    default:                        return {};
+  }
+}
+
+function CalcParamsFields({
+  calcType, value, onChange,
+}: {
+  calcType: string;
+  value: Record<string, unknown>;
+  onChange: (v: Record<string, unknown>) => void;
+}) {
+  const set = (k: string, v: unknown) => onChange({ ...value, [k]: v });
+  const num = (k: string, def = 0) => (value[k] as number) ?? def;
+  const str = (k: string, def = '') => (value[k] as string) ?? def;
+
+  const baseSelect = (
+    <div>
+      <label className="block text-xs font-medium text-gray-500 mb-1">Base de calcul</label>
+      <select
+        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        value={str('base', 'brut')}
+        onChange={e => set('base', e.target.value)}
+      >
+        <option value="brut">Salaire brut</option>
+        <option value="taxable">Revenu imposable</option>
+        <option value="base_salary">Salaire de base</option>
+      </select>
+    </div>
+  );
+
+  if (calcType === 'fixed_amount') {
+    return (
+      <div>
+        <label className="block text-xs font-medium text-gray-500 mb-1">Montant fixe (XOF) — laisser 0 si variable</label>
+        <input
+          type="number" min={0} step={1}
+          className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={num('amount')}
+          onChange={e => set('amount', parseFloat(e.target.value) || 0)}
+        />
+      </div>
+    );
+  }
+
+  if (calcType === 'rate_with_cap') {
+    return (
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Taux (%)</label>
+          <input type="number" min={0} max={100} step={0.001}
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={+(num('rate') * 100).toFixed(4)}
+            onChange={e => set('rate', parseFloat(e.target.value) / 100 || 0)}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Plafond (XOF)</label>
+          <input type="number" min={0} step={1}
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={num('cap')}
+            onChange={e => set('cap', parseFloat(e.target.value) || 0)}
+          />
+        </div>
+        {baseSelect}
+      </div>
+    );
+  }
+
+  if (calcType === 'rate_with_floor_and_cap') {
+    return (
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Taux (%)</label>
+          <input type="number" min={0} max={100} step={0.001}
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={+(num('rate') * 100).toFixed(4)}
+            onChange={e => set('rate', parseFloat(e.target.value) / 100 || 0)}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Plancher (XOF)</label>
+          <input type="number" min={0} step={1}
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={num('floor')}
+            onChange={e => set('floor', parseFloat(e.target.value) || 0)}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Plafond (XOF)</label>
+          <input type="number" min={0} step={1}
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={num('cap')}
+            onChange={e => set('cap', parseFloat(e.target.value) || 0)}
+          />
+        </div>
+        {baseSelect}
+      </div>
+    );
+  }
+
+  if (calcType === 'lookup_table') {
+    return (
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Code de la table</label>
+          <input
+            className="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={str('table_code')}
+            onChange={e => set('table_code', e.target.value.toUpperCase())}
+            placeholder="Ex : IPRES_TABLE"
+          />
+        </div>
+        {baseSelect}
+      </div>
+    );
+  }
+
+  if (calcType === 'progressive') {
+    return (
+      <div>
+        {baseSelect}
+        <p className="text-xs text-gray-400 mt-2">Les tranches progressives sont configurées séparément dans les paramètres fiscaux.</p>
+      </div>
+    );
+  }
+
+  if (calcType === 'formula') {
+    return (
+      <div>
+        <label className="block text-xs font-medium text-gray-500 mb-1">Expression de calcul</label>
+        <input
+          className="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={str('formula')}
+          onChange={e => set('formula', e.target.value)}
+          placeholder="Ex : base_salary * 0.3 / 26"
+        />
+        <p className="text-xs text-gray-400 mt-1">Variables disponibles : base_salary, brut_total, days_worked</p>
+      </div>
+    );
+  }
+
+  return null;
+}
 
 const COMPONENT_TYPES = [
   { value: 'earning', label: 'Gain' },
@@ -36,8 +188,8 @@ const DEFAULT_FORM: PayComponentCreate = {
   code: '',
   name: '',
   component_type: 'earning',
-  calc_type: 'fixed',
-  calc_params: {},
+  calc_type: 'fixed_amount',
+  calc_params: { amount: 0 },
   is_taxable: false,
   is_subject_to_cotisations: false,
   is_active: true,
@@ -70,31 +222,21 @@ function ComponentModal({
         }
       : DEFAULT_FORM,
   );
-  const [paramsText, setParamsText] = useState(JSON.stringify(initial?.calc_params ?? {}, null, 2));
-  const [paramsError, setParamsError] = useState('');
   const [saving, setSaving] = useState(false);
 
   const set = (k: keyof PayComponentCreate, v: unknown) =>
     setForm(f => ({ ...f, [k]: v }));
 
-  const handleParamsChange = (val: string) => {
-    setParamsText(val);
-    try {
-      JSON.parse(val);
-      setParamsError('');
-    } catch {
-      setParamsError('JSON invalide');
-    }
+  // Quand le type de calcul change, réinitialiser calc_params aux valeurs par défaut
+  const handleCalcTypeChange = (newType: string) => {
+    setForm(f => ({ ...f, calc_type: newType, calc_params: getDefaultParams(newType) }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (paramsError) return toast.error('Corrigez les calc_params');
-    let params: Record<string, unknown> = {};
-    try { params = JSON.parse(paramsText); } catch { return; }
     setSaving(true);
     try {
-      const payload = { ...form, calc_params: params };
+      const payload = { ...form };
       const result = initial
         ? await updateComponent(initial.id, payload)
         : await createComponent(payload);
@@ -175,7 +317,7 @@ function ComponentModal({
               <select
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={form.calc_type}
-                onChange={e => set('calc_type', e.target.value)}
+                onChange={e => handleCalcTypeChange(e.target.value)}
               >
                 {CALC_TYPES.map(t => (
                   <option key={t.value} value={t.value}>{t.label}</option>
@@ -185,22 +327,14 @@ function ComponentModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Paramètres de calcul{' '}
-              <span className="text-gray-400 font-normal">(JSON)</span>
-            </label>
-            <textarea
-              className={`w-full border rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 ${paramsError ? 'border-red-400' : ''}`}
-              rows={5}
-              value={paramsText}
-              onChange={e => handleParamsChange(e.target.value)}
-              spellCheck={false}
-            />
-            {paramsError && (
-              <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" /> {paramsError}
-              </p>
-            )}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Paramètres de calcul</label>
+            <div className="bg-gray-50 rounded-lg p-3 border">
+              <CalcParamsFields
+                calcType={form.calc_type}
+                value={form.calc_params as Record<string, unknown>}
+                onChange={v => set('calc_params', v)}
+              />
+            </div>
           </div>
 
           <div className="flex gap-6">

@@ -39,9 +39,7 @@ export default function LoginPage() {
       if (data.requires_2fa) {
         localStorage.setItem('2fa_temp_token', data.temp_token);
         localStorage.setItem('2fa_needs_setup', JSON.stringify(data.needs_setup));
-        // TODO: rediriger vers une page 2FA si nécessaire
-        setError('L\'authentification 2FA est requise. Veuillez vous connecter via le site web.');
-        setLoading(false);
+        window.location.replace('/verify-2fa/index.html');
         return;
       }
 

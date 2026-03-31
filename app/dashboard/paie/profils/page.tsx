@@ -40,12 +40,15 @@ function ProfileModal({
 }) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<EmployeePayrollProfileCreate>({
-    base_salary: existing?.base_salary ?? undefined,
+    // Si profil paie existant → ses valeurs, sinon → fallback depuis la fiche employé
+    base_salary: existing?.base_salary ?? employee.salaire_brut ?? employee.salary ?? undefined,
     transport_allowance: existing?.transport_allowance ?? undefined,
     housing_allowance: existing?.housing_allowance ?? undefined,
     family_parts: existing?.family_parts ?? undefined,
-    contract_type: existing?.contract_type ?? 'cdi',
-    classification: existing?.classification ?? '',
+    contract_type: existing?.contract_type
+      ?? (employee.contract_type?.toLowerCase() as 'cdi' | 'cdd' | 'stage' | 'consultant' | undefined)
+      ?? 'cdi',
+    classification: existing?.classification ?? employee.classification ?? '',
     ipres_enrolled: existing?.ipres_enrolled ?? true,
     ipm_enrolled: existing?.ipm_enrolled ?? true,
     css_enrolled: existing?.css_enrolled ?? true,
@@ -104,6 +107,14 @@ function ProfileModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-5">
+          {/* Bannière info préremplissage */}
+          {!existing && (employee.salaire_brut || employee.salary || employee.classification || employee.contract_type) && (
+            <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5 text-sm text-blue-700">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-blue-400" />
+              <span>Certains champs ont été préremplis depuis la fiche employé. Vérifiez et complétez si nécessaire.</span>
+            </div>
+          )}
+
           {/* Contrat et classification */}
           <div className="grid grid-cols-2 gap-4">
             <div>

@@ -137,6 +137,28 @@ export async function getPayrollConfig(): Promise<PayrollConfig> {
   return r.json();
 }
 
+export interface PayrollConfigUpdate {
+  ninea?: string | null;
+  ipres_employer_number?: string | null;
+  css_employer_number?: string | null;
+  convention_collective?: string | null;
+  company_address?: string | null;
+  default_work_days_per_month?: number;
+  fiscal_year_start_month?: number;
+}
+
+export async function updatePayrollConfig(data: PayrollConfigUpdate): Promise<PayrollConfig> {
+  const r = await fetchWithAuth(`${API_URL}/api/payroll/config`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.detail || `${r.status}`);
+  }
+  return r.json();
+}
+
 export async function getPayrollBulletinHeader(): Promise<PayrollBulletinHeader> {
   const r = await fetchWithAuth(`${API_URL}/api/payroll/config/bulletin-header`);
   if (!r.ok) throw new Error(`${r.status}`);

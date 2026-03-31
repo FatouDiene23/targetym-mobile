@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   PlayCircle, Plus, Loader2, X, ClipboardList, ChevronDown,
-  Receipt, Eye, Zap, CheckCircle2, Calendar,
+  Receipt, Eye, Zap, CheckCircle2, Calendar, Settings,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -11,8 +11,9 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import {
   getRuns, createRun, simulateRun, validateRun,
+  getPayrollConfig, updatePayrollConfig,
   formatXOF, MONTHS_FR, RUN_STATUS,
-  type PayrollRun,
+  type PayrollRun, type PayrollConfig,
 } from '@/lib/payrollApi';
 
 // ── Composant badge statut ────────────────────────────────────────────────────
@@ -124,6 +125,146 @@ function NewRunModal({
   );
 }
 
+// ── Modal configuration employeur ────────────────────────────────────────────
+
+function ConfigModal({
+  initial,
+  onClose,
+  onSaved,
+}: {
+  initial: PayrollConfig | null;
+  onClose: () => void;
+  onSaved: (c: PayrollConfig) => void;
+}) {
+  const [form, setForm] = useState({
+    ninea: initial?.ninea ?? '',
+    ipres_employer_number: initial?.ipres_employer_number ?? '',
+    css_employer_number: initial?.css_employer_number ?? '',
+    convention_collective: initial?.convention_collective ?? '',
+    company_address: initial?.company_address ?? '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  const set = (field: string, value: string) =>
+    setForm(p => ({ ...p, [field]: value }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const saved = await updatePayrollConfig({
+        ninea: form.ninea || null,
+        ipres_employer_number: form.ipres_employer_number || null,
+        css_employer_number: form.css_employer_number || null,
+        convention_collective: form.convention_collective || null,
+        company_address: form.company_address || null,
+      });
+      toast.success('Configuration enregistrée');
+      onSaved(saved);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erreur');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+        <div className="flex items-center justify-between p-5 border-b">
+          <h2 className="font-semibold text-gray-800 text-lg flex items-center gap-2">
+            <Settings className="w-5 h-5 text-blue-600" />
+            Configuration paie
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <p className="text-xs text-gray-500">
+            Ces informations apparaissent sur les bulletins de paie.
+          </p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">NINEA</label>
+              <input
+                type="text"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={form.ninea}
+                onChange={e => set('ninea', e.target.value)}
+                placeholder="Ex: 00123456 7Z1"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">N° IPRES Employeur</label>
+              <input
+                type="text"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={form.ipres_employer_number}
+                onChange={e => set('ipres_employer_number', e.target.value)}
+                placeholder="Ex: A012345"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">N° CSS Employeur</label>
+              <input
+                type="text"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={form.css_employer_number}
+                onChange={e => set('css_employer_number', e.target.value)}
+                placeholder="Ex: CSS-00456"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Convention collective</label>
+              <input
+                type="text"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={form.convention_collective}
+                onChange={e => set('convention_collective', e.target.value)}
+                placeholder="Ex: Convention nationale"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Adresse de l'entreprise</label>
+            <textarea
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={2}
+              value={form.company_address}
+              onChange={e => set('company_address', e.target.value)}
+              placeholder="Ex: 12 Avenue Léopold Sédar Senghor, Dakar"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-5 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-60"
+            >
+              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+              Enregistrer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function RunsPage() {
@@ -131,14 +272,17 @@ export default function RunsPage() {
   const [runs, setRuns] = useState<PayrollRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [configModalOpen, setConfigModalOpen] = useState(false);
+  const [payrollConfig, setPayrollConfig] = useState<PayrollConfig | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; danger?: boolean }>({ open: false, title: '', message: '', onConfirm: () => {} });
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getRuns();
+      const [data, config] = await Promise.all([getRuns(), getPayrollConfig()]);
       setRuns(data.items);
+      setPayrollConfig(config);
     } catch {
       toast.error('Erreur lors du chargement des runs');
     } finally {
@@ -218,13 +362,22 @@ export default function RunsPage() {
               {runs.length} run{runs.length > 1 ? 's' : ''} au total
             </p>
           </div>
-          <button
-            onClick={() => setModalOpen(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-          >
-            <Plus className="w-4 h-4" />
-            Nouveau run
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setConfigModalOpen(true)}
+              className="flex items-center gap-2 text-gray-600 text-sm px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
+            >
+              <Settings className="w-4 h-4" />
+              Configuration
+            </button>
+            <button
+              onClick={() => setModalOpen(true)}
+              className="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+            >
+              <Plus className="w-4 h-4" />
+              Nouveau run
+            </button>
+          </div>
         </div>
 
         {/* Liste */}
@@ -345,6 +498,13 @@ export default function RunsPage() {
 
       {modalOpen && (
         <NewRunModal onClose={() => setModalOpen(false)} onCreated={handleCreated} />
+      )}
+      {configModalOpen && (
+        <ConfigModal
+          initial={payrollConfig}
+          onClose={() => setConfigModalOpen(false)}
+          onSaved={(c) => { setPayrollConfig(c); setConfigModalOpen(false); }}
+        />
       )}
       <ConfirmDialog
         isOpen={confirmDialog.open}

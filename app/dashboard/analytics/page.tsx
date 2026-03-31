@@ -183,6 +183,18 @@ const TAB_TO_SECTION = Object.entries(SECTION_TO_TAB).reduce<Record<number, stri
   (acc, [k, v]) => { acc[v] = k; return acc; }, {}
 );
 
+const SECTION_HEADERS: Record<string, { title: string; subtitle: string }> = {
+  'overview':         { title: "People Analytics",   subtitle: "Tableaux de bord et indicateurs RH" },
+  'effectif':         { title: "Effectif & Structure", subtitle: "Analyse des effectifs et de l'organisation" },
+  'performance':      { title: "Performance",        subtitle: "Indicateurs de performance et évaluations" },
+  'talents':          { title: "Talents",            subtitle: "Gestion et identification des talents" },
+  'formation':        { title: "Formation",          subtitle: "Suivi des formations et développement des compétences" },
+  'engagement':       { title: "Engagement",         subtitle: "Mesure de l'engagement et satisfaction des équipes" },
+  'recrutement':      { title: "Recrutement",        subtitle: "Analyse du pipeline et performance du recrutement" },
+  'masse-salariale':  { title: "Masse Salariale",    subtitle: "Analyse et évolution de la masse salariale" },
+  'impact-formation': { title: "Impact Formation",   subtitle: "ROI des formations et impact sur la performance" },
+};
+
 export default function PeopleAnalyticsPage() {
   // --- Navigation par query param ?section= ---
   const searchParams = useSearchParams();
@@ -1889,8 +1901,8 @@ export default function PeopleAnalyticsPage() {
       )}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">People Analytics</h1>
-          <p className="text-gray-500 text-sm mt-1">Tableaux de bord et indicateurs RH</p>
+          <h1 className="text-2xl font-bold text-gray-900">{(SECTION_HEADERS[currentSection] ?? SECTION_HEADERS['overview']).title}</h1>
+          <p className="text-gray-500 text-sm mt-1">{(SECTION_HEADERS[currentSection] ?? SECTION_HEADERS['overview']).subtitle}</p>
         </div>
         <div className="flex items-center gap-3">
           {/* Filtre département */}

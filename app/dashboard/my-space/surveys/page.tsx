@@ -46,6 +46,7 @@ export default function MySurveysPage() {
   const [completedSurveys, setCompletedSurveys] = useState<Survey[]>([]);
   const [loadingPending, setLoadingPending] = useState(true);
   const [loadingCompleted, setLoadingCompleted] = useState(true);
+  const [anonymousCompleted, setAnonymousCompleted] = useState<Survey[]>([]);
 
   // Respond view
   const [activeSurvey, setActiveSurvey] = useState<Survey | null>(null);
@@ -56,6 +57,23 @@ export default function MySurveysPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [alreadyCompleted, setAlreadyCompleted] = useState(false);
+
+  // ── LocalStorage helpers for anonymous surveys ──────────────────────────
+
+  const getCompletedSurveyIds = (): number[] => {
+    try {
+      const raw = localStorage.getItem('completed_surveys');
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  };
+
+  const addCompletedSurveyId = (surveyId: number) => {
+    const ids = getCompletedSurveyIds();
+    if (!ids.includes(surveyId)) {
+      ids.push(surveyId);
+      localStorage.setItem('completed_surveys', JSON.stringify(ids));
+    }
+  };
 
   // ── API ─────────────────────────────────────────────────────────────────
 
@@ -86,8 +104,29 @@ export default function MySurveysPage() {
   const loadCompleted = useCallback(async () => {
     setLoadingCompleted(true);
     try {
-      const data = await apiFetch('/api/surveys/my-surveys?status=completee');
+      // Non-anonymous completed (from API)
+      const data: Survey[] = await apiFetch('/api/surveys/my-surveys?status=completee');
       setCompletedSurveys(data);
+
+      // Anonymous completed (from localStorage)
+      const anonIds = getCompletedSurveyIds();
+      const apiIds = new Set(data.map((s: Survey) => s.id));
+      const missingIds = anonIds.filter(id => !apiIds.has(id));
+
+      if (missingIds.length > 0) {
+        const anonSurveys: Survey[] = [];
+        for (const id of missingIds) {
+          try {
+            const s: Survey = await apiFetch(`/api/surveys/${id}`);
+            if (s.is_anonymous) anonSurveys.push(s);
+          } catch {
+            // survey may no longer exist — ignore
+          }
+        }
+        setAnonymousCompleted(anonSurveys);
+      } else {
+        setAnonymousCompleted([]);
+      }
     } catch {
       // silent
     } finally {
@@ -175,6 +214,10 @@ export default function MySurveysPage() {
           })),
         }),
       });
+      // Track anonymous completions in localStorage
+      if (activeSurvey.is_anonymous) {
+        addCompletedSurveyId(activeSurvey.id);
+      }
       setSubmitted(true);
       // Refresh lists
       loadPending();
@@ -423,7 +466,9 @@ export default function MySurveysPage() {
   // ── List view ───────────────────────────────────────────────────────────
 
   const isLoadingTab = activeTab === 'pending' ? loadingPending : loadingCompleted;
-  const currentSurveys = activeTab === 'pending' ? pendingSurveys : completedSurveys;
+  const allCompleted = [...completedSurveys, ...anonymousCompleted];
+  const currentSurveys = activeTab === 'pending' ? pendingSurveys : allCompleted;
+  const anonymousIds = new Set(anonymousCompleted.map(s => s.id));
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
@@ -530,9 +575,9 @@ export default function MySurveysPage() {
                   ) : (
                     // Completed tab actions
                     <>
-                      {s.is_anonymous ? (
-                        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-500">
-                          <Lock className="w-3.5 h-3.5" /> Anonyme - modification impossible
+                      {s.is_anonymous || anonymousIds.has(s.id) ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-50 text-green-600 border border-green-200">
+                          <CheckCircle className="w-3.5 h-3.5" /> Anonyme - réponse enregistrée
                         </span>
                       ) : s.status === 'cloturee' || s.status === 'archivee' ? (
                         <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-500">

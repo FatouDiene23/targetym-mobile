@@ -264,14 +264,6 @@ function TeasingPage() {
           <p className="text-xs text-gray-400 mt-3">Notre équipe vous contacte sous 24 h.</p>
         </div>
       </main>
-      <ConfirmDialog
-        isOpen={confirmDialog.open}
-        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
-        onConfirm={confirmDialog.onConfirm}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        danger={confirmDialog.danger}
-      />
     </div>
   );
 }
@@ -2438,6 +2430,14 @@ export default function CompensationPage() {
         )}
 
       </main>
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        danger={confirmDialog.danger}
+      />
     </div>
   );
 }

@@ -205,7 +205,7 @@ function ProfileModal({
                   <input
                     type="checkbox"
                     className="w-4 h-4 accent-blue-600"
-                    checked={!!(form as Record<string, unknown>)[key]}
+                    checked={!!(form as unknown as Record<string, unknown>)[key]}
                     onChange={e => set(key as keyof EmployeePayrollProfileCreate, e.target.checked)}
                   />
                   <span className="text-sm text-gray-700">{label}</span>

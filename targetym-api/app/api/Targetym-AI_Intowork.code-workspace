@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "../../.."
+		},
+		{
+			"path": "../../../../IntoWork-Dashboard"
+		},
+		{
+			"path": "../../../../targetym-website"
+		}
+	],
+	"settings": {
+		"editor.fontSize": 16
+	}
+}

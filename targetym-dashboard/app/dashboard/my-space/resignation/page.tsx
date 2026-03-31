@@ -1,0 +1,461 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Header from '@/components/Header';
+import {
+  UserMinus, Clock, CheckCircle, XCircle, AlertTriangle, Send,
+  Calendar, FileText, ChevronRight, Ban,
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+import ConfirmDialog from '@/components/ConfirmDialog';
+
+// ============================================
+// TYPES
+// ============================================
+
+interface MyResignation {
+  id: number;
+  status: string;
+  reason: string | null;
+  notification_date: string | null;
+  requested_departure_date: string | null;
+  notice_period_days: number;
+  notice_end_date: string | null;
+  effective_date: string | null;
+  leave_balance_days: number;
+  leave_compensation_amount: number;
+  manager_validated_at: string | null;
+  manager_comment: string | null;
+  rh_validated_at: string | null;
+  rh_comment: string | null;
+  created_at: string | null;
+}
+
+// ============================================
+// CONSTANTS
+// ============================================
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
+
+const STATUS_LABELS: Record<string, { label: string; color: string; description: string }> = {
+  draft: { label: 'Brouillon', color: 'text-gray-600 bg-gray-100', description: 'Votre demande n\'a pas encore été soumise.' },
+  pending_manager: { label: 'En attente Manager', color: 'text-yellow-700 bg-yellow-100', description: 'Votre démission est en attente de validation par votre manager.' },
+  pending_rh: { label: 'En attente RH', color: 'text-orange-700 bg-orange-100', description: 'Votre manager a validé. En attente de confirmation par les RH.' },
+  validated: { label: 'Validée', color: 'text-green-700 bg-green-100', description: 'Votre démission a été acceptée. Le processus d\'offboarding est en cours.' },
+  in_progress: { label: 'En cours', color: 'text-blue-700 bg-blue-100', description: 'Le processus de départ est en cours de traitement.' },
+  completed: { label: 'Clôturée', color: 'text-emerald-700 bg-emerald-100', description: 'Votre départ a été finalisé.' },
+  cancelled: { label: 'Annulée', color: 'text-gray-500 bg-gray-100', description: 'Cette démission a été annulée.' },
+};
+
+// ============================================
+// HELPERS
+// ============================================
+
+function getAuthHeaders(): HeadersInit {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+function formatDate(d: string | null): string {
+  if (!d) return '-';
+  return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+// ============================================
+// COMPONENT
+// ============================================
+
+export default function ResignationPage() {
+  const [resignation, setResignation] = useState<MyResignation | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+
+  // Form
+  const [formReason, setFormReason] = useState('');
+  const [formDetail, setFormDetail] = useState('');
+  const [formDate, setFormDate] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean; title: string; message: string;
+    onConfirm: () => void; danger?: boolean;
+  } | null>(null);
+
+  // Load existing resignation
+  useEffect(() => {
+    loadResignation();
+  }, []);
+
+  const loadResignation = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/departures/my-resignation`, { headers: getAuthHeaders() });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setResignation(data.departure);
+    } catch {
+      // No resignation found is normal
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!formDate) {
+      toast.error('Veuillez indiquer une date de départ souhaitée');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API_URL}/api/departures/my-resignation`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          reason: formReason || null,
+          detailed_reason: formDetail || null,
+          requested_departure_date: formDate,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Erreur lors de la soumission');
+      }
+      toast.success('Votre démission a été soumise');
+      setShowForm(false);
+      loadResignation();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erreur lors de la soumission');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCancel = () => {
+    if (!resignation) return;
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Annuler ma démission',
+      message: 'Êtes-vous sûr de vouloir annuler votre démission ?',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/departures/${resignation.id}/cancel`, {
+            method: 'POST', headers: getAuthHeaders(),
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Erreur annulation');
+          }
+          toast.success('Démission annulée');
+          loadResignation();
+        } catch (e: unknown) {
+          toast.error(e instanceof Error ? e.message : 'Erreur annulation');
+        }
+      },
+    });
+  };
+
+  if (loading) {
+    return (
+      <>
+        <Header title="Processus de Départ" subtitle="Gérer votre procédure de départ" />
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent" />
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Header title="Processus de Départ" subtitle="Gérer votre procédure de départ" />
+
+      <div className="p-6 max-w-3xl mx-auto space-y-6">
+        {resignation ? (
+          // Existing resignation — show status
+          <>
+            {/* Status card */}
+            <div className={`rounded-xl border-2 p-6 ${
+              resignation.status === 'cancelled' ? 'border-gray-200 bg-gray-50' :
+              resignation.status === 'completed' ? 'border-emerald-200 bg-emerald-50' :
+              'border-blue-200 bg-blue-50'
+            }`}>
+              <div className="flex items-start gap-4">
+                <div className={`p-3 rounded-xl ${
+                  resignation.status === 'cancelled' ? 'bg-gray-200' :
+                  resignation.status === 'completed' ? 'bg-emerald-200' :
+                  'bg-blue-200'
+                }`}>
+                  <UserMinus className={`w-6 h-6 ${
+                    resignation.status === 'cancelled' ? 'text-gray-600' :
+                    resignation.status === 'completed' ? 'text-emerald-700' :
+                    'text-blue-700'
+                  }`} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h2 className="text-lg font-semibold text-gray-900">Démission en cours</h2>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_LABELS[resignation.status]?.color || 'bg-gray-100 text-gray-600'}`}>
+                      {STATUS_LABELS[resignation.status]?.label || resignation.status}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600">{STATUS_LABELS[resignation.status]?.description}</p>
+                  <p className="text-xs text-gray-400 mt-2">Soumise le {formatDate(resignation.created_at)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Timeline */}
+            <div className="bg-white rounded-xl border p-6">
+              <h3 className="text-sm font-semibold text-gray-900 mb-4">Suivi de votre démission</h3>
+              <div className="space-y-0">
+                <TimelineStep
+                  label="Démission soumise"
+                  done={true}
+                  date={resignation.created_at}
+                  isFirst
+                />
+                <TimelineStep
+                  label="Validation Manager"
+                  done={!!resignation.manager_validated_at}
+                  date={resignation.manager_validated_at}
+                  active={resignation.status === 'pending_manager'}
+                  comment={resignation.manager_comment}
+                />
+                <TimelineStep
+                  label="Validation RH"
+                  done={!!resignation.rh_validated_at}
+                  date={resignation.rh_validated_at}
+                  active={resignation.status === 'pending_rh'}
+                  comment={resignation.rh_comment}
+                />
+                <TimelineStep
+                  label="Processus d'offboarding"
+                  done={['in_progress', 'completed'].includes(resignation.status)}
+                  active={resignation.status === 'validated'}
+                />
+                <TimelineStep
+                  label="Départ finalisé"
+                  done={resignation.status === 'completed'}
+                  isLast
+                />
+              </div>
+            </div>
+
+            {/* Details */}
+            <div className="bg-white rounded-xl border p-6 space-y-4">
+              <h3 className="text-sm font-semibold text-gray-900">Détails</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-500">Date souhaitée de départ</p>
+                  <p className="text-sm font-medium text-gray-900 mt-1">{formatDate(resignation.requested_departure_date)}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-500">Préavis</p>
+                  <p className="text-sm font-medium text-gray-900 mt-1">{resignation.notice_period_days} jours</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-500">Fin de préavis</p>
+                  <p className="text-sm font-medium text-gray-900 mt-1">{formatDate(resignation.notice_end_date)}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-500">Date effective</p>
+                  <p className="text-sm font-medium text-gray-900 mt-1">{formatDate(resignation.effective_date)}</p>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-blue-900 mb-2">Solde de congés</h4>
+                <div className="flex justify-between text-sm">
+                  <span className="text-blue-700">Jours restants</span>
+                  <span className="font-medium text-blue-900">{resignation.leave_balance_days} jours</span>
+                </div>
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-blue-700">Indemnité estimée</span>
+                  <span className="font-medium text-blue-900">{resignation.leave_compensation_amount.toLocaleString()} XOF</span>
+                </div>
+              </div>
+
+              {resignation.reason && (
+                <div>
+                  <p className="text-xs text-gray-500">Motif</p>
+                  <p className="text-sm text-gray-700 mt-1">{resignation.reason}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Cancel button */}
+            {['draft', 'pending_manager', 'pending_rh'].includes(resignation.status) && (
+              <div className="bg-amber-50 rounded-xl border border-amber-200 p-4 flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm text-amber-800">
+                    Vous pouvez encore annuler votre démission tant qu&apos;elle n&apos;a pas été validée par les RH.
+                  </p>
+                  <button onClick={handleCancel}
+                    className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600">
+                    <Ban className="w-4 h-4" /> Annuler ma démission
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          // No resignation — show form or prompt
+          <>
+            {!showForm ? (
+              <div className="bg-white rounded-xl border p-8 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <UserMinus className="w-8 h-8 text-gray-400" />
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">Soumettre ma démission</h2>
+                <p className="text-sm text-gray-500 max-w-md mx-auto mb-6">
+                  Si vous souhaitez quitter l&apos;entreprise, vous pouvez soumettre votre démission ici.
+                  Elle sera transmise à votre manager puis aux RH pour validation.
+                </p>
+                <button onClick={() => setShowForm(true)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600">
+                  <Send className="w-4 h-4" /> Commencer la procédure
+                </button>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl border p-6 space-y-5">
+                <div className="flex items-center gap-3 pb-4 border-b">
+                  <div className="p-2 bg-red-50 rounded-lg">
+                    <UserMinus className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Soumettre ma démission</h2>
+                    <p className="text-sm text-gray-500">Cette action initiera la procédure de départ</p>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50 rounded-lg p-3 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-amber-700">
+                    Votre démission sera envoyée à votre manager pour validation, puis aux RH.
+                    Vous pourrez l&apos;annuler tant qu&apos;elle n&apos;a pas été validée par les RH.
+                    Le préavis sera calculé automatiquement selon votre contrat.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">
+                      Date de départ souhaitée <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={formDate}
+                      onChange={e => setFormDate(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="w-full mt-1 border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Motif de départ</label>
+                    <input
+                      type="text"
+                      value={formReason}
+                      onChange={e => setFormReason(e.target.value)}
+                      placeholder="Ex: Opportunité professionnelle, projet personnel..."
+                      className="w-full mt-1 border rounded-lg px-3 py-2.5 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Détails complémentaires</label>
+                    <textarea
+                      value={formDetail}
+                      onChange={e => setFormDetail(e.target.value)}
+                      rows={3}
+                      placeholder="Précisions ou commentaires éventuels..."
+                      className="w-full mt-1 border rounded-lg px-3 py-2.5 text-sm resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button onClick={() => setShowForm(false)}
+                    className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg">
+                    Annuler
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={submitting || !formDate}
+                    className="px-5 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 disabled:opacity-50"
+                  >
+                    {submitting ? 'Envoi...' : 'Soumettre ma démission'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog(null)}
+          danger={confirmDialog.danger}
+        />
+      )}
+    </>
+  );
+}
+
+// ============================================
+// TIMELINE STEP COMPONENT
+// ============================================
+
+function TimelineStep({ label, done, date, active, comment, isFirst, isLast }: {
+  label: string;
+  done: boolean;
+  date?: string | null;
+  active?: boolean;
+  comment?: string | null;
+  isFirst?: boolean;
+  isLast?: boolean;
+}) {
+  return (
+    <div className="flex gap-3">
+      {/* Line + dot */}
+      <div className="flex flex-col items-center">
+        <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+          done ? 'bg-green-500' : active ? 'bg-yellow-500 animate-pulse' : 'bg-gray-200'
+        }`}>
+          {done ? (
+            <CheckCircle className="w-4 h-4 text-white" />
+          ) : active ? (
+            <Clock className="w-4 h-4 text-white" />
+          ) : (
+            <div className="w-2 h-2 bg-gray-400 rounded-full" />
+          )}
+        </div>
+        {!isLast && <div className={`w-0.5 h-8 ${done ? 'bg-green-300' : 'bg-gray-200'}`} />}
+      </div>
+
+      {/* Content */}
+      <div className="pb-6">
+        <p className={`text-sm font-medium ${done ? 'text-green-800' : active ? 'text-yellow-800' : 'text-gray-400'}`}>
+          {label}
+        </p>
+        {done && date && (
+          <p className="text-xs text-green-600 mt-0.5">
+            {formatDate(date)}
+          </p>
+        )}
+        {active && (
+          <p className="text-xs text-yellow-600 mt-0.5">En attente...</p>
+        )}
+        {comment && (
+          <p className="text-xs text-gray-500 mt-0.5 italic">&quot;{comment}&quot;</p>
+        )}
+      </div>
+    </div>
+  );
+}

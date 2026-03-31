@@ -1,0 +1,30 @@
+# Environment
+.env
+.env.local
+.env.*.local
+task-definition.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Uploads (si stockage local)
+uploads/
+
+# Logs
+*.log

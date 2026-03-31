@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Targetym</string>
+    <string name="title_activity_main">Targetym</string>
+    <string name="package_name">com.targetym.app</string>
+    <string name="custom_url_scheme">com.targetym.app</string>
+</resources>

@@ -1,0 +1,95 @@
+name: Deploy Backend to AWS ECS
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build & Deploy to ECS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build, tag, and push image to ECR
+        uses: docker/build-push-action@v5
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/targetym-api:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/targetym-api:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Render task-definition with updated DATABASE_URL
+        run: |
+          # Récupère la task definition courante, met à jour DATABASE_URL depuis
+          # le secret GitHub, et enregistre une nouvelle revision
+          aws ecs describe-task-definition \
+            --task-definition targetym-api \
+            --region eu-west-1 \
+            --query 'taskDefinition' \
+            > /tmp/current-task-def.json
+
+          # Nettoie les champs non modifiables retournés par describe
+          jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                  .placementConstraints, .compatibilities, .registeredAt,
+                  .registeredBy)
+              | .containerDefinitions[0].environment =
+                  (
+                    .containerDefinitions[0].environment
+                    | map(if .name == "DATABASE_URL"
+                          then .value = $dburl
+                          else . end)
+                  )' \
+            --arg dburl "${{ secrets.DATABASE_URL }}" \
+            /tmp/current-task-def.json \
+            > /tmp/new-task-def.json
+
+          NEW_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file:///tmp/new-task-def.json \
+            --region eu-west-1 \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "NEW_TASK_DEF_ARN=$NEW_ARN" >> $GITHUB_ENV
+
+      - name: Deploy updated task definition to ECS
+        run: |
+          aws ecs update-service \
+            --cluster targetym-cluster \
+            --service targetym-api-service \
+            --task-definition "$NEW_TASK_DEF_ARN" \
+            --force-new-deployment \
+            --region eu-west-1
+
+      - name: Wait for ECS deployment to stabilize
+        run: |
+          aws ecs wait services-stable \
+            --cluster targetym-cluster \
+            --services targetym-api-service \
+            --region eu-west-1
+        timeout-minutes: 10

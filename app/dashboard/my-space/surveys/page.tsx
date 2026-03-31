@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Loader2, ChevronRight, CheckCircle, Clock, AlertCircle,
+  Loader2, ChevronRight, CheckCircle, Clock,
   ThumbsUp, ThumbsDown, MessageSquare, Send, Lock, Edit3,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -10,16 +10,17 @@ import { fetchWithAuth, API_URL } from '@/lib/api';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-interface Survey {
+interface MySurvey {
   id: number;
   title: string;
   description?: string;
   survey_type: string;
-  status: string;
+  status: string;          // statut de l'enquête (active, cloturee…)
   is_anonymous: boolean;
   frequency: string;
   end_date?: string;
   created_at?: string;
+  response_status: string; // statut de la réponse (en_attente, completee)
 }
 
 interface SurveyQuestion {
@@ -42,38 +43,17 @@ interface MyResponseData {
 
 export default function MySurveysPage() {
   const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
-  const [pendingSurveys, setPendingSurveys] = useState<Survey[]>([]);
-  const [completedSurveys, setCompletedSurveys] = useState<Survey[]>([]);
-  const [loadingPending, setLoadingPending] = useState(true);
-  const [loadingCompleted, setLoadingCompleted] = useState(true);
-  const [anonymousCompleted, setAnonymousCompleted] = useState<Survey[]>([]);
+  const [allSurveys, setAllSurveys] = useState<MySurvey[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Respond view
-  const [activeSurvey, setActiveSurvey] = useState<Survey | null>(null);
+  const [activeSurvey, setActiveSurvey] = useState<MySurvey | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<number, { value?: string; text?: string }>>({});
   const [currentQ, setCurrentQ] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [alreadyCompleted, setAlreadyCompleted] = useState(false);
-
-  // ── LocalStorage helpers for anonymous surveys ──────────────────────────
-
-  const getCompletedSurveyIds = (): number[] => {
-    try {
-      const raw = localStorage.getItem('completed_surveys');
-      return raw ? JSON.parse(raw) : [];
-    } catch { return []; }
-  };
-
-  const addCompletedSurveyId = (surveyId: number) => {
-    const ids = getCompletedSurveyIds();
-    if (!ids.includes(surveyId)) {
-      ids.push(surveyId);
-      localStorage.setItem('completed_surveys', JSON.stringify(ids));
-    }
-  };
 
   // ── API ─────────────────────────────────────────────────────────────────
 
@@ -87,67 +67,34 @@ export default function MySurveysPage() {
     return res.json();
   }, []);
 
-  // ── Load surveys ───────────────────────────────────────────────────────
+  // ── Load all surveys in one call ───────────────────────────────────────
 
-  const loadPending = useCallback(async () => {
-    setLoadingPending(true);
+  const loadSurveys = useCallback(async () => {
+    setLoading(true);
     try {
-      const data = await apiFetch('/api/surveys/my-surveys');
-      setPendingSurveys(data);
+      const data: MySurvey[] = await apiFetch('/api/surveys/my-surveys');
+      setAllSurveys(data);
     } catch {
       // silent
     } finally {
-      setLoadingPending(false);
+      setLoading(false);
     }
   }, [apiFetch]);
 
-  const loadCompleted = useCallback(async () => {
-    setLoadingCompleted(true);
-    try {
-      // Non-anonymous completed (from API)
-      const data: Survey[] = await apiFetch('/api/surveys/my-surveys?status=completee');
-      setCompletedSurveys(data);
+  useEffect(() => { loadSurveys(); }, [loadSurveys]);
 
-      // Anonymous completed (from localStorage)
-      const anonIds = getCompletedSurveyIds();
-      const apiIds = new Set(data.map((s: Survey) => s.id));
-      const missingIds = anonIds.filter(id => !apiIds.has(id));
-
-      if (missingIds.length > 0) {
-        const anonSurveys: Survey[] = [];
-        for (const id of missingIds) {
-          try {
-            const s: Survey = await apiFetch(`/api/surveys/${id}`);
-            if (s.is_anonymous) anonSurveys.push(s);
-          } catch {
-            // survey may no longer exist — ignore
-          }
-        }
-        setAnonymousCompleted(anonSurveys);
-      } else {
-        setAnonymousCompleted([]);
-      }
-    } catch {
-      // silent
-    } finally {
-      setLoadingCompleted(false);
-    }
-  }, [apiFetch]);
-
-  useEffect(() => {
-    loadPending();
-    loadCompleted();
-  }, [loadPending, loadCompleted]);
+  // Derived lists
+  const pendingSurveys = allSurveys.filter(s => s.response_status === 'en_attente');
+  const completedSurveys = allSurveys.filter(s => s.response_status === 'completee');
 
   // ── Open respond / edit view ───────────────────────────────────────────
 
-  const openRespond = useCallback(async (survey: Survey, editMode = false) => {
+  const openRespond = useCallback(async (survey: MySurvey, editMode = false) => {
     setActiveSurvey(survey);
     setIsEditing(editMode);
     setCurrentQ(0);
     setAnswers({});
     setSubmitted(false);
-    setAlreadyCompleted(false);
 
     try {
       // Load questions
@@ -167,17 +114,6 @@ export default function MySurveysPage() {
           }
         } catch {
           // no existing response
-        }
-      } else {
-        // Check if already answered (for pending mode)
-        try {
-          const myResp: MyResponseData = await apiFetch(`/api/surveys/${survey.id}/my-response`);
-          if (myResp.status === 'completee') {
-            setAlreadyCompleted(true);
-            return;
-          }
-        } catch {
-          // no response yet
         }
       }
     } catch (err: any) {
@@ -214,14 +150,8 @@ export default function MySurveysPage() {
           })),
         }),
       });
-      // Track anonymous completions in localStorage
-      if (activeSurvey.is_anonymous) {
-        addCompletedSurveyId(activeSurvey.id);
-      }
       setSubmitted(true);
-      // Refresh lists
-      loadPending();
-      loadCompleted();
+      loadSurveys();
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -362,22 +292,6 @@ export default function MySurveysPage() {
       );
     }
 
-    // Already completed (from pending tab click)
-    if (alreadyCompleted) {
-      return (
-        <div className="p-6 max-w-lg mx-auto text-center space-y-6 mt-16">
-          <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-            <CheckCircle className="w-10 h-10 text-blue-500" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900">Déjà complétée</h2>
-          <p className="text-gray-500">Vous avez déjà répondu à cette enquête.</p>
-          <button onClick={() => setActiveSurvey(null)} className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm font-medium">
-            Retour
-          </button>
-        </div>
-      );
-    }
-
     // Question by question
     if (questions.length === 0) {
       return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>;
@@ -465,10 +379,7 @@ export default function MySurveysPage() {
 
   // ── List view ───────────────────────────────────────────────────────────
 
-  const isLoadingTab = activeTab === 'pending' ? loadingPending : loadingCompleted;
-  const allCompleted = [...completedSurveys, ...anonymousCompleted];
-  const currentSurveys = activeTab === 'pending' ? pendingSurveys : allCompleted;
-  const anonymousIds = new Set(anonymousCompleted.map(s => s.id));
+  const currentSurveys = activeTab === 'pending' ? pendingSurveys : completedSurveys;
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
@@ -506,12 +417,17 @@ export default function MySurveysPage() {
           >
             <CheckCircle className="w-4 h-4" />
             Complétées
+            {completedSurveys.length > 0 && (
+              <span className="bg-green-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {completedSurveys.length}
+              </span>
+            )}
           </button>
         </nav>
       </div>
 
       {/* Content */}
-      {isLoadingTab ? (
+      {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
       ) : currentSurveys.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 text-center py-16">
@@ -554,7 +470,7 @@ export default function MySurveysPage() {
                         {s.end_date ? `Avant le ${new Date(s.end_date).toLocaleDateString('fr-FR')}` : 'Pas de date limite'}
                       </span>
                     )}
-                    {activeTab === 'completed' && s.created_at && (
+                    {activeTab === 'completed' && (
                       <span className="flex items-center gap-1">
                         <CheckCircle className="w-3.5 h-3.5" />
                         Répondu
@@ -573,25 +489,23 @@ export default function MySurveysPage() {
                       Répondre <ChevronRight className="w-4 h-4" />
                     </button>
                   ) : (
-                    // Completed tab actions
-                    <>
-                      {s.is_anonymous || anonymousIds.has(s.id) ? (
-                        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-50 text-green-600 border border-green-200">
-                          <CheckCircle className="w-3.5 h-3.5" /> Anonyme - réponse enregistrée
-                        </span>
-                      ) : s.status === 'cloturee' || s.status === 'archivee' ? (
-                        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-500">
-                          <Lock className="w-3.5 h-3.5" /> Clôturée
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => openRespond(s, true)}
-                          className="px-4 py-2 border border-primary-500 text-primary-600 rounded-lg hover:bg-primary-50 text-sm font-medium flex items-center gap-1"
-                        >
-                          <Edit3 className="w-4 h-4" /> Modifier mes réponses
-                        </button>
-                      )}
-                    </>
+                    /* Completed tab actions */
+                    s.is_anonymous ? (
+                      <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-50 text-green-600 border border-green-200">
+                        <CheckCircle className="w-3.5 h-3.5" /> Complétée (anonyme)
+                      </span>
+                    ) : s.status === 'cloturee' || s.status === 'archivee' ? (
+                      <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-500">
+                        <Lock className="w-3.5 h-3.5" /> Clôturée
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => openRespond(s, true)}
+                        className="px-4 py-2 border border-primary-500 text-primary-600 rounded-lg hover:bg-primary-50 text-sm font-medium flex items-center gap-1"
+                      >
+                        <Edit3 className="w-4 h-4" /> Modifier mes réponses
+                      </button>
+                    )
                   )}
                 </div>
               </div>

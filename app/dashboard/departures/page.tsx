@@ -121,7 +121,7 @@ interface Employee {
 // CONSTANTS
 // ============================================
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 const DEPARTURE_TYPES: Record<string, { label: string; color: string }> = {
   resignation: { label: 'Démission', color: 'bg-blue-100 text-blue-800' },

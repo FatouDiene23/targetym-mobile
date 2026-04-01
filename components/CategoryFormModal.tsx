@@ -10,7 +10,7 @@ interface CategoryFormProps {
   onSave: () => void;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 export default function CategoryFormModal({ category, onClose, onSave }: Readonly<CategoryFormProps>) {
   const [formData, setFormData] = useState({

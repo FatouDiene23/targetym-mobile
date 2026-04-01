@@ -17,7 +17,7 @@ interface ArticleFormProps {
   onSave: () => void;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 export default function ArticleFormModal({ article, categories, onClose, onSave }: Readonly<ArticleFormProps>) {
   const [formData, setFormData] = useState({

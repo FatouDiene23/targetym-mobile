@@ -24,7 +24,7 @@ interface Article {
   created_at: string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 export default function HelpCenterPage() {
   const [categories, setCategories] = useState<Category[]>([]);

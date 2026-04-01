@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Loader2, ChevronRight, CheckCircle, Clock,
   ThumbsUp, ThumbsDown, MessageSquare, Send, Lock, Edit3,
@@ -42,6 +43,9 @@ interface MyResponseData {
 // ── Component ───────────────────────────────────────────────────────────────
 
 export default function MySurveysPage() {
+  const searchParams = useSearchParams();
+  const deepLinkHandled = useRef(false);
+
   const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
   const [allSurveys, setAllSurveys] = useState<MySurvey[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,6 +124,21 @@ export default function MySurveysPage() {
       toast.error(err.message);
     }
   }, [apiFetch]);
+
+  // ── Deep-link: auto-open survey from ?survey_id= ──────────────────────
+  useEffect(() => {
+    if (loading || deepLinkHandled.current) return;
+    const surveyIdParam = searchParams.get('survey_id');
+    if (!surveyIdParam) return;
+    const surveyId = Number(surveyIdParam);
+    const survey = allSurveys.find(s => s.id === surveyId);
+    if (survey) {
+      deepLinkHandled.current = true;
+      const isCompleted = survey.response_status === 'completee';
+      if (isCompleted) setActiveTab('completed');
+      openRespond(survey, isCompleted);
+    }
+  }, [loading, allSurveys, searchParams, openRespond]);
 
   // ── Submit ──────────────────────────────────────────────────────────────
 

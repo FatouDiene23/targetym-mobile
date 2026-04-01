@@ -26,8 +26,7 @@ import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { analyticsTips } from '@/config/pageTips';
 import { useGroupContext } from '@/hooks/useGroupContext';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.targetym.ai";
+import { API_URL, fetchWithAuth } from '@/lib/api';
 
 // ============================================
 // TYPES
@@ -142,23 +141,14 @@ function formatXOF(value: number): string {
   return value.toLocaleString("fr-FR");
 }
 
-function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("access_token");
-}
-
 async function fetchAPI(endpoint: string, params?: Record<string, string>) {
-  const token = getToken();
-  if (!token) throw new Error("Non authentifié");
   const url = new URL(`${API_URL}${endpoint}`);
   if (params) {
     Object.entries(params).forEach(([k, v]) => {
       if (v) url.searchParams.append(k, v);
     });
   }
-  const res = await fetch(url.toString(), {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const res = await fetchWithAuth(url.toString());
   if (!res.ok) throw new Error(`Erreur API: ${res.status}`);
   return res.json();
 }

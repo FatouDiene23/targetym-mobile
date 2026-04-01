@@ -1,5 +1,5 @@
 // Configuration API
-export const API_URL = 'https://api.targetym.ai';
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 // Helper pour obtenir le token
 function getToken(): string | null {

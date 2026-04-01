@@ -148,6 +148,16 @@ export interface PayrollConfigUpdate {
   fiscal_year_start_month?: number;
 }
 
+export async function deletePayrollProfile(employeeId: number): Promise<void> {
+  const r = await fetchWithAuth(`${API_URL}/api/payroll/employees/${employeeId}/profile`, {
+    method: 'DELETE',
+  });
+  if (!r.ok && r.status !== 404) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail || `${r.status}`);
+  }
+}
+
 export async function updatePayrollConfig(data: PayrollConfigUpdate): Promise<PayrollConfig> {
   const r = await fetchWithAuth(`${API_URL}/api/payroll/config`, {
     method: 'PATCH',

@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { User, Pencil, Plus, Loader2, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { User, Pencil, Plus, Loader2, X, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
 import { getEmployees, type Employee } from '@/lib/api';
 import {
   getEmployeePayrollProfile, createEmployeePayrollProfile, updateEmployeePayrollProfile,
+  deletePayrollProfile,
   formatXOF,
   type EmployeePayrollProfile, type EmployeePayrollProfileCreate,
 } from '@/lib/payrollApi';
@@ -307,6 +308,19 @@ export default function ProfilsPayePage() {
     setModalEmployee(null);
   };
 
+  const handleDelete = async (emp: EmployeeWithProfile) => {
+    if (!confirm(`Retirer la configuration de paie de ${emp.first_name} ${emp.last_name} ?`)) return;
+    try {
+      await deletePayrollProfile(emp.id);
+      setEmployees(prev => prev.map(e =>
+        e.id === emp.id ? { ...e, profile: null } : e
+      ));
+      toast.success('Profil de paie retiré');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erreur');
+    }
+  };
+
   const filtered = employees.filter(e => {
     if (!search) return true;
     const q = search.toLowerCase();
@@ -409,6 +423,17 @@ export default function ProfilsPayePage() {
                       {p ? <Pencil className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
                       {p ? 'Modifier' : 'Configurer'}
                     </button>
+
+                    {p && (
+                      <button
+                        onClick={() => handleDelete(emp)}
+                        title="Retirer la configuration"
+                        className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 text-red-500"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Retirer
+                      </button>
+                    )}
                   </div>
                 </div>
               );

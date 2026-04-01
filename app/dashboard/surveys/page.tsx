@@ -5,7 +5,7 @@ import {
   Search, Plus, Loader2, X, ChevronLeft, ChevronRight,
   Calendar, Filter, Eye, Edit3, Play, Square, Archive,
   BarChart3, Users, CheckCircle, Clock, ChevronUp, ChevronDown,
-  Trash2, MessageSquare, PieChart,
+  Trash2, MessageSquare, PieChart, FileText,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
@@ -108,8 +108,12 @@ const STATUS_COLORS: Record<string, { label: string; color: string }> = {
 };
 
 const TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  pulse: { label: 'Pulse', color: 'bg-purple-100 text-purple-700' },
-  ad_hoc: { label: 'Ad hoc', color: 'bg-indigo-100 text-indigo-700' },
+  pulse: { label: 'Enquête Flash', color: 'bg-blue-100 text-blue-700' },
+  ad_hoc: { label: 'Moments Clés', color: 'bg-orange-100 text-orange-700' },
+  moments_cles: { label: 'Moments Clés', color: 'bg-orange-100 text-orange-700' },
+  thematique: { label: 'Thématique', color: 'bg-purple-100 text-purple-700' },
+  annuelle: { label: 'Enquête Annuelle', color: 'bg-green-100 text-green-700' },
+  feedback_managerial: { label: 'Feedback Managérial', color: 'bg-indigo-100 text-indigo-700' },
 };
 
 const FREQUENCY_LABELS: Record<string, string> = {
@@ -169,6 +173,10 @@ export default function SurveysPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
 
+  // Templates moments clés
+  const [templates, setTemplates] = useState<Survey[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+
   // Detail view
   const [selectedSurvey, setSelectedSurvey] = useState<SurveyDetail | null>(null);
   const [detailTab, setDetailTab] = useState<'questions' | 'results' | 'responses'>('questions');
@@ -227,6 +235,38 @@ export default function SurveysPage() {
       // non-blocking
     }
   }, []);
+
+  // ── Load templates moments clés ─────────────────────────────────────────
+
+  const loadTemplates = useCallback(async () => {
+    setLoadingTemplates(true);
+    try {
+      const data = await apiFetch('/api/surveys/?is_template=true&survey_type=moments_cles');
+      setTemplates(Array.isArray(data) ? data : data?.items ?? []);
+    } catch {
+      // non-blocking
+    } finally {
+      setLoadingTemplates(false);
+    }
+  }, [apiFetch]);
+
+  const loadTemplateQuestions = useCallback(async (templateId: number) => {
+    try {
+      const data = await apiFetch(`/api/surveys/${templateId}`);
+      if (data?.questions && Array.isArray(data.questions)) {
+        setFormQuestions(data.questions.map((q: SurveyQuestion) => ({
+          question_text: q.question_text,
+          question_type: q.question_type,
+          options: q.options || [],
+          is_required: q.is_required,
+        })));
+        toast.success(`Template "${data.title}" chargé — ${data.questions.length} questions pré-remplies`);
+        setCreateStep(2);
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  }, [apiFetch]);
 
   // ── Detail ──────────────────────────────────────────────────────────────
 
@@ -644,7 +684,7 @@ export default function SurveysPage() {
 
   return (
     <>
-    <Header title="Enquêtes" subtitle="Gestion des enquêtes pulse et ad hoc" />
+    <Header title="Enquêtes" subtitle="Gestion des enquêtes et moments clés" />
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-end">
         {isAdminOrRH && (
@@ -669,8 +709,11 @@ export default function SurveysPage() {
           </div>
           <select value={filterType} onChange={e => { setFilterType(e.target.value); setPage(1); }} className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
             <option value="">Tous les types</option>
-            <option value="pulse">Pulse</option>
-            <option value="ad_hoc">Ad hoc</option>
+            <option value="pulse">Enquête Flash</option>
+            <option value="moments_cles">Moments Clés</option>
+            <option value="thematique">Thématique</option>
+            <option value="annuelle">Enquête Annuelle</option>
+            <option value="feedback_managerial">Feedback Managérial</option>
           </select>
           <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1); }} className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
             <option value="">Tous les statuts</option>
@@ -792,14 +835,56 @@ export default function SurveysPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                    <div className="flex gap-3">
-                      {['pulse', 'ad_hoc'].map(t => (
-                        <button key={t} onClick={() => setFormData({ ...formData, survey_type: t })} className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium ${formData.survey_type === t ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
-                          {TYPE_LABELS[t]?.label || t}
-                        </button>
-                      ))}
-                    </div>
+                    <select
+                      value={formData.survey_type}
+                      onChange={e => {
+                        const newType = e.target.value;
+                        setFormData({ ...formData, survey_type: newType });
+                        if (newType === 'moments_cles') loadTemplates();
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    >
+                      <option value="pulse">Enquête Flash</option>
+                      <option value="moments_cles">Moments Clés</option>
+                      <option value="thematique">Thématique</option>
+                      <option value="annuelle">Enquête Annuelle</option>
+                      <option value="feedback_managerial">Feedback Managérial</option>
+                    </select>
+                    {formData.survey_type === 'moments_cles' && (
+                      <p className="mt-1 text-xs text-orange-600">Templates préconfigurés disponibles</p>
+                    )}
                   </div>
+                  {/* Templates Moments Clés */}
+                  {formData.survey_type === 'moments_cles' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Templates disponibles</label>
+                      {loadingTemplates ? (
+                        <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
+                      ) : templates.length === 0 ? (
+                        <p className="text-sm text-gray-400 py-3 text-center">Aucun template disponible</p>
+                      ) : (
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {templates.map(tpl => (
+                            <div key={tpl.id} className="flex items-center justify-between border border-gray-200 rounded-lg p-3 hover:bg-orange-50 transition-colors">
+                              <div className="flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-orange-500" />
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">{tpl.title}</p>
+                                  {tpl.description && <p className="text-xs text-gray-500 mt-0.5">{tpl.description}</p>}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => loadTemplateQuestions(tpl.id)}
+                                className="px-3 py-1.5 bg-orange-500 text-white rounded-lg text-xs hover:bg-orange-600 whitespace-nowrap"
+                              >
+                                Utiliser ce template
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                     <textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" placeholder="Description de l'enquête..." />

@@ -1217,15 +1217,15 @@ export default function PeopleAnalyticsPage() {
         <div className="space-y-6">
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
             <Heart size={48} className="mb-4 opacity-30" />
-            <p className="text-lg font-semibold text-gray-600">Aucune enquête pulse pour le moment</p>
+            <p className="text-lg font-semibold text-gray-600">Aucune Enquête Flash pour le moment</p>
             <p className="text-sm text-gray-400 mt-2 mb-6 text-center max-w-md">
-              Les enquêtes pulse permettent de mesurer l&apos;engagement et la satisfaction de vos équipes en continu.
+              Les Enquêtes Flash permettent de mesurer l&apos;engagement et la satisfaction de vos équipes en continu.
             </p>
             <button
               onClick={() => router.push("/dashboard/surveys")}
               className="px-5 py-2.5 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors font-medium text-sm"
             >
-              Créer une enquête pulse
+              Créer une Enquête Flash
             </button>
           </div>
         </div>
@@ -1332,7 +1332,7 @@ export default function PeopleAnalyticsPage() {
           `${totalCompleted}/${totalInvited} réponses`
         )}
         {renderKPICard(
-          "Enquêtes pulse",
+          "Enquêtes Flash",
           pulseSurveys.length,
           <Activity size={20} className="text-purple-600" />,
           "bg-purple-50",
@@ -2204,7 +2204,7 @@ export default function PeopleAnalyticsPage() {
       // Sheet 1: Index Engagement
       const indexRows: (string | number)[][] = [
         ["Index engagement global", engIndex ?? "—"],
-        ["Nombre d'enquêtes pulse", surveys.length],
+        ["Nombre d'Enquêtes Flash", surveys.length],
         ["Enquêtes avec résultats", surveys.filter(s => s.score > 0).length],
         [],
         ["Enquête", "Score /10", "Date", "Réponses complétées", "Total invités", "Taux participation (%)"],

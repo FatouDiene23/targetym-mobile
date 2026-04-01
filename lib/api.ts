@@ -246,6 +246,7 @@ export interface EmployeeCreate {
   marital_status?: string;
   spouse_name?: string;
   spouse_birth_date?: string;
+  nb_enfants?: number;
   // Adresse pro
   work_email?: string;
   work_phone?: string;

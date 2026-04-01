@@ -84,7 +84,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
     marital_status: '',
     spouse_name: '',
     spouse_birth_date: '',
-    nb_enfants: 0,,
+    nb_enfants: 0,
     // Adresse pro
     work_email: '',
     work_phone: '',

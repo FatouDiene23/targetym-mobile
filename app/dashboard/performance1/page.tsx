@@ -142,7 +142,7 @@ type FeedbackType = 'recognition' | 'improvement' | 'general';
 // API CONFIG
 // =============================================
 
-const API_URL = 'https://api.targetym.ai';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 const ITEMS_PER_PAGE = 10;
 
 function getAuthHeaders(): HeadersInit {

@@ -145,7 +145,7 @@ const EXPENSE_LABELS: Record<string, string> = {
   autre: 'Autre',
 };
 
-const API_URL = 'https://api.targetym.ai';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 // ============================================
 // HELPERS

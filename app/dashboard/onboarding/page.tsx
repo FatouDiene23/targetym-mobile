@@ -189,7 +189,7 @@ interface Department {
 // CONSTANTS
 // ============================================
 
-const API_URL = 'https://api.targetym.ai';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 const CATEGORY_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
   administratif: { label: 'Administratif', icon: FileText, color: 'text-blue-600 bg-blue-50' },

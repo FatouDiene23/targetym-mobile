@@ -16,7 +16,7 @@ import {
   Brain, Code2, Users, RotateCcw,
 } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 const HIERARCHY_LEVELS = [
   { value: '', label: 'Tous niveaux' },

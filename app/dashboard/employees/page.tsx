@@ -332,7 +332,7 @@ interface InvitationEmployee {
 }
 interface InvitationStats { total_employees: number; not_invited: number; pending: number; accepted: number; }
 
-const API_URL = 'https://api.targetym.ai';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 async function getAuthHeaders() {
   const token = localStorage.getItem('access_token');
@@ -682,7 +682,7 @@ function EmployeesPageInner() {
         try {
           const token = localStorage.getItem('access_token');
           await Promise.all(Array.from(selectedIds).map(id =>
-            fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai'}/api/employees/${id}`, {
+            fetch(`${API_URL}/api/employees/${id}`, {
               method: 'PATCH',
               headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({ status: newStatus })
@@ -715,7 +715,7 @@ function EmployeesPageInner() {
         try {
           const token = localStorage.getItem('access_token');
           await Promise.all(Array.from(selectedIds).map(id =>
-            fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai'}/api/employees/${id}`, {
+            fetch(`${API_URL}/api/employees/${id}`, {
               method: 'DELETE',
               headers: { 'Authorization': `Bearer ${token}` }
             })

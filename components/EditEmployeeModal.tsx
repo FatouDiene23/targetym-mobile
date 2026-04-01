@@ -109,6 +109,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
     marital_status: employee.marital_status || '',
     spouse_name: employee.spouse_name || '',
     spouse_birth_date: employee.spouse_birth_date?.split('T')[0] || '',
+    nb_enfants: (employee as any).nb_enfants ?? 0,
     // Adresse pro
     work_email: employee.work_email || '',
     work_phone: employee.work_phone || '',
@@ -206,6 +207,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
         marital_status: formData.marital_status || null,
         spouse_name: formData.spouse_name || null,
         spouse_birth_date: formData.spouse_birth_date || null,
+        nb_enfants: formData.nb_enfants ?? null,
         work_email: formData.work_email || null,
         work_phone: formData.work_phone || null,
         has_disability: formData.has_disability || null,
@@ -749,7 +751,22 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               </select>
             </div>
 
-            {/* Âge (calculé depuis date de naissance) */}
+            {/* Nombre d'enfants — visible si situation familiale pertinente */}
+            {['marie', 'veuvage', 'divorce', 'concubinage'].includes(formData.marital_status) && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre d&apos;enfants à charge</label>
+                <input
+                  type="number"
+                  name="nb_enfants"
+                  value={formData.nb_enfants}
+                  onChange={handleChange}
+                  min={0}
+                  max={20}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">Utilisé pour le calcul des parts fiscales (paie)</p>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Âge</label>
               <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 text-sm">

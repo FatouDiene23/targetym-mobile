@@ -84,6 +84,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
     marital_status: '',
     spouse_name: '',
     spouse_birth_date: '',
+    nb_enfants: 0,,
     // Adresse pro
     work_email: '',
     work_phone: '',
@@ -220,6 +221,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
         marital_status: formData.marital_status || undefined,
         spouse_name: formData.spouse_name || undefined,
         spouse_birth_date: formData.spouse_birth_date || undefined,
+        nb_enfants: formData.nb_enfants || undefined,
         work_email: formData.work_email || undefined,
         work_phone: formData.work_phone || undefined,
         has_disability: formData.has_disability || undefined,
@@ -867,7 +869,22 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               </div>
             </div>
 
-            {/* Conjoint(e) - Nom & Prénom */}
+            {/* Nombre d'enfants — visible si situation familiale pertinente */}
+            {['marie', 'veuvage', 'divorce', 'concubinage'].includes(formData.marital_status) && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre d&apos;enfants à charge</label>
+                <input
+                  type="number"
+                  name="nb_enfants"
+                  value={formData.nb_enfants}
+                  onChange={handleChange}
+                  min={0}
+                  max={20}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">Utilisé pour le calcul des parts fiscales (paie)</p>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Conjoint(e) — Nom & Prénom</label>
               <input

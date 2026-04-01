@@ -225,7 +225,7 @@ export default function PeopleAnalyticsPage() {
   const [headcountByDept, setHeadcountByDept] = useState<any[]>([]);
   const [pyramideAges, setPyramideAges] = useState<any[]>([]);
   const [turnoverByDept, setTurnoverByDept] = useState<any[]>([]);
-  const [absenteismeByDept, setAbsenteismeByDept] = useState<any[]>([]);
+  const [, setAbsenteismeByDept] = useState<any[]>([]);
   const [missionsStats, setMissionsStats] = useState<any>(null);
 
   // Masse salariale
@@ -250,6 +250,13 @@ export default function PeopleAnalyticsPage() {
 
   // Recrutement
   const [recrutementData, setRecrutementData] = useState<any>(null);
+
+  // Engagement (Enquêtes Pulse)
+  const [engagementData, setEngagementData] = useState<{
+    index: number | null;
+    surveys: { id: number; title: string; date: string; score: number; total: number; completed: number; questions: { question_id: number; question_text: string; average: number | null; question_type: string }[] }[];
+    loading: boolean;
+  }>({ index: null, surveys: [], loading: true });
 
   // Impact Formation (plans de formation)
   const [trainingPlans, setTrainingPlans] = useState<any[]>([]);
@@ -367,6 +374,70 @@ export default function PeopleAnalyticsPage() {
   useEffect(() => {
     fetchRealData();
   }, [fetchRealData]);
+
+  // --- Fetch Engagement (Enquêtes Pulse) ---
+  const fetchEngagementData = useCallback(async () => {
+    setEngagementData(prev => ({ ...prev, loading: true }));
+    try {
+      const allSurveys: any[] = [];
+      // Fetch closed pulse surveys
+      const closedRes = await fetchAPI("/api/surveys/", { survey_type: "pulse", status: "cloturee" });
+      const closedList = Array.isArray(closedRes) ? closedRes : (closedRes?.items ?? []);
+      // Also fetch active pulse surveys for participation
+      const activeRes = await fetchAPI("/api/surveys/", { survey_type: "pulse", status: "active" });
+      const activeList = Array.isArray(activeRes) ? activeRes : (activeRes?.items ?? []);
+      const allPulse = [...closedList, ...activeList];
+
+      // Fetch results for each survey
+      const resultsPromises = allPulse.map(async (s: any) => {
+        try {
+          const results = await fetchAPI(`/api/surveys/${s.id}/results`);
+          const likertQuestions = (results.questions ?? []).filter(
+            (q: any) => (q.question_type === "likert_5" || q.question_type === "likert_10") && q.average != null
+          );
+          const normalizedScores = likertQuestions.map((q: any) =>
+            q.question_type === "likert_5" ? (q.average / 5) * 10 : q.average
+          );
+          const avgScore = normalizedScores.length > 0
+            ? normalizedScores.reduce((a: number, b: number) => a + b, 0) / normalizedScores.length
+            : null;
+          return {
+            id: s.id,
+            title: s.title,
+            date: s.end_date || s.start_date || s.created_at,
+            score: avgScore != null ? Math.round(avgScore * 100) / 100 : 0,
+            total: results.total_responses ?? 0,
+            completed: results.completed_responses ?? 0,
+            questions: (results.questions ?? [])
+              .filter((q: any) => (q.question_type === "likert_5" || q.question_type === "likert_10") && q.average != null)
+              .map((q: any) => ({
+                question_id: q.question_id,
+                question_text: q.question_text,
+                average: q.question_type === "likert_5" ? Math.round((q.average / 5) * 10 * 100) / 100 : Math.round(q.average * 100) / 100,
+                question_type: q.question_type,
+              })),
+          };
+        } catch { return null; }
+      });
+      const results = await Promise.all(resultsPromises);
+      const validSurveys = results.filter(Boolean) as typeof allSurveys;
+
+      // Global engagement index: average of all survey scores
+      const scoredSurveys = validSurveys.filter(s => s.score > 0);
+      const globalIndex = scoredSurveys.length > 0
+        ? Math.round((scoredSurveys.reduce((a, s) => a + s.score, 0) / scoredSurveys.length) * 100) / 100
+        : null;
+
+      setEngagementData({ index: globalIndex, surveys: validSurveys, loading: false });
+    } catch (err) {
+      console.error("Erreur fetch engagement:", err);
+      setEngagementData({ index: null, surveys: [], loading: false });
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchEngagementData();
+  }, [fetchEngagementData]);
 
 
   // ============================================
@@ -1146,95 +1217,268 @@ export default function PeopleAnalyticsPage() {
   // ============================================
 
   const renderEngagement = () => {
-    const WORKING_DAYS: Record<string, number> = { "1M": 22, "3M": 66, "6M": 130, "1A": 260 };
-    const joursOuvrables = WORKING_DAYS[period] ?? 260;
+    const { index: engagementIndex, surveys: pulseSurveys, loading: engLoading } = engagementData;
 
-    // Recalculate taux from raw jours/employes using the correct formula
-    const absenteismeData = absenteismeByDept.map((d: any) => {
-      const employes = d.employes ?? d.nb_employes ?? 0;
-      const jours = d.jours ?? d.jours_absence ?? 0;
-      const divisor = employes * joursOuvrables;
-      const taux = divisor > 0 ? Math.min(+(jours / divisor * 100).toFixed(1), 100) : 0;
-      return { ...d, taux, jours, employes, joursOuvrables };
+    // État vide : aucune enquête pulse
+    if (!engLoading && pulseSurveys.length === 0) {
+      return (
+        <div className="space-y-6">
+          <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+            <Heart size={48} className="mb-4 opacity-30" />
+            <p className="text-lg font-semibold text-gray-600">Aucune enquête pulse pour le moment</p>
+            <p className="text-sm text-gray-400 mt-2 mb-6 text-center max-w-md">
+              Les enquêtes pulse permettent de mesurer l&apos;engagement et la satisfaction de vos équipes en continu.
+            </p>
+            <button
+              onClick={() => router.push("/dashboard/surveys")}
+              className="px-5 py-2.5 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors font-medium text-sm"
+            >
+              Créer une enquête pulse
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (engLoading) {
+      return (
+        <div className="flex items-center justify-center py-20">
+          <RefreshCw size={24} className="animate-spin text-gray-400" />
+          <span className="ml-3 text-gray-500">Chargement des données d&apos;engagement…</span>
+        </div>
+      );
+    }
+
+    // Couleur de la jauge engagement
+    const getEngagementColor = (score: number) => {
+      if (score < 4) return { bg: "bg-red-500", text: "text-red-600", label: "Critique" };
+      if (score < 6) return { bg: "bg-orange-500", text: "text-orange-600", label: "À surveiller" };
+      if (score < 8) return { bg: "bg-lime-500", text: "text-lime-600", label: "Bon" };
+      return { bg: "bg-green-600", text: "text-green-700", label: "Excellent" };
+    };
+
+    // Taux de participation global
+    const totalInvited = pulseSurveys.reduce((a, s) => a + s.total, 0);
+    const totalCompleted = pulseSurveys.reduce((a, s) => a + s.completed, 0);
+    const participationRate = totalInvited > 0 ? Math.round((totalCompleted / totalInvited) * 100) : 0;
+
+    // Alertes RPS
+    const rpsAlerts = pulseSurveys.filter(s => s.score > 0 && s.score < 5);
+
+    // Tendance : données pour le line chart
+    const trendData = pulseSurveys
+      .filter(s => s.score > 0 && s.date)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .map(s => ({
+        name: new Date(s.date).toLocaleDateString("fr-FR", { month: "short", year: "2-digit" }),
+        score: s.score,
+        enquete: s.title,
+      }));
+
+    // Facteurs de satisfaction : agréger par question text
+    const questionMap = new Map<string, { total: number; count: number }>();
+    pulseSurveys.forEach(s => {
+      s.questions.forEach(q => {
+        const existing = questionMap.get(q.question_text) || { total: 0, count: 0 };
+        existing.total += q.average ?? 0;
+        existing.count += 1;
+        questionMap.set(q.question_text, existing);
+      });
     });
+    const satisfactionFactors = Array.from(questionMap.entries())
+      .map(([text, { total, count }]) => ({ question: text, score: Math.round((total / count) * 100) / 100 }))
+      .sort((a, b) => b.score - a.score);
 
-    const hasAbsence = absenteismeData.length > 0;
+    // Participation par enquête (bar chart)
+    const participationData = pulseSurveys
+      .filter(s => s.total > 0)
+      .map(s => ({
+        name: s.title.length > 25 ? s.title.slice(0, 22) + "…" : s.title,
+        taux: Math.round((s.completed / s.total) * 100),
+        completed: s.completed,
+        total: s.total,
+      }));
+
+    const engColor = engagementIndex != null ? getEngagementColor(engagementIndex) : null;
+
     return (
     <div className="space-y-6">
 
+      {/* Alertes RPS */}
+      {rpsAlerts.length > 0 ? (
+        <div className="space-y-2">
+          {rpsAlerts.map(alert => (
+            <div key={alert.id} className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <AlertTriangle size={20} className="text-red-600 flex-shrink-0" />
+              <p className="text-sm text-red-800">
+                <span className="font-semibold">Attention :</span> score d&apos;engagement bas détecté sur l&apos;enquête <span className="font-semibold">{alert.title}</span> — score : <span className="font-bold">{alert.score}/10</span>
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
+          <Shield size={20} className="text-green-600 flex-shrink-0" />
+          <p className="text-sm text-green-800 font-medium">Tous les indicateurs d&apos;engagement sont dans la norme</p>
+        </div>
+      )}
+
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
-        {renderKPICard("Index engagement", "—", <Heart size={20} className="text-pink-600" />, "bg-pink-50", "Fonctionnalité à venir")}
-        {renderKPICard("Satisfaction", "—", <Star size={20} className="text-green-600" />, "bg-green-50", "Fonctionnalité à venir")}
-        {renderKPICard("Absentéisme", overview?.absenteeism != null ? `${overview.absenteeism}%` : "—", <Clock size={20} className="text-amber-600" />, "bg-amber-50")}
-        {renderKPICard("Alertes RPS", "—", <AlertTriangle size={20} className="text-red-600" />, "bg-red-50", "Fonctionnalité à venir")}
+        {renderKPICard(
+          "Index engagement",
+          engagementIndex != null ? `${engagementIndex}/10` : "—",
+          <Heart size={20} className="text-pink-600" />,
+          "bg-pink-50",
+          engColor?.label
+        )}
+        {renderKPICard(
+          "Taux de participation",
+          `${participationRate}%`,
+          <Users size={20} className="text-blue-600" />,
+          "bg-blue-50",
+          `${totalCompleted}/${totalInvited} réponses`
+        )}
+        {renderKPICard(
+          "Enquêtes pulse",
+          pulseSurveys.length,
+          <Activity size={20} className="text-purple-600" />,
+          "bg-purple-50",
+          `${pulseSurveys.filter(s => s.score > 0).length} avec résultats`
+        )}
+        {renderKPICard(
+          "Alertes RPS",
+          rpsAlerts.length,
+          <AlertTriangle size={20} className={rpsAlerts.length > 0 ? "text-red-600" : "text-green-600"} />,
+          rpsAlerts.length > 0 ? "bg-red-50" : "bg-green-50",
+          rpsAlerts.length > 0 ? "Score < 5/10" : "Aucune alerte"
+        )}
       </div>
+
+      {/* Jauge engagement */}
+      {engagementIndex != null && engColor && (
+        <div className="bg-white rounded-xl border p-6">
+          <h3 className="font-semibold text-gray-900 mb-4">Index d&apos;engagement global</h3>
+          <div className="flex items-center gap-6">
+            <div className="flex-1">
+              <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${engColor.bg}`}
+                  style={{ width: `${(engagementIndex / 10) * 100}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-2 text-xs text-gray-400">
+                <span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span>
+              </div>
+            </div>
+            <div className="text-center min-w-[80px]">
+              <p className={`text-3xl font-bold ${engColor.text}`}>{engagementIndex}</p>
+              <p className={`text-xs font-medium ${engColor.text}`}>{engColor.label}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Tendance engagement */}
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-900">Tendance engagement & satisfaction</h3>
-                      </div>
-          <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
-            <Heart size={40} className="mb-3 opacity-30" />
-            <p className="text-sm font-medium">Données non disponibles</p>
-            <p className="text-xs mt-1">Les enquêtes d&apos;engagement seront disponibles prochainement</p>
+            <h3 className="font-semibold text-gray-900">Tendance engagement</h3>
           </div>
+          {trendData.length >= 2 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={trendData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} domain={[0, 10]} />
+                <Tooltip content={({ active, payload }: any) => {
+                  if (!active || !payload?.length) return null;
+                  const d = payload[0].payload;
+                  return (
+                    <div className="bg-white border rounded-lg shadow p-3 text-xs">
+                      <p className="font-semibold text-gray-900 mb-1">{d.enquete}</p>
+                      <p>Score : <span className="font-bold">{d.score}/10</span></p>
+                    </div>
+                  );
+                }} />
+                <Line type="monotone" dataKey="score" stroke="#ec4899" strokeWidth={2} dot={{ r: 5, fill: "#ec4899" }} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
+              <TrendingUp size={40} className="mb-3 opacity-30" />
+              <p className="text-sm font-medium">Pas assez de données</p>
+              <p className="text-xs mt-1">Au moins 2 enquêtes clôturées sont nécessaires</p>
+            </div>
+          )}
         </div>
 
-        {/* Radar satisfaction */}
+        {/* Taux de participation par enquête */}
+        <div className="bg-white rounded-xl border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900">Taux de participation par enquête</h3>
+          </div>
+          {participationData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={participationData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis type="number" tick={{ fontSize: 11 }} unit="%" domain={[0, 100]} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={120} />
+                <Tooltip content={({ active, payload }: any) => {
+                  if (!active || !payload?.length) return null;
+                  const d = payload[0].payload;
+                  return (
+                    <div className="bg-white border rounded-lg shadow p-3 text-xs">
+                      <p className="font-semibold text-gray-900 mb-1">{d.name}</p>
+                      <p>Taux : <span className="font-bold">{d.taux}%</span></p>
+                      <p>Réponses : <span className="font-medium">{d.completed}/{d.total}</span></p>
+                    </div>
+                  );
+                }} />
+                <Bar dataKey="taux" name="Participation" radius={[0, 4, 4, 0]}>
+                  {participationData.map((entry, i) => (
+                    <Cell key={i} fill={entry.taux >= 80 ? "#10b981" : entry.taux >= 50 ? "#f59e0b" : "#ef4444"} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
+              <Users size={40} className="mb-3 opacity-30" />
+              <p className="text-sm font-medium">Aucune donnée de participation</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Facteurs de satisfaction */}
+      {satisfactionFactors.length > 0 && (
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Facteurs de satisfaction</h3>
-                      </div>
-          <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
-            <Star size={40} className="mb-3 opacity-30" />
-            <p className="text-sm font-medium">Données non disponibles</p>
-            <p className="text-xs mt-1">Configurez des enquêtes de satisfaction pour voir les résultats</p>
+            <span className="text-xs text-gray-400">Score moyen par question sur 10</span>
+          </div>
+          <div className="space-y-3">
+            {satisfactionFactors.map((factor, i) => {
+              const color = factor.score >= 8 ? "bg-green-500" : factor.score >= 6 ? "bg-lime-500" : factor.score >= 4 ? "bg-orange-500" : "bg-red-500";
+              return (
+                <div key={i} className="flex items-center gap-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-700 truncate">{factor.question}</p>
+                    <div className="mt-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${color}`}
+                        style={{ width: `${(factor.score / 10) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                  <span className="text-sm font-bold text-gray-700 min-w-[45px] text-right">{factor.score}/10</span>
+                </div>
+              );
+            })}
           </div>
         </div>
-      </div>
-
-      {/* Absentéisme par département */}
-      <div className="bg-white rounded-xl border p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-900">Absentéisme par département</h3>
-                  </div>
-        {hasAbsence ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={absenteismeData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="department" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} unit="%" domain={[0, 'auto']} />
-              <Tooltip content={({ active, payload }: any) => {
-                if (!active || !payload?.length) return null;
-                const d = payload[0].payload;
-                return (
-                  <div className="bg-white border rounded-lg shadow p-3 text-xs">
-                    <p className="font-semibold text-gray-900 mb-1">{d.department}</p>
-                    <p>Taux : <span className="font-medium">{d.taux}%</span></p>
-                    <p>Jours d&apos;absence : <span className="font-medium">{d.jours}j</span></p>
-                    <p>Employés : <span className="font-medium">{d.employes}</span></p>
-                    <p>Période : <span className="font-medium">{d.joursOuvrables} jours ouvrables</span></p>
-                  </div>
-                );
-              }} />
-              <Bar dataKey="taux" name="Taux d'absentéisme" radius={[4, 4, 0, 0]}>
-                {absenteismeData.map((entry: any, i: number) => (
-                  <Cell key={i} fill={entry.taux > 5 ? "#ef4444" : entry.taux > 3 ? "#f59e0b" : "#10b981"} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-[300px] text-gray-400">
-            <Clock size={40} className="mb-3 opacity-30" />
-            <p className="text-sm font-medium">Aucune absence enregistrée</p>
-            <p className="text-xs mt-1">Les congés approuvés apparaîtront ici</p>
-          </div>
-        )}
-      </div>
+      )}
     </div>
     );
   };

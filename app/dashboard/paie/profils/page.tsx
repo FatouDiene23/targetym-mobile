@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { User, Pencil, Plus, Loader2, X, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { getEmployees, type Employee } from '@/lib/api';
 import {
-  getEmployeePayrollProfile, createEmployeePayrollProfile, updateEmployeePayrollProfile,
+  getBulkPayrollProfiles, createEmployeePayrollProfile, updateEmployeePayrollProfile,
   deletePayrollProfile,
   formatXOF,
   type EmployeePayrollProfile, type EmployeePayrollProfileCreate,
@@ -279,6 +280,7 @@ export default function ProfilsPayePage() {
   const [loading, setLoading] = useState(true);
   const [modalEmployee, setModalEmployee] = useState<EmployeeWithProfile | null>(null);
   const [search, setSearch] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({ open: false, title: '', message: '', onConfirm: () => {} });
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -287,11 +289,10 @@ export default function ProfilsPayePage() {
       const emps: EmployeeWithProfile[] = res.items.map(e => ({ ...e, profileLoaded: false }));
       setEmployees(emps);
 
-      // Charger les profils en parallèle
-      const profiles = await Promise.all(
-        emps.map(e => getEmployeePayrollProfile(e.id).catch(() => null))
-      );
-      setEmployees(emps.map((e, i) => ({ ...e, profile: profiles[i], profileLoaded: true })));
+      // Charger tous les profils en une seule requête (évite les 404 console)
+      const ids = emps.map(e => e.id);
+      const profilesMap = await getBulkPayrollProfiles(ids);
+      setEmployees(emps.map(e => ({ ...e, profile: profilesMap[String(e.id)] ?? null, profileLoaded: true })));
     } catch {
       toast.error('Erreur lors du chargement');
     } finally {
@@ -308,17 +309,24 @@ export default function ProfilsPayePage() {
     setModalEmployee(null);
   };
 
-  const handleDelete = async (emp: EmployeeWithProfile) => {
-    if (!confirm(`Retirer la configuration de paie de ${emp.first_name} ${emp.last_name} ?`)) return;
-    try {
-      await deletePayrollProfile(emp.id);
-      setEmployees(prev => prev.map(e =>
-        e.id === emp.id ? { ...e, profile: null } : e
-      ));
-      toast.success('Profil de paie retiré');
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur');
-    }
+  const handleDelete = (emp: EmployeeWithProfile) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Retirer la configuration',
+      message: `Retirer la configuration de paie de ${emp.first_name} ${emp.last_name} ? Cette action est réversible.`,
+      onConfirm: async () => {
+        setConfirmDialog(p => ({ ...p, open: false }));
+        try {
+          await deletePayrollProfile(emp.id);
+          setEmployees(prev => prev.map(e =>
+            e.id === emp.id ? { ...e, profile: null } : e
+          ));
+          toast.success('Profil de paie retiré');
+        } catch (err: unknown) {
+          toast.error(err instanceof Error ? err.message : 'Erreur');
+        }
+      },
+    });
   };
 
   const filtered = employees.filter(e => {
@@ -442,7 +450,7 @@ export default function ProfilsPayePage() {
         )}
       </div>
 
-      {/* Modal */}
+      {/* Modal profil */}
       {modalEmployee && (
         <ProfileModal
           employee={modalEmployee}
@@ -451,6 +459,15 @@ export default function ProfilsPayePage() {
           onSaved={p => handleSaved(modalEmployee.id, p)}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        onClose={() => setConfirmDialog(p => ({ ...p, open: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        danger
+      />
     </div>
   );
 }

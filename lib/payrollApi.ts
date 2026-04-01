@@ -298,6 +298,14 @@ export interface EmployeePayrollProfileCreate {
   bank_account_number?: string;
 }
 
+export async function getBulkPayrollProfiles(employeeIds: number[]): Promise<Record<string, EmployeePayrollProfile>> {
+  if (employeeIds.length === 0) return {};
+  const params = employeeIds.map(id => `employee_ids=${id}`).join('&');
+  const r = await fetchWithAuth(`${API_URL}/api/payroll/employees/profiles/bulk?${params}`);
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
+
 export async function getEmployeePayrollProfile(employeeId: number): Promise<EmployeePayrollProfile | null> {
   const r = await fetchWithAuth(`${API_URL}/api/payroll/employees/${employeeId}/profile`);
   if (r.status === 404) return null;

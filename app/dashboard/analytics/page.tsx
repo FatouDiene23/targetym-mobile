@@ -311,7 +311,7 @@ export default function PeopleAnalyticsPage() {
         fetchAPI("/api/analytics/talents/ninebox", scopedParams),
         fetchAPI("/api/analytics/talents/succession", scopedParams),
         fetchAPI("/api/recruitment/analytics", scopedParams),
-        fetchAPI("/api/training-plans", scopedParams),
+        fetchAPI("/api/training-plans/", scopedParams),
         fetchAPI("/api/training-plans/analytics", params),
         fetchAPI("/api/platform/groups/subsidiaries", {}),
       ]);
@@ -371,7 +371,7 @@ export default function PeopleAnalyticsPage() {
     setEngagementData(prev => ({ ...prev, loading: true }));
     try {
       // Fetch all pulse surveys (active + closed) in a single call
-      const pulseRes = await fetchAPI("/api/surveys", { survey_type: "pulse", page_size: "100" });
+      const pulseRes = await fetchAPI("/api/surveys/", { survey_type: "pulse", page_size: "100" });
       console.log("[Engagement] GET /api/surveys?survey_type=pulse →", pulseRes, "| count:", Array.isArray(pulseRes) ? pulseRes.length : "not array");
       const allPulse = (Array.isArray(pulseRes) ? pulseRes : (pulseRes?.items ?? []))
         .filter((s: any) => s.status === "active" || s.status === "cloturee");

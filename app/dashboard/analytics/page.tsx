@@ -379,7 +379,6 @@ export default function PeopleAnalyticsPage() {
   const fetchEngagementData = useCallback(async () => {
     setEngagementData(prev => ({ ...prev, loading: true }));
     try {
-      const allSurveys: any[] = [];
       // Fetch closed pulse surveys
       const closedRes = await fetchAPI("/api/surveys/", { survey_type: "pulse", status: "cloturee" });
       const closedList = Array.isArray(closedRes) ? closedRes : (closedRes?.items ?? []);
@@ -388,10 +387,14 @@ export default function PeopleAnalyticsPage() {
       const activeList = Array.isArray(activeRes) ? activeRes : (activeRes?.items ?? []);
       const allPulse = [...closedList, ...activeList];
 
+      // Build department filter params for results endpoint
+      const deptParams: Record<string, string> = {};
+      if (department) deptParams.department = department;
+
       // Fetch results for each survey
       const resultsPromises = allPulse.map(async (s: any) => {
         try {
-          const results = await fetchAPI(`/api/surveys/${s.id}/results`);
+          const results = await fetchAPI(`/api/surveys/${s.id}/results`, deptParams);
           const likertQuestions = (results.questions ?? []).filter(
             (q: any) => (q.question_type === "likert_5" || q.question_type === "likert_10") && q.average != null
           );
@@ -420,12 +423,12 @@ export default function PeopleAnalyticsPage() {
         } catch { return null; }
       });
       const results = await Promise.all(resultsPromises);
-      const validSurveys = results.filter(Boolean) as typeof allSurveys;
+      const validSurveys = results.filter(Boolean) as any[];
 
       // Global engagement index: average of all survey scores
       const scoredSurveys = validSurveys.filter(s => s.score > 0);
       const globalIndex = scoredSurveys.length > 0
-        ? Math.round((scoredSurveys.reduce((a, s) => a + s.score, 0) / scoredSurveys.length) * 100) / 100
+        ? Math.round((scoredSurveys.reduce((a: any, s: any) => a + s.score, 0) / scoredSurveys.length) * 100) / 100
         : null;
 
       setEngagementData({ index: globalIndex, surveys: validSurveys, loading: false });
@@ -433,7 +436,7 @@ export default function PeopleAnalyticsPage() {
       console.error("Erreur fetch engagement:", err);
       setEngagementData({ index: null, surveys: [], loading: false });
     }
-  }, []);
+  }, [department]);
 
   useEffect(() => {
     fetchEngagementData();
@@ -2201,6 +2204,67 @@ export default function PeopleAnalyticsPage() {
   function handleExportExcel() {
     const tabName = TAB_NAMES[activeTab] ?? 'overview';
     const date = new Date().toISOString().slice(0, 10);
+
+    // Special multi-sheet export for engagement tab
+    if (tabName === 'engagement') {
+      const { surveys, index: engIndex } = engagementData;
+      if (!surveys.length) return;
+
+      const wb = XLSX.utils.book_new();
+
+      // Sheet 1: Index Engagement
+      const indexRows: (string | number)[][] = [
+        ["Index engagement global", engIndex ?? "—"],
+        ["Nombre d'enquêtes pulse", surveys.length],
+        ["Enquêtes avec résultats", surveys.filter(s => s.score > 0).length],
+        [],
+        ["Enquête", "Score /10", "Date", "Réponses complétées", "Total invités", "Taux participation (%)"],
+        ...surveys.map(s => [
+          s.title,
+          s.score,
+          s.date ? new Date(s.date).toLocaleDateString("fr-FR") : "—",
+          s.completed,
+          s.total,
+          s.total > 0 ? Math.round((s.completed / s.total) * 100) : 0,
+        ]),
+      ];
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(indexRows), "Index Engagement");
+
+      // Sheet 2: Participation
+      const partRows: (string | number)[][] = [
+        ["Enquête", "Réponses complétées", "Total invités", "Taux participation (%)"],
+        ...surveys.filter(s => s.total > 0).map(s => [
+          s.title,
+          s.completed,
+          s.total,
+          Math.round((s.completed / s.total) * 100),
+        ]),
+      ];
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(partRows), "Participation");
+
+      // Sheet 3: Facteurs de satisfaction
+      const questionMap = new Map<string, { total: number; count: number }>();
+      surveys.forEach(s => {
+        s.questions.forEach((q: any) => {
+          const existing = questionMap.get(q.question_text) || { total: 0, count: 0 };
+          existing.total += q.average ?? 0;
+          existing.count += 1;
+          questionMap.set(q.question_text, existing);
+        });
+      });
+      const factors = Array.from(questionMap.entries())
+        .map(([text, { total, count }]) => [text, Math.round((total / count) * 100) / 100] as [string, number])
+        .sort((a, b) => b[1] - a[1]);
+      const factorRows: (string | number)[][] = [
+        ["Question", "Score moyen /10"],
+        ...factors,
+      ];
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(factorRows), "Facteurs");
+
+      XLSX.writeFile(wb, `engagement-${date}.xlsx`);
+      return;
+    }
+
     const filename = `people-analytics-${tabName}-${date}.xlsx`;
 
     const { headers, rows } = getExportData();

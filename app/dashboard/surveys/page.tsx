@@ -120,7 +120,17 @@ const FREQUENCY_LABELS: Record<string, string> = {
   hebdomadaire: 'Hebdomadaire',
   mensuel: 'Mensuel',
   trimestriel: 'Trimestriel',
+  semestriel: 'Semestriel',
+  annuel: 'Annuel',
   ponctuel: 'Ponctuel',
+};
+
+const FREQUENCY_BY_TYPE: Record<string, { options: string[]; default: string; locked: boolean }> = {
+  pulse:                { options: ['hebdomadaire', 'mensuel', 'trimestriel'], default: 'mensuel', locked: false },
+  moments_cles:         { options: ['ponctuel'], default: 'ponctuel', locked: true },
+  thematique:           { options: ['ponctuel', 'trimestriel', 'semestriel'], default: 'ponctuel', locked: false },
+  annuelle:             { options: ['annuel'], default: 'annuel', locked: true },
+  feedback_managerial:  { options: ['semestriel', 'annuel'], default: 'semestriel', locked: false },
 };
 
 const QUESTION_TYPE_LABELS: Record<string, string> = {
@@ -839,7 +849,8 @@ export default function SurveysPage() {
                       value={formData.survey_type}
                       onChange={e => {
                         const newType = e.target.value;
-                        setFormData({ ...formData, survey_type: newType });
+                        const freqConfig = FREQUENCY_BY_TYPE[newType] || FREQUENCY_BY_TYPE.pulse;
+                        setFormData({ ...formData, survey_type: newType, frequency: freqConfig.default });
                         if (newType === 'moments_cles') loadTemplates();
                       }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -897,9 +908,19 @@ export default function SurveysPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Fréquence</label>
-                    <select value={formData.frequency} onChange={e => setFormData({ ...formData, frequency: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
-                      {Object.entries(FREQUENCY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                    </select>
+                    {(() => {
+                      const freqConfig = FREQUENCY_BY_TYPE[formData.survey_type] || FREQUENCY_BY_TYPE.pulse;
+                      return (
+                        <select
+                          value={formData.frequency}
+                          onChange={e => setFormData({ ...formData, frequency: e.target.value })}
+                          disabled={freqConfig.locked}
+                          className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 ${freqConfig.locked ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+                        >
+                          {freqConfig.options.map(k => <option key={k} value={k}>{FREQUENCY_LABELS[k] || k}</option>)}
+                        </select>
+                      );
+                    })()}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>

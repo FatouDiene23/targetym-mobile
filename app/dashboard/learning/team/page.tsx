@@ -3,6 +3,7 @@
 import { useLearning } from '../LearningContext';
 import { getStatusColor, getStatusLabel } from '../shared';
 import { UsersRound, Play, CheckCircle, Clock } from 'lucide-react';
+import Header from '@/components/Header';
 
 export default function TeamPage() {
   const { employees, teamAssignments, setSelectedAssignment, setShowValidationModal } = useLearning();
@@ -13,6 +14,7 @@ export default function TeamPage() {
 
   return (
           <div className="space-y-6">
+            <Header title="Formation Équipe" subtitle="Formations de votre équipe" />
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
                 <div className="flex items-center justify-between">

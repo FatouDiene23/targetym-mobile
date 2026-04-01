@@ -14,6 +14,7 @@ import {
   type ChecklistTeamMember, type ChecklistItemCreate, type TaskPriority,
   type DayOfWeek, type ObjectiveForLinking,
 } from '@/lib/api';
+import Header from '@/components/Header';
 
 // ============================================
 // CONSTANTS
@@ -696,15 +697,10 @@ export default function DailyChecklistPage() {
   }, []);
 
   return (
+    <>
+    <Header title="Daily Checklist" subtitle="Vos tâches quotidiennes" />
     <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Daily Checklist</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Vos tâches récurrentes quotidiennes
-          </p>
-        </div>
+      <div className="flex items-center justify-end">
         <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg">
           <TrendingUp className="w-4 h-4" />
           Les tâches complétées mettent à jour vos KR automatiquement
@@ -747,5 +743,6 @@ export default function DailyChecklistPage() {
       {tab === 'my-checklist' && <EmployeeChecklistView />}
       {tab === 'manage' && isManager && <ManagerTemplateView />}
     </div>
+    </>
   );
 }

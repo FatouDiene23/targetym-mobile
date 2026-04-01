@@ -10,6 +10,7 @@ import {
   TrendingUp, AlertCircle, Clock, CheckCircle, Loader2,
   Building2, Users, User
 } from 'lucide-react';
+import Header from '@/components/Header';
 
 // ============================================
 // TYPES
@@ -459,14 +460,8 @@ export default function MyObjectivesPage() {
       {showTips && (
         <PageTourTips tips={objectivesTips} onDismiss={dismissTips} pageTitle="Mes Objectifs" />
       )}
+      <Header title="Mes Objectifs" subtitle="Vos objectifs personnels" />
       <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-5">
-        <h1 className="text-2xl font-bold text-gray-900">Mes Objectifs</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Suivez et mettez à jour la progression de vos objectifs
-        </p>
-      </div>
 
       <div className="p-6">
         {/* Stats Cards */}

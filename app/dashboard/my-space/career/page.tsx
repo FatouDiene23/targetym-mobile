@@ -11,6 +11,7 @@ import {
   RefreshCw, ExternalLink, BadgeCheck, Heart
 } from 'lucide-react';
 import Link from 'next/link';
+import Header from '@/components/Header';
 
 // ============================================
 // TYPES
@@ -644,6 +645,7 @@ export default function MyCareerPage() {
       {showTips && (
         <PageTourTips tips={careerTips} onDismiss={dismissTips} pageTitle="Ma Carrière" />
       )}
+      <Header title="Mon Parcours" subtitle="Votre parcours professionnel" />
       <div className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
 

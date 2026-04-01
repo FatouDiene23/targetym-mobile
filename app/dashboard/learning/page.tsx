@@ -9,6 +9,7 @@ import PageTourTips from '@/components/PageTourTips';
 import Pagination from '@/components/Pagination';
 import { usePageTour } from '@/hooks/usePageTour';
 import { learningTips } from '@/config/pageTips';
+import Header from '@/components/Header';
 
 export default function CatalogPage() {
   const {
@@ -24,6 +25,7 @@ export default function CatalogPage() {
 
   return (
     <div>
+      <Header title="Catalogue de Formations" subtitle="Toutes les formations disponibles" />
       {showTips && (
         <PageTourTips
           tips={learningTips}

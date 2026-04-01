@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { fetchWithAuth, API_URL } from '@/lib/api';
+import Header from '@/components/Header';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -455,11 +456,9 @@ export default function MySurveysPage() {
   const currentSurveys = activeTab === 'pending' ? pendingSurveys : completedSurveys;
 
   return (
+    <>
+    <Header title="Mes Enquêtes" subtitle="Enquêtes en attente de réponse" />
     <div className="p-6 max-w-3xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Mes Enquêtes</h1>
-        <p className="text-gray-500 text-sm mt-1">Répondez aux enquêtes et consultez votre historique</p>
-      </div>
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
@@ -587,5 +586,6 @@ export default function MySurveysPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

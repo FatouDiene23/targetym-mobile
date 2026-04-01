@@ -9,6 +9,7 @@ import {
   Calendar, Plus, X, AlertCircle, Clock, CheckCircle, XCircle, Info, ChevronDown, ChevronUp
 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import Header from '@/components/Header';
 
 // ============================================
 // TYPES
@@ -561,14 +562,10 @@ export default function MyLeavesPage() {
       {showTips && (
         <PageTourTips tips={myLeavesTips} onDismiss={dismissTips} pageTitle="Mes Congés" />
       )}
+      <Header title="Mes Congés" subtitle="Gestion de vos congés" />
       <div className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Mes Congés</h1>
-            <p className="text-gray-500 mt-1">Gérez vos demandes de congés</p>
-          </div>
+        <div className="flex items-center justify-end mb-8">
           <button
             onClick={() => setShowModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"

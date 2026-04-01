@@ -21,6 +21,7 @@ import {
   type DailyValidation, type ObjectiveForLinking
 } from '@/lib/api';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import Header from '@/components/Header';
 
 // Couleurs par priorité
 const PRIORITY_COLORS: Record<TaskPriority, { bg: string; text: string; label: string }> = {
@@ -2249,16 +2250,10 @@ export default function MyTasksPage() {
       {showTips && (
         <PageTourTips tips={tasksTips} onDismiss={dismissTips} pageTitle="Mes Tâches" />
       )}
+      <Header title="Mes Tâches" subtitle="Vos tâches assignées" />
       <div className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Gestion des Tâches</h1>
-            <p className="text-gray-500 mt-1">
-              {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </p>
-          </div>
+        <div className="flex items-center justify-end mb-6">
           <button
             onClick={() => setShowCreateModal(true)}
             className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"

@@ -10,6 +10,7 @@ import {
   UserCheck, PartyPopper, Clock, RefreshCw, CalendarDays, Star, X,
   Briefcase, Heart
 } from 'lucide-react';
+import Header from '@/components/Header';
 
 // ============================================
 // TYPES
@@ -980,17 +981,10 @@ export default function MyCalendarPage() {
       {showTips && (
         <PageTourTips tips={calendarTips} onDismiss={dismissTips} pageTitle="Mon Calendrier" />
       )}
+      <Header title="Mon Calendrier" subtitle="Votre calendrier" />
       <div className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <CalendarIcon className="w-6 h-6 text-primary-600" />
-              Mon Calendrier
-            </h1>
-            <p className="text-gray-500 mt-1">Vos événements, congés et rendez-vous importants</p>
-          </div>
+        <div className="flex flex-col sm:flex-row items-end sm:items-center justify-end gap-4 mb-6">
           <div className="flex items-center gap-2">
             <button
               onClick={() => loadData()}

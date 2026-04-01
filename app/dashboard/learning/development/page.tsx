@@ -5,6 +5,7 @@ import { hasPermission, getPlanStatusColor, getStatusColor, getStatusLabel } fro
 import { GraduationCap, Plus, Edit, Ban, Archive, Target, TrendingUp, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import Header from '@/components/Header';
 
 export default function DevelopmentPage() {
   const {
@@ -21,6 +22,7 @@ export default function DevelopmentPage() {
 
   return (
           <div className="space-y-6">
+            <Header title="Développement" subtitle="Plans de développement" />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
                 <div className="flex items-center justify-between">

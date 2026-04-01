@@ -15,6 +15,7 @@ import { mySpaceTips } from '@/config/pageTips';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import SOSButton from '@/components/SOSButton';
 import SignatureCanvas from '@/components/SignatureCanvas';
+import Header from '@/components/Header';
 
 // ============================================
 // TYPES
@@ -952,6 +953,8 @@ export default function MyProfilePage() {
   if (!employee) return null;
 
   return (
+    <>
+    <Header title="Mon Espace" subtitle="Votre espace personnel" />
     <div className="py-8 px-4 sm:px-6 lg:px-8">
       {showTips && (
         <PageTourTips
@@ -960,15 +963,10 @@ export default function MyProfilePage() {
           pageTitle="Mon Espace"
         />
       )}
-      
+
       <style dangerouslySetInnerHTML={{ __html: myOrgCSS }} />
       <div className={activeTab === 'orgchart' ? 'max-w-7xl mx-auto' : 'max-w-4xl mx-auto'}>
-        {/* Header */}
-        <div className="mb-6 flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Mon Espace</h1>
-            <p className="text-gray-500 mt-1">Votre profil et votre position dans l&apos;organisation</p>
-          </div>
+        <div className="mb-6 flex items-end justify-end">
           <SOSButton />
         </div>
 
@@ -1874,5 +1872,6 @@ export default function MyProfilePage() {
         />
       )}
     </div>
+    </>
   );
 }

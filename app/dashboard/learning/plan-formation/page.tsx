@@ -17,6 +17,7 @@ import {
 import { useLearning } from '../LearningContext';
 import { API_URL, getAuthHeaders, hasPermission } from '../shared';
 import toast from 'react-hot-toast';
+import Header from '@/components/Header';
 
 // ============================================
 // TYPES
@@ -923,6 +924,7 @@ export default function PlanFormationPage() {
 
   return (
     <div className="space-y-6">
+      <Header title="Plan de Formation" subtitle="Planification annuelle des formations" />
       {selectedPlan && (
       <div className="space-y-6">
         {/* Back button + header */}

@@ -11,6 +11,7 @@ import {
   MessageSquare, Cake, Star, Loader2, X, Palmtree, BarChart3,
   ListTodo, CalendarClock
 } from 'lucide-react';
+import Header from '@/components/Header';
 
 // ============================================
 // TYPES
@@ -702,13 +703,9 @@ export default function MyTeamPage() {
   return (
     <>
       {showTips && <PageTourTips tips={teamTips} onDismiss={dismissTips} pageTitle="Mon Équipe" />}
+      <Header title="Mon Équipe" subtitle="Votre équipe" />
       <div className="py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900">Mon Équipe</h1>
-            <p className="text-gray-500 mt-1">Gérez et suivez les performances de votre équipe</p>
-          </div>
 
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8" data-tour="team-stats">

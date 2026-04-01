@@ -6,6 +6,7 @@ import { useLearning } from '../LearningContext';
 import { hasPermission, API_URL, getAuthHeaders, categories } from '../shared';
 import { Target, Plus, Clock, Users, BookOpen, ChevronRight, X, Edit2, Archive, UserPlus, Check, Loader2, Search, ArrowLeft } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import Header from '@/components/Header';
 
 interface PathDetail {
   id: number;
@@ -177,6 +178,7 @@ export default function PathsPage() {
 
   return (
     <>
+      <Header title="Parcours Formation" subtitle="Parcours de formation disponibles" />
       <div className="space-y-4">
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">

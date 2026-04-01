@@ -8,6 +8,7 @@ import {
   Trash2, MessageSquare, PieChart,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import Header from '@/components/Header';
 import { fetchWithAuth, API_URL, getDepartments, getEmployees, type Employee } from '@/lib/api';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -642,13 +643,10 @@ export default function SurveysPage() {
   // ── List view ───────────────────────────────────────────────────────────
 
   return (
+    <>
+    <Header title="Enquêtes" subtitle="Gestion des enquêtes pulse et ad hoc" />
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Enquêtes Pulse</h1>
-          <p className="text-gray-500 text-sm mt-1">Créez et gérez vos enquêtes de satisfaction et d&apos;engagement</p>
-        </div>
+      <div className="flex items-center justify-end">
         {isAdminOrRH && (
           <button onClick={openCreateModal} className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 flex items-center gap-2 text-sm font-medium">
             <Plus className="w-4 h-4" /> Nouvelle enquête
@@ -1027,5 +1025,6 @@ export default function SurveysPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

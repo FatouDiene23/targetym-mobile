@@ -379,13 +379,10 @@ export default function PeopleAnalyticsPage() {
   const fetchEngagementData = useCallback(async () => {
     setEngagementData(prev => ({ ...prev, loading: true }));
     try {
-      // Fetch closed pulse surveys
-      const closedRes = await fetchAPI("/api/surveys/", { survey_type: "pulse", status: "cloturee" });
-      const closedList = Array.isArray(closedRes) ? closedRes : (closedRes?.items ?? []);
-      // Also fetch active pulse surveys for participation
-      const activeRes = await fetchAPI("/api/surveys/", { survey_type: "pulse", status: "active" });
-      const activeList = Array.isArray(activeRes) ? activeRes : (activeRes?.items ?? []);
-      const allPulse = [...closedList, ...activeList];
+      // Fetch all pulse surveys (active + closed) in a single call
+      const pulseRes = await fetchAPI("/api/surveys/", { survey_type: "pulse", page_size: "100" });
+      const allPulse = (Array.isArray(pulseRes) ? pulseRes : (pulseRes?.items ?? []))
+        .filter((s: any) => s.status === "active" || s.status === "cloturee");
 
       // Build department filter params for results endpoint
       const deptParams: Record<string, string> = {};

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { fetchWithAuth, API_URL, getEmployees, type Employee } from '@/lib/api';
+import Header from '@/components/Header';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -973,14 +974,9 @@ export default function ContentieuxPage() {
   // ══════════════════════════════════════════════════════════════════════
 
   return (
-    <div className="p-6 w-full">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Scale className="w-7 h-7 text-primary-500" /> Contentieux & Precontentieux
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">Gestion des dossiers de litiges et procedures contentieuses</p>
-      </div>
+    <div className="w-full">
+      <Header title="Gestion des Contentieux" subtitle="Gestion des dossiers de litiges et procédures contentieuses" />
+      <div className="p-6">
 
       {/* Pipeline visuel */}
       <div className="bg-white rounded-xl shadow-sm border p-4 mb-6 w-full">
@@ -1279,6 +1275,7 @@ export default function ContentieuxPage() {
           </div>
         </ModalOverlay>
       )}
+      </div>
     </div>
   );
 }

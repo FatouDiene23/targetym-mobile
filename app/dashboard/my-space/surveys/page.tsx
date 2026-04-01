@@ -136,7 +136,7 @@ export default function MySurveysPage() {
       deepLinkHandled.current = true;
       const isCompleted = survey.response_status === 'completee';
       if (isCompleted) setActiveTab('completed');
-      openRespond(survey, isCompleted);
+      openRespond(survey, false);
     }
   }, [loading, allSurveys, searchParams, openRespond]);
 
@@ -286,7 +286,9 @@ export default function MySurveysPage() {
   // ── Respond / Edit view ─────────────────────────────────────────────────
 
   if (activeSurvey) {
-    // Thank you screen
+    const goBack = () => { setActiveSurvey(null); setSubmitted(false); setIsEditing(false); };
+
+    // Thank you screen (after submission)
     if (submitted) {
       return (
         <div className="p-6 max-w-lg mx-auto text-center space-y-6 mt-16">
@@ -304,9 +306,61 @@ export default function MySurveysPage() {
           {activeSurvey.is_anonymous && !isEditing && (
             <p className="text-sm text-purple-600 bg-purple-50 rounded-lg px-4 py-2 inline-block">Vos réponses sont anonymes</p>
           )}
-          <button onClick={() => { setActiveSurvey(null); setSubmitted(false); setIsEditing(false); }} className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm font-medium">
+          <button onClick={goBack} className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm font-medium">
             Retour à mes enquêtes
           </button>
+        </div>
+      );
+    }
+
+    // Already completed — show appropriate message based on survey type
+    if (activeSurvey.response_status === 'completee' && !isEditing) {
+      // Enquête clôturée
+      if (activeSurvey.status === 'cloturee' || activeSurvey.status === 'archivee') {
+        return (
+          <div className="p-6 max-w-lg mx-auto text-center space-y-6 mt-16">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+              <Lock className="w-10 h-10 text-gray-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900">Cette enquête est clôturée.</h2>
+            <p className="text-gray-500">Merci pour votre participation !</p>
+            <button onClick={goBack} className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm font-medium">
+              Retour à mes enquêtes
+            </button>
+          </div>
+        );
+      }
+      // Enquête anonyme — pas de modification possible
+      if (activeSurvey.is_anonymous) {
+        return (
+          <div className="p-6 max-w-lg mx-auto text-center space-y-6 mt-16">
+            <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
+              <CheckCircle className="w-10 h-10 text-purple-500" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900">Vous avez déjà répondu à cette enquête anonyme.</h2>
+            <p className="text-gray-500">Merci pour votre participation !</p>
+            <button onClick={goBack} className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm font-medium">
+              Retour à mes enquêtes
+            </button>
+          </div>
+        );
+      }
+      // Non-anonyme, active → proposer la modification
+      return (
+        <div className="p-6 max-w-lg mx-auto text-center space-y-6 mt-16">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+            <CheckCircle className="w-10 h-10 text-green-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900">Vous avez déjà répondu à cette enquête.</h2>
+          <p className="text-gray-500">Vous pouvez modifier vos réponses tant que l&apos;enquête est active.</p>
+          <div className="flex items-center justify-center gap-3">
+            <button onClick={goBack} className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
+              Retour à mes enquêtes
+            </button>
+            <button onClick={() => openRespond(activeSurvey, true)} className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm font-medium flex items-center gap-1">
+              <Edit3 className="w-4 h-4" /> Modifier mes réponses
+            </button>
+          </div>
         </div>
       );
     }

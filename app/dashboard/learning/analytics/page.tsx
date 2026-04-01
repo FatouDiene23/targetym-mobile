@@ -5,7 +5,6 @@ import { TrendingUp, Clock, CheckCircle, BookOpen, Target, Users, Wallet, AlertC
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
 import { useState, useEffect, useCallback } from 'react';
 import { getAuthHeaders, API_URL } from '../shared';
-import Header from '@/components/Header';
 
 // ---- Types pour le suivi du plan ----
 interface PlanKPIs {
@@ -95,7 +94,6 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <Header title="Analytics Formation" subtitle="Suivi et performance des formations" />
       {/* ---- Onglets ---- */}
       <div className="flex gap-2 border-b border-gray-200">
         <button

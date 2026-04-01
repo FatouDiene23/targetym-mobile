@@ -10,7 +10,6 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { useLearning } from '../LearningContext';
 import { hasPermission } from '../shared';
 import { Plus, Edit, Ban, Globe, Mail, Phone, User, Tag, CheckCircle } from 'lucide-react';
-import Header from '@/components/Header';
 
 export default function ProvidersPage() {
   const {
@@ -36,7 +35,6 @@ export default function ProvidersPage() {
 
   return (
     <div className="space-y-6">
-      <Header title="Fournisseurs" subtitle="Gestion des prestataires de formation" />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

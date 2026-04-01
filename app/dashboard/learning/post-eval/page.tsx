@@ -6,7 +6,6 @@ import { ClipboardCheck, Clock, CheckCircle, Eye, UserPlus, Link, Settings, Zap,
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useState } from 'react';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import Header from '@/components/Header';
 
 export default function PostEvalPage() {
   const {
@@ -34,7 +33,6 @@ export default function PostEvalPage() {
 
     return (
       <div className="space-y-6">
-        <Header title="Éval. Post-Formation" subtitle="Évaluations post-formation" />
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
@@ -110,7 +108,6 @@ export default function PostEvalPage() {
   // Vue Manager / RH / Admin
   return (
     <div className="space-y-6">
-      <Header title="Éval. Post-Formation" subtitle="Évaluations post-formation" />
 
       {/* Stats EPF */}
       {epfStats && (

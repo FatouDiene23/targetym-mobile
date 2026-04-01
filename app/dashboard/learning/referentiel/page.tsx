@@ -15,7 +15,6 @@ import {
   Plus, Pencil, Trash2, Search, Globe, Building2, ChevronDown, ChevronUp,
   Brain, Code2, Users, RotateCcw,
 } from 'lucide-react';
-import Header from '@/components/Header';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
@@ -190,7 +189,6 @@ export default function ReferentielPage() {
 
   return (
     <div>
-      <Header title="Référentiel Compétences" subtitle="Référentiel des compétences" />
       {/* Header bar */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="relative flex-1 min-w-56">

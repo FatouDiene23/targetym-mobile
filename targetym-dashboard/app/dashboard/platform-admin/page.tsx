@@ -519,7 +519,7 @@ export default function PlatformAdminDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-xl lg:text-3xl font-bold text-gray-900 flex items-center gap-2">
             <Shield className="w-8 h-8 text-blue-600" />
             Back-Office Plateforme
           </h1>
@@ -1141,7 +1141,7 @@ export default function PlatformAdminDashboard() {
 
             <div className="p-5 space-y-5">
               {/* Stats bar */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                 <div className="bg-blue-50 rounded-lg p-3 text-center">
                   <p className="text-2xl font-bold text-blue-700">{selectedTenant.users_count}</p>
                   <p className="text-xs text-blue-600">Utilisateurs</p>

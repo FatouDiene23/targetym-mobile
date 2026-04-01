@@ -291,7 +291,7 @@ export default function PlatformUsersManagement() {
               <ArrowLeft className="w-3 h-3" /> Back-Office
             </Link>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-xl lg:text-3xl font-bold text-gray-900 flex items-center gap-2">
             <Users className="w-8 h-8 text-blue-600" />
             Gestion des Utilisateurs
           </h1>

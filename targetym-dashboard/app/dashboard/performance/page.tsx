@@ -1037,14 +1037,14 @@ export default function FeedbackPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Rechercher un feedback..." className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
               {[
                 { value: 'all', label: 'Tous' },
                 { value: 'recognition', label: '🎉 Reconnaissance' },
                 { value: 'improvement', label: '💡 Amélioration' },
                 { value: 'general', label: '💬 Général' },
               ].map(f => (
-                <button key={f.value} onClick={() => { setFilterType(f.value); setPage(1); }} className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${filterType === f.value ? 'bg-primary-50 text-primary-700 border-primary-200' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+                <button key={f.value} onClick={() => { setFilterType(f.value); setPage(1); }} className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap flex-shrink-0 ${filterType === f.value ? 'bg-primary-50 text-primary-700 border-primary-200' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
                   {f.label}
                 </button>
               ))}

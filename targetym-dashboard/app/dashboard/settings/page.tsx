@@ -1112,7 +1112,7 @@ export default function SettingsPage() {
       <Header title="Paramètres" subtitle="Configuration de votre espace Targetym AI" />
       
       <main className="flex-1 p-6 overflow-auto">
-        <div className="grid lg:grid-cols-4 gap-6">
+        <div className="grid lg:grid-cols-4 gap-3 lg:gap-6">
           {/* Sidebar */}
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 h-fit" data-tour="settings-tabs">
             <nav className="space-y-1">

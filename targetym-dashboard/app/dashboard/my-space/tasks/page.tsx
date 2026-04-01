@@ -2254,7 +2254,7 @@ export default function MyTasksPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Gestion des Tâches</h1>
+            <h1 className="text-lg lg:text-2xl font-bold text-gray-900">Gestion des Tâches</h1>
             <p className="text-gray-500 mt-1">
               {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>

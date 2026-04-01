@@ -172,7 +172,7 @@ export default function NineBoxPage() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-3 lg:gap-6">
           {/* 9-Box Grid */}
           <div data-tour="ninebox-grid" className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <h3 className="font-semibold text-gray-900 mb-4">Matrice Performance × Potentiel</h3>
@@ -240,7 +240,7 @@ export default function NineBoxPage() {
             </div>
 
             {/* Legend */}
-            <div data-tour="ninebox-legend" className="mt-6 grid grid-cols-3 gap-4 text-xs">
+            <div data-tour="ninebox-legend" className="mt-6 grid grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
               <div className="flex items-center gap-2"><div className="w-4 h-4 bg-green-500 rounded"></div><span>Stars / Hauts Potentiels</span></div>
               <div className="flex items-center gap-2"><div className="w-4 h-4 bg-blue-500 rounded"></div><span>Performants Clés</span></div>
               <div className="flex items-center gap-2"><div className="w-4 h-4 bg-yellow-500 rounded"></div><span>À Développer</span></div>

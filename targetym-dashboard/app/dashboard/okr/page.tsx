@@ -1274,10 +1274,10 @@ export default function OKRPage() {
                                 </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 lg:gap-4">
                               <div className="text-right">
-                                <span className="text-2xl font-bold text-gray-900">{Math.round(obj.progress)}%</span>
-                                <div className="w-28 h-2 bg-gray-200 rounded-full mt-1">
+                                <span className="text-lg lg:text-2xl font-bold text-gray-900">{Math.round(obj.progress)}%</span>
+                                <div className="w-16 lg:w-28 h-2 bg-gray-200 rounded-full mt-1">
                                   <div className={`h-full rounded-full ${getProgressColor(obj.progress)}`} style={{ width: `${Math.min(obj.progress, 100)}%` }} />
                                 </div>
                               </div>
@@ -1429,9 +1429,9 @@ export default function OKRPage() {
                           </div>
                           <h3 className="font-semibold text-gray-900">{entOKR.title}</h3>
                         </div>
-                        <div className="text-right">
-                          <span className="text-2xl font-bold text-purple-600">{Math.round(entOKR.progress)}%</span>
-                          <div className="w-32 h-2 bg-purple-200 rounded-full mt-1">
+                        <div className="text-right flex-shrink-0">
+                          <span className="text-lg lg:text-2xl font-bold text-purple-600">{Math.round(entOKR.progress)}%</span>
+                          <div className="w-16 lg:w-32 h-2 bg-purple-200 rounded-full mt-1">
                             <div className="h-full bg-purple-600 rounded-full" style={{ width: `${Math.min(entOKR.progress, 100)}%` }} />
                           </div>
                         </div>
@@ -1457,9 +1457,9 @@ export default function OKRPage() {
                                   <h4 className="font-medium text-gray-900 text-sm">{deptOKR.title}</h4>
                                   {deptOKR.owner_name && <p className="text-xs text-gray-500 mt-1">Responsable: {deptOKR.owner_name}</p>}
                                 </div>
-                                <div className="text-right">
-                                  <span className="text-xl font-bold text-blue-600">{Math.round(deptOKR.progress)}%</span>
-                                  <div className="w-24 h-1.5 bg-blue-200 rounded-full mt-1">
+                                <div className="text-right flex-shrink-0">
+                                  <span className="text-base lg:text-xl font-bold text-blue-600">{Math.round(deptOKR.progress)}%</span>
+                                  <div className="w-14 lg:w-24 h-1.5 bg-blue-200 rounded-full mt-1">
                                     <div className="h-full bg-blue-600 rounded-full" style={{ width: `${Math.min(deptOKR.progress, 100)}%` }} />
                                   </div>
                                 </div>
@@ -1501,8 +1501,8 @@ export default function OKRPage() {
 
         {/* Tab Content: Dashboard */}
         {activeTab === 'dashboard' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 lg:p-6">
               <h3 className="font-semibold text-gray-900 mb-4">Répartition par Statut</h3>
               {statusDistribution.length > 0 ? (
                 <>

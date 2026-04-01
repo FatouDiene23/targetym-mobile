@@ -85,7 +85,7 @@ export default function ImportEmployeesTab({ onImportDone }: { onImportDone?: ()
     <div className="space-y-6">
 
       {/* Header + template download */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-xl p-3 lg:p-6 shadow-sm border border-gray-100">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Import de collaborateurs</h2>
@@ -137,7 +137,7 @@ export default function ImportEmployeesTab({ onImportDone }: { onImportDone?: ()
 
       {/* Zone de dépôt */}
       {!result && (
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-xl p-3 lg:p-6 shadow-sm border border-gray-100">
           <div
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
@@ -200,7 +200,7 @@ export default function ImportEmployeesTab({ onImportDone }: { onImportDone?: ()
 
       {/* Résultats */}
       {result && (
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 space-y-5">
+        <div className="bg-white rounded-xl p-3 lg:p-6 shadow-sm border border-gray-100 space-y-5">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-gray-900">Résultats de l'import</h3>
             <button
@@ -213,7 +213,7 @@ export default function ImportEmployeesTab({ onImportDone }: { onImportDone?: ()
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="bg-green-50 border border-green-100 rounded-lg p-4 text-center">
               <CheckCircle className="w-6 h-6 text-green-500 mx-auto mb-1" />
               <p className="text-2xl font-bold text-green-700">{result.created}</p>

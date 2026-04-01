@@ -11,10 +11,9 @@ const config: CapacitorConfig = {
   webDir: 'out',
 
   server: {
-    // En développement, pointer vers le serveur Next.js local
-    // Décommenter la ligne ci-dessous pour tester en dev avec hot-reload
-    // url: 'http://192.168.1.X:3000',
-    cleartext: false,
+    // En développement, décommenter pour tester avec hot-reload :
+    // url: 'http://192.168.1.5:3000',
+    // cleartext: true,
   },
 
   plugins: {

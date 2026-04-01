@@ -6,6 +6,7 @@ import Sidebar from '@/components/Sidebar';
 import ImpersonationBanner from '@/components/ImpersonationBanner';
 import AppTour from '@/components/AppTour';
 import AIChatBox from '@/components/AIChatBox';
+import BottomNav from '@/components/BottomNav';
 import GroupContextSwitcher from '@/components/GroupContextSwitcher';
 import { GroupContextProvider } from '@/context/GroupContext';
 import { getTourStepsByRole } from '@/components/AppTourSteps';
@@ -329,7 +330,7 @@ function DashboardContent({
     <div className="flex min-h-screen bg-gray-50">
       <ImpersonationBanner />
       <Sidebar />
-      <main className="flex-1 overflow-auto min-w-0">
+      <main className="flex-1 overflow-auto min-w-0 pb-20 lg:pb-0">
         {/* Barre mobile avec hamburger */}
         <div className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
           <button
@@ -364,6 +365,9 @@ function DashboardContent({
 
       {/* Chatbot AI */}
       <AIChatBox />
+
+      {/* Navigation mobile en bas */}
+      <BottomNav />
     </div>
   );
 }

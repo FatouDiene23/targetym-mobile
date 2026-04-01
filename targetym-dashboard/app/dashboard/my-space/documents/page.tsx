@@ -366,7 +366,7 @@ export default function MyDocumentsPage() {
 
         {/* Tabs + Upload button */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
+          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
             <button
               onClick={() => setTab('documents')}
               className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${

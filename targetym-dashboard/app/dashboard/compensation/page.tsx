@@ -219,7 +219,7 @@ function TeasingPage() {
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center mx-auto mb-5">
             <DollarSign className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Compensation & Benefits</h2>
+          <h2 className="text-lg lg:text-2xl font-bold text-gray-900 mb-2">Compensation & Benefits</h2>
           <p className="text-gray-500 max-w-xl mx-auto mb-6">
             Pilotez vos grilles salariales, assurez la conformité avec les conventions collectives,
             et simulez vos campagnes de révision en quelques clics.
@@ -227,7 +227,7 @@ function TeasingPage() {
         </div>
 
         {/* 4 Piliers */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-5 mb-8">
           {pillars.map((p) => (
             <div key={p.title} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
               <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${p.color} flex items-center justify-center mb-4`}>
@@ -1411,7 +1411,7 @@ export default function CompensationPage() {
                 {/* Données marché */}
                 <div>
                   <label className="block text-xs text-gray-500 mb-2">Données marché (optionnel)</label>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                     <div>
                       <label className="block text-[10px] text-gray-400 mb-0.5">P25</label>
                       <input type="number" value={evalForm.market_p25} onChange={(e) => setEvalForm(f => ({ ...f, market_p25: e.target.value }))} placeholder="0"

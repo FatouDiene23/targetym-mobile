@@ -111,7 +111,7 @@ function SkillCard({ skill }: { skill: SkillScore }) {
       {open && (
         <div className="border-t border-gray-100 p-4 space-y-3 bg-gray-50/40">
           {/* 3 sub-scores */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
             {[
               { label: 'Formations', value: skill.formations_score, icon: BookOpen, color: 'text-blue-500' },
               { label: 'Performance', value: skill.performance_score, icon: TrendingUp, color: 'text-indigo-500' },

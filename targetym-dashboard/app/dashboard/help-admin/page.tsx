@@ -482,8 +482,8 @@ export default function HelpAdminPage() {
       )}
 
       {activeTab === 'stats' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 lg:gap-6">
+          <div className="bg-white p-3 lg:p-6 rounded-lg shadow">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Total Articles</h3>
               <FolderOpen className="w-8 h-8 text-blue-500" />

@@ -409,16 +409,16 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
   return (
     <>
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
+      <header className="bg-white border-b border-gray-200 px-3 lg:px-6 py-3 lg:py-4">
+        <div className="flex items-center justify-between flex-nowrap" style={{ flexWrap: 'nowrap' }}>
           {/* Titre */}
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-            {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+          <div className="min-w-0 flex-1 mr-2">
+            <h1 className="text-base lg:text-2xl font-bold text-gray-900 truncate">{title}</h1>
+            {subtitle && <p className="text-xs lg:text-sm text-gray-500 mt-0.5 truncate">{subtitle}</p>}
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 lg:gap-3 flex-shrink-0" style={{ flexWrap: 'nowrap' }}>
             {/* Recherche globale */}
             <div className="relative">
               <button
@@ -430,7 +430,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
               </button>
 
               {showSearch && (
-                <div className="absolute right-0 top-12 w-96 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
+                <div className="fixed lg:absolute inset-x-2 lg:inset-x-auto lg:right-0 top-24 lg:top-12 lg:w-96 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
                   <div className="p-3 border-b border-gray-100">
                     <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
                       <Search className="w-4 h-4 text-gray-400" />
@@ -515,7 +515,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
               </button>
 
               {showNotifications && (
-                <div className="absolute right-0 top-12 w-96 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
+                <div className="fixed lg:absolute inset-x-2 lg:inset-x-auto lg:right-0 top-24 lg:top-12 lg:w-96 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
                   {/* Header */}
                   <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                     <h3 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -612,10 +612,10 @@ export default function Header({ title, subtitle }: HeaderProps) {
             {canAdd && !HIDDEN_ADD_ROUTES.some(r => pathname.startsWith(r)) && (
               <button
                 onClick={handleAddClick}
-                className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
+                className="flex items-center px-2.5 lg:px-4 py-2 bg-primary-500 text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors whitespace-nowrap"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                {CONTEXTUAL_LABELS[pathname] ?? 'Ajouter'}
+                <Plus className="w-4 h-4 lg:mr-2" />
+                <span className="hidden lg:inline">{CONTEXTUAL_LABELS[pathname] ?? 'Ajouter'}</span>
               </button>
             )}
           </div>

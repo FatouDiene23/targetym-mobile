@@ -169,7 +169,7 @@ export default function MyCareerPage() {
         </div>
 
         {/* ── Statut + Prochaine étape ── */}
-        <div className="grid lg:grid-cols-3 gap-6" data-tour="my-evaluation">
+        <div className="grid lg:grid-cols-3 gap-3 lg:gap-6" data-tour="my-evaluation">
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
             <h3 className="font-semibold text-gray-900 mb-4">Mon statut</h3>
             <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${elig.color}`}>
@@ -412,7 +412,7 @@ export default function MyCareerPage() {
                         {comp.effective_status === 'validated' ? 'Validée' : 'En cours'}
                       </span>
                     </div>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                       <div className={`p-3 rounded-lg border ${comp.theoretical_status === 'validated' ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-100'}`}>
                         <div className="flex items-center gap-1.5 mb-1">
                           <BookOpen className={`w-3.5 h-3.5 ${comp.theoretical_status === 'validated' ? 'text-green-500' : 'text-gray-400'}`} />

@@ -641,7 +641,7 @@ export default function DeparturesPage() {
 
         {/* Content */}
         {activeTab !== 'statistiques' ? (
-          <div className={`flex gap-6 ${selectedDep ? '' : ''}`}>
+          <div className={`flex gap-3 lg:gap-6 ${selectedDep ? '' : ''}`}>
             {/* Main table */}
             <div className={`${selectedDep ? 'w-1/2' : 'w-full'} transition-all`}>
               {/* Filters */}
@@ -1330,7 +1330,7 @@ export default function DeparturesPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6">
           {/* Monthly evolution */}
           <div className="bg-white rounded-xl border p-5">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">Évolution mensuelle des départs</h3>

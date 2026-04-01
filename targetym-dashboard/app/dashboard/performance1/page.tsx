@@ -1431,7 +1431,7 @@ export default function PerformancePage() {
             <>
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Feedback Continu</h1>
+                  <h1 className="text-lg lg:text-2xl font-bold text-gray-900">Feedback Continu</h1>
                   <p className="text-gray-500 mt-1">Partagez et recevez des feedbacks</p>
                 </div>
                 <button onClick={() => setShowFeedbackModal(true)} className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600">
@@ -1460,7 +1460,7 @@ export default function PerformancePage() {
             <>
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Campagnes d&apos;Évaluation</h1>
+                  <h1 className="text-lg lg:text-2xl font-bold text-gray-900">Campagnes d&apos;Évaluation</h1>
                   <p className="text-gray-500 mt-1">Gérez les campagnes d&apos;évaluation</p>
                 </div>
                 {canManageCampaigns && (
@@ -1512,7 +1512,7 @@ export default function PerformancePage() {
           {activeTab === 'evaluations' && (
             <>
               <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">{userRole === 'employee' ? 'Mes Évaluations' : 'Évaluations'}</h1>
+                <h1 className="text-lg lg:text-2xl font-bold text-gray-900">{userRole === 'employee' ? 'Mes Évaluations' : 'Évaluations'}</h1>
                 <p className="text-gray-500 mt-1">Consultez et gérez les évaluations</p>
               </div>
               
@@ -1579,7 +1579,7 @@ export default function PerformancePage() {
           {activeTab === 'objectives' && (
             <>
               <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">Objectifs & OKRs</h1>
+                <h1 className="text-lg lg:text-2xl font-bold text-gray-900">Objectifs & OKRs</h1>
                 <p className="text-gray-500 mt-1">Gérez vos objectifs et résultats clés</p>
               </div>
               
@@ -1619,7 +1619,7 @@ export default function PerformancePage() {
             <>
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Entretiens 1-on-1</h1>
+                  <h1 className="text-lg lg:text-2xl font-bold text-gray-900">Entretiens 1-on-1</h1>
                   <p className="text-gray-500 mt-1">Planifiez et gérez vos entretiens individuels</p>
                 </div>
                 {canScheduleOneOnOne && (

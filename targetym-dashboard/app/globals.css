@@ -102,16 +102,10 @@ body {
 }
 
 /* ============================================
-   RESPONSIVE MOBILE STYLES
+   RESPONSIVE MOBILE STYLES (minimal & ciblé)
    ============================================ */
 
-/* Responsive mobile */
 @media (max-width: 1023px) {
-  /* Grids 3+ colonnes → 2 colonnes (KPI cards côte à côte) */
-  .grid-cols-3, .grid-cols-4, .grid-cols-5, .grid-cols-6 {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-
   /* Tables — scroll horizontal */
   table {
     display: block;
@@ -119,122 +113,91 @@ body {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Padding réduit */
-  .p-6, .p-8 {
-    padding: 0.75rem !important;
+  /* Contenu — empêcher le débordement */
+  main {
+    overflow-x: hidden;
   }
-  .px-6, .px-8 {
-    padding-left: 0.75rem !important;
-    padding-right: 0.75rem !important;
-  }
-  .py-6, .py-8 {
-    padding-top: 0.75rem !important;
-    padding-bottom: 0.75rem !important;
+  main > div {
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
-  /* Titres plus petits */
-  .text-3xl {
-    font-size: 1.5rem !important;
-    line-height: 2rem !important;
-  }
-  .text-4xl {
-    font-size: 1.75rem !important;
-    line-height: 2.25rem !important;
-  }
-  .text-2xl {
-    font-size: 1.25rem !important;
-    line-height: 1.75rem !important;
-  }
+  /* ===== ONGLETS / TABS — scrollables sur mobile ===== */
+  /* Classe utilitaire appliquée via CSS sur tous les patterns de tabs */
 
-  /* Cacher les éléments desktop-only */
-  .hidden-mobile {
-    display: none !important;
-  }
-
-  /* Gaps réduits */
-  .gap-6 {
-    gap: 0.75rem !important;
-  }
-  .gap-5 {
-    gap: 0.75rem !important;
-  }
-
-  /* Grands layouts en 1 colonne */
-  .lg\:grid-cols-3, .lg\:grid-cols-4 {
-    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
-  }
-
-  /* ===== ONGLETS / TABS — scrollable horizontalement ===== */
+  /* Tous les containers de tabs — scroll horizontal, pas de wrap */
+  .overflow-x-auto,
   [role="tablist"],
   .flex.border-b,
-  .flex.space-x-1,
-  .flex.space-x-2,
-  .flex.space-x-4,
-  .flex.space-x-6,
-  .flex.gap-1,
-  .flex.gap-2,
-  .flex.gap-4 {
+  .bg-gray-100.rounded-lg,
+  .bg-gray-100.rounded-xl,
+  .bg-white.rounded-xl.border.border-gray-200 {
     overflow-x: auto !important;
     flex-wrap: nowrap !important;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
+  .overflow-x-auto::-webkit-scrollbar,
   [role="tablist"]::-webkit-scrollbar,
   .flex.border-b::-webkit-scrollbar,
-  .flex.space-x-1::-webkit-scrollbar,
-  .flex.space-x-2::-webkit-scrollbar,
-  .flex.space-x-4::-webkit-scrollbar,
-  .flex.space-x-6::-webkit-scrollbar,
-  .flex.gap-1::-webkit-scrollbar,
-  .flex.gap-2::-webkit-scrollbar,
-  .flex.gap-4::-webkit-scrollbar {
+  .bg-gray-100.rounded-lg::-webkit-scrollbar,
+  .bg-gray-100.rounded-xl::-webkit-scrollbar,
+  .bg-white.rounded-xl.border.border-gray-200::-webkit-scrollbar {
     display: none;
   }
 
-  /* Onglets — ne pas rétrécir le texte */
+  /* Les boutons/liens DANS les tabs — ne pas rétrécir */
   [role="tablist"] > *,
+  .flex.border-b > button,
   .flex.border-b > a,
-  .flex.border-b > button {
+  .bg-gray-100.rounded-lg > button,
+  .bg-gray-100.rounded-lg > a,
+  .bg-gray-100.rounded-xl > button,
+  .bg-white.rounded-xl.border > button {
     white-space: nowrap !important;
     flex-shrink: 0 !important;
-    font-size: 0.8rem !important;
   }
 
-  /* ===== CONTENU — empêcher le débordement ===== */
+  /* w-fit — ne pas limiter la largeur, permettre le scroll */
+  .w-fit {
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  /* Éléments desktop-only */
+  .hidden-mobile {
+    display: none;
+  }
+}
+
+/* ============================================
+   BOTTOM NAV — ANIMATIONS & SAFE AREA
+   ============================================ */
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.25s ease-out;
+}
+
+/* Safe area pour les écrans avec encoche (iPhone X+) */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Padding en bas pour que le contenu ne soit pas caché par la BottomNav */
+@media (max-width: 1023px) {
   main {
-    overflow-x: hidden !important;
-  }
-  main > div {
-    max-width: 100% !important;
-    overflow-x: hidden !important;
-  }
-
-  /* Cards plus compactes */
-  .rounded-2xl {
-    border-radius: 0.75rem !important;
-  }
-  .p-5 {
-    padding: 0.75rem !important;
-  }
-  .p-4 {
-    padding: 0.625rem !important;
-  }
-
-  /* Flex layouts — wrapper sur mobile */
-  .flex.items-center.justify-between {
-    flex-wrap: wrap !important;
-    gap: 0.5rem !important;
-  }
-
-  /* Texte plus petit globalement */
-  .text-sm {
-    font-size: 0.8rem !important;
-  }
-  .text-xs {
-    font-size: 0.7rem !important;
-  }
-  .text-base {
-    font-size: 0.875rem !important;
+    padding-bottom: 4.5rem !important;
   }
 }
 

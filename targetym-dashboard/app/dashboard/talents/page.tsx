@@ -56,7 +56,7 @@ export default function TalentsDashboard() {
           <StatCard icon={Crown} label="Plans Succession" value={d?.succession_plans || 0} color="orange" />
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6 mb-6">
+        <div className="grid lg:grid-cols-3 gap-3 lg:gap-6 mb-6">
           {/* Carrière Overview */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-center gap-2 mb-4">
@@ -129,7 +129,7 @@ export default function TalentsDashboard() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid lg:grid-cols-2 gap-3 lg:gap-6">
           {/* Top Talents */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-center gap-2 mb-4">

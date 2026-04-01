@@ -1022,8 +1022,8 @@ export default function RecruitmentPage() {
 
         {/* TAB: Analytics */}
         {activeTab === 'analytics' && analytics && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 lg:p-6">
               <h3 className="font-semibold text-gray-900 mb-4">Tendance Recrutement</h3>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
@@ -1091,7 +1091,7 @@ export default function RecruitmentPage() {
                 </div>
               </div>
               
-              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-3 lg:p-6 grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-6">
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3">Informations</h3>
                   <div className="space-y-3">

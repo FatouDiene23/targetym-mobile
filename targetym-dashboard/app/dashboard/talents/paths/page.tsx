@@ -68,7 +68,7 @@ export default function PathsPage() {
       )}
       <Header title="Parcours de Carrière" subtitle="Configuration des filières et niveaux" />
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-3 lg:gap-6">
           {/* Left: Path List */}
           <div className="space-y-4" data-tour="paths-list">
             <div className="flex justify-between items-center">

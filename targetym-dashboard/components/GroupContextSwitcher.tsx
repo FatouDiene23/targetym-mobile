@@ -22,7 +22,7 @@ export default function GroupContextSwitcher() {
       : context.tenant_name;
 
   return (
-    <div className="sticky top-0 z-30 bg-white border-b border-purple-100 px-6 py-2 flex items-center gap-3 shadow-sm">
+    <div className="sticky top-0 z-30 bg-white border-b border-purple-100 px-3 lg:px-6 py-2 flex items-center gap-3 shadow-sm">
       <span className="text-xs text-purple-600 font-medium hidden sm:inline">Contexte&nbsp;:</span>
 
       <div className="relative">

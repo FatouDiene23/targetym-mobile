@@ -617,7 +617,7 @@ export default function Evaluation1on1Page() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           <div className="bg-blue-50 text-blue-700 rounded-xl p-4 flex items-center gap-3">
             <CheckCircle2 className="w-6 h-6 shrink-0" />
             <div>

@@ -564,7 +564,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
       <div className="p-6 space-y-5">
         <div>
           <h3 className="text-sm font-medium text-gray-500 mb-3">Format d&apos;export</h3>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
             {FORMAT_OPTIONS.map(f => {
               const Icon = f.icon;
               const isSelected = format === f.key;

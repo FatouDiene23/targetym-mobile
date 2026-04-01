@@ -495,7 +495,7 @@ export default function BlogPage() {
       {/* En-tête */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-lg lg:text-2xl font-bold text-gray-900 flex items-center gap-2">
             <BookOpen className="w-7 h-7 text-blue-600" />
             Blog de l'entreprise
           </h1>

@@ -476,7 +476,7 @@ export default function PeopleAnalyticsPage() {
       </div>
 
       {/* Alertes IA */}
-      <div data-tour="analytics-charts" className="bg-white rounded-xl border p-6">
+      <div data-tour="analytics-charts" className="bg-white rounded-xl border p-3 lg:p-6">
         <div className="flex items-center gap-2 mb-4">
           <Brain size={20} className="text-purple-600" />
           <h3 className="font-semibold text-gray-900">Alertes & Recommandations</h3>
@@ -516,9 +516,9 @@ export default function PeopleAnalyticsPage() {
       </div>
 
       {/* Graphiques résumés */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6">
         {/* Évolution effectifs */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Évolution des effectifs</h3>
             {renderBadge("real")}
@@ -537,7 +537,7 @@ export default function PeopleAnalyticsPage() {
         </div>
 
         {/* Performance par département */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Performance par équipe</h3>
             {renderBadge(byDept.length > 0 ? "real" : "real")}
@@ -604,9 +604,9 @@ export default function PeopleAnalyticsPage() {
       </div>
 
       {/* Graphiques */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6">
         {/* Évolution effectifs */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Évolution des effectifs</h3>
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={effectifsEvolution}>
@@ -623,7 +623,7 @@ export default function PeopleAnalyticsPage() {
         </div>
 
         {/* Répartition par département */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Répartition par département</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -646,7 +646,7 @@ export default function PeopleAnalyticsPage() {
         </div>
 
         {/* Pyramide des âges */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Pyramide des âges</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={pyramideAges}>
@@ -662,7 +662,7 @@ export default function PeopleAnalyticsPage() {
         </div>
 
         {/* Turnover par département */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Turnover par département</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={turnoverByDept}>
@@ -730,9 +730,9 @@ export default function PeopleAnalyticsPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6">
         {/* Score moyen par département */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Score moyen par département</h3>
             {renderBadge("real")}
@@ -760,7 +760,7 @@ export default function PeopleAnalyticsPage() {
         </div>
 
         {/* Distribution des notes */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Distribution des évaluations</h3>
             {renderBadge("real")}
@@ -790,7 +790,7 @@ export default function PeopleAnalyticsPage() {
 
       {/* OKR — répartition par statut */}
       {hasOkr && (
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Statut des OKR</h3>
             {renderBadge("real")}
@@ -812,7 +812,7 @@ export default function PeopleAnalyticsPage() {
       )}
 
       {/* Tableau managers */}
-      <div className="bg-white rounded-xl border p-6">
+      <div className="bg-white rounded-xl border p-3 lg:p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-900">Performance par manager</h3>
           {renderBadge("real")}
@@ -905,9 +905,9 @@ export default function PeopleAnalyticsPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6">
         {/* 9-Box */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Distribution 9-Box</h3>
             {renderBadge("real")}
@@ -941,7 +941,7 @@ export default function PeopleAnalyticsPage() {
         </div>
 
         {/* Couverture succession */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Couverture de succession</h3>
             {renderBadge("real")}
@@ -1036,9 +1036,9 @@ export default function PeopleAnalyticsPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6">
         {/* Exécution par catégorie */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Formations par catégorie</h3>
             {renderBadge("real")}
@@ -1065,7 +1065,7 @@ export default function PeopleAnalyticsPage() {
         </div>
 
         {/* Évolution mensuelle */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Évolution mensuelle</h3>
             {renderBadge("real")}
@@ -1094,7 +1094,7 @@ export default function PeopleAnalyticsPage() {
 
       {/* Statut global */}
       {fo && (
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Répartition par statut</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
@@ -1138,9 +1138,9 @@ export default function PeopleAnalyticsPage() {
         {renderKPICard("Alertes RPS", "—", <AlertTriangle size={20} className="text-red-600" />, "bg-red-50", "Fonctionnalité à venir")}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6">
         {/* Tendance engagement */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Tendance engagement & satisfaction</h3>
             {renderBadge("real")}
@@ -1153,7 +1153,7 @@ export default function PeopleAnalyticsPage() {
         </div>
 
         {/* Radar satisfaction */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Facteurs de satisfaction</h3>
             {renderBadge("real")}
@@ -1167,7 +1167,7 @@ export default function PeopleAnalyticsPage() {
       </div>
 
       {/* Absentéisme par département */}
-      <div className="bg-white rounded-xl border p-6">
+      <div className="bg-white rounded-xl border p-3 lg:p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-900">Absentéisme par département</h3>
           {renderBadge("real")}
@@ -1261,9 +1261,9 @@ export default function PeopleAnalyticsPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6">
         {/* Pipeline funnel */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Funnel de recrutement</h3>
           {pipeline.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
@@ -1296,7 +1296,7 @@ export default function PeopleAnalyticsPage() {
         </div>
 
         {/* Tendance mensuelle */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Tendance mensuelle</h3>
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={trend.length > 0 ? trend : recrutementMetrics}>
@@ -1313,7 +1313,7 @@ export default function PeopleAnalyticsPage() {
       </div>
 
       {/* Sources */}
-      <div className="bg-white rounded-xl border p-6">
+      <div className="bg-white rounded-xl border p-3 lg:p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-900">Sources de recrutement</h3>
           {renderBadge(sources.length > 0 ? "real" : "hardcoded")}
@@ -1406,8 +1406,8 @@ export default function PeopleAnalyticsPage() {
       </div>
 
       {/* Évolution masse salariale + répartition par département */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl border p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Évolution de la masse salariale</h3>
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={salaireEvolution}>
@@ -1439,7 +1439,7 @@ export default function PeopleAnalyticsPage() {
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Répartition par département</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -1463,8 +1463,8 @@ export default function PeopleAnalyticsPage() {
       </div>
 
       {/* Distribution par tranches + par contrat */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl border p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Distribution par tranches salariales</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={salaireDistribution}>
@@ -1493,7 +1493,7 @@ export default function PeopleAnalyticsPage() {
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border p-3 lg:p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Masse salariale par type de contrat</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={salaireByContract} layout="vertical">
@@ -1512,7 +1512,7 @@ export default function PeopleAnalyticsPage() {
       </div>
 
       {/* Tableau détaillé par département */}
-      <div className="bg-white rounded-xl border p-6">
+      <div className="bg-white rounded-xl border p-3 lg:p-6">
         <h3 className="font-semibold text-gray-900 mb-4">Détail par département</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -1585,7 +1585,7 @@ export default function PeopleAnalyticsPage() {
       )}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">People Analytics</h1>
+          <h1 className="text-lg lg:text-2xl font-bold text-gray-900">People Analytics</h1>
           <p className="text-gray-500 text-sm mt-1">Tableaux de bord et indicateurs RH</p>
         </div>
         <div className="flex items-center gap-3">

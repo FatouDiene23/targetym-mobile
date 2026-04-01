@@ -966,28 +966,28 @@ export default function MyProfilePage() {
         {/* Header */}
         <div className="mb-6 flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Mon Espace</h1>
+            <h1 className="text-lg lg:text-2xl font-bold text-gray-900">Mon Espace</h1>
             <p className="text-gray-500 mt-1">Votre profil et votre position dans l&apos;organisation</p>
           </div>
           <SOSButton />
         </div>
 
         {/* Tabs */}
-        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit mb-6">
-          <button onClick={() => setActiveTab('profile')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${activeTab === 'profile' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg mb-6 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
+          <button onClick={() => setActiveTab('profile')} className={`px-3 lg:px-4 py-2 text-xs lg:text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${activeTab === 'profile' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
             <User className="w-4 h-4" />Mon Profil
           </button>
-          <button onClick={() => setActiveTab('orgchart')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${activeTab === 'orgchart' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
-            <Network className="w-4 h-4" />Mon Organigramme
+          <button onClick={() => setActiveTab('orgchart')} className={`px-3 lg:px-4 py-2 text-xs lg:text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${activeTab === 'orgchart' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+            <Network className="w-4 h-4" />Organigramme
           </button>
-          <button onClick={() => setActiveTab('signatures')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${activeTab === 'signatures' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
-            <PenLine className="w-4 h-4" />Mes Signatures
+          <button onClick={() => setActiveTab('signatures')} className={`px-3 lg:px-4 py-2 text-xs lg:text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${activeTab === 'signatures' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+            <PenLine className="w-4 h-4" />Signatures
             {pendingSignatures.length > 0 && (
               <span className="ml-1 bg-orange-500 text-white text-xs px-1.5 py-0.5 rounded-full">{pendingSignatures.length}</span>
             )}
           </button>
-          <button onClick={() => setActiveTab('alertes')} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${activeTab === 'alertes' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
-            <Bell className="w-4 h-4" />Mes Alertes SOS
+          <button onClick={() => setActiveTab('alertes')} className={`px-3 lg:px-4 py-2 text-xs lg:text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${activeTab === 'alertes' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+            <Bell className="w-4 h-4" />Alertes SOS
             {sosAlertsPending > 0 && (
               <span className="ml-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{sosAlertsPending}</span>
             )}
@@ -1130,7 +1130,7 @@ export default function MyProfilePage() {
             )}
           </div>
 
-          <div className="flex flex-col md:flex-row items-start gap-6">
+          <div className="flex flex-col md:flex-row items-start gap-3 lg:gap-6">
             {/* Avatar éditable */}
             <div className="relative shrink-0 group">
               <input
@@ -1166,7 +1166,7 @@ export default function MyProfilePage() {
             </div>
 
             {/* Info Grid */}
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-6 w-full">
               <div>
                 <p className="text-sm text-gray-500 mb-1">Nom complet</p>
                 <p className="font-medium text-gray-900">{employee.first_name} {employee.last_name}</p>

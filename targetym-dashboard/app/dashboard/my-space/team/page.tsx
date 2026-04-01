@@ -706,7 +706,7 @@ export default function MyTeamPage() {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900">Mon Équipe</h1>
+            <h1 className="text-lg lg:text-2xl font-bold text-gray-900">Mon Équipe</h1>
             <p className="text-gray-500 mt-1">Gérez et suivez les performances de votre équipe</p>
           </div>
 
@@ -753,7 +753,7 @@ export default function MyTeamPage() {
           </div>
 
           {/* Team Members + Detail Panel */}
-          <div className={`grid gap-6 mb-6 ${selectedMember ? 'lg:grid-cols-2' : ''}`}>
+          <div className={`grid gap-3 lg:gap-6 mb-6 ${selectedMember ? 'lg:grid-cols-2' : ''}`}>
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <button onClick={() => setShowTeam(!showTeam)} className="w-full flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">

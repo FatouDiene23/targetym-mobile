@@ -734,7 +734,7 @@ export default function ContentieuxPage() {
 
                 {/* ── Tab: Infos ──────────────────────────────────────── */}
                 {detailTab === 'infos' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-6">
                     <div className="space-y-4">
                       <div>
                         <label className="text-xs font-medium text-gray-500 uppercase">Reference</label>
@@ -976,7 +976,7 @@ export default function ContentieuxPage() {
     <div className="p-6 w-full">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+        <h1 className="text-lg lg:text-2xl font-bold text-gray-900 flex items-center gap-2">
           <Scale className="w-7 h-7 text-primary-500" /> Contentieux & Precontentieux
         </h1>
         <p className="text-sm text-gray-500 mt-1">Gestion des dossiers de litiges et procedures contentieuses</p>

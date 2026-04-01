@@ -661,7 +661,7 @@ export default function OnboardingPage() {
           <StatCard label="En retard" value={stats.overdue_count} icon={AlertCircle} color="bg-red-50 text-red-600" />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6">
           {/* Onboardings actifs */}
           <div className="bg-white rounded-xl border border-gray-200">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -1756,7 +1756,7 @@ export default function OnboardingPage() {
             const Icon = tab.icon;
             return (
               <button key={tab.id} onClick={() => { setActiveTab(tab.id); setSearchTerm(''); setSelectedAssignment(null); setSelectedProgram(null); }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                className={`flex items-center gap-2 px-3 lg:px-4 py-2.5 rounded-lg text-xs lg:text-sm font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
                   activeTab === tab.id ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'
                 }`}>
                 <Icon size={16} />

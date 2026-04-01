@@ -2176,7 +2176,7 @@ function CalendarTab({ schedules }: { schedules: PlanSchedule[] }) {
   return (
     <div className="space-y-6">
       {/* Timeline by quarter */}
-      <div className="grid grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         {QUARTER_LABELS.map(q => {
           const items = byQuarter[q] || [];
           const completed = items.filter(s => s.status === 'completed').length;

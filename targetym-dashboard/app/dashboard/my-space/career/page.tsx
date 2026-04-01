@@ -655,7 +655,7 @@ export default function MyCareerPage() {
                 {employee.first_name?.[0]}{employee.last_name?.[0]}
               </div>
               <div className="text-white">
-                <h1 className="text-2xl font-bold">{employee.first_name} {employee.last_name}</h1>
+                <h1 className="text-lg lg:text-2xl font-bold">{employee.first_name} {employee.last_name}</h1>
                 <p className="text-primary-100 text-lg">{employee.job_title || '—'}</p>
                 <div className="flex items-center gap-4 mt-2 text-primary-200 text-sm">
                   {employee.department_name && (
@@ -739,7 +739,7 @@ export default function MyCareerPage() {
         </div>
 
         {/* Salary Chart + Current Position side by side */}
-        <div className="grid lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid lg:grid-cols-2 gap-3 lg:gap-6 mb-6">
           {/* Current Position */}
           <div className="bg-white rounded-xl border border-gray-200 p-5" data-tour="career-path">
             <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">

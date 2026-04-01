@@ -443,7 +443,7 @@ export default function DepartmentManagementTab() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
           <p className="text-xs text-gray-500 mb-1">Total unités</p>
           <p className="text-2xl font-bold text-gray-900">{departments.length}</p>

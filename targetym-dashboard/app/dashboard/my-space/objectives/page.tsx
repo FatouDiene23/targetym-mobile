@@ -462,7 +462,7 @@ export default function MyObjectivesPage() {
       <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-5">
-        <h1 className="text-2xl font-bold text-gray-900">Mes Objectifs</h1>
+        <h1 className="text-lg lg:text-2xl font-bold text-gray-900">Mes Objectifs</h1>
         <p className="text-sm text-gray-500 mt-1">
           Suivez et mettez à jour la progression de vos objectifs
         </p>

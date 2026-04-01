@@ -696,7 +696,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
             <div>
               <label className="text-xs font-medium text-gray-700 mb-1 block">Type de document *</label>
               <select
@@ -731,7 +731,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <label className="text-xs font-medium text-gray-700 mb-1 block">Date du document</label>
               <input type="date" value={uploadDocDate} onChange={e => setUploadDocDate(e.target.value)} className="w-full border rounded-lg px-3 py-2.5 text-sm" />

@@ -271,7 +271,7 @@ function WelcomeCard({ userName, role }: { userName: string; role: UserRole }) {
   const RoleIcon = role === 'manager' ? Users : role === 'rh' ? Briefcase : role === 'admin' ? Zap : UserCheck;
 
   return (
-    <div data-tour="welcome" className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 rounded-2xl p-6 text-white shadow-lg">
+    <div data-tour="welcome" className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 rounded-2xl p-3 lg:p-6 text-white shadow-lg">
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white rounded-full translate-y-1/2 -translate-x-1/2" />
@@ -536,7 +536,7 @@ function TeamOverviewWidget({ teamMembers, pendingRequests }: { teamMembers: Tea
         </div>
         <Link href="/dashboard/my-space/team" className="text-primary-600 text-xs hover:underline flex items-center gap-1">Voir <ChevronRight className="w-3 h-3" /></Link>
       </div>
-      <div className="grid grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
         <div className="text-center p-3 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl"><p className="text-2xl font-bold text-gray-900">{teamMembers.length}</p><p className="text-xs text-gray-500">Total</p></div>
         <div className="text-center p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl"><p className="text-2xl font-bold text-green-600">{activeCount}</p><p className="text-xs text-green-700">Actifs</p></div>
         <div className="text-center p-3 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl"><p className="text-2xl font-bold text-orange-600">{onLeaveCount}</p><p className="text-xs text-orange-700">En congé</p></div>
@@ -1170,7 +1170,7 @@ export default function DashboardPage() {
         <div className="max-w-6xl mx-auto space-y-6">
           <WelcomeCard userName={name} role={role} />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-6">
             {/* Colonne gauche */}
             <div className="space-y-6">
               {employeeId && <MyLeaveBalanceWidget balances={leaveBalances} />}
@@ -1186,7 +1186,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Mes Objectifs et Mes Tâches sur la même ligne */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-6">
             {employeeId && <MyObjectivesProgressWidget objectives={myObjectives} />}
             <TasksWidget stats={taskStats} />
           </div>
@@ -1214,7 +1214,7 @@ export default function DashboardPage() {
 
         {/* Panel Dashboard global du groupe — toutes filiales agrégées */}
         {isGlobalDashboardMode && context?.is_group && (
-          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl p-6">
+          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl p-3 lg:p-6">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center shadow">
@@ -1302,7 +1302,7 @@ export default function DashboardPage() {
 
         {/* Panel stats filiale sélectionnée */}
         {selectedSubsidiary && (
-          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl p-6">
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl p-3 lg:p-6">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow">
@@ -1344,12 +1344,12 @@ export default function DashboardPage() {
         )}
 
         {!isGlobalDashboardMode && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-6">
           <div className="lg:col-span-2 space-y-6">
             {isHROrAdmin && hrStats && <HRStatsWidget stats={hrStats} />}
             {isManager && !isSubsidiaryView && <TeamOverviewWidget teamMembers={teamMembers} pendingRequests={teamPendingRequests} />}
             {isHROrAdmin && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-6">
                 <EvolutionChartWidget data={evolutionData} />
                 <DepartmentChartWidget data={departmentData} />
                 <LeavesChartWidget data={leavesData} />

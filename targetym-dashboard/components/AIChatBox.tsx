@@ -405,7 +405,7 @@ export default function AIChatBox() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-all hover:scale-110 z-50"
+          className="fixed bottom-24 lg:bottom-6 right-4 lg:right-6 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-all hover:scale-110 z-50"
           aria-label="Ouvrir le chatbot"
         >
           <MessageCircle size={28} />

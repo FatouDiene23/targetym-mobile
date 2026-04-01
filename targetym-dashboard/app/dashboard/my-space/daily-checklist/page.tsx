@@ -700,7 +700,7 @@ export default function DailyChecklistPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Daily Checklist</h1>
+          <h1 className="text-lg lg:text-2xl font-bold text-gray-900">Daily Checklist</h1>
           <p className="text-sm text-gray-500 mt-1">
             Vos tâches récurrentes quotidiennes
           </p>

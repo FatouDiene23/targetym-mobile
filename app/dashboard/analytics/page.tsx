@@ -26,7 +26,7 @@ import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { analyticsTips } from '@/config/pageTips';
 import { useGroupContext } from '@/hooks/useGroupContext';
-import { API_URL, fetchWithAuth } from '@/lib/api';
+import { fetchWithAuth } from '@/lib/api';
 
 // ============================================
 // TYPES
@@ -142,7 +142,9 @@ function formatXOF(value: number): string {
 }
 
 async function fetchAPI(endpoint: string, params?: Record<string, string>) {
-  const url = new URL(`${API_URL}${endpoint}`);
+  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai')
+    .replace(/^http:\/\//, 'https://');
+  const url = new URL(`${baseUrl}${endpoint}`);
   if (params) {
     Object.entries(params).forEach(([k, v]) => {
       if (v) url.searchParams.append(k, v);

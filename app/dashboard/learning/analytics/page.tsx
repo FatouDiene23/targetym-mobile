@@ -4,7 +4,7 @@ import { useLearning } from '../LearningContext';
 import { TrendingUp, Clock, CheckCircle, BookOpen, Target, Users, Wallet, AlertCircle, ChevronDown } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
 import { useState, useEffect, useCallback } from 'react';
-import { API_URL, getAuthHeaders } from '../shared';
+import { getAuthHeaders } from '../shared';
 
 // ---- Types pour le suivi du plan ----
 interface PlanKPIs {
@@ -75,7 +75,7 @@ export default function AnalyticsPage() {
     setPlanLoading(true);
     setPlanError(null);
     try {
-      const res = await fetch(`${API_URL}/api/training-plans/analytics?year=${year}`, {
+      const res = await fetch(`https://api.targetym.ai/api/training-plans/analytics?year=${year}`, {
         headers: getAuthHeaders(),
       });
       if (!res.ok) throw new Error('Erreur lors du chargement des analytics');

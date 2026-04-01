@@ -142,8 +142,7 @@ function formatXOF(value: number): string {
 }
 
 async function fetchAPI(endpoint: string, params?: Record<string, string>) {
-  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai')
-    .replace(/^http:\/\//, 'https://');
+  const baseUrl = 'https://api.targetym.ai';
   const url = new URL(`${baseUrl}${endpoint}`);
   if (params) {
     Object.entries(params).forEach(([k, v]) => {

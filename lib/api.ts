@@ -53,7 +53,7 @@ async function refreshAccessToken(): Promise<boolean> {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
-        window.location.href = 'https://targetym-website.vercel.app/login';
+        window.location.href = 'https://www.targetym.ai/login';
         return false;
       }
 

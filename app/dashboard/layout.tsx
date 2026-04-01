@@ -250,7 +250,7 @@ export default function DashboardLayout({
 
     if (!token) {
       console.log('Layout: No token, redirecting to login...');
-      window.location.href = 'https://targetym-website.vercel.app/login';
+      window.location.href = 'https://www.targetym.ai/login';
       return;
     }
 

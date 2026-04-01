@@ -105,11 +105,11 @@ body {
    RESPONSIVE MOBILE STYLES
    ============================================ */
 
-/* Grids — passer en 1 colonne sur mobile */
+/* Responsive mobile */
 @media (max-width: 1023px) {
-  /* Grids 2/3/4/5/6 colonnes → 1 colonne */
-  .grid-cols-2, .grid-cols-3, .grid-cols-4, .grid-cols-5, .grid-cols-6 {
-    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  /* Grids 3+ colonnes → 2 colonnes (KPI cards côte à côte) */
+  .grid-cols-3, .grid-cols-4, .grid-cols-5, .grid-cols-6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
   /* Tables — scroll horizontal */
@@ -119,16 +119,20 @@ body {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Padding réduit sur les pages */
+  /* Padding réduit */
   .p-6, .p-8 {
-    padding: 1rem !important;
+    padding: 0.75rem !important;
   }
   .px-6, .px-8 {
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  .py-6, .py-8 {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
   }
 
-  /* Texte des titres plus petit */
+  /* Titres plus petits */
   .text-3xl {
     font-size: 1.5rem !important;
     line-height: 2rem !important;
@@ -137,27 +141,100 @@ body {
     font-size: 1.75rem !important;
     line-height: 2.25rem !important;
   }
+  .text-2xl {
+    font-size: 1.25rem !important;
+    line-height: 1.75rem !important;
+  }
 
   /* Cacher les éléments desktop-only */
   .hidden-mobile {
     display: none !important;
   }
 
-  /* Flex wrap sur mobile */
-  .flex-nowrap {
-    flex-wrap: wrap !important;
-  }
-
-  /* Cards KPI — empiler */
+  /* Gaps réduits */
   .gap-6 {
-    gap: 1rem !important;
+    gap: 0.75rem !important;
   }
-}
+  .gap-5 {
+    gap: 0.75rem !important;
+  }
 
-/* Grids 2 colonnes sur tablette */
-@media (min-width: 640px) and (max-width: 1023px) {
-  .grid-cols-3, .grid-cols-4, .grid-cols-5, .grid-cols-6 {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  /* Grands layouts en 1 colonne */
+  .lg\:grid-cols-3, .lg\:grid-cols-4 {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+
+  /* ===== ONGLETS / TABS — scrollable horizontalement ===== */
+  [role="tablist"],
+  .flex.border-b,
+  .flex.space-x-1,
+  .flex.space-x-2,
+  .flex.space-x-4,
+  .flex.space-x-6,
+  .flex.gap-1,
+  .flex.gap-2,
+  .flex.gap-4 {
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  [role="tablist"]::-webkit-scrollbar,
+  .flex.border-b::-webkit-scrollbar,
+  .flex.space-x-1::-webkit-scrollbar,
+  .flex.space-x-2::-webkit-scrollbar,
+  .flex.space-x-4::-webkit-scrollbar,
+  .flex.space-x-6::-webkit-scrollbar,
+  .flex.gap-1::-webkit-scrollbar,
+  .flex.gap-2::-webkit-scrollbar,
+  .flex.gap-4::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Onglets — ne pas rétrécir le texte */
+  [role="tablist"] > *,
+  .flex.border-b > a,
+  .flex.border-b > button {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    font-size: 0.8rem !important;
+  }
+
+  /* ===== CONTENU — empêcher le débordement ===== */
+  main {
+    overflow-x: hidden !important;
+  }
+  main > div {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Cards plus compactes */
+  .rounded-2xl {
+    border-radius: 0.75rem !important;
+  }
+  .p-5 {
+    padding: 0.75rem !important;
+  }
+  .p-4 {
+    padding: 0.625rem !important;
+  }
+
+  /* Flex layouts — wrapper sur mobile */
+  .flex.items-center.justify-between {
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+  }
+
+  /* Texte plus petit globalement */
+  .text-sm {
+    font-size: 0.8rem !important;
+  }
+  .text-xs {
+    font-size: 0.7rem !important;
+  }
+  .text-base {
+    font-size: 0.875rem !important;
   }
 }
 

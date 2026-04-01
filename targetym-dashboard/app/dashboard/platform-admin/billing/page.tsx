@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import {
   Receipt, Search, CheckCircle2, XCircle, Clock, ChevronLeft,
   RefreshCw, Plus, CreditCard, Building2, FileText, AlertTriangle,
-  X, Menu,
+  X, ChevronDown,
 } from 'lucide-react';
 import {
   getAllTenants, adminGetInvoices, adminCreateInvoice, adminPayInvoice,
@@ -70,9 +70,6 @@ export default function BillingAdminPage() {
   const [cancellingInvoice, setCancellingInvoice] = useState<InvoiceItem | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
-  // Sidebar mobile
-  const [showSidebar, setShowSidebar] = useState(false);
-
   // Modal changer plan
   const [showChangePlan, setShowChangePlan] = useState(false);
   const [planForm, setPlanForm] = useState({ plan: '', max_employees: '', is_trial: false, trial_ends_at: '', note: '' });
@@ -104,7 +101,6 @@ export default function BillingAdminPage() {
 
   const selectTenant = async (tenant: TenantListItem) => {
     setSelectedTenant(tenant);
-    setShowSidebar(false);
     setPlanForm({
       plan: tenant.plan,
       max_employees: String(tenant.max_employees),
@@ -226,37 +222,26 @@ export default function BillingAdminPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <div className="flex items-center gap-3 sm:gap-4">
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center gap-4">
           <Link href="/dashboard/platform-admin" className="text-gray-500 hover:text-gray-800 transition-colors">
             <ChevronLeft size={20} />
           </Link>
-          <button
-            onClick={() => setShowSidebar(s => !s)}
-            className="lg:hidden p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <Menu size={20} />
-          </button>
           <div className="flex items-center gap-3">
             <div className="bg-indigo-600 p-2 rounded-xl">
               <Receipt size={20} className="text-white" />
             </div>
             <div>
-              <h1 className="text-lg sm:text-xl font-bold text-gray-900">Facturation</h1>
-              <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Gérez les factures et plans de chaque entreprise</p>
+              <h1 className="text-xl font-bold text-gray-900">Facturation</h1>
+              <p className="text-sm text-gray-500">Gérez les factures et plans de chaque entreprise</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex h-[calc(100vh-73px)] relative">
-        {/* ── Overlay mobile pour sidebar ─────────────────────────────────── */}
-        {showSidebar && (
-          <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={() => setShowSidebar(false)} />
-        )}
-
+      <div className="flex h-[calc(100vh-73px)]">
         {/* ── Liste des tenants (colonne gauche) ─────────────────────────── */}
-        <div className={`fixed z-40 top-[73px] left-0 h-[calc(100vh-73px)] w-72 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 transition-transform duration-300 lg:static lg:translate-x-0 ${showSidebar ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="w-72 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
           <div className="p-3 border-b border-gray-100">
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -303,25 +288,22 @@ export default function BillingAdminPage() {
         </div>
 
         {/* ── Détail facturation (zone principale) ───────────────────────── */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-6">
+        <div className="flex-1 overflow-y-auto p-6">
           {!selectedTenant ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400">
               <Building2 size={48} className="mb-4 opacity-20" />
               <p className="text-base">Sélectionnez une entreprise</p>
               <p className="text-sm mt-1">pour gérer ses factures et son plan</p>
-              <button onClick={() => setShowSidebar(true)} className="mt-4 lg:hidden text-sm text-indigo-600 hover:underline">
-                Ouvrir la liste des entreprises
-              </button>
             </div>
           ) : (
             <div className="max-w-4xl">
               {/* En-tête tenant */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 mb-4 sm:mb-5">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-base sm:text-lg font-bold text-gray-900">{selectedTenant.name}</h2>
-                    <p className="text-xs sm:text-sm text-gray-400 truncate">{selectedTenant.email || '—'} · {selectedTenant.slug}</p>
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2">
+                    <h2 className="text-lg font-bold text-gray-900">{selectedTenant.name}</h2>
+                    <p className="text-sm text-gray-400">{selectedTenant.email || '—'} · {selectedTenant.slug}</p>
+                    <div className="flex items-center gap-3 mt-2">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                         selectedTenant.plan === 'enterprise' ? 'bg-purple-100 text-purple-700' :
                         selectedTenant.plan === 'professional' ? 'bg-blue-100 text-blue-700' :
@@ -342,7 +324,7 @@ export default function BillingAdminPage() {
                   </div>
                   <button
                     onClick={() => setShowChangePlan(true)}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl transition-colors w-full sm:w-auto"
+                    className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl transition-colors"
                   >
                     <CreditCard size={15} />
                     Changer le plan
@@ -351,27 +333,27 @@ export default function BillingAdminPage() {
               </div>
 
               {/* Stats rapides */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-5">
-                <div className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4">
+              <div className="grid grid-cols-3 gap-4 mb-5">
+                <div className="bg-white rounded-xl border border-gray-100 p-4">
                   <p className="text-xs text-gray-400 mb-1">Total factures</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{invoices.length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{invoices.length}</p>
                 </div>
-                <div className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4">
+                <div className="bg-white rounded-xl border border-gray-100 p-4">
                   <p className="text-xs text-gray-400 mb-1">En attente</p>
-                  <p className="text-xl sm:text-2xl font-bold text-orange-600">{fmtAmount(totalPending)}</p>
+                  <p className="text-2xl font-bold text-orange-600">{fmtAmount(totalPending)}</p>
                 </div>
-                <div className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4">
+                <div className="bg-white rounded-xl border border-gray-100 p-4">
                   <p className="text-xs text-gray-400 mb-1">Encaissé</p>
-                  <p className="text-xl sm:text-2xl font-bold text-green-600">{fmtAmount(totalPaid)}</p>
+                  <p className="text-2xl font-bold text-green-600">{fmtAmount(totalPaid)}</p>
                 </div>
               </div>
 
               {/* Tableau factures */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between px-3 sm:px-5 py-3 sm:py-4 border-b border-gray-100">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                   <div className="flex items-center gap-2">
                     <FileText size={16} className="text-gray-400" />
-                    <h3 className="font-semibold text-sm sm:text-base text-gray-800">Factures</h3>
+                    <h3 className="font-semibold text-gray-800">Factures</h3>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -382,9 +364,9 @@ export default function BillingAdminPage() {
                     </button>
                     <button
                       onClick={() => setShowCreate(true)}
-                      className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"
                     >
-                      <Plus size={14} /> <span className="hidden sm:inline">Nouvelle</span> facture
+                      <Plus size={14} /> Nouvelle facture
                     </button>
                   </div>
                 </div>
@@ -409,20 +391,20 @@ export default function BillingAdminPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
-                          <th className="px-3 sm:px-5 py-3 text-left font-semibold">Date</th>
-                          <th className="px-3 sm:px-4 py-3 text-left font-semibold hidden md:table-cell">Description</th>
-                          <th className="px-3 sm:px-4 py-3 text-right font-semibold">Montant</th>
-                          <th className="px-3 sm:px-4 py-3 text-left font-semibold">Statut</th>
-                          <th className="px-3 sm:px-4 py-3 text-left font-semibold hidden lg:table-cell">Réf. paiement</th>
-                          <th className="px-3 sm:px-4 py-3 text-left font-semibold hidden sm:table-cell">Échéance</th>
-                          <th className="px-3 sm:px-4 py-3 text-right font-semibold">Actions</th>
+                          <th className="px-5 py-3 text-left font-semibold">Date</th>
+                          <th className="px-4 py-3 text-left font-semibold">Description</th>
+                          <th className="px-4 py-3 text-right font-semibold">Montant</th>
+                          <th className="px-4 py-3 text-left font-semibold">Statut</th>
+                          <th className="px-4 py-3 text-left font-semibold">Réf. paiement</th>
+                          <th className="px-4 py-3 text-left font-semibold">Échéance</th>
+                          <th className="px-4 py-3 text-right font-semibold">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
                         {invoices.map(inv => (
                           <tr key={inv.id} className="hover:bg-gray-50/60">
-                            <td className="px-3 sm:px-5 py-3.5 text-gray-600 whitespace-nowrap">{fmt(inv.invoice_date)}</td>
-                            <td className="px-3 sm:px-4 py-3.5 text-gray-700 hidden md:table-cell">
+                            <td className="px-5 py-3.5 text-gray-600 whitespace-nowrap">{fmt(inv.invoice_date)}</td>
+                            <td className="px-4 py-3.5 text-gray-700">
                               <div className="truncate max-w-[200px]">{inv.description || '—'}</div>
                               {inv.pdf_url && (
                                 <a href={inv.pdf_url} target="_blank" rel="noreferrer" className="text-xs text-indigo-500 hover:underline">
@@ -430,14 +412,14 @@ export default function BillingAdminPage() {
                                 </a>
                               )}
                             </td>
-                            <td className="px-3 sm:px-4 py-3.5 text-right font-semibold text-gray-900 whitespace-nowrap">
+                            <td className="px-4 py-3.5 text-right font-semibold text-gray-900 whitespace-nowrap">
                               {fmtAmount(inv.amount, inv.currency)}
                             </td>
-                            <td className="px-3 sm:px-4 py-3.5"><StatusBadge status={inv.status} /></td>
-                            <td className="px-3 sm:px-4 py-3.5 text-gray-500 text-xs hidden lg:table-cell">{inv.payment_ref || '—'}</td>
-                            <td className="px-3 sm:px-4 py-3.5 text-gray-500 whitespace-nowrap hidden sm:table-cell">{fmt(inv.due_date)}</td>
-                            <td className="px-3 sm:px-4 py-3.5">
-                              <div className="flex items-center justify-end gap-1 sm:gap-2">
+                            <td className="px-4 py-3.5"><StatusBadge status={inv.status} /></td>
+                            <td className="px-4 py-3.5 text-gray-500 text-xs">{inv.payment_ref || '—'}</td>
+                            <td className="px-4 py-3.5 text-gray-500 whitespace-nowrap">{fmt(inv.due_date)}</td>
+                            <td className="px-4 py-3.5">
+                              <div className="flex items-center justify-end gap-2">
                                 {inv.status === 'pending' && (
                                   <button
                                     onClick={() => { setPayingInvoice(inv); setPayRef(''); }}

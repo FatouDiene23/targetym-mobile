@@ -5,7 +5,8 @@ import {
   Search, Plus, Loader2, X, ChevronLeft, ChevronRight,
   Calendar, Filter, Eye, Edit3, Play, Square, Archive,
   BarChart3, Users, CheckCircle, Clock, ChevronUp, ChevronDown,
-  Trash2, MessageSquare, PieChart, FileText,
+  Trash2, MessageSquare, PieChart, FileText, Settings, Zap, Power,
+  Save,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
@@ -30,6 +31,8 @@ interface Survey {
   end_date?: string;
   created_by_id?: number;
   is_template: boolean;
+  is_system?: boolean;
+  trigger_event?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -141,6 +144,15 @@ const QUESTION_TYPE_LABELS: Record<string, string> = {
   texte_libre: 'Texte libre',
 };
 
+const TRIGGER_EVENT_LABELS: Record<string, { label: string; icon: string }> = {
+  onboarding_30: { label: 'Onboarding J+30', icon: '👋' },
+  onboarding_60: { label: 'Onboarding J+60', icon: '📈' },
+  onboarding_90: { label: 'Onboarding J+90', icon: '🎯' },
+  exit_interview: { label: 'Exit Interview', icon: '🚪' },
+  promotion: { label: 'Post-Promotion', icon: '⭐' },
+  mobilite: { label: 'Mobilité Interne', icon: '🔄' },
+};
+
 const PIE_COLORS = ['#10B981', '#EF4444', '#F59E0B', '#3B82F6', '#8B5CF6', '#EC4899'];
 const BAR_COLOR = '#3B82F6';
 
@@ -187,6 +199,19 @@ export default function SurveysPage() {
   const [templates, setTemplates] = useState<Survey[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
 
+  // Configure modal (system templates)
+  const [showConfigureModal, setShowConfigureModal] = useState(false);
+  const [configuringTemplate, setConfiguringTemplate] = useState<Survey | null>(null);
+  const [configQuestions, setConfigQuestions] = useState<{
+    id?: number;
+    question_text: string;
+    question_type: string;
+    options: string[];
+    is_required: boolean;
+  }[]>([]);
+  const [configAnonymous, setConfigAnonymous] = useState(true);
+  const [savingConfig, setSavingConfig] = useState(false);
+
   // Detail view
   const [selectedSurvey, setSelectedSurvey] = useState<SurveyDetail | null>(null);
   const [detailTab, setDetailTab] = useState<'questions' | 'results' | 'responses'>('questions');
@@ -205,6 +230,8 @@ export default function SurveysPage() {
     if (res.status === 204) return null;
     return res.json();
   }, []);
+
+  const isAdminOrRH = ['admin', 'rh', 'dg', 'dga', 'super_admin'].includes(userRole);
 
   // ── Load surveys ────────────────────────────────────────────────────────
 
@@ -277,6 +304,121 @@ export default function SurveysPage() {
       toast.error(err.message);
     }
   }, [apiFetch]);
+
+  // ── Load system templates on mount ─────────────────────────────────────
+
+  useEffect(() => {
+    if (isAdminOrRH) loadTemplates();
+  }, [isAdminOrRH, loadTemplates]);
+
+  // ── Configure modal helpers ────────────────────────────────────────────
+
+  const openConfigureModal = useCallback(async (template: Survey) => {
+    setConfiguringTemplate(template);
+    setConfigAnonymous(template.is_anonymous);
+    setShowConfigureModal(true);
+    try {
+      const data = await apiFetch(`/api/surveys/${template.id}`);
+      if (data?.questions && Array.isArray(data.questions)) {
+        setConfigQuestions(data.questions.map((q: SurveyQuestion) => ({
+          id: q.id,
+          question_text: q.question_text,
+          question_type: q.question_type,
+          options: q.options || [],
+          is_required: q.is_required,
+        })));
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  }, [apiFetch]);
+
+  const addConfigQuestion = () => {
+    setConfigQuestions([...configQuestions, { question_text: '', question_type: 'likert_5', options: [], is_required: true }]);
+  };
+
+  const removeConfigQuestion = (idx: number) => {
+    setConfigQuestions(configQuestions.filter((_, i) => i !== idx));
+  };
+
+  const updateConfigQuestion = (idx: number, field: string, value: any) => {
+    const updated = [...configQuestions];
+    (updated[idx] as any)[field] = value;
+    setConfigQuestions(updated);
+  };
+
+  const moveConfigQuestion = (idx: number, dir: 'up' | 'down') => {
+    if ((dir === 'up' && idx === 0) || (dir === 'down' && idx === configQuestions.length - 1)) return;
+    const updated = [...configQuestions];
+    const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
+    [updated[idx], updated[swapIdx]] = [updated[swapIdx], updated[idx]];
+    setConfigQuestions(updated);
+  };
+
+  const saveTemplateConfig = async () => {
+    if (!configuringTemplate) return;
+    if (configQuestions.some(q => !q.question_text.trim())) {
+      toast.error('Toutes les questions doivent avoir un texte');
+      return;
+    }
+    setSavingConfig(true);
+    try {
+      // Update anonymity
+      await apiFetch(`/api/surveys/${configuringTemplate.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ is_anonymous: configAnonymous }),
+      });
+
+      // Sync questions: delete existing, re-add all
+      const detail = await apiFetch(`/api/surveys/${configuringTemplate.id}`);
+      if (detail?.questions) {
+        for (const q of detail.questions) {
+          await apiFetch(`/api/surveys/${configuringTemplate.id}/questions/${q.id}`, { method: 'DELETE' });
+        }
+      }
+      for (let i = 0; i < configQuestions.length; i++) {
+        const q = configQuestions[i];
+        await apiFetch(`/api/surveys/${configuringTemplate.id}/questions`, {
+          method: 'POST',
+          body: JSON.stringify({
+            question_text: q.question_text,
+            question_type: q.question_type,
+            options: q.question_type === 'choix_multiple' ? q.options : null,
+            is_required: q.is_required,
+            order_index: i,
+          }),
+        });
+      }
+
+      toast.success('Configuration sauvegardée');
+      setShowConfigureModal(false);
+      loadTemplates();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSavingConfig(false);
+    }
+  };
+
+  const activateTemplate = async (template: Survey) => {
+    try {
+      await apiFetch(`/api/surveys/${template.id}/activate`, { method: 'POST' });
+      toast.success(`${template.title} activé`);
+      loadTemplates();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const deactivateTemplate = async (template: Survey) => {
+    try {
+      await apiFetch(`/api/surveys/${template.id}/close`, { method: 'POST' });
+      toast.success(`${template.title} désactivé`);
+      loadTemplates();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
 
   // ── Detail ──────────────────────────────────────────────────────────────
 
@@ -461,8 +603,6 @@ export default function SurveysPage() {
   const filteredSurveys = surveys.filter(s =>
     !searchText || s.title.toLowerCase().includes(searchText.toLowerCase())
   );
-
-  const isAdminOrRH = ['admin', 'rh', 'dg', 'dga', 'super_admin'].includes(userRole);
 
   // ── Render ──────────────────────────────────────────────────────────────
 
@@ -734,6 +874,91 @@ export default function SurveysPage() {
           </select>
         </div>
       </div>
+
+      {/* ── Déclencheurs Automatiques (Moments Clés) ──────────────────── */}
+      {isAdminOrRH && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-3">
+            <Zap className="w-5 h-5 text-orange-500" />
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Déclencheurs Automatiques</h2>
+              <p className="text-sm text-gray-500">Enquêtes envoyées automatiquement lors des moments clés du parcours collaborateur</p>
+            </div>
+          </div>
+          {loadingTemplates ? (
+            <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+          ) : templates.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Zap className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+              <p className="text-sm">Aucun template système disponible</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+              {templates.map(tpl => {
+                const triggerInfo = TRIGGER_EVENT_LABELS[tpl.trigger_event || ''];
+                const isActive = tpl.status === 'active';
+                return (
+                  <div key={tpl.id} className={`relative border rounded-xl p-5 transition-all hover:shadow-md ${isActive ? 'border-green-200 bg-green-50/30' : 'border-gray-200 bg-white'}`}>
+                    {/* Badge Automatique */}
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                        <Zap className="w-3 h-3" /> Automatique
+                      </span>
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                        <Power className="w-3 h-3" />
+                        {isActive ? 'Actif' : 'Inactif'}
+                      </span>
+                    </div>
+
+                    {/* Titre + description */}
+                    <div className="mb-4">
+                      <div className="flex items-center gap-2 mb-1">
+                        {triggerInfo && <span className="text-lg">{triggerInfo.icon}</span>}
+                        <h3 className="font-semibold text-gray-900">{tpl.title}</h3>
+                      </div>
+                      {tpl.description && (
+                        <p className="text-sm text-gray-500 line-clamp-2">{tpl.description}</p>
+                      )}
+                    </div>
+
+                    {/* Trigger event label */}
+                    {triggerInfo && (
+                      <p className="text-xs text-gray-400 mb-4">
+                        Déclencheur : <span className="font-medium text-gray-600">{triggerInfo.label}</span>
+                      </p>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => openConfigureModal(tpl)}
+                        className="flex-1 px-3 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 flex items-center justify-center gap-1.5"
+                      >
+                        <Settings className="w-4 h-4" /> Configurer
+                      </button>
+                      {isActive ? (
+                        <button
+                          onClick={() => deactivateTemplate(tpl)}
+                          className="px-3 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 flex items-center gap-1.5"
+                        >
+                          <Square className="w-4 h-4" /> Désactiver
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => activateTemplate(tpl)}
+                          className="px-3 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 flex items-center gap-1.5"
+                        >
+                          <Play className="w-4 h-4" /> Activer
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -1126,6 +1351,136 @@ export default function SurveysPage() {
                   </>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Configure Template Modal ─────────────────────────────────── */}
+      {showConfigureModal && configuringTemplate && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <Settings className="w-5 h-5 text-primary-500" />
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Configurer : {configuringTemplate.title}</h2>
+                  <p className="text-sm text-gray-500">
+                    {TRIGGER_EVENT_LABELS[configuringTemplate.trigger_event || '']?.label || 'Moment clé'}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setShowConfigureModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-6">
+              {/* Anonymat toggle */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Enquête anonyme</label>
+                  <p className="text-xs text-gray-500 mt-0.5">Les répondants ne seront pas identifiés</p>
+                </div>
+                <button
+                  onClick={() => setConfigAnonymous(!configAnonymous)}
+                  className={`relative inline-flex h-6 w-11 rounded-full transition-colors ${configAnonymous ? 'bg-primary-500' : 'bg-gray-300'}`}
+                >
+                  <span className={`inline-block w-4 h-4 bg-white rounded-full transform transition-transform mt-1 ${configAnonymous ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
+
+              {/* Questions */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-medium text-gray-900">Questions ({configQuestions.length})</h3>
+                  <button onClick={addConfigQuestion} className="px-3 py-1.5 bg-primary-500 text-white rounded-lg text-sm hover:bg-primary-600 flex items-center gap-1">
+                    <Plus className="w-4 h-4" /> Ajouter
+                  </button>
+                </div>
+
+                {configQuestions.length === 0 ? (
+                  <p className="text-gray-400 text-center py-6 text-sm">Aucune question configurée</p>
+                ) : (
+                  <div className="space-y-4">
+                    {configQuestions.map((q, idx) => (
+                      <div key={idx} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-gray-400">Question {idx + 1}</span>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => moveConfigQuestion(idx, 'up')} disabled={idx === 0} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30">
+                              <ChevronUp className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => moveConfigQuestion(idx, 'down')} disabled={idx === configQuestions.length - 1} className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30">
+                              <ChevronDown className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => removeConfigQuestion(idx)} className="p-1 text-red-400 hover:text-red-600">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                        <input
+                          type="text"
+                          value={q.question_text}
+                          onChange={e => updateConfigQuestion(idx, 'question_text', e.target.value)}
+                          placeholder="Texte de la question"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        />
+                        <div className="flex items-center gap-4">
+                          <select
+                            value={q.question_type}
+                            onChange={e => updateConfigQuestion(idx, 'question_type', e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                          >
+                            {Object.entries(QUESTION_TYPE_LABELS).map(([k, v]) => (
+                              <option key={k} value={k}>{v}</option>
+                            ))}
+                          </select>
+                          <label className="flex items-center gap-2 text-sm text-gray-600">
+                            <input
+                              type="checkbox"
+                              checked={q.is_required}
+                              onChange={e => updateConfigQuestion(idx, 'is_required', e.target.checked)}
+                              className="rounded border-gray-300 text-primary-500 focus:ring-primary-500"
+                            />
+                            Obligatoire
+                          </label>
+                        </div>
+                        {q.question_type === 'choix_multiple' && (
+                          <div className="space-y-2">
+                            <label className="text-xs text-gray-500">Options (une par ligne)</label>
+                            <textarea
+                              value={q.options.join('\n')}
+                              onChange={e => updateConfigQuestion(idx, 'options', e.target.value.split('\n').filter(Boolean))}
+                              rows={3}
+                              placeholder="Option 1&#10;Option 2&#10;Option 3"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+              <button
+                onClick={() => setShowConfigureModal(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={saveTemplateConfig}
+                disabled={savingConfig}
+                className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm font-medium flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {savingConfig ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4" /> Sauvegarder</>}
+              </button>
             </div>
           </div>
         </div>

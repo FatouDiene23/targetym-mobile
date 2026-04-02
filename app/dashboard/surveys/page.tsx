@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Search, Plus, Loader2, X, ChevronLeft, ChevronRight,
   Calendar, Filter, Eye, Edit3, Play, Square, Archive,
@@ -213,6 +213,7 @@ export default function SurveysPage() {
   }[]>([]);
   const [configAnonymous, setConfigAnonymous] = useState(true);
   const [savingConfig, setSavingConfig] = useState(false);
+  const originalConfigQuestionsRef = useRef<{ id: number; question_text: string; question_type: string; options: string[]; is_required: boolean }[]>([]);
 
   // Detail view
   const [selectedSurvey, setSelectedSurvey] = useState<SurveyDetail | null>(null);
@@ -329,17 +330,20 @@ export default function SurveysPage() {
     setConfiguringTemplate(template);
     setConfigAnonymous(template.is_anonymous);
     setConfigQuestions([]);
+    originalConfigQuestionsRef.current = [];
     setShowConfigureModal(true);
     try {
       const data = await apiFetch(`/api/surveys/${template.id}`);
       if (data?.questions && Array.isArray(data.questions)) {
-        setConfigQuestions(data.questions.map((q: SurveyQuestion) => ({
+        const mapped = data.questions.map((q: SurveyQuestion) => ({
           id: q.id,
           question_text: q.question_text,
           question_type: q.question_type,
           options: q.options || [],
           is_required: q.is_required,
-        })));
+        }));
+        setConfigQuestions(mapped);
+        originalConfigQuestionsRef.current = mapped;
       }
     } catch (err: any) {
       toast.error(err.message);
@@ -376,34 +380,73 @@ export default function SurveysPage() {
     }
     setSavingConfig(true);
     try {
-      // Update anonymity
-      await apiFetch(`/api/surveys/${configuringTemplate.id}`, {
+      const surveyId = configuringTemplate.id;
+
+      // 1. Update anonymity
+      await apiFetch(`/api/surveys/${surveyId}`, {
         method: 'PUT',
         body: JSON.stringify({ is_anonymous: configAnonymous }),
       });
 
-      // Sync questions: delete existing, re-add all
-      const detail = await apiFetch(`/api/surveys/${configuringTemplate.id}`);
-      if (detail?.questions) {
-        for (const q of detail.questions) {
-          await apiFetch(`/api/surveys/${configuringTemplate.id}/questions/${q.id}`, { method: 'DELETE' });
+      // 2. Sync questions (diff-based)
+      const originals = originalConfigQuestionsRef.current;
+      const originalIds = new Set(originals.map(q => q.id));
+      const currentIds = new Set(configQuestions.filter(q => q.id).map(q => q.id!));
+
+      // Track if backend supports PUT/DELETE on individual questions
+      let backendSupportsQuestionEdits = true;
+
+      // 2a. Delete removed questions (had id originally, no longer present)
+      const deletedIds = [...originalIds].filter(id => !currentIds.has(id));
+      for (const qId of deletedIds) {
+        try {
+          await apiFetch(`/api/surveys/${surveyId}/questions/${qId}`, { method: 'DELETE' });
+        } catch (err: any) {
+          if (err.message.includes('404') || err.message.includes('405')) {
+            backendSupportsQuestionEdits = false;
+            break;
+          }
         }
       }
-      for (let i = 0; i < configQuestions.length; i++) {
-        const q = configQuestions[i];
-        await apiFetch(`/api/surveys/${configuringTemplate.id}/questions`, {
-          method: 'POST',
-          body: JSON.stringify({
+
+      if (backendSupportsQuestionEdits) {
+        // 2b. Update existing questions (have id)
+        for (let i = 0; i < configQuestions.length; i++) {
+          const q = configQuestions[i];
+          const body = {
             question_text: q.question_text,
             question_type: q.question_type,
             options: q.question_type === 'choix_multiple' ? q.options : null,
             is_required: q.is_required,
             order_index: i,
-          }),
-        });
+          };
+          if (q.id) {
+            try {
+              await apiFetch(`/api/surveys/${surveyId}/questions/${q.id}`, {
+                method: 'PUT',
+                body: JSON.stringify(body),
+              });
+            } catch (err: any) {
+              if (err.message.includes('404') || err.message.includes('405')) {
+                backendSupportsQuestionEdits = false;
+                break;
+              }
+            }
+          } else {
+            // 2c. Create new questions (no id)
+            await apiFetch(`/api/surveys/${surveyId}/questions`, {
+              method: 'POST',
+              body: JSON.stringify(body),
+            });
+          }
+        }
       }
 
-      toast.success('Configuration sauvegardée');
+      if (!backendSupportsQuestionEdits && (deletedIds.length > 0 || configQuestions.some(q => !q.id) || configQuestions.length !== originals.length)) {
+        toast.success('Configuration sauvegardée. Pour modifier les questions, contactez l\'administrateur.');
+      } else {
+        toast.success('Configuration sauvegardée');
+      }
       setShowConfigureModal(false);
       loadTemplates();
     } catch (err: any) {

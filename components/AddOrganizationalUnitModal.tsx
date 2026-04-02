@@ -65,7 +65,7 @@ const ORGANIZATIONAL_LEVELS = [
     label: 'Service', 
     shortLabel: 'SRV',
     icon: Layers,
-    color: 'bg-blue-500'
+    color: 'bg-primary-500'
   },
 ];
 

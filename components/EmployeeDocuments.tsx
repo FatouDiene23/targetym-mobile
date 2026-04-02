@@ -251,7 +251,7 @@ export default function EmployeeDocuments({ employeeId, employeeName, readOnly =
         {!readOnly && (
           <button
             onClick={() => setShowUpload(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
           >
             <Plus className="w-4 h-4" /> Ajouter
           </button>
@@ -260,10 +260,10 @@ export default function EmployeeDocuments({ employeeId, employeeName, readOnly =
 
       {/* Upload Form */}
       {showUpload && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+        <div className="bg-primary-50 border border-primary-200 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-blue-800">Nouveau document</h4>
-            <button onClick={() => setShowUpload(false)}><X className="w-4 h-4 text-blue-400" /></button>
+            <h4 className="text-sm font-semibold text-primary-800">Nouveau document</h4>
+            <button onClick={() => setShowUpload(false)}><X className="w-4 h-4 text-primary-400" /></button>
           </div>
 
           {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-1 rounded">{error}</p>}
@@ -330,16 +330,16 @@ export default function EmployeeDocuments({ employeeId, employeeName, readOnly =
           <div
             onClick={() => fileInputRef.current?.click()}
             className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
-              uploadFile ? 'border-blue-300 bg-blue-50/50' : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
+              uploadFile ? 'border-primary-300 bg-primary-50/50' : 'border-gray-300 hover:border-primary-400 hover:bg-gray-50'
             }`}
           >
             <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelect} accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx" />
             {uploadFile ? (
-              <div className="flex items-center justify-center gap-2 text-sm text-blue-700">
+              <div className="flex items-center justify-center gap-2 text-sm text-primary-700">
                 <FileText className="w-4 h-4" />
                 <span className="font-medium">{uploadFile.name}</span>
-                <span className="text-blue-400">({formatSize(uploadFile.size)})</span>
-                <button onClick={(e) => { e.stopPropagation(); setUploadFile(null); }} className="ml-2 p-0.5 hover:bg-blue-200 rounded">
+                <span className="text-primary-400">({formatSize(uploadFile.size)})</span>
+                <button onClick={(e) => { e.stopPropagation(); setUploadFile(null); }} className="ml-2 p-0.5 hover:bg-primary-200 rounded">
                   <X className="w-3 h-3" />
                 </button>
               </div>
@@ -357,7 +357,7 @@ export default function EmployeeDocuments({ employeeId, employeeName, readOnly =
             <button
               onClick={handleUpload}
               disabled={uploading || !uploadFile || !uploadTitle}
-              className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1.5"
+              className="px-4 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-1.5"
             >
               {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
               {uploading ? 'Upload...' : 'Uploader'}
@@ -404,7 +404,7 @@ export default function EmployeeDocuments({ employeeId, employeeName, readOnly =
                   <button
                     onClick={() => handleDownload(doc)}
                     disabled={downloading === doc.id}
-                    className="p-1.5 hover:bg-blue-100 rounded text-blue-600"
+                    className="p-1.5 hover:bg-primary-100 rounded text-primary-600"
                     title="Télécharger"
                   >
                     {downloading === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}

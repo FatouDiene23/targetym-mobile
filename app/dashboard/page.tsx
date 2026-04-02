@@ -305,7 +305,7 @@ function WelcomeCard({ userName, role }: { userName: string; role: UserRole }) {
 // Quick Actions
 function QuickActions({ role, isManager }: { role: UserRole; isManager: boolean }) {
   const actions = [
-    { label: 'Demander un congé', href: '/dashboard/my-space/leaves', icon: Calendar, color: 'bg-blue-500', roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+    { label: 'Demander un congé', href: '/dashboard/my-space/leaves', icon: Calendar, color: 'bg-primary-500', roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
     { label: 'Mes objectifs', href: '/dashboard/my-space/objectives', icon: Target, color: 'bg-green-500', roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
     { label: 'Mon équipe', href: '/dashboard/my-space/team', icon: Users, color: 'bg-purple-500', roles: ['manager'], managerOnly: true },
     { label: 'Gestion du personnel', href: '/dashboard/employees', icon: Users, color: 'bg-indigo-500', roles: ['rh', 'admin', 'dg'] },
@@ -342,13 +342,13 @@ function MyLeaveBalanceWidget({ balances }: { balances: LeaveBalanceSummary | nu
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-lg flex items-center justify-center">
             <Calendar className="w-4 h-4 text-white" />
           </div>
           Mes Congés
         </h2>
         <div className="text-right">
-          <span className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-primary-600 bg-clip-text text-transparent">{balances?.total_available || 0}j</span>
+          <span className="text-3xl font-bold bg-gradient-to-r from-primary-600 to-primary-600 bg-clip-text text-transparent">{balances?.total_available || 0}j</span>
           <p className="text-xs text-gray-400">disponibles</p>
         </div>
       </div>
@@ -359,7 +359,7 @@ function MyLeaveBalanceWidget({ balances }: { balances: LeaveBalanceSummary | nu
               <span className="text-sm text-gray-600">{balance.leave_type_name}</span>
               <div className="flex items-center gap-2">
                 <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full" style={{ width: `${balance.allocated > 0 ? (balance.available / balance.allocated) * 100 : 0}%` }} />
+                  <div className="h-full bg-gradient-to-r from-primary-400 to-primary-600 rounded-full" style={{ width: `${balance.allocated > 0 ? (balance.available / balance.allocated) * 100 : 0}%` }} />
                 </div>
                 <span className="text-sm font-semibold text-gray-900">{balance.available}/{balance.allocated}</span>
               </div>
@@ -403,9 +403,9 @@ function MyLearningWidget({ assignments }: { assignments: MyAssignment[] }) {
         <>
           {/* Stats */}
           <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
-              <p className="text-2xl font-bold text-blue-600">{inProgress.length}</p>
-              <p className="text-xs text-blue-700">En cours</p>
+            <div className="text-center p-3 bg-gradient-to-br from-primary-50 to-indigo-50 rounded-xl">
+              <p className="text-2xl font-bold text-primary-600">{inProgress.length}</p>
+              <p className="text-xs text-primary-700">En cours</p>
             </div>
             <div className="text-center p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
               <p className="text-2xl font-bold text-green-600">{completed.length}</p>
@@ -475,9 +475,9 @@ function MyPerformanceWidget({ stats }: { stats: MyPerformanceStats | null }) {
               <div className="flex items-center justify-center gap-1 mb-1"><ThumbsUp className="w-4 h-4 text-green-500" /><span className="text-lg font-bold text-green-600">{stats.feedbacks_received}</span></div>
               <p className="text-xs text-green-700">Feedbacks reçus</p>
             </div>
-            <div className="p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl text-center">
-              <div className="flex items-center justify-center gap-1 mb-1"><CheckCircle className="w-4 h-4 text-blue-500" /><span className="text-lg font-bold text-blue-600">{stats.evaluations_completed}/{stats.evaluations_total}</span></div>
-              <p className="text-xs text-blue-700">Évaluations</p>
+            <div className="p-3 bg-gradient-to-br from-primary-50 to-indigo-50 rounded-xl text-center">
+              <div className="flex items-center justify-center gap-1 mb-1"><CheckCircle className="w-4 h-4 text-primary-500" /><span className="text-lg font-bold text-primary-600">{stats.evaluations_completed}/{stats.evaluations_total}</span></div>
+              <p className="text-xs text-primary-700">Évaluations</p>
             </div>
           </div>
         </>
@@ -555,7 +555,7 @@ function TeamOverviewWidget({ teamMembers, pendingRequests }: { teamMembers: Tea
 // HR Stats Widget
 function HRStatsWidget({ stats }: { stats: HRStats }) {
   const statItems = [
-    { label: 'Total employés', value: stats.total_employees, icon: Users, color: 'from-blue-400 to-blue-600', bg: 'bg-blue-50', href: '/dashboard/employees', badge: 0 },
+    { label: 'Total employés', value: stats.total_employees, icon: Users, color: 'from-primary-400 to-primary-600', bg: 'bg-primary-50', href: '/dashboard/employees', badge: 0 },
     { label: 'Actifs', value: stats.active_employees, icon: UserCheck, color: 'from-green-400 to-green-600', bg: 'bg-green-50', href: '/dashboard/employees?filter=active', badge: 0 },
     { label: 'En congé', value: stats.on_leave_today, icon: Calendar, color: 'from-orange-400 to-orange-600', bg: 'bg-orange-50', href: '/dashboard/leaves', badge: 0 },
     { label: 'Demandes en attente', value: stats.pending_requests, icon: Clock, color: 'from-yellow-400 to-yellow-600', bg: 'bg-yellow-50', href: '/dashboard/leaves?status=pending', badge: 0 },
@@ -629,7 +629,7 @@ function DepartmentChartWidget({ data }: { data: DepartmentData[] }) {
   if (data.length === 0) return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
       <div className="flex items-center gap-2 mb-4">
-        <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center"><PieChart className="w-4 h-4 text-white" /></div>
+        <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-lg flex items-center justify-center"><PieChart className="w-4 h-4 text-white" /></div>
         <h2 className="text-base font-semibold text-gray-900">Répartition par Département</h2>
       </div>
       <div className="h-48 flex items-center justify-center text-gray-400"><p className="text-sm">Aucune donnée</p></div>
@@ -639,7 +639,7 @@ function DepartmentChartWidget({ data }: { data: DepartmentData[] }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
       <div className="flex items-center gap-2 mb-4">
-        <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center"><PieChart className="w-4 h-4 text-white" /></div>
+        <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-lg flex items-center justify-center"><PieChart className="w-4 h-4 text-white" /></div>
         <h2 className="text-base font-semibold text-gray-900">Répartition par Département</h2>
       </div>
       <div className="h-48 flex items-center">
@@ -820,7 +820,7 @@ function AlertsWidget({ pendingCount, onLeaveCount }: { pendingCount: number; on
       </div>
       <div className="space-y-2">
         {alerts.map((alert, i) => (
-          <Link key={i} href={alert.link} className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${alert.type === 'warning' ? 'bg-gradient-to-r from-yellow-50 to-amber-50 text-yellow-800 hover:from-yellow-100 hover:to-amber-100' : 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-800 hover:from-blue-100 hover:to-indigo-100'}`}>
+          <Link key={i} href={alert.link} className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${alert.type === 'warning' ? 'bg-gradient-to-r from-yellow-50 to-amber-50 text-yellow-800 hover:from-yellow-100 hover:to-amber-100' : 'bg-gradient-to-r from-primary-50 to-indigo-50 text-primary-800 hover:from-primary-100 hover:to-indigo-100'}`}>
             <alert.icon className="w-5 h-5 shrink-0" /><span className="text-sm flex-1">{alert.message}</span><ChevronRight className="w-4 h-4" />
           </Link>
         ))}
@@ -853,9 +853,9 @@ function TasksWidget({ stats }: { stats: TaskStats | null }) {
         <>
           {/* Stats rapides */}
           <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
-              <p className="text-2xl font-bold text-blue-600">{(stats?.pending || 0) + (stats?.in_progress || 0)}</p>
-              <p className="text-xs text-blue-700">À faire</p>
+            <div className="text-center p-3 bg-gradient-to-br from-primary-50 to-indigo-50 rounded-xl">
+              <p className="text-2xl font-bold text-primary-600">{(stats?.pending || 0) + (stats?.in_progress || 0)}</p>
+              <p className="text-xs text-primary-700">À faire</p>
             </div>
             <div className="text-center p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
               <p className="text-2xl font-bold text-green-600">{stats?.completed || 0}</p>

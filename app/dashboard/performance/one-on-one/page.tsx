@@ -466,12 +466,12 @@ function EvaluateModal({ meeting, onClose, onSuccess }: {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                <ListTodo className="w-4 h-4 text-blue-500" />
+                <ListTodo className="w-4 h-4 text-primary-500" />
                 Tâches de suivi
-                {tasks.length > 0 && <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">{tasks.length}</span>}
+                {tasks.length > 0 && <span className="px-1.5 py-0.5 bg-primary-100 text-primary-700 text-xs rounded-full font-medium">{tasks.length}</span>}
               </label>
               <button type="button" onClick={addTask}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors">
                 <Plus className="w-3.5 h-3.5" /> Ajouter une tâche
               </button>
             </div>
@@ -484,17 +484,17 @@ function EvaluateModal({ meeting, onClose, onSuccess }: {
               <div className="space-y-2">
                 {tasks.map((task, i) => (
                   <div key={task.id} className="flex gap-2 items-start bg-gray-50 rounded-xl p-3 border border-gray-100">
-                    <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center font-bold mt-2 shrink-0">{i + 1}</span>
+                    <span className="w-5 h-5 rounded-full bg-primary-100 text-primary-600 text-xs flex items-center justify-center font-bold mt-2 shrink-0">{i + 1}</span>
                     <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <input
                         type="text" placeholder="Titre de la tâche *"
                         value={task.title} onChange={e => updateTask(task.id, 'title', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 sm:col-span-2"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-400 sm:col-span-2"
                       />
                       <select
                         value={task.assigned_to_id}
                         onChange={e => updateTask(task.id, 'assigned_to_id', parseInt(e.target.value))}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-400"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-400"
                       >
                         <option value={meeting.employee_id}>→ {meeting.employee_name} (collaborateur)</option>
                         <option value={meeting.manager_id}>→ {meeting.manager_name} (moi)</option>
@@ -503,12 +503,12 @@ function EvaluateModal({ meeting, onClose, onSuccess }: {
                         <input
                           type="date" value={task.due_date}
                           onChange={e => updateTask(task.id, 'due_date', e.target.value)}
-                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-400"
+                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-400"
                         />
                         <select
                           value={task.priority}
                           onChange={e => updateTask(task.id, 'priority', e.target.value)}
-                          className="w-28 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-400"
+                          className="w-28 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-400"
                         >
                           <option value="low">Faible</option>
                           <option value="medium">Moyenne</option>
@@ -625,7 +625,7 @@ export default function OneOnOnePage() {
           {paginatedOneOnOnes.length > 0 ? paginatedOneOnOnes.map(meeting => (
             <div key={meeting.id} className="p-4 border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm">
+                <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-medium text-sm">
                   {meeting.employee_initials || getInitials(meeting.employee_name)}
                 </div>
                 <div className="flex-1 min-w-0">

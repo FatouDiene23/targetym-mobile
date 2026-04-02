@@ -357,10 +357,10 @@ export default function AppTour({ steps, isOpen, onComplete, onSkip }: Readonly<
         }}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-4 rounded-t-xl flex items-center justify-between">
+        <div className="bg-gradient-to-r from-primary-600 to-indigo-600 text-white px-5 py-4 rounded-t-xl flex items-center justify-between">
           <div className="flex-1">
             <h3 className="font-semibold text-lg">{step.title}</h3>
-            <p className="text-xs text-blue-100 mt-1">
+            <p className="text-xs text-primary-100 mt-1">
               Étape {currentStep + 1} sur {steps.length}
             </p>
           </div>
@@ -382,7 +382,7 @@ export default function AppTour({ steps, isOpen, onComplete, onSkip }: Readonly<
         <div className="px-5 pb-3">
           <div className="w-full bg-gray-200 rounded-full h-1.5">
             <div
-              className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+              className="bg-primary-600 h-1.5 rounded-full transition-all duration-300"
               style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
             />
           </div>
@@ -410,7 +410,7 @@ export default function AppTour({ steps, isOpen, onComplete, onSkip }: Readonly<
 
             <button
               onClick={handleNext}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1 font-medium"
+              className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-1 font-medium"
             >
               {isLastStep ? (
                 <>
@@ -451,7 +451,7 @@ export function RestartTourButton({ onClick }: Readonly<RestartTourButtonProps>)
   return (
     <button
       onClick={onClick}
-      className="fixed bottom-6 left-6 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-all hover:scale-110 z-50 group"
+      className="fixed bottom-6 left-6 bg-primary-600 text-white p-4 rounded-full shadow-lg hover:bg-primary-700 transition-all hover:scale-110 z-50 group"
       title="Revoir le guide de l'application"
     >
       <RotateCcw className="w-5 h-5" />

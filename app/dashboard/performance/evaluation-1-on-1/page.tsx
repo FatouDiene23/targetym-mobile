@@ -406,7 +406,7 @@ function EvaluationReportModal({ session, onClose, onSuccess }: {
           {/* Comments */}
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-              <Award className="w-4 h-4 text-blue-500" />
+              <Award className="w-4 h-4 text-primary-500" />
               Commentaires généraux
             </h3>
             <textarea
@@ -618,7 +618,7 @@ export default function Evaluation1on1Page() {
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-blue-50 text-blue-700 rounded-xl p-4 flex items-center gap-3">
+          <div className="bg-primary-50 text-primary-700 rounded-xl p-4 flex items-center gap-3">
             <CheckCircle2 className="w-6 h-6 shrink-0" />
             <div>
               <p className="text-2xl font-bold">{stats.total}</p>

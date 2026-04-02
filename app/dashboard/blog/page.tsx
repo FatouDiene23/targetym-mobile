@@ -178,7 +178,7 @@ function PostEditorModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-            <PenLine className="w-5 h-5 text-blue-600" />
+            <PenLine className="w-5 h-5 text-primary-600" />
             {post ? 'Modifier l\'article' : 'Nouvel article'}
           </h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
@@ -192,7 +192,7 @@ function PostEditorModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
             <input
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 outline-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-300 outline-none"
               placeholder="Titre de l'article"
               value={form.title}
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
@@ -203,7 +203,7 @@ function PostEditorModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Résumé</label>
             <textarea
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:ring-2 focus:ring-blue-300 outline-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:ring-2 focus:ring-primary-300 outline-none"
               placeholder="Un court résumé affiché dans la liste"
               rows={2}
               value={form.excerpt}
@@ -215,7 +215,7 @@ function PostEditorModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Contenu *</label>
             <textarea
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 resize-y min-h-[200px] focus:ring-2 focus:ring-blue-300 outline-none font-mono text-sm"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 resize-y min-h-[200px] focus:ring-2 focus:ring-primary-300 outline-none font-mono text-sm"
               placeholder="Rédigez votre article ici..."
               rows={10}
               value={form.content}
@@ -231,14 +231,14 @@ function PostEditorModal({
                 <button
                   type="button"
                   onClick={() => setCoverMode('url')}
-                  className={`flex items-center gap-1 px-3 py-1.5 transition-colors ${coverMode === 'url' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                  className={`flex items-center gap-1 px-3 py-1.5 transition-colors ${coverMode === 'url' ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
                 >
                   <Link className="w-3 h-3" /> URL
                 </button>
                 <button
                   type="button"
                   onClick={() => setCoverMode('upload')}
-                  className={`flex items-center gap-1 px-3 py-1.5 transition-colors ${coverMode === 'upload' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                  className={`flex items-center gap-1 px-3 py-1.5 transition-colors ${coverMode === 'upload' ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
                 >
                   <Upload className="w-3 h-3" /> Upload
                 </button>
@@ -247,15 +247,15 @@ function PostEditorModal({
 
             {coverMode === 'url' ? (
               <input
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 outline-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-300 outline-none"
                 placeholder="https://..."
                 value={form.cover_image_url}
                 onChange={e => setForm(f => ({ ...f, cover_image_url: e.target.value }))}
               />
             ) : (
-              <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${uploadingCover ? 'border-blue-300 bg-blue-50' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'}`}>
+              <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${uploadingCover ? 'border-primary-300 bg-primary-50' : 'border-gray-300 hover:border-primary-400 hover:bg-primary-50'}`}>
                 {uploadingCover ? (
-                  <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                  <Loader2 className="w-6 h-6 text-primary-500 animate-spin" />
                 ) : (
                   <>
                     <Upload className="w-6 h-6 text-gray-400 mb-1" />
@@ -292,7 +292,7 @@ function PostEditorModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
               <input
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 outline-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-300 outline-none"
                 placeholder="ex: RH, Actualités, Bien-être…"
                 list="cat-suggestions"
                 value={form.category}
@@ -305,7 +305,7 @@ function PostEditorModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tags (séparés par virgule)</label>
               <input
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 outline-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-300 outline-none"
                 placeholder="ex: sécurité, formation, vie au travail"
                 value={form.tags}
                 onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
@@ -342,7 +342,7 @@ function PostEditorModal({
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg disabled:opacity-60"
+            className="flex items-center gap-2 px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm rounded-lg disabled:opacity-60"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             {post ? 'Enregistrer' : 'Publier'}
@@ -391,7 +391,7 @@ function PostReaderModal({ post, onClose }: { post: BlogPost; onClose: () => voi
             <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{post.views_count} vue{post.views_count !== 1 ? 's' : ''}</span>
           </div>
           {post.excerpt && (
-            <p className="text-gray-600 italic mb-6 border-l-4 border-blue-200 pl-4">{post.excerpt}</p>
+            <p className="text-gray-600 italic mb-6 border-l-4 border-primary-200 pl-4">{post.excerpt}</p>
           )}
           <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed">
             {post.content}
@@ -496,7 +496,7 @@ export default function BlogPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <BookOpen className="w-7 h-7 text-blue-600" />
+            <BookOpen className="w-7 h-7 text-primary-600" />
             Blog de l'entreprise
           </h1>
           <p className="text-sm text-gray-500 mt-1">{total} article{total !== 1 ? 's' : ''}</p>
@@ -504,7 +504,7 @@ export default function BlogPage() {
         {isEditor && (
           <button
             onClick={() => setEditPost('new')}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-xl shadow-sm transition-colors"
           >
             <Plus className="w-4 h-4" /> Nouvel article
           </button>
@@ -516,7 +516,7 @@ export default function BlogPage() {
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
-            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-200 outline-none bg-white"
+            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-200 outline-none bg-white"
             placeholder="Rechercher un article…"
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -524,7 +524,7 @@ export default function BlogPage() {
         </div>
         {categories.length > 0 && (
           <select
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-200 outline-none"
+            className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-primary-200 outline-none"
             value={filterCategory}
             onChange={e => setFilterCategory(e.target.value)}
           >
@@ -534,7 +534,7 @@ export default function BlogPage() {
         )}
         {isEditor && (
           <select
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-200 outline-none"
+            className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-primary-200 outline-none"
             value={filterStatus}
             onChange={e => setFilterStatus(e.target.value)}
           >
@@ -548,7 +548,7 @@ export default function BlogPage() {
       {/* Contenu */}
       {loading ? (
         <div className="flex justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
         </div>
       ) : posts.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
@@ -557,7 +557,7 @@ export default function BlogPage() {
           {isEditor && (
             <button
               onClick={() => setEditPost('new')}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white text-sm rounded-xl hover:bg-blue-700"
+              className="mt-4 px-4 py-2 bg-primary-600 text-white text-sm rounded-xl hover:bg-primary-700"
             >
               Créer le premier article
             </button>
@@ -579,7 +579,7 @@ export default function BlogPage() {
                     className="w-full md:w-80 h-48 md:h-auto object-cover flex-shrink-0"
                   />
                 ) : (
-                  <div className="w-full md:w-80 h-48 bg-gradient-to-br from-blue-500 to-indigo-600 flex-shrink-0 flex items-center justify-center">
+                  <div className="w-full md:w-80 h-48 bg-gradient-to-br from-primary-500 to-indigo-600 flex-shrink-0 flex items-center justify-center">
                     <BookOpen className="w-16 h-16 text-white/50" />
                   </div>
                 )}
@@ -594,7 +594,7 @@ export default function BlogPage() {
                         <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">Brouillon</span>
                       )}
                     </div>
-                    <h2 className="text-xl font-bold text-gray-900 group-hover:text-blue-700 transition-colors mb-2">
+                    <h2 className="text-xl font-bold text-gray-900 group-hover:text-primary-700 transition-colors mb-2">
                       {featuredPost.title}
                     </h2>
                     {featuredPost.excerpt && (
@@ -618,7 +618,7 @@ export default function BlogPage() {
                       <div className="flex gap-2" onClick={e => e.stopPropagation()}>
                         <button
                           onClick={() => setEditPost(featuredPost)}
-                          className="p-1.5 hover:bg-blue-50 text-blue-500 rounded-lg"
+                          className="p-1.5 hover:bg-primary-50 text-primary-500 rounded-lg"
                           title="Modifier"
                         >
                           <Pencil className="w-4 h-4" />
@@ -669,7 +669,7 @@ export default function BlogPage() {
                         <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">Brouillon</span>
                       )}
                     </div>
-                    <h3 className="text-sm font-semibold text-gray-800 group-hover:text-blue-700 transition-colors mb-1 line-clamp-2">
+                    <h3 className="text-sm font-semibold text-gray-800 group-hover:text-primary-700 transition-colors mb-1 line-clamp-2">
                       {post.title}
                     </h3>
                     {post.excerpt && (
@@ -688,7 +688,7 @@ export default function BlogPage() {
                         <div className="flex gap-1" onClick={e => e.stopPropagation()}>
                           <button
                             onClick={() => setEditPost(post)}
-                            className="p-1 hover:bg-blue-50 text-blue-500 rounded"
+                            className="p-1 hover:bg-primary-50 text-primary-500 rounded"
                             title="Modifier"
                           >
                             <Pencil className="w-3.5 h-3.5" />

@@ -61,7 +61,7 @@ export default function PaieIndexPage() {
           ) : lastRun ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
+                <div className="p-2 rounded-lg bg-primary-50 text-primary-600">
                   <Calendar className="w-5 h-5" />
                 </div>
                 <div>
@@ -109,7 +109,7 @@ export default function PaieIndexPage() {
           <button
             onClick={handleOpenPaie}
             disabled={redirecting}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm shadow hover:bg-blue-700 transition disabled:opacity-60"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary-600 text-white font-semibold text-sm shadow hover:bg-primary-700 transition disabled:opacity-60"
           >
             {redirecting ? (
               <Loader2 className="w-4 h-4 animate-spin" />

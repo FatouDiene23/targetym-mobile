@@ -67,7 +67,7 @@ export default function PerformanceStats() {
       </div>
       <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
         <p className="text-sm text-gray-500">1-on-1</p>
-        <p className="text-2xl font-bold text-blue-600">{stats.one_on_ones_scheduled}</p>
+        <p className="text-2xl font-bold text-primary-600">{stats.one_on_ones_scheduled}</p>
         <p className="text-xs text-gray-400">{stats.one_on_ones_completed} complétés</p>
       </div>
     </div>

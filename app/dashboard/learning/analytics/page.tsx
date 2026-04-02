@@ -137,10 +137,10 @@ export default function AnalyticsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500">Heures ce mois</p>
-              <p className="text-2xl font-bold text-blue-600">{stats?.hours_this_month ?? 0}h</p>
+              <p className="text-2xl font-bold text-primary-600">{stats?.hours_this_month ?? 0}h</p>
             </div>
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Clock className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+              <Clock className="w-5 h-5 text-primary-600" />
             </div>
           </div>
         </div>
@@ -281,10 +281,10 @@ export default function AnalyticsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs text-gray-500">Employés formés</p>
-                      <p className="text-2xl font-bold text-blue-600">{planData.kpis.employees_trained}</p>
+                      <p className="text-2xl font-bold text-primary-600">{planData.kpis.employees_trained}</p>
                     </div>
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Users className="w-5 h-5 text-blue-600" />
+                    <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                      <Users className="w-5 h-5 text-primary-600" />
                     </div>
                   </div>
                 </div>

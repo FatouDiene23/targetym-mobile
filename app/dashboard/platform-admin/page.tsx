@@ -509,7 +509,7 @@ export default function PlatformAdminDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
       </div>
     );
   }
@@ -520,7 +520,7 @@ export default function PlatformAdminDashboard() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Shield className="w-8 h-8 text-blue-600" />
+            <Shield className="w-8 h-8 text-primary-600" />
             Back-Office Plateforme
           </h1>
           <p className="text-gray-500 mt-1 text-sm flex items-center gap-1">
@@ -536,11 +536,11 @@ export default function PlatformAdminDashboard() {
               placeholder="Recherche globale (email, nom, ID, slug)..."
               value={globalSearch}
               onChange={e => { setGlobalSearch(e.target.value); if (!e.target.value) setSearchResult(null); }}
-              className="pl-9 pr-4 py-2 w-72 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="pl-9 pr-4 py-2 w-72 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
             />
           </div>
           <button type="submit" disabled={searchLoading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm disabled:opacity-50">
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm disabled:opacity-50">
             {searchLoading ? '...' : 'Chercher'}
           </button>
         </form>
@@ -548,7 +548,7 @@ export default function PlatformAdminDashboard() {
 
       {/* Global search results */}
       {searchResult && (
-        <div className="bg-white rounded-xl shadow border border-blue-200 p-4">
+        <div className="bg-white rounded-xl shadow border border-primary-200 p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-gray-800">
               Résultats pour « {searchResult.query} » — {searchResult.total_tenants} tenant(s), {searchResult.total_users} user(s)
@@ -563,12 +563,12 @@ export default function PlatformAdminDashboard() {
                 <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Tenants</p>
                 {searchResult.tenants.map(t => (
                   <button key={t.id} onClick={() => openTenantDetail(t.id)}
-                    className="w-full text-left p-2 rounded-lg hover:bg-blue-50 flex items-center justify-between group mb-1">
+                    className="w-full text-left p-2 rounded-lg hover:bg-primary-50 flex items-center justify-between group mb-1">
                     <div>
                       <p className="font-medium text-gray-900">{t.name}</p>
                       <p className="text-xs text-gray-500">{t.email} · {t.plan} · {t.users_count} users</p>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-primary-600" />
                   </button>
                 ))}
               </div>
@@ -611,7 +611,7 @@ export default function PlatformAdminDashboard() {
           ] as const).map(({ key, label, icon: Icon }) => (
             <button key={key} onClick={() => setActiveTab(key)}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === key ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+                activeTab === key ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
               <Icon className="w-4 h-4" />{label}
             </button>
           ))}
@@ -622,7 +622,7 @@ export default function PlatformAdminDashboard() {
       {activeTab === 'overview' && stats && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Entreprises" value={stats.total_tenants} icon={<Building2 className="w-7 h-7 text-blue-500" />}
+            <StatCard label="Entreprises" value={stats.total_tenants} icon={<Building2 className="w-7 h-7 text-primary-500" />}
               badge={`+${stats.new_tenants_this_month} ce mois`} sub={`${stats.active_tenants} actifs · ${stats.trial_tenants} trial`} />
             <StatCard label="Utilisateurs" value={stats.total_users} icon={<Users className="w-7 h-7 text-purple-500" />}
               badge={`+${stats.new_users_this_month} ce mois`} sub={`${stats.active_users} actifs`} />
@@ -649,10 +649,10 @@ export default function PlatformAdminDashboard() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input type="text" placeholder="Filtrer nom, email, slug..." value={tenantSearch}
                   onChange={e => setTenantSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
               </div>
               <select value={filterPlan} onChange={e => setFilterPlan(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
                 <option value="">Tous les plans</option>
                 <option value="trial">Trial</option>
                 <option value="basique">Basique</option>
@@ -661,14 +661,14 @@ export default function PlatformAdminDashboard() {
               </select>
               <select value={filterActive === undefined ? '' : filterActive.toString()}
                 onChange={e => setFilterActive(e.target.value === '' ? undefined : e.target.value === 'true')}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
                 <option value="">Tous les statuts</option>
                 <option value="true">Actifs</option>
                 <option value="false">Inactifs</option>
               </select>
               <span className="text-sm text-gray-500">{filteredTenants.length} résultat(s)</span>
               <button onClick={() => setShowCreateTenant(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors ml-auto">
+                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors ml-auto">
                 <Plus className="w-4 h-4" /> Nouveau tenant
               </button>
             </div>
@@ -719,7 +719,7 @@ export default function PlatformAdminDashboard() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         <button onClick={() => openTenantDetail(tenant.id)}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg" title="Voir détail">
+                          className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-lg" title="Voir détail">
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
@@ -747,13 +747,13 @@ export default function PlatformAdminDashboard() {
       {/* ===== TAB: USERS ===== */}
       {activeTab === 'users' && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
-          <Users className="w-16 h-16 text-blue-100 mx-auto mb-4" />
+          <Users className="w-16 h-16 text-primary-100 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-800 mb-2">Gestion complète des utilisateurs</h3>
           <p className="text-gray-500 mb-6 max-w-md mx-auto">
             Créer, modifier, désactiver, reset mot de passe, impersonner des utilisateurs sur toute la plateforme.
           </p>
           <Link href="/dashboard/platform-admin/users"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium">
+            className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 font-medium">
             <ExternalLink className="w-4 h-4" />
             Ouvrir la gestion utilisateurs
           </Link>
@@ -767,7 +767,7 @@ export default function PlatformAdminDashboard() {
             <h2 className="font-semibold text-gray-800">Historique des actions support</h2>
             <div className="flex gap-2 items-center">
               <select value={auditFilter} onChange={e => setAuditFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
                 <option value="">Toutes les actions</option>
                 {['VIEW', 'IMPERSONATE', 'EDIT', 'RESET', 'DELETE', 'CREATE_USER', 'VIEW_SEARCH'].map(a => (
                   <option key={a} value={a}>{a}</option>
@@ -781,7 +781,7 @@ export default function PlatformAdminDashboard() {
           </div>
           <div className="overflow-x-auto">
             {auditLoading ? (
-              <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>
+              <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" /></div>
             ) : (
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b">
@@ -1019,7 +1019,7 @@ export default function PlatformAdminDashboard() {
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-blue-600" /> Créer un tenant
+                <Building2 className="w-5 h-5 text-primary-600" /> Créer un tenant
               </h2>
               <button onClick={() => setShowCreateTenant(false)} className="p-1.5 text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
@@ -1031,35 +1031,35 @@ export default function PlatformAdminDashboard() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nom de l&apos;entreprise *</label>
                   <input required type="text" value={createTenantForm.company_name}
                     onChange={e => setCreateTenantForm(f => ({ ...f, company_name: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     placeholder="Acme Corp" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Prénom admin *</label>
                   <input required type="text" value={createTenantForm.first_name}
                     onChange={e => setCreateTenantForm(f => ({ ...f, first_name: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     placeholder="Jean" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nom admin *</label>
                   <input required type="text" value={createTenantForm.last_name}
                     onChange={e => setCreateTenantForm(f => ({ ...f, last_name: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     placeholder="Dupont" />
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email admin *</label>
                   <input required type="email" value={createTenantForm.email}
                     onChange={e => setCreateTenantForm(f => ({ ...f, email: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     placeholder="admin@acmecorp.com" />
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe *</label>
                   <input required type="password" value={createTenantForm.password}
                     onChange={e => setCreateTenantForm(f => ({ ...f, password: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     placeholder="Min. 8 caractères" minLength={8} />
                 </div>
                 <div>
@@ -1070,7 +1070,7 @@ export default function PlatformAdminDashboard() {
                       const limits: Record<string, number> = { basique: 25, professional: 50, enterprise: 100 };
                       setCreateTenantForm(f => ({ ...f, plan: p, max_employees: limits[p] }));
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
                     <option value="basique">Basique — 25 employés</option>
                     <option value="professional">Professionnel — 50 employés</option>
                     <option value="enterprise">Entreprise — 100 employés</option>
@@ -1084,7 +1084,7 @@ export default function PlatformAdminDashboard() {
                 <div className="col-span-2 flex items-center gap-2">
                   <input type="checkbox" id="is_trial" checked={createTenantForm.is_trial}
                     onChange={e => setCreateTenantForm(f => ({ ...f, is_trial: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 rounded" />
+                    className="w-4 h-4 text-primary-600 rounded" />
                   <label htmlFor="is_trial" className="text-sm text-gray-700">Mode trial (expire dans 30 jours)</label>
                 </div>
               </div>
@@ -1094,7 +1094,7 @@ export default function PlatformAdminDashboard() {
                   Annuler
                 </button>
                 <button type="submit" disabled={creatingTenant}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2">
+                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center gap-2">
                   {creatingTenant ? <><RotateCcw className="w-4 h-4 animate-spin" /> Création...</> : <><Plus className="w-4 h-4" /> Créer le tenant</>}
                 </button>
               </div>
@@ -1111,7 +1111,7 @@ export default function PlatformAdminDashboard() {
             <div className="sticky top-0 bg-white border-b border-gray-200 p-5 flex items-center justify-between z-10">
               <div>
                 <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-blue-600" /> {selectedTenant.name}
+                  <Building2 className="w-5 h-5 text-primary-600" /> {selectedTenant.name}
                 </h3>
                 <p className="text-xs text-gray-500">#{selectedTenant.id} · /{selectedTenant.slug}</p>
               </div>
@@ -1129,7 +1129,7 @@ export default function PlatformAdminDashboard() {
                   </>
                 ) : (
                   <button onClick={() => { setEditingTenant(true); setTenantEditData({}); }}
-                    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm flex items-center gap-1 hover:bg-blue-700">
+                    className="px-3 py-1.5 bg-primary-600 text-white rounded-lg text-sm flex items-center gap-1 hover:bg-primary-700">
                     <Edit2 className="w-3 h-3" /> Modifier
                   </button>
                 )}
@@ -1142,9 +1142,9 @@ export default function PlatformAdminDashboard() {
             <div className="p-5 space-y-5">
               {/* Stats bar */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="bg-blue-50 rounded-lg p-3 text-center">
-                  <p className="text-2xl font-bold text-blue-700">{selectedTenant.users_count}</p>
-                  <p className="text-xs text-blue-600">Utilisateurs</p>
+                <div className="bg-primary-50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-primary-700">{selectedTenant.users_count}</p>
+                  <p className="text-xs text-primary-600">Utilisateurs</p>
                 </div>
                 <div className="bg-green-50 rounded-lg p-3 text-center">
                   <p className="text-2xl font-bold text-green-700">{selectedTenant.employees_count}</p>
@@ -1197,7 +1197,7 @@ export default function PlatformAdminDashboard() {
               <div className="bg-gray-50 rounded-lg p-4 text-sm space-y-1">
                 <p><span className="text-gray-500">Créé le:</span> <span className="font-medium">{selectedTenant.created_at ? new Date(selectedTenant.created_at).toLocaleString('fr-FR') : '-'}</span></p>
                 {selectedTenant.intowork_company_id && (
-                  <p><span className="text-gray-500">IntoWork Company ID:</span> <span className="font-mono text-blue-600">#{selectedTenant.intowork_company_id}</span></p>
+                  <p><span className="text-gray-500">IntoWork Company ID:</span> <span className="font-mono text-primary-600">#{selectedTenant.intowork_company_id}</span></p>
                 )}
                 {selectedTenant.trial_ends_at && (
                   <p><span className="text-gray-500">Fin trial:</span> <span className="font-medium">{new Date(selectedTenant.trial_ends_at).toLocaleDateString('fr-FR')}</span></p>
@@ -1380,7 +1380,7 @@ export default function PlatformAdminDashboard() {
                             </div>
                             <div className="flex gap-2">
                               <button onClick={() => openTenantDetail(sub.id)} title="Voir détail"
-                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded">
+                                className="p-1.5 text-primary-600 hover:bg-primary-50 rounded">
                                 <Eye className="w-3.5 h-3.5" />
                               </button>
                               <button onClick={() => handleDetachSubsidiary(sub.id, sub.name)} title="Détacher cette filiale"
@@ -1449,10 +1449,10 @@ function StatCard({ label, value, icon, badge, sub }: {
 function QuickLink({ title, desc, icon, href, onClick }: {
   title: string; desc: string; icon: React.ReactNode; href?: string; onClick?: () => void;
 }) {
-  const cls = "flex items-start gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer text-left";
+  const cls = "flex items-start gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:border-primary-300 hover:shadow-md transition-all cursor-pointer text-left";
   const inner = (
     <>
-      <div className="p-2 bg-blue-50 rounded-lg text-blue-600">{icon}</div>
+      <div className="p-2 bg-primary-50 rounded-lg text-primary-600">{icon}</div>
       <div>
         <p className="font-semibold text-gray-800 text-sm">{title}</p>
         <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
@@ -1481,12 +1481,12 @@ function TenantField({ label, value, editing, editType, options, editValue, onCh
       <p className="text-xs text-gray-500 mb-0.5">{label}</p>
       {editType === 'select' ? (
         <select value={editValue ?? value} onChange={e => onChange?.(e.target.value)}
-          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
           {options?.map(o => <option key={o} value={o}>{o}</option>)}
         </select>
       ) : (
         <input type={editType || 'text'} value={editValue ?? value} onChange={e => onChange?.(e.target.value)}
-          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
       )}
     </div>
   );

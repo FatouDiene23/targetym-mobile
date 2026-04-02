@@ -332,8 +332,8 @@ export default function MyDocumentsPage() {
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-              <FileText className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
+              <FileText className="w-5 h-5 text-primary-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{totalDocs}</p>
@@ -388,7 +388,7 @@ export default function MyDocumentsPage() {
           </div>
           <button
             onClick={() => setShowUpload(!showUpload)}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
           >
             <Upload className="w-4 h-4" />
             Ajouter un document
@@ -397,13 +397,13 @@ export default function MyDocumentsPage() {
 
         {/* Upload Form */}
         {showUpload && (
-          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4">
+          <div className="mb-6 bg-primary-50 border border-primary-200 rounded-xl p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-blue-900 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-primary-900 flex items-center gap-2">
                 <Upload className="w-4 h-4" /> Ajouter un document personnel
               </h3>
               <button onClick={() => setShowUpload(false)}>
-                <X className="w-4 h-4 text-blue-400 hover:text-blue-600" />
+                <X className="w-4 h-4 text-primary-400 hover:text-primary-600" />
               </button>
             </div>
 
@@ -469,7 +469,7 @@ export default function MyDocumentsPage() {
             </div>
 
             {uploadFile && (
-              <p className="text-xs text-blue-700 flex items-center gap-1">
+              <p className="text-xs text-primary-700 flex items-center gap-1">
                 <FileText className="w-3 h-3" />
                 {uploadFile.name} ({(uploadFile.size / 1024).toFixed(0)} Ko)
               </p>
@@ -485,7 +485,7 @@ export default function MyDocumentsPage() {
               <button
                 onClick={handleUpload}
                 disabled={uploading || !uploadFile || !uploadTitle}
-                className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1.5"
+                className="px-4 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-1.5"
               >
                 {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                 {uploading ? 'Upload...' : 'Uploader'}
@@ -604,7 +604,7 @@ export default function MyDocumentsPage() {
                         <button
                           onClick={() => handleDownload(doc)}
                           disabled={downloading === doc.id}
-                          className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors"
+                          className="p-2 rounded-lg hover:bg-primary-50 text-primary-600 transition-colors"
                           title="Télécharger"
                         >
                           {downloading === doc.id ? (

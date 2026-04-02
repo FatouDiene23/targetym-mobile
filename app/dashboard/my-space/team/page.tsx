@@ -471,7 +471,7 @@ function MemberDetailPanel({ member, onClose }: { member: Employee; onClose: () 
                           <p className="text-sm font-medium text-gray-800 mb-1 truncate">{obj.title}</p>
                           <div className="flex items-center gap-2">
                             <div className="flex-1 h-2 bg-gray-200 rounded-full">
-                              <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${Math.min(obj.progress, 100)}%` }} />
+                              <div className="h-full rounded-full bg-primary-500 transition-all" style={{ width: `${Math.min(obj.progress, 100)}%` }} />
                             </div>
                             <span className="text-xs font-medium text-gray-600">{Math.round(obj.progress)}%</span>
                           </div>
@@ -711,7 +711,7 @@ export default function MyTeamPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8" data-tour="team-stats">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><Users className="w-5 h-5 text-blue-600" /></div>
+                <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center"><Users className="w-5 h-5 text-primary-600" /></div>
                 <div><p className="text-2xl font-bold text-gray-900">{teamMembers.length}</p><p className="text-sm text-gray-500">Collaborateurs</p></div>
               </div>
             </div>
@@ -782,19 +782,19 @@ export default function MyTeamPage() {
           {teamOneOnOnes.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
               <div className="flex items-center gap-2 mb-4">
-                <CalendarClock className="w-5 h-5 text-blue-600" />
+                <CalendarClock className="w-5 h-5 text-primary-600" />
                 <h2 className="text-lg font-semibold text-gray-900">Activités d&apos;équipe</h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {teamOneOnOnes.slice(0, 6).map(o => (
-                  <div key={o.id} className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                  <div key={o.id} className="bg-primary-50 border border-primary-100 rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-xs font-medium">
+                      <div className="w-7 h-7 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 text-xs font-medium">
                         {o.employee_name?.split(' ').map(n => n[0]).join('') || '?'}
                       </div>
                       <span className="text-sm font-medium text-gray-900">{o.employee_name}</span>
                     </div>
-                    <p className="text-xs text-blue-700 font-medium">{formatDate(o.scheduled_date)}</p>
+                    <p className="text-xs text-primary-700 font-medium">{formatDate(o.scheduled_date)}</p>
                     {o.topics && <p className="text-xs text-gray-500 mt-1 truncate">{o.topics}</p>}
                   </div>
                 ))}

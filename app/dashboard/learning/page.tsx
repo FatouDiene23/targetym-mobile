@@ -43,7 +43,7 @@ export default function CatalogPage() {
             <p className="text-xs text-gray-500 mt-0.5">Taux de complétion</p>
           </div>
           <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
-            <p className="text-2xl font-bold text-blue-600">{stats?.completed_this_month ?? 0}</p>
+            <p className="text-2xl font-bold text-primary-600">{stats?.completed_this_month ?? 0}</p>
             <p className="text-xs text-gray-500 mt-0.5">Complétées ce mois</p>
           </div>
           <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">

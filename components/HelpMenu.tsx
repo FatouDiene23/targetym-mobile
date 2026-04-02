@@ -44,7 +44,7 @@ export default function HelpMenu() {
       {isOpen && (
         <div className="absolute bottom-16 left-0 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden mb-2 min-w-[240px] animate-in fade-in slide-in-from-bottom-2 duration-200">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <HelpCircle className="w-5 h-5" />
               <span className="font-semibold">Aide & Guides</span>
@@ -62,10 +62,10 @@ export default function HelpMenu() {
             {showTourOption && (
               <button
                 onClick={handleTourClick}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors text-left group"
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary-50 transition-colors text-left group"
               >
-                <div className="bg-blue-100 p-2 rounded-lg group-hover:bg-blue-200 transition-colors">
-                  <RotateCcw className="w-5 h-5 text-blue-600" />
+                <div className="bg-primary-100 p-2 rounded-lg group-hover:bg-primary-200 transition-colors">
+                  <RotateCcw className="w-5 h-5 text-primary-600" />
                 </div>
                 <div className="flex-1">
                   <div className="font-medium text-gray-900">Guide de l'application</div>
@@ -98,7 +98,7 @@ export default function HelpMenu() {
         className={`p-4 rounded-full shadow-lg transition-all hover:scale-110 group ${
           isOpen 
             ? 'bg-gray-700' 
-            : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
+            : 'bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800'
         }`}
         title="Aide & Guides"
       >

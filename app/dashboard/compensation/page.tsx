@@ -194,7 +194,7 @@ function TeasingPage() {
       icon: Scale,
       title: 'Pesée IPE (Mercer)',
       desc: 'Évaluez chaque poste selon 4 critères universels : Impact, Communication, Innovation, Knowledge.',
-      color: 'from-blue-500 to-blue-600',
+      color: 'from-primary-500 to-primary-600',
     },
     {
       icon: Shield,
@@ -1215,7 +1215,7 @@ export default function CompensationPage() {
                     onClick={() => { setShowAddMenu(false); setEditingEvalId(null); setShowEvalModal(true); }}
                     className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2.5 text-gray-700"
                   >
-                    <Scale className="w-4 h-4 text-blue-500" />
+                    <Scale className="w-4 h-4 text-primary-500" />
                     Nouvelle pesée IPE
                   </button>
                   <button
@@ -1271,7 +1271,7 @@ export default function CompensationPage() {
                   <p className="text-xs text-gray-500 mt-0.5">Taux conformité</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
-                  <p className="text-2xl font-bold text-blue-600">{nbSims}</p>
+                  <p className="text-2xl font-bold text-primary-600">{nbSims}</p>
                   <p className="text-xs text-gray-500 mt-0.5">Simulations</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
@@ -1456,7 +1456,7 @@ export default function CompensationPage() {
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => openEditEval(ev)}
-                              className="p-1.5 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600 transition-colors"
+                              className="p-1.5 hover:bg-primary-50 rounded-lg text-gray-400 hover:text-primary-600 transition-colors"
                               title="Modifier"
                             >
                               <Edit className="w-3.5 h-3.5" />
@@ -1547,7 +1547,7 @@ export default function CompensationPage() {
                       >
                         <FileDown className="w-3.5 h-3.5" /> Template CSV
                       </button>
-                      <label className="px-2.5 py-1.5 border border-blue-200 bg-blue-50 rounded-lg hover:bg-blue-100 text-xs font-medium text-blue-700 flex items-center gap-1 cursor-pointer">
+                      <label className="px-2.5 py-1.5 border border-primary-200 bg-primary-50 rounded-lg hover:bg-primary-100 text-xs font-medium text-primary-700 flex items-center gap-1 cursor-pointer">
                         <Upload className="w-3.5 h-3.5" /> Importer CSV
                         <input
                           type="file"
@@ -1751,7 +1751,7 @@ export default function CompensationPage() {
                         {simStatusBadge(showSimDetail.status)}
                         {showSimDetail.status === 'brouillon' && (
                           <button onClick={() => simAction(showSimDetail.id, 'submit')}
-                            className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-medium hover:bg-blue-600 flex items-center gap-1">
+                            className="px-3 py-1.5 bg-primary-500 text-white rounded-lg text-xs font-medium hover:bg-primary-600 flex items-center gap-1">
                             <Send className="w-3.5 h-3.5" /> Soumettre pour approbation
                           </button>
                         )}

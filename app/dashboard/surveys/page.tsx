@@ -700,7 +700,7 @@ export default function SurveysPage() {
                 </button>
               )}
               {selectedSurvey.status === 'active' && isAdminOrRH && (
-                <button onClick={() => closeSurvey(selectedSurvey.id)} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm flex items-center gap-1">
+                <button onClick={() => closeSurvey(selectedSurvey.id)} className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm flex items-center gap-1">
                   <Square className="w-4 h-4" /> Clôturer
                 </button>
               )}
@@ -1071,7 +1071,7 @@ export default function SurveysPage() {
                         </button>
                       )}
                       {s.status === 'active' && isAdminOrRH && (
-                        <button onClick={() => closeSurvey(s.id)} className="p-1.5 text-blue-500 hover:text-blue-700 rounded-lg hover:bg-blue-50" title="Clôturer">
+                        <button onClick={() => closeSurvey(s.id)} className="p-1.5 text-primary-500 hover:text-primary-700 rounded-lg hover:bg-primary-50" title="Clôturer">
                           <Square className="w-4 h-4" />
                         </button>
                       )}

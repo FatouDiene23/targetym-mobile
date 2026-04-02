@@ -408,7 +408,7 @@ export default function HelpAdminPage() {
                           </button>
                           <button
                             onClick={() => handleEditArticle(article)}
-                            className="text-blue-600 hover:text-blue-900"
+                            className="text-primary-600 hover:text-primary-900"
                             title="Modifier"
                           >
                             <Edit className="w-4 h-4" />
@@ -456,7 +456,7 @@ export default function HelpAdminPage() {
                   <div className="flex gap-2">
                     <button 
                       onClick={() => handleEditCategory(category)}
-                      className="text-blue-600 hover:text-blue-900"
+                      className="text-primary-600 hover:text-primary-900"
                       title="Modifier"
                     >
                       <Edit className="w-4 h-4" />
@@ -486,7 +486,7 @@ export default function HelpAdminPage() {
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Total Articles</h3>
-              <FolderOpen className="w-8 h-8 text-blue-500" />
+              <FolderOpen className="w-8 h-8 text-primary-500" />
             </div>
             <p className="text-3xl font-bold text-gray-900">{articles.length}</p>
             <p className="text-sm text-gray-500 mt-2">

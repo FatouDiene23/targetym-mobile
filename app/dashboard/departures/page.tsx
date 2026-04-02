@@ -589,7 +589,7 @@ export default function DeparturesPage() {
                 <p className="text-sm text-gray-500">Total en cours</p>
                 <p className="text-2xl font-bold text-gray-900">{total}</p>
               </div>
-              <div className="p-3 bg-blue-50 rounded-xl"><UserMinus className="w-6 h-6 text-blue-600" /></div>
+              <div className="p-3 bg-primary-50 rounded-xl"><UserMinus className="w-6 h-6 text-primary-600" /></div>
             </div>
           </div>
           <div className="bg-white rounded-xl border p-5">
@@ -605,9 +605,9 @@ export default function DeparturesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Checklist en cours</p>
-                <p className="text-2xl font-bold text-blue-600">{inProgress}</p>
+                <p className="text-2xl font-bold text-primary-600">{inProgress}</p>
               </div>
-              <div className="p-3 bg-blue-50 rounded-xl"><ClipboardCheck className="w-6 h-6 text-blue-600" /></div>
+              <div className="p-3 bg-primary-50 rounded-xl"><ClipboardCheck className="w-6 h-6 text-primary-600" /></div>
             </div>
           </div>
           <div className="bg-white rounded-xl border p-5">
@@ -654,7 +654,7 @@ export default function DeparturesPage() {
                       placeholder="Rechercher un collaborateur..."
                       value={searchTerm}
                       onChange={e => { setSearchTerm(e.target.value); setPage(1); }}
-                      className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     />
                   </div>
                   <select
@@ -688,7 +688,7 @@ export default function DeparturesPage() {
               <div className="bg-white rounded-xl border overflow-hidden">
                 {loading ? (
                   <div className="flex items-center justify-center py-20">
-                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent" />
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-500 border-t-transparent" />
                   </div>
                 ) : filteredDepartures.length === 0 ? (
                   <div className="text-center py-20 text-gray-500">
@@ -712,7 +712,7 @@ export default function DeparturesPage() {
                         <tr
                           key={dep.id}
                           onClick={() => openDetail(dep)}
-                          className={`hover:bg-gray-50 cursor-pointer transition-colors ${selectedDep?.id === dep.id ? 'bg-blue-50' : ''}`}
+                          className={`hover:bg-gray-50 cursor-pointer transition-colors ${selectedDep?.id === dep.id ? 'bg-primary-50' : ''}`}
                         >
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
@@ -810,7 +810,7 @@ export default function DeparturesPage() {
               <div className="w-1/2 bg-white rounded-xl border overflow-hidden">
                 {detailLoading ? (
                   <div className="flex items-center justify-center py-20">
-                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent" />
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-500 border-t-transparent" />
                   </div>
                 ) : (
                   <>
@@ -857,7 +857,7 @@ export default function DeparturesPage() {
                             key={t.id}
                             onClick={() => setDetailTab(t.id)}
                             className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                              detailTab === t.id ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                              detailTab === t.id ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'
                             }`}
                           >
                             <Icon className="w-4 h-4" /> {t.label}
@@ -941,15 +941,15 @@ export default function DeparturesPage() {
         <hr />
 
         {/* Leave & compensation */}
-        <div className="bg-blue-50 rounded-lg p-3 space-y-2">
-          <h4 className="text-sm font-semibold text-blue-900">Solde de congés</h4>
+        <div className="bg-primary-50 rounded-lg p-3 space-y-2">
+          <h4 className="text-sm font-semibold text-primary-900">Solde de congés</h4>
           <div className="flex justify-between text-sm">
-            <span className="text-blue-700">Jours restants</span>
-            <span className="font-medium text-blue-900">{selectedDep.leave_balance_days} jours</span>
+            <span className="text-primary-700">Jours restants</span>
+            <span className="font-medium text-primary-900">{selectedDep.leave_balance_days} jours</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-blue-700">Indemnité compensatrice</span>
-            <span className="font-medium text-blue-900">{selectedDep.leave_compensation_amount.toLocaleString()} {selectedDep.employee_currency}</span>
+            <span className="text-primary-700">Indemnité compensatrice</span>
+            <span className="font-medium text-primary-900">{selectedDep.leave_compensation_amount.toLocaleString()} {selectedDep.employee_currency}</span>
           </div>
         </div>
 
@@ -1092,7 +1092,7 @@ export default function DeparturesPage() {
             <MessageSquare className="w-10 h-10 mx-auto mb-2 text-gray-300" />
             <p className="text-sm mb-3">Aucun entretien de départ planifié</p>
             <button onClick={() => setShowInterviewPlan(true)}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600">
+              className="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600">
               Planifier un entretien
             </button>
           </div>
@@ -1120,7 +1120,7 @@ export default function DeparturesPage() {
               </div>
               <div className="flex gap-2">
                 <button onClick={handlePlanInterview}
-                  className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600">Planifier</button>
+                  className="px-3 py-1.5 bg-primary-500 text-white rounded-lg text-sm hover:bg-primary-600">Planifier</button>
                 <button onClick={() => setShowInterviewPlan(false)}
                   className="px-3 py-1.5 border rounded-lg text-sm hover:bg-gray-50">Annuler</button>
               </div>
@@ -1133,10 +1133,10 @@ export default function DeparturesPage() {
     // Interview exists
     return (
       <div className="space-y-4">
-        <div className="bg-blue-50 rounded-lg p-3 flex items-center justify-between">
+        <div className="bg-primary-50 rounded-lg p-3 flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-blue-900">Entretien planifié</p>
-            <p className="text-xs text-blue-700">
+            <p className="text-sm font-medium text-primary-900">Entretien planifié</p>
+            <p className="text-xs text-primary-700">
               {formatDate(interview.scheduled_date)} {interview.scheduled_time ? `à ${interview.scheduled_time}` : ''}
               {interview.location ? ` — ${interview.location}` : ''}
             </p>
@@ -1168,9 +1168,9 @@ export default function DeparturesPage() {
                           onClick={() => setInterviewForm(prev => ({ ...prev, [key]: n }))}
                           className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
                             val === n
-                              ? 'bg-blue-500 text-white'
+                              ? 'bg-primary-500 text-white'
                               : val !== null && val >= n
-                                ? 'bg-blue-200 text-blue-800'
+                                ? 'bg-primary-200 text-primary-800'
                                 : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                           }`}
                         >
@@ -1247,7 +1247,7 @@ export default function DeparturesPage() {
             ))}
 
             <button onClick={handleSaveInterview}
-              className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600">
+              className="w-full px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600">
               Enregistrer le questionnaire
             </button>
           </div>
@@ -1265,7 +1265,7 @@ export default function DeparturesPage() {
 
           <button onClick={handleGenerateCertificate}
             className="w-full flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors text-left">
-            <div className="p-2 bg-blue-50 rounded-lg"><FileText className="w-5 h-5 text-blue-600" /></div>
+            <div className="p-2 bg-primary-50 rounded-lg"><FileText className="w-5 h-5 text-primary-600" /></div>
             <div>
               <p className="text-sm font-medium text-gray-900">Certificat de travail</p>
               <p className="text-xs text-gray-500">Document attestant de l&apos;emploi avec historique de carrière</p>
@@ -1298,7 +1298,7 @@ export default function DeparturesPage() {
   function renderStatsTab() {
     if (!stats) return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-500 border-t-transparent" />
       </div>
     );
 
@@ -1344,7 +1344,7 @@ export default function DeparturesPage() {
                     <span className="text-xs text-gray-500">{count || ''}</span>
                     <div className="w-full bg-gray-100 rounded-t relative" style={{ height: '120px' }}>
                       <div
-                        className="absolute bottom-0 w-full bg-blue-500 rounded-t transition-all"
+                        className="absolute bottom-0 w-full bg-primary-500 rounded-t transition-all"
                         style={{ height: `${height}%` }}
                       />
                     </div>
@@ -1366,7 +1366,7 @@ export default function DeparturesPage() {
                   <div key={t.type} className="flex items-center gap-3">
                     <span className={`px-2 py-0.5 rounded text-xs font-medium ${cfg.color} w-36 text-center`}>{cfg.label}</span>
                     <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${pct}%` }} />
+                      <div className="h-full bg-primary-500 rounded-full" style={{ width: `${pct}%` }} />
                     </div>
                     <span className="text-sm font-medium text-gray-700 w-12 text-right">{t.count}</span>
                   </div>
@@ -1418,7 +1418,7 @@ export default function DeparturesPage() {
             {/* Steps indicator */}
             <div className="flex items-center gap-2 mb-2">
               {[1, 2, 3].map(s => (
-                <div key={s} className={`flex-1 h-1.5 rounded-full ${s <= createStep ? 'bg-blue-500' : 'bg-gray-200'}`} />
+                <div key={s} className={`flex-1 h-1.5 rounded-full ${s <= createStep ? 'bg-primary-500' : 'bg-gray-200'}`} />
               ))}
             </div>
 
@@ -1436,15 +1436,15 @@ export default function DeparturesPage() {
                   />
                 </div>
                 {selectedEmployee && (
-                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center text-sm font-bold text-blue-700">
+                  <div className="flex items-center gap-3 p-3 bg-primary-50 rounded-lg border border-primary-200">
+                    <div className="w-10 h-10 rounded-full bg-primary-200 flex items-center justify-center text-sm font-bold text-primary-700">
                       {getInitials(`${selectedEmployee.first_name} ${selectedEmployee.last_name}`)}
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium">{selectedEmployee.first_name} {selectedEmployee.last_name}</p>
                       <p className="text-xs text-gray-500">{selectedEmployee.job_title}</p>
                     </div>
-                    <button onClick={() => setSelectedEmployee(null)} className="text-blue-500 hover:text-blue-700">
+                    <button onClick={() => setSelectedEmployee(null)} className="text-primary-500 hover:text-primary-700">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -1532,8 +1532,8 @@ export default function DeparturesPage() {
                     </div>
                   )}
                 </div>
-                <div className="bg-blue-50 rounded-lg p-3">
-                  <p className="text-xs text-blue-700">
+                <div className="bg-primary-50 rounded-lg p-3">
+                  <p className="text-xs text-primary-700">
                     Le préavis et le solde de congés seront calculés automatiquement.
                     {formType === 'termination'
                       ? ' Ce licenciement sera soumis à la validation de la Direction.'
@@ -1555,7 +1555,7 @@ export default function DeparturesPage() {
               <button
                 onClick={() => setCreateStep(s => s + 1)}
                 disabled={createStep === 1 && !selectedEmployee}
-                className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 disabled:opacity-50"
               >
                 Suivant
               </button>
@@ -1563,7 +1563,7 @@ export default function DeparturesPage() {
               <button
                 onClick={handleCreate}
                 disabled={createLoading || !formDate}
-                className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                className="px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600 disabled:opacity-50"
               >
                 {createLoading ? 'Création...' : 'Créer le départ'}
               </button>

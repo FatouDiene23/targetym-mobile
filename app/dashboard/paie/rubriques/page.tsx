@@ -53,7 +53,7 @@ function CalcParamsFields({
     <div>
       <label className="block text-xs font-medium text-gray-500 mb-1">Base de calcul</label>
       <select
-        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
         value={str('base', 'brut')}
         onChange={e => set('base', e.target.value)}
       >
@@ -70,7 +70,7 @@ function CalcParamsFields({
         <label className="block text-xs font-medium text-gray-500 mb-1">Montant fixe (XOF) — laisser 0 si variable</label>
         <input
           type="number" min={0} step={1}
-          className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           value={num('amount')}
           onChange={e => set('amount', parseFloat(e.target.value) || 0)}
         />
@@ -84,7 +84,7 @@ function CalcParamsFields({
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Taux (%)</label>
           <input type="number" min={0} max={100} step={0.001}
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={+(num('rate') * 100).toFixed(4)}
             onChange={e => set('rate', parseFloat(e.target.value) / 100 || 0)}
           />
@@ -92,7 +92,7 @@ function CalcParamsFields({
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Plafond (XOF)</label>
           <input type="number" min={0} step={1}
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={num('cap')}
             onChange={e => set('cap', parseFloat(e.target.value) || 0)}
           />
@@ -108,7 +108,7 @@ function CalcParamsFields({
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Taux (%)</label>
           <input type="number" min={0} max={100} step={0.001}
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={+(num('rate') * 100).toFixed(4)}
             onChange={e => set('rate', parseFloat(e.target.value) / 100 || 0)}
           />
@@ -116,7 +116,7 @@ function CalcParamsFields({
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Plancher (XOF)</label>
           <input type="number" min={0} step={1}
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={num('floor')}
             onChange={e => set('floor', parseFloat(e.target.value) || 0)}
           />
@@ -124,7 +124,7 @@ function CalcParamsFields({
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Plafond (XOF)</label>
           <input type="number" min={0} step={1}
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={num('cap')}
             onChange={e => set('cap', parseFloat(e.target.value) || 0)}
           />
@@ -140,7 +140,7 @@ function CalcParamsFields({
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Code de la table</label>
           <input
-            className="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={str('table_code')}
             onChange={e => set('table_code', e.target.value.toUpperCase())}
             placeholder="Ex : IPRES_TABLE"
@@ -165,7 +165,7 @@ function CalcParamsFields({
       <div>
         <label className="block text-xs font-medium text-gray-500 mb-1">Expression de calcul</label>
         <input
-          className="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500"
           value={str('formula')}
           onChange={e => set('formula', e.target.value)}
           placeholder="Ex : base_salary * 0.3 / 26"
@@ -270,7 +270,7 @@ function ComponentModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
               <input
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={form.code}
                 onChange={e => set('code', e.target.value.toUpperCase())}
                 placeholder="Ex: SALBASE"
@@ -282,7 +282,7 @@ function ComponentModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">Ordre affiché</label>
               <input
                 type="number"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={form.order_index}
                 onChange={e => set('order_index', parseInt(e.target.value) || 0)}
                 min={0}
@@ -293,7 +293,7 @@ function ComponentModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Libellé *</label>
             <input
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               value={form.name}
               onChange={e => set('name', e.target.value)}
               placeholder="Ex: Salaire de base"
@@ -305,7 +305,7 @@ function ComponentModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
               <select
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={form.component_type}
                 onChange={e => set('component_type', e.target.value as PayComponent['component_type'])}
               >
@@ -317,7 +317,7 @@ function ComponentModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Mode de calcul</label>
               <select
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={form.calc_type}
                 onChange={e => handleCalcTypeChange(e.target.value)}
               >
@@ -343,7 +343,7 @@ function ComponentModal({
             <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
               <input
                 type="checkbox"
-                className="w-4 h-4 accent-blue-600"
+                className="w-4 h-4 accent-primary-600"
                 checked={form.is_taxable}
                 onChange={e => set('is_taxable', e.target.checked)}
               />
@@ -352,7 +352,7 @@ function ComponentModal({
             <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
               <input
                 type="checkbox"
-                className="w-4 h-4 accent-blue-600"
+                className="w-4 h-4 accent-primary-600"
                 checked={form.is_subject_to_cotisations}
                 onChange={e => set('is_subject_to_cotisations', e.target.checked)}
               />
@@ -361,7 +361,7 @@ function ComponentModal({
             <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
               <input
                 type="checkbox"
-                className="w-4 h-4 accent-blue-600"
+                className="w-4 h-4 accent-primary-600"
                 checked={form.is_active}
                 onChange={e => set('is_active', e.target.checked)}
               />
@@ -380,7 +380,7 @@ function ComponentModal({
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-60"
+              className="px-5 py-2 text-sm text-white bg-primary-600 rounded-lg hover:bg-primary-700 flex items-center gap-2 disabled:opacity-60"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               {initial ? 'Enregistrer' : 'Créer'}
@@ -481,7 +481,7 @@ export default function RubriquesPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              <Settings2 className="w-6 h-6 text-blue-600" />
+              <Settings2 className="w-6 h-6 text-primary-600" />
               Rubriques de paie
             </h1>
             <p className="text-sm text-gray-500 mt-1">
@@ -492,7 +492,7 @@ export default function RubriquesPage() {
             <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-600">
               <input
                 type="checkbox"
-                className="w-4 h-4 accent-blue-600"
+                className="w-4 h-4 accent-primary-600"
                 checked={showInactive}
                 onChange={e => setShowInactive(e.target.checked)}
               />
@@ -508,7 +508,7 @@ export default function RubriquesPage() {
             </button>
             <button
               onClick={openCreate}
-              className="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              className="flex items-center gap-2 bg-primary-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-700 transition"
             >
               <Plus className="w-4 h-4" />
               Nouvelle rubrique
@@ -588,7 +588,7 @@ export default function RubriquesPage() {
                       <div className="flex items-center gap-1 justify-end">
                         <button
                           onClick={() => openEdit(c)}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition"
+                          className="p-1.5 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-primary-50 transition"
                           title="Modifier"
                         >
                           <Pencil className="w-4 h-4" />

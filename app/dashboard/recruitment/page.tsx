@@ -714,7 +714,7 @@ export default function RecruitmentPage() {
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
               <div><p className="text-xs text-gray-500">Postes Ouverts</p><p className="text-2xl font-bold text-gray-900">{openPositions}</p></div>
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><Briefcase className="w-5 h-5 text-blue-600" /></div>
+              <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center"><Briefcase className="w-5 h-5 text-primary-600" /></div>
             </div>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
@@ -867,7 +867,7 @@ export default function RecruitmentPage() {
               <div key={job.id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center flex-1">
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center"><Briefcase className="w-6 h-6 text-blue-600" /></div>
+                    <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center"><Briefcase className="w-6 h-6 text-primary-600" /></div>
                     <div className="ml-4 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h4 className="font-semibold text-gray-900">{job.title}</h4>
@@ -922,7 +922,7 @@ export default function RecruitmentPage() {
                                 <p className="text-sm font-medium text-gray-900 truncate">{app.candidate_name}</p>
                                 <div className="flex items-center gap-1.5 mt-0.5">
                                   <span className="text-xs text-gray-500">{stageLabels[app.stage] || app.stage}</span>
-                                  {app.candidate_cv_url && <span className="text-xs text-blue-600 flex items-center gap-0.5"><FileText className="w-3 h-3" />CV</span>}
+                                  {app.candidate_cv_url && <span className="text-xs text-primary-600 flex items-center gap-0.5"><FileText className="w-3 h-3" />CV</span>}
                                   {app.candidate_ai_score && <span className={`text-xs font-bold ${getScoreColor(app.candidate_ai_score)}`}>{app.candidate_ai_score}</span>}
                                 </div>
                               </div>
@@ -1086,7 +1086,7 @@ export default function RecruitmentPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => setShowEditCandidateModal(true)} className="p-2 hover:bg-blue-50 rounded-lg text-blue-500" title="Modifier le candidat"><Edit className="w-5 h-5" /></button>
+                  <button onClick={() => setShowEditCandidateModal(true)} className="p-2 hover:bg-primary-50 rounded-lg text-primary-500" title="Modifier le candidat"><Edit className="w-5 h-5" /></button>
                   <button onClick={() => setShowCandidateModal(false)} className="p-2 hover:bg-gray-100 rounded-lg" title="Fermer"><X className="w-5 h-5 text-gray-500" /></button>
                 </div>
               </div>
@@ -1107,10 +1107,10 @@ export default function RecruitmentPage() {
                   </div>
 
                   {selectedApplication.candidate_cv_url && (
-                    <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                      <p className="text-xs font-semibold text-blue-700 mb-2 flex items-center gap-1"><FileText className="w-3.5 h-3.5" />CV du candidat{selectedApplication.candidate_cv_filename ? ` — ${selectedApplication.candidate_cv_filename}` : ''}</p>
+                    <div className="mt-4 p-3 bg-primary-50 rounded-lg border border-primary-100">
+                      <p className="text-xs font-semibold text-primary-700 mb-2 flex items-center gap-1"><FileText className="w-3.5 h-3.5" />CV du candidat{selectedApplication.candidate_cv_filename ? ` — ${selectedApplication.candidate_cv_filename}` : ''}</p>
                       <div className="flex gap-2">
-                        <button onClick={() => openCvAuthenticated(selectedApplication.candidate_id, false)} className="flex items-center px-3 py-1.5 bg-white text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-100 border border-blue-200"><FileText className="w-3.5 h-3.5 mr-1" />Voir</button>
+                        <button onClick={() => openCvAuthenticated(selectedApplication.candidate_id, false)} className="flex items-center px-3 py-1.5 bg-white text-primary-700 text-xs font-medium rounded-lg hover:bg-primary-100 border border-primary-200"><FileText className="w-3.5 h-3.5 mr-1" />Voir</button>
                         <button onClick={() => openCvAuthenticated(selectedApplication.candidate_id, true)} className="flex items-center px-3 py-1.5 bg-white text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-100 border border-gray-200"><Download className="w-3.5 h-3.5 mr-1" />Télécharger</button>
                       </div>
                     </div>
@@ -1585,7 +1585,7 @@ function NewEmployeeCredentialsModal({ info, onClose }: {
         </div>
         <div className="p-6 space-y-4">
           {info.already_existed ? (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+            <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 text-sm text-primary-800">
               Un dossier employé existait déjà pour cet email. Il a été lié à la candidature.
             </div>
           ) : (

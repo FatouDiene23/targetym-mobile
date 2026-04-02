@@ -87,7 +87,7 @@ function VariableModal({
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Employé *</label>
                 <select
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   value={employeeId}
                   onChange={e => setEmployeeId(parseInt(e.target.value))}
                   required
@@ -109,7 +109,7 @@ function VariableModal({
                   </p>
                 ) : (
                   <select
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     value={componentId}
                     onChange={e => setComponentId(parseInt(e.target.value))}
                     required
@@ -133,7 +133,7 @@ function VariableModal({
             <label className="block text-sm font-medium text-gray-700 mb-1">Valeur (XOF) *</label>
             <input
               type="number"
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               value={value}
               onChange={e => setValue(parseFloat(e.target.value) || 0)}
               min={0}
@@ -152,7 +152,7 @@ function VariableModal({
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-60"
+              className="px-5 py-2 text-sm text-white bg-primary-600 rounded-lg hover:bg-primary-700 flex items-center gap-2 disabled:opacity-60"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               {variable ? 'Enregistrer' : 'Ajouter'}
@@ -279,7 +279,7 @@ export default function VariablesPage() {
         {/* Fil d'Ariane */}
         <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
           <Receipt className="w-4 h-4" />
-          <Link href="/dashboard/paie/runs" className="hover:text-blue-600">Runs</Link>
+          <Link href="/dashboard/paie/runs" className="hover:text-primary-600">Runs</Link>
           <ChevronDown className="w-3 h-3 rotate-[-90deg]" />
           <span className="text-gray-700 font-medium">
             Variables — {periodMonth > 0 ? `${MONTHS_FR[periodMonth - 1]} ${periodYear}` : '…'}
@@ -290,7 +290,7 @@ export default function VariablesPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              <Calendar className="w-6 h-6 text-blue-600" />
+              <Calendar className="w-6 h-6 text-primary-600" />
               Variables du mois
             </h1>
             <p className="text-sm text-gray-500 mt-1">
@@ -311,7 +311,7 @@ export default function VariablesPage() {
                 </button>
                 <button
                   onClick={() => { setEditing(undefined); setModalOpen(true); }}
-                  className="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+                  className="flex items-center gap-2 bg-primary-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-700 transition"
                 >
                   <Plus className="w-4 h-4" />
                   Ajouter
@@ -380,7 +380,7 @@ export default function VariablesPage() {
                           <button
                             onClick={() => { setEditing(v); setModalOpen(true); }}
                             disabled={v.status === 'locked'}
-                            className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition disabled:opacity-30"
+                            className="p-1.5 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-primary-50 transition disabled:opacity-30"
                           >
                             <Pencil className="w-4 h-4" />
                           </button>
@@ -408,7 +408,7 @@ export default function VariablesPage() {
           <div className="mt-4 text-center">
             <Link
               href={`/dashboard/paie/runs/${runId}/recap`}
-              className="text-sm text-blue-600 hover:underline"
+              className="text-sm text-primary-600 hover:underline"
             >
               → Voir les bulletins du run
             </Link>

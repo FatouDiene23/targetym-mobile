@@ -578,7 +578,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
                               key={notif.id}
                               onClick={() => handleNotificationClick(notif)}
                               className={`w-full flex items-start gap-3 px-4 py-3 text-left transition-colors border-b border-gray-50 last:border-0 ${
-                                notif.is_read ? 'hover:bg-gray-50' : 'bg-blue-50/40 hover:bg-blue-50/60'
+                                notif.is_read ? 'hover:bg-gray-50' : 'bg-primary-50/40 hover:bg-primary-50/60'
                               }`}
                             >
                               <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${style.bg}`}>
@@ -590,7 +590,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
                                     {notif.title}
                                   </p>
                                   {!notif.is_read && (
-                                    <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-1.5" />
+                                    <span className="w-2 h-2 rounded-full bg-primary-500 flex-shrink-0 mt-1.5" />
                                   )}
                                 </div>
                                 <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notif.message}</p>

@@ -2056,7 +2056,7 @@ export default function LeavesManagementPage() {
         {/* Stats */}
         {stats && (
           <div data-tour="leaves-stats" className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
-            <StatCard icon={BarChart3} value={stats.total_requests} label="Total demandes" color="bg-blue-500" />
+            <StatCard icon={BarChart3} value={stats.total_requests} label="Total demandes" color="bg-primary-500" />
             <StatCard icon={Clock} value={stats.pending} label="En attente" color="bg-yellow-500" />
             <StatCard icon={CheckCircle} value={stats.approved} label="Approuvées" color="bg-green-500" />
             <StatCard icon={XCircle} value={stats.rejected} label="Refusées" color="bg-red-500" />

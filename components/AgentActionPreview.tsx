@@ -48,7 +48,7 @@ function OnboardingPreview({ data }: { data: any }) {
 
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+        className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800 font-medium"
       >
         {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         {tasks.length} tâche{tasks.length > 1 ? 's' : ''} planifiée{tasks.length > 1 ? 's' : ''}
@@ -102,9 +102,9 @@ function OkrPreview({ data }: { data: any }) {
             <div className="px-3 pb-2 space-y-1 border-t bg-gray-50">
               {(obj.key_results || []).map((kr: any, j: number) => (
                 <div key={j} className="flex items-center gap-2 text-xs py-1">
-                  <Target size={12} className="text-blue-500 flex-shrink-0" />
+                  <Target size={12} className="text-primary-500 flex-shrink-0" />
                   <span className="flex-1 text-gray-700">{kr.title}</span>
-                  <span className="font-semibold text-blue-600">{kr.target_value}{kr.unit}</span>
+                  <span className="font-semibold text-primary-600">{kr.target_value}{kr.unit}</span>
                 </div>
               ))}
             </div>
@@ -235,7 +235,7 @@ export default function AgentActionPreview({ preview, onValidate, onCancel }: Pr
   const [error, setError] = useState<string | null>(null);
 
   const Icon = ACTION_ICONS[preview.tool_name] || Target;
-  const gradient = ACTION_COLORS[preview.tool_name] || 'from-blue-500 to-blue-700';
+  const gradient = ACTION_COLORS[preview.tool_name] || 'from-primary-500 to-primary-700';
 
   const handleValidate = async () => {
     setValidating(true);

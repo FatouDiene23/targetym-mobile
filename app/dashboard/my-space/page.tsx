@@ -1280,7 +1280,7 @@ export default function MyProfilePage() {
         {/* ============================================ */}
         <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-tour="signature-section">
           <h3 className="text-lg font-semibold text-gray-900 mb-1 flex items-center gap-2">
-            <PenLine className="w-5 h-5 text-blue-600" />
+            <PenLine className="w-5 h-5 text-primary-600" />
             Ma signature par défaut
           </h3>
           <p className="text-sm text-gray-500 mb-5">
@@ -1298,11 +1298,11 @@ export default function MyProfilePage() {
                 <div className="flex flex-wrap gap-3">
                   <button
                     onClick={() => setShowDefaultSigCanvas(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
                   >
                     <PenLine className="w-4 h-4" /> Modifier (dessiner)
                   </button>
-                  <label className="flex items-center gap-2 px-4 py-2 border border-blue-300 text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium cursor-pointer">
+                  <label className="flex items-center gap-2 px-4 py-2 border border-primary-300 text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors text-sm font-medium cursor-pointer">
                     <Upload className="w-4 h-4" /> Importer une image
                     <input
                       type="file"
@@ -1333,11 +1333,11 @@ export default function MyProfilePage() {
                 <div className="flex flex-wrap justify-center gap-3">
                   <button
                     onClick={() => setShowDefaultSigCanvas(true)}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
                   >
                     <PenLine className="w-4 h-4" /> Dessiner ma signature
                   </button>
-                  <label className="inline-flex items-center gap-2 px-5 py-2.5 border border-blue-300 text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium cursor-pointer">
+                  <label className="inline-flex items-center gap-2 px-5 py-2.5 border border-primary-300 text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors text-sm font-medium cursor-pointer">
                     <Upload className="w-4 h-4" /> Importer une image
                     <input
                       type="file"
@@ -1348,14 +1348,14 @@ export default function MyProfilePage() {
                     />
                   </label>
                 </div>
-                {signatureUploading && <p className="mt-3 text-sm text-blue-600">Import en cours...</p>}
+                {signatureUploading && <p className="mt-3 text-sm text-primary-600">Import en cours...</p>}
               </div>
             )
           ) : (
             /* Canvas pour dessiner */
             <div>
               {savingDefaultSig ? (
-                <div className="flex items-center justify-center gap-2 text-blue-600 py-10">
+                <div className="flex items-center justify-center gap-2 text-primary-600 py-10">
                   <Loader2 className="w-5 h-5 animate-spin" /> Enregistrement en cours...
                 </div>
               ) : (
@@ -1371,7 +1371,7 @@ export default function MyProfilePage() {
             <div className="mt-4 pt-4 border-t border-gray-100">
               <button
                 onClick={() => setActiveTab('signatures')}
-                className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-700 font-medium"
               >
                 <PenLine className="w-4 h-4" />
                 {pendingSignatures.length} document{pendingSignatures.length > 1 ? 's' : ''} en attente de votre signature →
@@ -1499,7 +1499,7 @@ export default function MyProfilePage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <PenLine className="w-5 h-5 text-blue-600" />
+                  <PenLine className="w-5 h-5 text-primary-600" />
                   Documents à signer
                 </h2>
                 <p className="text-sm text-gray-500 mt-0.5">Documents en attente de votre signature électronique</p>
@@ -1519,8 +1519,8 @@ export default function MyProfilePage() {
                 {pendingSignatures.map((req) => (
                   <div key={req.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center justify-between gap-4">
                     <div className="flex items-start gap-3 min-w-0">
-                      <div className="mt-1 flex-shrink-0 w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center">
-                        <FileText className="w-4 h-4 text-blue-600" />
+                      <div className="mt-1 flex-shrink-0 w-9 h-9 bg-primary-50 rounded-lg flex items-center justify-center">
+                        <FileText className="w-4 h-4 text-primary-600" />
                       </div>
                       <div className="min-w-0">
                         <p className="font-medium text-gray-900 truncate">{req.document_title}</p>
@@ -1547,7 +1547,7 @@ export default function MyProfilePage() {
                       </button>
                       <button
                         onClick={() => openSignModal(req)}
-                        className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-1.5"
+                        className="px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition flex items-center gap-1.5"
                       >
                         <PenLine className="w-3.5 h-3.5" />
                         Signer
@@ -1566,7 +1566,7 @@ export default function MyProfilePage() {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between px-6 py-4 border-b">
                 <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <PenLine className="w-5 h-5 text-blue-600" />
+                  <PenLine className="w-5 h-5 text-primary-600" />
                   Signer : {signingRequest.document_title}
                 </h3>
                 <button onClick={() => { setSigningRequest(null); setSignDocData(null); setShowSignCanvas(false); setSignUseDefault(false); }} className="text-gray-400 hover:text-gray-600">
@@ -1589,7 +1589,7 @@ export default function MyProfilePage() {
                             <a
                               href={`data:application/pdf;base64,${signDocData.file_data}`}
                               download={signDocData.file_name}
-                              className="mt-2 inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline"
+                              className="mt-2 inline-flex items-center gap-1.5 text-xs text-primary-600 hover:underline"
                             >
                               <Download className="w-3.5 h-3.5" /> Télécharger le PDF
                             </a>
@@ -1603,14 +1603,14 @@ export default function MyProfilePage() {
                             {/* Option 1 : signature enregistrée */}
                             <button
                               onClick={() => setSignUseDefault(true)}
-                              className="w-full flex items-center gap-4 px-4 py-3 border-2 border-blue-200 bg-blue-50 rounded-xl hover:border-blue-400 hover:bg-blue-100 transition text-left"
+                              className="w-full flex items-center gap-4 px-4 py-3 border-2 border-primary-200 bg-primary-50 rounded-xl hover:border-primary-400 hover:bg-primary-100 transition text-left"
                             >
                               <div className="flex-shrink-0 w-20 h-12 bg-white rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden">
                                 <img src={signature.signature_url} alt="" className="max-h-10 max-w-full object-contain" />
                               </div>
                               <div>
-                                <p className="text-sm font-medium text-blue-800">Utiliser ma signature enregistrée</p>
-                                <p className="text-xs text-blue-600 mt-0.5">Votre signature par défaut sera apposée automatiquement</p>
+                                <p className="text-sm font-medium text-primary-800">Utiliser ma signature enregistrée</p>
+                                <p className="text-xs text-primary-600 mt-0.5">Votre signature par défaut sera apposée automatiquement</p>
                               </div>
                             </button>
                             {/* Option 2 : dessiner maintenant */}
@@ -1630,7 +1630,7 @@ export default function MyProfilePage() {
                         ) : (
                           <button
                             onClick={() => setShowSignCanvas(true)}
-                            className="w-full py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-medium flex items-center justify-center gap-2"
+                            className="w-full py-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition font-medium flex items-center justify-center gap-2"
                           >
                             <PenLine className="w-4 h-4" />
                             Procéder à la signature
@@ -1650,7 +1650,7 @@ export default function MyProfilePage() {
                         <div className="flex gap-3">
                           <button
                             onClick={() => handleSign(signature.signature_url!.split(',')[1] ?? signature.signature_url!)}
-                            className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-medium flex items-center justify-center gap-2"
+                            className="flex-1 py-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition font-medium flex items-center justify-center gap-2"
                           >
                             <CheckCircle2 className="w-4 h-4" /> Confirmer et signer
                           </button>

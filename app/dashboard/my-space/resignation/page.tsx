@@ -162,7 +162,7 @@ export default function ResignationPage() {
       <>
         <Header title="Processus de Départ" subtitle="Gérer votre procédure de départ" />
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent" />
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-500 border-t-transparent" />
         </div>
       </>
     );
@@ -316,7 +316,7 @@ export default function ResignationPage() {
                   Elle sera transmise à votre manager puis aux RH pour validation.
                 </p>
                 <button onClick={() => setShowForm(true)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600">
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600">
                   <Send className="w-4 h-4" /> Commencer la procédure
                 </button>
               </div>
@@ -351,7 +351,7 @@ export default function ResignationPage() {
                       value={formDate}
                       onChange={e => setFormDate(e.target.value)}
                       min={new Date().toISOString().split('T')[0]}
-                      className="w-full mt-1 border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500"
+                      className="w-full mt-1 border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500"
                     />
                   </div>
                   <div>

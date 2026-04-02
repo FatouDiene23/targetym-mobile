@@ -1420,7 +1420,7 @@ export default function PerformancePage() {
               </div>
               <div className="bg-white rounded-xl p-4 border border-gray-200">
                 <p className="text-sm text-gray-500">1-on-1</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.one_on_ones_scheduled}</p>
+                <p className="text-2xl font-bold text-primary-600">{stats.one_on_ones_scheduled}</p>
                 <p className="text-xs text-gray-400">{stats.one_on_ones_completed} complétés</p>
               </div>
             </div>
@@ -1637,7 +1637,7 @@ export default function PerformancePage() {
                   {paginatedOneOnOnes.length > 0 ? paginatedOneOnOnes.map(meeting => (
                     <div key={meeting.id} className="p-4 border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm">
+                        <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-medium text-sm">
                           {meeting.employee_initials || getInitials(meeting.employee_name)}
                         </div>
                         <div className="flex-1 min-w-0">

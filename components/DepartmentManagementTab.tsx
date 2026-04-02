@@ -454,7 +454,7 @@ export default function DepartmentManagementTab() {
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
           <p className="text-xs text-gray-500 mb-1">Employés affectés</p>
-          <p className="text-2xl font-bold text-blue-600">{employees.filter(e => e.department_id).length}/{employees.length}</p>
+          <p className="text-2xl font-bold text-primary-600">{employees.filter(e => e.department_id).length}/{employees.length}</p>
         </div>
         <div className={`rounded-xl p-4 border shadow-sm ${departments.filter(d => !d.head_id).length > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-100'}`}>
           <p className="text-xs text-gray-500 mb-1">Postes ouverts</p>

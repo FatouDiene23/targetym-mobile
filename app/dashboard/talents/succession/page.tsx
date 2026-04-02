@@ -168,7 +168,7 @@ export default function SuccessionPage() {
                                     <div className="flex items-center gap-2 px-2 py-1 bg-gray-100 rounded-lg">
                                       <div className="text-center">
                                         <p className="text-xs text-gray-500">Perf.</p>
-                                        <p className="text-sm font-bold text-blue-600">{Number(cand.latest_perf).toFixed(1)}</p>
+                                        <p className="text-sm font-bold text-primary-600">{Number(cand.latest_perf).toFixed(1)}</p>
                                       </div>
                                       <div className="w-px h-6 bg-gray-300" />
                                       <div className="text-center">

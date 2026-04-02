@@ -304,7 +304,7 @@ function StatusBadge({ status, config }: { status: string; config?: Record<strin
 
 function ProgressBar({ value, size = 'md' }: { value: number; size?: 'sm' | 'md' }) {
   const h = size === 'sm' ? 'h-1.5' : 'h-2.5';
-  const color = value >= 100 ? 'bg-green-500' : value >= 50 ? 'bg-blue-500' : value >= 25 ? 'bg-amber-500' : 'bg-red-400';
+  const color = value >= 100 ? 'bg-green-500' : value >= 50 ? 'bg-primary-500' : value >= 25 ? 'bg-amber-500' : 'bg-red-400';
   return (
     <div className={`w-full bg-gray-200 rounded-full ${h}`}>
       <div className={`${color} ${h} rounded-full transition-all duration-500`} style={{ width: `${Math.min(value, 100)}%` }} />
@@ -409,7 +409,7 @@ function SearchableSelect({
             {placeholder && (
               <button
                 onClick={() => { onChange(''); setOpen(false); }}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${!value ? 'bg-blue-50 text-blue-700' : 'text-gray-400'}`}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${!value ? 'bg-primary-50 text-primary-700' : 'text-gray-400'}`}
               >
                 {placeholder}
               </button>
@@ -418,7 +418,7 @@ function SearchableSelect({
               <button
                 key={o.value}
                 onClick={() => { onChange(o.value); setOpen(false); }}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${o.value === value ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${o.value === value ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}`}
               >
                 <span>{o.label}</span>
                 {o.subtitle && <span className="text-xs text-gray-400 ml-1">— {o.subtitle}</span>}
@@ -655,7 +655,7 @@ export default function OnboardingPage() {
       <div className="space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-tour="onboarding-stats">
-          <StatCard label="Total onboardings" value={stats.total} icon={Users} color="bg-blue-50 text-blue-600" />
+          <StatCard label="Total onboardings" value={stats.total} icon={Users} color="bg-primary-50 text-primary-600" />
           <StatCard label="En cours" value={stats.in_progress} icon={Rocket} color="bg-amber-50 text-amber-600" sub={`${stats.avg_progress}% progrès moyen`} />
           <StatCard label="Terminés" value={stats.completed} icon={CheckCircle} color="bg-green-50 text-green-600" />
           <StatCard label="En retard" value={stats.overdue_count} icon={AlertCircle} color="bg-red-50 text-red-600" />
@@ -763,7 +763,7 @@ export default function OnboardingPage() {
           <h3 className="text-lg font-semibold">Programmes d'intégration</h3>
           {isHR && (
             <button onClick={() => { setEditingProgram(null); setShowProgramModal(true); }}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700">
               <Plus size={16} /> Nouveau programme
             </button>
           )}
@@ -778,7 +778,7 @@ export default function OnboardingPage() {
                 className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer group">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h4 className="font-semibold text-gray-900 group-hover:text-blue-600">{p.name}</h4>
+                    <h4 className="font-semibold text-gray-900 group-hover:text-primary-600">{p.name}</h4>
                     {p.department_name && <span className="text-xs text-gray-400">{p.department_name}</span>}
                   </div>
                   <div className="flex items-center gap-2">
@@ -832,7 +832,7 @@ export default function OnboardingPage() {
                 <button onClick={() => { setEditingProgram(p); setShowProgramModal(true); }}
                   className="flex items-center gap-1 px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50"><Edit size={14} /> Modifier</button>
                 <button onClick={() => { setEditingTask(null); setShowTaskModal(true); }}
-                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"><Plus size={14} /> Tâche</button>
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"><Plus size={14} /> Tâche</button>
               </div>
             )}
           </div>
@@ -866,7 +866,7 @@ export default function OnboardingPage() {
                       {isHR && (
                         <div className="flex items-center gap-1">
                           <button onClick={(e) => { e.stopPropagation(); setEditingTask(t); setShowTaskModal(true); }}
-                            className="text-gray-300 hover:text-blue-500"><Edit size={14} /></button>
+                            className="text-gray-300 hover:text-primary-500"><Edit size={14} /></button>
                           <button onClick={async (e) => {
                             e.stopPropagation();
                             setConfirmDialog({
@@ -920,7 +920,7 @@ export default function OnboardingPage() {
             </div>
             {isHR && (
               <button onClick={() => setShowAddDropdown(!showAddDropdown)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700">
                 <Plus size={16} /> Ajouter <ChevronDown size={14} />
               </button>
             )}
@@ -937,7 +937,7 @@ export default function OnboardingPage() {
           ].map(f => (
             <button key={f.value} onClick={() => setSuiviFilter(f.value)}
               className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
-                suiviFilter === f.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 hover:bg-gray-50'
+                suiviFilter === f.value ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-600 hover:bg-gray-50'
               }`}>{f.label}</button>
           ))}
         </div>
@@ -975,7 +975,7 @@ export default function OnboardingPage() {
                     <td className="px-5 py-3 text-gray-500 text-xs">{formatDate(a.start_date)}</td>
                     <td className="px-5 py-3"><StatusBadge status={a.status} /></td>
                     <td className="px-5 py-3 text-right">
-                      <button className="text-gray-400 hover:text-blue-600"><Eye size={16} /></button>
+                      <button className="text-gray-400 hover:text-primary-600"><Eye size={16} /></button>
                     </td>
                   </tr>
                 ))}
@@ -1052,7 +1052,7 @@ export default function OnboardingPage() {
                       <button
                         onClick={() => updateTaskStatus(t.id, t.status === 'completed' ? 'pending' : 'completed')}
                         className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                          t.status === 'completed' ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 hover:border-blue-400'
+                          t.status === 'completed' ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 hover:border-primary-400'
                         }`}>
                         {t.status === 'completed' && <CheckCircle size={14} />}
                       </button>
@@ -1197,7 +1197,7 @@ export default function OnboardingPage() {
 
               {g.meeting_link && (
                 <a href={g.meeting_link} target="_blank" rel="noopener noreferrer"
-                  className="mt-3 flex items-center gap-1 text-xs text-blue-600 hover:underline">
+                  className="mt-3 flex items-center gap-1 text-xs text-primary-600 hover:underline">
                   <Link2 size={12} /> Lien de la réunion
                 </a>
               )}
@@ -1277,7 +1277,7 @@ export default function OnboardingPage() {
           </div>
           <div className="px-6 py-4 border-t flex justify-end gap-2">
             <button onClick={() => setShowProgramModal(false)} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Annuler</button>
-            <button onClick={handleSave} disabled={saving || !name.trim()} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+            <button onClick={handleSave} disabled={saving || !name.trim()} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50">
               {saving ? <Loader2 size={16} className="animate-spin" /> : editingProgram ? 'Modifier' : 'Créer'}
             </button>
           </div>
@@ -1390,7 +1390,7 @@ export default function OnboardingPage() {
           </div>
           <div className="px-6 py-4 border-t flex justify-end gap-2">
             <button onClick={() => { setShowTaskModal(false); setEditingTask(null); }} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Annuler</button>
-            <button onClick={handleSave} disabled={saving || !title.trim()} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+            <button onClick={handleSave} disabled={saving || !title.trim()} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50">
               {saving ? <Loader2 size={16} className="animate-spin" /> : editingTask ? 'Modifier' : 'Ajouter'}
             </button>
           </div>
@@ -1514,7 +1514,7 @@ export default function OnboardingPage() {
           </div>
           <div className="px-6 py-4 border-t flex justify-end gap-2">
             <button onClick={() => { setShowAssignModal(false); setQueueStartItem(null); setPreselectedEmployeeId(''); setPreselectedEmployeeName(''); }} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Annuler</button>
-            <button onClick={handleSave} disabled={saving || !empId || !progId} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+            <button onClick={handleSave} disabled={saving || !empId || !progId} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50">
               {saving ? <Loader2 size={16} className="animate-spin" /> : 'Assigner'}
             </button>
           </div>
@@ -1665,7 +1665,7 @@ export default function OnboardingPage() {
               <tr key={item.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-xs">
+                    <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold text-xs">
                       {item.candidate_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                     </div>
                     <div>
@@ -1685,7 +1685,7 @@ export default function OnboardingPage() {
                       setQueueStartItem(item);
                       setShowAssignModal(true);
                     }}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                   >
                     <Play size={12} /> Démarrer l'onboarding
                   </button>
@@ -1731,7 +1731,7 @@ export default function OnboardingPage() {
         <div ref={addDropdownRef} className="fixed top-16 right-6 w-56 bg-white rounded-xl shadow-lg border border-gray-200 z-50 py-1">
           <button onClick={() => { setShowAddDropdown(false); setEditingProgram(null); setShowProgramModal(true); }}
             className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
-            <ClipboardList size={16} className="text-blue-500" /> Créer un programme
+            <ClipboardList size={16} className="text-primary-500" /> Créer un programme
           </button>
           <button onClick={() => { setShowAddDropdown(false); setShowAssignModal(true); }}
             className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
@@ -1757,12 +1757,12 @@ export default function OnboardingPage() {
             return (
               <button key={tab.id} onClick={() => { setActiveTab(tab.id); setSearchTerm(''); setSelectedAssignment(null); setSelectedProgram(null); }}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                  activeTab === tab.id ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'
+                  activeTab === tab.id ? 'bg-primary-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'
                 }`}>
                 <Icon size={16} />
                 {tab.label}
                 {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-600'}`}>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-primary-100 text-primary-600'}`}>
                     {tab.badge}
                   </span>
                 )}
@@ -1774,7 +1774,7 @@ export default function OnboardingPage() {
         {/* Loading */}
         {loading && (
           <div className="flex justify-center py-8">
-            <Loader2 className="animate-spin text-blue-500" size={24} />
+            <Loader2 className="animate-spin text-primary-500" size={24} />
           </div>
         )}
 

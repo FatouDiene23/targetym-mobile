@@ -280,7 +280,7 @@ function SlipLinesModal({
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition"
               title="Imprimer / Exporter PDF"
             >
               <Printer className="w-4 h-4" />
@@ -438,7 +438,7 @@ export default function RecapPage() {
         {/* Fil d'Ariane */}
         <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
           <Receipt className="w-4 h-4" />
-          <Link href="/dashboard/paie/runs" className="hover:text-blue-600">Runs</Link>
+          <Link href="/dashboard/paie/runs" className="hover:text-primary-600">Runs</Link>
           <ChevronDown className="w-3 h-3 rotate-[-90deg]" />
           <span className="text-gray-700 font-medium">
             Récap — {run ? `${MONTHS_FR[run.period_month - 1]} ${run.period_year}` : '…'}
@@ -457,7 +457,7 @@ export default function RecapPage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                  <ClipboardList className="w-6 h-6 text-blue-600" />
+                  <ClipboardList className="w-6 h-6 text-primary-600" />
                   Récap paie — {MONTHS_FR[run.period_month - 1]} {run.period_year}
                 </h1>
                 <div className="flex items-center gap-3 mt-1">
@@ -506,7 +506,7 @@ export default function RecapPage() {
                   label="Masse salariale brute"
                   value={formatXOF(run.total_brut)}
                   icon={TrendingUp}
-                  color="bg-blue-50 text-blue-600"
+                  color="bg-primary-50 text-primary-600"
                 />
                 <StatCard
                   label="Net total à payer"
@@ -560,7 +560,7 @@ export default function RecapPage() {
                           <button
                             onClick={() => openDetail(slip)}
                             disabled={loadingSlipId === slip.employee_id}
-                            className="flex items-center gap-1 ml-auto text-xs text-blue-600 hover:underline disabled:opacity-50"
+                            className="flex items-center gap-1 ml-auto text-xs text-primary-600 hover:underline disabled:opacity-50"
                           >
                             {loadingSlipId === slip.employee_id
                               ? <Loader2 className="w-3 h-3 animate-spin" />

@@ -122,7 +122,7 @@ function ProfileModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Type de contrat</label>
               <select
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={form.contract_type ?? ''}
                 onChange={e => set('contract_type', e.target.value as 'cdi' | 'cdd' | 'stage' | 'consultant')}
               >
@@ -135,7 +135,7 @@ function ProfileModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">Classification</label>
               <input
                 type="text"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 placeholder="ex. Cadre, Agent de maîtrise…"
                 value={form.classification ?? ''}
                 onChange={e => set('classification', e.target.value)}
@@ -156,7 +156,7 @@ function ProfileModal({
                   min={0}
                   step={1000}
                   required
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="ex. 500000"
                   value={form.base_salary ?? ''}
                   onChange={e => set('base_salary', e.target.value ? parseFloat(e.target.value) : undefined)}
@@ -169,7 +169,7 @@ function ProfileModal({
                     type="number"
                     min={0}
                     step={1000}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     placeholder="ex. 26000"
                     value={form.transport_allowance ?? ''}
                     onChange={e => set('transport_allowance', e.target.value ? parseFloat(e.target.value) : undefined)}
@@ -181,7 +181,7 @@ function ProfileModal({
                     type="number"
                     min={0}
                     step={1000}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     placeholder="ex. 0"
                     value={form.housing_allowance ?? ''}
                     onChange={e => set('housing_allowance', e.target.value ? parseFloat(e.target.value) : undefined)}
@@ -195,7 +195,7 @@ function ProfileModal({
                   min={1}
                   max={5}
                   step={0.5}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="1"
                   value={form.family_parts ?? ''}
                   onChange={e => set('family_parts', e.target.value ? parseFloat(e.target.value) : undefined)}
@@ -217,7 +217,7 @@ function ProfileModal({
                 <label key={key} className="flex items-center gap-2 cursor-pointer select-none">
                   <input
                     type="checkbox"
-                    className="w-4 h-4 accent-blue-600"
+                    className="w-4 h-4 accent-primary-600"
                     checked={!!(form as unknown as Record<string, unknown>)[key]}
                     onChange={e => set(key as keyof EmployeePayrollProfileCreate, e.target.checked)}
                   />
@@ -235,7 +235,7 @@ function ProfileModal({
                 <label className="block text-sm font-medium text-gray-700 mb-1">Banque</label>
                 <input
                   type="text"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="ex. SGBS"
                   value={form.bank_name ?? ''}
                   onChange={e => set('bank_name', e.target.value)}
@@ -245,7 +245,7 @@ function ProfileModal({
                 <label className="block text-sm font-medium text-gray-700 mb-1">Numéro de compte</label>
                 <input
                   type="text"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="ex. SN12345678"
                   value={form.bank_account_number ?? ''}
                   onChange={e => set('bank_account_number', e.target.value)}
@@ -261,7 +261,7 @@ function ProfileModal({
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+              className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               {existing ? 'Enregistrer' : 'Créer le profil'}
@@ -368,7 +368,7 @@ export default function ProfilsPayePage() {
           <input
             type="text"
             placeholder="Rechercher un employé…"
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -377,7 +377,7 @@ export default function ProfilsPayePage() {
         {/* Liste */}
         {loading ? (
           <div className="flex justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+            <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
           </div>
         ) : (
           <div className="bg-white rounded-xl border divide-y">
@@ -389,8 +389,8 @@ export default function ProfilsPayePage() {
               return (
                 <div key={emp.id} className="flex items-center justify-between px-5 py-4 hover:bg-gray-50">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                      <User className="w-4 h-4 text-blue-600" />
+                    <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
+                      <User className="w-4 h-4 text-primary-600" />
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium text-gray-800 text-sm truncate">

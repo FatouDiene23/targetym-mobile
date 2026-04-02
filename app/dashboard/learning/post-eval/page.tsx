@@ -132,8 +132,8 @@ export default function PostEvalPage() {
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
-              <div><p className="text-xs text-gray-500">Taux validation</p><p className="text-2xl font-bold text-blue-600">{epfStats.validation_rate}%</p></div>
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><Award className="w-5 h-5 text-blue-600" /></div>
+              <div><p className="text-xs text-gray-500">Taux validation</p><p className="text-2xl font-bold text-primary-600">{epfStats.validation_rate}%</p></div>
+              <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center"><Award className="w-5 h-5 text-primary-600" /></div>
             </div>
           </div>
         </div>
@@ -221,7 +221,7 @@ export default function PostEvalPage() {
                       <div className="flex items-center justify-center gap-1">
                         <button onClick={() => setShowEpfDetail(epf)} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded" title="Détail"><Eye className="w-4 h-4" /></button>
                         {epf.status === 'pending' && (<button onClick={() => openEvalModal(epf)} className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded" title="Évaluer"><ClipboardCheck className="w-4 h-4" /></button>)}
-                        {epf.status === 'completed' && !epf.career_synced && hasPermission(userRole, 'view_analytics') && (<button onClick={() => setConfirmDialog({ isOpen: true, title: 'Synchroniser avec Carrière', message: 'Synchroniser ce score avec le module Carrière ?', danger: false, onConfirm: async () => { setConfirmDialog(null); await syncCareer(epf.id); } })} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Sync Carrière"><Zap className="w-4 h-4" /></button>)}
+                        {epf.status === 'completed' && !epf.career_synced && hasPermission(userRole, 'view_analytics') && (<button onClick={() => setConfirmDialog({ isOpen: true, title: 'Synchroniser avec Carrière', message: 'Synchroniser ce score avec le module Carrière ?', danger: false, onConfirm: async () => { setConfirmDialog(null); await syncCareer(epf.id); } })} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded" title="Sync Carrière"><Zap className="w-4 h-4" /></button>)}
                         {epf.career_synced && (<span className="p-1.5 text-green-500" title="Synchronisé"><Link className="w-4 h-4" /></span>)}
                       </div>
                     </td>

@@ -38,7 +38,7 @@ export default function MyLearningPage() {
           )}
           {assignment.status === 'in_progress' && (
             <>
-              {assignment.course_external_url && <a href={assignment.course_external_url} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-blue-600 flex items-center gap-1"><ExternalLink className="w-3 h-3" />Accéder</a>}
+              {assignment.course_external_url && <a href={assignment.course_external_url} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 bg-primary-500 text-white text-xs font-medium rounded-lg hover:bg-primary-600 flex items-center gap-1"><ExternalLink className="w-3 h-3" />Accéder</a>}
               <button onClick={() => openCompleteModal(assignment)} className="px-3 py-1.5 bg-green-500 text-white text-xs font-medium rounded-lg hover:bg-green-600 flex items-center gap-1"><CheckCircle className="w-3 h-3" />Terminer</button>
             </>
           )}
@@ -71,10 +71,10 @@ export default function MyLearningPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500">En cours</p>
-              <p className="text-2xl font-bold text-blue-600">{inProgress.length}</p>
+              <p className="text-2xl font-bold text-primary-600">{inProgress.length}</p>
             </div>
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Play className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+              <Play className="w-5 h-5 text-primary-600" />
             </div>
           </div>
         </div>
@@ -108,7 +108,7 @@ export default function MyLearningPage() {
         <div><h3 className="text-sm font-semibold text-red-700 mb-3 flex items-center gap-2"><XCircle className="w-4 h-4" />Rejetées ({rejected.length})</h3><div className="space-y-3">{rejected.map(renderAssignment)}</div></div>
       )}
       {inProgress.length > 0 && (
-        <div><h3 className="text-sm font-semibold text-blue-700 mb-3">En cours ({inProgress.length})</h3><div className="space-y-3">{inProgress.map(renderAssignment)}</div></div>
+        <div><h3 className="text-sm font-semibold text-primary-700 mb-3">En cours ({inProgress.length})</h3><div className="space-y-3">{inProgress.map(renderAssignment)}</div></div>
       )}
       {assigned.length > 0 && (
         <div><h3 className="text-sm font-semibold text-gray-700 mb-3">À commencer ({assigned.length})</h3><div className="space-y-3">{assigned.map(renderAssignment)}</div></div>

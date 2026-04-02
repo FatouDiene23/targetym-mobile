@@ -167,13 +167,13 @@ function ResourcePlayerModal({ resource, onClose }: { resource: Resource; onClos
           {/* Lien externe */}
           {resource.resource_type === 'link' && resource.video_url && (
             <div className="p-6 text-center">
-              <div className="bg-blue-50 rounded-xl p-8">
-                <Link2 className="w-12 h-12 text-blue-400 mx-auto mb-4" />
+              <div className="bg-primary-50 rounded-xl p-8">
+                <Link2 className="w-12 h-12 text-primary-400 mx-auto mb-4" />
                 <a
                   href={resource.video_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+                  className="inline-flex items-center gap-2 px-5 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors"
                 >
                   Ouvrir le lien <ExternalLink className="w-4 h-4" />
                 </a>
@@ -318,7 +318,7 @@ function ResourceFormModal({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[95vh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-            <PlayCircle className="w-5 h-5 text-blue-600" />
+            <PlayCircle className="w-5 h-5 text-primary-600" />
             {resource ? 'Modifier la ressource' : 'Ajouter une ressource'}
           </h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
@@ -327,7 +327,7 @@ function ResourceFormModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
             <input
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-200"
               value={form.title}
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
               placeholder="Titre de la ressource"
@@ -336,7 +336,7 @@ function ResourceFormModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
             <textarea
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-primary-200"
               rows={3}
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
@@ -347,7 +347,7 @@ function ResourceFormModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
               <select
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-200"
                 value={form.resource_type}
                 onChange={e => setForm(f => ({ ...f, resource_type: e.target.value as 'video' | 'pdf' | 'link' | 'article' }))}
               >
@@ -360,7 +360,7 @@ function ResourceFormModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
               <select
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-200"
                 value={form.category_id}
                 onChange={e => setForm(f => ({ ...f, category_id: e.target.value }))}
               >
@@ -379,11 +379,11 @@ function ResourceFormModal({
               {form.resource_type === 'video' && (
                 <div className="flex rounded-md border border-gray-200 overflow-hidden text-xs">
                   <button type="button" onClick={() => { setVideoMode('url'); setForm(f => ({ ...f, video_url: '' })); }}
-                    className={`flex items-center gap-1 px-2 py-1 transition-colors ${videoMode === 'url' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+                    className={`flex items-center gap-1 px-2 py-1 transition-colors ${videoMode === 'url' ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
                     <Link className="w-3 h-3" /> URL
                   </button>
                   <button type="button" onClick={() => { setVideoMode('upload'); setForm(f => ({ ...f, video_url: '' })); }}
-                    className={`flex items-center gap-1 px-2 py-1 transition-colors ${videoMode === 'upload' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+                    className={`flex items-center gap-1 px-2 py-1 transition-colors ${videoMode === 'upload' ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
                     <Upload className="w-3 h-3" /> Upload
                   </button>
                 </div>
@@ -391,9 +391,9 @@ function ResourceFormModal({
             </div>
             {form.resource_type === 'video' && videoMode === 'upload' ? (
               <>
-                <label className={`flex flex-col items-center justify-center w-full h-16 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${uploadingVideo ? 'border-blue-300 bg-blue-50' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'}`}>
+                <label className={`flex flex-col items-center justify-center w-full h-16 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${uploadingVideo ? 'border-primary-300 bg-primary-50' : 'border-gray-300 hover:border-primary-400 hover:bg-primary-50'}`}>
                   {uploadingVideo ? (
-                    <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                    <Loader2 className="w-5 h-5 text-primary-500 animate-spin" />
                   ) : (
                     <>
                       <Upload className="w-4 h-4 text-gray-400" />
@@ -412,7 +412,7 @@ function ResourceFormModal({
               </>
             ) : (
               <input
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-200"
                 value={form.video_url}
                 onChange={e => setForm(f => ({ ...f, video_url: e.target.value }))}
                 placeholder={form.resource_type === 'video' ? 'https://youtube.com/watch?v=... ou https://vimeo.com/...' : 'https://'}
@@ -420,7 +420,7 @@ function ResourceFormModal({
             )}
             {form.resource_type === 'pdf' && (
               <input
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200 mt-2"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-200 mt-2"
                 value={form.file_url}
                 onChange={e => setForm(f => ({ ...f, file_url: e.target.value }))}
                 placeholder="URL directe du PDF"
@@ -433,7 +433,7 @@ function ResourceFormModal({
               <input
                 type="number"
                 min="0"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-200"
                 value={form.duration_minutes}
                 onChange={e => setForm(f => ({ ...f, duration_minutes: e.target.value }))}
                 placeholder="ex: 15"
@@ -446,14 +446,14 @@ function ResourceFormModal({
                   <button
                     type="button"
                     onClick={() => setThumbMode('url')}
-                    className={`flex items-center gap-1 px-2 py-1 transition-colors ${thumbMode === 'url' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                    className={`flex items-center gap-1 px-2 py-1 transition-colors ${thumbMode === 'url' ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
                   >
                     <Link className="w-3 h-3" /> URL
                   </button>
                   <button
                     type="button"
                     onClick={() => setThumbMode('upload')}
-                    className={`flex items-center gap-1 px-2 py-1 transition-colors ${thumbMode === 'upload' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                    className={`flex items-center gap-1 px-2 py-1 transition-colors ${thumbMode === 'upload' ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
                   >
                     <Upload className="w-3 h-3" /> Upload
                   </button>
@@ -461,15 +461,15 @@ function ResourceFormModal({
               </div>
               {thumbMode === 'url' ? (
                 <input
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-200"
                   value={form.thumbnail_url}
                   onChange={e => setForm(f => ({ ...f, thumbnail_url: e.target.value }))}
                   placeholder="https://..."
                 />
               ) : (
-                <label className={`flex flex-col items-center justify-center w-full h-16 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${uploadingThumb ? 'border-blue-300 bg-blue-50' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'}`}>
+                <label className={`flex flex-col items-center justify-center w-full h-16 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${uploadingThumb ? 'border-primary-300 bg-primary-50' : 'border-gray-300 hover:border-primary-400 hover:bg-primary-50'}`}>
                   {uploadingThumb ? (
-                    <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                    <Loader2 className="w-5 h-5 text-primary-500 animate-spin" />
                   ) : (
                     <>
                       <Upload className="w-4 h-4 text-gray-400" />
@@ -505,7 +505,7 @@ function ResourceFormModal({
               id="is_published"
               checked={form.is_published}
               onChange={e => setForm(f => ({ ...f, is_published: e.target.checked }))}
-              className="w-4 h-4 accent-blue-600"
+              className="w-4 h-4 accent-primary-600"
             />
             <label htmlFor="is_published" className="text-sm text-gray-700">Publier la ressource</label>
           </div>
@@ -515,7 +515,7 @@ function ResourceFormModal({
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg disabled:opacity-60"
+            className="flex items-center gap-2 px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm rounded-lg disabled:opacity-60"
           >
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
             {resource ? 'Enregistrer' : 'Ajouter'}
@@ -584,7 +584,7 @@ function CategoryFormModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
             <input
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-200"
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="ex: Onboarding, Sécurité, Management…"
@@ -593,7 +593,7 @@ function CategoryFormModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
             <textarea
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-primary-200"
               rows={2}
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
@@ -602,14 +602,14 @@ function CategoryFormModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Image (URL)</label>
             <input
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-200"
               value={form.cover_image_url}
               onChange={e => setForm(f => ({ ...f, cover_image_url: e.target.value }))}
               placeholder="https://..."
             />
           </div>
           <div className="flex items-center gap-3">
-            <input type="checkbox" id="cat_pub" checked={form.is_published} onChange={e => setForm(f => ({ ...f, is_published: e.target.checked }))} className="w-4 h-4 accent-blue-600" />
+            <input type="checkbox" id="cat_pub" checked={form.is_published} onChange={e => setForm(f => ({ ...f, is_published: e.target.checked }))} className="w-4 h-4 accent-primary-600" />
             <label htmlFor="cat_pub" className="text-sm text-gray-700">Catégorie visible</label>
           </div>
         </div>
@@ -618,7 +618,7 @@ function CategoryFormModal({
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg disabled:opacity-60"
+            className="flex items-center gap-2 px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm rounded-lg disabled:opacity-60"
           >
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
             Enregistrer
@@ -720,7 +720,7 @@ export default function ResourcesPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <PlayCircle className="w-7 h-7 text-blue-600" />
+            <PlayCircle className="w-7 h-7 text-primary-600" />
             Ressources de formation
           </h1>
           <p className="text-sm text-gray-500 mt-1">{resources.length} ressource{resources.length !== 1 ? 's' : ''} disponible{resources.length !== 1 ? 's' : ''}</p>
@@ -739,7 +739,7 @@ export default function ResourcesPage() {
           {isAdmin && (
             <button
               onClick={() => setEditResource('new')}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-xl shadow-sm"
             >
               <Plus className="w-4 h-4" /> Ajouter
             </button>
@@ -754,7 +754,7 @@ export default function ResourcesPage() {
             <h3 className="text-sm font-semibold text-gray-700">Gestion des catégories</h3>
             <button
               onClick={() => setEditCategory('new')}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100"
             >
               <Plus className="w-3 h-3" /> Nouvelle catégorie
             </button>
@@ -767,7 +767,7 @@ export default function ResourcesPage() {
                   <p className="text-xs text-gray-500">{cat.resource_count} ressource{cat.resource_count !== 1 ? 's' : ''}</p>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => setEditCategory(cat)} className="p-1.5 hover:bg-blue-50 text-blue-500 rounded-lg">
+                  <button onClick={() => setEditCategory(cat)} className="p-1.5 hover:bg-primary-50 text-primary-500 rounded-lg">
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
                   <button onClick={() => setDeleteCategory(cat)} className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg">
@@ -788,7 +788,7 @@ export default function ResourcesPage() {
         <div className="flex-1 relative min-w-[200px] max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
-            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-200 bg-white"
+            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-200 bg-white"
             placeholder="Rechercher une ressource…"
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -797,7 +797,7 @@ export default function ResourcesPage() {
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setActiveTab(null)}
-            className={`px-3 py-1.5 text-sm rounded-xl transition-colors ${activeTab === null ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+            className={`px-3 py-1.5 text-sm rounded-xl transition-colors ${activeTab === null ? 'bg-primary-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
           >
             Tout ({resources.length})
           </button>
@@ -805,7 +805,7 @@ export default function ResourcesPage() {
             <button
               key={cat.id}
               onClick={() => setActiveTab(cat.id)}
-              className={`px-3 py-1.5 text-sm rounded-xl transition-colors ${activeTab === cat.id ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+              className={`px-3 py-1.5 text-sm rounded-xl transition-colors ${activeTab === cat.id ? 'bg-primary-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
             >
               {cat.name} ({cat.resource_count})
             </button>
@@ -823,7 +823,7 @@ export default function ResourcesPage() {
       {/* Contenu */}
       {loading ? (
         <div className="flex justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
@@ -832,7 +832,7 @@ export default function ResourcesPage() {
           {isAdmin && (
             <button
               onClick={() => setEditResource('new')}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white text-sm rounded-xl hover:bg-blue-700"
+              className="mt-4 px-4 py-2 bg-primary-600 text-white text-sm rounded-xl hover:bg-primary-700"
             >
               Ajouter la première ressource
             </button>
@@ -882,7 +882,7 @@ export default function ResourcesPage() {
 
                 {/* Infos */}
                 <div className="p-4 flex-1 flex flex-col">
-                  <p className="text-sm font-semibold text-gray-800 line-clamp-2 mb-1 group-hover:text-blue-700 transition-colors">
+                  <p className="text-sm font-semibold text-gray-800 line-clamp-2 mb-1 group-hover:text-primary-700 transition-colors">
                     {r.title}
                   </p>
                   {r.description && (
@@ -897,7 +897,7 @@ export default function ResourcesPage() {
                     </div>
                     {isAdmin && (
                       <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => setEditResource(r)} className="p-1 hover:bg-blue-50 text-blue-500 rounded"><Pencil className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => setEditResource(r)} className="p-1 hover:bg-primary-50 text-primary-500 rounded"><Pencil className="w-3.5 h-3.5" /></button>
                         <button onClick={() => setDeleteResource(r)} className="p-1 hover:bg-red-50 text-red-500 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     )}

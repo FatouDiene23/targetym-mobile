@@ -71,7 +71,7 @@ function NewRunModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">Année *</label>
               <input
                 type="number"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={year}
                 onChange={e => setYear(parseInt(e.target.value))}
                 min={2020}
@@ -82,7 +82,7 @@ function NewRunModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Mois *</label>
               <select
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={month}
                 onChange={e => setMonth(parseInt(e.target.value))}
               >
@@ -95,7 +95,7 @@ function NewRunModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
             <textarea
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               rows={2}
               value={notes}
               onChange={e => setNotes(e.target.value)}
@@ -113,7 +113,7 @@ function NewRunModal({
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-60"
+              className="px-5 py-2 text-sm text-white bg-primary-600 rounded-lg hover:bg-primary-700 flex items-center gap-2 disabled:opacity-60"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               Créer le run
@@ -173,7 +173,7 @@ function ConfigModal({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
         <div className="flex items-center justify-between p-5 border-b">
           <h2 className="font-semibold text-gray-800 text-lg flex items-center gap-2">
-            <Settings className="w-5 h-5 text-blue-600" />
+            <Settings className="w-5 h-5 text-primary-600" />
             Configuration paie
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -190,7 +190,7 @@ function ConfigModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">NINEA</label>
               <input
                 type="text"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={form.ninea}
                 onChange={e => set('ninea', e.target.value)}
                 placeholder="Ex: 00123456 7Z1"
@@ -200,7 +200,7 @@ function ConfigModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">N° IPRES Employeur</label>
               <input
                 type="text"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={form.ipres_employer_number}
                 onChange={e => set('ipres_employer_number', e.target.value)}
                 placeholder="Ex: A012345"
@@ -213,7 +213,7 @@ function ConfigModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">N° CSS Employeur</label>
               <input
                 type="text"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={form.css_employer_number}
                 onChange={e => set('css_employer_number', e.target.value)}
                 placeholder="Ex: CSS-00456"
@@ -223,7 +223,7 @@ function ConfigModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">Convention collective</label>
               <input
                 type="text"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={form.convention_collective}
                 onChange={e => set('convention_collective', e.target.value)}
                 placeholder="Ex: Convention nationale"
@@ -234,7 +234,7 @@ function ConfigModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Adresse de l'entreprise</label>
             <textarea
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               rows={2}
               value={form.company_address}
               onChange={e => set('company_address', e.target.value)}
@@ -253,7 +253,7 @@ function ConfigModal({
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-60"
+              className="px-5 py-2 text-sm text-white bg-primary-600 rounded-lg hover:bg-primary-700 flex items-center gap-2 disabled:opacity-60"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               Enregistrer
@@ -355,7 +355,7 @@ export default function RunsPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              <PlayCircle className="w-6 h-6 text-blue-600" />
+              <PlayCircle className="w-6 h-6 text-primary-600" />
               Runs de paie
             </h1>
             <p className="text-sm text-gray-500 mt-1">
@@ -372,7 +372,7 @@ export default function RunsPage() {
             </button>
             <button
               onClick={() => setModalOpen(true)}
-              className="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              className="flex items-center gap-2 bg-primary-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-700 transition"
             >
               <Plus className="w-4 h-4" />
               Nouveau run
@@ -454,7 +454,7 @@ export default function RunsPage() {
                   {(run.status === 'simulation' || run.status === 'validated') && (
                     <button
                       onClick={() => router.push(`/dashboard/paie/runs/${run.id}/recap`)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition"
                       title="Voir les bulletins"
                     >
                       <Eye className="w-3.5 h-3.5" />

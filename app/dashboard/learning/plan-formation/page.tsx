@@ -2212,7 +2212,7 @@ function ActionsTab({ actions, canManage, currency, onAddAction, onEditAction, o
                       <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => onEditAction(action)}
-                          className="p-1.5 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600 transition-colors"
+                          className="p-1.5 hover:bg-primary-50 rounded-lg text-gray-400 hover:text-primary-600 transition-colors"
                           title="Modifier"
                         >
                           <Edit className="w-4 h-4" />

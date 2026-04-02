@@ -195,7 +195,7 @@ export default function TalentsDashboard() {
 
 function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) {
   const colors: Record<string, { bg: string; text: string }> = {
-    blue: { bg: 'bg-blue-100', text: 'text-blue-600' },
+    blue: { bg: 'bg-primary-100', text: 'text-primary-600' },
     green: { bg: 'bg-green-100', text: 'text-green-600' },
     emerald: { bg: 'bg-emerald-100', text: 'text-emerald-600' },
     red: { bg: 'bg-red-100', text: 'text-red-600' },

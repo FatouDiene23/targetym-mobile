@@ -113,7 +113,7 @@ function SkillCard({ skill }: { skill: SkillScore }) {
           {/* 3 sub-scores */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'Formations', value: skill.formations_score, icon: BookOpen, color: 'text-blue-500' },
+              { label: 'Formations', value: skill.formations_score, icon: BookOpen, color: 'text-primary-500' },
               { label: 'Performance', value: skill.performance_score, icon: TrendingUp, color: 'text-indigo-500' },
               { label: 'Attitude',  value: skill.attitude_score, icon: Heart, color: 'text-rose-500' },
             ].map(({ label, value, icon: Ic, color }) => (

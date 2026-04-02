@@ -446,7 +446,7 @@ export default function PeopleAnalyticsPage() {
   ) => (
     <div
       onClick={onClick}
-      className={`bg-white rounded-xl border p-5 ${onClick ? "cursor-pointer hover:shadow-md hover:border-blue-200 transition-all" : ""}`}
+      className={`bg-white rounded-xl border p-5 ${onClick ? "cursor-pointer hover:shadow-md hover:border-primary-200 transition-all" : ""}`}
     >
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm text-gray-500">{label}</span>
@@ -527,8 +527,8 @@ export default function PeopleAnalyticsPage() {
         {renderKPICard(
           "Effectif total",
           overview?.total_employees ?? "—",
-          <Users size={20} className="text-blue-600" />,
-          "bg-blue-50",
+          <Users size={20} className="text-primary-600" />,
+          "bg-primary-50",
           `${overview?.entries ?? 0} entrées / ${overview?.exits ?? 0} sorties`,
           () => setActiveTab(1)
         )}
@@ -666,7 +666,7 @@ export default function PeopleAnalyticsPage() {
         {[
           { label: "Turnover", value: `${overview?.turnover ?? "—"}%`, gradient: "from-red-500 to-orange-500", icon: <TrendingDown size={24} /> },
           { label: "Rétention", value: `${overview?.retention ?? "—"}%`, gradient: "from-green-500 to-emerald-500", icon: <Shield size={24} /> },
-          { label: "Parité H/F", value: `${overview?.pct_hommes ?? "—"}/${overview?.pct_femmes ?? "—"}`, gradient: "from-blue-500 to-indigo-500", icon: <Users size={24} /> },
+          { label: "Parité H/F", value: `${overview?.pct_hommes ?? "—"}/${overview?.pct_femmes ?? "—"}`, gradient: "from-primary-500 to-indigo-500", icon: <Users size={24} /> },
           { label: "Absentéisme", value: `${overview?.absenteeism ?? "—"}%`, gradient: "from-amber-500 to-yellow-500", icon: <Clock size={24} /> },
         ].map((m, i) => (
           <div key={i} className={`bg-gradient-to-br ${m.gradient} rounded-xl p-5 text-white`}>
@@ -690,7 +690,7 @@ export default function PeopleAnalyticsPage() {
       
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-3">
-        {renderKPICard("Effectif total", overview?.total_employees ?? "—", <Users size={20} className="text-blue-600" />, "bg-blue-50")}
+        {renderKPICard("Effectif total", overview?.total_employees ?? "—", <Users size={20} className="text-primary-600" />, "bg-primary-50")}
         {renderKPICard("Entrées", overview?.entries ?? "—", <UserPlus size={20} className="text-green-600" />, "bg-green-50", "Sur la période")}
         {renderKPICard("Sorties", overview?.exits ?? "—", <UserMinus size={20} className="text-red-600" />, "bg-red-50", "Sur la période")}
         {renderKPICard("Turnover", `${overview?.turnover ?? "—"}%`, <TrendingDown size={20} className="text-orange-600" />, "bg-orange-50")}
@@ -804,8 +804,8 @@ export default function PeopleAnalyticsPage() {
         {renderKPICard(
           "Score moyen (évals)",
           hasEvals ? `${perfOverview.avg_score} / 5` : "—",
-          <Award size={20} className="text-blue-600" />,
-          "bg-blue-50",
+          <Award size={20} className="text-primary-600" />,
+          "bg-primary-50",
           hasEvals ? `${perfOverview.total_evals} évaluations` : "Aucune évaluation"
         )}
         {renderKPICard(
@@ -889,7 +889,7 @@ export default function PeopleAnalyticsPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { label: "On Track", value: okr.on_track, color: "text-green-600 bg-green-50", border: "border-green-200" },
-              { label: "Complétés", value: okr.completed, color: "text-blue-600 bg-blue-50", border: "border-blue-200" },
+              { label: "Complétés", value: okr.completed, color: "text-primary-600 bg-primary-50", border: "border-primary-200" },
               { label: "À risque", value: okr.at_risk, color: "text-amber-600 bg-amber-50", border: "border-amber-200" },
               { label: "Total actifs", value: okr.total, color: "text-gray-600 bg-gray-50", border: "border-gray-200" },
             ].map((item, i) => (
@@ -927,7 +927,7 @@ export default function PeopleAnalyticsPage() {
                     <td className="py-3 text-center">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         m.score >= 4 ? "bg-green-100 text-green-700" :
-                        m.score >= 3 ? "bg-blue-100 text-blue-700" :
+                        m.score >= 3 ? "bg-primary-100 text-primary-700" :
                         "bg-amber-100 text-amber-700"
                       }`}>
                         {m.score} / 5
@@ -974,7 +974,7 @@ export default function PeopleAnalyticsPage() {
         {renderKPICard(
           "Hauts potentiels",
           hasNinebox ? highPotential : "—",
-          <Zap size={20} className="text-blue-600" />, "bg-blue-50"
+          <Zap size={20} className="text-primary-600" />, "bg-primary-50"
         )}
         {renderKPICard(
           "Piliers",
@@ -1095,8 +1095,8 @@ export default function PeopleAnalyticsPage() {
         {renderKPICard(
           "Taux de complétion",
           fo ? `${fo.completion_rate}%` : "—",
-          <Target size={20} className="text-blue-600" />,
-          "bg-blue-50",
+          <Target size={20} className="text-primary-600" />,
+          "bg-primary-50",
           fo ? `${fo.completed} / ${fo.total_assignments} formations` : undefined
         )}
         {renderKPICard(
@@ -1183,7 +1183,7 @@ export default function PeopleAnalyticsPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { label: "Complétées", value: fo.completed, color: "bg-green-500", pct: fo.total_assignments > 0 ? Math.round(fo.completed / fo.total_assignments * 100) : 0 },
-              { label: "En cours", value: fo.in_progress, color: "bg-blue-500", pct: fo.total_assignments > 0 ? Math.round(fo.in_progress / fo.total_assignments * 100) : 0 },
+              { label: "En cours", value: fo.in_progress, color: "bg-primary-500", pct: fo.total_assignments > 0 ? Math.round(fo.in_progress / fo.total_assignments * 100) : 0 },
               { label: "Cours disponibles", value: fo.total_courses, color: "bg-purple-500", pct: 100 },
               { label: "Total assignées", value: fo.total_assignments, color: "bg-gray-400", pct: 100 },
             ].map((item, i) => (
@@ -1327,8 +1327,8 @@ export default function PeopleAnalyticsPage() {
         {renderKPICard(
           "Taux de participation",
           `${participationRate}%`,
-          <Users size={20} className="text-blue-600" />,
-          "bg-blue-50",
+          <Users size={20} className="text-primary-600" />,
+          "bg-primary-50",
           `${totalCompleted}/${totalInvited} réponses`
         )}
         {renderKPICard(
@@ -1499,7 +1499,7 @@ export default function PeopleAnalyticsPage() {
         {renderKPICard(
           "Postes ouverts",
           stats?.open_positions ?? "8",
-          <Briefcase size={20} className="text-blue-600" />, "bg-blue-50"
+          <Briefcase size={20} className="text-primary-600" />, "bg-primary-50"
         )}
         {renderKPICard(
           "Candidats actifs",
@@ -1601,7 +1601,7 @@ export default function PeopleAnalyticsPage() {
                   <td className="py-3 text-center">
                     <div className="flex items-center gap-2 justify-center">
                       <div className="w-16 h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full bg-blue-500" style={{ width: `${Math.min(s.percentage ?? s.qualite, 100)}%` }} />
+                        <div className="h-full rounded-full bg-primary-500" style={{ width: `${Math.min(s.percentage ?? s.qualite, 100)}%` }} />
                       </div>
                       <span className="text-xs">{s.percentage ?? s.qualite}%</span>
                     </div>
@@ -1629,8 +1629,8 @@ export default function PeopleAnalyticsPage() {
         {renderKPICard(
           "Masse annuelle",
           salaireOverview ? `${formatXOF(salaireOverview.masse_annuelle)} XOF` : "—",
-          <Banknote size={20} className="text-blue-600" />,
-          "bg-blue-50",
+          <Banknote size={20} className="text-primary-600" />,
+          "bg-primary-50",
           salaireOverview ? `${formatXOF(salaireOverview.masse_mensuelle)} XOF / mois` : undefined
         )}
         {renderKPICard(
@@ -1887,8 +1887,8 @@ export default function PeopleAnalyticsPage() {
           {renderKPICard(
             "Plans actifs",
             nbPlansActifs || "—",
-            <BookOpen size={20} className="text-blue-600" />,
-            "bg-blue-50",
+            <BookOpen size={20} className="text-primary-600" />,
+            "bg-primary-50",
             `${allPlans.length} plans au total`
           )}
           {renderKPICard(
@@ -1975,7 +1975,7 @@ export default function PeopleAnalyticsPage() {
                       </div>
                       <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-blue-500 transition-all"
+                          className="h-full rounded-full bg-primary-500 transition-all"
                           style={{ width: `${Math.min(okr.progress_current ?? 0, 100)}%` }}
                         />
                       </div>
@@ -2315,7 +2315,7 @@ export default function PeopleAnalyticsPage() {
             <select
               value={department}
               onChange={(e) => setDepartment(e.target.value)}
-              className="pl-8 pr-4 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+              className="pl-8 pr-4 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none"
             >
               <option value="">Tous les départements</option>
               {departments.map((d) => (
@@ -2332,7 +2332,7 @@ export default function PeopleAnalyticsPage() {
                 onClick={() => setPeriod(p)}
                 className={`px-3 py-2 text-sm font-medium transition-colors ${
                   period === p
-                    ? "bg-blue-600 text-white"
+                    ? "bg-primary-600 text-white"
                     : "text-gray-600 hover:bg-gray-50"
                 }`}
               >
@@ -2347,7 +2347,7 @@ export default function PeopleAnalyticsPage() {
             className="p-2 border rounded-lg hover:bg-gray-50 transition-colors"
             title="Actualiser"
           >
-            <RefreshCw size={16} className={loading ? "animate-spin text-blue-600" : "text-gray-600"} />
+            <RefreshCw size={16} className={loading ? "animate-spin text-primary-600" : "text-gray-600"} />
           </button>
 
           {/* Export buttons */}
@@ -2367,7 +2367,7 @@ export default function PeopleAnalyticsPage() {
       {/* Loading */}
       {loading && (
         <div className="flex items-center justify-center py-12">
-          <RefreshCw size={24} className="animate-spin text-blue-600" />
+          <RefreshCw size={24} className="animate-spin text-primary-600" />
           <span className="ml-3 text-gray-500">Chargement des données...</span>
         </div>
       )}

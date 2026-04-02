@@ -491,7 +491,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <FileText className="w-5 h-5 text-blue-500 mb-2" />
+            <FileText className="w-5 h-5 text-primary-500 mb-2" />
             <p className="text-2xl font-bold text-gray-900">{stats.total_documents}</p>
             <p className="text-xs text-gray-500">Documents</p>
           </div>
@@ -618,7 +618,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
         </div>
         <button
           onClick={() => setShowUpload(!showUpload)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
+          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700"
         >
           <Plus className="w-4 h-4" />
           Ajouter un document
@@ -627,14 +627,14 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
 
       {/* Upload Form */}
       {showUpload && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4">
+        <div className="bg-primary-50 border border-primary-200 rounded-xl p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="font-semibold text-blue-900 flex items-center gap-2">
+            <h4 className="font-semibold text-primary-900 flex items-center gap-2">
               <Upload className="w-4 h-4" />
               Upload rapide
             </h4>
             <button onClick={() => { setShowUpload(false); setUploadError(''); setUploadSuccess(''); }}>
-              <X className="w-5 h-5 text-blue-400 hover:text-blue-600" />
+              <X className="w-5 h-5 text-primary-400 hover:text-primary-600" />
             </button>
           </div>
 
@@ -657,7 +657,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
                 onChange={e => { setEmployeeSearch(e.target.value); setShowEmployeeDropdown(true); }}
                 onFocus={() => setShowEmployeeDropdown(true)}
                 placeholder="Rechercher un employé..."
-                className="w-full pl-9 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none"
+                className="w-full pl-9 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none"
               />
               {uploadEmployeeId && (
                 <button
@@ -678,7 +678,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
                       setEmployeeSearch(`${emp.first_name} ${emp.last_name}`);
                       setShowEmployeeDropdown(false);
                     }}
-                    className="w-full text-left px-4 py-2.5 hover:bg-blue-50 flex items-center justify-between text-sm"
+                    className="w-full text-left px-4 py-2.5 hover:bg-primary-50 flex items-center justify-between text-sm"
                   >
                     <div>
                       <span className="font-medium text-gray-900">{emp.first_name} {emp.last_name}</span>
@@ -754,7 +754,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
             <div className="flex items-end justify-end gap-2">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm border rounded-lg ${uploadFile ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-300 hover:bg-gray-50'}`}
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm border rounded-lg ${uploadFile ? 'border-primary-300 bg-primary-50 text-primary-700' : 'border-gray-300 hover:bg-gray-50'}`}
               >
                 {uploadFile ? (
                   <>
@@ -772,7 +772,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
               <button
                 onClick={handleUpload}
                 disabled={uploading || !uploadFile || !uploadTitle || !uploadEmployeeId}
-                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50"
               >
                 {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                 {uploading ? 'Upload...' : 'Uploader'}
@@ -797,7 +797,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   placeholder="Rechercher par titre, nom d'employé ou fichier..."
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none text-sm"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none text-sm"
                 />
               </div>
               <select
@@ -841,14 +841,14 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             {loading ? (
               <div className="py-16 flex justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
               </div>
             ) : documents.length === 0 ? (
               <div className="py-16 text-center">
                 <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                 <p className="text-gray-500 mb-2">Aucun document trouvé</p>
                 {hasFilters && (
-                  <button onClick={resetFilters} className="text-sm text-blue-600 hover:text-blue-800">
+                  <button onClick={resetFilters} className="text-sm text-primary-600 hover:text-primary-800">
                     Effacer les filtres
                   </button>
                 )}
@@ -863,7 +863,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
                     <button onClick={handleBulkExportDocs} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                       <Download className="w-3.5 h-3.5" />Exporter CSV
                     </button>
-                    <button onClick={handleBulkDownload} disabled={bulkLoading} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors">
+                    <button onClick={handleBulkDownload} disabled={bulkLoading} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-primary-600 bg-white border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors">
                       <Download className="w-3.5 h-3.5" />Télécharger
                     </button>
                     <button onClick={handleBulkDeleteDocs} disabled={bulkLoading} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
@@ -915,7 +915,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
                           <td className="px-4 py-3">
                             <button
                               onClick={() => onOpenEmployeeProfile?.(doc.employee_id)}
-                              className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                              className="text-sm text-primary-600 hover:text-primary-800 hover:underline font-medium"
                             >
                               {doc.employee_name}
                             </button>
@@ -956,7 +956,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
                               <button
                                 onClick={() => handleDownload(doc)}
                                 disabled={downloading === doc.id}
-                                className="p-1.5 hover:bg-blue-100 rounded text-blue-600"
+                                className="p-1.5 hover:bg-primary-100 rounded text-primary-600"
                                 title="Télécharger"
                               >
                                 {downloading === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
@@ -1028,7 +1028,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile }: HRDocumentsTab
                       onClick={() => setTypeFilter(item.type)}
                       className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border transition-colors text-left ${
                         typeFilter === item.type
-                          ? 'border-blue-300 bg-blue-50'
+                          ? 'border-primary-300 bg-primary-50'
                           : 'border-gray-200 hover:bg-gray-50'
                       }`}
                     >

@@ -353,7 +353,7 @@ export default function SignaturesPage() {
             <button
               key={s}
               onClick={() => setFilterStatus(s)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition ${filterStatus === s ? 'bg-blue-600 text-white border-blue-600' : 'text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition ${filterStatus === s ? 'bg-primary-600 text-white border-primary-600' : 'text-gray-600 border-gray-200 hover:bg-gray-50'}`}
             >
               {s === 'all' ? 'Tous' : STATUS_CONFIG[s as DocStatus]?.label ?? s}
             </button>
@@ -361,7 +361,7 @@ export default function SignaturesPage() {
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition shadow-sm"
+          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-xl hover:bg-primary-700 transition shadow-sm"
         >
           <Plus className="w-4 h-4" />
           Nouveau document
@@ -388,8 +388,8 @@ export default function SignaturesPage() {
               <div key={doc.id} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
                 {/* Row */}
                 <div className="flex items-center gap-4 p-4">
-                  <div className="flex-shrink-0 w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-blue-600" />
+                  <div className="flex-shrink-0 w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-primary-600" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 truncate">{doc.title}</p>
@@ -409,7 +409,7 @@ export default function SignaturesPage() {
                     {/* Actions */}
                     {doc.status === 'draft' && (
                       <>
-                        <button onClick={() => handleSend(doc.id)} title="Envoyer" className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"><Send className="w-4 h-4" /></button>
+                        <button onClick={() => handleSend(doc.id)} title="Envoyer" className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-lg transition"><Send className="w-4 h-4" /></button>
                         <button onClick={() => handleDelete(doc.id)} title="Supprimer" className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
                       </>
                     )}
@@ -469,7 +469,7 @@ export default function SignaturesPage() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-4">
             <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-white rounded-t-2xl">
               <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                <Plus className="w-5 h-5 text-blue-600" />
+                <Plus className="w-5 h-5 text-primary-600" />
                 Nouveau document à signer
               </h3>
               <button onClick={() => { setShowCreateModal(false); setSigSearch(''); setSigDropOpen(false); setSelectedSignatories([]); }} className="text-gray-400 hover:text-gray-600">
@@ -485,7 +485,7 @@ export default function SignaturesPage() {
                   value={createForm.title}
                   onChange={e => setCreateForm(f => ({ ...f, title: e.target.value }))}
                   placeholder="Ex: Contrat CDI – Jean Dupont"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                 />
               </div>
 
@@ -495,7 +495,7 @@ export default function SignaturesPage() {
                 <select
                   value={createForm.document_type}
                   onChange={e => setCreateForm(f => ({ ...f, document_type: e.target.value as DocType }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                 >
                   {Object.entries(DOC_TYPE_LABELS).map(([k, v]) => (
                     <option key={k} value={k}>{v}</option>
@@ -518,7 +518,7 @@ export default function SignaturesPage() {
                   ) : (
                     <>
                       <FileText className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                      <label className="cursor-pointer text-sm text-blue-600 hover:underline">
+                      <label className="cursor-pointer text-sm text-primary-600 hover:underline">
                         Sélectionner un PDF
                         <input type="file" accept="application/pdf" className="hidden" onChange={handleFileChange} />
                       </label>
@@ -535,7 +535,7 @@ export default function SignaturesPage() {
                   onChange={e => setCreateForm(f => ({ ...f, description: e.target.value }))}
                   rows={2}
                   placeholder="Description optionnelle..."
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                 />
               </div>
 
@@ -546,7 +546,7 @@ export default function SignaturesPage() {
                   type="date"
                   value={createForm.expires_at}
                   onChange={e => setCreateForm(f => ({ ...f, expires_at: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                 />
               </div>
 
@@ -555,7 +555,7 @@ export default function SignaturesPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Signataires
                   {selectedSignatories.length > 0 && (
-                    <span className="ml-2 text-xs font-normal text-blue-600">{selectedSignatories.length} sélectionné(s)</span>
+                    <span className="ml-2 text-xs font-normal text-primary-600">{selectedSignatories.length} sélectionné(s)</span>
                   )}
                 </label>
 
@@ -568,16 +568,16 @@ export default function SignaturesPage() {
                       return (
                         <span
                           key={id}
-                          className="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-800 text-xs px-2.5 py-1 rounded-full"
+                          className="inline-flex items-center gap-1.5 bg-primary-50 border border-primary-200 text-primary-800 text-xs px-2.5 py-1 rounded-full"
                         >
-                          <span className="w-4 h-4 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                          <span className="w-4 h-4 bg-primary-200 text-primary-700 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0">
                             {idx + 1}
                           </span>
                           {emp.first_name} {emp.last_name}
                           <button
                             type="button"
                             onClick={() => removeSignatory(id)}
-                            className="text-blue-400 hover:text-blue-700 ml-0.5"
+                            className="text-primary-400 hover:text-primary-700 ml-0.5"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -596,7 +596,7 @@ export default function SignaturesPage() {
 
                 {/* Champ de recherche */}
                 <div className="relative" ref={sigSearchRef}>
-                  <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-blue-300 bg-white">
+                  <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-primary-300 bg-white">
                     <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
                     <input
                       type="text"
@@ -626,9 +626,9 @@ export default function SignaturesPage() {
                             key={emp.id}
                             type="button"
                             onMouseDown={e => { e.preventDefault(); addSignatory(emp.id); setSigDropOpen(false); }}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50 text-left transition"
+                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-primary-50 text-left transition"
                           >
-                            <div className="w-7 h-7 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                            <div className="w-7 h-7 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0">
                               {emp.first_name[0]}{emp.last_name[0]}
                             </div>
                             <div className="min-w-0">
@@ -651,7 +651,7 @@ export default function SignaturesPage() {
                 <button
                   onClick={handleCreate}
                   disabled={submitting || !createForm.title || !createForm.file_data}
-                  className="px-5 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-2"
+                  className="px-5 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-2"
                 >
                   {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                   Créer le document

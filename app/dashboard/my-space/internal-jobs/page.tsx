@@ -312,8 +312,8 @@ export default function CareersPage() {
                 <p className="text-xs text-gray-500">Postes Ouverts</p>
                 <p className="text-2xl font-bold text-gray-900">{jobs.length}</p>
               </div>
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Briefcase className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                <Briefcase className="w-5 h-5 text-primary-600" />
               </div>
             </div>
           </div>
@@ -719,7 +719,7 @@ export default function CareersPage() {
                     <ul className="space-y-2">
                       {selectedJob.nice_to_have.map((r, i) => (
                         <li key={i} className="flex items-start text-gray-600">
-                          <TrendingUp className="w-4 h-4 mr-2 mt-0.5 text-blue-500 flex-shrink-0" />
+                          <TrendingUp className="w-4 h-4 mr-2 mt-0.5 text-primary-500 flex-shrink-0" />
                           {r}
                         </li>
                       ))}

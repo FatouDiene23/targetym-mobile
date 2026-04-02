@@ -131,11 +131,6 @@ interface CurrentUser {
   employee_id?: number;
 }
 
-interface ValidationError {
-  msg?: string;
-  message?: string;
-}
-
 type FeedbackType = 'recognition' | 'improvement' | 'general';
 
 // =============================================
@@ -151,6 +146,16 @@ function getAuthHeaders(): HeadersInit {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
   };
+}
+
+function parseApiError(errorData: Record<string, unknown>, fallback: string): string {
+  if (typeof errorData.detail === 'string') return errorData.detail;
+  if (Array.isArray(errorData.detail)) {
+    return errorData.detail
+      .map((e: { msg?: string; message?: string }) => e.msg || e.message || JSON.stringify(e))
+      .join(', ');
+  }
+  return fallback;
 }
 
 // =============================================
@@ -200,7 +205,7 @@ async function createFeedback(data: { to_employee_id: number; type: string; mess
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      return { success: false, error: errorData.detail || 'Erreur lors de la création' };
+      return { success: false, error: parseApiError(errorData, 'Erreur lors de la création') };
     }
     return { success: true };
   } catch {
@@ -274,7 +279,7 @@ async function createCampaign(data: {
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      return { success: false, error: errorData.detail || 'Erreur lors de la création' };
+      return { success: false, error: parseApiError(errorData, 'Erreur lors de la création') };
     }
     return { success: true };
   } catch {
@@ -292,12 +297,7 @@ async function submitEvaluation(evaluationId: number, data: {
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      let errorMsg = 'Erreur lors de la soumission';
-      if (typeof errorData.detail === 'string') errorMsg = errorData.detail;
-      else if (Array.isArray(errorData.detail)) {
-        errorMsg = errorData.detail.map((e: ValidationError) => e.msg || e.message || JSON.stringify(e)).join(', ');
-      }
-      return { success: false, error: errorMsg };
+      return { success: false, error: parseApiError(errorData, 'Erreur lors de la soumission') };
     }
     return { success: true };
   } catch {
@@ -312,7 +312,7 @@ async function validateEvaluation(evaluationId: number, data: { approved: boolea
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      return { success: false, error: errorData.detail || 'Erreur lors de la validation' };
+      return { success: false, error: parseApiError(errorData, 'Erreur lors de la validation') };
     }
     return { success: true };
   } catch {
@@ -329,7 +329,7 @@ async function createOneOnOne(data: {
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      return { success: false, error: errorData.detail || 'Erreur lors de la création' };
+      return { success: false, error: parseApiError(errorData, 'Erreur lors de la création') };
     }
     return { success: true };
   } catch {
@@ -350,7 +350,7 @@ async function completeOneOnOne(id: number, data: {
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      return { success: false, error: errorData.detail || 'Erreur lors de la clôture' };
+      return { success: false, error: parseApiError(errorData, 'Erreur lors de la clôture') };
     }
     return { success: true };
   } catch {
@@ -365,7 +365,7 @@ async function patchOneOnOneTask(meetingId: number, taskId: string, status: 'pen
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      return { success: false, error: errorData.detail || 'Erreur' };
+      return { success: false, error: parseApiError(errorData, 'Erreur') };
     }
     return { success: true };
   } catch {

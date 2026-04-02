@@ -414,20 +414,20 @@ export default function AIChatBox() {
 
       {/* Fenêtre du chat */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-[420px] h-[620px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 border border-gray-200">
+        <div id="ai-chatbox" className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[85vw] h-[55vh] lg:translate-x-0 lg:left-auto lg:right-6 lg:bottom-6 lg:w-[420px] lg:h-[620px] rounded-2xl bg-white shadow-2xl flex flex-col z-50 border border-gray-200">
 
           {/* Header */}
-          <div className={`${agentMode ? 'bg-gradient-to-r from-indigo-600 to-purple-700' : 'bg-gradient-to-r from-blue-600 to-blue-700'} text-white px-5 py-4 rounded-t-2xl flex items-center justify-between`}>
-            <div className="flex items-center gap-3">
-              <div className="bg-white/20 p-2 rounded-lg">
-                {agentMode ? <Zap size={22} /> : <MessageCircle size={22} />}
+          <div className={`${agentMode ? 'bg-gradient-to-r from-indigo-600 to-purple-700' : 'bg-gradient-to-r from-blue-600 to-blue-700'} text-white px-4 py-3 lg:px-5 lg:py-4 rounded-t-2xl flex items-center justify-between`}>
+            <div className="flex items-center gap-2 lg:gap-3 min-w-0">
+              <div className="bg-white/20 p-1.5 lg:p-2 rounded-lg shrink-0">
+                {agentMode ? <Zap size={20} /> : <MessageCircle size={20} />}
               </div>
-              <div>
-                <h3 className="font-semibold text-base leading-tight">
+              <div className="min-w-0">
+                <h3 className="font-semibold text-sm lg:text-base leading-tight">
                   {agentMode ? 'Targetym AI' : 'Targetym AI'}
                 </h3>
                 {agentMode && (
-                  <p className="text-[11px] text-white/70">Génération · Prévisualisation · Insertion</p>
+                  <p className="text-[10px] lg:text-[11px] text-white/70 truncate">Génération · Prévisualisation · Insertion</p>
                 )}
               </div>
             </div>
@@ -508,7 +508,7 @@ export default function AIChatBox() {
           )}
 
           {/* Zone des messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+          <div className="flex-1 overflow-y-auto p-3 lg:p-4 space-y-3 lg:space-y-4 bg-gray-50">
             {!isEnabled && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
                 <p className="text-sm text-yellow-800 font-medium">⚠️ Chatbot non configuré</p>
@@ -519,16 +519,16 @@ export default function AIChatBox() {
             {/* ---- MODE AGENT ---- */}
             {agentMode ? (
               agentTurns.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-center px-6">
+                <div className="h-full flex items-center justify-center text-center px-4 lg:px-6">
                   <div>
-                    <div className="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Zap size={32} className="text-indigo-600" />
+                    <div className="bg-indigo-100 w-14 lg:w-16 h-14 lg:h-16 rounded-full flex items-center justify-center mx-auto mb-3 lg:mb-4">
+                      <Zap size={28} className="text-indigo-600" />
                     </div>
-                    <h4 className="font-semibold text-gray-900 mb-2">Mode Agent — {agentContext || 'Général'}</h4>
-                    <p className="text-sm text-gray-600">
-                      Décrivez ce que vous souhaitez créer. Je générerai le contenu et vous pourrez le valider avant l'insertion.
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm lg:text-base">Mode Agent — {agentContext || 'Général'}</h4>
+                    <p className="text-xs lg:text-sm text-gray-600">
+                      Décrivez ce que vous souhaitez créer. Je générerai le contenu et vous pourrez le valider avant l&apos;insertion.
                     </p>
-                    <p className="text-xs text-gray-400 mt-2">
+                    <p className="text-[11px] lg:text-xs text-gray-400 mt-2">
                       💡 Joignez un PDF pour me donner plus de contexte
                     </p>
                   </div>
@@ -583,13 +583,13 @@ export default function AIChatBox() {
             ) : (
               /* ---- MODE CLASSIQUE ---- */
               !activeConversation ? (
-                <div className="h-full flex items-center justify-center text-center px-6">
+                <div className="h-full flex items-center justify-center text-center px-4 lg:px-6">
                   <div>
-                    <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <MessageCircle size={32} className="text-blue-600" />
+                    <div className="bg-blue-100 w-14 lg:w-16 h-14 lg:h-16 rounded-full flex items-center justify-center mx-auto mb-3 lg:mb-4">
+                      <MessageCircle size={28} className="text-blue-600" />
                     </div>
-                    <h4 className="font-semibold text-gray-900 mb-2">Bonjour ! 👋</h4>
-                    <p className="text-sm text-gray-600">
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm lg:text-base">Bonjour ! 👋</h4>
+                    <p className="text-xs lg:text-sm text-gray-600">
                       Je suis votre assistant RH. Posez-moi des questions sur vos congés,
                       objectifs, tâches, ou formations !
                     </p>
@@ -670,7 +670,7 @@ export default function AIChatBox() {
           )}
 
           {/* Zone de saisie */}
-          <div className="p-4 bg-white border-t border-gray-200 rounded-b-2xl">
+          <div className="p-3 lg:p-4 bg-white border-t border-gray-200 rounded-b-2xl">
             <div className="flex items-end gap-2">
               {/* Upload PDF (mode agent seulement) */}
               {agentMode && (

@@ -105,6 +105,16 @@ body {
    RESPONSIVE MOBILE STYLES (minimal & ciblé)
    ============================================ */
 
+/* Protéger le chatbot du CSS global responsive */
+#ai-chatbox,
+#ai-chatbox * {
+  max-width: none !important;
+  min-width: unset !important;
+}
+#ai-chatbox .p-6, #ai-chatbox .p-8 {
+  padding: revert !important;
+}
+
 @media (max-width: 639px) {
   /* ===== GRIDS — 2 colonnes → 1 colonne sur petit mobile ===== */
   .grid-cols-2:not(.sm\:grid-cols-2):not(.keep-cols) {

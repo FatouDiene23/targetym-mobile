@@ -250,8 +250,10 @@ export default function SurveysPage() {
       params.set('page_size', '20');
       if (filterType) params.set('survey_type', filterType);
       if (filterStatus) params.set('status', filterStatus);
+      params.set('is_template', 'false');
       const data = await apiFetch(`/api/surveys/?${params}`);
-      const items = Array.isArray(data) ? data : data?.items ?? [];
+      const items = (Array.isArray(data) ? data : data?.items ?? [])
+        .filter((s: Survey) => !s.is_template);
       setSurveys(items);
       setTotalPages(data?.total_pages || 1);
       setTotalCount(data?.total || items.length);

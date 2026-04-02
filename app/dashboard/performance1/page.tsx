@@ -1021,7 +1021,7 @@ function EvaluationViewModal({ isOpen, onClose, evaluation }: {
                     <PolarGrid />
                     <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11 }} />
                     <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                    <Radar name="Score" dataKey="score" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
+                    <Radar name="Score" dataKey="score" stroke="#066C6C" fill="#066C6C" fillOpacity={0.5} />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>

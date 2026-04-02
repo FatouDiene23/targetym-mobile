@@ -50,7 +50,7 @@ const MODALITY_LABELS: Record<string, string> = {
   blended: 'Blended', elearning: 'E-learning', non_défini: 'Non défini',
 };
 const MODALITY_COLORS: Record<string, string> = {
-  presentiel: '#8B5CF6', distanciel: '#3B82F6', blended: '#10B981',
+  presentiel: '#8B5CF6', distanciel: '#066C6C', blended: '#0AAE8E',
   elearning: '#F59E0B', non_défini: '#9CA3AF',
 };
 const STATUS_LABEL: Record<string, string> = {
@@ -188,7 +188,7 @@ export default function AnalyticsPage() {
               <h3 className="font-semibold text-gray-900 mb-4">Heures de Formation par Mois</h3>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyStats}><XAxis dataKey="month" /><YAxis /><Tooltip /><Bar dataKey="hours" fill="#3B82F6" radius={[4, 4, 0, 0]} /></BarChart>
+                  <BarChart data={monthlyStats}><XAxis dataKey="month" /><YAxis /><Tooltip /><Bar dataKey="hours" fill="#066C6C" radius={[4, 4, 0, 0]} /></BarChart>
                 </ResponsiveContainer>
               </div>
             </div>

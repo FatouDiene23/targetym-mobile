@@ -335,10 +335,10 @@ export default function AppTour({ steps, isOpen, onComplete, onSkip }: Readonly<
             className="app-tour-spotlight"
             style={{
               ...spotlightStyles,
-              border: '4px solid #3b82f6',
+              border: '4px solid #066C6C',
               borderRadius: '12px',
               backgroundColor: 'transparent',
-              boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.8), inset 0 0 30px rgba(59, 130, 246, 0.15)',
+              boxShadow: '0 0 0 4px rgba(6, 108, 108, 0.4), 0 0 40px rgba(6, 108, 108, 0.8), inset 0 0 30px rgba(6, 108, 108, 0.15)',
               transition: 'all 0.4s ease',
               animation: 'pulse-border 2s ease-in-out infinite',
             }}

@@ -117,8 +117,8 @@ function SlipLinesModal({
     .page { max-width: 720px; margin: 0 auto; }
 
     /* En-tête employeur / titre */
-    .slip-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1d4ed8; padding-bottom: 14px; margin-bottom: 16px; }
-    .company-block h1 { font-size: 16px; font-weight: 800; color: #1d4ed8; margin: 0 0 4px; }
+    .slip-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #044e4e; padding-bottom: 14px; margin-bottom: 16px; }
+    .company-block h1 { font-size: 16px; font-weight: 800; color: #044e4e; margin: 0 0 4px; }
     .company-block p { margin: 0; font-size: 11px; color: #6b7280; line-height: 1.5; }
     .slip-title { text-align: right; }
     .slip-title h2 { font-size: 18px; font-weight: 800; color: #1f2937; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -138,15 +138,15 @@ function SlipLinesModal({
     /* Récapitulatif */
     .summary { background: #f9fafb; border-radius: 8px; padding: 14px 16px; font-size: 13px; }
     .summary-row { display: flex; justify-content: space-between; padding: 4px 0; }
-    .summary-row.total { font-size: 16px; font-weight: 800; border-top: 2px solid #1d4ed8; margin-top: 10px; padding-top: 10px; color: #1d4ed8; }
+    .summary-row.total { font-size: 16px; font-weight: 800; border-top: 2px solid #044e4e; margin-top: 10px; padding-top: 10px; color: #044e4e; }
     .summary-row.sub { font-size: 11px; color: #9ca3af; margin-top: 4px; }
     .red { color: #dc2626; } .green { color: #16a34a; }
 
     /* Pied de page */
-    .payment-row { margin-top: 14px; padding: 10px 14px; background: #eff6ff; border-radius: 8px; font-size: 12px; color: #1d4ed8; }
+    .payment-row { margin-top: 14px; padding: 10px 14px; background: #e6f5f5; border-radius: 8px; font-size: 12px; color: #044e4e; }
     .legal { margin-top: 20px; font-size: 10px; color: #9ca3af; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 10px; }
     .no-print { margin-top: 24px; text-align: center; padding-bottom: 16px; }
-    .btn-print { background: #1d4ed8; color: white; border: none; padding: 10px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-print { background: #044e4e; color: white; border: none; padding: 10px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
   </style>
 </head>
 <body>

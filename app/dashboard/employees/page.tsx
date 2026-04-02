@@ -179,7 +179,7 @@ export const LEVEL_COLOR_MAP: Record<string, string> = {
   dg:                 '#c2410c',
   dga:                '#22c55e',
   direction_centrale: '#a855f7',
-  direction:          '#3b82f6',
+  direction:          '#066C6C',
   departement:        '#fdba74',
   service:            '#6b7280',
 };

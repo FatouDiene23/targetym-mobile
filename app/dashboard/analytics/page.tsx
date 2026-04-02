@@ -62,7 +62,7 @@ const performanceByTeam = [
 
 const performanceDistribution = [
   { note: "Exceptionnel (5)", count: 28, color: "#10b981" },
-  { note: "Très bien (4)", count: 95, color: "#3b82f6" },
+  { note: "Très bien (4)", count: 95, color: "#066C6C" },
   { note: "Bien (3)", count: 89, color: "#f59e0b" },
   { note: "À améliorer (2)", count: 32, color: "#f97316" },
   { note: "Insuffisant (1)", count: 12, color: "#ef4444" },
@@ -327,15 +327,15 @@ export default function PeopleAnalyticsPage() {
       if (salaireOvRes.status === "fulfilled") setSalaireOverview(salaireOvRes.value);
       if (salaireEvolRes.status === "fulfilled") setSalaireEvolution(salaireEvolRes.value);
       if (salaireDeptRes.status === "fulfilled") {
-        const deptColors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
+        const deptColors = ["#066C6C", "#0AAE8E", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
         setSalaireByDept(salaireDeptRes.value.map((d: any, i: number) => ({ ...d, name: d.department, color: deptColors[i % deptColors.length] })));
       }
       if (salaireDistRes.status === "fulfilled") {
-        const distColors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+        const distColors = ["#066C6C", "#0AAE8E", "#f59e0b", "#ef4444", "#8b5cf6"];
         setSalaireDistribution(salaireDistRes.value.map((d: any, i: number) => ({ ...d, color: distColors[i % distColors.length] })));
       }
       if (salaireContractRes.status === "fulfilled") {
-        const contractColors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+        const contractColors = ["#066C6C", "#0AAE8E", "#f59e0b", "#ef4444", "#8b5cf6"];
         setSalaireByContract(salaireContractRes.value.map((d: any, i: number) => ({ ...d, name: d.contract_type, color: contractColors[i % contractColors.length] })));
       }
       if (perfOvRes.status === "fulfilled") setPerfOverview(perfOvRes.value);
@@ -626,8 +626,8 @@ export default function PeopleAnalyticsPage() {
               <XAxis dataKey="name" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip />
-              <Area type="monotone" dataKey="effectif" stroke="#3b82f6" fill="#3b82f620" strokeWidth={2} />
-              <Area type="monotone" dataKey="entrees" stroke="#10b981" fill="#10b98120" strokeWidth={2} />
+              <Area type="monotone" dataKey="effectif" stroke="#066C6C" fill="#066C6C20" strokeWidth={2} />
+              <Area type="monotone" dataKey="entrees" stroke="#0AAE8E" fill="#0AAE8E20" strokeWidth={2} />
               <Area type="monotone" dataKey="sorties" stroke="#ef4444" fill="#ef444420" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
@@ -647,7 +647,7 @@ export default function PeopleAnalyticsPage() {
                 <Tooltip formatter={(v: number) => [`${v} / 5`, "Score"]} />
                 <Bar dataKey="score" radius={[0, 4, 4, 0]}>
                   {byDept.map((entry: any, i: number) => (
-                    <Cell key={i} fill={entry.score >= 4 ? "#10b981" : entry.score >= 3 ? "#3b82f6" : "#f59e0b"} />
+                    <Cell key={i} fill={entry.score >= 4 ? "#0AAE8E" : entry.score >= 3 ? "#066C6C" : "#f59e0b"} />
                   ))}
                 </Bar>
               </BarChart>
@@ -710,7 +710,7 @@ export default function PeopleAnalyticsPage() {
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip />
               <Legend />
-              <Area type="monotone" dataKey="effectif" name="Effectif" stroke="#3b82f6" fill="#3b82f620" strokeWidth={2} />
+              <Area type="monotone" dataKey="effectif" name="Effectif" stroke="#066C6C" fill="#066C6C20" strokeWidth={2} />
               <Area type="monotone" dataKey="entrees" name="Entrées" stroke="#10b981" fill="#10b98120" strokeWidth={2} />
               <Area type="monotone" dataKey="sorties" name="Sorties" stroke="#ef4444" fill="#ef444420" strokeWidth={2} />
             </AreaChart>
@@ -732,7 +732,7 @@ export default function PeopleAnalyticsPage() {
                 label={({ name, value }) => `${name}: ${value}`}
               >
                 {headcountByDept.map((entry, i) => (
-                  <Cell key={i} fill={entry.color || "#3b82f6"} />
+                  <Cell key={i} fill={entry.color || "#066C6C"} />
                 ))}
               </Pie>
               <Tooltip />
@@ -750,7 +750,7 @@ export default function PeopleAnalyticsPage() {
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip />
               <Legend />
-              <Bar dataKey="hommes" name="Hommes" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="hommes" name="Hommes" fill="#066C6C" radius={[4, 4, 0, 0]} />
               <Bar dataKey="femmes" name="Femmes" fill="#ec4899" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -837,9 +837,9 @@ export default function PeopleAnalyticsPage() {
                 <XAxis type="number" domain={[0, 5]} tick={{ fontSize: 11 }} />
                 <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={110} />
                 <Tooltip formatter={(v: number) => [`${v} / 5`, "Score"]} />
-                <Bar dataKey="score" name="Score" fill="#3b82f6" radius={[0, 4, 4, 0]}>
+                <Bar dataKey="score" name="Score" fill="#066C6C" radius={[0, 4, 4, 0]}>
                   {byDept.map((entry: any, i: number) => (
-                    <Cell key={i} fill={entry.score >= 4 ? "#10b981" : entry.score >= 3 ? "#3b82f6" : "#f59e0b"} />
+                    <Cell key={i} fill={entry.score >= 4 ? "#0AAE8E" : entry.score >= 3 ? "#066C6C" : "#f59e0b"} />
                   ))}
                 </Bar>
               </BarChart>
@@ -1137,7 +1137,7 @@ export default function PeopleAnalyticsPage() {
                 <Tooltip />
                 <Legend />
                 <Bar dataKey="nb_assignments" name="Assignées" fill="#93c5fd" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="nb_completed" name="Complétées" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="nb_completed" name="Complétées" fill="#066C6C" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -1163,7 +1163,7 @@ export default function PeopleAnalyticsPage() {
                 <Tooltip />
                 <Legend />
                 <Area type="monotone" dataKey="assignees" name="Assignées" stroke="#93c5fd" fill="#93c5fd20" strokeWidth={2} />
-                <Area type="monotone" dataKey="completes" name="Complétées" stroke="#3b82f6" fill="#3b82f620" strokeWidth={2} />
+                <Area type="monotone" dataKey="completes" name="Complétées" stroke="#066C6C" fill="#066C6C20" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
@@ -1538,7 +1538,7 @@ export default function PeopleAnalyticsPage() {
                 <Tooltip />
                 <Bar dataKey="count" name="Candidats" radius={[0, 4, 4, 0]}>
                   {pipeline.map((entry: any, i: number) => (
-                    <Cell key={i} fill={entry.color || "#3b82f6"} />
+                    <Cell key={i} fill={entry.color || "#066C6C"} />
                   ))}
                 </Bar>
               </BarChart>
@@ -1552,7 +1552,7 @@ export default function PeopleAnalyticsPage() {
                 <Tooltip />
                 <Legend />
                 <Area type="monotone" dataKey="candidatures" name="Candidatures" stroke="#8b5cf6" fill="#8b5cf620" strokeWidth={2} />
-                <Area type="monotone" dataKey="entretiens" name="Entretiens" stroke="#3b82f6" fill="#3b82f620" strokeWidth={2} />
+                <Area type="monotone" dataKey="entretiens" name="Entretiens" stroke="#066C6C" fill="#066C6C20" strokeWidth={2} />
                 <Area type="monotone" dataKey="embauches" name="Embauches" stroke="#10b981" fill="#10b98120" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
@@ -1594,7 +1594,7 @@ export default function PeopleAnalyticsPage() {
               {(sources.length > 0 ? sources : sourcesRecrutement.map((s) => ({ source: s.source, count: s.candidatures, percentage: s.qualite }))).map((s: any, i: number) => (
                 <tr key={i} className="border-b last:border-0 hover:bg-gray-50">
                   <td className="py-3 font-medium text-gray-900 flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: s.color || "#3b82f6" }} />
+                    <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: s.color || "#066C6C" }} />
                     {s.source}
                   </td>
                   <td className="py-3 text-center">{s.count ?? s.candidatures}</td>
@@ -1684,8 +1684,8 @@ export default function PeopleAnalyticsPage() {
                 type="monotone"
                 dataKey="masse_salariale"
                 name="Masse salariale"
-                stroke="#3b82f6"
-                fill="#3b82f620"
+                stroke="#066C6C"
+                fill="#066C6C20"
                 strokeWidth={2}
               />
               <Area
@@ -1715,7 +1715,7 @@ export default function PeopleAnalyticsPage() {
                 label={({ name, payload }: any) => `${name}: ${payload?.pct_total ?? 0}%`}
               >
                 {salaireByDept.map((entry, i) => (
-                  <Cell key={i} fill={entry.color || "#3b82f6"} />
+                  <Cell key={i} fill={entry.color || "#066C6C"} />
                 ))}
               </Pie>
               <Tooltip formatter={(v: number) => `${formatXOF(v)} XOF`} />
@@ -1850,7 +1850,7 @@ export default function PeopleAnalyticsPage() {
       formationsByDept[dept] = (formationsByDept[dept] || 0) + (p.nb_employees ?? p.participants ?? 1);
     });
     const deptChartData = Object.entries(formationsByDept).map(([name, value]) => ({ name, employes: value }));
-    const deptColors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
+    const deptColors = ["#066C6C", "#0AAE8E", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
 
     // Impact OKR
     const okrImpacts: any[] = tpa?.okr_impacts ?? [];

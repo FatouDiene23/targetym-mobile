@@ -153,8 +153,8 @@ const TRIGGER_EVENT_LABELS: Record<string, { label: string; icon: string }> = {
   mobilite: { label: 'Mobilité Interne', icon: '🔄' },
 };
 
-const PIE_COLORS = ['#10B981', '#EF4444', '#F59E0B', '#3B82F6', '#8B5CF6', '#EC4899'];
-const BAR_COLOR = '#3B82F6';
+const PIE_COLORS = ['#0AAE8E', '#EF4444', '#F59E0B', '#066C6C', '#8B5CF6', '#EC4899'];
+const BAR_COLOR = '#066C6C';
 
 // ── Component ───────────────────────────────────────────────────────────────
 

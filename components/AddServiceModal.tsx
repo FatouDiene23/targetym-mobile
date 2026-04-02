@@ -10,7 +10,7 @@ interface AddServiceModalProps {
 }
 
 const COLORS = [
-  { value: '#3B82F6', label: 'Bleu', class: 'bg-blue-500' },
+  { value: '#066C6C', label: 'Mystic Waters', class: 'bg-primary-500' },
   { value: '#10B981', label: 'Vert', class: 'bg-green-500' },
   { value: '#8B5CF6', label: 'Violet', class: 'bg-purple-500' },
   { value: '#F59E0B', label: 'Orange', class: 'bg-amber-500' },

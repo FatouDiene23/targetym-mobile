@@ -259,7 +259,7 @@ function timeAgo(date: string): string {
   return `Il y a ${Math.floor(hours / 24)}j`;
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+const COLORS = ['#066C6C', '#0AAE8E', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
 // ============================================
 // WIDGET COMPONENTS

@@ -312,7 +312,7 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
 </x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
 <style>
   td, th { padding: 4px 8px; border: 1px solid #ccc; font-family: Calibri, sans-serif; font-size: 11pt; }
-  th { background: #3B82F6; color: white; font-weight: bold; }
+  th { background: #066C6C; color: white; font-weight: bold; }
   tr:nth-child(even) { background: #F5F7FA; }
 </style>
 </head><body>
@@ -345,7 +345,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
   h1 { font-size: 18px; color: #1e3a5f; margin: 0 0 4px 0; }
   .meta { font-size: 11px; color: #666; margin-bottom: 16px; }
   table { width: 100%; border-collapse: collapse; font-size: 10px; }
-  th { background: #3B82F6; color: white; padding: 6px 8px; text-align: left; font-weight: 600; }
+  th { background: #066C6C; color: white; padding: 6px 8px; text-align: left; font-weight: 600; }
   td { padding: 5px 8px; border-bottom: 1px solid #e5e7eb; }
   tr:nth-child(even) { background: #f8f9fb; }
   tr:hover { background: #eef2ff; }

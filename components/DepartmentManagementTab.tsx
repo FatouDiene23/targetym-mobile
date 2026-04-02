@@ -627,7 +627,7 @@ function EditDepartmentModal({
 
   const LEVEL_COLOR_MAP: Record<string, string> = {
     president: '#f97316', vice_president: '#f59e0b', dg: '#c2410c', dga: '#22c55e',
-    direction_centrale: '#a855f7', direction: '#3b82f6', departement: '#fdba74', service: '#6b7280',
+    direction_centrale: '#a855f7', direction: '#066C6C', departement: '#fdba74', service: '#6b7280',
   };
 
   const [form, setForm] = useState({

@@ -316,6 +316,7 @@ export default function SurveysPage() {
   const openConfigureModal = useCallback(async (template: Survey) => {
     setConfiguringTemplate(template);
     setConfigAnonymous(template.is_anonymous);
+    setConfigQuestions([]);
     setShowConfigureModal(true);
     try {
       const data = await apiFetch(`/api/surveys/${template.id}`);

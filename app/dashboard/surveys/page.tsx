@@ -992,6 +992,12 @@ export default function SurveysPage() {
                       >
                         <Settings className="w-4 h-4" /> Configurer
                       </button>
+                      <button
+                        onClick={() => openDetail(tpl.id)}
+                        className="px-3 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 flex items-center gap-1.5"
+                      >
+                        <BarChart3 className="w-4 h-4" /> Résultats
+                      </button>
                       {isActive ? (
                         <button
                           onClick={() => deactivateTemplate(tpl)}

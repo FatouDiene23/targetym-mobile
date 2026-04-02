@@ -19,7 +19,7 @@ import {
 
 interface Survey {
   id: number;
-  tenant_id: number;
+  tenant_id?: number | null;
   title: string;
   description?: string;
   survey_type: string;

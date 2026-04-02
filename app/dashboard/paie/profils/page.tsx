@@ -194,7 +194,7 @@ function ProfileModal({
                   type="number"
                   min={1}
                   max={5}
-                  step={1}
+                  step={0.5}
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="1"
                   value={form.family_parts ?? ''}

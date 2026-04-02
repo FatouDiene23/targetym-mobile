@@ -836,7 +836,7 @@ function SidebarInner() {
   
   if (isSuperAdmin) {
     return (
-      <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-dark h-screen flex flex-col transition-all duration-300 sticky top-0 overflow-hidden`}>
+      <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-dark h-screen flex flex-col transition-all duration-300 sticky top-0`}>
         {/* Header */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-gray-700 flex-shrink-0">
           {!collapsed && (
@@ -972,51 +972,13 @@ function SidebarInner() {
             )}
           </div>
           {!collapsed && (
-            <div className="mt-4 relative">
-              <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-              >
-                <div className="flex items-center">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Options
-                </div>
-                <ChevronDown className={`w-4 h-4 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {menuOpen && (
-                <div className="mt-1 bg-gray-800 rounded-lg overflow-hidden">
-                  <Link
-                    href="/help"
-                    target="_blank"
-                    className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-                  >
-                    <HelpCircle className="w-4 h-4 mr-2" />
-                    Aide & Support
-                  </Link>
-                  <button
-                    onClick={() => { onRestartTour?.(); setMenuOpen(false); }}
-                    className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Guide de l&apos;application
-                  </button>
-                  <button
-                    onClick={() => { onRestartPageTips?.(); setMenuOpen(false); }}
-                    className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-                  >
-                    <Lightbulb className="w-4 h-4 mr-2" />
-                    Astuces de la page
-                  </button>
-                  <button 
-                    onClick={handleLogout} 
-                    className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Déconnexion
-                  </button>
-                </div>
-              )}
-            </div>
+            <button
+              onClick={handleLogout}
+              className="mt-3 w-full flex items-center px-3 py-2 text-sm text-red-400 hover:text-white hover:bg-red-600 rounded-lg transition-colors"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              <span>Déconnexion</span>
+            </button>
           )}
           {collapsed && (
             <div className="mt-4 relative">
@@ -1071,7 +1033,7 @@ function SidebarInner() {
   // MODE NORMAL (utilisateurs entreprise)
   // ============================================
   return (
-    <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-dark h-screen flex flex-col transition-all duration-300 sticky top-0 overflow-hidden mobile-sidebar-height`}>
+    <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-dark h-screen flex flex-col transition-all duration-300 sticky top-0 overflow-y-auto mobile-sidebar-height`}>
       {/* Header */}
       <div className="h-14 lg:h-16 flex items-center justify-between px-4 border-b border-gray-700 flex-shrink-0">
         {!collapsed && (
@@ -1151,6 +1113,14 @@ function SidebarInner() {
                 Déconnexion
               </button>
             </div>
+            {/* Bouton Déconnexion toujours visible sur desktop */}
+            <button
+              onClick={handleLogout}
+              className="hidden lg:flex mt-2 w-full items-center px-3 py-2 text-sm text-red-400 hover:text-white hover:bg-red-600 rounded-lg transition-colors"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              <span>Déconnexion</span>
+            </button>
             {/* Menu Options complet sur desktop */}
             <div className="hidden lg:block relative">
               <button
@@ -1192,13 +1162,6 @@ function SidebarInner() {
                   >
                     <Lightbulb className="w-4 h-4 mr-2" />
                     Astuces de la page
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Déconnexion
                   </button>
                 </div>
               )}

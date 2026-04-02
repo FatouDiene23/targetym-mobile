@@ -65,7 +65,7 @@ function ProfileModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.base_salary || form.base_salary <= 0) {
-      return toast.error('Le salaire de base est requis');
+      return toast.error('Le salaire net est requis');
     }
     setSaving(true);
     try {
@@ -149,7 +149,7 @@ function ProfileModal({
             <div className="grid grid-cols-1 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Salaire de base <span className="text-red-500">*</span>
+                  Salaire net <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"

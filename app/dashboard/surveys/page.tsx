@@ -169,6 +169,8 @@ export default function SurveysPage() {
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [searchText, setSearchText] = useState('');
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Create modal
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -225,7 +227,12 @@ export default function SurveysPage() {
     const res = await fetchWithAuth(`${API_URL}${path}`, options || {});
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: `Erreur ${res.status}` }));
-      throw new Error(err.detail || `Erreur ${res.status}`);
+      let msg = `Erreur ${res.status}`;
+      if (typeof err.detail === 'string') msg = err.detail;
+      else if (Array.isArray(err.detail)) {
+        msg = err.detail.map((e: any) => e.msg || JSON.stringify(e)).join(', ');
+      }
+      throw new Error(msg);
     }
     if (res.status === 204) return null;
     return res.json();
@@ -244,7 +251,10 @@ export default function SurveysPage() {
       if (filterType) params.set('survey_type', filterType);
       if (filterStatus) params.set('status', filterStatus);
       const data = await apiFetch(`/api/surveys/?${params}`);
-      setSurveys(data);
+      const items = Array.isArray(data) ? data : data?.items ?? [];
+      setSurveys(items);
+      setTotalPages(data?.total_pages || 1);
+      setTotalCount(data?.total || items.length);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -1030,13 +1040,13 @@ export default function SurveysPage() {
         {/* Pagination */}
         {filteredSurveys.length > 0 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
-            <p className="text-sm text-gray-500">{filteredSurveys.length} enquête(s)</p>
+            <p className="text-sm text-gray-500">{totalCount} enquête(s)</p>
             <div className="flex gap-2">
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 border border-gray-300 rounded-lg text-sm disabled:opacity-50 hover:bg-gray-100">
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="px-3 py-1 text-sm text-gray-600">Page {page}</span>
-              <button onClick={() => setPage(p => p + 1)} disabled={filteredSurveys.length < 20} className="px-3 py-1 border border-gray-300 rounded-lg text-sm disabled:opacity-50 hover:bg-gray-100">
+              <span className="px-3 py-1 text-sm text-gray-600">Page {page}/{totalPages}</span>
+              <button onClick={() => setPage(p => p + 1)} disabled={page >= totalPages} className="px-3 py-1 border border-gray-300 rounded-lg text-sm disabled:opacity-50 hover:bg-gray-100">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>

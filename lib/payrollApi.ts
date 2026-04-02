@@ -43,7 +43,7 @@ export interface PayComponent {
   tenant_id: number;
   code: string;
   name: string;
-  component_type: 'earning' | 'deduction' | 'employer_contribution' | 'info' | 'net_adjustment';
+  component_type: 'earning' | 'deduction_employee' | 'deduction_employer' | 'employer_contribution' | 'net_adjustment';
   calc_type: string;
   calc_params: Record<string, unknown>;
   is_taxable: boolean;

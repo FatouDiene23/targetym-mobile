@@ -53,8 +53,8 @@ function SlipLinesModal({
   onClose: () => void;
 }) {
   const gains = slip.lines.filter(l => l.component_type === 'earning');
-  const deductions = slip.lines.filter(l => l.component_type === 'deduction');
-  const patronal = slip.lines.filter(l => l.component_type === 'employer_contribution');
+  const deductions = slip.lines.filter(l => l.component_type === 'deduction_employee');
+  const patronal = slip.lines.filter(l => l.component_type === 'deduction_employer' || l.component_type === 'employer_contribution');
 
   const handlePrint = () => {
     (async () => {

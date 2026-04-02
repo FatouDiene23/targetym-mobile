@@ -31,6 +31,9 @@ interface Employee {
   id: number;
   first_name: string;
   last_name: string;
+  department_id?: number | null;
+  department_name?: string | null;
+  manager_id?: number | null;
 }
 
 interface CurrentUser {
@@ -586,25 +589,46 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
               <div className="space-y-4">
                 {empList.map(emp => {
                   const sel = evaluatorSelections.find(s => s.employee_id === emp.id) || { employee_id: emp.id, peer_ids: [], direct_report_ids: [] };
-                  const others = employees.filter(e => e.id !== emp.id);
+                  // Pairs : même département, exclure l'employé lui-même
+                  const peerCandidates = employees.filter(e =>
+                    e.id !== emp.id &&
+                    emp.department_id != null &&
+                    e.department_id === emp.department_id
+                  );
+                  // Collaborateurs directs : employés dont le manager est emp
+                  const directReportCandidates = employees.filter(e =>
+                    e.id !== emp.id && e.manager_id === emp.id
+                  );
+                  // Fallback si aucun résultat (données manquantes) : tous sauf lui-même
+                  const peerList = peerCandidates.length > 0 ? peerCandidates : employees.filter(e => e.id !== emp.id);
+                  const directList = directReportCandidates.length > 0 ? directReportCandidates : employees.filter(e => e.id !== emp.id);
                   return (
                     <div key={emp.id} className="border border-gray-200 rounded-xl p-4">
                       <div className="flex items-center gap-3 mb-3">
                         <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-sm font-semibold shrink-0">
                           {emp.first_name[0]}{emp.last_name[0]}
                         </div>
-                        <span className="font-medium text-gray-900">{emp.first_name} {emp.last_name}</span>
+                        <div>
+                          <span className="font-medium text-gray-900">{emp.first_name} {emp.last_name}</span>
+                          {emp.department_name && <span className="ml-2 text-xs text-gray-400">{emp.department_name}</span>}
+                        </div>
                       </div>
                       {includePeer && (
                         <div className="mb-4">
-                          <label className="text-xs font-semibold text-gray-600 mb-1.5 block">Pairs évaluateurs (max 3)</label>
-                          <PeerSelector all={others} selected={sel.peer_ids} onChange={(ids) => updateSel(emp.id, { peer_ids: ids })} maxSelectable={3} placeholder="Rechercher un collègue..." />
+                          <label className="text-xs font-semibold text-gray-600 mb-1.5 block">
+                            Pairs évaluateurs (max 3)
+                            {peerCandidates.length > 0 && <span className="font-normal text-gray-400 ml-1">— collègues du département {emp.department_name}</span>}
+                          </label>
+                          <PeerSelector all={peerList} selected={sel.peer_ids} onChange={(ids) => updateSel(emp.id, { peer_ids: ids })} maxSelectable={3} placeholder="Rechercher un pair..." />
                         </div>
                       )}
                       {includeDirectReport && (
                         <div>
-                          <label className="text-xs font-semibold text-gray-600 mb-1.5 block">Collaborateurs directs évaluateurs (max 3)</label>
-                          <PeerSelector all={others} selected={sel.direct_report_ids} onChange={(ids) => updateSel(emp.id, { direct_report_ids: ids })} maxSelectable={3} placeholder="Rechercher un collaborateur..." />
+                          <label className="text-xs font-semibold text-gray-600 mb-1.5 block">
+                            Collaborateurs directs évaluateurs (max 3)
+                            {directReportCandidates.length === 0 && <span className="font-normal text-orange-400 ml-1">— aucun subordonné direct trouvé</span>}
+                          </label>
+                          <PeerSelector all={directList} selected={sel.direct_report_ids} onChange={(ids) => updateSel(emp.id, { direct_report_ids: ids })} maxSelectable={3} placeholder="Rechercher un collaborateur direct..." />
                         </div>
                       )}
                     </div>

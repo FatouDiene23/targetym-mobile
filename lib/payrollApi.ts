@@ -185,6 +185,15 @@ export async function getComponents(includeInactive = false): Promise<PayCompone
   return r.json();
 }
 
+export async function seedLegalComponents(): Promise<{ seeded: boolean; count: number; components: PayComponent[] }> {
+  const r = await fetchWithAuth(`${API_URL}/api/payroll/components/seed-legal`, { method: 'POST' });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail || `${r.status}`);
+  }
+  return r.json();
+}
+
 export async function createComponent(data: PayComponentCreate): Promise<PayComponent> {
   const r = await fetchWithAuth(`${API_URL}/api/payroll/components`, {
     method: 'POST',

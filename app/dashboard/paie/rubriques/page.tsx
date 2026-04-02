@@ -8,7 +8,7 @@ import {
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
 import {
-  getComponents, createComponent, updateComponent, deactivateComponent,
+  getComponents, createComponent, updateComponent, deactivateComponent, seedLegalComponents,
   COMPONENT_TYPE_LABEL, COMPONENT_TYPE_COLOR,
   type PayComponent, type PayComponentCreate,
 } from '@/lib/payrollApi';
@@ -401,6 +401,7 @@ export default function RubriquesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<PayComponent | undefined>(undefined);
   const [deactivating, setDeactivating] = useState<number | null>(null);
+  const [seeding, setSeeding] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -419,6 +420,20 @@ export default function RubriquesPage() {
   const openCreate = () => { setEditing(undefined); setModalOpen(true); };
   const openEdit = (c: PayComponent) => { setEditing(c); setModalOpen(true); };
   const closeModal = () => setModalOpen(false);
+
+  const handleSeedLegal = async () => {
+    if (!confirm('Initialiser les 19 rubriques légales sénégalaises (IPRES, IR, TRIMF, CSS, CFCE…) ? Cette opération est sans risque et peut être relancée.')) return;
+    setSeeding(true);
+    try {
+      const result = await seedLegalComponents();
+      toast.success(`${result.count} rubriques initialisées`);
+      setComponents(result.components);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erreur');
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   const handleSaved = (c: PayComponent) => {
     setComponents(prev => {
@@ -483,6 +498,14 @@ export default function RubriquesPage() {
               />
               Afficher inactives
             </label>
+            <button
+              onClick={handleSeedLegal}
+              disabled={seeding}
+              className="flex items-center gap-2 bg-emerald-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-emerald-700 transition disabled:opacity-60"
+            >
+              {seeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Settings2 className="w-4 h-4" />}
+              Rubriques légales SN
+            </button>
             <button
               onClick={openCreate}
               className="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition"

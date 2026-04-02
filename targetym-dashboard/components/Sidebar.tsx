@@ -1071,9 +1071,9 @@ function SidebarInner() {
   // MODE NORMAL (utilisateurs entreprise)
   // ============================================
   return (
-    <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-dark h-screen flex flex-col transition-all duration-300 sticky top-0 overflow-hidden`}>
+    <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-dark h-screen flex flex-col transition-all duration-300 sticky top-0 overflow-hidden mobile-sidebar-height`}>
       {/* Header */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-gray-700 flex-shrink-0">
+      <div className="h-14 lg:h-16 flex items-center justify-between px-4 border-b border-gray-700 flex-shrink-0">
         {!collapsed && (
           <Link href="/dashboard" className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
@@ -1087,8 +1087,8 @@ function SidebarInner() {
             <span className="text-white font-bold text-sm">T</span>
           </div>
         )}
-        <button 
-          onClick={() => setCollapsed(!collapsed)} 
+        <button
+          onClick={() => setCollapsed(!collapsed)}
           className="text-gray-400 hover:text-white p-1"
         >
           {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
@@ -1096,7 +1096,7 @@ function SidebarInner() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
+      <nav className="flex-1 py-3 lg:py-6 px-3 space-y-0.5 lg:space-y-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
         {filteredNavigation.map((item) => (
           <NavItemComponent key={item.name} item={item} isCollapsed={collapsed} showTooltip={collapsed} />
         ))}
@@ -1116,12 +1116,12 @@ function SidebarInner() {
       </nav>
 
       {/* Footer User */}
-      <div className="p-4 border-t border-gray-700 flex-shrink-0">
+      <div className="p-3 lg:p-4 border-t border-gray-700 flex-shrink-0">
         <div className={`flex items-center ${collapsed ? 'justify-center' : ''}`} data-tour="user-menu">
           {photoUrl ? (
-            <img src={photoUrl} alt="Photo" className="w-9 h-9 rounded-full object-cover border border-primary-400 shrink-0" />
+            <img src={photoUrl} alt="Photo" className="w-8 h-8 lg:w-9 lg:h-9 rounded-full object-cover border border-primary-400 shrink-0" />
           ) : (
-            <div className="w-9 h-9 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium">
+            <div className="w-8 h-8 lg:w-9 lg:h-9 bg-primary-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
               {initials}
             </div>
           )}
@@ -1133,56 +1133,76 @@ function SidebarInner() {
           )}
         </div>
         {!collapsed && (
-          <div className="mt-4 relative">
-            <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-            >
-              <div className="flex items-center">
-                <Settings className="w-4 h-4 mr-2" />
-                Options
-              </div>
-              <ChevronDown className={`w-4 h-4 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {menuOpen && (
-              <div className="mt-1 bg-gray-800 rounded-lg overflow-hidden">
-                <Link
-                  href="/help"
-                  target="_blank"
-                  className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-                >
-                  <HelpCircle className="w-4 h-4 mr-2" />
-                  Aide & Support
-                </Link>
-                <button
-                  onClick={() => {
-                    onRestartTour?.();
-                    setMenuOpen(false);
-                  }}
-                  className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-                >
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  Guide de l&apos;application
-                </button>
-                <button
-                  onClick={() => {
-                    onRestartPageTips?.();
-                    setMenuOpen(false);
-                  }}
-                  className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-                >
-                  <Lightbulb className="w-4 h-4 mr-2" />
-                  Astuces de la page
-                </button>
-                <button 
-                  onClick={handleLogout} 
-                  className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Déconnexion
-                </button>
-              </div>
-            )}
+          <div className="mt-2 lg:mt-4">
+            {/* Actions rapides toujours visibles sur mobile */}
+            <div className="flex items-center gap-1 lg:hidden">
+              <Link
+                href="/help"
+                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 text-xs text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                Aide
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Déconnexion
+              </button>
+            </div>
+            {/* Menu Options complet sur desktop */}
+            <div className="hidden lg:block relative">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                <div className="flex items-center">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Options
+                </div>
+                <ChevronDown className={`w-4 h-4 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {menuOpen && (
+                <div className="mt-1 bg-gray-800 rounded-lg overflow-hidden">
+                  <Link
+                    href="/help"
+                    target="_blank"
+                    className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                  >
+                    <HelpCircle className="w-4 h-4 mr-2" />
+                    Aide & Support
+                  </Link>
+                  <button
+                    onClick={() => {
+                      onRestartTour?.();
+                      setMenuOpen(false);
+                    }}
+                    className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Guide de l&apos;application
+                  </button>
+                  <button
+                    onClick={() => {
+                      onRestartPageTips?.();
+                      setMenuOpen(false);
+                    }}
+                    className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                  >
+                    <Lightbulb className="w-4 h-4 mr-2" />
+                    Astuces de la page
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Déconnexion
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
         {collapsed && (

@@ -396,7 +396,7 @@ export default function CertificatesPage() {
 
                   {/* Filtres */}
                   <div className="flex gap-3 mb-5 flex-wrap" data-tour="certificates-search">
-                    <div className="flex-1 min-w-[220px] relative">
+                    <div className="flex-1 min-w-0 sm:min-w-[220px] relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="text"

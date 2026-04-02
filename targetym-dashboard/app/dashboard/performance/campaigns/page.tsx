@@ -781,7 +781,7 @@ export default function CampaignsPage() {
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         {/* Filters */}
         <div className="flex gap-4 mb-6 flex-wrap">
-          <div className="flex-1 min-w-[200px] relative">
+          <div className="flex-1 min-w-0 sm:min-w-[200px] relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input 
               type="text" 

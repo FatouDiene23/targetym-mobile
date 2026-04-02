@@ -241,7 +241,7 @@ export default function BillingAdminPage() {
 
       <div className="flex h-[calc(100vh-73px)]">
         {/* ── Liste des tenants (colonne gauche) ─────────────────────────── */}
-        <div className="w-72 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+        <div className={`w-full lg:w-72 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 ${selectedTenant ? 'hidden lg:flex' : 'flex'}`}>
           <div className="p-3 border-b border-gray-100">
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -288,7 +288,7 @@ export default function BillingAdminPage() {
         </div>
 
         {/* ── Détail facturation (zone principale) ───────────────────────── */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className={`flex-1 overflow-y-auto p-3 sm:p-6 ${!selectedTenant ? 'hidden lg:block' : ''}`}>
           {!selectedTenant ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400">
               <Building2 size={48} className="mb-4 opacity-20" />
@@ -297,6 +297,14 @@ export default function BillingAdminPage() {
             </div>
           ) : (
             <div className="max-w-4xl">
+              {/* Bouton retour mobile */}
+              <button
+                onClick={() => selectTenant(null as any)}
+                className="lg:hidden flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-3"
+              >
+                <ChevronLeft size={16} />
+                Retour aux entreprises
+              </button>
               {/* En-tête tenant */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
                 <div className="flex items-center justify-between">
@@ -333,7 +341,7 @@ export default function BillingAdminPage() {
               </div>
 
               {/* Stats rapides */}
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
                 <div className="bg-white rounded-xl border border-gray-100 p-4">
                   <p className="text-xs text-gray-400 mb-1">Total factures</p>
                   <p className="text-2xl font-bold text-gray-900">{invoices.length}</p>
@@ -464,7 +472,7 @@ export default function BillingAdminPage() {
             </div>
             <p className="text-sm text-gray-500">Pour : <strong>{selectedTenant?.name}</strong></p>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Montant <span className="text-red-500">*</span></label>
                 <input
@@ -499,7 +507,7 @@ export default function BillingAdminPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Date d'échéance</label>
                 <input
@@ -623,7 +631,7 @@ export default function BillingAdminPage() {
             </div>
             <p className="text-sm text-gray-500">Entreprise : <strong>{selectedTenant.name}</strong></p>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Plan <span className="text-red-500">*</span></label>
                 <select
@@ -648,7 +656,7 @@ export default function BillingAdminPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Fin du trial</label>
                 <input

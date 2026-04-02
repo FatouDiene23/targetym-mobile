@@ -310,7 +310,7 @@ export default function PlatformUsersManagement() {
       {/* Filtres */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100" data-tour="platform-users-search">
         <div className="flex flex-wrap gap-4">
-          <div className="flex-1 min-w-[250px]">
+          <div className="flex-1 min-w-0 sm:min-w-[250px]">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
@@ -540,7 +540,7 @@ export default function PlatformUsersManagement() {
               </div>
               
               {/* Prénom / Nom */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">
                     Prénom

@@ -647,7 +647,7 @@ export default function DeparturesPage() {
               {/* Filters */}
               <div className="bg-white rounded-xl border p-4 mb-4">
                 <div className="flex flex-wrap items-center gap-3">
-                  <div className="relative flex-1 min-w-[200px]">
+                  <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
                       type="text"
@@ -929,7 +929,7 @@ export default function DeparturesPage() {
         <hr />
 
         {/* Info grid */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <InfoCard label="Date de notification" value={formatDate(selectedDep.notification_date)} />
           <InfoCard label="Date souhaitée" value={formatDate(selectedDep.requested_departure_date)} />
           <InfoCard label="Préavis" value={`${selectedDep.notice_period_days} jours`} />
@@ -1100,7 +1100,7 @@ export default function DeparturesPage() {
           {showInterviewPlan && (
             <div className="bg-gray-50 rounded-lg p-4 space-y-3">
               <h4 className="text-sm font-semibold">Planifier l&apos;entretien</h4>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-gray-500">Date</label>
                   <input type="date" value={interviewDate} onChange={e => setInterviewDate(e.target.value)}
@@ -1199,7 +1199,7 @@ export default function DeparturesPage() {
             </div>
 
             {/* Boolean questions */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-gray-500">Recommanderait l&apos;entreprise ?</label>
                 <div className="flex gap-2 mt-1">

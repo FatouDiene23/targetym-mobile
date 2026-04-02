@@ -184,7 +184,7 @@ export default function NineBoxPage() {
               </div>
 
               <div className="ml-4">
-                <div className="grid grid-cols-6 gap-1">
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
                   {/* Header: empty + perf labels */}
                   <div className="h-8"></div>
                   {[5, 4, 3, 2, 1].map(p => (

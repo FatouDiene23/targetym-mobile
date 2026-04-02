@@ -689,7 +689,7 @@ export default function EvaluationsPage() {
 
         {/* Filters (onglet Toutes seulement) */}
         {tab === 'all' && <div className="flex flex-wrap gap-4 mb-6">
-          <div className="flex-1 min-w-[200px] relative">
+          <div className="flex-1 min-w-0 sm:min-w-[200px] relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input 
               type="text" 

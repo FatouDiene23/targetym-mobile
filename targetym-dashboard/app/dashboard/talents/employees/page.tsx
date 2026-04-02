@@ -12,7 +12,7 @@ import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { talentsEmployeesTips } from '@/config/pageTips';
 import {
-  Search, RefreshCw, ChevronRight, CheckCircle2, Circle,
+  Search, RefreshCw, ChevronRight, ChevronLeft, CheckCircle2, Circle,
   TrendingUp, BookOpen, Heart, ArrowUpRight, Users, AlertCircle,
   Filter
 } from 'lucide-react';
@@ -139,7 +139,7 @@ export default function AllEmployeesCareerPage() {
       <main className="flex-1 flex overflow-hidden bg-gray-50" style={{ height: 'calc(100vh - 64px)' }}>
 
         {/* ─── Panneau gauche : liste ─── */}
-        <div className="w-80 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
+        <div className={`w-full lg:w-80 flex-shrink-0 bg-white border-r border-gray-200 flex-col ${selected ? 'hidden lg:flex' : 'flex'}`}>
 
           {/* Filtres */}
           <div className="p-4 border-b border-gray-100 space-y-2" data-tour="talent-filters">
@@ -232,7 +232,7 @@ export default function AllEmployeesCareerPage() {
         </div>
 
         {/* ─── Panneau droit : détail ─── */}
-        <div className="flex-1 overflow-y-auto">
+        <div className={`flex-1 overflow-y-auto ${!selected ? 'hidden lg:block' : ''}`}>
           {!selected ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-3">
               <Users className="w-12 h-12 text-gray-200" />
@@ -249,6 +249,7 @@ export default function AllEmployeesCareerPage() {
             </div>
           ) : (
             <div className="p-6 space-y-5">
+              <button onClick={() => setSelected(null)} className="lg:hidden flex items-center gap-2 text-sm text-gray-600 mb-3"><ChevronLeft size={16} />Retour</button>
               {detail.careers.map((career: any) => {
                 const validatedCount = career.competency_progress?.filter((c: any) => c.effective_status === 'validated').length || 0;
                 const totalCount = career.competency_progress?.length || 0;

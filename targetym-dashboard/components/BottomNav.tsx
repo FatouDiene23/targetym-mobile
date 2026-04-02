@@ -18,6 +18,13 @@ import {
   Settings,
   Briefcase,
   X,
+  HelpCircle,
+  LogOut,
+  Shield,
+  Building2,
+  Receipt,
+  PenLine,
+  PlayCircle,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -25,7 +32,7 @@ import { useState, useEffect } from 'react';
 // TYPES
 // ============================================
 
-type UserRole = 'employee' | 'manager' | 'rh' | 'admin' | 'dg';
+type UserRole = 'employee' | 'manager' | 'rh' | 'admin' | 'dg' | 'superadmin';
 
 interface BottomNavItem {
   name: string;
@@ -38,7 +45,7 @@ interface BottomNavItem {
 // NAV CONFIG
 // ============================================
 
-// 4 onglets fixes + "Plus" pour accéder au reste
+// 4 onglets fixes pour les rôles normaux
 const mainTabs: BottomNavItem[] = [
   { name: 'Accueil', href: '/dashboard', icon: LayoutDashboard, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Mon Espace', href: '/dashboard/my-space', icon: UserCircle, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
@@ -46,7 +53,22 @@ const mainTabs: BottomNavItem[] = [
   { name: 'Performance', href: '/dashboard/performance', icon: TrendingUp, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
 ];
 
-// Items dans le menu "Plus"
+// Onglets principaux pour Super Admin
+const superAdminMainTabs: BottomNavItem[] = [
+  { name: 'Dashboard', href: '/dashboard/platform-admin', icon: Shield, roles: ['superadmin'] },
+  { name: 'Utilisateurs', href: '/dashboard/platform-admin/users', icon: Users, roles: ['superadmin'] },
+  { name: 'Entreprises', href: '/dashboard/platform-admin/companies', icon: Building2, roles: ['superadmin'] },
+  { name: 'Facturation', href: '/dashboard/platform-admin/billing', icon: Receipt, roles: ['superadmin'] },
+];
+
+// Menu "Plus" pour Super Admin
+const superAdminMoreTabs: BottomNavItem[] = [
+  { name: 'Blog', href: '/dashboard/blog', icon: PenLine, roles: ['superadmin'] },
+  { name: 'Ressources', href: '/dashboard/resources', icon: PlayCircle, roles: ['superadmin'] },
+  { name: 'Centre d\'Aide', href: '/dashboard/help-admin', icon: HelpCircle, roles: ['superadmin'] },
+];
+
+// Items dans le menu "Plus" pour les rôles normaux
 const moreTabs: BottomNavItem[] = [
   { name: 'OKR & Objectifs', href: '/dashboard/okr', icon: Target, roles: ['manager', 'rh', 'admin', 'dg'] },
   { name: 'Talents', href: '/dashboard/talents', icon: Sparkles, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
@@ -64,8 +86,9 @@ const moreTabs: BottomNavItem[] = [
 
 function normalizeRole(role: string | undefined): UserRole {
   if (!role) return 'employee';
-  const r = role.toLowerCase().replace('_', '');
-  if (r === 'admin' || r === 'administrator' || r === 'superadmin') return 'admin';
+  const r = role.toLowerCase().replace(/[^a-z]/g, '');
+  if (r === 'superadmin' || r === 'superadmintech' || r === 'platformadmin') return 'superadmin';
+  if (r === 'admin' || r === 'administrator') return 'admin';
   if (r === 'dg' || r === 'director' || r === 'directiongenerale') return 'dg';
   if (r === 'rh' || r === 'hr' || r === 'humanresources') return 'rh';
   if (r === 'manager') return 'manager';
@@ -97,9 +120,14 @@ export default function BottomNav() {
     setUserRole(getUserRole());
   }, []);
 
-  // Filtrer les items selon le rôle
-  const visibleMainTabs = mainTabs.filter(tab => tab.roles.includes(userRole));
-  const visibleMoreTabs = moreTabs.filter(tab => tab.roles.includes(userRole));
+  // Choisir les onglets selon le rôle (super admin a un menu différent)
+  const isSuperAdmin = userRole === 'superadmin';
+  const visibleMainTabs = isSuperAdmin
+    ? superAdminMainTabs
+    : mainTabs.filter(tab => tab.roles.includes(userRole));
+  const visibleMoreTabs = isSuperAdmin
+    ? superAdminMoreTabs
+    : moreTabs.filter(tab => tab.roles.includes(userRole));
 
   // Vérifier si une route est active
   const isActive = (href: string) => {
@@ -148,6 +176,18 @@ export default function BottomNav() {
                   </Link>
                 );
               })}
+            </div>
+
+            {/* Séparateur + Aide */}
+            <div className="border-t border-gray-200 mt-3 pt-3 flex items-center justify-center">
+              <Link
+                href="/help"
+                onClick={() => setShowMore(false)}
+                className="flex flex-col items-center gap-1 py-2 px-3 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                <HelpCircle className="w-5 h-5" />
+                <span className="text-[10px] font-medium">Aide & Support</span>
+              </Link>
             </div>
           </div>
         </div>

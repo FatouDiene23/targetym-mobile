@@ -1690,7 +1690,7 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
       {/* Sélecteurs */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex-1 min-w-[260px]">
+          <div className="flex-1 min-w-0 sm:min-w-[260px]">
             <label className="block text-sm font-medium text-gray-700 mb-1">Employé</label>
             {loadingEmployees ? (
               <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
@@ -2076,7 +2076,7 @@ export default function LeavesManagementPage() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             {/* Filters */}
             <div data-tour="leaves-filters" className="p-4 border-b border-gray-200 flex flex-wrap gap-4">
-              <div className="relative flex-1 min-w-[200px]">
+              <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"

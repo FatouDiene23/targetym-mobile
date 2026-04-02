@@ -645,7 +645,7 @@ export default function PlatformAdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100">
           <div className="p-5 border-b border-gray-200">
             <div className="flex flex-wrap gap-3 items-center">
-              <div className="flex-1 min-w-[220px] relative">
+              <div className="flex-1 min-w-0 sm:min-w-[220px] relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input type="text" placeholder="Filtrer nom, email, slug..." value={tenantSearch}
                   onChange={e => setTenantSearch(e.target.value)}
@@ -903,7 +903,7 @@ export default function PlatformAdminDashboard() {
                     {req.status === 'pending' && (
                       <div className="flex-shrink-0">
                         {reviewOpenId === req.id ? (
-                          <div className="flex flex-col gap-2 min-w-[240px]">
+                          <div className="flex flex-col gap-2 min-w-0 sm:min-w-[240px]">
                             {/* Paiement non confirmé : montrer le panneau de confirmation paiement */}
                             {req.payment_status !== 'paid' && (
                               <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-1">
@@ -1026,7 +1026,7 @@ export default function PlatformAdminDashboard() {
               </button>
             </div>
             <form onSubmit={handleCreateTenant} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nom de l&apos;entreprise *</label>
                   <input required type="text" value={createTenantForm.company_name}
@@ -1141,7 +1141,7 @@ export default function PlatformAdminDashboard() {
 
             <div className="p-5 space-y-5">
               {/* Stats bar */}
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div className="bg-blue-50 rounded-lg p-3 text-center">
                   <p className="text-2xl font-bold text-blue-700">{selectedTenant.users_count}</p>
                   <p className="text-xs text-blue-600">Utilisateurs</p>
@@ -1157,7 +1157,7 @@ export default function PlatformAdminDashboard() {
               </div>
 
               {/* Fields */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <TenantField label="Plan" value={selectedTenant.plan}
                   editing={editingTenant}
                   editType="select" options={['trial', 'professional', 'enterprise']}

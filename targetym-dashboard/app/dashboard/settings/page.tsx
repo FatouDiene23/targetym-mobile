@@ -287,7 +287,7 @@ function IntoWorkIntegrationSection() {
                 <p className="text-sm font-medium text-gray-800">Entrez les informations IntoWork</p>
               </div>
               <p className="text-xs text-gray-500 ml-7">Récupérez votre ID Company et votre clé API depuis IntoWork → Intégrations → Targetym.</p>
-              <div className="ml-7 grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">ID Company IntoWork</label>
                   <input type="number" value={companyId} onChange={(e) => setCompanyId(e.target.value)} placeholder="ex: 12" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
@@ -1112,7 +1112,7 @@ export default function SettingsPage() {
       <Header title="Paramètres" subtitle="Configuration de votre espace Targetym AI" />
       
       <main className="flex-1 p-6 overflow-auto">
-        <div className="grid lg:grid-cols-4 gap-3 lg:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
           {/* Sidebar */}
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 h-fit" data-tour="settings-tabs">
             <nav className="space-y-1">

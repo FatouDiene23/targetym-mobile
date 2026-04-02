@@ -884,7 +884,7 @@ export default function CompensationPage() {
                 <select
                   value={searchEval}
                   onChange={(e) => { setSearchEval(e.target.value); setEvalPage(1); }}
-                  className="flex-1 min-w-[200px] px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500 outline-none"
+                  className="flex-1 min-w-0 sm:min-w-[200px] px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500 outline-none"
                 >
                   <option value="">Tous les postes</option>
                   {departments.map(d => (
@@ -1371,7 +1371,7 @@ export default function CompensationPage() {
                   <input value={evalForm.job_family} onChange={(e) => setEvalForm(f => ({ ...f, job_family: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Pays (code ISO)</label>
                     <input value={evalForm.country} onChange={(e) => setEvalForm(f => ({ ...f, country: e.target.value }))} placeholder="SN"
@@ -1456,7 +1456,7 @@ export default function CompensationPage() {
                   <input value={agreeForm.name} onChange={(e) => setAgreeForm(f => ({ ...f, name: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Pays (code ISO) *</label>
                     <input value={agreeForm.country} onChange={(e) => setAgreeForm(f => ({ ...f, country: e.target.value }))} placeholder="SN"
@@ -1468,7 +1468,7 @@ export default function CompensationPage() {
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Version</label>
                     <input value={agreeForm.version} onChange={(e) => setAgreeForm(f => ({ ...f, version: e.target.value }))}
@@ -1507,7 +1507,7 @@ export default function CompensationPage() {
                 <button onClick={() => setShowCategoryModal(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
               </div>
               <div className="p-5 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Code *</label>
                     <input value={catForm.category_code} onChange={(e) => setCatForm(f => ({ ...f, category_code: e.target.value }))} placeholder="III-A"
@@ -1529,7 +1529,7 @@ export default function CompensationPage() {
                   <input type="number" value={catForm.min_salary} onChange={(e) => setCatForm(f => ({ ...f, min_salary: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Band Mercer min</label>
                     <input value={catForm.mercer_band_min} onChange={(e) => setCatForm(f => ({ ...f, mercer_band_min: e.target.value }))} placeholder="Band 1"
@@ -1568,7 +1568,7 @@ export default function CompensationPage() {
                   <input value={simForm.title} onChange={(e) => setSimForm(f => ({ ...f, title: e.target.value }))} placeholder="Révision salariale 2026"
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Année</label>
                     <input type="number" value={simForm.year} onChange={(e) => setSimForm(f => ({ ...f, year: parseInt(e.target.value) || 2026 }))}
@@ -1580,7 +1580,7 @@ export default function CompensationPage() {
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Type de budget</label>
                     <select value={simForm.budget_type} onChange={(e) => setSimForm(f => ({ ...f, budget_type: e.target.value }))}
@@ -1605,7 +1605,7 @@ export default function CompensationPage() {
                     <option value="categorie">Par catégorie</option>
                   </select>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Périmètre</label>
                     <select value={simForm.scope_type} onChange={(e) => setSimForm(f => ({ ...f, scope_type: e.target.value, scope_id: null }))}

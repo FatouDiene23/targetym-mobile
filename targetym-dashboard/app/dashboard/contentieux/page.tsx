@@ -1011,7 +1011,7 @@ export default function ContentieuxPage() {
       {/* Filters + Actions */}
       <div className="bg-white rounded-xl shadow-sm border p-4 mb-6 w-full">
         <div className="flex flex-wrap items-center gap-3 w-full">
-          <div className="relative flex-1 min-w-[250px]">
+          <div className="relative flex-1 min-w-0 sm:min-w-[250px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"

@@ -1506,7 +1506,7 @@ function MissionDetailModal({ mission, role, onClose }: {
           {/* Info employé */}
           <div className="bg-gray-50 rounded-xl p-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Employé</h3>
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div><span className="text-gray-500">Nom:</span> <span className="font-medium">{mission.employee_name}</span></div>
               <div><span className="text-gray-500">Matricule:</span> <span className="font-medium">{mission.employee_code || '-'}</span></div>
               <div><span className="text-gray-500">Poste:</span> <span className="font-medium">{mission.employee_job_title || '-'}</span></div>

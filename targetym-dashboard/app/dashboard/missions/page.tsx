@@ -1032,12 +1032,12 @@ export default function MissionsPage() {
           {renderStats()}
         </div>
 
-        <div className="flex items-center gap-1 mb-4 bg-white rounded-xl p-1 border">
+        <div className="flex items-center gap-1 mb-4 bg-white rounded-xl p-1 border overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => { setActiveTab(tab.id); setSelectedMissionIds(new Set()); }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center gap-1.5 lg:gap-2 px-3 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === tab.id
                   ? 'bg-blue-600 text-white'
                   : 'text-gray-600 hover:bg-gray-100'

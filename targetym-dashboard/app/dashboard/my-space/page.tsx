@@ -1396,17 +1396,17 @@ export default function MyProfilePage() {
             <button
               onClick={generateWorkCertificate}
               disabled={isGeneratingCertificate}
-              className="flex items-center gap-2 px-4 py-2.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+              className="flex items-center gap-2 px-3 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-xs lg:text-sm"
             >
               {isGeneratingCertificate ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Génération en cours...
+                  <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+                  <span>Génération...</span>
                 </>
               ) : (
                 <>
-                  <Download className="w-4 h-4" />
-                  Télécharger mon attestation de travail
+                  <Download className="w-4 h-4 flex-shrink-0" />
+                  <span>Télécharger attestation</span>
                 </>
               )}
             </button>

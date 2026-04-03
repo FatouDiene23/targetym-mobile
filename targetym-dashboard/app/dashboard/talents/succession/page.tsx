@@ -88,39 +88,38 @@ export default function SuccessionPage() {
                 <div key={plan.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                   {/* Header */}
                   <div
-                    className="p-5 cursor-pointer hover:bg-gray-50 transition-colors"
+                    className="p-3 lg:p-5 cursor-pointer hover:bg-gray-50 transition-colors"
                     onClick={() => handleExpand(plan.id)}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
-                          <Crown className="w-6 h-6 text-primary-600" />
+                    {/* Ligne 1 : Poste + chevron */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 lg:gap-4 min-w-0">
+                        <div className="w-9 h-9 lg:w-12 lg:h-12 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Crown className="w-4 h-4 lg:w-6 lg:h-6 text-primary-600" />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-gray-900">{plan.position_title}</h3>
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${critInfo.color}`}>
-                              {critInfo.label}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-500">{plan.department || '-'}</p>
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-gray-900 text-sm lg:text-base truncate">{plan.position_title}</h3>
+                          <p className="text-xs lg:text-sm text-gray-500">{plan.department || '-'}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-sm text-gray-500">Titulaire</p>
-                          <p className="font-medium text-gray-900">{plan.current_holder_name || '-'}</p>
-                        </div>
-                        <div className="text-right">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${riskInfo.color}`}>
-                            Risque: {riskInfo.label}
-                          </span>
-                        </div>
-                        <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
-                          {plan.candidate_count || 0} candidat(s)
+                      {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400 flex-shrink-0 mt-1" /> : <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0 mt-1" />}
+                    </div>
+                    {/* Ligne 2 : Badges + infos */}
+                    <div className="flex items-center gap-2 mt-2 ml-11 lg:ml-16 flex-wrap">
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${critInfo.color}`}>
+                        {critInfo.label}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${riskInfo.color}`}>
+                        Risque: {riskInfo.label}
+                      </span>
+                      <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full whitespace-nowrap">
+                        {plan.candidate_count || 0} candidat(s)
+                      </span>
+                      {plan.current_holder_name && (
+                        <span className="text-xs text-gray-500 whitespace-nowrap">
+                          Titulaire: <span className="font-medium text-gray-700">{plan.current_holder_name}</span>
                         </span>
-                        {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
-                      </div>
+                      )}
                     </div>
                   </div>
 

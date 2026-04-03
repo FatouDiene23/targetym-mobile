@@ -2012,27 +2012,28 @@ export default function LeavesManagementPage() {
       <div className="py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Actions */}
-        <div className="flex justify-end gap-3 mb-6">
+        <div className="flex flex-wrap justify-end gap-2 lg:gap-3 mb-6">
             <button
               onClick={() => setShowNewLeaveModal(true)}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
+              className="px-3 lg:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-1.5 text-xs lg:text-sm"
             >
               <Plus className="w-4 h-4" />
               Nouvelle demande
             </button>
             <button
               onClick={() => setShowInitModal(true)}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+              className="px-3 lg:px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-1.5 text-xs lg:text-sm"
             >
               <RefreshCw className="w-4 h-4" />
-              Initialiser soldes
+              <span className="hidden sm:inline">Initialiser soldes</span>
+              <span className="sm:hidden">Soldes</span>
             </button>
             <button
               onClick={exportToCSV}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+              className="px-3 lg:px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-1.5 text-xs lg:text-sm"
             >
               <Download className="w-4 h-4" />
-              Exporter
+              <span className="hidden sm:inline">Exporter</span>
             </button>
           </div>
 
@@ -2049,7 +2050,7 @@ export default function LeavesManagementPage() {
         )}
 
         {/* Tabs */}
-        <div data-tour="leaves-tabs" className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg w-fit">
+        <div data-tour="leaves-tabs" className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
           {[
             { key: 'requests', label: 'Demandes', icon: Clock },
             { key: 'calendar', label: 'Calendrier', icon: CalendarDays },
@@ -2075,8 +2076,8 @@ export default function LeavesManagementPage() {
         {activeTab === 'requests' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             {/* Filters */}
-            <div data-tour="leaves-filters" className="p-4 border-b border-gray-200 flex flex-wrap gap-4">
-              <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
+            <div data-tour="leaves-filters" className="p-3 lg:p-4 border-b border-gray-200 flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3">
+              <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"

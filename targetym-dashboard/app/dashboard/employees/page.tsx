@@ -1110,11 +1110,11 @@ function EmployeesPageInner() {
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1 relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder="Rechercher par nom, email ou poste..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" /></div>
-                <div className="flex gap-3 flex-wrap">
-                  <select value={selectedDepartment} onChange={(e) => { setSelectedDepartment(e.target.value); setCurrentPage(1); }} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm"><option value="Tous">Tous les départements</option>{departments.map(dept => <option key={dept.id} value={dept.name}>{dept.parent_id ? `  ↳ ${dept.name}` : dept.name}</option>)}</select>
-                  <select value={selectedLocation} onChange={(e) => { setSelectedLocation(e.target.value); setCurrentPage(1); }} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm">{locations.map(loc => <option key={loc} value={loc}>{loc === 'Tous' ? 'Toutes les localisations' : loc}</option>)}</select>
-                  <button onClick={() => setShowAddModal(true)} className="flex items-center px-4 py-2.5 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"><Plus className="w-4 h-4 mr-2" />Ajouter</button>
-                  <button onClick={handleExport} className="flex items-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"><Download className="w-4 h-4 mr-2" />Exporter</button>
+                <div className="flex gap-2 lg:gap-3 flex-wrap">
+                  <select value={selectedDepartment} onChange={(e) => { setSelectedDepartment(e.target.value); setCurrentPage(1); }} className="px-2 lg:px-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg text-xs lg:text-sm max-w-[140px] lg:max-w-none truncate"><option value="Tous">Tous départements</option>{departments.map(dept => <option key={dept.id} value={dept.name}>{dept.parent_id ? `↳ ${dept.name}` : dept.name}</option>)}</select>
+                  <select value={selectedLocation} onChange={(e) => { setSelectedLocation(e.target.value); setCurrentPage(1); }} className="px-2 lg:px-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg text-xs lg:text-sm max-w-[140px] lg:max-w-none truncate">{locations.map(loc => <option key={loc} value={loc}>{loc === 'Tous' ? 'Localisations' : loc}</option>)}</select>
+                  <button onClick={() => setShowAddModal(true)} className="flex items-center px-3 lg:px-4 py-2 lg:py-2.5 bg-primary-500 text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-primary-600"><Plus className="w-4 h-4 lg:mr-2" /><span className="hidden lg:inline">Ajouter</span></button>
+                  <button onClick={handleExport} className="flex items-center px-3 lg:px-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg text-xs lg:text-sm hover:bg-gray-50"><Download className="w-4 h-4 lg:mr-2" /><span className="hidden lg:inline">Exporter</span></button>
                 </div>
               </div>
             </div>
@@ -1312,18 +1312,21 @@ function EmployeesPageInner() {
                 <div className="divide-y divide-gray-100">
                   {isLoadingInvitations ? (<div className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>) : invitations.length === 0 ? (<div className="p-8 text-center text-gray-500"><Send className="w-12 h-12 mx-auto mb-4 text-gray-300" /><p>Aucune invitation</p></div>) : (
                     invitations.map((inv) => (
-                      <div key={inv.id} className={`px-5 py-4 hover:bg-gray-50 transition-colors ${selectedInvIds.has(inv.id) ? 'bg-primary-50/50' : ''}`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <input type="checkbox" checked={selectedInvIds.has(inv.id)} onChange={() => toggleSelectInv(inv.id)} className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer mr-3 flex-shrink-0" />
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-medium ${inv.invitation_status === 'accepted' ? 'bg-green-100 text-green-700' : inv.invitation_status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>{getInitials(inv.first_name, inv.last_name)}</div><div className="ml-3"><p className="font-medium text-gray-900">{inv.first_name} {inv.last_name}</p><p className="text-sm text-gray-500">{inv.email}</p></div></div>
-                          <div className="flex items-center gap-3">
-                            {getInvitationStatusBadge(inv.invitation_status)}
-                            {inv.invitation_status === 'not_invited' && (<button onClick={() => handleSendInvitation(inv)} disabled={sendingInvitation === inv.id} className="flex items-center px-3 py-1.5 bg-primary-500 text-white text-xs font-medium rounded-lg hover:bg-primary-600 disabled:opacity-50">{sendingInvitation === inv.id ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}Inviter</button>)}
-                            {inv.invitation_status === 'pending' && (<button onClick={() => handleResendInvitation(inv)} disabled={sendingInvitation === inv.id} className="flex items-center px-3 py-1.5 bg-yellow-500 text-white text-xs font-medium rounded-lg hover:bg-yellow-600 disabled:opacity-50">{sendingInvitation === inv.id ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}Relancer</button>)}
+                      <div key={inv.id} className={`px-3 lg:px-5 py-3 lg:py-4 hover:bg-gray-50 transition-colors ${selectedInvIds.has(inv.id) ? 'bg-primary-50/50' : ''}`}>
+                        <div className="flex items-start gap-2">
+                          <input type="checkbox" checked={selectedInvIds.has(inv.id)} onChange={() => toggleSelectInv(inv.id)} className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer mt-1 flex-shrink-0" />
+                          <div className={`w-9 h-9 lg:w-10 lg:h-10 rounded-full flex items-center justify-center font-medium text-sm flex-shrink-0 ${inv.invitation_status === 'accepted' ? 'bg-green-100 text-green-700' : inv.invitation_status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>{getInitials(inv.first_name, inv.last_name)}</div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-gray-900 text-sm truncate">{inv.first_name} {inv.last_name}</p>
+                            <p className="text-xs text-gray-500 truncate">{inv.email}</p>
+                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                              {getInvitationStatusBadge(inv.invitation_status)}
+                              {inv.invitation_status === 'not_invited' && (<button onClick={() => handleSendInvitation(inv)} disabled={sendingInvitation === inv.id} className="flex items-center px-2 py-1 bg-primary-500 text-white text-xs font-medium rounded-lg hover:bg-primary-600 disabled:opacity-50">{sendingInvitation === inv.id ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Send className="w-3 h-3 mr-1" />}Inviter</button>)}
+                              {inv.invitation_status === 'pending' && (<button onClick={() => handleResendInvitation(inv)} disabled={sendingInvitation === inv.id} className="flex items-center px-2 py-1 bg-yellow-500 text-white text-xs font-medium rounded-lg hover:bg-yellow-600 disabled:opacity-50">{sendingInvitation === inv.id ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1" />}Relancer</button>)}
+                            </div>
                           </div>
                         </div>
-                        <div className="mt-2 ml-[66px] flex items-center gap-4 text-xs text-gray-500">{inv.job_title && <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" />{inv.job_title}</span>}{inv.department_name && <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{inv.department_name}</span>}{inv.invitation_sent_at && <span className="flex items-center gap-1"><Mail className="w-3 h-3" />Invité le {formatDateTime(inv.invitation_sent_at)}</span>}{inv.last_login && <span className="flex items-center gap-1 text-green-600"><CheckCircle className="w-3 h-3" />Connecté le {formatDateTime(inv.last_login)}</span>}</div>
+                        <div className="mt-2 ml-11 lg:ml-14 flex items-center gap-2 lg:gap-4 text-xs text-gray-500 flex-wrap">{inv.job_title && <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" />{inv.job_title}</span>}{inv.department_name && <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{inv.department_name}</span>}{inv.invitation_sent_at && <span className="flex items-center gap-1"><Mail className="w-3 h-3" />Invité {formatDateTime(inv.invitation_sent_at)}</span>}{inv.last_login && <span className="flex items-center gap-1 text-green-600"><CheckCircle className="w-3 h-3" />Connecté {formatDateTime(inv.last_login)}</span>}</div>
                       </div>
                     ))
                   )}

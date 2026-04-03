@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { 
   LayoutDashboard, 
@@ -899,16 +900,13 @@ function SidebarInner() {
         {/* Header */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-gray-700 flex-shrink-0">
           {!collapsed && (
-            <Link href="/dashboard/platform-admin" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">T</span>
-              </div>
-              <span className="font-bold text-white">Targetym AI</span>
+            <Link href="/dashboard/platform-admin" className="flex items-center">
+              <Image src="/logo-targetym.png" alt="Targetym AI" width={150} height={40} className="object-contain" />
             </Link>
           )}
           {collapsed && (
-            <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center mx-auto">
-              <span className="text-white font-bold text-sm">T</span>
+            <div className="mx-auto">
+              <Image src="/logo-targetym.png" alt="Targetym AI" width={32} height={32} className="object-contain" />
             </div>
           )}
           <button 
@@ -1134,16 +1132,13 @@ function SidebarInner() {
       {/* Header */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-gray-700 flex-shrink-0">
         {!collapsed && (
-          <Link href="/dashboard" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">T</span>
-            </div>
-            <span className="font-bold text-white">Targetym AI</span>
+          <Link href="/dashboard" className="flex items-center">
+            <Image src="/logo-targetym.png" alt="Targetym AI" width={150} height={40} className="object-contain" />
           </Link>
         )}
         {collapsed && (
-          <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center mx-auto">
-            <span className="text-white font-bold text-sm">T</span>
+          <div className="mx-auto">
+            <Image src="/logo-targetym.png" alt="Targetym AI" width={32} height={32} className="object-contain" />
           </div>
         )}
         <button 

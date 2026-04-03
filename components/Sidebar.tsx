@@ -906,7 +906,7 @@ function SidebarInner() {
           )}
           {collapsed && (
             <div className="mx-auto">
-              <Image src="/logo-targetym.png" alt="Targetym AI" width={32} height={32} className="object-contain" />
+              <Image src="/picto-targetym.png" alt="Targetym AI" width={32} height={32} className="object-contain" />
             </div>
           )}
           <button 

@@ -600,8 +600,8 @@ export default function PlatformAdminDashboard() {
       )}
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <nav className="flex gap-1">
+      <div className="border-b border-gray-200 overflow-x-auto">
+        <nav className="flex gap-1 min-w-max">
           {([
             { key: 'overview', label: 'Vue globale', icon: Activity },
             { key: 'tenants', label: `Tenants (${tenants.length})`, icon: Building2 },

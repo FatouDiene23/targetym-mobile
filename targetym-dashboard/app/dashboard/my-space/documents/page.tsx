@@ -313,7 +313,7 @@ export default function MyDocumentsPage() {
       )}
       <Header title="Mes Documents" subtitle="Vos documents RH et administratifs" />
 
-      <div className="p-6 max-w-5xl mx-auto">
+      <div className="p-3 sm:p-6 max-w-5xl mx-auto">
         {/* Raccourci : Générer une attestation */}
         <div
           onClick={() => router.push('/dashboard/my-space?tab=profile')}
@@ -365,20 +365,20 @@ export default function MyDocumentsPage() {
         </div>
 
         {/* Tabs + Upload button */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-0 mb-4 sm:mb-6">
+          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
             <button
               onClick={() => setTab('documents')}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${
+              className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 whitespace-nowrap ${
                 tab === 'documents' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <FileText className="w-4 h-4" />
-              Mes Documents
+              Documents
             </button>
             <button
               onClick={() => setTab('history')}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${
+              className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 whitespace-nowrap ${
                 tab === 'history' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -388,28 +388,28 @@ export default function MyDocumentsPage() {
           </div>
           <button
             onClick={() => setShowUpload(!showUpload)}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Upload className="w-4 h-4" />
-            Ajouter un document
+            Ajouter
           </button>
         </div>
 
         {/* Upload Form */}
         {showUpload && (
-          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4">
+          <div className="mb-4 sm:mb-6 bg-blue-50 border border-blue-200 rounded-xl p-3 sm:p-5 space-y-3 sm:space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-blue-900 flex items-center gap-2">
-                <Upload className="w-4 h-4" /> Ajouter un document personnel
+              <h3 className="text-xs sm:text-sm font-semibold text-blue-900 flex items-center gap-2">
+                <Upload className="w-4 h-4" /> Ajouter un document
               </h3>
               <button onClick={() => setShowUpload(false)}>
                 <X className="w-4 h-4 text-blue-400 hover:text-blue-600" />
               </button>
             </div>
 
-            {uploadError && <p className="text-sm text-red-600 bg-red-50 px-3 py-1.5 rounded">{uploadError}</p>}
+            {uploadError && <p className="text-xs sm:text-sm text-red-600 bg-red-50 px-3 py-1.5 rounded">{uploadError}</p>}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label className="text-xs font-medium text-gray-600 mb-1 block">Type de document *</label>
                 <select
@@ -438,7 +438,7 @@ export default function MyDocumentsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label className="text-xs font-medium text-gray-600 mb-1 block">Date d&apos;expiration</label>
                 <input
@@ -498,21 +498,21 @@ export default function MyDocumentsPage() {
         {tab === 'documents' && (
           <>
             {/* Recherche + Filtres */}
-            <div className="flex flex-wrap items-center gap-3 mb-4">
-              <div className="flex items-center gap-2 bg-white border rounded-lg px-3 py-2 flex-1 min-w-0 sm:min-w-[200px]">
-                <Search className="w-4 h-4 text-gray-400" />
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 mb-4">
+              <div className="flex items-center gap-2 bg-white border rounded-lg px-3 py-2 min-w-0">
+                <Search className="w-4 h-4 text-gray-400 shrink-0" />
                 <input
                   type="text"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder="Rechercher un document..."
-                  className="flex-1 text-sm outline-none"
+                  placeholder="Rechercher..."
+                  className="flex-1 text-sm outline-none min-w-0"
                 />
                 {search && (
                   <button onClick={() => setSearch('')}><X className="w-3 h-3 text-gray-400" /></button>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1">
                 <button
                   onClick={() => setFilter('all')}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium ${
@@ -562,68 +562,64 @@ export default function MyDocumentsPage() {
                   return (
                     <div
                       key={doc.id}
-                      className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 hover:shadow-sm transition-shadow group"
+                      className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 flex items-start sm:items-center gap-3 sm:gap-4 hover:shadow-sm transition-shadow group"
                     >
                       {/* Icône type */}
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${style.bg}`}>
+                      <div className={`w-10 sm:w-12 h-10 sm:h-12 rounded-xl flex items-center justify-center text-lg sm:text-xl shrink-0 ${style.bg}`}>
                         {style.icon}
                       </div>
 
                       {/* Infos */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-semibold text-gray-900 truncate">{doc.title}</h3>
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                          <h3 className="text-xs sm:text-sm font-semibold text-gray-900 truncate">{doc.title}</h3>
                           {expired && (
-                            <span className="px-2 py-0.5 text-[10px] font-medium bg-red-100 text-red-600 rounded-full flex items-center gap-0.5">
-                              <AlertTriangle className="w-3 h-3" /> Expiré
+                            <span className="px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium bg-red-100 text-red-600 rounded-full flex items-center gap-0.5">
+                              <AlertTriangle className="w-2.5 sm:w-3 h-2.5 sm:h-3" /> Expiré
                             </span>
                           )}
                           {!expired && expiring && (
-                            <span className="px-2 py-0.5 text-[10px] font-medium bg-orange-100 text-orange-600 rounded-full flex items-center gap-0.5">
-                              <Clock className="w-3 h-3" /> Expire bientôt
+                            <span className="px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium bg-orange-100 text-orange-600 rounded-full flex items-center gap-0.5">
+                              <Clock className="w-2.5 sm:w-3 h-2.5 sm:h-3" /> Bientôt
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                        <div className="flex items-center gap-2 sm:gap-3 mt-1 text-[11px] sm:text-xs text-gray-500 flex-wrap">
                           <span className={`font-medium ${style.color}`}>{style.label}</span>
-                          <span className="flex items-center gap-1"><FileIcon className="w-3 h-3" />{doc.file_name}</span>
-                          {doc.file_size && <span>{formatFileSize(doc.file_size)}</span>}
+                          <span className="flex items-center gap-1 truncate"><FileIcon className="w-3 h-3 shrink-0" /><span className="truncate">{doc.file_name}</span></span>
+                          {doc.file_size && <span className="hidden sm:inline">{formatFileSize(doc.file_size)}</span>}
                         </div>
-                        <div className="flex items-center gap-3 mt-1 text-[11px] text-gray-400">
-                          {doc.document_date && <span>📅 {formatDate(doc.document_date)}</span>}
-                          {doc.expiry_date && <span>⏳ Expire: {formatDate(doc.expiry_date)}</span>}
-                          <span>Ajouté le {formatDate(doc.created_at)}</span>
+                        <div className="flex items-center gap-2 sm:gap-3 mt-1 text-[10px] sm:text-[11px] text-gray-400 flex-wrap">
+                          {doc.expiry_date && <span>⏳ {formatDate(doc.expiry_date)}</span>}
+                          <span className="hidden sm:inline">Ajouté le {formatDate(doc.created_at)}</span>
                         </div>
-                        {doc.description && (
-                          <p className="text-xs text-gray-400 mt-1 truncate">{doc.description}</p>
-                        )}
                       </div>
 
-                      {/* Actions */}
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Actions — toujours visibles sur mobile */}
+                      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                         <button
                           onClick={() => handleDownload(doc)}
                           disabled={downloading === doc.id}
-                          className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors"
+                          className="p-1.5 sm:p-2 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors"
                           title="Télécharger"
                         >
                           {downloading === doc.id ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <Loader2 className="w-4 sm:w-5 h-4 sm:h-5 animate-spin" />
                           ) : (
-                            <Download className="w-5 h-5" />
+                            <Download className="w-4 sm:w-5 h-4 sm:h-5" />
                           )}
                         </button>
                         {EMPLOYEE_DELETABLE_TYPES.includes(doc.document_type) && (
                           <button
                             onClick={() => handleDelete(doc)}
                             disabled={deleting === doc.id}
-                            className="p-2 rounded-lg hover:bg-red-50 text-red-500 transition-colors"
+                            className="p-1.5 sm:p-2 rounded-lg hover:bg-red-50 text-red-500 transition-colors"
                             title="Supprimer"
                           >
                             {deleting === doc.id ? (
-                              <Loader2 className="w-5 h-5 animate-spin" />
+                              <Loader2 className="w-4 sm:w-5 h-4 sm:h-5 animate-spin" />
                             ) : (
-                              <Trash2 className="w-5 h-5" />
+                              <Trash2 className="w-4 sm:w-5 h-4 sm:h-5" />
                             )}
                           </button>
                         )}

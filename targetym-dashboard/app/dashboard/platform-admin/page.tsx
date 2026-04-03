@@ -528,19 +528,19 @@ export default function PlatformAdminDashboard() {
           </p>
         </div>
         {/* Unified search */}
-        <form onSubmit={handleGlobalSearch} className="flex gap-2 items-center">
-          <div className="relative">
+        <form onSubmit={handleGlobalSearch} className="flex flex-wrap gap-2 items-center w-full sm:w-auto">
+          <div className="relative flex-1 min-w-0 sm:flex-none">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               placeholder="Recherche globale (email, nom, ID, slug)..."
               value={globalSearch}
               onChange={e => { setGlobalSearch(e.target.value); if (!e.target.value) setSearchResult(null); }}
-              className="pl-9 pr-4 py-2 w-72 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="pl-9 pr-4 py-2 w-full sm:w-72 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
           </div>
           <button type="submit" disabled={searchLoading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm disabled:opacity-50">
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm disabled:opacity-50 whitespace-nowrap">
             {searchLoading ? '...' : 'Chercher'}
           </button>
         </form>

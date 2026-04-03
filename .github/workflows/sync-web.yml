@@ -1,0 +1,146 @@
+name: Sync from Web Repo
+
+# Exécution automatique : chaque jour à 8h UTC (10h Paris)
+# + déclenchement manuel possible
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout mobile repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch web repo
+        run: |
+          git remote add web https://github.com/Targetym-AI/targetym-dashboard.git || true
+          git fetch web main
+
+      - name: Create sync branch
+        run: |
+          BRANCH="sync-web/$(date +%Y-%m-%d-%H%M)"
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+          git checkout -b "$BRANCH"
+
+      - name: Sync files from web to mobile
+        run: |
+          # Dossier cible dans le repo mobile
+          TARGET="targetym-dashboard"
+
+          # Sauvegarder les fichiers spécifiques au mobile
+          cp "$TARGET/capacitor.config.ts" /tmp/capacitor.config.ts
+          cp "$TARGET/next.config.mjs" /tmp/next.config.mjs
+          cp "$TARGET/package.json" /tmp/package.json.mobile
+          cp "$TARGET/components/BottomNav.tsx" /tmp/BottomNav.tsx 2>/dev/null || true
+
+          # Lister les dossiers/fichiers du web à synchroniser
+          SYNC_DIRS="app components config context data hooks lib"
+          SYNC_FILES="tailwind.config.ts postcss.config.mjs tsconfig.json"
+
+          # Synchroniser les dossiers
+          for dir in $SYNC_DIRS; do
+            echo "Syncing $dir..."
+            rm -rf "$TARGET/$dir"
+            git checkout web/main -- "$dir"
+            mv "$dir" "$TARGET/$dir"
+          done
+
+          # Synchroniser les fichiers individuels
+          for file in $SYNC_FILES; do
+            echo "Syncing $file..."
+            git checkout web/main -- "$file"
+            mv "$file" "$TARGET/$file"
+          done
+
+          # Restaurer les fichiers mobile
+          cp /tmp/capacitor.config.ts "$TARGET/capacitor.config.ts"
+          cp /tmp/next.config.mjs "$TARGET/next.config.mjs"
+          cp /tmp/BottomNav.tsx "$TARGET/components/BottomNav.tsx" 2>/dev/null || true
+
+          # Merger le package.json : garder les deps mobile + ajouter celles du web
+          # On prend le package.json du web mais on réinjecte les deps Capacitor
+          git checkout web/main -- package.json
+          node -e "
+            const web = JSON.parse(require('fs').readFileSync('package.json','utf8'));
+            const mobile = JSON.parse(require('fs').readFileSync('/tmp/package.json.mobile','utf8'));
+
+            // Garder les scripts mobile
+            web.scripts = { ...web.scripts, ...mobile.scripts };
+
+            // Ajouter les dépendances Capacitor du mobile
+            const capDeps = Object.entries(mobile.dependencies || {}).filter(([k]) => k.startsWith('@capacitor'));
+            capDeps.forEach(([k,v]) => { web.dependencies[k] = v; });
+
+            const capDevDeps = Object.entries(mobile.devDependencies || {}).filter(([k]) => k.startsWith('@capacitor'));
+            capDevDeps.forEach(([k,v]) => { web.devDependencies[k] = v; });
+
+            // Garder cross-env si présent dans mobile
+            if (mobile.dependencies?.['cross-env']) web.dependencies['cross-env'] = mobile.dependencies['cross-env'];
+            if (mobile.devDependencies?.['cross-env']) web.devDependencies['cross-env'] = mobile.devDependencies['cross-env'];
+
+            require('fs').writeFileSync('package.json', JSON.stringify(web, null, 2) + '\n');
+          "
+          mv package.json "$TARGET/package.json"
+
+      - name: Check for changes
+        id: changes
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No changes detected"
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "Changes detected:"
+            git diff --cached --stat | tail -5
+          fi
+
+      - name: Commit and push
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "sync: mise à jour depuis le repo web $(date +%Y-%m-%d)"
+          git push origin "${{ env.BRANCH }}"
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `sync: mise à jour depuis le repo web ${new Date().toISOString().split('T')[0]}`,
+              body: [
+                '## Synchronisation automatique',
+                '',
+                'Ce PR contient les dernières modifications du [repo web](https://github.com/Targetym-AI/targetym-dashboard).',
+                '',
+                '### Fichiers protégés (non écrasés) :',
+                '- `capacitor.config.ts`',
+                '- `next.config.mjs`',
+                '- `components/BottomNav.tsx`',
+                '- Dépendances Capacitor dans `package.json`',
+                '',
+                '### A vérifier avant de merger :',
+                '- [ ] Les nouvelles couleurs/styles sont OK sur mobile',
+                '- [ ] Pas de conflit avec les adaptations responsive',
+                '- [ ] Le build mobile fonctionne',
+                '',
+                '_Généré automatiquement par GitHub Actions_',
+              ].join('\n'),
+              head: process.env.BRANCH,
+              base: 'main',
+            });
+            console.log(`PR created: ${pr.html_url}`);

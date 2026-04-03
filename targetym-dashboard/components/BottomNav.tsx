@@ -25,6 +25,7 @@ import {
   Receipt,
   PenLine,
   PlayCircle,
+  Handshake,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -75,6 +76,7 @@ const moreTabs: BottomNavItem[] = [
   { name: 'Congés', href: '/dashboard/leaves', icon: Calendar, roles: ['rh', 'admin', 'dg'] },
   { name: 'Personnel', href: '/dashboard/employees', icon: Users, roles: ['rh', 'admin', 'dg'] },
   { name: 'Recrutement', href: '/dashboard/recruitment', icon: UserPlus, roles: ['rh', 'admin', 'dg'] },
+  { name: 'Onboarding', href: '/dashboard/onboarding', icon: Handshake, roles: ['rh', 'admin', 'dg'] },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, roles: ['rh', 'admin', 'dg'] },
   { name: 'Missions', href: '/dashboard/missions', icon: Briefcase, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Paramètres', href: '/dashboard/settings', icon: Settings, roles: ['admin', 'dg', 'rh'] },

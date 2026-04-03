@@ -2030,10 +2030,10 @@ export default function LeavesManagementPage() {
             </button>
             <button
               onClick={exportToCSV}
-              className="px-3 lg:px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-1.5 text-xs lg:text-sm"
+              className="hidden lg:flex px-3 lg:px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 items-center gap-1.5 text-xs lg:text-sm"
             >
               <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">Exporter</span>
+              <span>Exporter</span>
             </button>
           </div>
 

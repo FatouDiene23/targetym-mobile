@@ -73,6 +73,7 @@ interface NavItem {
   disabled?: boolean;
   disabledReason?: string;
   dataTour?: string;
+  hideOnMobile?: boolean;
 }
 
 
@@ -173,6 +174,7 @@ const navigation: NavItem[] = [
     href: '/dashboard/departures',
     icon: UserMinus,
     roles: ['rh', 'admin', 'dg'],
+    hideOnMobile: true,
   },
   {
     name: 'Gestion des Contentieux',
@@ -185,7 +187,8 @@ const navigation: NavItem[] = [
     href: '/dashboard/compensation',
     icon: DollarSign,
     roles: ['admin', 'dg', 'rh'],
-    dataTour: 'sidebar-compensation'
+    dataTour: 'sidebar-compensation',
+    hideOnMobile: true,
   },
   {
     name: 'Certificats',
@@ -251,7 +254,7 @@ const talentsNavigation: NavItem[] = [
   { name: 'Mon Équipe',       href: '/dashboard/talents/team',            icon: UsersRound,   roles: ['manager', 'rh', 'admin', 'dg'] },
   { name: 'Collaborateurs',   href: '/dashboard/talents/employees',  icon: Users,        roles: ['rh', 'admin', 'dg'] },
   { name: 'Dashboard',        href: '/dashboard/talents',            icon: BarChart3,    roles: ['rh', 'admin', 'dg'] },
-  { name: 'Matrice 9-Box',    href: '/dashboard/talents/ninebox',   icon: Target,       roles: ['rh', 'admin', 'dg', 'manager'] },
+  { name: 'Matrice 9-Box',    href: '/dashboard/talents/ninebox',   icon: Target,       roles: ['rh', 'admin', 'dg', 'manager'], hideOnMobile: true },
   { name: 'Succession',       href: '/dashboard/talents/succession', icon: Crown,        roles: ['rh', 'admin', 'dg'] },
   { name: 'Parcours',         href: '/dashboard/talents/paths',      icon: Layers,       roles: ['rh', 'admin', 'dg'] },
   { name: 'Promotions',       href: '/dashboard/talents/promotions', icon: ArrowUpRight, roles: ['rh', 'admin', 'dg', 'manager'] },
@@ -451,7 +454,9 @@ function SidebarInner() {
   }, [hasFeature]);
 
   const isJuriste = user?.is_juriste === true;
+  const mobileFilter = (item: NavItem) => !(isMobile && item.hideOnMobile);
   const filteredNavigation = applyPlanGating(navigation.filter(item => {
+    if (!mobileFilter(item)) return false;
     // Juriste voit Contentieux mais PAS Gestion du Personnel
     if (isJuriste && item.href === '/dashboard/contentieux') return true;
     if (isJuriste && item.href === '/dashboard/employees') return false;
@@ -465,7 +470,7 @@ function SidebarInner() {
     });
   const filteredPerformanceNav = performanceNavigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredLearningNav = learningNavigation.filter(item => hasAccess(item, userRole, isManager));
-  const filteredTalentsNav = talentsNavigation.filter(item => hasAccess(item, userRole, isManager));
+  const filteredTalentsNav = talentsNavigation.filter(item => hasAccess(item, userRole, isManager)).filter(mobileFilter);
   const filteredPersonnelNav = personnelNavigation.filter(item => hasAccess(item, userRole, isManager));
 
   const NavItemComponent = ({ item, isCollapsed, showTooltip = false }: { item: NavItem; isCollapsed: boolean; showTooltip?: boolean }) => {

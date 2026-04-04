@@ -143,6 +143,53 @@ const orgChartCSS = `
 @media (min-width: 768px) {
   .org-mobile-hint { display: none; }
 }
+/* Mobile: organigramme vertical */
+@media (max-width: 767px) {
+  .org-tree {
+    padding: 12px 8px 24px;
+    min-width: unset;
+    width: 100%;
+  }
+  .org-tree ul {
+    flex-direction: column;
+    align-items: stretch;
+    padding-top: 0;
+    padding-left: 16px;
+    gap: 0;
+  }
+  .org-tree ul::before {
+    top: 0;
+    left: 8px;
+    transform: none;
+    width: 2px;
+    height: 100%;
+  }
+  .org-tree li {
+    align-items: flex-start;
+    padding: 8px 0 0 16px;
+  }
+  .org-tree li::before {
+    top: 20px;
+    left: -8px;
+    transform: none;
+    width: 16px;
+    height: 2px;
+  }
+  .org-tree li::after {
+    display: none;
+  }
+  .org-tree > ul > li {
+    padding-left: 0;
+  }
+  .org-tree > ul > li::before {
+    display: none;
+  }
+  .org-card {
+    min-width: unset;
+    max-width: 100%;
+    width: 100%;
+  }
+}
 `;
 
 // ============================================

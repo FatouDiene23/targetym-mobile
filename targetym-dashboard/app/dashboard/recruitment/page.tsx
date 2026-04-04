@@ -389,7 +389,15 @@ const interviewStatusLabels: Record<string, string> = { scheduled: 'Planifié', 
 // ============================================
 
 export default function RecruitmentPage() {
-  const [activeTab, setActiveTab] = useState<'kanban' | 'jobs' | 'interviews' | 'analytics'>('kanban');
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+  const defaultTab = isMobile ? 'jobs' : 'kanban';
+  const [activeTab, setActiveTab] = useState<'kanban' | 'jobs' | 'interviews' | 'analytics'>(defaultTab);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedJobFilter, setSelectedJobFilter] = useState<number | null>(null);
@@ -746,9 +754,11 @@ export default function RecruitmentPage() {
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
           <div className="flex border-b border-gray-200">
-            <button onClick={() => setActiveTab('kanban')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'kanban' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
-              <Users className="w-4 h-4 inline mr-2" />Pipeline Candidats
-            </button>
+            {!isMobile && (
+              <button onClick={() => setActiveTab('kanban')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'kanban' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
+                <Users className="w-4 h-4 inline mr-2" />Pipeline Candidats
+              </button>
+            )}
             <button onClick={() => setActiveTab('jobs')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'jobs' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
               <Briefcase className="w-4 h-4 inline mr-2" />Offres d&apos;Emploi
             </button>

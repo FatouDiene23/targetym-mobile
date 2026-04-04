@@ -181,6 +181,12 @@ const navigation: NavItem[] = [
     roles: ['rh', 'admin', 'dg'],
   },
   {
+    name: 'Enquêtes',
+    href: '/dashboard/surveys',
+    icon: ClipboardList,
+    roles: ['rh', 'admin', 'dg', 'manager'],
+  },
+  {
     name: 'Compensation & Benefits',
     href: '/dashboard/compensation',
     icon: DollarSign,

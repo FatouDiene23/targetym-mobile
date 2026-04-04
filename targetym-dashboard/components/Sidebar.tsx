@@ -526,9 +526,7 @@ function SidebarInner() {
     <aside className="w-20 bg-dark h-screen flex flex-col border-r border-gray-700 overflow-hidden">
       <div className="h-16 flex items-center justify-center border-b border-gray-700 flex-shrink-0">
         <Link href="/dashboard">
-          <div className="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold">T</span>
-          </div>
+          <Image src="/picto-targetym.png" alt="Targetym AI" width={32} height={32} className="object-contain" />
         </Link>
       </div>
       <nav className="flex-1 py-6 px-2 space-y-2 overflow-y-auto overflow-x-hidden sidebar-scroll">

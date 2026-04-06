@@ -1,7 +1,7 @@
 import RecapClient from './RecapClient';
 
 export async function generateStaticParams() {
-  return [];
+  return [{ runId: 'placeholder' }];
 }
 
 export default function RecapPage() {

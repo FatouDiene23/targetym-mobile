@@ -1,7 +1,7 @@
 import VariablesClient from './VariablesClient';
 
 export async function generateStaticParams() {
-  return [];
+  return [{ runId: 'placeholder' }];
 }
 
 export default function VariablesPage() {

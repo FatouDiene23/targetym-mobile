@@ -1,6 +1,6 @@
 name: Sync from Web Repo
 
-# Exécution automatique : chaque jour à 8h UTC (10h Paris)
+# Exécution automatique : chaque jour à 8h UTC (10h Paris/Dakar)
 # + déclenchement manuel possible
 on:
   schedule:
@@ -21,92 +21,241 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Fetch web repo
         run: |
           git remote add web https://github.com/Targetym-AI/targetym-dashboard.git || true
           git fetch web main
 
+      - name: Check last synced commit
+        id: last_sync
+        run: |
+          # Lire le dernier commit upstream synchronisé
+          LAST_SYNC=""
+          if [ -f .last-sync-commit ]; then
+            LAST_SYNC=$(cat .last-sync-commit)
+          fi
+          CURRENT_WEB=$(git rev-parse web/main)
+          echo "last_sync=$LAST_SYNC" >> $GITHUB_OUTPUT
+          echo "current_web=$CURRENT_WEB" >> $GITHUB_OUTPUT
+
+          if [ "$LAST_SYNC" = "$CURRENT_WEB" ]; then
+            echo "needs_sync=false" >> $GITHUB_OUTPUT
+            echo "Pas de nouveaux changements sur le repo web"
+          else
+            echo "needs_sync=true" >> $GITHUB_OUTPUT
+            echo "Nouveaux changements détectés sur le repo web"
+            if [ -n "$LAST_SYNC" ]; then
+              echo "Commits depuis dernière sync :"
+              git log --oneline "$LAST_SYNC..$CURRENT_WEB" 2>/dev/null || echo "(premier sync)"
+            fi
+          fi
+
       - name: Create sync branch
+        if: steps.last_sync.outputs.needs_sync == 'true'
         run: |
           BRANCH="sync-web/$(date +%Y-%m-%d-%H%M)"
           echo "BRANCH=$BRANCH" >> $GITHUB_ENV
           git checkout -b "$BRANCH"
 
-      - name: Sync files from web to mobile
+      - name: Sync new/modified files from web
+        if: steps.last_sync.outputs.needs_sync == 'true'
         run: |
-          # Dossier cible dans le repo mobile
           TARGET="targetym-dashboard"
+          LAST_SYNC="${{ steps.last_sync.outputs.last_sync }}"
+          CURRENT_WEB="${{ steps.last_sync.outputs.current_web }}"
 
-          # Sauvegarder les fichiers spécifiques au mobile
-          cp "$TARGET/capacitor.config.ts" /tmp/capacitor.config.ts
-          cp "$TARGET/next.config.mjs" /tmp/next.config.mjs
-          cp "$TARGET/package.json" /tmp/package.json.mobile
-          cp "$TARGET/components/BottomNav.tsx" /tmp/BottomNav.tsx 2>/dev/null || true
+          # Fichiers spécifiques au mobile à ne JAMAIS écraser
+          MOBILE_ONLY_FILES=(
+            "capacitor.config.ts"
+            "CAPACITOR_SETUP.md"
+            "lib/capacitor-plugins.ts"
+            "next.config.mjs"
+            "components/BottomNav.tsx"
+            "components/Sidebar.tsx"
+            "app/globals.css"
+            "app/dashboard/layout.tsx"
+            "app/dashboard/employees/page.tsx"
+            "app/dashboard/leaves/page.tsx"
+            "app/dashboard/missions/page.tsx"
+            "app/dashboard/my-space/page.tsx"
+            "app/dashboard/my-space/documents/page.tsx"
+            "app/dashboard/my-space/internal-jobs/page.tsx"
+            "app/dashboard/platform-admin/page.tsx"
+            "app/dashboard/resources/page.tsx"
+            "app/dashboard/talents/succession/page.tsx"
+            "app/dashboard/recruitment/page.tsx"
+            "components/AIChatBox.tsx"
+          )
 
-          # Lister les dossiers/fichiers du web à synchroniser
-          SYNC_DIRS="app components config context data hooks lib"
-          SYNC_FILES="tailwind.config.ts postcss.config.mjs tsconfig.json"
+          # Obtenir la liste des fichiers modifiés sur upstream
+          if [ -n "$LAST_SYNC" ]; then
+            # Fichiers modifiés depuis le dernier sync
+            CHANGED_FILES=$(git diff --name-only "$LAST_SYNC" "$CURRENT_WEB" 2>/dev/null || echo "")
+          else
+            # Premier sync : tous les fichiers
+            CHANGED_FILES=$(git ls-tree -r --name-only web/main)
+          fi
 
-          # Synchroniser les dossiers
-          for dir in $SYNC_DIRS; do
-            echo "Syncing $dir..."
-            rm -rf "$TARGET/$dir"
-            git checkout web/main -- "$dir"
-            mv "$dir" "$TARGET/$dir"
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "Aucun fichier modifié"
+            exit 0
+          fi
+
+          echo "Fichiers modifiés sur upstream :"
+          echo "$CHANGED_FILES"
+
+          # Copier chaque fichier modifié, sauf ceux protégés
+          echo "$CHANGED_FILES" | while read -r file; do
+            # Vérifier si ce fichier est protégé (modifié pour mobile)
+            SKIP=false
+            for protected in "${MOBILE_ONLY_FILES[@]}"; do
+              if [ "$file" = "$protected" ]; then
+                SKIP=true
+                echo "SKIP (mobile-modified): $file"
+                break
+              fi
+            done
+
+            if [ "$SKIP" = "true" ]; then
+              continue
+            fi
+
+            # Extraire le fichier depuis upstream
+            DEST="$TARGET/$file"
+            DEST_DIR=$(dirname "$DEST")
+            mkdir -p "$DEST_DIR"
+
+            git show "web/main:$file" > "$DEST" 2>/dev/null || echo "WARN: impossible d'extraire $file"
+            echo "SYNC: $file → $DEST"
           done
 
-          # Synchroniser les fichiers individuels
-          for file in $SYNC_FILES; do
-            echo "Syncing $file..."
-            git checkout web/main -- "$file"
-            mv "$file" "$TARGET/$file"
-          done
+          # Gérer le package.json : merger les deps web + garder les deps mobile
+          if echo "$CHANGED_FILES" | grep -q "^package.json$"; then
+            echo "Merging package.json..."
+            git show web/main:package.json > /tmp/web-package.json
 
-          # Restaurer les fichiers mobile
-          cp /tmp/capacitor.config.ts "$TARGET/capacitor.config.ts"
-          cp /tmp/next.config.mjs "$TARGET/next.config.mjs"
-          cp /tmp/BottomNav.tsx "$TARGET/components/BottomNav.tsx" 2>/dev/null || true
+            node -e "
+              const web = JSON.parse(require('fs').readFileSync('/tmp/web-package.json','utf8'));
+              const mobile = JSON.parse(require('fs').readFileSync('$TARGET/package.json','utf8'));
 
-          # Merger le package.json : garder les deps mobile + ajouter celles du web
-          # On prend le package.json du web mais on réinjecte les deps Capacitor
-          git checkout web/main -- package.json
-          node -e "
-            const web = JSON.parse(require('fs').readFileSync('package.json','utf8'));
-            const mobile = JSON.parse(require('fs').readFileSync('/tmp/package.json.mobile','utf8'));
+              // Prendre les deps du web comme base
+              const merged = { ...web };
 
-            // Garder les scripts mobile
-            web.scripts = { ...web.scripts, ...mobile.scripts };
+              // Garder les scripts mobile
+              merged.scripts = { ...web.scripts, ...mobile.scripts };
 
-            // Ajouter les dépendances Capacitor du mobile
-            const capDeps = Object.entries(mobile.dependencies || {}).filter(([k]) => k.startsWith('@capacitor'));
-            capDeps.forEach(([k,v]) => { web.dependencies[k] = v; });
+              // Ajouter les dépendances Capacitor du mobile
+              merged.dependencies = { ...web.dependencies };
+              merged.devDependencies = { ...web.devDependencies };
 
-            const capDevDeps = Object.entries(mobile.devDependencies || {}).filter(([k]) => k.startsWith('@capacitor'));
-            capDevDeps.forEach(([k,v]) => { web.devDependencies[k] = v; });
+              Object.entries(mobile.dependencies || {}).forEach(([k,v]) => {
+                if (k.startsWith('@capacitor') || k === 'cross-env') {
+                  merged.dependencies[k] = v;
+                }
+              });
+              Object.entries(mobile.devDependencies || {}).forEach(([k,v]) => {
+                if (k.startsWith('@capacitor') || k === 'cross-env') {
+                  merged.devDependencies[k] = v;
+                }
+              });
 
-            // Garder cross-env si présent dans mobile
-            if (mobile.dependencies?.['cross-env']) web.dependencies['cross-env'] = mobile.dependencies['cross-env'];
-            if (mobile.devDependencies?.['cross-env']) web.devDependencies['cross-env'] = mobile.devDependencies['cross-env'];
+              require('fs').writeFileSync('$TARGET/package.json', JSON.stringify(merged, null, 2) + '\n');
+            "
+            echo "package.json merged"
+          fi
 
-            require('fs').writeFileSync('package.json', JSON.stringify(web, null, 2) + '\n');
-          "
-          mv package.json "$TARGET/package.json"
+          # Fix routes dynamiques pour export statique
+          # help/[slug]
+          if [ -f "$TARGET/app/help/[slug]/page.tsx" ]; then
+            if grep -q "'use client'" "$TARGET/app/help/[slug]/page.tsx"; then
+              echo "Fix: help/[slug]/page.tsx → server wrapper"
+              cat > "$TARGET/app/help/[slug]/page.tsx" << 'HELPEOF'
+          import ArticleDetailClient from './ArticleDetailClient';
+
+          export const dynamicParams = false;
+
+          export async function generateStaticParams() {
+            try {
+              const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
+              const res = await fetch(\`\${API_URL}/api/help/articles\`);
+              if (!res.ok) return [{ slug: 'placeholder' }];
+              const articles = await res.json();
+              if (!articles.length) return [{ slug: 'placeholder' }];
+              return articles.map((article: { slug: string }) => ({ slug: article.slug }));
+            } catch {
+              return [{ slug: 'placeholder' }];
+            }
+          }
+
+          export default function Page() {
+            return <ArticleDetailClient />;
+          }
+          HELPEOF
+            fi
+          fi
+
+          # paie/runs/[runId]/recap
+          if [ -f "$TARGET/app/dashboard/paie/runs/[runId]/recap/page.tsx" ]; then
+            if grep -q "'use client'" "$TARGET/app/dashboard/paie/runs/[runId]/recap/page.tsx"; then
+              echo "Fix: paie recap page.tsx → server wrapper"
+              cat > "$TARGET/app/dashboard/paie/runs/[runId]/recap/page.tsx" << 'RECAPEOF'
+          import RecapClient from './RecapClient';
+
+          export async function generateStaticParams() {
+            return [{ runId: 'placeholder' }];
+          }
+
+          export default function RecapPage() {
+            return <RecapClient />;
+          }
+          RECAPEOF
+            fi
+          fi
+
+          # paie/runs/[runId]/variables
+          if [ -f "$TARGET/app/dashboard/paie/runs/[runId]/variables/page.tsx" ]; then
+            if grep -q "'use client'" "$TARGET/app/dashboard/paie/runs/[runId]/variables/page.tsx"; then
+              echo "Fix: paie variables page.tsx → server wrapper"
+              cat > "$TARGET/app/dashboard/paie/runs/[runId]/variables/page.tsx" << 'VAREOF'
+          import VariablesClient from './VariablesClient';
+
+          export async function generateStaticParams() {
+            return [{ runId: 'placeholder' }];
+          }
+
+          export default function VariablesPage() {
+            return <VariablesClient />;
+          }
+          VAREOF
+            fi
+          fi
+
+      - name: Update last sync commit marker
+        if: steps.last_sync.outputs.needs_sync == 'true'
+        run: |
+          echo "${{ steps.last_sync.outputs.current_web }}" > .last-sync-commit
 
       - name: Check for changes
+        if: steps.last_sync.outputs.needs_sync == 'true'
         id: changes
         run: |
           git add -A
           if git diff --cached --quiet; then
             echo "has_changes=false" >> $GITHUB_OUTPUT
-            echo "No changes detected"
+            echo "Aucun changement après sync"
           else
             echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "Changes detected:"
-            git diff --cached --stat | tail -5
+            echo "Changements détectés :"
+            git diff --cached --stat | tail -10
           fi
 
       - name: Commit and push
-        if: steps.changes.outputs.has_changes == 'true'
+        if: steps.last_sync.outputs.needs_sync == 'true' && steps.changes.outputs.has_changes == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -114,7 +263,7 @@ jobs:
           git push origin "${{ env.BRANCH }}"
 
       - name: Create Pull Request
-        if: steps.changes.outputs.has_changes == 'true'
+        if: steps.last_sync.outputs.needs_sync == 'true' && steps.changes.outputs.has_changes == 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -123,20 +272,24 @@ jobs:
               repo: context.repo.repo,
               title: `sync: mise à jour depuis le repo web ${new Date().toISOString().split('T')[0]}`,
               body: [
-                '## Synchronisation automatique',
+                '## Synchronisation automatique depuis le repo web',
                 '',
-                'Ce PR contient les dernières modifications du [repo web](https://github.com/Targetym-AI/targetym-dashboard).',
+                'Ce PR contient les dernières modifications de [Targetym-AI/targetym-dashboard](https://github.com/Targetym-AI/targetym-dashboard).',
                 '',
                 '### Fichiers protégés (non écrasés) :',
-                '- `capacitor.config.ts`',
-                '- `next.config.mjs`',
-                '- `components/BottomNav.tsx`',
+                '- `capacitor.config.ts` — config Capacitor',
+                '- `next.config.mjs` — export statique mobile',
+                '- `components/BottomNav.tsx` — navigation mobile',
+                '- `components/Sidebar.tsx` — sidebar adaptée mobile',
+                '- `app/globals.css` — styles responsive',
+                '- `app/dashboard/layout.tsx` — layout mobile',
+                '- Pages modifiées pour la responsivité',
                 '- Dépendances Capacitor dans `package.json`',
                 '',
-                '### A vérifier avant de merger :',
-                '- [ ] Les nouvelles couleurs/styles sont OK sur mobile',
-                '- [ ] Pas de conflit avec les adaptations responsive',
-                '- [ ] Le build mobile fonctionne',
+                '### Avant de merger, vérifier :',
+                '- [ ] Le build mobile fonctionne (`npm run mobile:build`)',
+                '- [ ] Les nouvelles pages s\'affichent bien sur mobile',
+                '- [ ] Pas de régression sur la navigation',
                 '',
                 '_Généré automatiquement par GitHub Actions_',
               ].join('\n'),

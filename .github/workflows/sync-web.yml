@@ -31,7 +31,7 @@ jobs:
           WEB_TOKEN: ${{ secrets.WEB_REPO_TOKEN }}
         run: |
           git remote remove web 2>/dev/null || true
-          git remote add web https://x-access-token:${WEB_TOKEN}@github.com/Targetym-AI/targetym-dashboard.git
+          git remote add web "https://x-access-token:${WEB_TOKEN}@github.com/Targetym-AI/targetym-dashboard.git"
           git fetch web main
 
       - name: Check last synced commit

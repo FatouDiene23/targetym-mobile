@@ -119,14 +119,17 @@ foreach ($file in $CHANGED_FILES) {
     }
 
     try {
-        $content = git show "upstream/main:$file" 2>$null
-        if ($LASTEXITCODE -eq 0) {
-            $content | Set-Content -Path $dest -NoNewline
+        # Utiliser git checkout pour préserver l'encodage exact (UTF-8, binaire, etc.)
+        git checkout upstream/main -- $file 2>$null
+        if ($LASTEXITCODE -eq 0 -and (Test-Path $file)) {
+            Move-Item -Path $file -Destination $dest -Force
             Write-Host "  COPY            : $file" -ForegroundColor Green
             $copied++
+        } else {
+            Write-Host "  WARN (introuvable): $file" -ForegroundColor Yellow
         }
     } catch {
-        Write-Host "  WARN (introuvable): $file" -ForegroundColor Yellow
+        Write-Host "  WARN (erreur): $file" -ForegroundColor Yellow
     }
 }
 

@@ -11,7 +11,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import {
   FileText, Download, Eye, Search, Filter, Loader2, Calendar,
   Clock, AlertTriangle, ChevronLeft, ChevronRight, File,
-  FileSpreadsheet, Image, Shield, X, Award, ExternalLink, Upload, Plus, Trash2
+  FileSpreadsheet, Image as ImageIcon, Shield, X, Award, ExternalLink, Upload, Plus, Trash2
 } from 'lucide-react';
 
 // ============================================

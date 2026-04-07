@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   FileText, Upload, Download, Trash2, Loader2, Plus,
-  AlertTriangle, Clock, X, Eye, File, Image, FileSpreadsheet, Shield
+  AlertTriangle, Clock, X, Eye, File, Image as ImageIcon, FileSpreadsheet, Shield
 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 

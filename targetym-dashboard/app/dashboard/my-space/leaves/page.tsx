@@ -9,6 +9,7 @@ import {
   Calendar, Plus, X, AlertCircle, Clock, CheckCircle, XCircle, Info, ChevronDown, ChevronUp
 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import Header from '@/components/Header';
 
 // ============================================
 // TYPES
@@ -74,7 +75,7 @@ interface LeaveType {
 // API
 // ============================================
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 function getAuthHeaders(): HeadersInit {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
@@ -128,6 +129,76 @@ async function createLeaveRequest(employeeId: number, data: {
   }
   return response.json();
 }
+
+interface MyLeaveRecall {
+  id: number;
+  leave_id: number;
+  recall_date: string;
+  recall_reason: string;
+  nb_days_recalled: number;
+  is_urgent: boolean;
+  status: string;
+  compensation_type?: string | null;
+  compensation_days?: number | null;
+  compensation_end_date?: string | null;
+}
+
+async function getMyRecalls(employeeId: number): Promise<MyLeaveRecall[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/leave-recalls/?employee_id=${employeeId}`, { headers: getAuthHeaders() });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? data : (data.items || []);
+  } catch {
+    return [];
+  }
+}
+
+async function proposeRecallCompensation(recallId: number, payload: {
+  compensation_type: 'solde' | 'prolongation';
+  compensation_days?: number;
+  compensation_end_date?: string;
+}): Promise<void> {
+  const response = await fetch(`${API_URL}/api/leave-recalls/${recallId}/propose-compensation`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Erreur');
+  }
+}
+
+async function declareRecallReturn(recallId: number): Promise<void> {
+  const response = await fetch(`${API_URL}/api/leave-recalls/${recallId}/declare-return`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Erreur');
+}
+
+// TODO backend: endpoint tenant settings dédié
+async function getMyTenantRecallPolicy(): Promise<'employee_chooses' | 'employer_decides'> {
+  try {
+    const response = await fetch(`${API_URL}/api/auth/me`, { headers: getAuthHeaders() });
+    if (!response.ok) return 'employee_chooses';
+    const data = await response.json();
+    return (data.tenant?.recall_compensation_policy || data.recall_compensation_policy || 'employee_chooses') as 'employee_chooses' | 'employer_decides';
+  } catch {
+    return 'employee_chooses';
+  }
+}
+
+const MY_RECALL_STATUS_LABELS: Record<string, { label: string; className: string }> = {
+  initie: { label: 'Initié', className: 'bg-gray-100 text-gray-800' },
+  valide_rh: { label: 'Validé RH', className: 'bg-blue-100 text-blue-800' },
+  notifie: { label: 'Notifié', className: 'bg-orange-100 text-orange-800' },
+  compensation_proposee: { label: 'Compensation proposée', className: 'bg-purple-100 text-purple-800' },
+  compensation_validee: { label: 'Compensation validée', className: 'bg-cyan-100 text-cyan-800' },
+  retour_declare: { label: 'Retour déclaré', className: 'bg-yellow-100 text-yellow-800' },
+  cloture: { label: 'Clôturé', className: 'bg-green-100 text-green-800' },
+};
 
 async function cancelLeaveRequest(requestId: number): Promise<void> {
   const response = await fetch(`${API_URL}/api/leaves/requests/${requestId}/cancel`, {
@@ -455,6 +526,99 @@ function NewLeaveRequestModal({
   );
 }
 
+function ChooseCompensationModal({
+  recall,
+  onClose,
+  onSuccess,
+}: {
+  recall: MyLeaveRecall | null;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [type, setType] = useState<'solde' | 'prolongation'>('solde');
+  const [days, setDays] = useState(1);
+  const [endDate, setEndDate] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  if (!recall) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await proposeRecallCompensation(recall.id, {
+        compensation_type: type,
+        compensation_days: type === 'solde' ? days : undefined,
+        compensation_end_date: type === 'prolongation' ? endDate : undefined,
+      });
+      toast.success('Compensation proposée');
+      onSuccess();
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erreur');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+        <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Choisir ma compensation</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="radio" checked={type === 'solde'} onChange={() => setType('solde')} />
+                Ajout au solde de congés
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="radio" checked={type === 'prolongation'} onChange={() => setType('prolongation')} />
+                Prolongation du congé
+              </label>
+            </div>
+            {type === 'solde' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de jours</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={days}
+                  onChange={(e) => setDays(parseInt(e.target.value || '1'))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  required
+                />
+              </div>
+            )}
+            {type === 'prolongation' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nouvelle date de retour</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  required
+                />
+              </div>
+            )}
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+              <button type="submit" disabled={submitting} className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50">
+                {submitting ? 'Envoi...' : 'Valider'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ============================================
 // MAIN PAGE
 // ============================================
@@ -477,6 +641,9 @@ export default function MyLeavesPage() {
   } | null>(null);
 
   const { showTips, dismissTips, resetTips } = usePageTour('myLeaves');
+  const [myRecalls, setMyRecalls] = useState<MyLeaveRecall[]>([]);
+  const [recallPolicy, setRecallPolicy] = useState<'employee_chooses' | 'employer_decides'>('employee_chooses');
+  const [compRecall, setCompRecall] = useState<MyLeaveRecall | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -500,6 +667,13 @@ export default function MyLeavesPage() {
       setBalances(balancesData);
       setLeaveTypes(typesData);
       setRequests(requestsData);
+
+      const [recallsData, policy] = await Promise.all([
+        getMyRecalls(user.employee_id),
+        getMyTenantRecallPolicy(),
+      ]);
+      setMyRecalls(recallsData);
+      setRecallPolicy(policy);
     } catch (err) {
       console.error(err);
       setError('Erreur de chargement');
@@ -561,14 +735,10 @@ export default function MyLeavesPage() {
       {showTips && (
         <PageTourTips tips={myLeavesTips} onDismiss={dismissTips} pageTitle="Mes Congés" />
       )}
+      <Header title="Mes Congés" subtitle="Gestion de vos congés" />
       <div className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-lg lg:text-2xl font-bold text-gray-900">Mes Congés</h1>
-            <p className="text-gray-500 mt-1">Gérez vos demandes de congés</p>
-          </div>
+        <div className="flex items-center justify-end mb-8">
           <button
             onClick={() => setShowModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
@@ -693,6 +863,65 @@ export default function MyLeavesPage() {
         </div>
       </div>
 
+        {/* Mes rappels de congé */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-primary-600" />
+            Mes rappels de congé
+          </h2>
+          {myRecalls.length === 0 ? (
+            <p className="text-center py-6 text-gray-500 text-sm">Aucun rappel</p>
+          ) : (
+            <div className="space-y-3">
+              {myRecalls.map((r) => {
+                const cfg = MY_RECALL_STATUS_LABELS[r.status] || MY_RECALL_STATUS_LABELS.initie;
+                return (
+                  <div key={r.id} className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">Rappel #{r.id}</span>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${cfg.className}`}>{cfg.label}</span>
+                        {r.is_urgent && (
+                          <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">Urgent</span>
+                        )}
+                      </div>
+                      <span className="text-sm text-gray-500">{new Date(r.recall_date).toLocaleDateString('fr-FR')}</span>
+                    </div>
+                    <p className="text-sm text-gray-700 mb-2">{r.recall_reason}</p>
+                    <p className="text-xs text-gray-500 mb-2">{r.nb_days_recalled} jour(s) rappelé(s)</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {r.status === 'notifie' && recallPolicy === 'employee_chooses' && (
+                        <button
+                          onClick={() => setCompRecall(r)}
+                          className="px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                        >
+                          Choisir ma compensation
+                        </button>
+                      )}
+                      {r.status === 'compensation_validee' && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              await declareRecallReturn(r.id);
+                              toast.success('Retour déclaré');
+                              await loadData();
+                            } catch (err) {
+                              toast.error(err instanceof Error ? err.message : 'Erreur');
+                            }
+                          }}
+                          className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
+                        >
+                          Déclarer mon retour
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
       {/* Modal */}
       {employeeId && (
         <NewLeaveRequestModal
@@ -705,6 +934,12 @@ export default function MyLeavesPage() {
         />
       )}
       
+      <ChooseCompensationModal
+        recall={compRecall}
+        onClose={() => setCompRecall(null)}
+        onSuccess={loadData}
+      />
+
       {confirmDialog && (
         <ConfirmDialog
           isOpen={confirmDialog.isOpen}

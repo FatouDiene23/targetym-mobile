@@ -52,6 +52,7 @@ import {
   Scale,
   DollarSign,
   PlayCircle,
+  Banknote,
 } from 'lucide-react';
 import { useState, useEffect, useMemo, Suspense, useCallback } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
@@ -142,12 +143,18 @@ const navigation: NavItem[] = [
     roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
     dataTour: 'sidebar-performance'
   },
-  { 
-    name: 'People Analytics', 
-    href: '/dashboard/analytics', 
+  {
+    name: 'People Analytics',
+    href: '/dashboard/analytics',
     icon: BarChart3,
     roles: ['rh', 'admin', 'dg'],
     dataTour: 'sidebar-analytics'
+  },
+  {
+    name: 'Vue Groupe',
+    href: '/dashboard/groups/view',
+    icon: Layers,
+    roles: ['rh', 'admin', 'dg'],
   },
   { 
     name: 'Gestion du Personnel', 
@@ -194,7 +201,12 @@ const navigation: NavItem[] = [
     icon: DollarSign,
     roles: ['admin', 'dg', 'rh'],
     dataTour: 'sidebar-compensation',
-    hideOnMobile: true,
+  },
+  {
+    name: 'Paie',
+    href: '/dashboard/paie',
+    icon: Banknote,
+    roles: ['admin', 'dg', 'rh'],
   },
   {
     name: 'Certificats',
@@ -224,6 +236,7 @@ const mySpaceNavigation: NavItem[] = [
   { name: 'Offres Internes', href: '/dashboard/my-space/internal-jobs', icon: Briefcase, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Mes Documents', href: '/dashboard/my-space/documents', icon: FileText, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-documents' },
   { name: 'Mes Sanctions', href: '/dashboard/my-space/sanctions', icon: Shield, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+  { name: 'Mes Enquêtes', href: '/dashboard/my-space/surveys', icon: MessageSquare, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Processus de Départ', href: '/dashboard/my-space/resignation', icon: UserMinus, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
 ];
 

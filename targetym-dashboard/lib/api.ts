@@ -1,5 +1,5 @@
 // Configuration API
-export const API_URL = 'https://api.targetym.ai';
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 // Helper pour obtenir le token
 function getToken(): string | null {
@@ -53,7 +53,7 @@ async function refreshAccessToken(): Promise<boolean> {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
-        window.location.replace('/login/index.html');
+        window.location.href = 'https://www.targetym.ai/login';
         return false;
       }
 
@@ -246,6 +246,7 @@ export interface EmployeeCreate {
   marital_status?: string;
   spouse_name?: string;
   spouse_birth_date?: string;
+  nb_enfants?: number;
   // Adresse pro
   work_email?: string;
   work_phone?: string;
@@ -2664,5 +2665,126 @@ export async function extractPdfText(file: File): Promise<{ text: string; pages:
     const error = await parseApiError(response);
     throw new Error(error);
   }
+  return response.json();
+}
+
+// ============================================
+// GROUP VIEWS — Recrutement / Personnel / Mobilité
+// ============================================
+
+export interface GroupRecruitmentSubsidiary {
+  subsidiary_id: number;
+  subsidiary_name: string;
+  open_jobs: number;
+  total_applications: number;
+  in_progress_applications: number;
+  hired: number;
+  conversion_rate: number;
+}
+
+export interface GroupRecruitmentView {
+  group_id: number;
+  group_name: string;
+  total_open_jobs: number;
+  total_applications: number;
+  total_hired: number;
+  overall_conversion_rate: number;
+  subsidiaries: GroupRecruitmentSubsidiary[];
+}
+
+export interface GroupKeyEmployee {
+  id: number;
+  first_name: string;
+  last_name: string;
+  title?: string;
+  photo_url?: string;
+  subsidiary_name: string;
+  subsidiary_id: number;
+  badges: string[];
+  salary_category?: string;
+  salaire_brut?: number;
+}
+
+export interface GroupPersonnelSubsidiary {
+  subsidiary_id: number;
+  subsidiary_name: string;
+  active_employees: number;
+  total_employees: number;
+  pending_leaves: number;
+  departments_count: number;
+}
+
+export interface GroupPersonnelView {
+  group_id: number;
+  group_name: string;
+  total_employees: number;
+  total_active_employees: number;
+  total_pending_leaves: number;
+  key_employees: GroupKeyEmployee[];
+  subsidiaries: GroupPersonnelSubsidiary[];
+}
+
+export interface GroupTransfer {
+  id: number;
+  employee_name: string;
+  photo_url?: string;
+  from_subsidiary: string;
+  to_subsidiary: string;
+  transfer_date?: string;
+  reason?: string;
+  status: string;
+}
+
+export interface GroupAvailableEmployee {
+  id: number;
+  first_name: string;
+  last_name: string;
+  title?: string;
+  photo_url?: string;
+  subsidiary_id: number;
+  subsidiary_name: string;
+}
+
+export interface GroupMobilityView {
+  group_id: number;
+  group_name: string;
+  pending_transfers: number;
+  completed_transfers: number;
+  total_transfers: number;
+  transfers: GroupTransfer[];
+  available_employees: GroupAvailableEmployee[];
+  subsidiaries: { id: number; name: string }[];
+}
+
+export async function getGroupViewRecruitment(): Promise<GroupRecruitmentView> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/groups/view/recruitment`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getGroupViewPersonnel(): Promise<GroupPersonnelView> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/groups/view/personnel`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getGroupViewMobility(): Promise<GroupMobilityView> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/groups/view/mobility`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function executeGroupTransfer(
+  departureId: number,
+  targetTenantId: number,
+  transferDate?: string,
+  reason?: string,
+): Promise<{ success: boolean; message: string; new_employee_id: number; transfer_date: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/departures/${departureId}/execute-transfer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ target_tenant_id: targetTenantId, transfer_date: transferDate, reason }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
   return response.json();
 }

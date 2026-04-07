@@ -10,7 +10,7 @@ import {
   Coffee, FileText, UserCheck, Award, TrendingUp, BarChart3,
   Handshake, MapPin, Link2, MessageSquare, Star, Play, Pause,
   X, ArrowLeft, ChevronUp, Building2, Mail, Phone, MoreHorizontal,
-  CircleDot, Settings, Rocket, ShieldCheck, GraduationCap
+  CircleDot, Settings, Rocket, ShieldCheck, GraduationCap, Archive, ArchiveRestore
 } from 'lucide-react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
@@ -189,7 +189,7 @@ interface Department {
 // CONSTANTS
 // ============================================
 
-const API_URL = 'https://api.targetym.ai';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 const CATEGORY_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
   administratif: { label: 'Administratif', icon: FileText, color: 'text-blue-600 bg-blue-50' },
@@ -304,7 +304,7 @@ function StatusBadge({ status, config }: { status: string; config?: Record<strin
 
 function ProgressBar({ value, size = 'md' }: { value: number; size?: 'sm' | 'md' }) {
   const h = size === 'sm' ? 'h-1.5' : 'h-2.5';
-  const color = value >= 100 ? 'bg-green-500' : value >= 50 ? 'bg-blue-500' : value >= 25 ? 'bg-amber-500' : 'bg-red-400';
+  const color = value >= 100 ? 'bg-green-500' : value >= 50 ? 'bg-primary-500' : value >= 25 ? 'bg-amber-500' : 'bg-red-400';
   return (
     <div className={`w-full bg-gray-200 rounded-full ${h}`}>
       <div className={`${color} ${h} rounded-full transition-all duration-500`} style={{ width: `${Math.min(value, 100)}%` }} />
@@ -409,7 +409,7 @@ function SearchableSelect({
             {placeholder && (
               <button
                 onClick={() => { onChange(''); setOpen(false); }}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${!value ? 'bg-blue-50 text-blue-700' : 'text-gray-400'}`}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${!value ? 'bg-primary-50 text-primary-700' : 'text-gray-400'}`}
               >
                 {placeholder}
               </button>
@@ -418,7 +418,7 @@ function SearchableSelect({
               <button
                 key={o.value}
                 onClick={() => { onChange(o.value); setOpen(false); }}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${o.value === value ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${o.value === value ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}`}
               >
                 <span>{o.label}</span>
                 {o.subtitle && <span className="text-xs text-gray-400 ml-1">— {o.subtitle}</span>}
@@ -474,6 +474,7 @@ export default function OnboardingPage() {
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [editingTask, setEditingTask] = useState<ProgramTask | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   // Suivi (Assignments)
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -547,7 +548,7 @@ export default function OnboardingPage() {
     if (activeTab === 'suivi') fetchAssignments();
     if (activeTab === 'get_to_know') fetchGTK();
     if (activeTab === 'queue') fetchQueue();
-  }, [activeTab, suiviFilter, gtkFilter]);
+  }, [activeTab, suiviFilter, gtkFilter, showArchived]);
 
   // Écouter l'event du header "+Ajouter" → ouvrir le dropdown
   useEffect(() => {
@@ -580,10 +581,34 @@ export default function OnboardingPage() {
   const fetchPrograms = async () => {
     setLoading(true);
     try {
-      const data = await apiFetch('/api/onboarding/programs');
+      const data = await apiFetch(`/api/onboarding/programs?is_active=${!showArchived}`);
       setPrograms(data.items || []);
     } catch (e: any) { setError(e.message); }
     setLoading(false);
+  };
+
+  const handleArchiveProgram = async (p: Program) => {
+    const willArchive = p.is_active;
+    setConfirmDialog({
+      isOpen: true,
+      title: willArchive ? 'Archiver le programme' : 'Restaurer le programme',
+      message: willArchive
+        ? `Archiver "${p.name}" le rendra indisponible pour les nouvelles assignations. Les assignations en cours ne sont pas affectées.`
+        : `Restaurer "${p.name}" le rendra à nouveau disponible pour les nouvelles assignations.`,
+      danger: willArchive,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await apiFetch(`/api/onboarding/programs/${p.id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ is_active: !willArchive }),
+          });
+          toast.success(willArchive ? 'Programme archivé' : 'Programme restauré');
+          fetchPrograms();
+          if (selectedProgram?.id === p.id) setSelectedProgram(null);
+        } catch (e: any) { toast.error(e.message); }
+      },
+    });
   };
 
   const fetchProgramDetail = async (id: number) => {
@@ -655,13 +680,13 @@ export default function OnboardingPage() {
       <div className="space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-tour="onboarding-stats">
-          <StatCard label="Total onboardings" value={stats.total} icon={Users} color="bg-blue-50 text-blue-600" />
+          <StatCard label="Total onboardings" value={stats.total} icon={Users} color="bg-primary-50 text-primary-600" />
           <StatCard label="En cours" value={stats.in_progress} icon={Rocket} color="bg-amber-50 text-amber-600" sub={`${stats.avg_progress}% progrès moyen`} />
           <StatCard label="Terminés" value={stats.completed} icon={CheckCircle} color="bg-green-50 text-green-600" />
           <StatCard label="En retard" value={stats.overdue_count} icon={AlertCircle} color="bg-red-50 text-red-600" />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Onboardings actifs */}
           <div className="bg-white rounded-xl border border-gray-200">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -761,29 +786,51 @@ export default function OnboardingPage() {
       <div className="space-y-4" data-tour="onboarding-programs">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Programmes d'intégration</h3>
-          {isHR && (
-            <button onClick={() => { setEditingProgram(null); setShowProgramModal(true); }}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
-              <Plus size={16} /> Nouveau programme
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setShowArchived(!showArchived); setSelectedProgram(null); }}
+              className={`flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg border transition-colors ${
+                showArchived ? 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100' : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+              }`}
+            >
+              <Archive size={15} />
+              {showArchived ? 'Voir actifs' : 'Voir archivés'}
             </button>
-          )}
+            {isHR && !showArchived && (
+              <button onClick={() => { setEditingProgram(null); setShowProgramModal(true); }}
+                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700">
+                <Plus size={16} /> Nouveau programme
+              </button>
+            )}
+          </div>
         </div>
 
         {programs.length === 0 ? (
-          <EmptyState icon={ClipboardList} title="Aucun programme" subtitle="Créez votre premier programme d'onboarding" />
+          <EmptyState icon={showArchived ? Archive : ClipboardList} title={showArchived ? 'Aucun programme archivé' : 'Aucun programme'} subtitle={showArchived ? 'Les programmes archivés apparaîtront ici' : "Créez votre premier programme d'onboarding"} />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {programs.map(p => (
-              <div key={p.id} onClick={() => fetchProgramDetail(p.id)}
-                className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer group">
-                <div className="flex items-start justify-between mb-3">
+              <div key={p.id}
+                className={`bg-white rounded-xl border p-5 hover:shadow-md transition-shadow group relative ${p.is_active ? 'border-gray-200 cursor-pointer' : 'border-amber-200 bg-amber-50/30 cursor-pointer'}`}>
+                {/* Archive/Restore button — top right corner, appears on hover */}
+                {isHR && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleArchiveProgram(p); }}
+                    title={p.is_active ? 'Archiver ce programme' : 'Restaurer ce programme'}
+                    className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-amber-50 text-gray-300 hover:text-amber-500"
+                  >
+                    {p.is_active ? <Archive size={15} /> : <ArchiveRestore size={15} />}
+                  </button>
+                )}
+                <div onClick={() => fetchProgramDetail(p.id)} className="h-full">
+                <div className="flex items-start justify-between mb-3 pr-6">
                   <div>
-                    <h4 className="font-semibold text-gray-900 group-hover:text-blue-600">{p.name}</h4>
+                    <h4 className={`font-semibold group-hover:text-primary-600 ${p.is_active ? 'text-gray-900' : 'text-amber-800'}`}>{p.name}</h4>
                     {p.department_name && <span className="text-xs text-gray-400">{p.department_name}</span>}
                   </div>
                   <div className="flex items-center gap-2">
                     {p.is_default && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Par défaut</span>}
-                    {!p.is_active && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Inactif</span>}
+                    {!p.is_active && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1"><Archive size={10} /> Archivé</span>}
                   </div>
                 </div>
                 {p.description && <p className="text-sm text-gray-500 line-clamp-2 mb-3">{p.description}</p>}
@@ -791,6 +838,7 @@ export default function OnboardingPage() {
                   <span className="flex items-center gap-1"><ClipboardList size={13} /> {p.task_count} tâches</span>
                   <span className="flex items-center gap-1"><Calendar size={13} /> {p.duration_days} jours</span>
                   <span className="flex items-center gap-1"><Users size={13} /> {p.usage_count} utilisé{p.usage_count > 1 ? 's' : ''}</span>
+                </div>
                 </div>
               </div>
             ))}
@@ -829,10 +877,23 @@ export default function OnboardingPage() {
             </div>
             {isHR && (
               <div className="flex gap-2">
-                <button onClick={() => { setEditingProgram(p); setShowProgramModal(true); }}
-                  className="flex items-center gap-1 px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50"><Edit size={14} /> Modifier</button>
-                <button onClick={() => { setEditingTask(null); setShowTaskModal(true); }}
-                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"><Plus size={14} /> Tâche</button>
+                <button
+                  onClick={() => handleArchiveProgram(p)}
+                  title={p.is_active ? 'Archiver ce programme' : 'Restaurer ce programme'}
+                  className={`flex items-center gap-1 px-3 py-1.5 text-sm border rounded-lg ${
+                    p.is_active ? 'hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 text-gray-500' : 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
+                  }`}
+                >
+                  {p.is_active ? <><Archive size={14} /> Archiver</> : <><ArchiveRestore size={14} /> Restaurer</>}
+                </button>
+                {p.is_active && (
+                  <>
+                    <button onClick={() => { setEditingProgram(p); setShowProgramModal(true); }}
+                      className="flex items-center gap-1 px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50"><Edit size={14} /> Modifier</button>
+                    <button onClick={() => { setEditingTask(null); setShowTaskModal(true); }}
+                      className="flex items-center gap-1 px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"><Plus size={14} /> Tâche</button>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -866,7 +927,7 @@ export default function OnboardingPage() {
                       {isHR && (
                         <div className="flex items-center gap-1">
                           <button onClick={(e) => { e.stopPropagation(); setEditingTask(t); setShowTaskModal(true); }}
-                            className="text-gray-300 hover:text-blue-500"><Edit size={14} /></button>
+                            className="text-gray-300 hover:text-primary-500"><Edit size={14} /></button>
                           <button onClick={async (e) => {
                             e.stopPropagation();
                             setConfirmDialog({
@@ -920,7 +981,7 @@ export default function OnboardingPage() {
             </div>
             {isHR && (
               <button onClick={() => setShowAddDropdown(!showAddDropdown)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700">
                 <Plus size={16} /> Ajouter <ChevronDown size={14} />
               </button>
             )}
@@ -937,7 +998,7 @@ export default function OnboardingPage() {
           ].map(f => (
             <button key={f.value} onClick={() => setSuiviFilter(f.value)}
               className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
-                suiviFilter === f.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 hover:bg-gray-50'
+                suiviFilter === f.value ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-600 hover:bg-gray-50'
               }`}>{f.label}</button>
           ))}
         </div>
@@ -975,7 +1036,7 @@ export default function OnboardingPage() {
                     <td className="px-5 py-3 text-gray-500 text-xs">{formatDate(a.start_date)}</td>
                     <td className="px-5 py-3"><StatusBadge status={a.status} /></td>
                     <td className="px-5 py-3 text-right">
-                      <button className="text-gray-400 hover:text-blue-600"><Eye size={16} /></button>
+                      <button className="text-gray-400 hover:text-primary-600"><Eye size={16} /></button>
                     </td>
                   </tr>
                 ))}
@@ -1052,7 +1113,7 @@ export default function OnboardingPage() {
                       <button
                         onClick={() => updateTaskStatus(t.id, t.status === 'completed' ? 'pending' : 'completed')}
                         className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                          t.status === 'completed' ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 hover:border-blue-400'
+                          t.status === 'completed' ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 hover:border-primary-400'
                         }`}>
                         {t.status === 'completed' && <CheckCircle size={14} />}
                       </button>
@@ -1197,7 +1258,7 @@ export default function OnboardingPage() {
 
               {g.meeting_link && (
                 <a href={g.meeting_link} target="_blank" rel="noopener noreferrer"
-                  className="mt-3 flex items-center gap-1 text-xs text-blue-600 hover:underline">
+                  className="mt-3 flex items-center gap-1 text-xs text-primary-600 hover:underline">
                   <Link2 size={12} /> Lien de la réunion
                 </a>
               )}
@@ -1253,7 +1314,7 @@ export default function OnboardingPage() {
               <label className="text-sm font-medium text-gray-700 mb-1 block">Description</label>
               <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Description du programme..." />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">Département</label>
                 <select value={deptId} onChange={e => setDeptId(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
@@ -1277,7 +1338,7 @@ export default function OnboardingPage() {
           </div>
           <div className="px-6 py-4 border-t flex justify-end gap-2">
             <button onClick={() => setShowProgramModal(false)} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Annuler</button>
-            <button onClick={handleSave} disabled={saving || !name.trim()} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+            <button onClick={handleSave} disabled={saving || !name.trim()} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50">
               {saving ? <Loader2 size={16} className="animate-spin" /> : editingProgram ? 'Modifier' : 'Créer'}
             </button>
           </div>
@@ -1344,7 +1405,7 @@ export default function OnboardingPage() {
               <label className="text-sm font-medium text-gray-700 mb-1 block">Description</label>
               <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={2} className="w-full border rounded-lg px-3 py-2 text-sm" />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">Catégorie</label>
                 <select value={category} onChange={e => setCategory(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
@@ -1390,7 +1451,7 @@ export default function OnboardingPage() {
           </div>
           <div className="px-6 py-4 border-t flex justify-end gap-2">
             <button onClick={() => { setShowTaskModal(false); setEditingTask(null); }} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Annuler</button>
-            <button onClick={handleSave} disabled={saving || !title.trim()} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+            <button onClick={handleSave} disabled={saving || !title.trim()} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50">
               {saving ? <Loader2 size={16} className="animate-spin" /> : editingTask ? 'Modifier' : 'Ajouter'}
             </button>
           </div>
@@ -1483,7 +1544,7 @@ export default function OnboardingPage() {
                 options={programs.filter(p => p.is_active).map(p => ({ value: String(p.id), label: p.name, subtitle: `${p.task_count} tâches` }))}
               />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">Manager</label>
                 <SearchableSelect
@@ -1514,7 +1575,7 @@ export default function OnboardingPage() {
           </div>
           <div className="px-6 py-4 border-t flex justify-end gap-2">
             <button onClick={() => { setShowAssignModal(false); setQueueStartItem(null); setPreselectedEmployeeId(''); setPreselectedEmployeeName(''); }} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Annuler</button>
-            <button onClick={handleSave} disabled={saving || !empId || !progId} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+            <button onClick={handleSave} disabled={saving || !empId || !progId} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50">
               {saving ? <Loader2 size={16} className="animate-spin" /> : 'Assigner'}
             </button>
           </div>
@@ -1601,7 +1662,7 @@ export default function OnboardingPage() {
                 <input type="number" value={duration} onChange={e => setDuration(parseInt(e.target.value) || 30)} className="w-full border rounded-lg px-3 py-2 text-sm" />
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">Lieu</label>
                 <input value={location} onChange={e => setLocation(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Salle de réunion, etc." />
@@ -1665,7 +1726,7 @@ export default function OnboardingPage() {
               <tr key={item.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-xs">
+                    <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold text-xs">
                       {item.candidate_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                     </div>
                     <div>
@@ -1685,7 +1746,7 @@ export default function OnboardingPage() {
                       setQueueStartItem(item);
                       setShowAssignModal(true);
                     }}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                   >
                     <Play size={12} /> Démarrer l'onboarding
                   </button>
@@ -1731,7 +1792,7 @@ export default function OnboardingPage() {
         <div ref={addDropdownRef} className="fixed top-16 right-6 w-56 bg-white rounded-xl shadow-lg border border-gray-200 z-50 py-1">
           <button onClick={() => { setShowAddDropdown(false); setEditingProgram(null); setShowProgramModal(true); }}
             className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
-            <ClipboardList size={16} className="text-blue-500" /> Créer un programme
+            <ClipboardList size={16} className="text-primary-500" /> Créer un programme
           </button>
           <button onClick={() => { setShowAddDropdown(false); setShowAssignModal(true); }}
             className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
@@ -1756,13 +1817,13 @@ export default function OnboardingPage() {
             const Icon = tab.icon;
             return (
               <button key={tab.id} onClick={() => { setActiveTab(tab.id); setSearchTerm(''); setSelectedAssignment(null); setSelectedProgram(null); }}
-                className={`flex items-center gap-2 px-3 lg:px-4 py-2.5 rounded-lg text-xs lg:text-sm font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
-                  activeTab === tab.id ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                  activeTab === tab.id ? 'bg-primary-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'
                 }`}>
                 <Icon size={16} />
                 {tab.label}
                 {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-600'}`}>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-primary-100 text-primary-600'}`}>
                     {tab.badge}
                   </span>
                 )}
@@ -1774,7 +1835,7 @@ export default function OnboardingPage() {
         {/* Loading */}
         {loading && (
           <div className="flex justify-center py-8">
-            <Loader2 className="animate-spin text-blue-500" size={24} />
+            <Loader2 className="animate-spin text-primary-500" size={24} />
           </div>
         )}
 

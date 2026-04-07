@@ -27,8 +27,11 @@ jobs:
           node-version: '20'
 
       - name: Fetch web repo
+        env:
+          WEB_TOKEN: ${{ secrets.WEB_REPO_TOKEN }}
         run: |
-          git remote add web https://github.com/Targetym-AI/targetym-dashboard.git || true
+          git remote remove web 2>/dev/null || true
+          git remote add web https://x-access-token:${WEB_TOKEN}@github.com/Targetym-AI/targetym-dashboard.git
           git fetch web main
 
       - name: Check last synced commit

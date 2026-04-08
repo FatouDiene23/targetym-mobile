@@ -118,10 +118,10 @@ function PolicyBanner({ policyInfo, onDownload, isDownloading }: {
       <button
         onClick={onDownload}
         disabled={isDownloading}
-        className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+        className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 shrink-0"
       >
         {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-        T{'\u00e9'}l{'\u00e9'}charger
+        <span className="whitespace-nowrap">Télécharger</span>
       </button>
     </div>
   );

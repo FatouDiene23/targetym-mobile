@@ -1149,24 +1149,24 @@ export default function OKRPage() {
         </div>
 
         {/* Tabs */}
-        <div data-tour="okr-tabs" className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
-          <div className="flex border-b border-gray-200">
-            <button onClick={() => setActiveTab('list')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'list' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
+        <div data-tour="okr-tabs" className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 overflow-x-auto">
+          <div className="flex border-b border-gray-200 min-w-max">
+            <button onClick={() => setActiveTab('list')} className={`px-4 lg:px-6 py-4 text-sm font-medium whitespace-nowrap ${activeTab === 'list' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
               <Layers className="w-4 h-4 inline mr-2" />Liste des OKRs
             </button>
-            <button onClick={() => setActiveTab('cascade')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'cascade' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
+            <button onClick={() => setActiveTab('cascade')} className={`px-4 lg:px-6 py-4 text-sm font-medium whitespace-nowrap ${activeTab === 'cascade' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
               <GitBranch className="w-4 h-4 inline mr-2" />Cascade Stratégique
             </button>
-            <button onClick={() => setActiveTab('dashboard')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'dashboard' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
+            <button onClick={() => setActiveTab('dashboard')} className={`px-4 lg:px-6 py-4 text-sm font-medium whitespace-nowrap ${activeTab === 'dashboard' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
               <BarChart3 className="w-4 h-4 inline mr-2" />Tableau de Bord
             </button>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="flex justify-between items-center gap-4 mb-6">
-          <div className="flex gap-3">
-            <select value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value)} className="px-4 py-2 border rounded-lg text-sm bg-white">
+        <div className="flex flex-wrap justify-between items-center gap-2 mb-6">
+          <div className="flex flex-wrap gap-2">
+            <select value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value)} className="px-2 lg:px-4 py-2 border rounded-lg text-xs lg:text-sm bg-white">
               <option value="all">Toutes périodes</option>
               <option value="2026">2026</option>
               <option value="Q1 2026">Q1 2026</option>
@@ -1179,27 +1179,27 @@ export default function OKRPage() {
               <option value="Q3 2025">Q3 2025</option>
               <option value="Q4 2025">Q4 2025</option>
             </select>
-            <select value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)} className="px-4 py-2 border rounded-lg text-sm bg-white">
+            <select value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)} className="px-2 lg:px-4 py-2 border rounded-lg text-xs lg:text-sm bg-white">
               <option value="all">Tous niveaux</option>
               <option value="enterprise">Entreprise</option>
               <option value="department">Département</option>
               <option value="individual">Individuel</option>
             </select>
           </div>
-          <div className="flex gap-3">
-            <button 
+          <div className="flex gap-2">
+            <button
               onClick={() => exportOKRsToCSV(objectives)}
-              className="flex items-center px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-50"
+              className="flex items-center px-2 lg:px-4 py-2 border text-gray-700 text-xs lg:text-sm rounded-lg hover:bg-gray-50"
             >
-              <Download className="w-4 h-4 mr-2" />Exporter
+              <Download className="w-4 h-4 lg:mr-2" /><span className="hidden lg:inline">Exporter</span>
             </button>
             {canEdit && (
-              <button 
+              <button
                 data-tour="create-okr"
                 onClick={() => { setEditingObjective(null); setShowObjectiveModal(true); }}
-                className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600"
+                className="flex items-center px-3 lg:px-4 py-2 bg-primary-500 text-white text-xs lg:text-sm rounded-lg hover:bg-primary-600"
               >
-                <Plus className="w-4 h-4 mr-2" />Nouvel OKR
+                <Plus className="w-4 h-4 mr-1.5" />Nouvel OKR
               </button>
             )}
           </div>

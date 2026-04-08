@@ -365,7 +365,7 @@ export default function MyDocumentsPage() {
         </div>
 
         {/* Tabs + Upload button */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-0 mb-4 sm:mb-6">
+        <div className="flex flex-row items-center justify-between gap-2 mb-4 sm:mb-6">
           <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
             <button
               onClick={() => setTab('documents')}
@@ -586,7 +586,7 @@ export default function MyDocumentsPage() {
                         </div>
                         <div className="flex items-center gap-2 sm:gap-3 mt-1 text-[11px] sm:text-xs text-gray-500 flex-wrap">
                           <span className={`font-medium ${style.color}`}>{style.label}</span>
-                          <span className="flex items-center gap-1 truncate"><FileIcon className="w-3 h-3 shrink-0" /><span className="truncate">{doc.file_name}</span></span>
+                          <span className="flex items-center gap-1 truncate"><File className="w-3 h-3 shrink-0" /><span className="truncate">{doc.file_name}</span></span>
                           {doc.file_size && <span className="hidden sm:inline">{formatFileSize(doc.file_size)}</span>}
                         </div>
                         <div className="flex items-center gap-2 sm:gap-3 mt-1 text-[10px] sm:text-[11px] text-gray-400 flex-wrap">

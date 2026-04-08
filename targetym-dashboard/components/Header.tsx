@@ -413,8 +413,8 @@ export default function Header({ title, subtitle }: HeaderProps) {
         <div className="flex items-center justify-between flex-nowrap" style={{ flexWrap: 'nowrap' }}>
           {/* Titre */}
           <div className="min-w-0 flex-1 mr-2">
-            <h1 className="text-base lg:text-2xl font-bold text-gray-900 truncate">{title}</h1>
-            {subtitle && <p className="text-xs lg:text-sm text-gray-500 mt-0.5 truncate">{subtitle}</p>}
+            <h1 className="text-base lg:text-2xl font-bold text-gray-900 leading-tight">{title}</h1>
+            {subtitle && <p className="text-xs lg:text-sm text-gray-500 mt-0.5 hidden lg:block">{subtitle}</p>}
           </div>
 
           {/* Actions */}
@@ -612,10 +612,10 @@ export default function Header({ title, subtitle }: HeaderProps) {
             {canAdd && !HIDDEN_ADD_ROUTES.some(r => pathname.startsWith(r)) && (
               <button
                 onClick={handleAddClick}
-                className="flex items-center px-2.5 lg:px-4 py-2 bg-primary-500 text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors whitespace-nowrap"
+                className="flex items-center px-3 lg:px-4 py-2 bg-primary-500 text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors whitespace-nowrap"
               >
-                <Plus className="w-4 h-4 lg:mr-2" />
-                <span className="hidden lg:inline">{CONTEXTUAL_LABELS[pathname] ?? 'Ajouter'}</span>
+                <Plus className="w-4 h-4 mr-1.5" />
+                <span>{CONTEXTUAL_LABELS[pathname] ?? 'Ajouter'}</span>
               </button>
             )}
           </div>

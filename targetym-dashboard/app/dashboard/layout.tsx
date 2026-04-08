@@ -17,7 +17,7 @@ import { Shield, Smartphone } from 'lucide-react';
 
 function LoadingScreen() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="text-center">
         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
         <p className="text-gray-500">Chargement...</p>
@@ -327,7 +327,7 @@ function DashboardContent({
   }, [showTour, handleRestartTour, setTourHandler]);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-white">
       <ImpersonationBanner />
       <Sidebar />
       <main className="flex-1 overflow-auto min-w-0 pb-20 lg:pb-0">

@@ -306,7 +306,7 @@ function WelcomeCard({ userName, role }: { userName: string; role: UserRole }) {
 function QuickActions({ role, isManager }: { role: UserRole; isManager: boolean }) {
   const actions = [
     { label: 'Demander un congé', href: '/dashboard/my-space/leaves', icon: Calendar, color: 'bg-blue-500', roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
-    { label: 'Mes objectifs', href: '/dashboard/my-space/objectives', icon: Target, color: 'bg-green-500', roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+    { label: 'Mes objectifs', href: '/dashboard/okr', icon: Target, color: 'bg-green-500', roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
     { label: 'Mon équipe', href: '/dashboard/my-space/team', icon: Users, color: 'bg-purple-500', roles: ['manager'], managerOnly: true },
     { label: 'Gestion du personnel', href: '/dashboard/employees', icon: Users, color: 'bg-indigo-500', roles: ['rh', 'admin', 'dg'] },
     { label: 'Gestion des congés', href: '/dashboard/leaves', icon: CalendarDays, color: 'bg-orange-500', roles: ['rh', 'admin', 'dg'] },

@@ -2261,67 +2261,67 @@ export default function MyTasksPage() {
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
+            className="px-3 lg:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-1.5 text-sm whitespace-nowrap"
           >
-            <Plus className="w-4 h-4" />
-            Nouvelle tâche
+            <Plus className="w-4 h-4 shrink-0" />
+            <span>Nouvelle tâche</span>
           </button>
         </div>
 
         {/* Onglets */}
-        <div className="flex border-b border-gray-200 mb-6 overflow-x-auto">
+        <div className="flex border-b border-gray-200 mb-6 overflow-x-auto scrollbar-hide">
           <button
             onClick={() => setActiveTab('my-tasks')}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+            className={`px-3 lg:px-4 py-3 text-xs lg:text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
               activeTab === 'my-tasks'
                 ? 'border-primary-600 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            <ClipboardList className="w-4 h-4" />
+            <ClipboardList className="w-4 h-4 shrink-0" />
             Mes Tâches
           </button>
-          
+
           {isManager && (
             <button
               onClick={() => setActiveTab('team-tasks')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+              className={`px-3 lg:px-4 py-3 text-xs lg:text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
                 activeTab === 'team-tasks'
                   ? 'border-primary-600 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              <Users className="w-4 h-4" />
-              Tâches Équipe
+              <Users className="w-4 h-4 shrink-0" />
+              Équipe
               {teamMembers.length > 0 && (
-                <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">
+                <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full text-xs">
                   {teamMembers.length}
                 </span>
               )}
             </button>
           )}
-          
+
           <button
             onClick={() => setActiveTab('history')}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+            className={`px-3 lg:px-4 py-3 text-xs lg:text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
               activeTab === 'history'
                 ? 'border-primary-600 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            <History className="w-4 h-4" />
+            <History className="w-4 h-4 shrink-0" />
             Historique
           </button>
-          
+
           <button
             onClick={() => setActiveTab('stats')}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+            className={`px-3 lg:px-4 py-3 text-xs lg:text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
               activeTab === 'stats'
                 ? 'border-primary-600 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            <BarChart3 className="w-4 h-4" />
+            <BarChart3 className="w-4 h-4 shrink-0" />
             Stats
           </button>
         </div>

@@ -417,7 +417,7 @@ export default function AIChatBox() {
         <div id="ai-chatbox" className="fixed inset-x-2 bottom-16 top-14 lg:inset-auto lg:right-6 lg:bottom-6 lg:w-[420px] lg:h-[620px] rounded-2xl bg-white shadow-2xl flex flex-col z-50 border border-gray-200">
 
           {/* Header */}
-          <div className={`${agentMode ? 'bg-gradient-to-r from-indigo-600 to-purple-700' : 'bg-gradient-to-r from-blue-600 to-blue-700'} text-white px-4 py-3 lg:px-5 lg:py-4 rounded-t-2xl flex items-center justify-between`}>
+          <div className={`${agentMode ? 'bg-gradient-to-r from-primary-600 to-primary-700' : 'bg-gradient-to-r from-primary-500 to-primary-700'} text-white px-4 py-3 lg:px-5 lg:py-4 rounded-t-2xl flex items-center justify-between`}>
             <div className="flex items-center gap-2 lg:gap-3 min-w-0">
               <div className="bg-white/20 p-1.5 lg:p-2 rounded-lg shrink-0">
                 {agentMode ? <Zap size={20} /> : <MessageCircle size={20} />}

@@ -47,8 +47,8 @@ interface DownloadRecord {
 }
 
 const DOC_TYPE_MAP: Record<string, { label: string; icon: string; color: string; bg: string }> = {
-  contrat_travail: { label: 'Contrat de travail', icon: '📝', color: 'text-blue-600', bg: 'bg-blue-50' },
-  avenant: { label: 'Avenant', icon: '📋', color: 'text-blue-500', bg: 'bg-blue-50' },
+  contrat_travail: { label: 'Contrat de travail', icon: '📝', color: 'text-primary-600', bg: 'bg-primary-50' },
+  avenant: { label: 'Avenant', icon: '📋', color: 'text-primary-500', bg: 'bg-primary-50' },
   cni: { label: 'CNI', icon: '🪪', color: 'text-purple-600', bg: 'bg-purple-50' },
   passeport: { label: 'Passeport', icon: '🛂', color: 'text-purple-500', bg: 'bg-purple-50' },
   diplome: { label: 'Diplôme', icon: '🎓', color: 'text-green-600', bg: 'bg-green-50' },
@@ -56,7 +56,7 @@ const DOC_TYPE_MAP: Record<string, { label: string; icon: string; color: string;
   lettre_motivation: { label: 'Lettre de motivation', icon: '✉️', color: 'text-gray-500', bg: 'bg-gray-50' },
   attestation_employeur: { label: 'Attestation', icon: '📑', color: 'text-orange-600', bg: 'bg-orange-50' },
   fiche_paie: { label: 'Fiche de paie', icon: '💰', color: 'text-yellow-600', bg: 'bg-yellow-50' },
-  certificat_travail: { label: 'Certificat de travail', icon: '🏅', color: 'text-indigo-600', bg: 'bg-indigo-50' },
+  certificat_travail: { label: 'Certificat de travail', icon: '🏅', color: 'text-primary-600', bg: 'bg-primary-50' },
   rib: { label: 'RIB', icon: '🏦', color: 'text-teal-600', bg: 'bg-teal-50' },
   carte_vitale: { label: 'Assurance santé', icon: '🏥', color: 'text-red-600', bg: 'bg-red-50' },
   permis_conduire: { label: 'Permis de conduire', icon: '🚗', color: 'text-cyan-600', bg: 'bg-cyan-50' },
@@ -317,23 +317,23 @@ export default function MyDocumentsPage() {
         {/* Raccourci : Générer une attestation */}
         <div
           onClick={() => router.push('/dashboard/my-space?tab=profile')}
-          className="mb-6 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-sm transition-shadow group"
+          className="mb-6 bg-gradient-to-r from-primary-50 to-secondary-50 border border-primary-200 rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-sm transition-shadow group"
         >
-          <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
-            <Award className="w-6 h-6 text-indigo-600" />
+          <div className="w-12 h-12 rounded-xl bg-primary-100 flex items-center justify-center flex-shrink-0">
+            <Award className="w-6 h-6 text-primary-600" />
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-indigo-900">Générer une attestation de travail</h3>
-            <p className="text-xs text-indigo-600 mt-0.5">Créez et téléchargez votre attestation depuis Mon Profil</p>
+            <h3 className="text-sm font-semibold text-primary-900">Générer une attestation de travail</h3>
+            <p className="text-xs text-primary-600 mt-0.5">Créez et téléchargez votre attestation depuis Mon Profil</p>
           </div>
-          <ExternalLink className="w-5 h-5 text-indigo-400 group-hover:text-indigo-600 transition-colors" />
+          <ExternalLink className="w-5 h-5 text-primary-400 group-hover:text-primary-600 transition-colors" />
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-              <FileText className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
+              <FileText className="w-5 h-5 text-primary-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{totalDocs}</p>
@@ -388,7 +388,7 @@ export default function MyDocumentsPage() {
           </div>
           <button
             onClick={() => setShowUpload(!showUpload)}
-            className="flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
           >
             <Upload className="w-4 h-4" />
             Ajouter
@@ -397,13 +397,13 @@ export default function MyDocumentsPage() {
 
         {/* Upload Form */}
         {showUpload && (
-          <div className="mb-4 sm:mb-6 bg-blue-50 border border-blue-200 rounded-xl p-3 sm:p-5 space-y-3 sm:space-y-4">
+          <div className="mb-4 sm:mb-6 bg-primary-50 border border-primary-200 rounded-xl p-3 sm:p-5 space-y-3 sm:space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs sm:text-sm font-semibold text-blue-900 flex items-center gap-2">
+              <h3 className="text-xs sm:text-sm font-semibold text-primary-900 flex items-center gap-2">
                 <Upload className="w-4 h-4" /> Ajouter un document
               </h3>
               <button onClick={() => setShowUpload(false)}>
-                <X className="w-4 h-4 text-blue-400 hover:text-blue-600" />
+                <X className="w-4 h-4 text-primary-400 hover:text-primary-600" />
               </button>
             </div>
 
@@ -469,7 +469,7 @@ export default function MyDocumentsPage() {
             </div>
 
             {uploadFile && (
-              <p className="text-xs text-blue-700 flex items-center gap-1">
+              <p className="text-xs text-primary-700 flex items-center gap-1">
                 <FileText className="w-3 h-3" />
                 {uploadFile.name} ({(uploadFile.size / 1024).toFixed(0)} Ko)
               </p>
@@ -485,7 +485,7 @@ export default function MyDocumentsPage() {
               <button
                 onClick={handleUpload}
                 disabled={uploading || !uploadFile || !uploadTitle}
-                className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1.5"
+                className="px-4 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-1.5"
               >
                 {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                 {uploading ? 'Upload...' : 'Uploader'}
@@ -600,7 +600,7 @@ export default function MyDocumentsPage() {
                         <button
                           onClick={() => handleDownload(doc)}
                           disabled={downloading === doc.id}
-                          className="p-1.5 sm:p-2 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors"
+                          className="p-1.5 sm:p-2 rounded-lg hover:bg-primary-50 text-primary-600 transition-colors"
                           title="Télécharger"
                         >
                           {downloading === doc.id ? (

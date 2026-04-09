@@ -15,6 +15,7 @@ import { usePageTour } from '@/hooks/usePageTour';
 import { missionsTips } from '@/config/pageTips';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import CountrySelect from '@/components/CountrySelect';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES
@@ -1077,16 +1078,16 @@ export default function MissionsPage() {
                 className="w-full pl-10 pr-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
-            <select
+            <CustomSelect
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="">Tous les statuts</option>
-              {Object.entries(STATUS_CONFIG).map(([key, val]) => (
-                <option key={key} value={key}>{val.label}</option>
-              ))}
-            </select>
+              onChange={setStatusFilter}
+              placeholder="Tous les statuts"
+              className="min-w-[160px]"
+              options={[
+                { value: '', label: 'Tous les statuts' },
+                ...Object.entries(STATUS_CONFIG).map(([key, val]) => ({ value: key, label: val.label })),
+              ]}
+            />
           </div>
         )}
 

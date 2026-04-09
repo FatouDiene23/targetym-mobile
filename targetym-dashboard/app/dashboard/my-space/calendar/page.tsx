@@ -570,53 +570,99 @@ function MonthView({ year, month, events, onEventClick }: {
     });
   }
 
+  // Récupérer le premier événement du jour pour le clic mobile
+  function handleMobileDayClick(dayEvents: CalendarEvent[]) {
+    if (dayEvents.length > 0) onEventClick(dayEvents[0]);
+  }
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      {/* Day headers */}
-      <div className="grid grid-cols-7 border-b border-gray-200">
-        {DAY_NAMES.map(name => (
-          <div key={name} className="px-2 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            {name}
-          </div>
-        ))}
-      </div>
-      
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7">
-        {cells.map((cell, idx) => {
-          const isToday = cell.dateStr === today;
-          const dayEvents = getEventsForDate(cell.dateStr);
-          const isWeekend = idx % 7 >= 5;
-          
-          return (
-            <div 
-              key={idx}
-              className={`min-h-[100px] border-b border-r border-gray-100 p-1.5 transition-colors ${
-                !cell.currentMonth ? 'bg-gray-50/50' : isWeekend ? 'bg-gray-50/30' : 'bg-white'
-              } ${isToday ? 'ring-2 ring-inset ring-primary-500/30' : ''}`}
-            >
-              <div className={`text-right mb-1 ${!cell.currentMonth ? 'text-gray-300' : ''}`}>
-                <span className={`inline-flex items-center justify-center w-7 h-7 text-sm ${
-                  isToday 
-                    ? 'bg-primary-500 text-white rounded-full font-bold' 
-                    : cell.currentMonth ? 'text-gray-700 font-medium' : 'text-gray-300'
+    <>
+      {/* === VUE MOBILE : mini-calendrier compact === */}
+      <div className="sm:hidden bg-white rounded-xl border border-gray-200 overflow-hidden mx-auto" style={{ maxWidth: '360px' }}>
+        <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
+          {DAY_NAMES.map(name => (
+            <div key={name} className="py-1.5 text-center text-[9px] font-bold text-gray-500 uppercase">
+              {name.slice(0, 1)}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 p-1 gap-0.5">
+          {cells.map((cell, idx) => {
+            const isToday = cell.dateStr === today;
+            const dayEvents = getEventsForDate(cell.dateStr);
+            const eventColors = Array.from(new Set(dayEvents.map(e => EVENT_CONFIGS[e.type]?.dotColor || 'bg-gray-400')));
+
+            return (
+              <button
+                key={idx}
+                onClick={() => handleMobileDayClick(dayEvents)}
+                className={`aspect-square flex flex-col items-center justify-center rounded transition-colors ${
+                  !cell.currentMonth ? 'opacity-30' : ''
+                } ${isToday ? 'bg-primary-500' : dayEvents.length > 0 ? 'bg-primary-50' : ''}`}
+              >
+                <span className={`text-[11px] font-semibold ${
+                  isToday ? 'text-white' : cell.currentMonth ? 'text-gray-800' : 'text-gray-400'
                 }`}>
                   {cell.day}
                 </span>
-              </div>
-              <div className="space-y-0.5">
-                {dayEvents.slice(0, 3).map(event => (
-                  <EventPill key={event.id} event={event} compact onClick={() => onEventClick(event)} />
-                ))}
-                {dayEvents.length > 3 && (
-                  <span className="text-[10px] text-gray-400 px-1">+{dayEvents.length - 3} de plus</span>
+                {dayEvents.length > 0 && !isToday && (
+                  <div className="flex gap-[1px] mt-0.5">
+                    {eventColors.slice(0, 3).map((color, i) => (
+                      <span key={i} className={`w-1 h-1 rounded-full ${color}`} />
+                    ))}
+                  </div>
                 )}
-              </div>
-            </div>
-          );
-        })}
+              </button>
+            );
+          })}
+        </div>
       </div>
-    </div>
+
+      {/* === VUE DESKTOP === */}
+      <div className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="grid grid-cols-7 border-b border-gray-200">
+          {DAY_NAMES.map(name => (
+            <div key={name} className="px-2 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              {name}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7">
+          {cells.map((cell, idx) => {
+            const isToday = cell.dateStr === today;
+            const dayEvents = getEventsForDate(cell.dateStr);
+            const isWeekend = idx % 7 >= 5;
+
+            return (
+              <div
+                key={idx}
+                className={`min-h-[100px] border-b border-r border-gray-100 p-1.5 transition-colors ${
+                  !cell.currentMonth ? 'bg-gray-50/50' : isWeekend ? 'bg-gray-50/30' : 'bg-white'
+                } ${isToday ? 'ring-2 ring-inset ring-primary-500/30' : ''}`}
+              >
+                <div className={`text-right mb-1 ${!cell.currentMonth ? 'text-gray-300' : ''}`}>
+                  <span className={`inline-flex items-center justify-center w-7 h-7 text-sm ${
+                    isToday
+                      ? 'bg-primary-500 text-white rounded-full font-bold'
+                      : cell.currentMonth ? 'text-gray-700 font-medium' : 'text-gray-300'
+                  }`}>
+                    {cell.day}
+                  </span>
+                </div>
+                <div className="space-y-0.5">
+                  {dayEvents.slice(0, 3).map(event => (
+                    <EventPill key={event.id} event={event} compact onClick={() => onEventClick(event)} />
+                  ))}
+                  {dayEvents.length > 3 && (
+                    <span className="text-[10px] text-gray-400 px-1">+{dayEvents.length - 3} de plus</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -639,40 +685,80 @@ function WeekView({ weekDates, events, onEventClick }: {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="grid grid-cols-7 divide-x divide-gray-100">
+    <>
+      {/* Vue desktop : grille 7 colonnes */}
+      <div className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="grid grid-cols-7 divide-x divide-gray-100">
+          {weekDates.map((date, idx) => {
+            const dateStr = formatDate(date);
+            const isToday = dateStr === today;
+            const dayEvents = getEventsForDate(dateStr);
+            const isWeekend = idx >= 5;
+
+            return (
+              <div
+                key={idx}
+                className={`min-h-[400px] ${isToday ? 'bg-primary-50/30' : isWeekend ? 'bg-gray-50/30' : ''}`}
+              >
+                <div className={`sticky top-0 px-3 py-3 text-center border-b border-gray-200 ${isToday ? 'bg-primary-50' : 'bg-gray-50'}`}>
+                  <div className="text-xs font-medium text-gray-500 uppercase">{DAY_NAMES_FULL[idx]}</div>
+                  <div className={`text-lg mt-0.5 ${
+                    isToday ? 'bg-primary-500 text-white w-8 h-8 rounded-full flex items-center justify-center mx-auto font-bold' : 'font-semibold text-gray-900'
+                  }`}>
+                    {date.getDate()}
+                  </div>
+                </div>
+                <div className="p-2 space-y-1.5">
+                  {dayEvents.map(event => (
+                    <EventPill key={event.id} event={event} onClick={() => onEventClick(event)} />
+                  ))}
+                  {dayEvents.length === 0 && (
+                    <p className="text-xs text-gray-300 text-center pt-4">—</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Vue mobile : liste verticale par jour */}
+      <div className="sm:hidden space-y-3">
         {weekDates.map((date, idx) => {
           const dateStr = formatDate(date);
           const isToday = dateStr === today;
           const dayEvents = getEventsForDate(dateStr);
-          const isWeekend = idx >= 5;
 
           return (
-            <div 
-              key={idx} 
-              className={`min-h-[400px] ${isToday ? 'bg-primary-50/30' : isWeekend ? 'bg-gray-50/30' : ''}`}
+            <div
+              key={idx}
+              className={`bg-white rounded-xl border ${isToday ? 'border-primary-300 ring-2 ring-primary-100' : 'border-gray-200'} overflow-hidden`}
             >
-              <div className={`sticky top-0 px-3 py-3 text-center border-b border-gray-200 ${isToday ? 'bg-primary-50' : 'bg-gray-50'}`}>
-                <div className="text-xs font-medium text-gray-500 uppercase">{DAY_NAMES_FULL[idx]}</div>
-                <div className={`text-lg mt-0.5 ${
-                  isToday ? 'bg-primary-500 text-white w-8 h-8 rounded-full flex items-center justify-center mx-auto font-bold' : 'font-semibold text-gray-900'
-                }`}>
-                  {date.getDate()}
+              <div className={`px-3 py-2 flex items-center justify-between ${isToday ? 'bg-primary-50' : 'bg-gray-50'}`}>
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex items-center justify-center w-8 h-8 text-sm font-bold ${
+                    isToday ? 'bg-primary-500 text-white rounded-full' : 'text-gray-700'
+                  }`}>
+                    {date.getDate()}
+                  </span>
+                  <span className="text-xs font-semibold text-gray-700 uppercase">{DAY_NAMES_FULL[idx]}</span>
                 </div>
+                <span className="text-[10px] text-gray-400">{dayEvents.length} évén.</span>
               </div>
               <div className="p-2 space-y-1.5">
-                {dayEvents.map(event => (
-                  <EventPill key={event.id} event={event} onClick={() => onEventClick(event)} />
-                ))}
-                {dayEvents.length === 0 && (
-                  <p className="text-xs text-gray-300 text-center pt-4">—</p>
+                {dayEvents.length > 0 ? (
+                  dayEvents.map(event => (
+                    <EventPill key={event.id} event={event} onClick={() => onEventClick(event)} />
+                  ))
+                ) : (
+                  <p className="text-xs text-gray-300 text-center py-2">Aucun événement</p>
                 )}
               </div>
             </div>
           );
         })}
       </div>
-    </div>
+    </>
   );
 }
 

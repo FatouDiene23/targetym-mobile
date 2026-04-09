@@ -973,20 +973,20 @@ export default function MyProfilePage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg mb-6 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
-          <button onClick={() => setActiveTab('profile')} className={`px-3 lg:px-4 py-2 text-xs lg:text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${activeTab === 'profile' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg mb-6 overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
+          <button onClick={() => setActiveTab('profile')} className={`px-3 lg:px-4 py-2 text-xs lg:text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${activeTab === 'profile' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
             <User className="w-4 h-4" />Mon Profil
           </button>
-          <button onClick={() => setActiveTab('orgchart')} className={`px-3 lg:px-4 py-2 text-xs lg:text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${activeTab === 'orgchart' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+          <button onClick={() => setActiveTab('orgchart')} className={`px-3 lg:px-4 py-2 text-xs lg:text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${activeTab === 'orgchart' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
             <Network className="w-4 h-4" />Organigramme
           </button>
-          <button onClick={() => setActiveTab('signatures')} className={`px-3 lg:px-4 py-2 text-xs lg:text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${activeTab === 'signatures' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+          <button onClick={() => setActiveTab('signatures')} className={`px-3 lg:px-4 py-2 text-xs lg:text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${activeTab === 'signatures' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
             <PenLine className="w-4 h-4" />Signatures
             {pendingSignatures.length > 0 && (
               <span className="ml-1 bg-orange-500 text-white text-xs px-1.5 py-0.5 rounded-full">{pendingSignatures.length}</span>
             )}
           </button>
-          <button onClick={() => setActiveTab('alertes')} className={`px-3 lg:px-4 py-2 text-xs lg:text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${activeTab === 'alertes' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+          <button onClick={() => setActiveTab('alertes')} className={`px-3 lg:px-4 py-2 text-xs lg:text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${activeTab === 'alertes' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
             <Bell className="w-4 h-4" />Alertes SOS
             {sosAlertsPending > 0 && (
               <span className="ml-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{sosAlertsPending}</span>

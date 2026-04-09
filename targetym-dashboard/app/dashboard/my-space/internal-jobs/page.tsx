@@ -5,12 +5,13 @@ import { useState, useEffect, useCallback } from 'react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { internalJobsTips } from '@/config/pageTips';
-import { 
+import {
   Briefcase, MapPin, Clock, Building2, Users, Search,
   ChevronRight, Check, Send, FileText, Calendar, DollarSign,
   ExternalLink, X, Loader2, CheckCircle,
   AlertCircle, Eye, TrendingUp
 } from 'lucide-react';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES
@@ -392,32 +393,38 @@ export default function CareersPage() {
                   />
                 </div>
                 <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide">
-                  <select
+                  <CustomSelect
                     value={departmentFilter}
-                    onChange={(e) => setDepartmentFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-primary-500 outline-none shrink-0"
-                  >
-                    <option value="">Départements</option>
-                    {departments.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                  <select
+                    onChange={setDepartmentFilter}
+                    placeholder="Départements"
+                    className="min-w-[140px] shrink-0"
+                    options={[
+                      { value: '', label: 'Départements' },
+                      ...departments.map(d => ({ value: d, label: d })),
+                    ]}
+                  />
+                  <CustomSelect
                     value={contractFilter}
-                    onChange={(e) => setContractFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-primary-500 outline-none shrink-0"
-                  >
-                    <option value="">Contrats</option>
-                    {contractTypes.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                  <select
+                    onChange={setContractFilter}
+                    placeholder="Contrats"
+                    className="min-w-[120px] shrink-0"
+                    options={[
+                      { value: '', label: 'Contrats' },
+                      ...contractTypes.map(c => ({ value: c, label: c })),
+                    ]}
+                  />
+                  <CustomSelect
                     value={remoteFilter}
-                    onChange={(e) => setRemoteFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-primary-500 outline-none shrink-0"
-                  >
-                    <option value="">Modes</option>
-                    <option value="onsite">Sur site</option>
-                    <option value="hybrid">Hybride</option>
-                    <option value="remote">Full Remote</option>
-                  </select>
+                    onChange={setRemoteFilter}
+                    placeholder="Modes"
+                    className="min-w-[120px] shrink-0"
+                    options={[
+                      { value: '', label: 'Modes' },
+                      { value: 'onsite', label: 'Sur site' },
+                      { value: 'hybrid', label: 'Hybride' },
+                      { value: 'remote', label: 'Full Remote' },
+                    ]}
+                  />
                 </div>
               </div>
             </div>

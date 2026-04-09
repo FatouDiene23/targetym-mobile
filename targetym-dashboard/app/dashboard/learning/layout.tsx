@@ -28,7 +28,8 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
 
 function LearningContent({ children }: { children: React.ReactNode }) {
   const { isLoading } = useLearning();
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = rawPathname?.replace(/\/$/, '') || rawPathname;
 
   const page = PAGE_TITLES[pathname] ?? { title: 'Formation & Développement', subtitle: '' };
 

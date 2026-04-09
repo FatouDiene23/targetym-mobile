@@ -14,6 +14,7 @@ import {
   type ChecklistTeamMember, type ChecklistItemCreate, type TaskPriority,
   type DayOfWeek, type ObjectiveForLinking,
 } from '@/lib/api';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // CONSTANTS
@@ -213,16 +214,16 @@ function ItemFormModal({ employeeId, item, objectives, onSave, onClose }: ItemFo
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Priorité</label>
-              <select
+              <CustomSelect
                 value={priority}
-                onChange={e => setPriority(e.target.value as TaskPriority)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="low">Basse</option>
-                <option value="medium">Moyenne</option>
-                <option value="high">Haute</option>
-                <option value="urgent">Urgente</option>
-              </select>
+                onChange={(v) => setPriority(v as TaskPriority)}
+                options={[
+                  { value: 'low', label: 'Basse' },
+                  { value: 'medium', label: 'Moyenne' },
+                  { value: 'high', label: 'Haute' },
+                  { value: 'urgent', label: 'Urgente' },
+                ]}
+              />
             </div>
           </div>
 
@@ -237,32 +238,30 @@ function ItemFormModal({ employeeId, item, objectives, onSave, onClose }: ItemFo
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Objectif lié (optionnel)</label>
-            <select
-              value={objectiveId}
-              onChange={e => { setObjectiveId(e.target.value ? Number(e.target.value) : ''); setKeyResultId(''); }}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="">— Aucun —</option>
-              {objectives.map(o => (
-                <option key={o.id} value={o.id}>{o.title}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={String(objectiveId || '')}
+              onChange={(v) => { setObjectiveId(v ? Number(v) : ''); setKeyResultId(''); }}
+              placeholder="— Aucun —"
+              options={[
+                { value: '', label: '— Aucun —' },
+                ...objectives.map(o => ({ value: String(o.id), label: o.title })),
+              ]}
+            />
           </div>
 
           {selectedObjective && selectedObjective.key_results.length > 0 && (
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Key Result</label>
-                <select
-                  value={keyResultId}
-                  onChange={e => setKeyResultId(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="">— Aucun —</option>
-                  {selectedObjective.key_results.map(kr => (
-                    <option key={kr.id} value={kr.id}>{kr.title}</option>
-                  ))}
-                </select>
+                <CustomSelect
+                  value={String(keyResultId || '')}
+                  onChange={(v) => setKeyResultId(v ? Number(v) : '')}
+                  placeholder="— Aucun —"
+                  options={[
+                    { value: '', label: '— Aucun —' },
+                    ...selectedObjective.key_results.map(kr => ({ value: String(kr.id), label: kr.title })),
+                  ]}
+                />
               </div>
               {keyResultId && (
                 <div>

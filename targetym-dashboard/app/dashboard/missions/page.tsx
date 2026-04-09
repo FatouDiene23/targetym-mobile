@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -120,7 +120,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   en_attente_rh: { label: 'Attente RH', color: 'text-yellow-600', bg: 'bg-yellow-100' },
   approuvee: { label: 'Approuvée', color: 'text-green-600', bg: 'bg-green-100' },
   rejetee: { label: 'Rejetée', color: 'text-red-600', bg: 'bg-red-100' },
-  en_cours: { label: 'En cours', color: 'text-blue-600', bg: 'bg-blue-100' },
+  en_cours: { label: 'En cours', color: 'text-primary-600', bg: 'bg-primary-100' },
   terminee: { label: 'Terminée', color: 'text-purple-600', bg: 'bg-purple-100' },
   cloturee: { label: 'Clôturée', color: 'text-gray-500', bg: 'bg-gray-50' },
 };
@@ -713,7 +713,7 @@ export default function MissionsPage() {
     const cards: { label: string; value: string | number; icon: any; color: string; bg: string }[] = [
       { label: 'Total', value: stats.total, icon: Briefcase, color: 'text-gray-700', bg: 'bg-gray-50' },
       { label: 'En attente', value: stats.en_attente, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
-      { label: 'En cours', value: stats.en_cours, icon: PlayCircle, color: 'text-blue-600', bg: 'bg-blue-50' },
+      { label: 'En cours', value: stats.en_cours, icon: PlayCircle, color: 'text-primary-600', bg: 'bg-primary-50' },
       { label: 'Terminées', value: stats.terminee, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50' },
       { label: 'Per Diem Total', value: formatAmount(stats.total_per_diem), icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     ];
@@ -747,10 +747,10 @@ export default function MissionsPage() {
     const TransportIcon = transport.icon;
 
     return (
-      <tr key={mission.id} className={`hover:bg-gray-50 border-b ${selectedMissionIds.has(mission.id) ? 'bg-blue-50/50' : ''}`}>
+      <tr key={mission.id} className={`hover:bg-gray-50 border-b ${selectedMissionIds.has(mission.id) ? 'bg-primary-50/50' : ''}`}>
         {context !== 'mes_missions' && (
           <td className="w-10 px-3 py-3">
-            <input type="checkbox" checked={selectedMissionIds.has(mission.id)} onChange={() => toggleSelectMission(mission.id)} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+            <input type="checkbox" checked={selectedMissionIds.has(mission.id)} onChange={() => toggleSelectMission(mission.id)} className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer" />
           </td>
         )}
         <td className="px-4 py-3">
@@ -800,7 +800,7 @@ export default function MissionsPage() {
           <div className="flex items-center gap-1">
             <button
               onClick={() => handleViewMission(mission)}
-              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-blue-600"
+              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-primary-600"
               title="Voir"
             >
               <Eye className="w-4 h-4" />
@@ -832,7 +832,7 @@ export default function MissionsPage() {
             {mission.status === 'approuvee' && (
               <button
                 onClick={() => handleStartMission(mission.id)}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-blue-600"
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-primary-600"
                 title="Démarrer"
               >
                 <PlayCircle className="w-4 h-4" />
@@ -862,7 +862,7 @@ export default function MissionsPage() {
             {context === 'a_valider' && ['en_attente_manager', 'en_attente_rh'].includes(mission.status) && (
               <button
                 onClick={() => handleValidateMission(mission)}
-                className="px-3 py-1 rounded-lg bg-blue-600 text-white text-xs hover:bg-blue-700"
+                className="px-3 py-1 rounded-lg bg-primary-600 text-white text-xs hover:bg-primary-700"
               >
                 Traiter
               </button>
@@ -881,7 +881,7 @@ export default function MissionsPage() {
     if (loading) {
       return (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+          <Loader2 className="w-6 h-6 animate-spin text-primary-600" />
           <span className="ml-2 text-gray-500">Chargement...</span>
         </div>
       );
@@ -913,8 +913,8 @@ export default function MissionsPage() {
       <>
         {/* Barre d'actions groupées */}
         {someMissionsSelected && (
-          <div className="mx-4 mt-3 mb-1 flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
-            <span className="text-sm font-medium text-blue-700">{selectedMissionIds.size} sélectionnée{selectedMissionIds.size > 1 ? 's' : ''}</span>
+          <div className="mx-4 mt-3 mb-1 flex items-center gap-3 bg-primary-50 border border-primary-200 rounded-xl px-4 py-3">
+            <span className="text-sm font-medium text-primary-700">{selectedMissionIds.size} sélectionnée{selectedMissionIds.size > 1 ? 's' : ''}</span>
             <div className="h-5 w-px bg-blue-200" />
             <button onClick={() => handleBulkExportMissions(missionList)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
               <Download className="w-3.5 h-3.5" />Exporter
@@ -938,7 +938,7 @@ export default function MissionsPage() {
             <button onClick={() => setSelectedMissionIds(new Set())} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors">
               <X className="w-4 h-4" />
             </button>
-            {bulkMissionLoading && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
+            {bulkMissionLoading && <Loader2 className="w-4 h-4 animate-spin text-primary-500" />}
           </div>
         )}
 
@@ -948,7 +948,7 @@ export default function MissionsPage() {
               <tr className="bg-gray-50 border-b">
                 {showSelection && (
                   <th className="w-10 px-3 py-3">
-                    <input type="checkbox" checked={allMissionsSelected} onChange={() => toggleSelectAllMissions(missionList)} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                    <input type="checkbox" checked={allMissionsSelected} onChange={() => toggleSelectAllMissions(missionList)} className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer" />
                   </th>
                 )}
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Référence</th>
@@ -1010,7 +1010,7 @@ export default function MissionsPage() {
       <div className="min-h-screen bg-gray-50">
         <Header title="Gestion des Missions" subtitle="Ordres de missions & déplacements professionnels" />
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
         </div>
       </div>
     );
@@ -1039,7 +1039,7 @@ export default function MissionsPage() {
               onClick={() => { setActiveTab(tab.id); setSelectedMissionIds(new Set()); }}
               className={`flex items-center gap-1.5 lg:gap-2 px-3 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === tab.id
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-primary-600 text-white'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
@@ -1047,7 +1047,7 @@ export default function MissionsPage() {
               {tab.label}
               {tab.badge && tab.badge > 0 && (
                 <span className={`ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                  activeTab === tab.id ? 'bg-white text-blue-600' : 'bg-red-500 text-white'
+                  activeTab === tab.id ? 'bg-white text-primary-600' : 'bg-red-500 text-white'
                 }`}>
                   {tab.badge}
                 </span>
@@ -1058,7 +1058,7 @@ export default function MissionsPage() {
           <button
             data-tour="create-mission"
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
             Nouvelle mission
@@ -1074,13 +1074,13 @@ export default function MissionsPage() {
                 placeholder="Rechercher une mission..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-10 pr-4 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-primary-500"
             >
               <option value="">Tous les statuts</option>
               {Object.entries(STATUS_CONFIG).map(([key, val]) => (
@@ -1462,7 +1462,7 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
           </button>
           <button
             onClick={() => { formData.as_draft = false; handleSubmit(); }}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 flex items-center gap-2"
+            className="px-4 py-2 text-sm bg-primary-600 text-white rounded-xl hover:bg-primary-700 flex items-center gap-2"
             disabled={submitting}
           >
             {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -1516,8 +1516,8 @@ function MissionDetailModal({ mission, role, onClose }: {
 
           {/* Itinéraire + Dates */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-blue-50 rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-blue-700 mb-2 flex items-center gap-2">
+            <div className="bg-primary-50 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-primary-700 mb-2 flex items-center gap-2">
                 <MapPin className="w-4 h-4" /> Itinéraire
               </h3>
               <p className="text-sm"><span className="text-gray-500">De:</span> {mission.departure_location}</p>
@@ -1762,7 +1762,7 @@ function EditMissionModal({ mission, onClose, onSuccess }: {
 
         <div className="flex items-center justify-end gap-3 p-6 border-t sticky bottom-0 bg-white rounded-b-2xl">
           <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">Annuler</button>
-          <button onClick={handleSubmit} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 flex items-center gap-2" disabled={submitting}>
+          <button onClick={handleSubmit} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-xl hover:bg-primary-700 flex items-center gap-2" disabled={submitting}>
             {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
             Enregistrer
           </button>

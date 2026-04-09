@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -678,7 +678,7 @@ function LeaveTypesModal({
                       <span className="font-medium text-gray-900">{type.name}</span>
                       <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">{type.code}</span>
                       {type.is_annual ? (
-                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Annuel &mdash; {type.accrual_rate ?? 2}j/mois</span>
+                        <span className="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded">Annuel &mdash; {type.accrual_rate ?? 2}j/mois</span>
                       ) : (
                         <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Spécial &mdash; {type.default_days} j</span>
                       )}
@@ -1245,7 +1245,7 @@ function NewLeaveRequestModal({
 
   const warningColors = {
     none: '',
-    low: 'bg-blue-50 border-blue-200 text-blue-800',
+    low: 'bg-primary-50 border-primary-200 text-primary-800',
     medium: 'bg-yellow-50 border-yellow-200 text-yellow-800',
     high: 'bg-red-50 border-red-200 text-red-800',
   };
@@ -2040,7 +2040,7 @@ export default function LeavesManagementPage() {
         {/* Stats */}
         {stats && (
           <div data-tour="leaves-stats" className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
-            <StatCard icon={BarChart3} value={stats.total_requests} label="Total demandes" color="bg-blue-500" />
+            <StatCard icon={BarChart3} value={stats.total_requests} label="Total demandes" color="bg-primary-500" />
             <StatCard icon={Clock} value={stats.pending} label="En attente" color="bg-yellow-500" />
             <StatCard icon={CheckCircle} value={stats.approved} label="Approuvées" color="bg-green-500" />
             <StatCard icon={XCircle} value={stats.rejected} label="Refusées" color="bg-red-500" />

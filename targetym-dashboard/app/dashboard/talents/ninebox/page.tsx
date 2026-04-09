@@ -1,4 +1,4 @@
-// ============================================
+﻿// ============================================
 // app/dashboard/talents/ninebox/page.tsx
 // Matrice 9-Box interactive
 // ============================================
@@ -156,13 +156,13 @@ export default function NineBoxPage() {
           <div className="ml-auto flex gap-3 items-center text-sm flex-wrap">
             <span className="text-gray-500">Total: <strong className="text-gray-900">{data?.total || 0}</strong></span>
             <span className="text-green-600">Stars: <strong>{data?.stats?.stars || 0}</strong></span>
-            <span className="text-blue-600">Hauts Pot.: <strong>{data?.stats?.high_potentials || 0}</strong></span>
+            <span className="text-primary-600">Hauts Pot.: <strong>{data?.stats?.high_potentials || 0}</strong></span>
             <span className="text-red-600">À risque: <strong>{data?.stats?.at_risk || 0}</strong></span>
             {isRHUser && (
               <button
                 onClick={handleAutoCompute}
                 disabled={autoComputing}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:opacity-50 ml-2"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 disabled:opacity-50 ml-2"
                 title="Calcule automatiquement depuis évaluations, OKR et compétences"
               >
                 {autoComputing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
@@ -242,7 +242,7 @@ export default function NineBoxPage() {
             {/* Legend */}
             <div data-tour="ninebox-legend" className="mt-6 grid grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
               <div className="flex items-center gap-2"><div className="w-4 h-4 bg-green-500 rounded"></div><span>Stars / Hauts Potentiels</span></div>
-              <div className="flex items-center gap-2"><div className="w-4 h-4 bg-blue-500 rounded"></div><span>Performants Clés</span></div>
+              <div className="flex items-center gap-2"><div className="w-4 h-4 bg-primary-500 rounded"></div><span>Performants Clés</span></div>
               <div className="flex items-center gap-2"><div className="w-4 h-4 bg-yellow-500 rounded"></div><span>À Développer</span></div>
               <div className="flex items-center gap-2"><div className="w-4 h-4 bg-orange-500 rounded"></div><span>Attention Requise</span></div>
               <div className="flex items-center gap-2"><div className="w-4 h-4 bg-red-500 rounded"></div><span>Action Urgente</span></div>
@@ -268,8 +268,8 @@ export default function NineBoxPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full mx-4">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <Zap className="w-5 h-5 text-indigo-600" />
+              <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <Zap className="w-5 h-5 text-primary-600" />
               </div>
               <div>
                 <p className="font-semibold text-gray-900">Calcul automatique 9-Box</p>
@@ -288,7 +288,7 @@ export default function NineBoxPage() {
               </button>
               <button
                 onClick={doAutoCompute}
-                className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
                 Calculer
               </button>

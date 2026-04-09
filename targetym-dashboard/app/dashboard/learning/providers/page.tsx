@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 // ============================================
 // LEARNING MODULE - Fournisseurs de Formation
@@ -66,7 +66,7 @@ export default function ProvidersPage() {
               {activeProviders.map((provider) => (
                 <div key={provider.id} className="px-6 py-4 flex items-start gap-4">
                   {/* Badge type */}
-                  <div className={`mt-1 px-2.5 py-1 rounded-full text-xs font-medium shrink-0 ${provider.type === 'interne' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                  <div className={`mt-1 px-2.5 py-1 rounded-full text-xs font-medium shrink-0 ${provider.type === 'interne' ? 'bg-primary-100 text-primary-700' : 'bg-purple-100 text-purple-700'}`}>
                     {provider.type === 'interne' ? 'Interne' : 'Externe'}
                   </div>
 

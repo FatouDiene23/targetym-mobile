@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import PageTourTips from '@/components/PageTourTips';
@@ -274,8 +274,8 @@ function buildCareerTimeline(
         subtitle: a.course_title,
         description: `${a.course_duration}h`,
         icon: <GraduationCap className="w-5 h-5" />,
-        color: 'text-indigo-700',
-        bgColor: 'bg-indigo-100',
+        color: 'text-primary-700',
+        bgColor: 'bg-primary-100',
       });
     }
   });
@@ -706,11 +706,11 @@ export default function MyCareerPage() {
             color="bg-primary-50"
           />
           <StatCard
-            icon={<GraduationCap className="w-5 h-5 text-indigo-600" />}
+            icon={<GraduationCap className="w-5 h-5 text-primary-600" />}
             label="Formations"
             value={completedTrainings}
             sublabel={`${totalTrainingHours}h cumulées`}
-            color="bg-indigo-50"
+            color="bg-primary-50"
             href="/dashboard/learning"
           />
           <StatCard
@@ -792,7 +792,7 @@ export default function MyCareerPage() {
               </h3>
               <div className="space-y-2">
                 {[
-                  { label: 'Mes Formations', href: '/dashboard/learning', icon: <GraduationCap className="w-4 h-4" />, color: 'text-indigo-600 bg-indigo-50' },
+                  { label: 'Mes Formations', href: '/dashboard/learning', icon: <GraduationCap className="w-4 h-4" />, color: 'text-primary-600 bg-primary-50' },
                   { label: 'Mes Missions', href: '/dashboard/missions', icon: <Plane className="w-4 h-4" />, color: 'text-sky-600 bg-sky-50' },
                   { label: 'Mes Évaluations', href: '/dashboard/performance/evaluations', icon: <Star className="w-4 h-4" />, color: 'text-amber-600 bg-amber-50' },
                   { label: 'Mes Objectifs', href: '/dashboard/my-space/objectives', icon: <Target className="w-4 h-4" />, color: 'text-primary-600 bg-primary-50' },

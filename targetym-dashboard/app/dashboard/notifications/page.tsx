@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -33,20 +33,20 @@ interface Notification {
 }
 
 const NOTIF_STYLES: Record<string, { icon: typeof Bell; color: string; bg: string; label: string }> = {
-  onboarding_task: { icon: Handshake, color: 'text-blue-600', bg: 'bg-blue-100', label: 'Onboarding' },
+  onboarding_task: { icon: Handshake, color: 'text-primary-600', bg: 'bg-primary-100', label: 'Onboarding' },
   onboarding_complete: { icon: CheckCheck, color: 'text-green-600', bg: 'bg-green-100', label: 'Onboarding terminé' },
   get_to_know_scheduled: { icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-100', label: 'Get to Know' },
   get_to_know_reminder: { icon: Calendar, color: 'text-orange-600', bg: 'bg-orange-100', label: 'Rappel' },
   get_to_know_confirmed: { icon: Calendar, color: 'text-green-600', bg: 'bg-green-100', label: 'Get to Know' },
-  document_uploaded: { icon: FileCheck, color: 'text-indigo-600', bg: 'bg-indigo-100', label: 'Document' },
-  document_shared: { icon: FileCheck, color: 'text-indigo-600', bg: 'bg-indigo-100', label: 'Document' },
+  document_uploaded: { icon: FileCheck, color: 'text-primary-600', bg: 'bg-primary-100', label: 'Document' },
+  document_shared: { icon: FileCheck, color: 'text-primary-600', bg: 'bg-primary-100', label: 'Document' },
   leave_approved: { icon: Check, color: 'text-green-600', bg: 'bg-green-100', label: 'Congé approuvé' },
   leave_rejected: { icon: X, color: 'text-red-600', bg: 'bg-red-100', label: 'Congé refusé' },
-  leave_request: { icon: Plane, color: 'text-blue-600', bg: 'bg-blue-100', label: 'Demande congé' },
-  mission_assigned: { icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-100', label: 'Mission' },
+  leave_request: { icon: Plane, color: 'text-primary-600', bg: 'bg-primary-100', label: 'Demande congé' },
+  mission_assigned: { icon: Briefcase, color: 'text-primary-600', bg: 'bg-primary-100', label: 'Mission' },
   mission_approved: { icon: Check, color: 'text-green-600', bg: 'bg-green-100', label: 'Mission' },
   mission_rejected: { icon: X, color: 'text-red-600', bg: 'bg-red-100', label: 'Mission' },
-  task_assigned: { icon: ClipboardList, color: 'text-blue-600', bg: 'bg-blue-100', label: 'Tâche' },
+  task_assigned: { icon: ClipboardList, color: 'text-primary-600', bg: 'bg-primary-100', label: 'Tâche' },
   evaluation_scheduled: { icon: Calendar, color: 'text-yellow-600', bg: 'bg-yellow-100', label: 'Évaluation' },
   general: { icon: Bell, color: 'text-gray-600', bg: 'bg-gray-100', label: 'Général' },
   system: { icon: Bell, color: 'text-gray-600', bg: 'bg-gray-100', label: 'Système' },
@@ -235,7 +235,7 @@ export default function NotificationsPage() {
                         key={notif.id}
                         onClick={() => handleClick(notif)}
                         className={`w-full flex items-start gap-4 px-4 py-4 text-left transition-colors border-b border-gray-50 last:border-0 group ${
-                          notif.is_read ? 'hover:bg-gray-50' : 'bg-blue-50/30 hover:bg-blue-50/50'
+                          notif.is_read ? 'hover:bg-gray-50' : 'bg-primary-50/30 hover:bg-primary-50/50'
                         }`}
                       >
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${style.bg}`}>
@@ -248,7 +248,7 @@ export default function NotificationsPage() {
                                 {notif.title}
                               </p>
                               {getPriorityBadge(notif.priority)}
-                              {!notif.is_read && <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />}
+                              {!notif.is_read && <span className="w-2 h-2 rounded-full bg-primary-500 flex-shrink-0" />}
                             </div>
                             <div className="flex items-center gap-1 flex-shrink-0">
                               <span className="text-xs text-gray-400">{formatDate(notif.created_at)}</span>

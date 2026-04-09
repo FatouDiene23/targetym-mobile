@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/Header';
@@ -60,7 +60,7 @@ async function apiFetch(url: string, options?: RequestInit) {
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   new:          { label: 'Nouveau',          color: 'bg-red-100 text-red-700 border-red-200',      icon: AlertTriangle },
   acknowledged: { label: 'Pris en compte',   color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: Eye },
-  in_progress:  { label: 'En traitement',    color: 'bg-blue-100 text-blue-700 border-blue-200',   icon: Clock },
+  in_progress:  { label: 'En traitement',    color: 'bg-primary-100 text-primary-700 border-primary-200',   icon: Clock },
   resolved:     { label: 'Résolu',           color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle },
   closed:       { label: 'Fermé',            color: 'bg-gray-100 text-gray-600 border-gray-200',   icon: XCircle },
 };
@@ -225,7 +225,7 @@ export default function SOSAdminPage() {
         {stats && (
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
             <StatCard label="Nouvelles alertes" value={stats.new_alerts} color="text-red-600" bg="bg-red-50" icon={<AlertTriangle className="w-5 h-5 text-red-500" />} />
-            <StatCard label="En traitement" value={stats.in_progress} color="text-blue-600" bg="bg-blue-50" icon={<Clock className="w-5 h-5 text-blue-500" />} />
+            <StatCard label="En traitement" value={stats.in_progress} color="text-primary-600" bg="bg-primary-50" icon={<Clock className="w-5 h-5 text-primary-500" />} />
             <StatCard label="Résolues" value={stats.resolved} color="text-green-600" bg="bg-green-50" icon={<CheckCircle className="w-5 h-5 text-green-500" />} />
             <StatCard label="Fermées" value={stats.closed ?? 0} color="text-gray-600" bg="bg-gray-100" icon={<XCircle className="w-5 h-5 text-gray-500" />} />
             <StatCard label="7 derniers jours" value={stats.last_7_days} color="text-orange-600" bg="bg-orange-50" icon={<BarChart2 className="w-5 h-5 text-orange-500" />} />

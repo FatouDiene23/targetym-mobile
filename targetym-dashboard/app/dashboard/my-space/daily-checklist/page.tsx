@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -21,7 +21,7 @@ import {
 
 const PRIORITY_STYLES: Record<TaskPriority, { bg: string; text: string; label: string }> = {
   low:    { bg: 'bg-gray-100',   text: 'text-gray-600',   label: 'Basse' },
-  medium: { bg: 'bg-blue-100',   text: 'text-blue-600',   label: 'Moyenne' },
+  medium: { bg: 'bg-primary-100',   text: 'text-primary-600',   label: 'Moyenne' },
   high:   { bg: 'bg-orange-100', text: 'text-orange-600', label: 'Haute' },
   urgent: { bg: 'bg-red-100',    text: 'text-red-600',    label: 'Urgente' },
 };
@@ -69,7 +69,7 @@ function isManagerRole(role: string): boolean {
 
 function ProgressBar({ value, total }: { value: number; total: number }) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
-  const color = pct === 100 ? 'bg-green-500' : pct >= 50 ? 'bg-blue-500' : 'bg-orange-400';
+  const color = pct === 100 ? 'bg-green-500' : pct >= 50 ? 'bg-primary-500' : 'bg-orange-400';
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-sm">

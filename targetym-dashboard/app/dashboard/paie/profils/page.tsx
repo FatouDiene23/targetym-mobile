@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { User, Pencil, Plus, Loader2, X, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
@@ -111,7 +111,7 @@ function ProfileModal({
         <form onSubmit={handleSubmit} className="p-5 space-y-5">
           {/* Bannière info préremplissage */}
           {!existing && (employee.salaire_brut || employee.salary || employee.classification || employee.contract_type) && (
-            <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5 text-sm text-blue-700">
+            <div className="flex items-start gap-2 bg-primary-50 border border-blue-100 rounded-lg px-3 py-2.5 text-sm text-primary-700">
               <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-blue-400" />
               <span>Certains champs ont été préremplis depuis la fiche employé. Vérifiez et complétez si nécessaire.</span>
             </div>

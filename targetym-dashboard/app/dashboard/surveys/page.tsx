@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -106,17 +106,17 @@ interface Department {
 const STATUS_COLORS: Record<string, { label: string; color: string }> = {
   brouillon: { label: 'Brouillon', color: 'bg-gray-100 text-gray-700' },
   active: { label: 'Active', color: 'bg-green-100 text-green-700' },
-  cloturee: { label: 'Clôturée', color: 'bg-blue-100 text-blue-700' },
+  cloturee: { label: 'Clôturée', color: 'bg-primary-100 text-primary-700' },
   archivee: { label: 'Archivée', color: 'bg-red-100 text-red-700' },
 };
 
 const TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  pulse: { label: 'Enquête Flash', color: 'bg-blue-100 text-blue-700' },
+  pulse: { label: 'Enquête Flash', color: 'bg-primary-100 text-primary-700' },
   ad_hoc: { label: 'Moments Clés', color: 'bg-orange-100 text-orange-700' },
   moments_cles: { label: 'Moments Clés', color: 'bg-orange-100 text-orange-700' },
   thematique: { label: 'Thématique', color: 'bg-purple-100 text-purple-700' },
   annuelle: { label: 'Enquête Annuelle', color: 'bg-green-100 text-green-700' },
-  feedback_managerial: { label: 'Feedback Managérial', color: 'bg-indigo-100 text-indigo-700' },
+  feedback_managerial: { label: 'Feedback Managérial', color: 'bg-primary-100 text-primary-700' },
 };
 
 const FREQUENCY_LABELS: Record<string, string> = {
@@ -1375,7 +1375,7 @@ export default function SurveysPage() {
                       </div>
                     )}
                   </div>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+                  <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 text-sm text-primary-700">
                     En cliquant &quot;Créer &amp; Activer&quot;, l&apos;enquête sera envoyée aux employés ciblés.
                   </div>
                 </>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -225,8 +225,8 @@ const ROLE_LABELS: Record<string, string> = {
 const LEAVE_COLORS: Record<string, { bg: string; text: string }> = {
   'ANNUAL': { bg: 'bg-green-100', text: 'text-green-700' },
   'annual': { bg: 'bg-green-100', text: 'text-green-700' },
-  'RTT': { bg: 'bg-blue-100', text: 'text-blue-700' },
-  'rtt': { bg: 'bg-blue-100', text: 'text-blue-700' },
+  'RTT': { bg: 'bg-primary-100', text: 'text-primary-700' },
+  'rtt': { bg: 'bg-primary-100', text: 'text-primary-700' },
   'SENIORITY': { bg: 'bg-purple-100', text: 'text-purple-700' },
   'seniority': { bg: 'bg-purple-100', text: 'text-purple-700' },
   'SICK': { bg: 'bg-orange-100', text: 'text-orange-700' },
@@ -235,7 +235,7 @@ const LEAVE_COLORS: Record<string, { bg: string; text: string }> = {
 
 const FEEDBACK_TYPES: Record<string, { label: string; emoji: string; color: string }> = {
   recognition: { label: 'Reconnaissance', emoji: '🌟', color: 'text-yellow-600' },
-  encouragement: { label: 'Encouragement', emoji: '💪', color: 'text-blue-600' },
+  encouragement: { label: 'Encouragement', emoji: '💪', color: 'text-primary-600' },
   constructive: { label: 'Constructif', emoji: '🔧', color: 'text-orange-600' },
   suggestion: { label: 'Suggestion', emoji: '💡', color: 'text-purple-600' },
   gratitude: { label: 'Gratitude', emoji: '🙏', color: 'text-green-600' },
@@ -247,7 +247,7 @@ const SANCTION_TYPES: Record<string, { icon: string; color: string }> = {
   'Mise à pied': { icon: '🚫', color: 'bg-red-100 text-red-800' },
   'Rétrogradation': { icon: '⬇️', color: 'bg-red-100 text-red-800' },
   'Licenciement': { icon: '❌', color: 'bg-red-200 text-red-900' },
-  'Rappel à l\'ordre': { icon: '📝', color: 'bg-blue-100 text-blue-800' },
+  'Rappel à l\'ordre': { icon: '📝', color: 'bg-primary-100 text-primary-800' },
   'Autre': { icon: '📄', color: 'bg-gray-100 text-gray-800' },
 };
 
@@ -298,14 +298,14 @@ function formatDateShort(dateStr: string): string {
 
 function getScoreColor(score: number): string {
   if (score >= 80) return 'text-green-600';
-  if (score >= 60) return 'text-blue-600';
+  if (score >= 60) return 'text-primary-600';
   if (score >= 40) return 'text-yellow-600';
   return 'text-red-600';
 }
 
 function getScoreBg(score: number): string {
   if (score >= 80) return 'bg-green-100';
-  if (score >= 60) return 'bg-blue-100';
+  if (score >= 60) return 'bg-primary-100';
   if (score >= 40) return 'bg-yellow-100';
   return 'bg-red-100';
 }
@@ -324,7 +324,7 @@ function getStatusBadge(status: string) {
   const map: Record<string, { label: string; cls: string }> = {
     completed: { label: 'Terminé', cls: 'bg-green-100 text-green-700' },
     validated: { label: 'Validé', cls: 'bg-green-100 text-green-700' },
-    submitted: { label: 'Soumis', cls: 'bg-blue-100 text-blue-700' },
+    submitted: { label: 'Soumis', cls: 'bg-primary-100 text-primary-700' },
     in_progress: { label: 'En cours', cls: 'bg-yellow-100 text-yellow-700' },
     pending: { label: 'En attente', cls: 'bg-gray-100 text-gray-600' },
     pending_validation: { label: 'Validation', cls: 'bg-orange-100 text-orange-700' },

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useLearning } from './LearningContext';
 import { hasPermission, getLevelColor, getLevelLabel, categories } from './shared';
@@ -43,11 +43,11 @@ export default function CatalogPage() {
             <p className="text-xs text-gray-500 mt-0.5">Taux de complétion</p>
           </div>
           <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
-            <p className="text-2xl font-bold text-blue-600">{stats?.completed_this_month ?? 0}</p>
+            <p className="text-2xl font-bold text-primary-600">{stats?.completed_this_month ?? 0}</p>
             <p className="text-xs text-gray-500 mt-0.5">Complétées ce mois</p>
           </div>
           <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
-            <p className="text-2xl font-bold text-indigo-600">{totalCatalogHours}h</p>
+            <p className="text-2xl font-bold text-primary-600">{totalCatalogHours}h</p>
             <p className="text-xs text-gray-500 mt-0.5">Heures de contenu</p>
           </div>
           <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
@@ -118,7 +118,7 @@ export default function CatalogPage() {
                 {course.skills && course.skills.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-2">
                     {course.skills.slice(0, 3).map((skill) => (
-                      <span key={skill.id} className="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 text-xs rounded">{skill.name}</span>
+                      <span key={skill.id} className="px-1.5 py-0.5 bg-primary-50 text-primary-700 text-xs rounded">{skill.name}</span>
                     ))}
                     {course.skills.length > 3 && <span className="text-xs text-gray-400">+{course.skills.length - 3}</span>}
                   </div>

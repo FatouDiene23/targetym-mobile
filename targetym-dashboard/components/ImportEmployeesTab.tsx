@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useRef, useCallback } from 'react';
 import {
@@ -113,10 +113,10 @@ export default function ImportEmployeesTab({ onImportDone }: { onImportDone?: ()
 
         {/* Guide des colonnes */}
         {showGuide && (
-          <div className="mt-4 border border-blue-100 rounded-lg bg-blue-50 p-4">
+          <div className="mt-4 border border-blue-100 rounded-lg bg-primary-50 p-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-blue-800">Colonnes disponibles</p>
-              <button onClick={() => setShowGuide(false)} className="text-blue-400 hover:text-blue-600">
+              <p className="text-sm font-medium text-primary-800">Colonnes disponibles</p>
+              <button onClick={() => setShowGuide(false)} className="text-blue-400 hover:text-primary-600">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -126,11 +126,11 @@ export default function ImportEmployeesTab({ onImportDone }: { onImportDone?: ()
                   <span className={`mt-0.5 px-1.5 py-0.5 rounded font-mono font-medium flex-shrink-0 ${required ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
                     {col}
                   </span>
-                  <span className="text-blue-700">{desc}{required && <span className="text-red-500 ml-1">*</span>}</span>
+                  <span className="text-primary-700">{desc}{required && <span className="text-red-500 ml-1">*</span>}</span>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-blue-600 mt-3">* Champs obligatoires</p>
+            <p className="text-xs text-primary-600 mt-3">* Champs obligatoires</p>
           </div>
         )}
       </div>

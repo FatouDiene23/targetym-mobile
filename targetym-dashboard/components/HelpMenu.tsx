@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import { RotateCcw, Lightbulb, HelpCircle, X } from 'lucide-react';
@@ -62,10 +62,10 @@ export default function HelpMenu() {
             {showTourOption && (
               <button
                 onClick={handleTourClick}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-50 transition-colors text-left group"
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary-50 transition-colors text-left group"
               >
-                <div className="bg-blue-100 p-2 rounded-lg group-hover:bg-blue-200 transition-colors">
-                  <RotateCcw className="w-5 h-5 text-blue-600" />
+                <div className="bg-primary-100 p-2 rounded-lg group-hover:bg-blue-200 transition-colors">
+                  <RotateCcw className="w-5 h-5 text-primary-600" />
                 </div>
                 <div className="flex-1">
                   <div className="font-medium text-gray-900">Guide de l'application</div>

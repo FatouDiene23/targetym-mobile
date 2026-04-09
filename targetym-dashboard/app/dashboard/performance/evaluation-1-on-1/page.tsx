@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -160,9 +160,9 @@ const DEFAULT_CRITERIA: EvaluationCriterion[] = [
 
 const RECOMMENDATIONS = [
   { value: 'Promotion recommandée', colorClass: 'bg-green-50 border-green-300 text-green-700', activeClass: 'bg-green-500 text-white border-green-500' },
-  { value: 'Maintien au poste', colorClass: 'bg-blue-50 border-blue-300 text-blue-700', activeClass: 'bg-blue-500 text-white border-blue-500' },
+  { value: 'Maintien au poste', colorClass: 'bg-primary-50 border-primary-300 text-primary-700', activeClass: 'bg-primary-500 text-white border-primary-500' },
   { value: 'Amélioration requise', colorClass: 'bg-yellow-50 border-yellow-300 text-yellow-700', activeClass: 'bg-yellow-500 text-white border-yellow-500' },
-  { value: 'Excellence – Fast Track', colorClass: 'bg-indigo-50 border-indigo-300 text-indigo-700', activeClass: 'bg-indigo-500 text-white border-indigo-500' },
+  { value: 'Excellence – Fast Track', colorClass: 'bg-primary-50 border-primary-300 text-primary-700', activeClass: 'bg-primary-500 text-white border-primary-500' },
 ];
 
 // =============================================
@@ -216,7 +216,7 @@ function Pagination({ currentPage, totalPages, onPageChange }: {
           key={p}
           onClick={() => onPageChange(p)}
           className={`w-8 h-8 rounded-lg text-sm font-medium ${
-            currentPage === p ? 'bg-indigo-600 text-white' : 'hover:bg-gray-100 text-gray-600'
+            currentPage === p ? 'bg-primary-600 text-white' : 'hover:bg-gray-100 text-gray-600'
           }`}
         >
           {p}
@@ -356,8 +356,8 @@ function EvaluationReportModal({ session, onClose, onSuccess }: {
         {/* Header */}
         <div className="p-5 border-b flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-indigo-100 rounded-full flex items-center justify-center">
-              <ClipboardCheck className="w-5 h-5 text-indigo-600" />
+            <div className="w-9 h-9 bg-primary-100 rounded-full flex items-center justify-center">
+              <ClipboardCheck className="w-5 h-5 text-primary-600" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-900">Rapport d&apos;évaluation</h2>
@@ -406,7 +406,7 @@ function EvaluationReportModal({ session, onClose, onSuccess }: {
           {/* Comments */}
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-              <Award className="w-4 h-4 text-blue-500" />
+              <Award className="w-4 h-4 text-primary-500" />
               Commentaires généraux
             </h3>
             <textarea
@@ -466,7 +466,7 @@ function EvaluationReportModal({ session, onClose, onSuccess }: {
               <button
                 type="button"
                 onClick={addTask}
-                className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700 font-medium"
+                className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 font-medium"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Ajouter
@@ -531,7 +531,7 @@ function EvaluationReportModal({ session, onClose, onSuccess }: {
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg flex items-center gap-2 hover:bg-indigo-700 disabled:opacity-50"
+            className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg flex items-center gap-2 hover:bg-primary-700 disabled:opacity-50"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardCheck className="w-4 h-4" />}
             Enregistrer le rapport
@@ -608,7 +608,7 @@ export default function Evaluation1on1Page() {
                 if (pending) setEvaluating(pending);
                 else toast('Aucune session en attente d\u2019évaluation', { icon: '\u2139\ufe0f' });
               }}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+              className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
             >
               <Plus className="w-4 h-4" />
               Nouvelle évaluation
@@ -618,7 +618,7 @@ export default function Evaluation1on1Page() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          <div className="bg-blue-50 text-blue-700 rounded-xl p-4 flex items-center gap-3">
+          <div className="bg-primary-50 text-primary-700 rounded-xl p-4 flex items-center gap-3">
             <CheckCircle2 className="w-6 h-6 shrink-0" />
             <div>
               <p className="text-2xl font-bold">{stats.total}</p>
@@ -685,7 +685,7 @@ export default function Evaluation1on1Page() {
               {paginated.map(session => (
                 <div key={session.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors">
                   {/* Avatar */}
-                  <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-sm shrink-0">
                     {getInitials(session.employee_name)}
                   </div>
 
@@ -730,7 +730,7 @@ export default function Evaluation1on1Page() {
                   ) : (
                     <button
                       onClick={() => setEvaluating(session)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 transition-colors shrink-0"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white text-xs font-medium rounded-lg hover:bg-primary-700 transition-colors shrink-0"
                     >
                       <ClipboardCheck className="w-3.5 h-3.5" />
                       Évaluer

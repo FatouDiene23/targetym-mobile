@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/Header';
@@ -51,7 +51,7 @@ const SANCTION_TYPES: Record<string, { icon: string; color: string }> = {
   'Mise \u00e0 pied':       { icon: '\ud83d\udeab', color: 'bg-red-100 text-red-800 border-red-200' },
   'R\u00e9trogradation':    { icon: '\u2b07\ufe0f', color: 'bg-red-100 text-red-800 border-red-200' },
   'Licenciement':     { icon: '\u274c', color: 'bg-red-200 text-red-900 border-red-300' },
-  'Rappel \u00e0 l\'ordre': { icon: '\ud83d\udcdd', color: 'bg-blue-100 text-blue-800 border-blue-200' },
+  'Rappel \u00e0 l\'ordre': { icon: '\ud83d\udcdd', color: 'bg-primary-100 text-primary-800 border-primary-200' },
   'Autre':            { icon: '\ud83d\udcc4', color: 'bg-gray-100 text-gray-800 border-gray-200' },
 };
 
@@ -107,18 +107,18 @@ function PolicyBanner({ policyInfo, onDownload, isDownloading }: {
 }) {
   if (!policyInfo?.exists) return null;
   return (
-    <div className="mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between gap-4">
+    <div className="mb-4 p-4 bg-primary-50 border border-primary-200 rounded-xl flex items-center justify-between gap-4">
       <div className="flex items-center gap-3">
-        <FileCheck className="w-5 h-5 text-indigo-600 flex-shrink-0" />
+        <FileCheck className="w-5 h-5 text-primary-600 flex-shrink-0" />
         <div>
-          <p className="text-sm font-medium text-indigo-900">Politique des sanctions</p>
-          <p className="text-xs text-indigo-600 mt-0.5">{policyInfo.file_name}</p>
+          <p className="text-sm font-medium text-primary-900">Politique des sanctions</p>
+          <p className="text-xs text-primary-600 mt-0.5">{policyInfo.file_name}</p>
         </div>
       </div>
       <button
         onClick={onDownload}
         disabled={isDownloading}
-        className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 shrink-0"
+        className="flex items-center gap-2 px-3 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 shrink-0"
       >
         {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
         <span className="whitespace-nowrap">Télécharger</span>
@@ -231,11 +231,11 @@ export default function MySanctionsPage() {
       <Header title="Mes Sanctions" />
       <main className="p-6 max-w-4xl mx-auto">
         {/* Info banner */}
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800 flex items-start gap-3">
+        <div className="mb-6 p-4 bg-primary-50 border border-primary-200 rounded-xl text-sm text-primary-800 flex items-start gap-3">
           <Shield className="w-5 h-5 mt-0.5 flex-shrink-0" />
           <div>
             <p className="font-medium">Dossier disciplinaire</p>
-            <p className="mt-1 text-blue-600">
+            <p className="mt-1 text-primary-600">
               Cette page affiche l&apos;historique de vos sanctions disciplinaires.
               Si vous souhaitez contester une sanction, veuillez contacter le service RH.
             </p>

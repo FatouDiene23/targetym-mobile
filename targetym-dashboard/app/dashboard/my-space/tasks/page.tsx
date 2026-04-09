@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -25,7 +25,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 // Couleurs par priorité
 const PRIORITY_COLORS: Record<TaskPriority, { bg: string; text: string; label: string }> = {
   low: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Basse' },
-  medium: { bg: 'bg-blue-100', text: 'text-blue-600', label: 'Moyenne' },
+  medium: { bg: 'bg-primary-100', text: 'text-primary-600', label: 'Moyenne' },
   high: { bg: 'bg-orange-100', text: 'text-orange-600', label: 'Haute' },
   urgent: { bg: 'bg-red-100', text: 'text-red-600', label: 'Urgente' },
 };
@@ -106,8 +106,8 @@ function groupByPeriod(tasks: Task[]): { label: string; tasks: Task[]; color: st
     let label: string;
     let color: string;
     let order: number;
-    if (diff === 1) { label = 'Demain'; color = 'text-blue-600'; order = 1; }
-    else if (diff <= 7) { label = 'Cette semaine'; color = 'text-indigo-600'; order = 2; }
+    if (diff === 1) { label = 'Demain'; color = 'text-primary-600'; order = 1; }
+    else if (diff <= 7) { label = 'Cette semaine'; color = 'text-primary-600'; order = 2; }
     else if (diff <= 14) { label = 'Semaine prochaine'; color = 'text-purple-600'; order = 3; }
     else if (diff <= 30) { label = 'Ce mois'; color = 'text-gray-600'; order = 4; }
     else { label = 'Plus tard'; color = 'text-gray-400'; order = 5; }
@@ -239,7 +239,7 @@ function TaskCard({
             </span>
 
             {isInProgress && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-600">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-600">
                 <Play className="w-3 h-3" />
                 En cours
               </span>
@@ -253,7 +253,7 @@ function TaskCard({
             )}
 
             {task.objective_title && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700">
                 <Target className="w-3 h-3" />
                 {task.objective_title}
               </span>
@@ -565,7 +565,7 @@ function CreateTaskModal({
 
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <Target className="w-4 h-4 text-indigo-600" />
+                  <Target className="w-4 h-4 text-primary-600" />
                   Liaison Objectif
                 </h3>
 
@@ -579,7 +579,7 @@ function CreateTaskModal({
                       objective_id: e.target.checked ? '' : formData.objective_id,
                       key_result_id: e.target.checked ? '' : formData.key_result_id,
                     })}
-                    className="mt-0.5 w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    className="mt-0.5 w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                   />
                   <div>
                     <span className="text-sm font-medium text-gray-900 flex items-center gap-2">
@@ -596,8 +596,8 @@ function CreateTaskModal({
                   <div className="space-y-3">
                     {loadingObjectives ? (
                       <div className="flex items-center justify-center py-4">
-                        <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
-                        <span className="ml-2 text-sm text-indigo-600">Chargement des objectifs...</span>
+                        <Loader2 className="w-5 h-5 animate-spin text-primary-600" />
+                        <span className="ml-2 text-sm text-primary-600">Chargement des objectifs...</span>
                       </div>
                     ) : objectives.length === 0 ? (
                       <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -616,7 +616,7 @@ function CreateTaskModal({
                           <select
                             value={formData.objective_id}
                             onChange={(e) => setFormData({ ...formData, objective_id: e.target.value })}
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm ${
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm ${
                               !formData.objective_id && !formData.is_administrative 
                                 ? 'border-red-300 bg-red-50' 
                                 : 'border-gray-300'
@@ -642,7 +642,7 @@ function CreateTaskModal({
                             <select
                               value={formData.key_result_id}
                               onChange={(e) => setFormData({ ...formData, key_result_id: e.target.value })}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
                             >
                               <option value="">-- Tous les KRs --</option>
                               {availableKeyResults.map((kr) => (
@@ -655,7 +655,7 @@ function CreateTaskModal({
                         )}
 
                         {formData.objective_id && (
-                          <p className="text-xs text-indigo-600 flex items-center gap-1 bg-indigo-50 p-2 rounded">
+                          <p className="text-xs text-primary-600 flex items-center gap-1 bg-primary-50 p-2 rounded">
                             <CheckCircle2 className="w-3 h-3" />
                             Cette tâche contribuera à l&apos;objectif sélectionné
                           </p>
@@ -1159,7 +1159,7 @@ function MyTasksTab({
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <p className="text-sm text-gray-500">Aujourd&apos;hui</p>
-            <p className="text-2xl font-bold text-blue-600">{stats.due_today}</p>
+            <p className="text-2xl font-bold text-primary-600">{stats.due_today}</p>
           </div>
         </div>
       )}
@@ -1469,7 +1469,7 @@ function TeamTasksTab({
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <p className="text-sm text-gray-500">En cours</p>
-          <p className="text-2xl font-bold text-blue-600">{tasksByStatus.in_progress}</p>
+          <p className="text-2xl font-bold text-primary-600">{tasksByStatus.in_progress}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <p className="text-sm text-gray-500">Terminées</p>
@@ -2061,14 +2061,14 @@ function StatsTab({
                   suggestion.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
                   suggestion.type === 'warning' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
                   suggestion.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' :
-                  'bg-blue-50 border-blue-200 text-blue-800'
+                  'bg-primary-50 border-primary-200 text-primary-800'
                 }`}
               >
                 <div className={`flex-shrink-0 ${
                   suggestion.type === 'success' ? 'text-green-600' :
                   suggestion.type === 'warning' ? 'text-yellow-600' :
                   suggestion.type === 'error' ? 'text-red-600' :
-                  'text-blue-600'
+                  'text-primary-600'
                 }`}>
                   {suggestion.icon}
                 </div>

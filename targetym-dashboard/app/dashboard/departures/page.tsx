@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/Header';
@@ -124,7 +124,7 @@ interface Employee {
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 const DEPARTURE_TYPES: Record<string, { label: string; color: string }> = {
-  resignation: { label: 'Démission', color: 'bg-blue-100 text-blue-800' },
+  resignation: { label: 'Démission', color: 'bg-primary-100 text-primary-800' },
   termination: { label: 'Licenciement', color: 'bg-red-100 text-red-800' },
   mutual_agreement: { label: 'Rupture conventionnelle', color: 'bg-purple-100 text-purple-800' },
   retirement: { label: 'Retraite', color: 'bg-amber-100 text-amber-800' },
@@ -138,13 +138,13 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof
   pending_rh: { label: 'Attente RH', color: 'bg-orange-100 text-orange-800', icon: Clock },
   pending_direction: { label: 'Attente Direction', color: 'bg-red-100 text-red-800', icon: Clock },
   validated: { label: 'Validé', color: 'bg-green-100 text-green-800', icon: CheckCircle },
-  in_progress: { label: 'En cours', color: 'bg-blue-100 text-blue-800', icon: ClipboardCheck },
+  in_progress: { label: 'En cours', color: 'bg-primary-100 text-primary-800', icon: ClipboardCheck },
   completed: { label: 'Clôturé', color: 'bg-emerald-100 text-emerald-800', icon: CheckCircle },
   cancelled: { label: 'Annulé', color: 'bg-gray-100 text-gray-500', icon: XCircle },
 };
 
 const CHECKLIST_CATEGORIES: Record<string, { label: string; color: string }> = {
-  equipment: { label: 'Matériel', color: 'text-blue-600' },
+  equipment: { label: 'Matériel', color: 'text-primary-600' },
   access: { label: 'Accès', color: 'text-red-600' },
   documents: { label: 'Documents', color: 'text-amber-600' },
   knowledge: { label: 'Connaissances', color: 'text-purple-600' },

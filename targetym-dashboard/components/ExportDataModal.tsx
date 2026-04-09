@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
@@ -137,7 +137,7 @@ function escapeHtml(str: string): string {
 // DATA TYPE / FORMAT CONFIG
 // ============================================
 const DATA_TYPES = [
-  { key: 'employees' as DataType, label: 'Employés', sublabel: 'Annuaire complet', icon: Users, color: 'bg-blue-500' },
+  { key: 'employees' as DataType, label: 'Employés', sublabel: 'Annuaire complet', icon: Users, color: 'bg-primary-500' },
   { key: 'leaves' as DataType, label: 'Congés', sublabel: 'Demandes & absences', icon: Palmtree, color: 'bg-green-500' },
   { key: 'departments' as DataType, label: 'Organisation', sublabel: 'Départements & unités', icon: Building2, color: 'bg-purple-500' },
   { key: 'tasks' as DataType, label: 'Tâches', sublabel: 'Suivi des activités', icon: ClipboardList, color: 'bg-amber-500' },

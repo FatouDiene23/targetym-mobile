@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -163,7 +163,7 @@ function RecruitmentTab({ data }: { data: GroupRecruitmentView }) {
     <div className="space-y-6">
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <KpiCard label="Postes ouverts" value={data.total_open_jobs} icon={Briefcase} color="bg-indigo-100 text-indigo-600" />
+        <KpiCard label="Postes ouverts" value={data.total_open_jobs} icon={Briefcase} color="bg-primary-100 text-primary-600" />
         <KpiCard label="Candidatures" value={data.total_applications} icon={UserPlus} color="bg-teal-100 text-teal-600" />
         <KpiCard label="Recrutements finalisés" value={data.total_hired} icon={UserCheck} color="bg-green-100 text-green-600" />
         <KpiCard label="Taux de conversion" value={`${data.overall_conversion_rate}%`} icon={BarChart3} color="bg-amber-100 text-amber-600" />
@@ -259,7 +259,7 @@ function PersonnelTab({ data, onSelectEmployee }: { data: GroupPersonnelView; on
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <KpiCard label="Collaborateurs actifs" value={data.total_active_employees} sub={`/ ${data.total_employees} au total`} icon={Users} color="bg-teal-100 text-teal-600" />
-        <KpiCard label="Total effectifs" value={data.total_employees} icon={Building2} color="bg-indigo-100 text-indigo-600" />
+        <KpiCard label="Total effectifs" value={data.total_employees} icon={Building2} color="bg-primary-100 text-primary-600" />
         <KpiCard label="Congés en attente" value={data.total_pending_leaves} icon={Clock} color="bg-amber-100 text-amber-600" />
       </div>
 
@@ -325,7 +325,7 @@ function MobilityTab({ data }: { data: GroupMobilityView; onInitiateTransfer: ()
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <KpiCard label="Transferts en cours" value={data.pending_transfers} icon={Clock} color="bg-amber-100 text-amber-600" />
         <KpiCard label="Transferts réalisés" value={data.completed_transfers} icon={CheckCircle2} color="bg-green-100 text-green-600" />
-        <KpiCard label="Total transferts" value={data.total_transfers} icon={ArrowLeftRight} color="bg-indigo-100 text-indigo-600" />
+        <KpiCard label="Total transferts" value={data.total_transfers} icon={ArrowLeftRight} color="bg-primary-100 text-primary-600" />
       </div>
 
       {/* Historique */}

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -84,17 +84,17 @@ interface SimpleEmployee {
 
 const STAGES: { key: string; label: string; color: string; icon: LucideIcon; bg: string; iconColor: string; dotColor: string }[] = [
   { key: 'convocation_it', label: 'Convocation IT', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: FileText, bg: 'bg-orange-50', iconColor: 'text-orange-500', dotColor: 'bg-orange-500' },
-  { key: 'entretien_it', label: 'Entretien IT', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: Users, bg: 'bg-blue-50', iconColor: 'text-blue-500', dotColor: 'bg-blue-500' },
+  { key: 'entretien_it', label: 'Entretien IT', color: 'bg-primary-100 text-primary-700 border-primary-200', icon: Users, bg: 'bg-primary-50', iconColor: 'text-primary-500', dotColor: 'bg-primary-500' },
   { key: 'conciliation', label: 'Conciliation', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: Handshake, bg: 'bg-purple-50', iconColor: 'text-purple-500', dotColor: 'bg-purple-500' },
   { key: 'accord_amiable', label: 'Accord amiable', color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle, bg: 'bg-green-50', iconColor: 'text-green-500', dotColor: 'bg-green-500' },
   { key: 'contentieux', label: 'Contentieux', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertTriangle, bg: 'bg-red-50', iconColor: 'text-red-500', dotColor: 'bg-red-500' },
-  { key: 'audience', label: 'Audience', color: 'bg-indigo-100 text-indigo-700 border-indigo-200', icon: Calendar, bg: 'bg-indigo-50', iconColor: 'text-indigo-500', dotColor: 'bg-indigo-500' },
+  { key: 'audience', label: 'Audience', color: 'bg-primary-100 text-primary-700 border-primary-200', icon: Calendar, bg: 'bg-primary-50', iconColor: 'text-primary-500', dotColor: 'bg-primary-500' },
   { key: 'jugement', label: 'Jugement', color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: BookOpen, bg: 'bg-yellow-50', iconColor: 'text-yellow-500', dotColor: 'bg-yellow-500' },
   { key: 'cloture', label: 'Cloture', color: 'bg-gray-100 text-gray-700 border-gray-200', icon: Archive, bg: 'bg-gray-50', iconColor: 'text-gray-500', dotColor: 'bg-gray-400' },
 ];
 
 const STATUSES: Record<string, { label: string; color: string }> = {
-  ouvert: { label: 'Ouvert', color: 'bg-blue-100 text-blue-700' },
+  ouvert: { label: 'Ouvert', color: 'bg-primary-100 text-primary-700' },
   en_cours: { label: 'En cours', color: 'bg-orange-100 text-orange-700' },
   suspendu: { label: 'Suspendu', color: 'bg-yellow-100 text-yellow-700' },
   clos_accord: { label: 'Clos (accord)', color: 'bg-green-100 text-green-700' },

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -170,11 +170,11 @@ export default function ChatMessageContent({ content, isUser }: Readonly<ChatMes
             ),
           // Liens
           a: (props) => (
-            <a className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer" {...props} />
+            <a className="text-primary-600 hover:underline" target="_blank" rel="noopener noreferrer" {...props} />
           ),
           // Blocs de citation
           blockquote: (props) => (
-            <blockquote className="border-l-4 border-blue-500 pl-4 my-2 italic text-gray-700" {...props} />
+            <blockquote className="border-l-4 border-primary-500 pl-4 my-2 italic text-gray-700" {...props} />
           ),
           // Strong/Bold
           strong: (props) => (

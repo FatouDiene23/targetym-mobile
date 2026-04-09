@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { Building2, ChevronDown, Layers, GitBranch } from 'lucide-react';
@@ -49,18 +49,18 @@ export default function GroupContextSwitcher() {
               <button
                 onClick={() => { selectTenant(null); setOpen(false); }}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 transition-colors border-b border-gray-100 ${
-                  !isGlobalDashboardMode && selectedTenantId === null ? 'bg-blue-50' : ''
+                  !isGlobalDashboardMode && selectedTenantId === null ? 'bg-primary-50' : ''
                 }`}
               >
-                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                  <Building2 className="w-4 h-4 text-blue-600" />
+                <div className="w-8 h-8 rounded-lg bg-primary-100 flex items-center justify-center flex-shrink-0">
+                  <Building2 className="w-4 h-4 text-primary-600" />
                 </div>
                 <div className="text-left min-w-0">
                   <p className="font-semibold text-gray-900">{context.tenant_name}</p>
                   <p className="text-xs text-gray-500">Vue du groupe — données du tenant courant</p>
                 </div>
                 {!isGlobalDashboardMode && selectedTenantId === null && (
-                  <div className="ml-auto w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                  <div className="ml-auto w-2 h-2 rounded-full bg-primary-500 flex-shrink-0" />
                 )}
               </button>
 
@@ -95,14 +95,14 @@ export default function GroupContextSwitcher() {
                       key={sub.id}
                       onClick={() => { selectTenant(sub.id); setOpen(false); }}
                       className={`w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0 ${
-                        selectedTenantId === sub.id ? 'bg-indigo-50' : ''
+                        selectedTenantId === sub.id ? 'bg-primary-50' : ''
                       }`}
                     >
-                      <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-primary-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                         {sub.logo_url ? (
                           <img src={sub.logo_url} alt={sub.name} className="w-full h-full object-cover" />
                         ) : (
-                          <Building2 className="w-4 h-4 text-indigo-600" />
+                          <Building2 className="w-4 h-4 text-primary-600" />
                         )}
                       </div>
                       <div className="text-left min-w-0">
@@ -112,7 +112,7 @@ export default function GroupContextSwitcher() {
                         </p>
                       </div>
                       {selectedTenantId === sub.id && (
-                        <div className="ml-auto w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0" />
+                        <div className="ml-auto w-2 h-2 rounded-full bg-primary-500 flex-shrink-0" />
                       )}
                     </button>
                   ))

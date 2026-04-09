@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import {
@@ -247,7 +247,7 @@ export default function DepartmentManagementTab() {
       dg: { bg: 'bg-red-100', text: 'text-red-700', label: 'DG' },
       dga: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'DGA' },
       direction_centrale: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Dir. Centrale' },
-      direction: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Direction' },
+      direction: { bg: 'bg-primary-100', text: 'text-primary-700', label: 'Direction' },
       departement: { bg: 'bg-teal-100', text: 'text-teal-700', label: 'Département' },
       service: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Service' },
     };
@@ -310,7 +310,7 @@ export default function DepartmentManagementTab() {
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={() => handleEdit(node)}
-              className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md"
+              className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-md"
               title="Modifier"
             >
               <Edit2 className="w-3.5 h-3.5" />
@@ -375,7 +375,7 @@ export default function DepartmentManagementTab() {
         </td>
         <td className="px-4 py-3">
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button onClick={() => handleEdit(dept)} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md"><Edit2 className="w-3.5 h-3.5" /></button>
+            <button onClick={() => handleEdit(dept)} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-md"><Edit2 className="w-3.5 h-3.5" /></button>
             <button onClick={() => setShowDeleteConfirm(dept)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md"><Trash2 className="w-3.5 h-3.5" /></button>
           </div>
         </td>
@@ -454,7 +454,7 @@ export default function DepartmentManagementTab() {
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
           <p className="text-xs text-gray-500 mb-1">Employés affectés</p>
-          <p className="text-2xl font-bold text-blue-600">{employees.filter(e => e.department_id).length}/{employees.length}</p>
+          <p className="text-2xl font-bold text-primary-600">{employees.filter(e => e.department_id).length}/{employees.length}</p>
         </div>
         <div className={`rounded-xl p-4 border shadow-sm ${departments.filter(d => !d.head_id).length > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-100'}`}>
           <p className="text-xs text-gray-500 mb-1">Postes ouverts</p>

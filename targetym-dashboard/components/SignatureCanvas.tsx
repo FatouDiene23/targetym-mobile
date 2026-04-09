@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
 
@@ -138,7 +138,7 @@ export default function SignatureCanvas({ onConfirm, onCancel }: SignatureCanvas
             type="button"
             onClick={handleConfirm}
             disabled={isEmpty}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
             Confirmer la signature
           </button>

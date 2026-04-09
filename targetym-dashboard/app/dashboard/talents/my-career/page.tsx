@@ -1,4 +1,4 @@
-// ============================================
+﻿// ============================================
 // app/dashboard/talents/my-career/page.tsx
 // Vue employé — Ma Carrière
 // ============================================
@@ -112,7 +112,7 @@ export default function MyCareerPage() {
     if (!career.next_level_id) return null;
     if (totalCount === 0) return null;
     const remaining = totalCount - validatedCount;
-    if (remaining === 0) return { label: 'En attente de validation RH', color: 'text-blue-600', urgent: false };
+    if (remaining === 0) return { label: 'En attente de validation RH', color: 'text-primary-600', urgent: false };
     if (validatedCount === 0 || !career.level_start_date) {
       // Pas assez de données : estimation forfaitaire ~2 mois / compétence
       const est = remaining * 2;
@@ -125,7 +125,7 @@ export default function MyCareerPage() {
     const rate = validatedCount / monthsOnLevel; // compétences/mois
     const monthsLeft = Math.ceil(remaining / rate);
     if (monthsLeft <= 1) return { label: 'Moins d\'1 mois à ce rythme', color: 'text-green-600', urgent: true };
-    if (monthsLeft <= 3) return { label: `Environ ${monthsLeft} mois à ce rythme`, color: 'text-blue-600', urgent: false };
+    if (monthsLeft <= 3) return { label: `Environ ${monthsLeft} mois à ce rythme`, color: 'text-primary-600', urgent: false };
     return { label: `Environ ${monthsLeft} mois à ce rythme`, color: 'text-orange-500', urgent: false };
   })();
 
@@ -148,7 +148,7 @@ export default function MyCareerPage() {
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all
                       ${isCurrent ? 'bg-primary-500 text-white ring-4 ring-primary-100 scale-110' :
                         isPast ? 'bg-green-500 text-white' :
-                        isNext ? 'bg-blue-50 text-blue-500 border-2 border-blue-300' :
+                        isNext ? 'bg-primary-50 text-primary-500 border-2 border-primary-300' :
                         'bg-gray-100 text-gray-400'}`}>
                       {isPast ? '✓' : level.level_order}
                     </div>
@@ -157,7 +157,7 @@ export default function MyCareerPage() {
                       {level.title}
                     </p>
                     {isCurrent && <span className="mt-1 text-[10px] bg-primary-100 text-primary-600 px-1.5 py-0.5 rounded-full font-medium">Actuel</span>}
-                    {isNext && <span className="mt-1 text-[10px] bg-blue-50 text-blue-500 px-1.5 py-0.5 rounded-full">Suivant</span>}
+                    {isNext && <span className="mt-1 text-[10px] bg-primary-50 text-primary-500 px-1.5 py-0.5 rounded-full">Suivant</span>}
                   </div>
                   {i < career.all_levels.length - 1 && (
                     <div className={`flex-1 h-0.5 mx-2 mt-[-20px] ${isPast ? 'bg-green-400' : 'bg-gray-200'}`} />
@@ -258,7 +258,7 @@ export default function MyCareerPage() {
         {career.next_level_title && pendingCompetencies.length > 0 && (
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
             <div className="flex items-center gap-2 mb-4">
-              <ListChecks className="w-5 h-5 text-blue-500" />
+              <ListChecks className="w-5 h-5 text-primary-500" />
               <h3 className="font-semibold text-gray-900">Pour atteindre "{career.next_level_title}"</h3>
               <span className="ml-auto text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                 {pendingCompetencies.length} compétence(s) restante(s)
@@ -268,21 +268,21 @@ export default function MyCareerPage() {
             <div className="space-y-3">
               {/* Formations à compléter */}
               {pendingTrainings.length > 0 && (
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                <div className="bg-primary-50 border border-blue-100 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-3">
-                    <GraduationCap className="w-4 h-4 text-blue-500" />
-                    <p className="text-sm font-medium text-blue-800">Formations à compléter</p>
+                    <GraduationCap className="w-4 h-4 text-primary-500" />
+                    <p className="text-sm font-medium text-primary-800">Formations à compléter</p>
                   </div>
                   <div className="space-y-2">
                     {pendingTrainings.map((item, i) => (
                       <div key={i}>
-                        <p className="text-xs text-blue-600 font-medium mb-1">{item.compName}</p>
+                        <p className="text-xs text-primary-600 font-medium mb-1">{item.compName}</p>
                         <div className="flex flex-wrap gap-1.5 ml-2">
                           {item.trainings.map((t: any) => (
                             <a
                               key={t.id}
                               href={`/dashboard/learning?courseId=${t.id}`}
-                              className="text-xs bg-white text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full hover:bg-blue-50 flex items-center gap-1 transition-colors"
+                              className="text-xs bg-white text-primary-700 border border-primary-200 px-2.5 py-1 rounded-full hover:bg-primary-50 flex items-center gap-1 transition-colors"
                             >
                               {t.title}
                               <ExternalLink className="w-3 h-3 opacity-60" />
@@ -455,7 +455,7 @@ export default function MyCareerPage() {
                               <a
                                 key={t.id}
                                 href={`/dashboard/learning?courseId=${t.id}`}
-                                className="text-xs bg-blue-50 text-blue-600 border border-blue-200 px-2.5 py-1 rounded-full hover:bg-blue-100 flex items-center gap-1 font-medium transition-colors"
+                                className="text-xs bg-primary-50 text-primary-600 border border-primary-200 px-2.5 py-1 rounded-full hover:bg-primary-100 flex items-center gap-1 font-medium transition-colors"
                               >
                                 <GraduationCap className="w-3 h-3" />
                                 {t.title} — S'inscrire

@@ -1,4 +1,4 @@
-// ============================================
+﻿// ============================================
 // app/dashboard/talents/shared.ts
 // Types, helpers, constants partagés
 // ============================================
@@ -236,7 +236,7 @@ export const QUADRANT_LABELS: Record<number, { title: string; action: string; co
   9: { title: 'Stars', action: 'Promouvoir / Responsabiliser', color: 'bg-green-500' },
   8: { title: 'Hauts Potentiels', action: 'Développer rapidement', color: 'bg-green-400' },
   7: { title: 'Diamants Bruts', action: 'Coaching intensif', color: 'bg-blue-400' },
-  6: { title: 'Experts Fiables', action: 'Valoriser expertise', color: 'bg-blue-500' },
+  6: { title: 'Experts Fiables', action: 'Valoriser expertise', color: 'bg-primary-500' },
   5: { title: 'Performants Clés', action: 'Fidéliser / Développer', color: 'bg-yellow-500' },
   4: { title: 'Potentiel Émergent', action: 'Plan de développement', color: 'bg-yellow-400' },
   3: { title: 'Contributeurs Solides', action: 'Maintenir motivation', color: 'bg-orange-400' },
@@ -249,7 +249,7 @@ export const POTENTIAL_LABELS = ['', 'Limité', 'Stable', 'Prometteur', 'Élevé
 
 export const ELIGIBILITY_LABELS: Record<string, { label: string; color: string }> = {
   'not_eligible': { label: 'Non éligible', color: 'text-gray-600 bg-gray-100' },
-  'in_progress': { label: 'En progression', color: 'text-blue-600 bg-blue-100' },
+  'in_progress': { label: 'En progression', color: 'text-primary-600 bg-primary-100' },
   'eligible': { label: 'Éligible', color: 'text-green-600 bg-green-100' },
   'promoted': { label: 'Promu', color: 'text-purple-600 bg-purple-100' },
 };
@@ -268,7 +268,7 @@ export const RISK_LABELS: Record<string, { label: string; color: string }> = {
 
 export const READINESS_LABELS: Record<string, { label: string; color: string }> = {
   'ready': { label: 'Prêt maintenant', color: 'text-green-600 bg-green-100' },
-  '1-2 years': { label: 'Dans 1-2 ans', color: 'text-blue-600 bg-blue-100' },
+  '1-2 years': { label: 'Dans 1-2 ans', color: 'text-primary-600 bg-primary-100' },
   '3+ years': { label: 'Dans 3+ ans', color: 'text-gray-600 bg-gray-100' },
 };
 

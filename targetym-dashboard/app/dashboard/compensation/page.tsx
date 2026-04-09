@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/Header';
@@ -156,7 +156,7 @@ const conformityBadge = (status: string) => {
 const simStatusBadge = (status: string) => {
   const map: Record<string, { bg: string; text: string; label: string }> = {
     brouillon: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Brouillon' },
-    soumis:    { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Soumis' },
+    soumis:    { bg: 'bg-primary-100', text: 'text-primary-700', label: 'Soumis' },
     approuve:  { bg: 'bg-green-100', text: 'text-green-700', label: 'Approuvé' },
     rejete:    { bg: 'bg-red-100', text: 'text-red-700', label: 'Rejeté' },
   };
@@ -766,7 +766,7 @@ export default function CompensationPage() {
                     onClick={() => { setShowAddMenu(false); setShowEvalModal(true); }}
                     className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2.5 text-gray-700"
                   >
-                    <Scale className="w-4 h-4 text-blue-500" />
+                    <Scale className="w-4 h-4 text-primary-500" />
                     Nouvelle pesée IPE
                   </button>
                   <button
@@ -822,7 +822,7 @@ export default function CompensationPage() {
                   <p className="text-xs text-gray-500 mt-0.5">Taux conformité</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
-                  <p className="text-2xl font-bold text-blue-600">{nbSims}</p>
+                  <p className="text-2xl font-bold text-primary-600">{nbSims}</p>
                   <p className="text-xs text-gray-500 mt-0.5">Simulations</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
@@ -931,7 +931,7 @@ export default function CompensationPage() {
                         <td className="py-2.5 pr-3 text-gray-600">{ev.job_family || '-'}</td>
                         <td className="py-2.5 pr-3 text-gray-600">{ev.country || '-'}</td>
                         <td className="py-2.5 pr-3 text-gray-600">{ev.total_score}</td>
-                        <td className="py-2.5 pr-3"><span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">{ev.mercer_band || '-'}</span></td>
+                        <td className="py-2.5 pr-3"><span className="px-2 py-0.5 bg-primary-50 text-primary-700 rounded text-xs font-medium">{ev.mercer_band || '-'}</span></td>
                         <td className="py-2.5 pr-3 text-gray-600 text-xs">{fmt(ev.market_p25, ev.currency || 'XOF')}</td>
                         <td className="py-2.5 pr-3 text-gray-600 text-xs">{fmt(ev.market_p50, ev.currency || 'XOF')}</td>
                         <td className="py-2.5 pr-3 text-gray-600 text-xs">{fmt(ev.market_p75, ev.currency || 'XOF')}</td>
@@ -1013,7 +1013,7 @@ export default function CompensationPage() {
                       >
                         <FileDown className="w-3.5 h-3.5" /> Template CSV
                       </button>
-                      <label className="px-2.5 py-1.5 border border-blue-200 bg-blue-50 rounded-lg hover:bg-blue-100 text-xs font-medium text-blue-700 flex items-center gap-1 cursor-pointer">
+                      <label className="px-2.5 py-1.5 border border-primary-200 bg-primary-50 rounded-lg hover:bg-primary-100 text-xs font-medium text-primary-700 flex items-center gap-1 cursor-pointer">
                         <Upload className="w-3.5 h-3.5" /> Importer CSV
                         <input
                           type="file"
@@ -1113,7 +1113,7 @@ export default function CompensationPage() {
                         <span className={`px-2 py-0.5 rounded text-xs font-medium ${ag.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                           {ag.is_active ? 'Active' : 'Inactive'}
                         </span>
-                        {ag.tenant_id === null && <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-xs">Global</span>}
+                        {ag.tenant_id === null && <span className="px-2 py-0.5 bg-primary-50 text-primary-600 rounded text-xs">Global</span>}
                         <ChevronRight className="w-4 h-4 text-gray-400" />
                       </div>
                     </div>
@@ -1217,7 +1217,7 @@ export default function CompensationPage() {
                         {simStatusBadge(showSimDetail.status)}
                         {showSimDetail.status === 'brouillon' && (
                           <button onClick={() => simAction(showSimDetail.id, 'submit')}
-                            className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-medium hover:bg-blue-600 flex items-center gap-1">
+                            className="px-3 py-1.5 bg-primary-500 text-white rounded-lg text-xs font-medium hover:bg-primary-600 flex items-center gap-1">
                             <Send className="w-3.5 h-3.5" /> Soumettre
                           </button>
                         )}

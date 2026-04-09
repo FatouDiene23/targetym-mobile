@@ -1,4 +1,4 @@
-// ============================================
+﻿// ============================================
 // app/dashboard/talents/page.tsx
 // Dashboard consolidé Talents & Carrière
 // ============================================
@@ -72,9 +72,9 @@ export default function TalentsDashboard() {
                 <span className="text-sm text-gray-600">Employés assignés</span>
                 <span className="font-bold text-gray-900">{d?.employees_assigned || 0}</span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                <span className="text-sm text-blue-700">Promotions en attente</span>
-                <span className="font-bold text-blue-700">{d?.pending_promotions || 0}</span>
+              <div className="flex justify-between items-center p-3 bg-primary-50 rounded-lg">
+                <span className="text-sm text-primary-700">Promotions en attente</span>
+                <span className="font-bold text-primary-700">{d?.pending_promotions || 0}</span>
               </div>
             </div>
           </div>
@@ -195,7 +195,7 @@ export default function TalentsDashboard() {
 
 function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) {
   const colors: Record<string, { bg: string; text: string }> = {
-    blue: { bg: 'bg-blue-100', text: 'text-blue-600' },
+    blue: { bg: 'bg-primary-100', text: 'text-primary-600' },
     green: { bg: 'bg-green-100', text: 'text-green-600' },
     emerald: { bg: 'bg-emerald-100', text: 'text-emerald-600' },
     red: { bg: 'bg-red-100', text: 'text-red-600' },

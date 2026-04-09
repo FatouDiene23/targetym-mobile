@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -156,7 +156,7 @@ async function createOneOnOne(data: {
 function getStatusColor(status: string) {
   switch (status) {
     case 'completed': return 'bg-green-100 text-green-700';
-    case 'scheduled': return 'bg-blue-100 text-blue-700';
+    case 'scheduled': return 'bg-primary-100 text-primary-700';
     case 'cancelled': return 'bg-red-100 text-red-700';
     default: return 'bg-gray-100 text-gray-600';
   }
@@ -466,12 +466,12 @@ function EvaluateModal({ meeting, onClose, onSuccess }: {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                <ListTodo className="w-4 h-4 text-blue-500" />
+                <ListTodo className="w-4 h-4 text-primary-500" />
                 Tâches de suivi
-                {tasks.length > 0 && <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">{tasks.length}</span>}
+                {tasks.length > 0 && <span className="px-1.5 py-0.5 bg-primary-100 text-primary-700 text-xs rounded-full font-medium">{tasks.length}</span>}
               </label>
               <button type="button" onClick={addTask}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors">
                 <Plus className="w-3.5 h-3.5" /> Ajouter une tâche
               </button>
             </div>
@@ -484,7 +484,7 @@ function EvaluateModal({ meeting, onClose, onSuccess }: {
               <div className="space-y-2">
                 {tasks.map((task, i) => (
                   <div key={task.id} className="flex gap-2 items-start bg-gray-50 rounded-xl p-3 border border-gray-100">
-                    <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center font-bold mt-2 shrink-0">{i + 1}</span>
+                    <span className="w-5 h-5 rounded-full bg-primary-100 text-primary-600 text-xs flex items-center justify-center font-bold mt-2 shrink-0">{i + 1}</span>
                     <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <input
                         type="text" placeholder="Titre de la tâche *"
@@ -625,7 +625,7 @@ export default function OneOnOnePage() {
           {paginatedOneOnOnes.length > 0 ? paginatedOneOnOnes.map(meeting => (
             <div key={meeting.id} className="p-4 border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm">
+                <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-medium text-sm">
                   {meeting.employee_initials || getInitials(meeting.employee_name)}
                 </div>
                 <div className="flex-1 min-w-0">

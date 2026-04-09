@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useLearning } from '../LearningContext';
 import { TrendingUp, Clock, CheckCircle, BookOpen, Target, Users, Wallet, AlertCircle, ChevronDown } from 'lucide-react';
@@ -58,7 +58,7 @@ const STATUS_LABEL: Record<string, string> = {
   active: 'Actif', closed: 'Clôturé',
 };
 const STATUS_COLOR: Record<string, string> = {
-  draft: 'bg-gray-100 text-gray-600', submitted: 'bg-blue-100 text-blue-700',
+  draft: 'bg-gray-100 text-gray-600', submitted: 'bg-primary-100 text-primary-700',
   approved: 'bg-purple-100 text-purple-700', active: 'bg-green-100 text-green-700',
   closed: 'bg-red-100 text-red-600',
 };
@@ -137,10 +137,10 @@ export default function AnalyticsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500">Heures ce mois</p>
-              <p className="text-2xl font-bold text-blue-600">{stats?.hours_this_month ?? 0}h</p>
+              <p className="text-2xl font-bold text-primary-600">{stats?.hours_this_month ?? 0}h</p>
             </div>
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Clock className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+              <Clock className="w-5 h-5 text-primary-600" />
             </div>
           </div>
         </div>
@@ -159,10 +159,10 @@ export default function AnalyticsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500">Total formations</p>
-              <p className="text-2xl font-bold text-indigo-600">{stats?.total_courses ?? 0}</p>
+              <p className="text-2xl font-bold text-primary-600">{stats?.total_courses ?? 0}</p>
             </div>
-            <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-indigo-600" />
+            <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-primary-600" />
             </div>
           </div>
         </div>
@@ -281,10 +281,10 @@ export default function AnalyticsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs text-gray-500">Employés formés</p>
-                      <p className="text-2xl font-bold text-blue-600">{planData.kpis.employees_trained}</p>
+                      <p className="text-2xl font-bold text-primary-600">{planData.kpis.employees_trained}</p>
                     </div>
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Users className="w-5 h-5 text-blue-600" />
+                    <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                      <Users className="w-5 h-5 text-primary-600" />
                     </div>
                   </div>
                 </div>
@@ -453,7 +453,7 @@ export default function AnalyticsPage() {
               {/* Résumé statuts des sessions */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
-                  { label: 'Planifiées', value: planData.kpis.sessions_planned, color: 'text-blue-600', bg: 'bg-blue-50' },
+                  { label: 'Planifiées', value: planData.kpis.sessions_planned, color: 'text-primary-600', bg: 'bg-primary-50' },
                   { label: 'En cours', value: planData.kpis.sessions_in_progress, color: 'text-amber-600', bg: 'bg-amber-50' },
                   { label: 'Réalisées', value: planData.kpis.sessions_completed, color: 'text-green-600', bg: 'bg-green-50' },
                   { label: 'Annulées', value: planData.kpis.sessions_cancelled, color: 'text-red-600', bg: 'bg-red-50' },

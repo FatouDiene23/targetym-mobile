@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -241,7 +241,7 @@ function getFeedbackIcon(type: string) {
 
 function getScoreColor(score: number): string {
   if (score >= 95) return 'text-green-600';
-  if (score >= 70) return 'text-blue-600';
+  if (score >= 70) return 'text-primary-600';
   if (score >= 50) return 'text-yellow-600';
   if (score >= 25) return 'text-orange-500';
   return 'text-red-500';
@@ -249,7 +249,7 @@ function getScoreColor(score: number): string {
 
 function getScoreBarColor(score: number): string {
   if (score >= 95) return 'bg-green-500';
-  if (score >= 70) return 'bg-blue-500';
+  if (score >= 70) return 'bg-primary-500';
   if (score >= 50) return 'bg-yellow-500';
   if (score >= 25) return 'bg-orange-500';
   return 'bg-red-500';
@@ -702,7 +702,7 @@ function CreateFeedbackModal({ isOpen, onClose, employees, attitudes, onSuccess 
                   onClick={() => setInteractionType(interactionType === item.value ? '' : item.value)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
                     interactionType === item.value
-                      ? 'bg-blue-100 text-blue-700 border-blue-300'
+                      ? 'bg-primary-100 text-primary-700 border-primary-300'
                       : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -904,7 +904,7 @@ function StatsCards({ stats, attitudeScore }: { stats: MyStats | null; attitudeS
       </div>
       <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
         <p className="text-sm text-gray-500">1-on-1</p>
-        <p className="text-2xl font-bold text-blue-600">{stats.one_on_ones_scheduled}</p>
+        <p className="text-2xl font-bold text-primary-600">{stats.one_on_ones_scheduled}</p>
         <p className="text-xs text-gray-400">{stats.one_on_ones_completed} complétés</p>
       </div>
     </div>

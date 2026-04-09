@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -63,7 +63,7 @@ async function apiFetch(url: string, options?: RequestInit) {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  assigned:           { label: 'Assignée',              color: 'bg-blue-100 text-blue-700 border-blue-200',     icon: BookOpen },
+  assigned:           { label: 'Assignée',              color: 'bg-primary-100 text-primary-700 border-primary-200',     icon: BookOpen },
   in_progress:        { label: 'En cours',              color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: PlayCircle },
   pending_validation: { label: 'En attente validation', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: AlertCircle },
   completed:          { label: 'Terminée',              color: 'bg-green-100 text-green-700 border-green-200',   icon: CheckCircle },
@@ -327,7 +327,7 @@ export default function FormationsTab({ employeesList = [] }: FormationsTabProps
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Total',        value: stats.total,    color: 'text-gray-700',   bg: 'bg-gray-50 border-gray-200' },
-          { label: 'À faire',      value: stats.assigned, color: 'text-blue-700',   bg: 'bg-blue-50 border-blue-200' },
+          { label: 'À faire',      value: stats.assigned, color: 'text-primary-700',   bg: 'bg-primary-50 border-primary-200' },
           { label: 'En cours',     value: stats.progress, color: 'text-yellow-700', bg: 'bg-yellow-50 border-yellow-200' },
           { label: 'Terminées',    value: stats.done,     color: 'text-green-700',  bg: 'bg-green-50 border-green-200' },
         ].map(s => (

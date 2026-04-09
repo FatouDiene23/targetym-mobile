@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import PageTourTips from '@/components/PageTourTips';
@@ -88,13 +88,13 @@ type ViewMode = 'month' | 'week' | 'list';
 // ============================================
 
 const EVENT_CONFIGS: Record<EventType, { label: string; color: string; bgColor: string; borderColor: string; dotColor: string }> = {
-  my_leave:        { label: 'Mes congés',              color: 'text-blue-700',    bgColor: 'bg-blue-50',     borderColor: 'border-blue-200',   dotColor: 'bg-blue-500' },
+  my_leave:        { label: 'Mes congés',              color: 'text-primary-700',    bgColor: 'bg-primary-50',     borderColor: 'border-primary-200',   dotColor: 'bg-primary-500' },
   team_leave:      { label: 'Congés équipe',           color: 'text-sky-700',     bgColor: 'bg-sky-50',      borderColor: 'border-sky-200',    dotColor: 'bg-sky-400' },
   birthday:        { label: 'Anniversaires',           color: 'text-pink-700',    bgColor: 'bg-pink-50',     borderColor: 'border-pink-200',   dotColor: 'bg-pink-500' },
   work_anniversary:{ label: 'Anniversaires de travail',color: 'text-amber-700',   bgColor: 'bg-amber-50',    borderColor: 'border-amber-200',  dotColor: 'bg-amber-500' },
   company_event:   { label: 'Événements entreprise',   color: 'text-purple-700',  bgColor: 'bg-purple-50',   borderColor: 'border-purple-200', dotColor: 'bg-purple-500' },
   mission:         { label: 'Missions',                color: 'text-emerald-700', bgColor: 'bg-emerald-50',  borderColor: 'border-emerald-200',dotColor: 'bg-emerald-500' },
-  training:        { label: 'Formations',              color: 'text-indigo-700',  bgColor: 'bg-indigo-50',   borderColor: 'border-indigo-200', dotColor: 'bg-indigo-500' },
+  training:        { label: 'Formations',              color: 'text-primary-700',  bgColor: 'bg-primary-50',   borderColor: 'border-primary-200', dotColor: 'bg-primary-500' },
   one_on_one:      { label: 'Réunions 1-on-1',         color: 'text-teal-700',    bgColor: 'bg-teal-50',     borderColor: 'border-teal-200',   dotColor: 'bg-teal-500' },
   get_to_know:     { label: 'Get to Know',             color: 'text-orange-700',  bgColor: 'bg-orange-50',   borderColor: 'border-orange-200', dotColor: 'bg-orange-500' },
   trial_end:       { label: 'Fin période d\'essai',    color: 'text-red-700',     bgColor: 'bg-red-50',      borderColor: 'border-red-200',    dotColor: 'bg-red-500' },
@@ -1045,7 +1045,7 @@ export default function MyCalendarPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6" data-tour="calendar-view">
           {[
             { label: 'Événements', value: visibleEvents.length, icon: <CalendarIcon className="w-4 h-4" />, color: 'text-primary-600 bg-primary-50' },
-            { label: 'Congés', value: (eventCountByType['my_leave'] || 0) + (eventCountByType['team_leave'] || 0), icon: <Briefcase className="w-4 h-4" />, color: 'text-blue-600 bg-blue-50' },
+            { label: 'Congés', value: (eventCountByType['my_leave'] || 0) + (eventCountByType['team_leave'] || 0), icon: <Briefcase className="w-4 h-4" />, color: 'text-primary-600 bg-primary-50' },
             { label: 'Anniversaires', value: (eventCountByType['birthday'] || 0) + (eventCountByType['work_anniversary'] || 0), icon: <Cake className="w-4 h-4" />, color: 'text-pink-600 bg-pink-50' },
             { label: 'Jours fériés', value: eventCountByType['holiday'] || 0, icon: <Star className="w-4 h-4" />, color: 'text-gray-600 bg-gray-100' },
           ].map(stat => (

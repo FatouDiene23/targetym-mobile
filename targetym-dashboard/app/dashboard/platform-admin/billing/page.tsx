@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -228,7 +228,7 @@ export default function BillingAdminPage() {
             <ChevronLeft size={20} />
           </Link>
           <div className="flex items-center gap-3">
-            <div className="bg-indigo-600 p-2 rounded-xl">
+            <div className="bg-primary-600 p-2 rounded-xl">
               <Receipt size={20} className="text-white" />
             </div>
             <div>
@@ -249,14 +249,14 @@ export default function BillingAdminPage() {
                 value={tenantSearch}
                 onChange={e => setTenantSearch(e.target.value)}
                 placeholder="Rechercher une entreprise..."
-                className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
           </div>
           <div className="flex-1 overflow-y-auto">
             {tenantsLoading ? (
               <div className="flex items-center justify-center py-10">
-                <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-600 border-t-transparent" />
+                <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary-600 border-t-transparent" />
               </div>
             ) : filteredTenants.length === 0 ? (
               <p className="text-center text-gray-400 text-sm py-10">Aucune entreprise</p>
@@ -265,15 +265,15 @@ export default function BillingAdminPage() {
                 <button
                   key={t.id}
                   onClick={() => selectTenant(t)}
-                  className={`w-full text-left px-4 py-3.5 border-b border-gray-50 transition-colors hover:bg-indigo-50 ${
-                    selectedTenant?.id === t.id ? 'bg-indigo-50 border-l-4 border-l-indigo-600' : ''
+                  className={`w-full text-left px-4 py-3.5 border-b border-gray-50 transition-colors hover:bg-primary-50 ${
+                    selectedTenant?.id === t.id ? 'bg-primary-50 border-l-4 border-l-indigo-600' : ''
                   }`}
                 >
                   <div className="font-semibold text-sm text-gray-900 truncate">{t.name}</div>
                   <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-2">
                     <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
                       t.plan === 'enterprise' ? 'bg-purple-100 text-purple-700' :
-                      t.plan === 'professional' ? 'bg-blue-100 text-blue-700' :
+                      t.plan === 'professional' ? 'bg-primary-100 text-primary-700' :
                       t.plan === 'starter' ? 'bg-teal-100 text-teal-700' :
                       'bg-gray-100 text-gray-500'
                     }`}>
@@ -314,7 +314,7 @@ export default function BillingAdminPage() {
                     <div className="flex items-center gap-3 mt-2">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                         selectedTenant.plan === 'enterprise' ? 'bg-purple-100 text-purple-700' :
-                        selectedTenant.plan === 'professional' ? 'bg-blue-100 text-blue-700' :
+                        selectedTenant.plan === 'professional' ? 'bg-primary-100 text-primary-700' :
                         selectedTenant.plan === 'starter' ? 'bg-teal-100 text-teal-700' :
                         'bg-gray-100 text-gray-600'
                       }`}>
@@ -332,7 +332,7 @@ export default function BillingAdminPage() {
                   </div>
                   <button
                     onClick={() => setShowChangePlan(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl transition-colors"
+                    className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-primary-50 text-primary-700 hover:bg-primary-100 rounded-xl transition-colors"
                   >
                     <CreditCard size={15} />
                     Changer le plan
@@ -372,7 +372,7 @@ export default function BillingAdminPage() {
                     </button>
                     <button
                       onClick={() => setShowCreate(true)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors"
                     >
                       <Plus size={14} /> Nouvelle facture
                     </button>
@@ -381,7 +381,7 @@ export default function BillingAdminPage() {
 
                 {invoicesLoading ? (
                   <div className="flex items-center justify-center py-16">
-                    <div className="animate-spin rounded-full h-7 w-7 border-2 border-indigo-600 border-t-transparent" />
+                    <div className="animate-spin rounded-full h-7 w-7 border-2 border-primary-600 border-t-transparent" />
                   </div>
                 ) : invoices.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 text-gray-400">
@@ -389,7 +389,7 @@ export default function BillingAdminPage() {
                     <p className="text-sm">Aucune facture pour ce tenant</p>
                     <button
                       onClick={() => setShowCreate(true)}
-                      className="mt-3 text-xs text-indigo-600 hover:underline"
+                      className="mt-3 text-xs text-primary-600 hover:underline"
                     >
                       Créer la première facture
                     </button>
@@ -415,7 +415,7 @@ export default function BillingAdminPage() {
                             <td className="px-4 py-3.5 text-gray-700">
                               <div className="truncate max-w-[200px]">{inv.description || '—'}</div>
                               {inv.pdf_url && (
-                                <a href={inv.pdf_url} target="_blank" rel="noreferrer" className="text-xs text-indigo-500 hover:underline">
+                                <a href={inv.pdf_url} target="_blank" rel="noreferrer" className="text-xs text-primary-500 hover:underline">
                                   📎 PDF
                                 </a>
                               )}
@@ -464,7 +464,7 @@ export default function BillingAdminPage() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Plus size={18} className="text-indigo-600" /> Nouvelle facture
+                <Plus size={18} className="text-primary-600" /> Nouvelle facture
               </h2>
               <button onClick={() => setShowCreate(false)} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
                 <X size={18} />
@@ -480,7 +480,7 @@ export default function BillingAdminPage() {
                   value={createForm.amount}
                   onChange={e => setCreateForm(f => ({ ...f, amount: e.target.value }))}
                   placeholder="297000"
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
               <div>
@@ -488,7 +488,7 @@ export default function BillingAdminPage() {
                 <select
                   value={createForm.currency}
                   onChange={e => setCreateForm(f => ({ ...f, currency: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="XOF">XOF</option>
                   <option value="EUR">EUR</option>
@@ -503,7 +503,7 @@ export default function BillingAdminPage() {
                 value={createForm.description}
                 onChange={e => setCreateForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="Frais d'installation, abonnement annuel..."
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
@@ -514,7 +514,7 @@ export default function BillingAdminPage() {
                   type="date"
                   value={createForm.due_date}
                   onChange={e => setCreateForm(f => ({ ...f, due_date: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
               <div>
@@ -523,7 +523,7 @@ export default function BillingAdminPage() {
                   value={createForm.pdf_url}
                   onChange={e => setCreateForm(f => ({ ...f, pdf_url: e.target.value }))}
                   placeholder="https://..."
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
             </div>
@@ -535,7 +535,7 @@ export default function BillingAdminPage() {
               <button
                 onClick={handleCreate}
                 disabled={!createForm.amount || creating}
-                className="flex-1 px-4 py-2.5 text-sm font-semibold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2.5 text-sm font-semibold bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
               >
                 {creating ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Plus size={15} />}
                 Créer la facture
@@ -623,7 +623,7 @@ export default function BillingAdminPage() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <CreditCard size={18} className="text-indigo-600" /> Changer le plan
+                <CreditCard size={18} className="text-primary-600" /> Changer le plan
               </h2>
               <button onClick={() => setShowChangePlan(false)} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
                 <X size={18} />
@@ -640,7 +640,7 @@ export default function BillingAdminPage() {
                     const selected = PLANS.find(p => p.value === e.target.value);
                     setPlanForm(f => ({ ...f, plan: e.target.value, max_employees: selected ? String(selected.employees) : f.max_employees }));
                   }}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   {PLANS.map(p => <option key={p.value} value={p.value}>{p.label} — {p.employees} employés</option>)}
                 </select>
@@ -663,7 +663,7 @@ export default function BillingAdminPage() {
                   type="date"
                   value={planForm.trial_ends_at}
                   onChange={e => setPlanForm(f => ({ ...f, trial_ends_at: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
               <div className="flex items-center gap-2 pt-5">
@@ -684,7 +684,7 @@ export default function BillingAdminPage() {
                 value={planForm.note}
                 onChange={e => setPlanForm(f => ({ ...f, note: e.target.value }))}
                 placeholder="Ex: Paiement annuel reçu par virement le 16/03/2026"
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
@@ -695,7 +695,7 @@ export default function BillingAdminPage() {
               <button
                 onClick={handleChangePlan}
                 disabled={!planForm.plan || changingPlan}
-                className="flex-1 px-4 py-2.5 text-sm font-semibold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2.5 text-sm font-semibold bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
               >
                 {changingPlan ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <CreditCard size={15} />}
                 Appliquer le plan

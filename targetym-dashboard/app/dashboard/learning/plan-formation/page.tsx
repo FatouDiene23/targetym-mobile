@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 // ============================================
 // PLAN DE FORMATION — Page principale
@@ -147,7 +147,7 @@ interface PlanTarget {
 const PLAN_STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
   draft:     { label: 'Brouillon', bg: 'bg-gray-100',   text: 'text-gray-700' },
   submitted: { label: 'Soumis',    bg: 'bg-amber-100',  text: 'text-amber-700' },
-  approved:  { label: 'Approuvé',  bg: 'bg-blue-100',   text: 'text-blue-700' },
+  approved:  { label: 'Approuvé',  bg: 'bg-primary-100',   text: 'text-primary-700' },
   active:    { label: 'Actif',     bg: 'bg-green-100',  text: 'text-green-700' },
   closed:    { label: 'Clôturé',   bg: 'bg-gray-100',   text: 'text-gray-600' },
   cancelled: { label: 'Annulé',    bg: 'bg-red-100',    text: 'text-red-700' },
@@ -155,7 +155,7 @@ const PLAN_STATUS_CONFIG: Record<string, { label: string; bg: string; text: stri
 
 const LEVEL_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
   group:      { label: 'Groupe',   bg: 'bg-purple-100', text: 'text-purple-700' },
-  subsidiary: { label: 'Filiale',  bg: 'bg-indigo-100', text: 'text-indigo-700' },
+  subsidiary: { label: 'Filiale',  bg: 'bg-primary-100', text: 'text-primary-700' },
   local:      { label: 'Local',    bg: 'bg-teal-100',   text: 'text-teal-700' },
 };
 
@@ -176,7 +176,7 @@ const PRIORITY_CONFIG: Record<string, { label: string; bg: string; text: string 
 
 const SCHEDULE_STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
   planned:     { label: 'Planifié',  bg: 'bg-gray-100',  text: 'text-gray-700' },
-  in_progress: { label: 'En cours',  bg: 'bg-blue-100',  text: 'text-blue-700' },
+  in_progress: { label: 'En cours',  bg: 'bg-primary-100',  text: 'text-primary-700' },
   completed:   { label: 'Terminé',   bg: 'bg-green-100', text: 'text-green-700' },
   cancelled:   { label: 'Annulé',    bg: 'bg-red-100',   text: 'text-red-700' },
 };
@@ -192,7 +192,7 @@ const OBJECTIVE_TYPE_LABELS: Record<string, string> = {
 
 const NEED_STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
   identified: { label: 'Identifié', bg: 'bg-gray-100',  text: 'text-gray-700' },
-  planned:    { label: 'Planifié',  bg: 'bg-blue-100',  text: 'text-blue-700' },
+  planned:    { label: 'Planifié',  bg: 'bg-primary-100',  text: 'text-primary-700' },
   completed:  { label: 'Terminé',   bg: 'bg-green-100', text: 'text-green-700' },
   cancelled:  { label: 'Annulé',    bg: 'bg-red-100',   text: 'text-red-700' },
 };
@@ -1176,7 +1176,7 @@ export default function PlanFormationPage() {
                             </button>
                             <button
                               onClick={() => handleDuplicatePlan(plan)}
-                              className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-indigo-600 transition-colors"
+                              className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-primary-600 transition-colors"
                               title="Dupliquer"
                             >
                               <Copy className="w-4 h-4" />
@@ -1943,15 +1943,15 @@ export default function PlanFormationPage() {
                         const selected = okrList.find(o => String(o.id) === newObjective.okr_id);
                         if (!selected) return null;
                         return (
-                          <div className="mt-2 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
-                            <p className="text-sm font-medium text-indigo-900">{selected.title}</p>
+                          <div className="mt-2 p-3 bg-primary-50 border border-primary-200 rounded-lg">
+                            <p className="text-sm font-medium text-primary-900">{selected.title}</p>
                             <div className="flex items-center gap-3 mt-1.5">
-                              <span className="text-xs text-indigo-600">Période : {selected.period}</span>
-                              <span className="text-xs text-indigo-600">Progression : {Math.round(selected.progress)}%</span>
+                              <span className="text-xs text-primary-600">Période : {selected.period}</span>
+                              <span className="text-xs text-primary-600">Progression : {Math.round(selected.progress)}%</span>
                             </div>
                             <div className="w-full bg-indigo-200 rounded-full h-1.5 mt-1.5">
                               <div
-                                className={`h-1.5 rounded-full ${selected.progress >= 100 ? 'bg-green-500' : selected.progress >= 50 ? 'bg-indigo-500' : 'bg-amber-500'}`}
+                                className={`h-1.5 rounded-full ${selected.progress >= 100 ? 'bg-green-500' : selected.progress >= 50 ? 'bg-primary-500' : 'bg-amber-500'}`}
                                 style={{ width: `${Math.min(selected.progress, 100)}%` }}
                               />
                             </div>
@@ -2123,7 +2123,7 @@ function ActionsTab({ actions, canManage, currency, onAddAction, onEditAction, o
                       <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => onEditAction(action)}
-                          className="p-1.5 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600 transition-colors"
+                          className="p-1.5 hover:bg-primary-50 rounded-lg text-gray-400 hover:text-primary-600 transition-colors"
                           title="Modifier"
                         >
                           <Edit className="w-4 h-4" />
@@ -2209,7 +2209,7 @@ function CalendarTab({ schedules }: { schedules: PlanSchedule[] }) {
             <div className="flex items-center gap-3 flex-shrink-0">
               <span className="text-xs text-gray-500">{s.enrolled_count} inscrits</span>
               {s.quarter && (
-                <span className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded font-medium">{s.quarter}</span>
+                <span className="text-xs px-2 py-0.5 bg-primary-100 text-primary-700 rounded font-medium">{s.quarter}</span>
               )}
               <StatusBadge config={SCHEDULE_STATUS_CONFIG} status={s.status} />
             </div>
@@ -2325,7 +2325,7 @@ function ObjectivesTab({ objectives, canManage, onAddObjective, onDeleteObjectiv
                       {OBJECTIVE_TYPE_LABELS[obj.objective_type] || obj.objective_type}
                     </span>
                     {obj.okr_id && obj.okr_title && (
-                      <span className="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded flex items-center gap-1">
+                      <span className="text-xs px-2 py-0.5 bg-primary-100 text-primary-700 rounded flex items-center gap-1">
                         <Link className="w-3 h-3" /> OKR: {obj.okr_title}
                       </span>
                     )}

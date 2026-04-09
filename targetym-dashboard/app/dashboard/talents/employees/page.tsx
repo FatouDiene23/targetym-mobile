@@ -1,4 +1,4 @@
-// ============================================
+﻿// ============================================
 // app/dashboard/talents/employees/page.tsx
 // Vue RH — Tous les collaborateurs (carrière)
 // ============================================
@@ -271,7 +271,7 @@ export default function AllEmployeesCareerPage() {
                       <div className="flex gap-2 flex-shrink-0">
                         <button
                           onClick={() => setCompetencyModal({ id: selected.employee_id, name: `${career.first_name} ${career.last_name}` })}
-                          className="px-3 py-1.5 text-sm border border-indigo-200 rounded-lg hover:bg-indigo-50 text-indigo-600 flex items-center gap-1.5"
+                          className="px-3 py-1.5 text-sm border border-primary-200 rounded-lg hover:bg-primary-50 text-primary-600 flex items-center gap-1.5"
                         >
                           🧠 Compétences
                         </button>

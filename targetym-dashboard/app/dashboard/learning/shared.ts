@@ -1,4 +1,4 @@
-// ============================================
+﻿// ============================================
 // LEARNING MODULE - SHARED TYPES & HELPERS
 // File: app/dashboard/learning/shared.ts
 // ============================================
@@ -289,7 +289,7 @@ export const hasPermission = (userRole: string, action: string): boolean => {
 
 export const getLevelColor = (level: string) => {
   if (level === 'beginner') return 'bg-green-100 text-green-700';
-  if (level === 'intermediate') return 'bg-blue-100 text-blue-700';
+  if (level === 'intermediate') return 'bg-primary-100 text-primary-700';
   return 'bg-purple-100 text-purple-700';
 };
 
@@ -302,8 +302,8 @@ export const getLevelLabel = (level: string) => {
 export const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
     'completed': 'bg-green-100 text-green-700',
-    'in-progress': 'bg-blue-100 text-blue-700',
-    'in_progress': 'bg-blue-100 text-blue-700',
+    'in-progress': 'bg-primary-100 text-primary-700',
+    'in_progress': 'bg-primary-100 text-primary-700',
     'pending_validation': 'bg-orange-100 text-orange-700',
     'pending': 'bg-orange-100 text-orange-700',
     'rejected': 'bg-red-100 text-red-700',
@@ -337,7 +337,7 @@ export const getStatusLabel = (status: string) => {
 
 export const getPlanStatusColor = (status: string) => {
   if (status === 'active') return 'bg-green-100 text-green-700';
-  if (status === 'completed') return 'bg-blue-100 text-blue-700';
+  if (status === 'completed') return 'bg-primary-100 text-primary-700';
   if (status === 'cancelled') return 'bg-red-100 text-red-700';
   if (status === 'archived') return 'bg-gray-100 text-gray-600';
   return 'bg-gray-100 text-gray-700';
@@ -352,7 +352,7 @@ export const getCertStatusColor = (status: string) => {
 export const getEpfStatusColor = (status: string) => {
   const colors: Record<string, string> = {
     'pending': 'bg-amber-100 text-amber-700',
-    'in_progress': 'bg-blue-100 text-blue-700',
+    'in_progress': 'bg-primary-100 text-primary-700',
     'completed': 'bg-green-100 text-green-700',
     'cancelled': 'bg-red-100 text-red-700',
     'expired': 'bg-gray-100 text-gray-700'
@@ -419,7 +419,7 @@ export const getTrainingPlanStatusColor = (status: string) => {
   const colors: Record<string, string> = {
     'draft': 'bg-gray-100 text-gray-700',
     'submitted': 'bg-amber-100 text-amber-700',
-    'approved': 'bg-blue-100 text-blue-700',
+    'approved': 'bg-primary-100 text-primary-700',
     'active': 'bg-green-100 text-green-700',
     'closed': 'bg-gray-100 text-gray-600',
     'cancelled': 'bg-red-100 text-red-700',
@@ -442,7 +442,7 @@ export const getTrainingPlanStatusLabel = (status: string) => {
 export const getPlanLevelColor = (level: string) => {
   const colors: Record<string, string> = {
     'group': 'bg-purple-100 text-purple-700',
-    'subsidiary': 'bg-indigo-100 text-indigo-700',
+    'subsidiary': 'bg-primary-100 text-primary-700',
     'local': 'bg-teal-100 text-teal-700',
   };
   return colors[level] || 'bg-gray-100 text-gray-700';

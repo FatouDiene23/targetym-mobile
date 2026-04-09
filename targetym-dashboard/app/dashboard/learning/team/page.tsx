@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useLearning } from '../LearningContext';
 import { getStatusColor, getStatusLabel } from '../shared';
@@ -29,10 +29,10 @@ export default function TeamPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs text-gray-500">En cours</p>
-                    <p className="text-2xl font-bold text-blue-600">{inProgressCount}</p>
+                    <p className="text-2xl font-bold text-primary-600">{inProgressCount}</p>
                   </div>
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Play className="w-5 h-5 text-blue-600" />
+                  <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                    <Play className="w-5 h-5 text-primary-600" />
                   </div>
                 </div>
               </div>
@@ -83,7 +83,7 @@ export default function TeamPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-4 text-sm">
-                          {inProgress > 0 && <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full">{inProgress} en cours</span>}
+                          {inProgress > 0 && <span className="px-2 py-1 bg-primary-100 text-primary-700 rounded-full">{inProgress} en cours</span>}
                           {pending > 0 && <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-full">{pending} à valider</span>}
                           {completed > 0 && <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full">{completed} terminé(s)</span>}
                         </div>

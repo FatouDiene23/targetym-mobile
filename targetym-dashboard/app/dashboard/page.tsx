@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -305,10 +305,10 @@ function WelcomeCard({ userName, role }: { userName: string; role: UserRole }) {
 // Quick Actions
 function QuickActions({ role, isManager }: { role: UserRole; isManager: boolean }) {
   const actions = [
-    { label: 'Demander un congé', href: '/dashboard/my-space/leaves', icon: Calendar, color: 'bg-blue-500', roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+    { label: 'Demander un congé', href: '/dashboard/my-space/leaves', icon: Calendar, color: 'bg-primary-500', roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
     { label: 'Mes objectifs', href: '/dashboard/okr', icon: Target, color: 'bg-green-500', roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
     { label: 'Mon équipe', href: '/dashboard/my-space/team', icon: Users, color: 'bg-purple-500', roles: ['manager'], managerOnly: true },
-    { label: 'Gestion du personnel', href: '/dashboard/employees', icon: Users, color: 'bg-indigo-500', roles: ['rh', 'admin', 'dg'] },
+    { label: 'Gestion du personnel', href: '/dashboard/employees', icon: Users, color: 'bg-primary-500', roles: ['rh', 'admin', 'dg'] },
     { label: 'Gestion des congés', href: '/dashboard/leaves', icon: CalendarDays, color: 'bg-orange-500', roles: ['rh', 'admin', 'dg'] },
     { label: 'Recrutement', href: '/dashboard/recruitment', icon: UserPlus, color: 'bg-pink-500', roles: ['rh', 'admin', 'dg'] },
   ];
@@ -404,8 +404,8 @@ function MyLearningWidget({ assignments }: { assignments: MyAssignment[] }) {
           {/* Stats */}
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
-              <p className="text-2xl font-bold text-blue-600">{inProgress.length}</p>
-              <p className="text-xs text-blue-700">En cours</p>
+              <p className="text-2xl font-bold text-primary-600">{inProgress.length}</p>
+              <p className="text-xs text-primary-700">En cours</p>
             </div>
             <div className="text-center p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
               <p className="text-2xl font-bold text-green-600">{completed.length}</p>
@@ -476,8 +476,8 @@ function MyPerformanceWidget({ stats }: { stats: MyPerformanceStats | null }) {
               <p className="text-xs text-green-700">Feedbacks reçus</p>
             </div>
             <div className="p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl text-center">
-              <div className="flex items-center justify-center gap-1 mb-1"><CheckCircle className="w-4 h-4 text-blue-500" /><span className="text-lg font-bold text-blue-600">{stats.evaluations_completed}/{stats.evaluations_total}</span></div>
-              <p className="text-xs text-blue-700">Évaluations</p>
+              <div className="flex items-center justify-center gap-1 mb-1"><CheckCircle className="w-4 h-4 text-primary-500" /><span className="text-lg font-bold text-primary-600">{stats.evaluations_completed}/{stats.evaluations_total}</span></div>
+              <p className="text-xs text-primary-700">Évaluations</p>
             </div>
           </div>
         </>
@@ -555,12 +555,12 @@ function TeamOverviewWidget({ teamMembers, pendingRequests }: { teamMembers: Tea
 // HR Stats Widget
 function HRStatsWidget({ stats }: { stats: HRStats }) {
   const statItems = [
-    { label: 'Total employés', value: stats.total_employees, icon: Users, color: 'from-blue-400 to-blue-600', bg: 'bg-blue-50', href: '/dashboard/employees', badge: 0 },
+    { label: 'Total employés', value: stats.total_employees, icon: Users, color: 'from-blue-400 to-blue-600', bg: 'bg-primary-50', href: '/dashboard/employees', badge: 0 },
     { label: 'Actifs', value: stats.active_employees, icon: UserCheck, color: 'from-green-400 to-green-600', bg: 'bg-green-50', href: '/dashboard/employees?filter=active', badge: 0 },
     { label: 'En congé', value: stats.on_leave_today, icon: Calendar, color: 'from-orange-400 to-orange-600', bg: 'bg-orange-50', href: '/dashboard/leaves', badge: 0 },
     { label: 'Demandes en attente', value: stats.pending_requests, icon: Clock, color: 'from-yellow-400 to-yellow-600', bg: 'bg-yellow-50', href: '/dashboard/leaves?status=pending', badge: 0 },
     { label: 'Nouveaux ce mois', value: stats.new_hires_this_month, icon: UserPlus, color: 'from-purple-400 to-purple-600', bg: 'bg-purple-50', href: '/dashboard/employees?filter=new_this_month', badge: stats.new_hires_this_month },
-    { label: 'Départements', value: stats.departments_count, icon: Briefcase, color: 'from-indigo-400 to-indigo-600', bg: 'bg-indigo-50', href: '/dashboard/employees?tab=departments', badge: 0 },
+    { label: 'Départements', value: stats.departments_count, icon: Briefcase, color: 'from-indigo-400 to-indigo-600', bg: 'bg-primary-50', href: '/dashboard/employees?tab=departments', badge: 0 },
   ];
 
   return (
@@ -758,7 +758,7 @@ function OKRStatsWidget({ stats, criticalOKRs }: { stats: OKRStats; criticalOKRs
         <div className="text-center p-2 bg-green-50 rounded-lg"><p className="text-base font-bold text-green-600">{onTrack}</p><p className="text-xs text-green-700">En voie</p></div>
         <div className="text-center p-2 bg-yellow-50 rounded-lg"><p className="text-base font-bold text-yellow-600">{atRisk}</p><p className="text-xs text-yellow-700">À risque</p></div>
         <div className="text-center p-2 bg-red-50 rounded-lg"><p className="text-base font-bold text-red-600">{behind}</p><p className="text-xs text-red-700">En retard</p></div>
-        <div className="text-center p-2 bg-indigo-50 rounded-lg"><p className="text-base font-bold text-indigo-600">{exceeded + completed}</p><p className="text-xs text-indigo-700">Terminés</p></div>
+        <div className="text-center p-2 bg-primary-50 rounded-lg"><p className="text-base font-bold text-primary-600">{exceeded + completed}</p><p className="text-xs text-primary-700">Terminés</p></div>
       </div>
       {criticalOKRs.length > 0 && (
         <div className="border-t pt-3">
@@ -820,7 +820,7 @@ function AlertsWidget({ pendingCount, onLeaveCount }: { pendingCount: number; on
       </div>
       <div className="space-y-2">
         {alerts.map((alert, i) => (
-          <Link key={i} href={alert.link} className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${alert.type === 'warning' ? 'bg-gradient-to-r from-yellow-50 to-amber-50 text-yellow-800 hover:from-yellow-100 hover:to-amber-100' : 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-800 hover:from-blue-100 hover:to-indigo-100'}`}>
+          <Link key={i} href={alert.link} className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${alert.type === 'warning' ? 'bg-gradient-to-r from-yellow-50 to-amber-50 text-yellow-800 hover:from-yellow-100 hover:to-amber-100' : 'bg-gradient-to-r from-blue-50 to-indigo-50 text-primary-800 hover:from-blue-100 hover:to-indigo-100'}`}>
             <alert.icon className="w-5 h-5 shrink-0" /><span className="text-sm flex-1">{alert.message}</span><ChevronRight className="w-4 h-4" />
           </Link>
         ))}
@@ -854,8 +854,8 @@ function TasksWidget({ stats }: { stats: TaskStats | null }) {
           {/* Stats rapides */}
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
-              <p className="text-2xl font-bold text-blue-600">{(stats?.pending || 0) + (stats?.in_progress || 0)}</p>
-              <p className="text-xs text-blue-700">À faire</p>
+              <p className="text-2xl font-bold text-primary-600">{(stats?.pending || 0) + (stats?.in_progress || 0)}</p>
+              <p className="text-xs text-primary-700">À faire</p>
             </div>
             <div className="text-center p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
               <p className="text-2xl font-bold text-green-600">{stats?.completed || 0}</p>
@@ -1272,8 +1272,8 @@ export default function DashboardPage() {
                     <div className="divide-y divide-gray-100">
                       {groupGlobalStats.subsidiaries.map(sub => (
                         <div key={sub.subsidiary_id} className="flex items-center gap-4 px-4 py-3">
-                          <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                            <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+                          <div className="w-7 h-7 rounded-lg bg-primary-100 flex items-center justify-center flex-shrink-0">
+                            <Building2 className="w-3.5 h-3.5 text-primary-600" />
                           </div>
                           <p className="flex-1 text-sm font-medium text-gray-900 truncate">{sub.subsidiary_name}</p>
                           <div className="flex items-center gap-4 text-xs text-gray-500">
@@ -1302,31 +1302,31 @@ export default function DashboardPage() {
 
         {/* Panel stats filiale sélectionnée */}
         {selectedSubsidiary && (
-          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl p-3 lg:p-6">
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-primary-200 rounded-2xl p-3 lg:p-6">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow">
+                <div className="w-10 h-10 rounded-xl bg-primary-600 flex items-center justify-center shadow">
                   <Building2 className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-indigo-900">{selectedSubsidiary.name}</p>
-                  <p className="text-xs text-indigo-500">Vue filiale — données isolées</p>
+                  <p className="text-lg font-bold text-primary-900">{selectedSubsidiary.name}</p>
+                  <p className="text-xs text-primary-500">Vue filiale — données isolées</p>
                 </div>
               </div>
-              <a href="/dashboard/analytics" className="text-xs text-indigo-600 hover:text-indigo-800 font-medium underline underline-offset-2">People Analytics complets →</a>
+              <a href="/dashboard/analytics" className="text-xs text-primary-600 hover:text-primary-800 font-medium underline underline-offset-2">People Analytics complets →</a>
             </div>
             {subsidiaryStatsLoading ? (
-              <div className="flex items-center gap-2 text-indigo-400 text-sm">
+              <div className="flex items-center gap-2 text-primary-400 text-sm">
                 <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
                 Chargement...
               </div>
             ) : subsidiaryStats ? (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-indigo-100">
-                  <p className="text-3xl font-bold text-indigo-700">{subsidiaryStats.active_employees}</p>
+                <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-primary-100">
+                  <p className="text-3xl font-bold text-primary-700">{subsidiaryStats.active_employees}</p>
                   <p className="text-xs text-gray-500 mt-1 font-medium">Employés actifs</p>
                 </div>
-                <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-indigo-100">
+                <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-primary-100">
                   <p className="text-3xl font-bold text-gray-900">{subsidiaryStats.total_employees}</p>
                   <p className="text-xs text-gray-500 mt-1 font-medium">Total employés</p>
                 </div>
@@ -1334,7 +1334,7 @@ export default function DashboardPage() {
                   <p className="text-3xl font-bold text-orange-500">{subsidiaryStats.pending_leaves}</p>
                   <p className="text-xs text-gray-500 mt-1 font-medium">Congés en attente</p>
                 </div>
-                <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-indigo-100">
+                <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-primary-100">
                   <p className="text-3xl font-bold text-gray-900">{subsidiaryStats.departments_count}</p>
                   <p className="text-xs text-gray-500 mt-1 font-medium">Départements</p>
                 </div>

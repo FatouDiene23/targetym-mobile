@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -52,17 +52,17 @@ function getAuthHeaders(): HeadersInit {
 // ============================================
 
 const NOTIF_ICONS: Record<string, { icon: typeof Bell; color: string; bg: string }> = {
-  onboarding_task: { icon: Handshake, color: 'text-blue-600', bg: 'bg-blue-100' },
+  onboarding_task: { icon: Handshake, color: 'text-primary-600', bg: 'bg-primary-100' },
   onboarding_complete: { icon: CheckCheck, color: 'text-green-600', bg: 'bg-green-100' },
   get_to_know_scheduled: { icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-100' },
   get_to_know_reminder: { icon: Calendar, color: 'text-orange-600', bg: 'bg-orange-100' },
-  document_uploaded: { icon: FileCheck, color: 'text-indigo-600', bg: 'bg-indigo-100' },
+  document_uploaded: { icon: FileCheck, color: 'text-primary-600', bg: 'bg-primary-100' },
   leave_approved: { icon: Check, color: 'text-green-600', bg: 'bg-green-100' },
   leave_rejected: { icon: X, color: 'text-red-600', bg: 'bg-red-100' },
-  leave_request: { icon: Plane, color: 'text-blue-600', bg: 'bg-blue-100' },
-  mission_assigned: { icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-100' },
-  task_assigned: { icon: ClipboardList, color: 'text-blue-600', bg: 'bg-blue-100' },
-  signature_request: { icon: PenLine, color: 'text-blue-600', bg: 'bg-blue-100' },
+  leave_request: { icon: Plane, color: 'text-primary-600', bg: 'bg-primary-100' },
+  mission_assigned: { icon: Briefcase, color: 'text-primary-600', bg: 'bg-primary-100' },
+  task_assigned: { icon: ClipboardList, color: 'text-primary-600', bg: 'bg-primary-100' },
+  signature_request: { icon: PenLine, color: 'text-primary-600', bg: 'bg-primary-100' },
   signature_signed: { icon: CheckCheck, color: 'text-green-600', bg: 'bg-green-100' },
   signature_rejected: { icon: X, color: 'text-red-600', bg: 'bg-red-100' },
   sos_alert: { icon: Bell, color: 'text-red-600', bg: 'bg-red-100' },
@@ -358,7 +358,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'employee': return 'bg-blue-100 text-blue-600';
+      case 'employee': return 'bg-primary-100 text-primary-600';
       case 'candidate': return 'bg-green-100 text-green-600';
       case 'job': return 'bg-purple-100 text-purple-600';
       case 'training': return 'bg-orange-100 text-orange-600';
@@ -558,7 +558,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
                               key={notif.id}
                               onClick={() => handleNotificationClick(notif)}
                               className={`w-full flex items-start gap-3 px-4 py-3 text-left transition-colors border-b border-gray-50 last:border-0 ${
-                                notif.is_read ? 'hover:bg-gray-50' : 'bg-blue-50/40 hover:bg-blue-50/60'
+                                notif.is_read ? 'hover:bg-gray-50' : 'bg-primary-50/40 hover:bg-primary-50/60'
                               }`}
                             >
                               <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${style.bg}`}>
@@ -570,7 +570,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
                                     {notif.title}
                                   </p>
                                   {!notif.is_read && (
-                                    <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-1.5" />
+                                    <span className="w-2 h-2 rounded-full bg-primary-500 flex-shrink-0 mt-1.5" />
                                   )}
                                 </div>
                                 <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notif.message}</p>

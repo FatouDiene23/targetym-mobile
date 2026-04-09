@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { CheckCircle, XCircle, Loader2, ChevronDown, ChevronUp, Briefcase, Target, BookOpen, Users, UserPlus } from 'lucide-react';
@@ -48,7 +48,7 @@ function OnboardingPreview({ data }: { data: any }) {
 
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+        className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800 font-medium"
       >
         {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         {tasks.length} tâche{tasks.length > 1 ? 's' : ''} planifiée{tasks.length > 1 ? 's' : ''}
@@ -60,7 +60,7 @@ function OnboardingPreview({ data }: { data: any }) {
             <div key={i} className="bg-white border rounded p-2 text-xs flex items-start gap-2">
               <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 ${
                 task.category === 'administrative' ? 'bg-purple-100 text-purple-700' :
-                task.category === 'technical' ? 'bg-blue-100 text-blue-700' :
+                task.category === 'technical' ? 'bg-primary-100 text-primary-700' :
                 task.category === 'training' ? 'bg-green-100 text-green-700' :
                 task.category === 'meeting' ? 'bg-orange-100 text-orange-700' :
                 'bg-gray-100 text-gray-600'
@@ -102,9 +102,9 @@ function OkrPreview({ data }: { data: any }) {
             <div className="px-3 pb-2 space-y-1 border-t bg-gray-50">
               {(obj.key_results || []).map((kr: any, j: number) => (
                 <div key={j} className="flex items-center gap-2 text-xs py-1">
-                  <Target size={12} className="text-blue-500 flex-shrink-0" />
+                  <Target size={12} className="text-primary-500 flex-shrink-0" />
                   <span className="flex-1 text-gray-700">{kr.title}</span>
-                  <span className="font-semibold text-blue-600">{kr.target_value}{kr.unit}</span>
+                  <span className="font-semibold text-primary-600">{kr.target_value}{kr.unit}</span>
                 </div>
               ))}
             </div>
@@ -132,7 +132,7 @@ function TrainingPreview({ data }: { data: any }) {
             <div className="flex items-center justify-between">
               <p className="font-medium text-gray-800">{course.title}</p>
               <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                course.format === 'e-learning' ? 'bg-blue-100 text-blue-700' :
+                course.format === 'e-learning' ? 'bg-primary-100 text-primary-700' :
                 course.format === 'presentiel' ? 'bg-green-100 text-green-700' :
                 course.format === 'coaching' ? 'bg-purple-100 text-purple-700' :
                 'bg-gray-100 text-gray-600'
@@ -156,7 +156,7 @@ function CandidatePreview({ data }: { data: any }) {
         <div className="flex items-center justify-between">
           <p className="font-semibold text-gray-800">{data.first_name} {data.last_name}</p>
           {data.source && (
-            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-[10px] font-medium">
+            <span className="px-2 py-0.5 bg-primary-100 text-primary-700 rounded text-[10px] font-medium">
               {data.source}
             </span>
           )}
@@ -199,7 +199,7 @@ function JobPostingPreview({ data }: { data: any }) {
       {data.skills && data.skills.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {data.skills.slice(0, 6).map((skill: string, i: number) => (
-            <span key={i} className="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded text-[10px]">
+            <span key={i} className="px-2 py-0.5 bg-primary-50 text-primary-700 border border-primary-200 rounded text-[10px]">
               {skill}
             </span>
           ))}

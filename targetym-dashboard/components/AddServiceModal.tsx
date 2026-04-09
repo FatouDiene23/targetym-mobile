@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { Loader2, ChevronLeft } from 'lucide-react';
@@ -10,14 +10,14 @@ interface AddServiceModalProps {
 }
 
 const COLORS = [
-  { value: '#3B82F6', label: 'Bleu', class: 'bg-blue-500' },
+  { value: '#3B82F6', label: 'Bleu', class: 'bg-primary-500' },
   { value: '#10B981', label: 'Vert', class: 'bg-green-500' },
   { value: '#8B5CF6', label: 'Violet', class: 'bg-purple-500' },
   { value: '#F59E0B', label: 'Orange', class: 'bg-amber-500' },
   { value: '#EF4444', label: 'Rouge', class: 'bg-red-500' },
   { value: '#EC4899', label: 'Rose', class: 'bg-pink-500' },
   { value: '#06B6D4', label: 'Cyan', class: 'bg-cyan-500' },
-  { value: '#6366F1', label: 'Indigo', class: 'bg-indigo-500' },
+  { value: '#6366F1', label: 'Indigo', class: 'bg-primary-500' },
 ];
 
 export default function AddServiceModal({ onClose, onSuccess }: AddServiceModalProps) {

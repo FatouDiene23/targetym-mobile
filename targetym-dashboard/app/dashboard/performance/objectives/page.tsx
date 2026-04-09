@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -121,8 +121,8 @@ export default function ObjectivesPage() {
         )}
 
         {/* Info card */}
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800">
+        <div className="mt-6 bg-primary-50 border border-primary-200 rounded-lg p-4">
+          <p className="text-sm text-primary-800">
             <strong>Conseil :</strong> Définissez des objectifs SMART (Spécifiques, Mesurables, Atteignables, Réalistes, Temporellement définis) pour maximiser vos chances de succès.
           </p>
         </div>

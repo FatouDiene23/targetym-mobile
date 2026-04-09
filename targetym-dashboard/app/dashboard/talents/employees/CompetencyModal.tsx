@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 // ============================================
 // CompetencyModal — Profil compétences d'un employé
@@ -51,7 +51,7 @@ const BAR_COLOR = (v: number) =>
 
 const SKILL_TYPE_LABEL: Record<string, { label: string; color: string }> = {
   soft_skill:  { label: 'Soft Skill',  color: 'bg-purple-100 text-purple-700' },
-  technical:   { label: 'Technique',   color: 'bg-blue-100 text-blue-700' },
+  technical:   { label: 'Technique',   color: 'bg-primary-100 text-primary-700' },
   management:  { label: 'Management',  color: 'bg-green-100 text-green-700' },
 };
 
@@ -113,8 +113,8 @@ function SkillCard({ skill }: { skill: SkillScore }) {
           {/* 3 sub-scores */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
             {[
-              { label: 'Formations', value: skill.formations_score, icon: BookOpen, color: 'text-blue-500' },
-              { label: 'Performance', value: skill.performance_score, icon: TrendingUp, color: 'text-indigo-500' },
+              { label: 'Formations', value: skill.formations_score, icon: BookOpen, color: 'text-primary-500' },
+              { label: 'Performance', value: skill.performance_score, icon: TrendingUp, color: 'text-primary-500' },
               { label: 'Attitude',  value: skill.attitude_score, icon: Heart, color: 'text-rose-500' },
             ].map(({ label, value, icon: Ic, color }) => (
               <div key={label} className="bg-white rounded-lg p-3 border border-gray-100 text-center">
@@ -148,9 +148,9 @@ function SkillCard({ skill }: { skill: SkillScore }) {
 
           {/* Recommendation */}
           {skill.recommendation && (
-            <div className="flex gap-2 bg-indigo-50 border border-indigo-100 rounded-lg p-3">
-              <Lightbulb className="w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-indigo-800">{skill.recommendation}</p>
+            <div className="flex gap-2 bg-primary-50 border border-primary-100 rounded-lg p-3">
+              <Lightbulb className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-primary-800">{skill.recommendation}</p>
             </div>
           )}
 
@@ -213,7 +213,7 @@ export default function CompetencyModal({ employeeId, employeeName, onClose }: P
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <Brain className="w-5 h-5 text-indigo-500" />
+            <Brain className="w-5 h-5 text-primary-500" />
             <div>
               <h2 className="font-semibold text-gray-900">Profil Compétences</h2>
               <p className="text-sm text-gray-500">{employeeName}</p>
@@ -240,7 +240,7 @@ export default function CompetencyModal({ employeeId, employeeName, onClose }: P
         <div className="flex-1 overflow-y-auto p-6">
           {loading ? (
             <div className="flex items-center justify-center h-40">
-              <RefreshCw className="w-8 h-8 animate-spin text-indigo-400" />
+              <RefreshCw className="w-8 h-8 animate-spin text-primary-400" />
             </div>
           ) : error ? (
             <div className="flex flex-col items-center gap-3 text-center py-12 text-gray-400">
@@ -255,7 +255,7 @@ export default function CompetencyModal({ employeeId, employeeName, onClose }: P
                 Cliquez sur "Recalculer" pour initialiser les scores depuis les formations, évaluations et feedbacks.
               </p>
               <button onClick={handleCompute} disabled={computing}
-                className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2">
+                className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2">
                 <RefreshCw className={`w-4 h-4 ${computing ? 'animate-spin' : ''}`} />
                 {computing ? 'Calcul en cours…' : 'Calculer les scores'}
               </button>
@@ -273,7 +273,7 @@ export default function CompetencyModal({ employeeId, employeeName, onClose }: P
                       strokeDasharray={`${(overall / 100) * 94.2} 94.2`}
                     />
                   </svg>
-                  <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-indigo-700">
+                  <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-primary-700">
                     {overall}%
                   </span>
                 </div>

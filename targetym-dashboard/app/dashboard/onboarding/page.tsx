@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
@@ -192,17 +192,17 @@ interface Department {
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 const CATEGORY_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
-  administratif: { label: 'Administratif', icon: FileText, color: 'text-blue-600 bg-blue-50' },
+  administratif: { label: 'Administratif', icon: FileText, color: 'text-primary-600 bg-primary-50' },
   materiel: { label: 'Matériel', icon: Monitor, color: 'text-purple-600 bg-purple-50' },
   formation: { label: 'Formation', icon: GraduationCap, color: 'text-green-600 bg-green-50' },
   rencontre: { label: 'Rencontre', icon: Handshake, color: 'text-amber-600 bg-amber-50' },
-  documentation: { label: 'Documentation', icon: BookOpen, color: 'text-indigo-600 bg-indigo-50' },
+  documentation: { label: 'Documentation', icon: BookOpen, color: 'text-primary-600 bg-primary-50' },
   acces_it: { label: 'Accès IT', icon: ShieldCheck, color: 'text-cyan-600 bg-cyan-50' },
   general: { label: 'Général', icon: ClipboardList, color: 'text-gray-600 bg-gray-50' },
 };
 
 const ROLE_CONFIG: Record<string, { label: string; color: string }> = {
-  hr: { label: 'RH', color: 'bg-blue-100 text-blue-700' },
+  hr: { label: 'RH', color: 'bg-primary-100 text-primary-700' },
   manager: { label: 'Manager', color: 'bg-green-100 text-green-700' },
   it: { label: 'IT', color: 'bg-purple-100 text-purple-700' },
   employee: { label: 'Employé', color: 'bg-amber-100 text-amber-700' },
@@ -211,20 +211,20 @@ const ROLE_CONFIG: Record<string, { label: string; color: string }> = {
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   not_started: { label: 'Non démarré', color: 'text-gray-700', bg: 'bg-gray-100' },
-  in_progress: { label: 'En cours', color: 'text-blue-700', bg: 'bg-blue-100' },
+  in_progress: { label: 'En cours', color: 'text-primary-700', bg: 'bg-primary-100' },
   completed: { label: 'Terminé', color: 'text-green-700', bg: 'bg-green-100' },
   cancelled: { label: 'Annulé', color: 'text-red-700', bg: 'bg-red-100' },
   overdue: { label: 'En retard', color: 'text-orange-700', bg: 'bg-orange-100' },
   pending: { label: 'En attente', color: 'text-yellow-700', bg: 'bg-yellow-100' },
   skipped: { label: 'Passé', color: 'text-gray-500', bg: 'bg-gray-50' },
   blocked: { label: 'Bloqué', color: 'text-red-700', bg: 'bg-red-100' },
-  scheduled: { label: 'Planifié', color: 'text-blue-700', bg: 'bg-blue-100' },
+  scheduled: { label: 'Planifié', color: 'text-primary-700', bg: 'bg-primary-100' },
   confirmed: { label: 'Confirmé', color: 'text-green-700', bg: 'bg-green-100' },
 };
 
 const TASK_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   pending: { label: 'À faire', color: 'text-yellow-700', bg: 'bg-yellow-100' },
-  in_progress: { label: 'En cours', color: 'text-blue-700', bg: 'bg-blue-100' },
+  in_progress: { label: 'En cours', color: 'text-primary-700', bg: 'bg-primary-100' },
   completed: { label: 'Fait', color: 'text-green-700', bg: 'bg-green-100' },
   skipped: { label: 'Passé', color: 'text-gray-500', bg: 'bg-gray-50' },
   blocked: { label: 'Bloqué', color: 'text-red-700', bg: 'bg-red-100' },
@@ -829,7 +829,7 @@ export default function OnboardingPage() {
                     {p.department_name && <span className="text-xs text-gray-400">{p.department_name}</span>}
                   </div>
                   <div className="flex items-center gap-2">
-                    {p.is_default && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Par défaut</span>}
+                    {p.is_default && <span className="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full">Par défaut</span>}
                     {!p.is_active && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1"><Archive size={10} /> Archivé</span>}
                   </div>
                 </div>
@@ -1239,7 +1239,7 @@ export default function OnboardingPage() {
               </div>
 
               <div className="flex items-center gap-3 text-xs">
-                {g.new_department && <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{g.new_department}</span>}
+                {g.new_department && <span className="bg-primary-50 text-primary-600 px-2 py-0.5 rounded-full">{g.new_department}</span>}
                 {g.meet_department && <span className="bg-green-50 text-green-600 px-2 py-0.5 rounded-full">{g.meet_department}</span>}
               </div>
 
@@ -1510,7 +1510,7 @@ export default function OnboardingPage() {
             <button onClick={() => { setShowAssignModal(false); setQueueStartItem(null); setPreselectedEmployeeId(''); setPreselectedEmployeeName(''); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
           </div>
           {queueStartItem && (
-            <div className="mx-6 mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2 text-sm text-blue-800">
+            <div className="mx-6 mt-4 p-3 bg-primary-50 border border-primary-200 rounded-lg flex items-center gap-2 text-sm text-primary-800">
               <UserCheck size={16} className="shrink-0" />
               <span>Pour : <strong>{queueStartItem.candidate_name}</strong> — {queueStartItem.job_title}</span>
             </div>

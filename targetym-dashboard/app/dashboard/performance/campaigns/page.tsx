@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -194,7 +194,7 @@ async function restoreCampaign(campaignId: number): Promise<{ success: boolean; 
 
 function getStatusColor(status: string) {
   switch (status) {
-    case 'completed': return 'bg-blue-100 text-blue-700';
+    case 'completed': return 'bg-primary-100 text-primary-700';
     case 'active': return 'bg-green-100 text-green-700';
     case 'draft': return 'bg-orange-100 text-orange-700';
     case 'cancelled': return 'bg-red-100 text-red-700';
@@ -568,11 +568,11 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
           {/* ── ETAPE 2 ── */}
           {step === 2 && (
             <>
-              <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-2">
-                <Users className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
-                <p className="text-sm text-blue-700">
+              <div className="p-3 bg-primary-50 border border-blue-100 rounded-xl flex items-start gap-2">
+                <Users className="w-4 h-4 text-primary-500 mt-0.5 shrink-0" />
+                <p className="text-sm text-primary-700">
                   Pour chaque employé, sélectionnez les{includePeer ? ' <strong>pairs</strong>' : ''}{includePeer && includeDirectReport ? ' et' : ''}{includeDirectReport ? ' <strong>collaborateurs directs</strong>' : ''} qui les évalueront.
-                  {includeManager && <span className="block text-xs text-blue-600 mt-0.5">Les managers sont déjà assignés automatiquement via l&apos;organigramme.</span>}
+                  {includeManager && <span className="block text-xs text-primary-600 mt-0.5">Les managers sont déjà assignés automatiquement via l&apos;organigramme.</span>}
                 </p>
               </div>
               <div className="space-y-4">
@@ -867,7 +867,7 @@ export default function CampaignsPage() {
                           {campaign.status === 'archived' && (
                             <button 
                               onClick={() => handleRestore(campaign.id, campaign.name)}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50"
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-primary-600 hover:bg-primary-50"
                             >
                               <RotateCcw className="w-4 h-4" />
                               Restaurer

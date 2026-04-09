@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { X, Lightbulb, ArrowRight } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
@@ -96,7 +96,7 @@ export default function PageTourTips({ tips, onDismiss, pageTitle }: Readonly<Pa
 
   return (
     <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[9999] max-w-lg w-full mx-4 animate-slideInRight">
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl shadow-2xl overflow-hidden">
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-primary-200 rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-4 flex items-start justify-between">
           <div className="flex items-start gap-3">
@@ -127,7 +127,7 @@ export default function PageTourTips({ tips, onDismiss, pageTitle }: Readonly<Pa
           {tip.action && (
             <button
               onClick={handleHighlightClick}
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium group"
+              className="flex items-center gap-2 text-primary-600 hover:text-primary-700 text-sm font-medium group"
             >
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               {tip.action.label}
@@ -139,7 +139,7 @@ export default function PageTourTips({ tips, onDismiss, pageTitle }: Readonly<Pa
         <div className="px-5 pb-3">
           <div className="w-full bg-blue-200 rounded-full h-1.5">
             <div
-              className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+              className="bg-primary-600 h-1.5 rounded-full transition-all duration-300"
               style={{ width: `${((currentTip + 1) / tips.length) * 100}%` }}
             />
           </div>
@@ -164,7 +164,7 @@ export default function PageTourTips({ tips, onDismiss, pageTitle }: Readonly<Pa
             )}
             <button
               onClick={handleNext}
-              className="px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-1.5"
+              className="px-4 py-2 text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 rounded-lg transition-colors flex items-center gap-1.5"
             >
               {isLastTip ? (
                 'Terminer'

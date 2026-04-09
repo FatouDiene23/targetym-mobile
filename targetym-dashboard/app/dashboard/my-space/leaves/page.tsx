@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -192,7 +192,7 @@ async function getMyTenantRecallPolicy(): Promise<'employee_chooses' | 'employer
 
 const MY_RECALL_STATUS_LABELS: Record<string, { label: string; className: string }> = {
   initie: { label: 'Initié', className: 'bg-gray-100 text-gray-800' },
-  valide_rh: { label: 'Validé RH', className: 'bg-blue-100 text-blue-800' },
+  valide_rh: { label: 'Validé RH', className: 'bg-primary-100 text-primary-800' },
   notifie: { label: 'Notifié', className: 'bg-orange-100 text-orange-800' },
   compensation_proposee: { label: 'Compensation proposée', className: 'bg-purple-100 text-purple-800' },
   compensation_validee: { label: 'Compensation validée', className: 'bg-cyan-100 text-cyan-800' },
@@ -431,16 +431,16 @@ function NewLeaveRequestModal({
               } else if (leaveType) {
                 if (leaveType.is_annual) {
                   return (
-                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                    <div className="p-3 bg-primary-50 border border-primary-200 rounded-lg text-sm text-primary-800">
                       Acquisition mensuelle : <span className="font-bold">{leaveType.accrual_rate ?? 2} j/mois</span>
-                      <span className="ml-2 text-xs text-blue-600">(solde à initialiser)</span>
+                      <span className="ml-2 text-xs text-primary-600">(solde à initialiser)</span>
                     </div>
                   );
                 } else if (leaveType.default_days > 0) {
                   return (
-                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                    <div className="p-3 bg-primary-50 border border-primary-200 rounded-lg text-sm text-primary-800">
                       Forfait annuel : <span className="font-bold">{leaveType.default_days} jours</span>
-                      <span className="ml-2 text-xs text-blue-600">(solde à initialiser)</span>
+                      <span className="ml-2 text-xs text-primary-600">(solde à initialiser)</span>
                     </div>
                   );
                 } else {

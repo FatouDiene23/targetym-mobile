@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Eye, EyeOff, Search, FolderOpen, BarChart3 } from 'lucide-react';
@@ -376,7 +376,7 @@ export default function HelpAdminPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                        <span className="px-2 py-1 text-xs font-medium bg-primary-100 text-primary-800 rounded-full">
                           {getCategoryName(article.category_id)}
                         </span>
                       </td>
@@ -408,7 +408,7 @@ export default function HelpAdminPage() {
                           </button>
                           <button
                             onClick={() => handleEditArticle(article)}
-                            className="text-blue-600 hover:text-blue-900"
+                            className="text-primary-600 hover:text-primary-900"
                             title="Modifier"
                           >
                             <Edit className="w-4 h-4" />
@@ -456,7 +456,7 @@ export default function HelpAdminPage() {
                   <div className="flex gap-2">
                     <button 
                       onClick={() => handleEditCategory(category)}
-                      className="text-blue-600 hover:text-blue-900"
+                      className="text-primary-600 hover:text-primary-900"
                       title="Modifier"
                     >
                       <Edit className="w-4 h-4" />
@@ -486,7 +486,7 @@ export default function HelpAdminPage() {
           <div className="bg-white p-3 lg:p-6 rounded-lg shadow">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Total Articles</h3>
-              <FolderOpen className="w-8 h-8 text-blue-500" />
+              <FolderOpen className="w-8 h-8 text-primary-500" />
             </div>
             <p className="text-3xl font-bold text-gray-900">{articles.length}</p>
             <p className="text-sm text-gray-500 mt-2">

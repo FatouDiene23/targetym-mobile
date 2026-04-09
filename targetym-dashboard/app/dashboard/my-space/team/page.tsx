@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -234,13 +234,13 @@ function getUpcomingAnniversaries(members: Employee[]): Anniversary[] {
 const PRIORITY_COLORS: Record<string, string> = {
   urgent: 'bg-red-100 text-red-700',
   high: 'bg-orange-100 text-orange-700',
-  medium: 'bg-blue-100 text-blue-700',
+  medium: 'bg-primary-100 text-primary-700',
   low: 'bg-gray-100 text-gray-600',
 };
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
-  in_progress: 'bg-blue-100 text-blue-700',
+  in_progress: 'bg-primary-100 text-primary-700',
   completed: 'bg-green-100 text-green-700',
   cancelled: 'bg-gray-100 text-gray-500',
 };
@@ -470,7 +470,7 @@ function MemberDetailPanel({ member, onClose }: { member: Employee; onClose: () 
                           <p className="text-sm font-medium text-gray-800 mb-1 truncate">{obj.title}</p>
                           <div className="flex items-center gap-2">
                             <div className="flex-1 h-2 bg-gray-200 rounded-full">
-                              <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${Math.min(obj.progress, 100)}%` }} />
+                              <div className="h-full rounded-full bg-primary-500 transition-all" style={{ width: `${Math.min(obj.progress, 100)}%` }} />
                             </div>
                             <span className="text-xs font-medium text-gray-600">{Math.round(obj.progress)}%</span>
                           </div>
@@ -537,7 +537,7 @@ function MemberDetailPanel({ member, onClose }: { member: Employee; onClose: () 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
                     { label: 'Total', value: taskData.stats.total, color: 'text-gray-700' },
-                    { label: 'En cours', value: taskData.stats.in_progress, color: 'text-blue-600' },
+                    { label: 'En cours', value: taskData.stats.in_progress, color: 'text-primary-600' },
                     { label: 'Terminées', value: taskData.stats.completed, color: 'text-green-600' },
                     { label: 'En retard', value: taskData.stats.overdue, color: 'text-red-600' },
                   ].map(s => (
@@ -592,7 +592,7 @@ function MemberDetailPanel({ member, onClose }: { member: Employee; onClose: () 
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm font-medium text-gray-800">{formatDate(o.scheduled_date)}</span>
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          o.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
+                          o.status === 'scheduled' ? 'bg-primary-100 text-primary-700' :
                           o.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
                         }`}>
                           {o.status === 'scheduled' ? 'Planifié' : o.status === 'completed' ? 'Terminé' : o.status}
@@ -714,7 +714,7 @@ export default function MyTeamPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8" data-tour="team-stats">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><Users className="w-5 h-5 text-blue-600" /></div>
+                <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center"><Users className="w-5 h-5 text-primary-600" /></div>
                 <div><p className="text-2xl font-bold text-gray-900">{teamMembers.length}</p><p className="text-sm text-gray-500">Collaborateurs</p></div>
               </div>
             </div>
@@ -785,19 +785,19 @@ export default function MyTeamPage() {
           {teamOneOnOnes.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
               <div className="flex items-center gap-2 mb-4">
-                <CalendarClock className="w-5 h-5 text-blue-600" />
+                <CalendarClock className="w-5 h-5 text-primary-600" />
                 <h2 className="text-lg font-semibold text-gray-900">Activités d&apos;équipe</h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {teamOneOnOnes.slice(0, 6).map(o => (
-                  <div key={o.id} className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                  <div key={o.id} className="bg-primary-50 border border-blue-100 rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-xs font-medium">
+                      <div className="w-7 h-7 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 text-xs font-medium">
                         {o.employee_name?.split(' ').map(n => n[0]).join('') || '?'}
                       </div>
                       <span className="text-sm font-medium text-gray-900">{o.employee_name}</span>
                     </div>
-                    <p className="text-xs text-blue-700 font-medium">{formatDate(o.scheduled_date)}</p>
+                    <p className="text-xs text-primary-700 font-medium">{formatDate(o.scheduled_date)}</p>
                     {o.topics && <p className="text-xs text-gray-500 mt-1 truncate">{o.topics}</p>}
                   </div>
                 ))}

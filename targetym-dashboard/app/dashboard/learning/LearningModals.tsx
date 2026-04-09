@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 // ============================================
 // LEARNING MODULE - ALL MODALS
@@ -94,7 +94,7 @@ export function LearningModals() {
               </div>
             </div>
             <div className="p-6 space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+              <div className="flex items-center gap-3 p-3 bg-primary-50 rounded-lg">
                 <span className="text-2xl">{assignmentToComplete.course_image || '📚'}</span>
                 <div><p className="font-medium text-gray-900">{assignmentToComplete.course_title}</p><p className="text-sm text-gray-500">{assignmentToComplete.course_duration}h</p></div>
               </div>
@@ -296,7 +296,7 @@ export function LearningModals() {
             <div className="p-6">
               <div className="flex items-center gap-4 mb-6"><div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold">{selectedAssignment.employee_initials}</div><div><p className="font-semibold text-gray-900">{selectedAssignment.employee_name}</p><p className="text-sm text-gray-500">{selectedAssignment.course_title}</p></div></div>
               {selectedAssignment.completion_note && (<div className="mb-4 p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-500 mb-1">Note de l&apos;employé:</p><p className="text-sm text-gray-700">{selectedAssignment.completion_note}</p></div>)}
-              {selectedAssignment.certificate_file && (<div className="mb-4 p-3 bg-blue-50 rounded-lg flex items-center gap-2"><Upload className="w-4 h-4 text-blue-600" /><span className="text-sm text-blue-700">{selectedAssignment.certificate_filename}</span><a href={`${API_URL}${selectedAssignment.certificate_file}`} target="_blank" rel="noopener noreferrer" className="ml-auto text-blue-600 hover:underline text-sm">Voir</a></div>)}
+              {selectedAssignment.certificate_file && (<div className="mb-4 p-3 bg-primary-50 rounded-lg flex items-center gap-2"><Upload className="w-4 h-4 text-primary-600" /><span className="text-sm text-primary-700">{selectedAssignment.certificate_filename}</span><a href={`${API_URL}${selectedAssignment.certificate_file}`} target="_blank" rel="noopener noreferrer" className="ml-auto text-primary-600 hover:underline text-sm">Voir</a></div>)}
               {selectedAssignment.requires_certificate && !selectedAssignment.certificate_file && (<div className="mb-4 p-3 bg-red-50 rounded-lg flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-red-600" /><span className="text-sm text-red-700">Certificat requis mais non fourni!</span></div>)}
               <div className="flex gap-3 mb-4">
                 <button onClick={() => setValidationData({ ...validationData, approved: true })} className={`flex-1 p-3 rounded-lg border-2 flex items-center justify-center gap-2 ${validationData.approved ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-500'}`}><Check className="w-5 h-5" />Approuver</button>
@@ -383,13 +383,13 @@ export function LearningModals() {
               {newPlan.skill_ids.length > 0 && (() => {
                 const recommended = courses.filter(c => c.skills?.some(s => newPlan.skill_ids.includes(s.id)) && !newPlan.course_ids.includes(c.id));
                 return recommended.length > 0 ? (
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-xs font-medium text-blue-700 mb-2">✨ Formations recommandées pour les compétences sélectionnées</p>
+                  <div className="p-3 bg-primary-50 border border-primary-200 rounded-lg">
+                    <p className="text-xs font-medium text-primary-700 mb-2">✨ Formations recommandées pour les compétences sélectionnées</p>
                     <div className="space-y-1">
                       {recommended.map((course) => (
                         <div key={course.id} className="flex items-center justify-between gap-2">
                           <span className="text-sm text-gray-700">{course.image_emoji} {course.title}</span>
-                          <button onClick={() => setNewPlan({ ...newPlan, course_ids: [...newPlan.course_ids, course.id] })} className="text-xs px-2 py-0.5 bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap">+ Ajouter</button>
+                          <button onClick={() => setNewPlan({ ...newPlan, course_ids: [...newPlan.course_ids, course.id] })} className="text-xs px-2 py-0.5 bg-primary-600 text-white rounded hover:bg-primary-700 whitespace-nowrap">+ Ajouter</button>
                         </div>
                       ))}
                     </div>
@@ -399,7 +399,7 @@ export function LearningModals() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Formations à assigner</label>
                 <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2">{courses.map((course) => (<label key={course.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded"><input type="checkbox" checked={newPlan.course_ids.includes(course.id)} onChange={(e) => { if (e.target.checked) { setNewPlan({ ...newPlan, course_ids: [...newPlan.course_ids, course.id] }); } else { setNewPlan({ ...newPlan, course_ids: newPlan.course_ids.filter((id: number) => id !== course.id) }); } }} className="rounded" /><span className="text-sm text-gray-700">{course.title}</span></label>))}</div>
-                <p className="text-xs text-blue-600 mt-1 flex items-center gap-1"><CheckCircle className="w-3 h-3" />Les formations seront automatiquement assignées</p>
+                <p className="text-xs text-primary-600 mt-1 flex items-center gap-1"><CheckCircle className="w-3 h-3" />Les formations seront automatiquement assignées</p>
               </div>
             </div>
             <div className="p-6 border-t border-gray-200 flex gap-3">
@@ -426,13 +426,13 @@ export function LearningModals() {
               {editPlanData.skill_ids.length > 0 && (() => {
                 const recommended = courses.filter(c => c.skills?.some(s => editPlanData.skill_ids.includes(s.id)) && !editPlanData.course_ids.includes(c.id));
                 return recommended.length > 0 ? (
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-xs font-medium text-blue-700 mb-2">✨ Formations recommandées pour les compétences sélectionnées</p>
+                  <div className="p-3 bg-primary-50 border border-primary-200 rounded-lg">
+                    <p className="text-xs font-medium text-primary-700 mb-2">✨ Formations recommandées pour les compétences sélectionnées</p>
                     <div className="space-y-1">
                       {recommended.map((course) => (
                         <div key={course.id} className="flex items-center justify-between gap-2">
                           <span className="text-sm text-gray-700">{course.image_emoji} {course.title}</span>
-                          <button onClick={() => setEditPlanData({ ...editPlanData, course_ids: [...editPlanData.course_ids, course.id] })} className="text-xs px-2 py-0.5 bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap">+ Ajouter</button>
+                          <button onClick={() => setEditPlanData({ ...editPlanData, course_ids: [...editPlanData.course_ids, course.id] })} className="text-xs px-2 py-0.5 bg-primary-600 text-white rounded hover:bg-primary-700 whitespace-nowrap">+ Ajouter</button>
                         </div>
                       ))}
                     </div>
@@ -442,7 +442,7 @@ export function LearningModals() {
               <div>
                 <div className="flex items-center justify-between mb-2"><label className="block text-sm font-medium text-gray-700">Formations</label><span className="text-xs text-gray-500">{editPlanData.course_ids.length} sélectionnée(s)</span></div>
                 <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2">{courses.map((course) => (<label key={course.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" checked={editPlanData.course_ids.includes(course.id)} onChange={(e) => { if (e.target.checked) { setEditPlanData({ ...editPlanData, course_ids: [...editPlanData.course_ids, course.id] }); } else { setEditPlanData({ ...editPlanData, course_ids: editPlanData.course_ids.filter((id: number) => id !== course.id) }); } }} className="rounded text-primary-600" /><span className="text-2xl">{course.image_emoji || '📚'}</span><span className="text-sm text-gray-700 flex-1">{course.title}</span><span className="text-xs text-gray-400">{course.duration_hours}h</span></label>))}</div>
-                <p className="text-xs text-blue-600 mt-1 flex items-center gap-1"><CheckCircle className="w-3 h-3" />Les nouvelles formations seront auto-assignées</p>
+                <p className="text-xs text-primary-600 mt-1 flex items-center gap-1"><CheckCircle className="w-3 h-3" />Les nouvelles formations seront auto-assignées</p>
               </div>
             </div>
             <div className="p-6 border-t border-gray-200 flex gap-3">
@@ -541,7 +541,7 @@ export function LearningModals() {
               <div className="flex items-center justify-between"><div><h2 className="text-xl font-bold text-gray-900">Évaluation Post-Formation</h2><p className="text-sm text-gray-500 mt-1">{selectedEpf.course_title}</p></div><button onClick={() => { setShowEvalModal(false); setSelectedEpf(null); }} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div>
             </div>
             <div className="p-6 space-y-6">
-              <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg"><div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold">{selectedEpf.employee_initials}</div><div><p className="font-medium text-gray-900">{selectedEpf.employee_name}</p><p className="text-sm text-gray-500">{selectedEpf.employee_job_title}</p></div></div>
+              <div className="flex items-center gap-3 p-3 bg-primary-50 rounded-lg"><div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold">{selectedEpf.employee_initials}</div><div><p className="font-medium text-gray-900">{selectedEpf.employee_name}</p><p className="text-sm text-gray-500">{selectedEpf.employee_job_title}</p></div></div>
               <div>
                 <h3 className="font-semibold text-gray-900 mb-3">Critères d&apos;évaluation</h3>
                 <div className="space-y-4">
@@ -631,7 +631,7 @@ export function LearningModals() {
           <div className="bg-white rounded-2xl w-full max-w-md">
             <div className="p-6 border-b border-gray-200"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-gray-900">Assigner un évaluateur</h2><button onClick={() => setShowAssignEvaluator(null)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div></div>
             <div className="p-6 space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg"><span className="text-2xl">{showAssignEvaluator.course_emoji}</span><div><p className="font-medium text-gray-900">{showAssignEvaluator.course_title}</p><p className="text-sm text-gray-500">Pour: {showAssignEvaluator.employee_name}</p></div></div>
+              <div className="flex items-center gap-3 p-3 bg-primary-50 rounded-lg"><span className="text-2xl">{showAssignEvaluator.course_emoji}</span><div><p className="font-medium text-gray-900">{showAssignEvaluator.course_title}</p><p className="text-sm text-gray-500">Pour: {showAssignEvaluator.employee_name}</p></div></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Évaluateur *</label><select value={selectedEvaluatorId} onChange={(e) => setSelectedEvaluatorId(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="">Sélectionner...</option>{employees.filter(e => e.id !== showAssignEvaluator.employee_id).map((emp) => (<option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name} - {emp.job_title}</option>))}</select></div>
             </div>
             <div className="p-6 border-t border-gray-200 flex gap-3">

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import toast from 'react-hot-toast';
@@ -195,10 +195,10 @@ export default function PathsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500">Heures de contenu</p>
-                <p className="text-2xl font-bold text-blue-600">{learningPaths.reduce((s, p) => s + (p.duration_hours || 0), 0)}h</p>
+                <p className="text-2xl font-bold text-primary-600">{learningPaths.reduce((s, p) => s + (p.duration_hours || 0), 0)}h</p>
               </div>
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Clock className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                <Clock className="w-5 h-5 text-primary-600" />
               </div>
             </div>
           </div>
@@ -206,10 +206,10 @@ export default function PathsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500">Cours au total</p>
-                <p className="text-2xl font-bold text-indigo-600">{learningPaths.reduce((s, p) => s + (p.courses_count || 0), 0)}</p>
+                <p className="text-2xl font-bold text-primary-600">{learningPaths.reduce((s, p) => s + (p.courses_count || 0), 0)}</p>
               </div>
-              <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <BookOpen className="w-5 h-5 text-indigo-600" />
+              <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                <BookOpen className="w-5 h-5 text-primary-600" />
               </div>
             </div>
           </div>
@@ -223,11 +223,11 @@ export default function PathsPage() {
         )}
 
         {/* Info banner */}
-        <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-800">
-          <Target className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 p-4 bg-primary-50 border border-blue-100 rounded-xl text-sm text-primary-800">
+          <Target className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
           <div>
             <p className="font-medium">Parcours collectifs de formation</p>
-            <p className="text-blue-600 mt-0.5">Un parcours regroupe plusieurs cours autour d'un thème (ex: "Développeur Fullstack"). Il peut être assigné à plusieurs employés à la fois. Pour un plan personnalisé lié à la carrière d'un employé, utilisez <span className="font-semibold">Plans Individuels</span>.</p>
+            <p className="text-primary-600 mt-0.5">Un parcours regroupe plusieurs cours autour d'un thème (ex: "Développeur Fullstack"). Il peut être assigné à plusieurs employés à la fois. Pour un plan personnalisé lié à la carrière d'un employé, utilisez <span className="font-semibold">Plans Individuels</span>.</p>
           </div>
         </div>
 

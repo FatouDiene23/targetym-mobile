@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -145,7 +145,7 @@ function normalizeRole(role: string | undefined): UserRole {
 function getStatusColor(status: string) {
   switch (status) {
     case 'validated': return 'bg-green-100 text-green-700';
-    case 'submitted': return 'bg-blue-100 text-blue-700';
+    case 'submitted': return 'bg-primary-100 text-primary-700';
     case 'in_progress': return 'bg-yellow-100 text-yellow-700';
     case 'pending': return 'bg-gray-100 text-gray-600';
     case 'cancelled': return 'bg-red-100 text-red-700';
@@ -178,7 +178,7 @@ function getTypeLabel(type: string) {
 function getTypeColor(type: string) {
   switch (type) {
     case 'self': return 'bg-purple-100 text-purple-700';
-    case 'manager': return 'bg-blue-100 text-blue-700';
+    case 'manager': return 'bg-primary-100 text-primary-700';
     case 'peer': return 'bg-teal-100 text-teal-700';
     case 'direct_report': return 'bg-orange-100 text-orange-700';
     default: return 'bg-gray-100 text-gray-600';
@@ -340,7 +340,7 @@ function EvaluationViewModal({ isOpen, onClose, evaluation }: {
           {evaluation.manager_comments && (
             <div>
               <h4 className="font-semibold text-gray-900 mb-2">Commentaires du Manager</h4>
-              <p className="text-sm text-gray-700 bg-blue-50 p-3 rounded-lg">{evaluation.manager_comments}</p>
+              <p className="text-sm text-gray-700 bg-primary-50 p-3 rounded-lg">{evaluation.manager_comments}</p>
             </div>
           )}
         </div>
@@ -519,7 +519,7 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
           {!isManagerReviewing && evaluation.manager_comments && (
             <div>
               <h4 className="font-semibold text-gray-900 mb-2">Commentaires du Manager</h4>
-              <p className="text-sm text-gray-700 bg-blue-50 p-3 rounded-lg">{evaluation.manager_comments}</p>
+              <p className="text-sm text-gray-700 bg-primary-50 p-3 rounded-lg">{evaluation.manager_comments}</p>
             </div>
           )}
         </div>

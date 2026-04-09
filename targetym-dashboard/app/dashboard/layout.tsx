@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
@@ -19,7 +19,7 @@ function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="text-center">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
         <p className="text-gray-500">Chargement...</p>
       </div>
     </div>
@@ -98,8 +98,8 @@ function TwoFactorSetupModal({ onComplete }: { onComplete: () => void }) {
     <div className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
         <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Shield className="w-8 h-8 text-blue-600" />
+          <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Shield className="w-8 h-8 text-primary-600" />
           </div>
           <h2 className="text-xl font-bold text-gray-900">Configuration 2FA requise</h2>
           <p className="text-sm text-gray-500 mt-2">
@@ -110,7 +110,7 @@ function TwoFactorSetupModal({ onComplete }: { onComplete: () => void }) {
 
         {step === 'loading' && (
           <div className="flex justify-center py-8">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
           </div>
         )}
 
@@ -132,7 +132,7 @@ function TwoFactorSetupModal({ onComplete }: { onComplete: () => void }) {
             </div>
             <button
               onClick={() => setStep('verify')}
-              className="w-full py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              className="w-full py-2.5 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
             >
               J&apos;ai scanné le QR code
             </button>
@@ -155,7 +155,7 @@ function TwoFactorSetupModal({ onComplete }: { onComplete: () => void }) {
                   value={digit}
                   onChange={(e) => handleOtpChange(i, e.target.value)}
                   onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                  className="w-12 h-14 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                  className="w-12 h-14 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
                 />
               ))}
             </div>
@@ -163,7 +163,7 @@ function TwoFactorSetupModal({ onComplete }: { onComplete: () => void }) {
             <button
               onClick={handleVerify}
               disabled={verifying || otpCode.join('').length !== 6}
-              className="w-full py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+              className="w-full py-2.5 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
             >
               {verifying ? 'Vérification...' : 'Vérifier et activer'}
             </button>

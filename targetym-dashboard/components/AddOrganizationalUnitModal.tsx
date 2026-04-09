@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { Loader2, ChevronLeft, Building2, Users, Briefcase, Layers, Network, GitBranch, Search, X } from 'lucide-react';
@@ -65,7 +65,7 @@ const ORGANIZATIONAL_LEVELS = [
     label: 'Service', 
     shortLabel: 'SRV',
     icon: Layers,
-    color: 'bg-blue-500'
+    color: 'bg-primary-500'
   },
 ];
 

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -78,7 +78,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   pending:     { label: 'En attente',    color: 'bg-yellow-100 text-yellow-700 border-yellow-200',  icon: Clock },
   justified:   { label: 'Justifié',      color: 'bg-green-100 text-green-700 border-green-200',     icon: CheckCircle },
   unjustified: { label: 'Injustifié',    color: 'bg-red-100 text-red-700 border-red-200',           icon: XCircle },
-  notified:    { label: 'Notifié',       color: 'bg-blue-100 text-blue-700 border-blue-200',        icon: AlertTriangle },
+  notified:    { label: 'Notifié',       color: 'bg-primary-100 text-primary-700 border-primary-200',        icon: AlertTriangle },
 };
 
 function fmtDate(d: string) {

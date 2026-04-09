@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -116,7 +116,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   active:     { label: 'Actif',      color: 'bg-green-100 text-green-700' },
   terminated: { label: 'Parti',      color: 'bg-red-100 text-red-700' },
   inactive:   { label: 'Inactif',    color: 'bg-gray-100 text-gray-600' },
-  on_leave:   { label: 'En congé',   color: 'bg-blue-100 text-blue-700' },
+  on_leave:   { label: 'En congé',   color: 'bg-primary-100 text-primary-700' },
   suspended:  { label: 'Suspendu',   color: 'bg-orange-100 text-orange-700' },
   probation:  { label: 'Période d\'essai', color: 'bg-yellow-100 text-yellow-700' },
 };
@@ -380,9 +380,9 @@ export default function CertificatesPage() {
                 <div data-tour="certificates-generate">
                   {/* Info */}
                   <div className="flex gap-4 mb-5">
-                    <div className="flex-1 bg-blue-50 border border-blue-100 rounded-lg p-3 flex items-start gap-2">
-                      <FileCheck className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-blue-700">
+                    <div className="flex-1 bg-primary-50 border border-blue-100 rounded-lg p-3 flex items-start gap-2">
+                      <FileCheck className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-primary-700">
                         <strong>Attestation de travail</strong> — confirme qu&apos;un employé fait partie de l&apos;effectif
                       </p>
                     </div>
@@ -587,7 +587,7 @@ export default function CertificatesPage() {
                                 <td className="px-4 py-3.5">
                                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                                     cert.generation_type === 'self'
-                                      ? 'bg-blue-100 text-blue-700'
+                                      ? 'bg-primary-100 text-primary-700'
                                       : 'bg-green-100 text-green-700'
                                   }`}>
                                     {cert.generation_type === 'self' ? (

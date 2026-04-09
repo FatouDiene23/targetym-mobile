@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Header from '@/components/Header';
 import { useState, useEffect, useCallback } from 'react';
@@ -149,9 +149,9 @@ const stageLabels: Record<string, string> = {
 };
 
 const stageColors: Record<string, string> = {
-  new: 'bg-blue-100 text-blue-700',
+  new: 'bg-primary-100 text-primary-700',
   screening: 'bg-purple-100 text-purple-700',
-  phone_screen: 'bg-indigo-100 text-indigo-700',
+  phone_screen: 'bg-primary-100 text-primary-700',
   hr_interview: 'bg-violet-100 text-violet-700',
   technical: 'bg-orange-100 text-orange-700',
   final: 'bg-yellow-100 text-yellow-700',
@@ -312,8 +312,8 @@ export default function CareersPage() {
                 <p className="text-xs text-gray-500">Postes Ouverts</p>
                 <p className="text-2xl font-bold text-gray-900">{jobs.length}</p>
               </div>
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Briefcase className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                <Briefcase className="w-5 h-5 text-primary-600" />
               </div>
             </div>
           </div>
@@ -471,7 +471,7 @@ export default function CareersPage() {
                       </div>
 
                       <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4">
-                        <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 bg-blue-50 text-blue-700 text-[10px] sm:text-xs rounded-full">
+                        <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 bg-primary-50 text-primary-700 text-[10px] sm:text-xs rounded-full">
                           {job.contract_type}
                         </span>
                         {job.show_salary && formatSalary(job.salary_min, job.salary_max, job.salary_currency) && (
@@ -655,7 +655,7 @@ export default function CareersPage() {
               <div className="p-6 space-y-6">
                 {/* Quick Info */}
                 <div className="flex flex-wrap gap-3">
-                  <span className="px-3 py-1.5 bg-blue-100 text-blue-700 text-sm rounded-full">
+                  <span className="px-3 py-1.5 bg-primary-100 text-primary-700 text-sm rounded-full">
                     {selectedJob.contract_type}
                   </span>
                   <span className="px-3 py-1.5 bg-purple-100 text-purple-700 text-sm rounded-full">
@@ -718,7 +718,7 @@ export default function CareersPage() {
                     <ul className="space-y-2">
                       {selectedJob.nice_to_have.map((r, i) => (
                         <li key={i} className="flex items-start text-gray-600">
-                          <TrendingUp className="w-4 h-4 mr-2 mt-0.5 text-blue-500 flex-shrink-0" />
+                          <TrendingUp className="w-4 h-4 mr-2 mt-0.5 text-primary-500 flex-shrink-0" />
                           {r}
                         </li>
                       ))}

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { 
@@ -116,7 +116,7 @@ export default function LeaveRequestModal({
   const getLeaveTypeColor = (code?: string) => {
     const colors: Record<string, string> = {
       'CA': 'bg-emerald-100 text-emerald-700 border-emerald-200',
-      'RTT': 'bg-blue-100 text-blue-700 border-blue-200',
+      'RTT': 'bg-primary-100 text-primary-700 border-primary-200',
       'MAL': 'bg-red-100 text-red-700 border-red-200',
       'MAT': 'bg-pink-100 text-pink-700 border-pink-200',
       'PAT': 'bg-purple-100 text-purple-700 border-purple-200',

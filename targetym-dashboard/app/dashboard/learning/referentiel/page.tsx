@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 // ============================================
 // LEARNING MODULE — Référentiel Compétences
@@ -42,13 +42,13 @@ const DEPARTMENTS = [
 const SKILL_TYPES: { value: string; label: string; icon?: LucideIcon; color?: string }[] = [
   { value: '', label: 'Tous types' },
   { value: 'soft_skill', label: 'Soft Skill', icon: Brain, color: 'bg-purple-100 text-purple-700' },
-  { value: 'technical', label: 'Technique', icon: Code2, color: 'bg-blue-100 text-blue-700' },
+  { value: 'technical', label: 'Technique', icon: Code2, color: 'bg-primary-100 text-primary-700' },
   { value: 'management', label: 'Management', icon: Users, color: 'bg-green-100 text-green-700' },
 ];
 
 const SKILL_TYPE_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   soft_skill:  { label: 'Soft Skill',  icon: Brain,  color: 'bg-purple-100 text-purple-700' },
-  technical:   { label: 'Technique',   icon: Code2,  color: 'bg-blue-100 text-blue-700' },
+  technical:   { label: 'Technique',   icon: Code2,  color: 'bg-primary-100 text-primary-700' },
   management:  { label: 'Management',  icon: Users,  color: 'bg-green-100 text-green-700' },
 };
 
@@ -216,7 +216,7 @@ export default function ReferentielPage() {
 
         {canEdit && (
           <button onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700">
             <Plus className="w-4 h-4" /> Nouvelle compétence
           </button>
         )}
@@ -336,7 +336,7 @@ export default function ReferentielPage() {
                 Annuler
               </button>
               <button onClick={saveSkill} disabled={saving}
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50">
+                className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50">
                 {saving ? 'Enregistrement…' : editSkill ? 'Mettre à jour' : 'Créer'}
               </button>
             </div>
@@ -400,7 +400,7 @@ function SkillTable({
                 {canEdit && (
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 justify-end">
-                      <button onClick={() => onEdit(s)} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded">
+                      <button onClick={() => onEdit(s)} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded">
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button onClick={() => onDelete(s.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded">

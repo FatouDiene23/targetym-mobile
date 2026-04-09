@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
@@ -52,7 +52,7 @@ function getAuthHeaders(): HeadersInit {
 const defaultConfig: PageConfig = {
   title: 'Que souhaitez-vous ajouter ?',
   options: [
-    { id: 'employee', label: 'Employé', description: 'Ajouter un nouveau collaborateur', icon: User, color: 'bg-blue-100 text-blue-600' },
+    { id: 'employee', label: 'Employé', description: 'Ajouter un nouveau collaborateur', icon: User, color: 'bg-primary-100 text-primary-600' },
     { id: 'department', label: 'Unité Organisationnelle', description: 'DG, Direction, Département, Service...', icon: Building2, color: 'bg-purple-100 text-purple-600' },
   ]
 };
@@ -71,7 +71,7 @@ const pageConfigs: Record<string, PageConfig> = {
     title: 'Que souhaitez-vous ajouter ?',
     options: [
       { id: 'training', label: 'Formation', description: 'Créer une nouvelle formation', icon: GraduationCap, color: 'bg-orange-100 text-orange-600' },
-      { id: 'dev-plan', label: 'Plan de développement', description: 'Créer un plan pour un employé', icon: ClipboardList, color: 'bg-blue-100 text-blue-600' },
+      { id: 'dev-plan', label: 'Plan de développement', description: 'Créer un plan pour un employé', icon: ClipboardList, color: 'bg-primary-100 text-primary-600' },
     ]
   },
   '/dashboard/okr': {
@@ -84,7 +84,7 @@ const pageConfigs: Record<string, PageConfig> = {
   '/dashboard/conges': {
     title: 'Nouvelle demande',
     options: [
-      { id: 'leave', label: 'Demande de congé', description: 'Créer une nouvelle demande de congé', icon: Calendar, color: 'bg-blue-100 text-blue-600' },
+      { id: 'leave', label: 'Demande de congé', description: 'Créer une nouvelle demande de congé', icon: Calendar, color: 'bg-primary-100 text-primary-600' },
     ]
   },
   '/dashboard/performance': {
@@ -97,13 +97,13 @@ const pageConfigs: Record<string, PageConfig> = {
   '/dashboard/certificates': {
     title: 'Certificats',
     options: [
-      { id: 'certificate', label: 'Certificat de travail', description: 'Générer un certificat pour un employé', icon: FileText, color: 'bg-blue-100 text-blue-600' },
+      { id: 'certificate', label: 'Certificat de travail', description: 'Générer un certificat pour un employé', icon: FileText, color: 'bg-primary-100 text-primary-600' },
     ]
   },
   '/dashboard/missions': {
     title: 'Que souhaitez-vous ajouter ?',
     options: [
-      { id: 'mission', label: 'Demande de mission', description: 'Créer une nouvelle demande', icon: Plane, color: 'bg-blue-100 text-blue-600' },
+      { id: 'mission', label: 'Demande de mission', description: 'Créer une nouvelle demande', icon: Plane, color: 'bg-primary-100 text-primary-600' },
     ]
   },
 };

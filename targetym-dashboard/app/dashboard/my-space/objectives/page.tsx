@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -92,10 +92,10 @@ const getStatusColor = (status: string) => {
     'on_track': 'bg-green-100 text-green-700 border-green-200',
     'at_risk': 'bg-yellow-100 text-yellow-700 border-yellow-200',
     'behind': 'bg-red-100 text-red-700 border-red-200',
-    'exceeded': 'bg-indigo-100 text-indigo-700 border-indigo-200',
+    'exceeded': 'bg-primary-100 text-primary-700 border-primary-200',
     'completed': 'bg-green-100 text-green-700 border-green-200',
     'draft': 'bg-gray-100 text-gray-600 border-gray-200',
-    'active': 'bg-blue-100 text-blue-700 border-blue-200',
+    'active': 'bg-primary-100 text-primary-700 border-primary-200',
   };
   return colors[status] || 'bg-gray-100 text-gray-600 border-gray-200';
 };
@@ -129,7 +129,7 @@ const getStatusIcon = (status: string) => {
 };
 
 const getProgressColor = (progress: number) => {
-  if (progress >= 100) return 'bg-indigo-500';
+  if (progress >= 100) return 'bg-primary-500';
   if (progress >= 70) return 'bg-green-500';
   if (progress >= 40) return 'bg-yellow-500';
   return 'bg-red-500';
@@ -158,7 +158,7 @@ const getLevelLabel = (level: string) => {
 const getLevelColor = (level: string) => {
   const colors: Record<string, string> = {
     'enterprise': 'bg-purple-100 text-purple-700',
-    'department': 'bg-blue-100 text-blue-700',
+    'department': 'bg-primary-100 text-primary-700',
     'individual': 'bg-teal-100 text-teal-700',
   };
   return colors[level] || 'bg-gray-100 text-gray-700';
@@ -287,7 +287,7 @@ function KeyResultItem({
                 </button>
               </div>
               <span className={`text-sm font-bold ${
-                progress >= 100 ? 'text-indigo-600' :
+                progress >= 100 ? 'text-primary-600' :
                 progress >= 70 ? 'text-green-600' :
                 progress >= 40 ? 'text-yellow-600' : 'text-red-600'
               }`}>
@@ -485,8 +485,8 @@ export default function MyObjectivesPage() {
           
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-primary-600" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">{avgProgress}%</p>
@@ -533,14 +533,14 @@ export default function MyObjectivesPage() {
         </div>
 
         {/* Info Box */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+        <div className="bg-primary-50 border border-primary-200 rounded-xl p-4 mb-6">
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <Edit2 className="w-4 h-4 text-blue-600" />
+            <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <Edit2 className="w-4 h-4 text-primary-600" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-blue-900">Comment mettre à jour vos objectifs ?</h3>
-              <p className="text-sm text-blue-700 mt-1">
+              <h3 className="text-sm font-semibold text-primary-900">Comment mettre à jour vos objectifs ?</h3>
+              <p className="text-sm text-primary-700 mt-1">
                 Cliquez sur l&apos;icône <Edit2 className="w-3 h-3 inline" /> à côté de chaque Key Result pour 
                 mettre à jour votre progression. La progression de l&apos;objectif sera recalculée automatiquement.
               </p>

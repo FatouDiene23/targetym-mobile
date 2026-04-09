@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Header from '@/components/Header';
 import { useState, useEffect, useCallback } from 'react';
@@ -1360,14 +1360,14 @@ export default function SettingsPage() {
                 <div className="mt-4 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
-                        <Layers className="w-5 h-5 text-indigo-600" />
+                      <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center">
+                        <Layers className="w-5 h-5 text-primary-600" />
                       </div>
                       <div>
                         <h4 className="font-semibold text-gray-900">Mes filiales</h4>
                         <p className="text-xs text-gray-500">Gérez les entités de votre groupe</p>
                         {groupQuota && (
-                          <p className="text-xs text-indigo-600 mt-1">
+                          <p className="text-xs text-primary-600 mt-1">
                             Quota utilisé : {groupQuota.used}/{groupQuota.allowed} · Restant : {groupQuota.remaining}
                           </p>
                         )}
@@ -1385,7 +1385,7 @@ export default function SettingsPage() {
                       className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                         isQuotaReached
                           ? 'bg-amber-500 text-white hover:bg-amber-600'
-                          : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                          : 'bg-primary-600 text-white hover:bg-primary-700'
                       }`}
                     >
                       <span className="text-lg leading-none">{isQuotaReached ? '↗' : '+'}</span>
@@ -1408,11 +1408,11 @@ export default function SettingsPage() {
 
                   {loadingSubsidiaries ? (
                     <div className="flex items-center justify-center py-6">
-                      <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
+                      <Loader2 className="w-5 h-5 animate-spin text-primary-500" />
                     </div>
                   ) : groupSubsidiaries.length === 0 ? (
                     <div
-                      className="text-center py-8 text-gray-400 cursor-pointer hover:text-indigo-500 transition-colors border-2 border-dashed border-gray-200 rounded-lg"
+                      className="text-center py-8 text-gray-400 cursor-pointer hover:text-primary-500 transition-colors border-2 border-dashed border-gray-200 rounded-lg"
                       onClick={() => {
                         if (isQuotaReached) {
                           setShowConvForm(true);
@@ -1441,8 +1441,8 @@ export default function SettingsPage() {
                             {sub.logo_url ? (
                               <img src={sub.logo_url} alt={sub.name} className="w-8 h-8 rounded-lg object-cover" />
                             ) : (
-                              <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
-                                <span className="text-xs font-bold text-indigo-600">{sub.name.charAt(0).toUpperCase()}</span>
+                              <div className="w-8 h-8 rounded-lg bg-primary-100 flex items-center justify-center">
+                                <span className="text-xs font-bold text-primary-600">{sub.name.charAt(0).toUpperCase()}</span>
                               </div>
                             )}
                             <div>
@@ -1464,7 +1464,7 @@ export default function SettingsPage() {
                   {!loadingSubsidiaries && groupSubsidiaries.length === 0 && (
                     <button
                       onClick={fetchGroupSubsidiaries}
-                      className="mt-3 text-xs text-indigo-500 hover:text-indigo-700 underline"
+                      className="mt-3 text-xs text-primary-500 hover:text-primary-700 underline"
                     >
                       Charger mes filiales
                     </button>
@@ -1504,7 +1504,7 @@ export default function SettingsPage() {
                             setNewSubSlug(slug);
                           }}
                           placeholder="Ex: Filiale Dakar"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                         />
                       </div>
                       <div>
@@ -1514,7 +1514,7 @@ export default function SettingsPage() {
                           value={newSubSlug}
                           onChange={e => setNewSubSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                           placeholder="Ex: filiale-dakar"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono"
                         />
                         <p className="text-xs text-gray-400 mt-1">Lettres minuscules, chiffres et tirets uniquement</p>
                       </div>
@@ -1525,7 +1525,7 @@ export default function SettingsPage() {
                           value={newSubEmail}
                           onChange={e => setNewSubEmail(e.target.value)}
                           placeholder="Ex: filiale@monentreprise.com"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                         />
                       </div>
                       <div>
@@ -1535,7 +1535,7 @@ export default function SettingsPage() {
                           value={newSubAdminEmail}
                           onChange={e => setNewSubAdminEmail(e.target.value)}
                           placeholder="Ex: admin.filiale@monentreprise.com"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                         />
                       </div>
                       <div>
@@ -1545,7 +1545,7 @@ export default function SettingsPage() {
                           value={newSubAdminPassword}
                           onChange={e => setNewSubAdminPassword(e.target.value)}
                           placeholder="Minimum 8 caractères"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                         />
                         <p className="text-xs text-gray-400 mt-1">L'admin de la filiale utilisera ces identifiants puis pourra changer son mot de passe.</p>
                       </div>
@@ -1560,7 +1560,7 @@ export default function SettingsPage() {
                       <button
                         onClick={handleCreateSubsidiary}
                         disabled={isQuotaReached || creatingSubsidiary || !newSubName.trim() || !newSubSlug.trim() || !newSubAdminEmail.trim() || !newSubAdminPassword.trim()}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors"
                       >
                         {creatingSubsidiary ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                         Créer la filiale
@@ -1956,8 +1956,8 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800">
+                <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
+                  <p className="text-sm text-primary-800">
                     <strong>Conseil :</strong> Pour un rendu optimal, utilisez un logo avec fond transparent (PNG) 
                     et une signature scannée sur fond blanc. Le cachet doit être au format carré ou rond.
                   </p>
@@ -2050,22 +2050,22 @@ export default function SettingsPage() {
                       </div>
 
                       {securitySettings.require_2fa && securitySettings.total_users > 0 && (
-                        <div className="mt-6 p-5 bg-blue-50 border border-blue-200 rounded-xl">
-                          <h4 className="font-semibold text-blue-900 mb-3">Adoption 2FA</h4>
+                        <div className="mt-6 p-5 bg-primary-50 border border-primary-200 rounded-xl">
+                          <h4 className="font-semibold text-primary-900 mb-3">Adoption 2FA</h4>
                           <div className="flex items-center gap-4">
                             <div className="flex-1">
                               <div className="w-full h-3 bg-blue-200 rounded-full overflow-hidden">
                                 <div
-                                  className="h-full bg-blue-600 rounded-full transition-all duration-500"
+                                  className="h-full bg-primary-600 rounded-full transition-all duration-500"
                                   style={{ width: `${Math.round((securitySettings.users_with_2fa / securitySettings.total_users) * 100)}%` }}
                                 />
                               </div>
                             </div>
-                            <span className="text-sm font-semibold text-blue-900 whitespace-nowrap">
+                            <span className="text-sm font-semibold text-primary-900 whitespace-nowrap">
                               {securitySettings.users_with_2fa}/{securitySettings.total_users} utilisateurs
                             </span>
                           </div>
-                          <p className="text-xs text-blue-700 mt-2">
+                          <p className="text-xs text-primary-700 mt-2">
                             {securitySettings.users_with_2fa === securitySettings.total_users
                               ? 'Tous les utilisateurs ont configuré leur 2FA.'
                               : `${securitySettings.total_users - securitySettings.users_with_2fa} utilisateur(s) devront configurer leur 2FA à la prochaine connexion.`

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
@@ -42,7 +42,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string; description:
   pending_manager: { label: 'En attente Manager', color: 'text-yellow-700 bg-yellow-100', description: 'Votre démission est en attente de validation par votre manager.' },
   pending_rh: { label: 'En attente RH', color: 'text-orange-700 bg-orange-100', description: 'Votre manager a validé. En attente de confirmation par les RH.' },
   validated: { label: 'Validée', color: 'text-green-700 bg-green-100', description: 'Votre démission a été acceptée. Le processus d\'offboarding est en cours.' },
-  in_progress: { label: 'En cours', color: 'text-blue-700 bg-blue-100', description: 'Le processus de départ est en cours de traitement.' },
+  in_progress: { label: 'En cours', color: 'text-primary-700 bg-primary-100', description: 'Le processus de départ est en cours de traitement.' },
   completed: { label: 'Clôturée', color: 'text-emerald-700 bg-emerald-100', description: 'Votre départ a été finalisé.' },
   cancelled: { label: 'Annulée', color: 'text-gray-500 bg-gray-100', description: 'Cette démission a été annulée.' },
 };
@@ -162,7 +162,7 @@ export default function ResignationPage() {
       <>
         <Header title="Processus de Départ" subtitle="Gérer votre procédure de départ" />
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent" />
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-500 border-t-transparent" />
         </div>
       </>
     );
@@ -180,7 +180,7 @@ export default function ResignationPage() {
             <div className={`rounded-xl border-2 p-6 ${
               resignation.status === 'cancelled' ? 'border-gray-200 bg-gray-50' :
               resignation.status === 'completed' ? 'border-emerald-200 bg-emerald-50' :
-              'border-blue-200 bg-blue-50'
+              'border-primary-200 bg-primary-50'
             }`}>
               <div className="flex items-start gap-4">
                 <div className={`p-3 rounded-xl ${
@@ -191,7 +191,7 @@ export default function ResignationPage() {
                   <UserMinus className={`w-6 h-6 ${
                     resignation.status === 'cancelled' ? 'text-gray-600' :
                     resignation.status === 'completed' ? 'text-emerald-700' :
-                    'text-blue-700'
+                    'text-primary-700'
                   }`} />
                 </div>
                 <div className="flex-1">
@@ -266,15 +266,15 @@ export default function ResignationPage() {
                 </div>
               </div>
 
-              <div className="bg-blue-50 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-blue-900 mb-2">Solde de congés</h4>
+              <div className="bg-primary-50 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-primary-900 mb-2">Solde de congés</h4>
                 <div className="flex justify-between text-sm">
-                  <span className="text-blue-700">Jours restants</span>
-                  <span className="font-medium text-blue-900">{resignation.leave_balance_days} jours</span>
+                  <span className="text-primary-700">Jours restants</span>
+                  <span className="font-medium text-primary-900">{resignation.leave_balance_days} jours</span>
                 </div>
                 <div className="flex justify-between text-sm mt-1">
-                  <span className="text-blue-700">Indemnité estimée</span>
-                  <span className="font-medium text-blue-900">{resignation.leave_compensation_amount.toLocaleString()} XOF</span>
+                  <span className="text-primary-700">Indemnité estimée</span>
+                  <span className="font-medium text-primary-900">{resignation.leave_compensation_amount.toLocaleString()} XOF</span>
                 </div>
               </div>
 
@@ -316,7 +316,7 @@ export default function ResignationPage() {
                   Elle sera transmise à votre manager puis aux RH pour validation.
                 </p>
                 <button onClick={() => setShowForm(true)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600">
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600">
                   <Send className="w-4 h-4" /> Commencer la procédure
                 </button>
               </div>
@@ -351,7 +351,7 @@ export default function ResignationPage() {
                       value={formDate}
                       onChange={e => setFormDate(e.target.value)}
                       min={new Date().toISOString().split('T')[0]}
-                      className="w-full mt-1 border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500"
+                      className="w-full mt-1 border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500"
                     />
                   </div>
                   <div>

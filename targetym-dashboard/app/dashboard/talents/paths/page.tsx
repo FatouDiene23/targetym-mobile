@@ -1,4 +1,4 @@
-// ============================================
+﻿// ============================================
 // app/dashboard/talents/paths/page.tsx
 // Configuration des Parcours de Carrière (Admin RH)
 // ============================================
@@ -276,7 +276,7 @@ export default function PathsPage() {
                                         {comp.trainings && comp.trainings.length > 0 && (
                                           <div className="flex flex-wrap gap-1 mt-2">
                                             {comp.trainings.map(t => (
-                                              <span key={t.id} className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">
+                                              <span key={t.id} className="px-2 py-0.5 bg-primary-100 text-primary-700 text-xs rounded">
                                                 {t.emoji || '📚'} {t.title}
                                               </span>
                                             ))}
@@ -977,7 +977,7 @@ function AddCompetencyModal({ levelId, onClose, onAdd }: {
 
   const SKILL_TYPE_COLORS: Record<string, string> = {
     soft_skill: 'bg-purple-100 text-purple-700',
-    technical:  'bg-blue-100 text-blue-700',
+    technical:  'bg-primary-100 text-primary-700',
     management: 'bg-green-100 text-green-700',
   };
   const SKILL_TYPE_LABELS: Record<string, string> = {

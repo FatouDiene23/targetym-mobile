@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -44,7 +44,7 @@ function StatusBadge({ tenant }: { tenant: TenantListItem }) {
   }
   if (status === 'subscribed') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary-100 text-primary-700 border border-primary-200">
         <Shield size={11} /> Abonné
       </span>
     );
@@ -196,7 +196,7 @@ export default function CompaniesPage() {
           <ChevronLeft size={20} />
         </Link>
         <div className="flex items-center gap-3">
-          <div className="bg-indigo-600 p-2 rounded-xl">
+          <div className="bg-primary-600 p-2 rounded-xl">
             <Building2 size={22} className="text-white" />
           </div>
           <div>
@@ -222,7 +222,7 @@ export default function CompaniesPage() {
               onClick={() => handleTabChange(tab.id)}
               className={`px-6 py-3.5 text-sm font-medium transition-colors border-b-2 ${
                 activeTab === tab.id
-                  ? 'border-indigo-600 text-indigo-700 bg-indigo-50/40'
+                  ? 'border-primary-600 text-primary-700 bg-primary-50/40'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
@@ -238,7 +238,7 @@ export default function CompaniesPage() {
                 value={search}
                 onChange={(e) => handleSearch(e.target.value)}
                 placeholder="Rechercher..."
-                className="pl-8 pr-4 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 w-48"
+                className="pl-8 pr-4 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 w-48"
               />
             </div>
           </div>
@@ -247,7 +247,7 @@ export default function CompaniesPage() {
         {/* Table */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent" />
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent" />
           </div>
         ) : tenants.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
@@ -378,7 +378,7 @@ export default function CompaniesPage() {
                 onChange={(e) => setActivateNote(e.target.value)}
                 placeholder="Ex: Formés le 12/03/2026, paiement reçu par virement..."
                 rows={2}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
               />
             </div>
 
@@ -463,15 +463,15 @@ export default function CompaniesPage() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             {detailLoading ? (
               <div className="flex items-center justify-center py-20">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent" />
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent" />
               </div>
             ) : detailTenant ? (
               <>
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                   <div className="flex items-center gap-3">
-                    <div className="bg-indigo-100 p-2 rounded-xl">
-                      <Building2 size={20} className="text-indigo-600" />
+                    <div className="bg-primary-100 p-2 rounded-xl">
+                      <Building2 size={20} className="text-primary-600" />
                     </div>
                     <div>
                       <h2 className="font-bold text-gray-900 text-base">{detailTenant.name}</h2>

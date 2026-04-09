@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import PageTourTips from '@/components/PageTourTips';
@@ -390,7 +390,7 @@ function normalizeRole(role: string | undefined): UserRole {
 function getStatusColor(status: string) {
   switch (status) {
     case 'validated': case 'completed': return 'bg-green-100 text-green-700';
-    case 'submitted': return 'bg-blue-100 text-blue-700';
+    case 'submitted': return 'bg-primary-100 text-primary-700';
     case 'in_progress': return 'bg-yellow-100 text-yellow-700';
     case 'pending': case 'scheduled': return 'bg-gray-100 text-gray-600';
     case 'active': return 'bg-green-100 text-green-700';
@@ -832,9 +832,9 @@ function CompleteOneOnOneModal({ meeting, onClose, onSuccess, currentEmployeeId 
               <div className="space-y-2 mb-3">
                 {tasks.map((t, i) => (
                   <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm">
-                    {t.type === 'training' ? <BookOpen className="w-4 h-4 text-indigo-500 shrink-0" /> : <CheckSquare className="w-4 h-4 text-green-500 shrink-0" />}
+                    {t.type === 'training' ? <BookOpen className="w-4 h-4 text-primary-500 shrink-0" /> : <CheckSquare className="w-4 h-4 text-green-500 shrink-0" />}
                     <span className="flex-1 text-gray-800">{t.title}</span>
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">{t.assignee === 'manager' ? 'Manager' : 'Collaborateur'}</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-primary-100 text-primary-700">{t.assignee === 'manager' ? 'Manager' : 'Collaborateur'}</span>
                     {t.due_date && <span className="text-xs text-gray-400">{t.due_date}</span>}
                     <button onClick={() => removeTask(i)} className="text-gray-400 hover:text-red-500"><X className="w-3.5 h-3.5" /></button>
                   </div>
@@ -1042,7 +1042,7 @@ function EvaluationViewModal({ isOpen, onClose, evaluation }: {
           {evaluation.manager_comments && (
             <div>
               <h4 className="font-semibold text-gray-900 mb-2">Commentaires du Manager</h4>
-              <p className="text-sm text-gray-700 bg-blue-50 p-3 rounded-lg">{evaluation.manager_comments}</p>
+              <p className="text-sm text-gray-700 bg-primary-50 p-3 rounded-lg">{evaluation.manager_comments}</p>
             </div>
           )}
         </div>
@@ -1131,7 +1131,7 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
         <div className="p-5 space-y-6">
           {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
           {evaluation.status === 'submitted' && !canValidate && !canEdit && (
-            <div className="p-3 bg-blue-50 border border-blue-200 text-blue-700 text-sm rounded-lg">Cette évaluation est en attente de validation.</div>
+            <div className="p-3 bg-primary-50 border border-primary-200 text-primary-700 text-sm rounded-lg">Cette évaluation est en attente de validation.</div>
           )}
           <div>
             <h4 className="font-semibold text-gray-900 mb-4">Évaluation des Compétences</h4>
@@ -1189,7 +1189,7 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
           {!isManagerReviewing && evaluation.manager_comments && (
             <div>
               <h4 className="font-semibold text-gray-900 mb-2">Commentaires du Manager</h4>
-              <p className="text-sm text-gray-700 bg-blue-50 p-3 rounded-lg">{evaluation.manager_comments}</p>
+              <p className="text-sm text-gray-700 bg-primary-50 p-3 rounded-lg">{evaluation.manager_comments}</p>
             </div>
           )}
         </div>
@@ -1420,7 +1420,7 @@ export default function PerformancePage() {
               </div>
               <div className="bg-white rounded-xl p-4 border border-gray-200">
                 <p className="text-sm text-gray-500">1-on-1</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.one_on_ones_scheduled}</p>
+                <p className="text-2xl font-bold text-primary-600">{stats.one_on_ones_scheduled}</p>
                 <p className="text-xs text-gray-400">{stats.one_on_ones_completed} complétés</p>
               </div>
             </div>
@@ -1637,7 +1637,7 @@ export default function PerformancePage() {
                   {paginatedOneOnOnes.length > 0 ? paginatedOneOnOnes.map(meeting => (
                     <div key={meeting.id} className="p-4 border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-sm">
+                        <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-medium text-sm">
                           {meeting.employee_initials || getInitials(meeting.employee_name)}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1700,11 +1700,11 @@ export default function PerformancePage() {
                                   }
                                 </button>
                                 {task.type === 'training'
-                                  ? <BookOpen className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                                  ? <BookOpen className="w-3.5 h-3.5 text-primary-400 shrink-0" />
                                   : <CheckCircle className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                                 }
                                 <span className={`flex-1 ${task.status === 'done' ? 'line-through text-gray-400' : 'text-gray-700'}`}>{task.title}</span>
-                                <span className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">{task.assignee === 'manager' ? 'Manager' : 'Collaborateur'}</span>
+                                <span className="text-xs px-1.5 py-0.5 bg-primary-50 text-primary-600 rounded">{task.assignee === 'manager' ? 'Manager' : 'Collaborateur'}</span>
                                 {task.due_date && <span className="text-xs text-gray-400">{task.due_date}</span>}
                               </div>
                             ))}

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -52,7 +52,7 @@ const SANCTION_TYPES: Record<string, { icon: string; color: string }> = {
   'Mise à pied':            { icon: '🚫', color: 'bg-red-100 text-red-800 border-red-200' },
   'Rétrogradation':         { icon: '⬇️', color: 'bg-red-100 text-red-800 border-red-200' },
   'Licenciement':           { icon: '❌', color: 'bg-red-200 text-red-900 border-red-300' },
-  'Rappel à l\'ordre':      { icon: '📝', color: 'bg-blue-100 text-blue-800 border-blue-200' },
+  'Rappel à l\'ordre':      { icon: '📝', color: 'bg-primary-100 text-primary-800 border-primary-200' },
   'Demande d\'explications':{ icon: '❓', color: 'bg-purple-100 text-purple-800 border-purple-200' },
   'Autre':                  { icon: '📄', color: 'bg-gray-100 text-gray-800 border-gray-200' },
 };
@@ -337,8 +337,8 @@ export default function SanctionsTab() {
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-50 rounded-lg">
-              <FileCheck className="w-5 h-5 text-indigo-600" />
+            <div className="p-2 bg-primary-50 rounded-lg">
+              <FileCheck className="w-5 h-5 text-primary-600" />
             </div>
             <div>
               <p className="text-sm font-medium text-gray-900">Politique des sanctions</p>
@@ -354,7 +354,7 @@ export default function SanctionsTab() {
               <>
                 <button
                   onClick={handleDownloadPolicy}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                 >
                   <Download className="w-4 h-4" />
                   Voir
@@ -367,7 +367,7 @@ export default function SanctionsTab() {
                 </button>
               </>
             )}
-            <label className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer">
+            <label className="flex items-center gap-2 px-3 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors cursor-pointer">
               {isUploadingPolicy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
               {policyInfo?.exists ? 'Remplacer' : 'Uploader PDF'}
               <input type="file" accept=".pdf" onChange={handleUploadPolicy} className="hidden" />

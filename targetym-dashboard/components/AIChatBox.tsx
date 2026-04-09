@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import toast from 'react-hot-toast';
 import { useState, useEffect, useRef } from 'react';
@@ -405,7 +405,7 @@ export default function AIChatBox() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-24 lg:bottom-6 right-4 lg:right-6 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-all hover:scale-110 z-50"
+          className="fixed bottom-24 lg:bottom-6 right-4 lg:right-6 bg-primary-600 text-white p-4 rounded-full shadow-lg hover:bg-primary-700 transition-all hover:scale-110 z-50"
           aria-label="Ouvrir le chatbot"
         >
           <MessageCircle size={28} />
@@ -483,7 +483,7 @@ export default function AIChatBox() {
                       key={conv.id}
                       onClick={() => loadConversation(conv.id)}
                       className={`px-4 py-3 hover:bg-gray-100 cursor-pointer transition-colors flex items-center justify-between group ${
-                        activeConversation?.id === conv.id ? 'bg-blue-50 border-l-4 border-blue-600' : ''
+                        activeConversation?.id === conv.id ? 'bg-primary-50 border-l-4 border-primary-600' : ''
                       }`}
                     >
                       <div className="flex-1 min-w-0">
@@ -521,8 +521,8 @@ export default function AIChatBox() {
               agentTurns.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-center px-4 lg:px-6">
                   <div>
-                    <div className="bg-indigo-100 w-14 lg:w-16 h-14 lg:h-16 rounded-full flex items-center justify-center mx-auto mb-3 lg:mb-4">
-                      <Zap size={28} className="text-indigo-600" />
+                    <div className="bg-primary-100 w-14 lg:w-16 h-14 lg:h-16 rounded-full flex items-center justify-center mx-auto mb-3 lg:mb-4">
+                      <Zap size={28} className="text-primary-600" />
                     </div>
                     <h4 className="font-semibold text-gray-900 mb-2 text-sm lg:text-base">Mode Agent — {agentContext || 'Général'}</h4>
                     <p className="text-xs lg:text-sm text-gray-600">
@@ -540,7 +540,7 @@ export default function AIChatBox() {
                       {/* User - masqué si turn de confirmation système (userText vide) */}
                       {turn.userText && (
                         <div className="flex justify-end">
-                          <div className="max-w-[85%] bg-indigo-600 text-white rounded-2xl px-4 py-2.5">
+                          <div className="max-w-[85%] bg-primary-600 text-white rounded-2xl px-4 py-2.5">
                             <p className="text-sm">{turn.userText}</p>
                             <p className="text-[11px] text-indigo-200 mt-1">
                               {turn.timestamp.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
@@ -585,8 +585,8 @@ export default function AIChatBox() {
               !activeConversation ? (
                 <div className="h-full flex items-center justify-center text-center px-4 lg:px-6">
                   <div>
-                    <div className="bg-blue-100 w-14 lg:w-16 h-14 lg:h-16 rounded-full flex items-center justify-center mx-auto mb-3 lg:mb-4">
-                      <MessageCircle size={28} className="text-blue-600" />
+                    <div className="bg-primary-100 w-14 lg:w-16 h-14 lg:h-16 rounded-full flex items-center justify-center mx-auto mb-3 lg:mb-4">
+                      <MessageCircle size={28} className="text-primary-600" />
                     </div>
                     <h4 className="font-semibold text-gray-900 mb-2 text-sm lg:text-base">Bonjour ! 👋</h4>
                     <p className="text-xs lg:text-sm text-gray-600">
@@ -601,7 +601,7 @@ export default function AIChatBox() {
                     <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
                         msg.role === 'user'
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-primary-600 text-white'
                           : 'bg-white text-gray-900 border border-gray-200 shadow-sm'
                       }`}>
                         <ChatMessageContent content={msg.content} isUser={msg.role === 'user'} />
@@ -632,7 +632,7 @@ export default function AIChatBox() {
           {!agentMode && (
             <div className="px-4 py-2 bg-gray-100 border-t border-gray-200 flex items-center gap-2 text-xs">
               <span className="text-gray-600">Besoin d'un agent ?</span>
-              <a href="mailto:support@agiltym.com" className="flex items-center gap-1 text-blue-600 hover:text-blue-700 font-medium">
+              <a href="mailto:support@agiltym.com" className="flex items-center gap-1 text-primary-600 hover:text-primary-700 font-medium">
                 <Mail size={14} />Email
               </a>
               <span className="text-gray-300">|</span>
@@ -649,9 +649,9 @@ export default function AIChatBox() {
 
           {/* Fichiers attachés (mode agent) */}
           {agentMode && attachedFiles.length > 0 && (
-            <div className="px-4 py-1.5 bg-indigo-50 border-t border-indigo-100 flex flex-col gap-1">
+            <div className="px-4 py-1.5 bg-primary-50 border-t border-primary-100 flex flex-col gap-1">
               {attachedFiles.map((file, idx) => (
-                <div key={idx} className="flex items-center gap-2 text-xs text-indigo-700">
+                <div key={idx} className="flex items-center gap-2 text-xs text-primary-700">
                   <FileText size={13} />
                   <span className="flex-1 truncate">{file.name}</span>
                   <button
@@ -660,7 +660,7 @@ export default function AIChatBox() {
                       setFileText('');
                       if (attachedFiles.length === 1) { setCvTmpPath(null); setCvFilename(null); }
                     }}
-                    className="text-indigo-400 hover:text-red-500"
+                    className="text-primary-400 hover:text-red-500"
                   >
                     <X size={13} />
                   </button>
@@ -687,7 +687,7 @@ export default function AIChatBox() {
                     onClick={() => fileInputRef.current?.click()}
                     className={`p-2.5 rounded-xl border transition-colors flex-shrink-0 ${
                       attachedFiles.length > 0
-                        ? 'bg-indigo-100 border-indigo-300 text-indigo-700'
+                        ? 'bg-primary-100 border-primary-300 text-primary-700'
                         : 'border-gray-300 text-gray-500 hover:bg-gray-50'
                     }`}
                     title="Joindre un fichier (PDF, Excel, CSV, DOCX, TXT)"
@@ -705,8 +705,8 @@ export default function AIChatBox() {
                 placeholder={agentMode ? 'Décrivez ce que vous souhaitez générer...' : 'Posez votre question...'}
                 className={`flex-1 resize-none border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent ${
                   agentMode
-                    ? 'border-indigo-300 focus:ring-indigo-500'
-                    : 'border-gray-300 focus:ring-blue-500'
+                    ? 'border-primary-300 focus:ring-primary-500'
+                    : 'border-gray-300 focus:ring-primary-500'
                 }`}
                 rows={1}
                 style={{ minHeight: '42px', maxHeight: '120px', height: 'auto' }}
@@ -720,7 +720,7 @@ export default function AIChatBox() {
                 onClick={handleSendMessage}
                 disabled={!message.trim() || sending}
                 className={`p-2.5 rounded-xl text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0 ${
-                  agentMode ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-blue-600 hover:bg-blue-700'
+                  agentMode ? 'bg-primary-600 hover:bg-primary-700' : 'bg-primary-600 hover:bg-primary-700'
                 }`}
               >
                 {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}

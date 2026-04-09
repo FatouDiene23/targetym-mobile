@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -227,10 +227,10 @@ const getStatusColor = (s: string) => {
     'on_track': 'bg-green-100 text-green-700',
     'at_risk': 'bg-yellow-100 text-yellow-700',
     'behind': 'bg-red-100 text-red-700',
-    'exceeded': 'bg-indigo-100 text-indigo-700',
+    'exceeded': 'bg-primary-100 text-primary-700',
     'completed': 'bg-green-100 text-green-700',
     'draft': 'bg-gray-100 text-gray-700',
-    'active': 'bg-blue-100 text-blue-700',
+    'active': 'bg-primary-100 text-primary-700',
     'cancelled': 'bg-gray-100 text-gray-500',
   };
   return m[s] || 'bg-gray-100 text-gray-700';
@@ -251,7 +251,7 @@ const getStatusLabel = (s: string) => {
 };
 
 const getProgressColor = (p: number) => {
-  if (p >= 100) return 'bg-indigo-500';
+  if (p >= 100) return 'bg-primary-500';
   if (p >= 70) return 'bg-green-500';
   if (p >= 40) return 'bg-yellow-500';
   return 'bg-red-500';
@@ -275,7 +275,7 @@ const getLevelLabel = (l: string) => {
 const getLevelColor = (l: string) => {
   const m: Record<string, string> = {
     enterprise: 'bg-purple-100 text-purple-700',
-    department: 'bg-blue-100 text-blue-700',
+    department: 'bg-primary-100 text-primary-700',
     individual: 'bg-teal-100 text-teal-700',
   };
   return m[l] || 'bg-gray-100';
@@ -1144,7 +1144,7 @@ export default function OKRPage() {
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <p className="text-xs text-gray-500">Dépassés</p>
-            <p className="text-2xl font-bold text-indigo-600">{stats?.by_status['exceeded'] || 0}</p>
+            <p className="text-2xl font-bold text-primary-600">{stats?.by_status['exceeded'] || 0}</p>
           </div>
         </div>
 
@@ -1210,7 +1210,7 @@ export default function OKRPage() {
           <div className="space-y-6">
             {[
               { level: 'enterprise', title: 'OKRs Entreprise', data: enterpriseOKRs, icon: Building2, color: 'purple', bgColor: 'bg-purple-600', bgLight: 'bg-purple-100', textColor: 'text-purple-700' },
-              { level: 'department', title: 'OKRs Département', data: departmentOKRs, icon: Users, color: 'blue', bgColor: 'bg-blue-600', bgLight: 'bg-blue-100', textColor: 'text-blue-700' },
+              { level: 'department', title: 'OKRs Département', data: departmentOKRs, icon: Users, color: 'blue', bgColor: 'bg-primary-600', bgLight: 'bg-primary-100', textColor: 'text-primary-700' },
               { level: 'individual', title: 'OKRs Individuels', data: individualOKRs, icon: User, color: 'teal', bgColor: 'bg-teal-600', bgLight: 'bg-teal-100', textColor: 'text-teal-700' },
             ].map(section => section.data.length > 0 && (
               <div key={section.title}>
@@ -1365,8 +1365,8 @@ export default function OKRPage() {
                                 <div className="space-y-2">
                                   {obj.initiatives.map((init) => (
                                     <div key={init.id} className="bg-white rounded-lg p-3 border border-gray-200 flex items-center gap-3">
-                                      <div className="w-8 h-8 bg-indigo-100 rounded flex items-center justify-center">
-                                        <Link2 className="w-4 h-4 text-indigo-600" />
+                                      <div className="w-8 h-8 bg-primary-100 rounded flex items-center justify-center">
+                                        <Link2 className="w-4 h-4 text-primary-600" />
                                       </div>
                                       <div className="flex-1">
                                         <p className="text-sm font-medium text-gray-900">{init.title}</p>
@@ -1442,14 +1442,14 @@ export default function OKRPage() {
                       <div className="pl-8 border-l-2 border-purple-300 ml-4 space-y-4">
                         {departmentOKRs.filter(d => d.parent_id === entOKR.id).map((deptOKR) => (
                           <div key={deptOKR.id}>
-                            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                            <div className="bg-primary-50 rounded-lg p-4 border border-primary-200">
                               <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                                <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
                                   <Users className="w-4 h-4 text-white" />
                                 </div>
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2">
-                                    <span className="text-xs font-medium text-blue-600">{deptOKR.department_name}</span>
+                                    <span className="text-xs font-medium text-primary-600">{deptOKR.department_name}</span>
                                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(deptOKR.status)}`}>
                                       {getStatusLabel(deptOKR.status)}
                                     </span>
@@ -1458,15 +1458,15 @@ export default function OKRPage() {
                                   {deptOKR.owner_name && <p className="text-xs text-gray-500 mt-1">Responsable: {deptOKR.owner_name}</p>}
                                 </div>
                                 <div className="text-right flex-shrink-0">
-                                  <span className="text-base lg:text-xl font-bold text-blue-600">{Math.round(deptOKR.progress)}%</span>
+                                  <span className="text-base lg:text-xl font-bold text-primary-600">{Math.round(deptOKR.progress)}%</span>
                                   <div className="w-14 lg:w-24 h-1.5 bg-blue-200 rounded-full mt-1">
-                                    <div className="h-full bg-blue-600 rounded-full" style={{ width: `${Math.min(deptOKR.progress, 100)}%` }} />
+                                    <div className="h-full bg-primary-600 rounded-full" style={{ width: `${Math.min(deptOKR.progress, 100)}%` }} />
                                   </div>
                                 </div>
                               </div>
                             </div>
                             
-                            <div className="pl-8 border-l-2 border-blue-300 ml-4 mt-3 space-y-2">
+                            <div className="pl-8 border-l-2 border-primary-300 ml-4 mt-3 space-y-2">
                               {individualOKRs.filter(i => i.parent_id === deptOKR.id).map((indOKR) => (
                                 <div key={indOKR.id} className="bg-teal-50 rounded-lg p-3 border border-teal-200">
                                   <div className="flex items-center gap-2">

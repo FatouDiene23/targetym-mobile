@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -48,7 +48,7 @@ export default function PlatformUsersManagement() {
   // Helper pour les couleurs de rôle
   const getRoleBadgeClass = (role: string) => {
     if (role === 'SUPER_ADMIN' || role === 'super_admin') return 'bg-purple-100 text-purple-800';
-    if (role === 'admin') return 'bg-blue-100 text-blue-800';
+    if (role === 'admin') return 'bg-primary-100 text-primary-800';
     if (role === 'rh') return 'bg-green-100 text-green-800';
     if (role === 'manager') return 'bg-yellow-100 text-yellow-800';
     return 'bg-gray-100 text-gray-800';
@@ -276,7 +276,7 @@ export default function PlatformUsersManagement() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
     );
   }
@@ -287,19 +287,19 @@ export default function PlatformUsersManagement() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Link href="/dashboard/platform-admin" className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1">
+            <Link href="/dashboard/platform-admin" className="text-sm text-gray-500 hover:text-primary-600 flex items-center gap-1">
               <ArrowLeft className="w-3 h-3" /> Back-Office
             </Link>
           </div>
           <h1 className="text-xl lg:text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Users className="w-8 h-8 text-blue-600" />
+            <Users className="w-8 h-8 text-primary-600" />
             Gestion des Utilisateurs
           </h1>
           <p className="text-gray-600 mt-1">Administration cross-tenant de tous les users</p>
         </div>
         <button
           onClick={handleOpenCreate}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
           data-tour="platform-users-create"
         >
           <Plus className="w-4 h-4" />
@@ -318,7 +318,7 @@ export default function PlatformUsersManagement() {
                 placeholder="Rechercher par nom, email, entreprise..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
           </div>
@@ -326,7 +326,7 @@ export default function PlatformUsersManagement() {
           <select
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="">Tous les rôles</option>
             <option value="SUPER_ADMIN">SUPER_ADMIN</option>
@@ -340,7 +340,7 @@ export default function PlatformUsersManagement() {
           <select
             value={filterTenant}
             onChange={(e) => setFilterTenant(e.target.value === '' ? '' : Number.parseInt(e.target.value, 10))}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-xs"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 max-w-xs"
           >
             <option value="">Toutes les entreprises</option>
             <option value="0">Sans entreprise</option>
@@ -352,7 +352,7 @@ export default function PlatformUsersManagement() {
           <select
             value={filterActive === undefined ? '' : filterActive.toString()}
             onChange={(e) => setFilterActive(e.target.value === '' ? undefined : e.target.value === 'true')}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="">Tous les statuts</option>
             <option value="true">Actifs</option>
@@ -467,7 +467,7 @@ export default function PlatformUsersManagement() {
                         )}
                         <button
                           onClick={() => handleOpenEdit(user)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                           title="Modifier"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -511,7 +511,7 @@ export default function PlatformUsersManagement() {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
               
@@ -527,7 +527,7 @@ export default function PlatformUsersManagement() {
                     required={!editingUser}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                   <button
                     type="button"
@@ -550,7 +550,7 @@ export default function PlatformUsersManagement() {
                     type="text"
                     value={formData.first_name}
                     onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
                 <div>
@@ -562,7 +562,7 @@ export default function PlatformUsersManagement() {
                     type="text"
                     value={formData.last_name}
                     onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
               </div>
@@ -577,7 +577,7 @@ export default function PlatformUsersManagement() {
                   required
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="employee">Employee</option>
                   <option value="manager">Manager</option>
@@ -596,7 +596,7 @@ export default function PlatformUsersManagement() {
                   id="tenant_id"
                   value={formData.tenant_id || ''}
                   onChange={(e) => setFormData({ ...formData, tenant_id: e.target.value ? Number.parseInt(e.target.value, 10) : undefined })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">Aucune (cross-tenant)</option>
                   {tenants.map(tenant => (
@@ -612,7 +612,7 @@ export default function PlatformUsersManagement() {
                   type="checkbox"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                 />
                 <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
                   Compte actif
@@ -630,7 +630,7 @@ export default function PlatformUsersManagement() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                 >
                   {editingUser ? 'Mettre à jour' : 'Créer'}
                 </button>

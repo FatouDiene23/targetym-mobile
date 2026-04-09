@@ -96,16 +96,16 @@ export default function PageTourTips({ tips, onDismiss, pageTitle }: Readonly<Pa
 
   return (
     <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[9999] max-w-lg w-full mx-4 animate-slideInRight">
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-primary-200 rounded-2xl shadow-2xl overflow-hidden">
+      <div className="bg-gradient-to-br from-primary-50 to-secondary-50 border-2 border-primary-200 rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-4 flex items-start justify-between">
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-5 py-4 flex items-start justify-between">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
               <Lightbulb className="w-5 h-5 text-white" />
             </div>
             <div>
               <h3 className="text-white font-semibold text-lg">Nouveau sur {pageTitle} ?</h3>
-              <p className="text-blue-100 text-xs mt-0.5">
+              <p className="text-primary-100 text-xs mt-0.5">
                 Astuce {currentTip + 1} sur {tips.length}
               </p>
             </div>
@@ -137,7 +137,7 @@ export default function PageTourTips({ tips, onDismiss, pageTitle }: Readonly<Pa
 
         {/* Progress bar */}
         <div className="px-5 pb-3">
-          <div className="w-full bg-blue-200 rounded-full h-1.5">
+          <div className="w-full bg-primary-200 rounded-full h-1.5">
             <div
               className="bg-primary-600 h-1.5 rounded-full transition-all duration-300"
               style={{ width: `${((currentTip + 1) / tips.length) * 100}%` }}

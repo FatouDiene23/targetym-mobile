@@ -8,6 +8,7 @@ import { documentsTips } from '@/config/pageTips';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CustomSelect from '@/components/CustomSelect';
 import {
   FileText, Download, Eye, Search, Filter, Loader2, Calendar,
   Clock, AlertTriangle, ChevronLeft, ChevronRight, File,
@@ -412,19 +413,15 @@ export default function MyDocumentsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label className="text-xs font-medium text-gray-600 mb-1 block">Type de document *</label>
-                <select
+                <CustomSelect
                   value={uploadType}
-                  onChange={e => {
-                    setUploadType(e.target.value);
-                    const t = EMPLOYEE_TYPES.find(t => t.value === e.target.value);
+                  onChange={(v) => {
+                    setUploadType(v);
+                    const t = EMPLOYEE_TYPES.find(t => t.value === v);
                     if (t && !uploadTitle) setUploadTitle(t.label);
                   }}
-                  className="w-full border rounded-lg px-3 py-2 text-sm"
-                >
-                  {EMPLOYEE_TYPES.map(t => (
-                    <option key={t.value} value={t.value}>{t.icon} {t.label}</option>
-                  ))}
-                </select>
+                  options={EMPLOYEE_TYPES.map(t => ({ value: t.value, label: `${t.icon} ${t.label}` }))}
+                />
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-600 mb-1 block">Titre *</label>

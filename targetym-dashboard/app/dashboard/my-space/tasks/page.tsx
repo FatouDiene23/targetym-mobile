@@ -21,6 +21,7 @@ import {
   type DailyValidation, type ObjectiveForLinking
 } from '@/lib/api';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CustomSelect from '@/components/CustomSelect';
 
 // Couleurs par priorité
 const PRIORITY_COLORS: Record<TaskPriority, { bg: string; text: string; label: string }> = {
@@ -1144,22 +1145,22 @@ function MyTasksTab({
     <div className="space-y-6">
       {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" data-tour="tasks-list">
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-sm text-gray-500">À faire</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.pending + stats.in_progress}</p>
+        <div className="flex sm:grid sm:grid-cols-4 gap-3 sm:gap-4 overflow-x-auto scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0 pb-1" data-tour="tasks-list">
+          <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 min-w-[120px] sm:min-w-0 shrink-0 sm:shrink">
+            <p className="text-xs sm:text-sm text-gray-500">À faire</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.pending + stats.in_progress}</p>
           </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-sm text-gray-500">Terminées</p>
-            <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
+          <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 min-w-[120px] sm:min-w-0 shrink-0 sm:shrink">
+            <p className="text-xs sm:text-sm text-gray-500">Terminées</p>
+            <p className="text-xl sm:text-2xl font-bold text-green-600">{stats.completed}</p>
           </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-sm text-gray-500">En retard</p>
-            <p className="text-2xl font-bold text-red-600">{stats.overdue}</p>
+          <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 min-w-[120px] sm:min-w-0 shrink-0 sm:shrink">
+            <p className="text-xs sm:text-sm text-gray-500">En retard</p>
+            <p className="text-xl sm:text-2xl font-bold text-red-600">{stats.overdue}</p>
           </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-sm text-gray-500">Aujourd&apos;hui</p>
-            <p className="text-2xl font-bold text-primary-600">{stats.due_today}</p>
+          <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 min-w-[120px] sm:min-w-0 shrink-0 sm:shrink">
+            <p className="text-xs sm:text-sm text-gray-500">Aujourd&apos;hui</p>
+            <p className="text-xl sm:text-2xl font-bold text-primary-600">{stats.due_today}</p>
           </div>
         </div>
       )}
@@ -1246,16 +1247,17 @@ function MyTasksTab({
             
             <div className="flex items-center gap-3">
               {subTab === 'today' && (
-                <select
+                <CustomSelect
                   value={statusFilter}
-                  onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-                >
-                  <option value="all">Tous les statuts</option>
-                  <option value="todo">À faire</option>
-                  <option value="in_progress">En cours</option>
-                  <option value="completed">Terminées</option>
-                </select>
+                  onChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}
+                  className="min-w-[160px]"
+                  options={[
+                    { value: 'all', label: 'Tous les statuts' },
+                    { value: 'todo', label: 'À faire' },
+                    { value: 'in_progress', label: 'En cours' },
+                    { value: 'completed', label: 'Terminées' },
+                  ]}
+                />
               )}
               
               {/* Bouton soumettre */}
@@ -1462,22 +1464,22 @@ function TeamTasksTab({
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">À faire</p>
-          <p className="text-2xl font-bold text-gray-900">{tasksByStatus.pending}</p>
+      <div className="flex sm:grid sm:grid-cols-4 gap-3 sm:gap-4 overflow-x-auto scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0 pb-1">
+        <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 min-w-[120px] sm:min-w-0 shrink-0 sm:shrink">
+          <p className="text-xs sm:text-sm text-gray-500">À faire</p>
+          <p className="text-xl sm:text-2xl font-bold text-gray-900">{tasksByStatus.pending}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">En cours</p>
-          <p className="text-2xl font-bold text-primary-600">{tasksByStatus.in_progress}</p>
+        <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 min-w-[120px] sm:min-w-0 shrink-0 sm:shrink">
+          <p className="text-xs sm:text-sm text-gray-500">En cours</p>
+          <p className="text-xl sm:text-2xl font-bold text-primary-600">{tasksByStatus.in_progress}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Terminées</p>
-          <p className="text-2xl font-bold text-green-600">{tasksByStatus.completed}</p>
+        <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 min-w-[120px] sm:min-w-0 shrink-0 sm:shrink">
+          <p className="text-xs sm:text-sm text-gray-500">Terminées</p>
+          <p className="text-xl sm:text-2xl font-bold text-green-600">{tasksByStatus.completed}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">En retard</p>
-          <p className="text-2xl font-bold text-red-600">{tasksByStatus.overdue}</p>
+        <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 min-w-[120px] sm:min-w-0 shrink-0 sm:shrink">
+          <p className="text-xs sm:text-sm text-gray-500">En retard</p>
+          <p className="text-xl sm:text-2xl font-bold text-red-600">{tasksByStatus.overdue}</p>
         </div>
       </div>
 
@@ -1489,29 +1491,27 @@ function TeamTasksTab({
             <span className="text-sm font-medium text-gray-700">Filtres :</span>
           </div>
           
-          <select
+          <CustomSelect
             value={selectedEmployee}
-            onChange={(e) => { setSelectedEmployee(e.target.value); setCurrentPage(1); }}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-          >
-            <option value="all">Tous les employés ({teamMembers.length})</option>
-            {teamMembers.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.name}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => { setSelectedEmployee(v); setCurrentPage(1); }}
+            className="min-w-[180px]"
+            options={[
+              { value: 'all', label: `Tous les employés (${teamMembers.length})` },
+              ...teamMembers.map(m => ({ value: String(m.id), label: m.name })),
+            ]}
+          />
 
-          <select
+          <CustomSelect
             value={selectedStatus}
-            onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-          >
-            <option value="all">Tous les statuts</option>
-            <option value="pending">À faire</option>
-            <option value="in_progress">En cours</option>
-            <option value="completed">Terminées</option>
-          </select>
+            onChange={(v) => { setSelectedStatus(v); setCurrentPage(1); }}
+            className="min-w-[150px]"
+            options={[
+              { value: 'all', label: 'Tous les statuts' },
+              { value: 'pending', label: 'À faire' },
+              { value: 'in_progress', label: 'En cours' },
+              { value: 'completed', label: 'Terminées' },
+            ]}
+          />
 
           <button
             onClick={loadTeamTasks}
@@ -1737,32 +1737,34 @@ function HistoryTab() {
             <span className="text-sm font-medium text-gray-700">Période :</span>
           </div>
           
-          <select
+          <CustomSelect
             value={periodFilter}
-            onChange={(e) => setPeriodFilter(e.target.value)}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-          >
-            <option value="0">Aujourd&apos;hui</option>
-            <option value="1">Hier</option>
-            <option value="7">7 derniers jours</option>
-            <option value="30">30 derniers jours</option>
-            <option value="90">3 derniers mois</option>
-            <option value="all">Tout</option>
-          </select>
+            onChange={setPeriodFilter}
+            className="min-w-[160px]"
+            options={[
+              { value: '0', label: "Aujourd'hui" },
+              { value: '1', label: 'Hier' },
+              { value: '7', label: '7 derniers jours' },
+              { value: '30', label: '30 derniers jours' },
+              { value: '90', label: '3 derniers mois' },
+              { value: 'all', label: 'Tout' },
+            ]}
+          />
 
           {subTab === 'validations' && (
             <>
               <span className="text-sm font-medium text-gray-700">Statut :</span>
-              <select
+              <CustomSelect
                 value={validationStatusFilter}
-                onChange={(e) => setValidationStatusFilter(e.target.value)}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-              >
-                <option value="all">Tous</option>
-                <option value="approved">Validées</option>
-                <option value="rejected">Rejetées</option>
-                <option value="pending">En attente</option>
-              </select>
+                onChange={setValidationStatusFilter}
+                className="min-w-[140px]"
+                options={[
+                  { value: 'all', label: 'Tous' },
+                  { value: 'approved', label: 'Validées' },
+                  { value: 'rejected', label: 'Rejetées' },
+                  { value: 'pending', label: 'En attente' },
+                ]}
+              />
             </>
           )}
         </div>
@@ -2035,15 +2037,16 @@ function StatsTab({
         <div className="flex items-center gap-4">
           <Filter className="w-4 h-4 text-gray-400" />
           <span className="text-sm font-medium text-gray-700">Période :</span>
-          <select
+          <CustomSelect
             value={periodFilter}
-            onChange={(e) => setPeriodFilter(e.target.value)}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-          >
-            <option value="7">Cette semaine</option>
-            <option value="30">Ce mois</option>
-            <option value="90">Ce trimestre</option>
-          </select>
+            onChange={setPeriodFilter}
+            className="min-w-[160px]"
+            options={[
+              { value: '7', label: 'Cette semaine' },
+              { value: '30', label: 'Ce mois' },
+              { value: '90', label: 'Ce trimestre' },
+            ]}
+          />
         </div>
       </div>
 
@@ -2085,22 +2088,22 @@ function StatsTab({
           Mes statistiques
         </h3>
         
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="text-center p-4 bg-gray-50 rounded-xl">
-            <p className="text-3xl font-bold text-primary-600">{completionRate.toFixed(0)}%</p>
-            <p className="text-sm text-gray-500 mt-1">Taux de complétion</p>
+        <div className="flex sm:grid sm:grid-cols-4 gap-3 sm:gap-4 overflow-x-auto scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0 pb-1">
+          <div className="text-center p-3 sm:p-4 bg-gray-50 rounded-xl min-w-[130px] sm:min-w-0 shrink-0 sm:shrink">
+            <p className="text-2xl sm:text-3xl font-bold text-primary-600">{completionRate.toFixed(0)}%</p>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">Taux complétion</p>
           </div>
-          <div className="text-center p-4 bg-green-50 rounded-xl">
-            <p className="text-3xl font-bold text-green-600">{validatedDays}</p>
-            <p className="text-sm text-gray-500 mt-1">Journées validées</p>
+          <div className="text-center p-3 sm:p-4 bg-green-50 rounded-xl min-w-[130px] sm:min-w-0 shrink-0 sm:shrink">
+            <p className="text-2xl sm:text-3xl font-bold text-green-600">{validatedDays}</p>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">Journées validées</p>
           </div>
-          <div className="text-center p-4 bg-red-50 rounded-xl">
-            <p className="text-3xl font-bold text-red-600">{rejectedDays}</p>
-            <p className="text-sm text-gray-500 mt-1">Journées rejetées</p>
+          <div className="text-center p-3 sm:p-4 bg-red-50 rounded-xl min-w-[130px] sm:min-w-0 shrink-0 sm:shrink">
+            <p className="text-2xl sm:text-3xl font-bold text-red-600">{rejectedDays}</p>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">Journées rejetées</p>
           </div>
-          <div className="text-center p-4 bg-yellow-50 rounded-xl">
-            <p className="text-3xl font-bold text-yellow-600">{pendingDays}</p>
-            <p className="text-sm text-gray-500 mt-1">En attente</p>
+          <div className="text-center p-3 sm:p-4 bg-yellow-50 rounded-xl min-w-[130px] sm:min-w-0 shrink-0 sm:shrink">
+            <p className="text-2xl sm:text-3xl font-bold text-yellow-600">{pendingDays}</p>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">En attente</p>
           </div>
         </div>
 

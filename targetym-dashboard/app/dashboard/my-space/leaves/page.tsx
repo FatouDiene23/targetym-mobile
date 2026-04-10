@@ -9,6 +9,7 @@ import {
   Calendar, Plus, X, AlertCircle, Clock, CheckCircle, XCircle, Info, ChevronDown, ChevronUp
 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CustomSelect from '@/components/CustomSelect';
 import Header from '@/components/Header';
 
 // ============================================
@@ -389,32 +390,28 @@ function NewLeaveRequestModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Type de congé <span className="text-red-500">*</span>
               </label>
-              <select
+              <CustomSelect
                 value={formData.leave_type_id}
-                onChange={(e) => setFormData({ ...formData, leave_type_id: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                required
-              >
-                <option value="">Sélectionner...</option>
-                {leaveTypes.map((type) => {
-                  const bal = balances?.balances.find((b) => b.leave_type_id === type.id);
-                  let suffix = '';
-                  if (bal) {
-                    suffix = ` \u2014 ${bal.available} j disponibles`;
-                  } else if (type.is_annual) {
-                    suffix = type.accrual_rate ? ` \u2014 ${type.accrual_rate} j/mois` : '';
-                  } else if (type.default_days > 0) {
-                    suffix = ` \u2014 quota : ${type.default_days} j/an`;
-                  } else {
-                    suffix = ' \u2014 sans quota fixe';
-                  }
-                  return (
-                    <option key={type.id} value={type.id}>
-                      {type.name} ({type.code}){suffix}
-                    </option>
-                  );
-                })}
-              </select>
+                onChange={(v) => setFormData({ ...formData, leave_type_id: v })}
+                placeholder="Sélectionner..."
+                options={[
+                  { value: '', label: 'Sélectionner...' },
+                  ...leaveTypes.map((type) => {
+                    const bal = balances?.balances.find((b) => b.leave_type_id === type.id);
+                    let suffix = '';
+                    if (bal) {
+                      suffix = ` — ${bal.available} j disponibles`;
+                    } else if (type.is_annual) {
+                      suffix = type.accrual_rate ? ` — ${type.accrual_rate} j/mois` : '';
+                    } else if (type.default_days > 0) {
+                      suffix = ` — quota : ${type.default_days} j/an`;
+                    } else {
+                      suffix = ' — sans quota fixe';
+                    }
+                    return { value: String(type.id), label: `${type.name} (${type.code})${suffix}` };
+                  }),
+                ]}
+              />
             </div>
 
             {formData.leave_type_id && (() => {

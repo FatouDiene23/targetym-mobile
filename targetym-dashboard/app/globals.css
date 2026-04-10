@@ -11,6 +11,20 @@ body {
   background: #F8FAFC;
 }
 
+/* Style des options de <select> sur mobile : fond vert + texte blanc lisible */
+select option {
+  background-color: #16a34a;
+  color: #ffffff;
+  font-size: 14px;
+  padding: 8px;
+}
+
+select option:checked,
+select option:hover {
+  background-color: #15803d;
+  color: #ffffff;
+}
+
 /* ============================================
    CUSTOM SCROLLBAR STYLES
    Ajouter ces styles à la fin de app/globals.css
@@ -121,9 +135,13 @@ body {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
-  /* Grids 3+ colonnes → 2 colonnes sur mobile */
-  .grid-cols-3, .grid-cols-4, .grid-cols-5, .grid-cols-6, .grid-cols-7, .grid-cols-8 {
+  /* Grids 3+ colonnes → 2 colonnes sur mobile (sauf calendrier) */
+  .grid-cols-3:not(.keep-cols), .grid-cols-4:not(.keep-cols), .grid-cols-5:not(.keep-cols), .grid-cols-6:not(.keep-cols), .grid-cols-8:not(.keep-cols) {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  /* Calendrier 7 jours doit rester en 7 colonnes */
+  .grid-cols-7 {
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
   }
 
   /* Modals — pleine largeur sur mobile */

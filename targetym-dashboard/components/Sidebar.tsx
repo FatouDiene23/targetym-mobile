@@ -339,7 +339,8 @@ const MY_SPACE_FEATURE_MAP: Record<string, string> = {
 };
 
 function SidebarInner() {
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = (rawPathname?.replace(/\/$/, '') || rawPathname || '');
   const searchParams = useSearchParams();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -644,8 +645,8 @@ function SidebarInner() {
                   href={item.href}
                   {...(item.dataTour ? { 'data-tour': item.dataTour } : {})}
                   className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
-                    isActive 
-                      ? 'bg-primary-500/20 text-primary-400 border-l-2 border-primary-500' 
+                    isActive
+                      ? 'bg-primary-500 text-white font-semibold'
                       : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                   }`}
                 >
@@ -689,8 +690,8 @@ function SidebarInner() {
                   key={item.name} 
                   href={item.href} 
                   className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
-                    isActive 
-                      ? 'bg-primary-500/20 text-primary-400 border-l-2 border-primary-500' 
+                    isActive
+                      ? 'bg-primary-500 text-white font-semibold'
                       : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                   }`}
                 >
@@ -734,8 +735,8 @@ function SidebarInner() {
                   key={item.name} 
                   href={item.href}
                   className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
-                    isActive 
-                      ? 'bg-primary-500/20 text-primary-400 border-l-2 border-primary-500' 
+                    isActive
+                      ? 'bg-primary-500 text-white font-semibold'
                       : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                   }`}
                 >

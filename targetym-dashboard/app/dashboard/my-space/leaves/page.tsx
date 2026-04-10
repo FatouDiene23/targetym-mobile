@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import PageTourTips from '@/components/PageTourTips';
+import CustomSelect from '@/components/CustomSelect';
 import { usePageTour } from '@/hooks/usePageTour';
 import { myLeavesTips } from '@/config/pageTips';
 import {
@@ -399,15 +400,10 @@ function NewLeaveRequestModal({
                   ...leaveTypes.map((type) => {
                     const bal = balances?.balances.find((b) => b.leave_type_id === type.id);
                     let suffix = '';
-                    if (bal) {
-                      suffix = ` — ${bal.available} j disponibles`;
-                    } else if (type.is_annual) {
-                      suffix = type.accrual_rate ? ` — ${type.accrual_rate} j/mois` : '';
-                    } else if (type.default_days > 0) {
-                      suffix = ` — quota : ${type.default_days} j/an`;
-                    } else {
-                      suffix = ' — sans quota fixe';
-                    }
+                    if (bal) suffix = ` — ${bal.available} j disponibles`;
+                    else if (type.is_annual) suffix = type.accrual_rate ? ` — ${type.accrual_rate} j/mois` : '';
+                    else if (type.default_days > 0) suffix = ` — quota : ${type.default_days} j/an`;
+                    else suffix = ' — sans quota fixe';
                     return { value: String(type.id), label: `${type.name} (${type.code})${suffix}` };
                   }),
                 ]}

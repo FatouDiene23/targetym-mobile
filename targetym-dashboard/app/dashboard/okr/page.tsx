@@ -7,6 +7,7 @@ import {
   Building2, Users, User, Download, Link2, BarChart3, GitBranch, Layers, Loader2
 } from 'lucide-react';
 import Header from '@/components/Header';
+import CustomSelect from '@/components/CustomSelect';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { okrTips } from '@/config/pageTips';
@@ -433,110 +434,108 @@ function ObjectiveModal({
             />
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Niveau *</label>
-              <select
+              <CustomSelect
                 value={formData.level}
-                onChange={(e) => setFormData({ ...formData, level: e.target.value as 'enterprise' | 'department' | 'individual' })}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                {canCreateEnterprise && <option value="enterprise">Entreprise</option>}
-                <option value="department">Département</option>
-                <option value="individual">Individuel</option>
-              </select>
+                onChange={(v) => setFormData({ ...formData, level: v as 'enterprise' | 'department' | 'individual' })}
+                placeholder="Niveau"
+                options={[
+                  ...(canCreateEnterprise ? [{ value: 'enterprise', label: 'Entreprise' }] : []),
+                  { value: 'department', label: 'Département' },
+                  { value: 'individual', label: 'Individuel' },
+                ]}
+              />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Période *</label>
-              <select
+              <CustomSelect
                 value={formData.period}
-                onChange={(e) => setFormData({ ...formData, period: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="2026">2026</option>
-                <option value="Q1 2026">Q1 2026</option>
-                <option value="Q2 2026">Q2 2026</option>
-                <option value="Q3 2026">Q3 2026</option>
-                <option value="Q4 2026">Q4 2026</option>
-                <option value="2025">2025</option>
-                <option value="Q1 2025">Q1 2025</option>
-                <option value="Q2 2025">Q2 2025</option>
-                <option value="Q3 2025">Q3 2025</option>
-                <option value="Q4 2025">Q4 2025</option>
-              </select>
+                onChange={(v) => setFormData({ ...formData, period: v })}
+                placeholder="Période"
+                options={[
+                  { value: '2026', label: '2026' },
+                  { value: 'Q1 2026', label: 'Q1 2026' },
+                  { value: 'Q2 2026', label: 'Q2 2026' },
+                  { value: 'Q3 2026', label: 'Q3 2026' },
+                  { value: 'Q4 2026', label: 'Q4 2026' },
+                  { value: '2025', label: '2025' },
+                  { value: 'Q1 2025', label: 'Q1 2025' },
+                  { value: 'Q2 2025', label: 'Q2 2025' },
+                  { value: 'Q3 2025', label: 'Q3 2025' },
+                  { value: 'Q4 2025', label: 'Q4 2025' },
+                ]}
+              />
             </div>
           </div>
-          
-          <div className="grid grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Département</label>
-              <select
-                value={formData.department_id || ''}
-                onChange={(e) => setFormData({ ...formData, department_id: e.target.value ? parseInt(e.target.value) : undefined })}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">-- Aucun --</option>
-                {departments.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={String(formData.department_id ?? '')}
+                onChange={(v) => setFormData({ ...formData, department_id: v ? parseInt(v) : undefined })}
+                placeholder="-- Aucun --"
+                options={[
+                  { value: '', label: '-- Aucun --' },
+                  ...departments.map(d => ({ value: String(d.id), label: d.name })),
+                ]}
+              />
               {!canSeeAll && departments.length === 1 && (
-                <p className="text-xs text-gray-500 mt-1">
-                  💡 Votre département est pré-sélectionné
-                </p>
+                <p className="text-xs text-gray-500 mt-1">💡 Votre département est pré-sélectionné</p>
               )}
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Propriétaire</label>
-              <select
-                value={formData.owner_id || ''}
-                onChange={(e) => setFormData({ ...formData, owner_id: e.target.value ? parseInt(e.target.value) : undefined })}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">-- Aucun --</option>
-                {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={String(formData.owner_id ?? '')}
+                onChange={(v) => setFormData({ ...formData, owner_id: v ? parseInt(v) : undefined })}
+                placeholder="-- Aucun --"
+                options={[
+                  { value: '', label: '-- Aucun --' },
+                  ...employees.map(e => ({ value: String(e.id), label: `${e.first_name} ${e.last_name}` })),
+                ]}
+              />
               {!canSeeAll && employees.length > 0 && (
-                <p className="text-xs text-gray-500 mt-1">
-                  💡 Vous-même et vos collaborateurs directs
-                </p>
+                <p className="text-xs text-gray-500 mt-1">💡 Vous-même et vos collaborateurs directs</p>
               )}
             </div>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Objectif parent (alignement)</label>
-            <select
-              value={formData.parent_id || ''}
-              onChange={(e) => setFormData({ ...formData, parent_id: e.target.value ? parseInt(e.target.value) : undefined })}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="">-- Aucun --</option>
-              {parentObjectives.filter(o => o.id !== objective?.id).map((o) => (
-                <option key={o.id} value={o.id}>[{getLevelLabel(o.level)}] {o.title}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={String(formData.parent_id ?? '')}
+              onChange={(v) => setFormData({ ...formData, parent_id: v ? parseInt(v) : undefined })}
+              placeholder="-- Aucun --"
+              options={[
+                { value: '', label: '-- Aucun --' },
+                ...parentObjectives
+                  .filter(o => o.id !== objective?.id)
+                  .map(o => ({ value: String(o.id), label: `[${getLevelLabel(o.level)}] ${o.title}` })),
+              ]}
+            />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
-            <select
+            <CustomSelect
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="draft">Brouillon</option>
-              <option value="active">Actif</option>
-              <option value="on_track">En bonne voie</option>
-              <option value="at_risk">À risque</option>
-              <option value="behind">En retard</option>
-              <option value="completed">Terminé</option>
-              <option value="exceeded">Dépassé</option>
-            </select>
+              onChange={(v) => setFormData({ ...formData, status: v })}
+              placeholder="Statut"
+              options={[
+                { value: 'draft', label: 'Brouillon' },
+                { value: 'active', label: 'Actif' },
+                { value: 'on_track', label: 'En bonne voie' },
+                { value: 'at_risk', label: 'À risque' },
+                { value: 'behind', label: 'En retard' },
+                { value: 'completed', label: 'Terminé' },
+                { value: 'exceeded', label: 'Dépassé' },
+              ]}
+            />
           </div>
           
           <div className="flex justify-end gap-3 pt-4 border-t">
@@ -686,24 +685,23 @@ function KeyResultModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Unité</label>
-              <select
+              <CustomSelect
                 value={isCustomUnit ? '__autre__' : (formData.unit || '')}
-                onChange={(e) => {
-                  if (e.target.value === '__autre__') {
+                onChange={(v) => {
+                  if (v === '__autre__') {
                     setIsCustomUnit(true);
                     setFormData({ ...formData, unit: '' });
                   } else {
                     setIsCustomUnit(false);
-                    setFormData({ ...formData, unit: e.target.value });
+                    setFormData({ ...formData, unit: v });
                   }
                 }}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="">— Choisir une unité —</option>
-                {UNIT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
+                placeholder="— Choisir une unité —"
+                options={[
+                  { value: '', label: '— Choisir une unité —' },
+                  ...UNIT_OPTIONS,
+                ]}
+              />
               {isCustomUnit && (
                 <input
                   type="text"

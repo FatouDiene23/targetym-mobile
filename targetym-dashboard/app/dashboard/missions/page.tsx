@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
+import CustomSelect from '@/components/CustomSelect';
 import {
   Plane, MapPin, Calendar, Clock, Users, FileText, Plus, Search,
   Filter, ChevronDown, ChevronRight, Eye, Edit, Trash2, Download,
@@ -1302,18 +1303,18 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
                   {canManageAll(role) ? '(Tous les employés)' : '(Vos collaborateurs directs)'}
                 </span>
               </label>
-              <select
-                value={formData.employee_id}
-                onChange={(e) => setFormData({ ...formData, employee_id: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 border rounded-xl text-sm"
-              >
-                <option value={employeeId || 0}>Moi-même</option>
-                {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.first_name} {emp.last_name} {emp.job_title ? `- ${emp.job_title}` : ''} {emp.department_name ? `(${emp.department_name})` : ''}
-                  </option>
-                ))}
-              </select>
+              <CustomSelect
+                value={String(formData.employee_id)}
+                onChange={(v) => setFormData({ ...formData, employee_id: parseInt(v) })}
+                placeholder="Sélectionner..."
+                options={[
+                  { value: String(employeeId || 0), label: 'Moi-même' },
+                  ...employees.map(emp => ({
+                    value: String(emp.id),
+                    label: `${emp.first_name} ${emp.last_name}${emp.job_title ? ` — ${emp.job_title}` : ''}${emp.department_name ? ` (${emp.department_name})` : ''}`,
+                  })),
+                ]}
+              />
             </div>
           )}
 
@@ -1373,15 +1374,16 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Type de trajet</label>
-            <select
+            <CustomSelect
               value={formData.trip_type}
-              onChange={(e) => setFormData({ ...formData, trip_type: e.target.value })}
-              className="w-full px-3 py-2 border rounded-xl text-sm"
-            >
-              <option value="aller_retour">Aller-retour</option>
-              <option value="aller_simple">Aller simple</option>
-              <option value="multi_destination">Multi-destinations</option>
-            </select>
+              onChange={(v) => setFormData({ ...formData, trip_type: v })}
+              placeholder="Type de trajet"
+              options={[
+                { value: 'aller_retour', label: 'Aller-retour' },
+                { value: 'aller_simple', label: 'Aller simple' },
+                { value: 'multi_destination', label: 'Multi-destinations' },
+              ]}
+            />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1408,33 +1410,35 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Moyen de transport *</label>
-              <select
+              <CustomSelect
                 value={formData.transport_type}
-                onChange={(e) => setFormData({ ...formData, transport_type: e.target.value })}
-                className="w-full px-3 py-2 border rounded-xl text-sm"
-              >
-                <option value="avion">Avion</option>
-                <option value="train">Train</option>
-                <option value="voiture_personnelle">Voiture personnelle</option>
-                <option value="voiture_service">Voiture de service</option>
-                <option value="bus">Bus</option>
-                <option value="autre">Autre</option>
-              </select>
+                onChange={(v) => setFormData({ ...formData, transport_type: v })}
+                placeholder="Transport"
+                options={[
+                  { value: 'avion', label: 'Avion' },
+                  { value: 'train', label: 'Train' },
+                  { value: 'voiture_personnelle', label: 'Voiture personnelle' },
+                  { value: 'voiture_service', label: 'Voiture de service' },
+                  { value: 'bus', label: 'Bus' },
+                  { value: 'autre', label: 'Autre' },
+                ]}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Hébergement</label>
-              <select
+              <CustomSelect
                 value={formData.accommodation_type}
-                onChange={(e) => setFormData({ ...formData, accommodation_type: e.target.value })}
-                className="w-full px-3 py-2 border rounded-xl text-sm"
-              >
-                <option value="">-- Choisir --</option>
-                <option value="hotel">Hôtel</option>
-                <option value="residence">Résidence</option>
-                <option value="chez_tiers">Chez un tiers</option>
-                <option value="aucun">Aucun</option>
-                <option value="autre">Autre</option>
-              </select>
+                onChange={(v) => setFormData({ ...formData, accommodation_type: v })}
+                placeholder="-- Choisir --"
+                options={[
+                  { value: '', label: '-- Choisir --' },
+                  { value: 'hotel', label: 'Hôtel' },
+                  { value: 'residence', label: 'Résidence' },
+                  { value: 'chez_tiers', label: 'Chez un tiers' },
+                  { value: 'aucun', label: 'Aucun' },
+                  { value: 'autre', label: 'Autre' },
+                ]}
+              />
             </div>
           </div>
 
@@ -1734,25 +1738,35 @@ function EditMissionModal({ mission, onClose, onSuccess }: {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Transport</label>
-              <select value={formData.transport_type} onChange={(e) => setFormData({ ...formData, transport_type: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm">
-                <option value="avion">Avion</option>
-                <option value="train">Train</option>
-                <option value="voiture_personnelle">Voiture personnelle</option>
-                <option value="voiture_service">Voiture de service</option>
-                <option value="bus">Bus</option>
-                <option value="autre">Autre</option>
-              </select>
+              <CustomSelect
+                value={formData.transport_type}
+                onChange={(v) => setFormData({ ...formData, transport_type: v })}
+                placeholder="Transport"
+                options={[
+                  { value: 'avion', label: 'Avion' },
+                  { value: 'train', label: 'Train' },
+                  { value: 'voiture_personnelle', label: 'Voiture personnelle' },
+                  { value: 'voiture_service', label: 'Voiture de service' },
+                  { value: 'bus', label: 'Bus' },
+                  { value: 'autre', label: 'Autre' },
+                ]}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Hébergement</label>
-              <select value={formData.accommodation_type} onChange={(e) => setFormData({ ...formData, accommodation_type: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm">
-                <option value="">-- Choisir --</option>
-                <option value="hotel">Hôtel</option>
-                <option value="residence">Résidence</option>
-                <option value="chez_tiers">Chez un tiers</option>
-                <option value="aucun">Aucun</option>
-                <option value="autre">Autre</option>
-              </select>
+              <CustomSelect
+                value={formData.accommodation_type}
+                onChange={(v) => setFormData({ ...formData, accommodation_type: v })}
+                placeholder="-- Choisir --"
+                options={[
+                  { value: '', label: '-- Choisir --' },
+                  { value: 'hotel', label: 'Hôtel' },
+                  { value: 'residence', label: 'Résidence' },
+                  { value: 'chez_tiers', label: 'Chez un tiers' },
+                  { value: 'aucun', label: 'Aucun' },
+                  { value: 'autre', label: 'Autre' },
+                ]}
+              />
             </div>
           </div>
           <div>

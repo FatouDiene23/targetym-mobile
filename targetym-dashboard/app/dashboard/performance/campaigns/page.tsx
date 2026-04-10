@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import CustomSelect from '@/components/CustomSelect';
 import {
   Plus, X, Loader2, AlertCircle, Search, ChevronLeft, ChevronRight,
   XCircle, Archive, RotateCcw, MoreVertical, Users
@@ -461,30 +462,39 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Description optionnelle..." className="w-full px-3 py-2.5 border rounded-lg text-sm" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Type d&apos;évaluation</label>
-                  <select value={campaignType} onChange={(e) => setCampaignType(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm">
-                                    <option value="annual">Évaluation Annuelle</option>
-                    <option value="mid_year">Évaluation Mi-Année</option>
-                    <option value="360">Feedback 360°</option>
-                    <option value="probation">Fin de Période d&apos;Essai</option>
-                    <option value="evaluation_360">Évaluation 360°</option>
-                    <option value="entretien_1on1">Entretien d&apos;Évaluation 1-1</option>
-                    <option value="coaching_1on1">Session Coaching 1:1</option>
-                    <option value="revue_hebdo">Revue de Perf Hebdo</option>
-                    <option value="feedback_360">Feedback 360°</option>
-                    <option value="prise_de_fonction">Évaluation Prise de Fonction</option>
-                    <option value="prise_dessai">Évaluation de Prise d&apos;Essai</option>
-                  </select>
+                  <CustomSelect
+                    value={campaignType}
+                    onChange={setCampaignType}
+                    placeholder="Type"
+                    options={[
+                      { value: 'annual', label: 'Évaluation Annuelle' },
+                      { value: 'mid_year', label: 'Évaluation Mi-Année' },
+                      { value: '360', label: 'Feedback 360°' },
+                      { value: 'probation', label: "Fin de Période d'Essai" },
+                      { value: 'evaluation_360', label: 'Évaluation 360°' },
+                      { value: 'entretien_1on1', label: "Entretien d'Évaluation 1-1" },
+                      { value: 'coaching_1on1', label: 'Session Coaching 1:1' },
+                      { value: 'revue_hebdo', label: 'Revue de Perf Hebdo' },
+                      { value: 'prise_de_fonction', label: 'Évaluation Prise de Fonction' },
+                      { value: 'prise_dessai', label: "Évaluation de Prise d'Essai" },
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Périodicité</label>
-                  <select value={period} onChange={(e) => setPeriod(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm">
-                    <option value="annual">Annuelle</option>
-                    <option value="semester">Semestrielle</option>
-                    <option value="quarterly">Trimestrielle</option>
-                  </select>
+                  <CustomSelect
+                    value={period}
+                    onChange={setPeriod}
+                    placeholder="Périodicité"
+                    options={[
+                      { value: 'annual', label: 'Annuelle' },
+                      { value: 'semester', label: 'Semestrielle' },
+                      { value: 'quarterly', label: 'Trimestrielle' },
+                    ]}
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">

@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import Header from '@/components/Header';
+import CustomSelect from '@/components/CustomSelect';
 import EmployeeModal from '@/components/EmployeeModal';
 import AddModal from '@/components/AddModal';
 import EditEmployeeModal from '@/components/EditEmployeeModal';
@@ -1158,8 +1159,8 @@ function EmployeesPageInner() {
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1 relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder="Rechercher par nom, email ou poste..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" /></div>
                 <div className="flex gap-2 lg:gap-3 flex-wrap">
-                  <select value={selectedDepartment} onChange={(e) => { setSelectedDepartment(e.target.value); setCurrentPage(1); }} className="px-2 lg:px-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg text-xs lg:text-sm max-w-[140px] lg:max-w-none truncate"><option value="Tous">Tous départements</option>{departments.map(dept => <option key={dept.id} value={dept.name}>{dept.parent_id ? `↳ ${dept.name}` : dept.name}</option>)}</select>
-                  <select value={selectedLocation} onChange={(e) => { setSelectedLocation(e.target.value); setCurrentPage(1); }} className="px-2 lg:px-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg text-xs lg:text-sm max-w-[140px] lg:max-w-none truncate">{locations.map(loc => <option key={loc} value={loc}>{loc === 'Tous' ? 'Localisations' : loc}</option>)}</select>
+                  <CustomSelect value={selectedDepartment} onChange={v => { setSelectedDepartment(v); setCurrentPage(1); }} placeholder="Tous départements" className="min-w-[130px]" options={[{ value: 'Tous', label: 'Tous départements' }, ...departments.map(d => ({ value: d.name, label: d.parent_id ? `↳ ${d.name}` : d.name }))]} />
+                  <CustomSelect value={selectedLocation} onChange={v => { setSelectedLocation(v); setCurrentPage(1); }} placeholder="Localisations" className="min-w-[120px]" options={locations.map(loc => ({ value: loc, label: loc === 'Tous' ? 'Localisations' : loc }))} />
                   <button onClick={() => setShowAddModal(true)} className="flex items-center px-3 lg:px-4 py-2 lg:py-2.5 bg-primary-500 text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-primary-600"><Plus className="w-4 h-4 lg:mr-2" /><span className="hidden lg:inline">Ajouter</span></button>
                   <button onClick={handleExport} className="flex items-center px-3 lg:px-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg text-xs lg:text-sm hover:bg-gray-50"><Download className="w-4 h-4 lg:mr-2" /><span className="hidden lg:inline">Exporter</span></button>
                 </div>

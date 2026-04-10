@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import CustomSelect from '@/components/CustomSelect';
 import {
   Calendar, Clock, MapPin, X, Loader2, AlertCircle, Search,
   ChevronLeft, ChevronRight, Video, ClipboardCheck, Star, Plus, Trash2, ListTodo
@@ -268,10 +269,15 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
           {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Collaborateur *</label>
-            <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm">
-              <option value="">Sélectionner un collaborateur</option>
-              {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}
-            </select>
+            <CustomSelect
+              value={String(employeeId)}
+              onChange={v => setEmployeeId(v)}
+              placeholder="Sélectionner un collaborateur"
+              options={[
+                { value: '', label: 'Sélectionner un collaborateur' },
+                ...employees.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` })),
+              ]}
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -286,13 +292,18 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Durée</label>
-              <select value={duration} onChange={(e) => setDuration(parseInt(e.target.value))} className="w-full px-3 py-2.5 border rounded-lg text-sm">
-                <option value={15}>15 min</option>
-                <option value={30}>30 min</option>
-                <option value={45}>45 min</option>
-                <option value={60}>1 heure</option>
-                <option value={90}>1h30</option>
-              </select>
+              <CustomSelect
+                value={String(duration)}
+                onChange={v => setDuration(parseInt(v))}
+                placeholder="Durée"
+                options={[
+                  { value: '15', label: '15 min' },
+                  { value: '30', label: '30 min' },
+                  { value: '45', label: '45 min' },
+                  { value: '60', label: '1 heure' },
+                  { value: '90', label: '1h30' },
+                ]}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Lieu</label>
@@ -491,30 +502,32 @@ function EvaluateModal({ meeting, onClose, onSuccess }: {
                         value={task.title} onChange={e => updateTask(task.id, 'title', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 sm:col-span-2"
                       />
-                      <select
-                        value={task.assigned_to_id}
-                        onChange={e => updateTask(task.id, 'assigned_to_id', parseInt(e.target.value))}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-400"
-                      >
-                        <option value={meeting.employee_id}>→ {meeting.employee_name} (collaborateur)</option>
-                        <option value={meeting.manager_id}>→ {meeting.manager_name} (moi)</option>
-                      </select>
+                      <CustomSelect
+                        value={String(task.assigned_to_id)}
+                        onChange={v => updateTask(task.id, 'assigned_to_id', parseInt(v))}
+                        placeholder="Assigné à"
+                        options={[
+                          { value: String(meeting.employee_id), label: `→ ${meeting.employee_name} (collaborateur)` },
+                          { value: String(meeting.manager_id), label: `→ ${meeting.manager_name} (moi)` },
+                        ]}
+                      />
                       <div className="flex gap-2">
                         <input
                           type="date" value={task.due_date}
                           onChange={e => updateTask(task.id, 'due_date', e.target.value)}
                           className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-400"
                         />
-                        <select
+                        <CustomSelect
                           value={task.priority}
-                          onChange={e => updateTask(task.id, 'priority', e.target.value)}
-                          className="w-28 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-400"
-                        >
-                          <option value="low">Faible</option>
-                          <option value="medium">Moyenne</option>
-                          <option value="high">Haute</option>
-                          <option value="urgent">Urgente</option>
-                        </select>
+                          onChange={v => updateTask(task.id, 'priority', v)}
+                          placeholder="Priorité"
+                          options={[
+                            { value: 'low', label: 'Faible' },
+                            { value: 'medium', label: 'Moyenne' },
+                            { value: 'high', label: 'Haute' },
+                            { value: 'urgent', label: 'Urgente' },
+                          ]}
+                        />
                       </div>
                     </div>
                     <button type="button" onClick={() => removeTask(task.id)}

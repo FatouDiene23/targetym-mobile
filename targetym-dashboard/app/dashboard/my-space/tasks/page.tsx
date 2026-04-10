@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import PageTourTips from '@/components/PageTourTips';
+import CustomSelect from '@/components/CustomSelect';
 import { usePageTour } from '@/hooks/usePageTour';
 import { tasksTips } from '@/config/pageTips';
 import { 
@@ -523,18 +524,15 @@ function CreateTaskModal({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Assigner à *</label>
-                <select
-                  value={formData.assigned_to_id}
-                  onChange={(e) => setFormData({ ...formData, assigned_to_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  <option value={currentEmployeeId}>Moi-même</option>
-                  {teamMembers.map((member) => (
-                    <option key={member.id} value={member.id}>
-                      {member.name} {member.job_title ? `(${member.job_title})` : ''}
-                    </option>
-                  ))}
-                </select>
+                <CustomSelect
+                  value={String(formData.assigned_to_id)}
+                  onChange={v => setFormData({ ...formData, assigned_to_id: v })}
+                  placeholder="Moi-même"
+                  options={[
+                    { value: String(currentEmployeeId), label: 'Moi-même' },
+                    ...teamMembers.map(m => ({ value: String(m.id), label: `${m.name}${m.job_title ? ` (${m.job_title})` : ''}` })),
+                  ]}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -551,16 +549,17 @@ function CreateTaskModal({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Priorité</label>
-                  <select
+                  <CustomSelect
                     value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value as TaskPriority })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  >
-                    <option value="low">Basse</option>
-                    <option value="medium">Moyenne</option>
-                    <option value="high">Haute</option>
-                    <option value="urgent">Urgente</option>
-                  </select>
+                    onChange={v => setFormData({ ...formData, priority: v as TaskPriority })}
+                    placeholder="Priorité"
+                    options={[
+                      { value: 'low', label: 'Basse' },
+                      { value: 'medium', label: 'Moyenne' },
+                      { value: 'high', label: 'Haute' },
+                      { value: 'urgent', label: 'Urgente' },
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -614,44 +613,31 @@ function CreateTaskModal({
                       <>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Objectif *</label>
-                          <select
-                            value={formData.objective_id}
-                            onChange={(e) => setFormData({ ...formData, objective_id: e.target.value })}
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm ${
-                              !formData.objective_id && !formData.is_administrative 
-                                ? 'border-red-300 bg-red-50' 
-                                : 'border-gray-300'
-                            }`}
-                            required={!formData.is_administrative}
-                          >
-                            <option value="">-- Sélectionner un objectif --</option>
-                            {Object.entries(groupedObjectives).map(([level, objs]) => (
-                              <optgroup key={level} label={OKR_LEVEL_LABELS[level] || level}>
-                                {objs.map((obj) => (
-                                  <option key={obj.id} value={obj.id}>
-                                    {obj.title} ({obj.progress.toFixed(0)}%)
-                                  </option>
-                                ))}
-                              </optgroup>
-                            ))}
-                          </select>
+                          <CustomSelect
+                            value={String(formData.objective_id)}
+                            onChange={v => setFormData({ ...formData, objective_id: v })}
+                            placeholder="-- Sélectionner un objectif --"
+                            options={[
+                              { value: '', label: '-- Sélectionner un objectif --' },
+                              ...Object.entries(groupedObjectives).flatMap(([level, objs]) =>
+                                objs.map(obj => ({ value: String(obj.id), label: `[${OKR_LEVEL_LABELS[level] || level}] ${obj.title} (${obj.progress.toFixed(0)}%)` }))
+                              ),
+                            ]}
+                          />
                         </div>
 
                         {formData.objective_id && availableKeyResults.length > 0 && (
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Key Result (optionnel)</label>
-                            <select
-                              value={formData.key_result_id}
-                              onChange={(e) => setFormData({ ...formData, key_result_id: e.target.value })}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
-                            >
-                              <option value="">-- Tous les KRs --</option>
-                              {availableKeyResults.map((kr) => (
-                                <option key={kr.id} value={kr.id}>
-                                  {kr.title} ({kr.current}/{kr.target} {kr.unit || ''})
-                                </option>
-                              ))}
-                            </select>
+                            <CustomSelect
+                              value={String(formData.key_result_id)}
+                              onChange={v => setFormData({ ...formData, key_result_id: v })}
+                              placeholder="-- Tous les KRs --"
+                              options={[
+                                { value: '', label: '-- Tous les KRs --' },
+                                ...availableKeyResults.map(kr => ({ value: String(kr.id), label: `${kr.title} (${kr.current}/${kr.target} ${kr.unit || ''})` })),
+                              ]}
+                            />
                           </div>
                         )}
 

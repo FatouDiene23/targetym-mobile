@@ -39,7 +39,6 @@ export default function CustomSelect({
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  // Fermer si clic en dehors (desktop)
   useEffect(() => {
     if (!open || isMobile) return;
     const handleClick = (e: MouseEvent) => {
@@ -49,7 +48,6 @@ export default function CustomSelect({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open, isMobile]);
 
-  // Fermer avec Escape
   useEffect(() => {
     if (!open) return;
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
@@ -67,7 +65,6 @@ export default function CustomSelect({
 
   return (
     <div ref={ref} className={`relative ${className}`}>
-      {/* Trigger */}
       <button
         type="button"
         onClick={() => { if (!disabled) setOpen(!open); }}
@@ -83,28 +80,17 @@ export default function CustomSelect({
         />
       </button>
 
-      {/* ===== MOBILE : Bottom Sheet ===== */}
+      {/* MOBILE : Bottom Sheet */}
       {open && isMobile && (
         <>
-          {/* Overlay */}
-          <div
-            className="fixed inset-0 bg-black/40 z-[200]"
-            onClick={() => setOpen(false)}
-          />
-          {/* Sheet */}
+          <div className="fixed inset-0 bg-black/40 z-[200]" onClick={() => setOpen(false)} />
           <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-[201] max-h-[65vh] flex flex-col shadow-2xl">
-            {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
               <span className="font-semibold text-gray-900 text-base">{placeholder}</span>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-              >
+              <button type="button" onClick={() => setOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
-            {/* Options */}
             <div className="overflow-y-auto flex-1 py-1">
               {options.map(opt => (
                 <button
@@ -125,7 +111,7 @@ export default function CustomSelect({
         </>
       )}
 
-      {/* ===== DESKTOP : Dropdown ===== */}
+      {/* DESKTOP : Dropdown */}
       {open && !isMobile && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
           {options.map(opt => (

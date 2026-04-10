@@ -129,8 +129,13 @@ export default function AddModal({ onClose, onSuccess }: AddModalProps) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
 
-  // Obtenir la config pour la page actuelle
-  const config = pageConfigs[pathname] || defaultConfig;
+  // Obtenir la config pour la page actuelle (normalisation + préfixe)
+  const normalizedPath = pathname.replace(/\/$/, '');
+  const config = pageConfigs[normalizedPath] ??
+    Object.entries(pageConfigs)
+      .filter(([key]) => key !== '/dashboard' && normalizedPath.startsWith(key))
+      .sort((a, b) => b[0].length - a[0].length)[0]?.[1] ??
+    defaultConfig;
 
   // Charger les données nécessaires
   useEffect(() => {
@@ -182,6 +187,15 @@ export default function AddModal({ onClose, onSuccess }: AddModalProps) {
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
   }, [onClose]);
+
+  // ========================================
+  // Si "objective" ou "key-result" → dispatcher l'événement OKR
+  // ========================================
+  if (selectedOption === 'objective' || selectedOption === 'key-result') {
+    onClose();
+    window.dispatchEvent(new Event('okr-add'));
+    return null;
+  }
 
   // ========================================
   // Si "department" est sélectionné, ouvrir directement

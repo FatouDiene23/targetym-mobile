@@ -374,7 +374,12 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
   // Bouton Ajouter : contextuel selon la route
   const handleAddClick = () => {
-    const contextualEvent = CONTEXTUAL_ROUTES[pathname];
+    const normalizedPath = pathname.replace(/\/$/, '');
+    // Cherche d'abord correspondance exacte, sinon par préfixe (le plus long match)
+    const contextualEvent = CONTEXTUAL_ROUTES[normalizedPath] ??
+      Object.entries(CONTEXTUAL_ROUTES)
+        .filter(([key]) => normalizedPath.startsWith(key))
+        .sort((a, b) => b[0].length - a[0].length)[0]?.[1];
     if (contextualEvent) {
       window.dispatchEvent(new Event(contextualEvent));
     } else {
@@ -609,13 +614,13 @@ export default function Header({ title, subtitle }: HeaderProps) {
             </div>
 
             {/* Bouton Ajouter — masqué pour employés simples et certaines routes */}
-            {canAdd && !HIDDEN_ADD_ROUTES.some(r => pathname.startsWith(r)) && (
+            {canAdd && !HIDDEN_ADD_ROUTES.some(r => pathname.replace(/\/$/, '').startsWith(r)) && (
               <button
                 onClick={handleAddClick}
                 className="flex items-center px-3 lg:px-4 py-2 bg-primary-500 text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors whitespace-nowrap"
               >
                 <Plus className="w-4 h-4 mr-1.5" />
-                <span>{CONTEXTUAL_LABELS[pathname] ?? 'Ajouter'}</span>
+                <span>{CONTEXTUAL_LABELS[pathname.replace(/\/$/, '')] ?? 'Ajouter'}</span>
               </button>
             )}
           </div>

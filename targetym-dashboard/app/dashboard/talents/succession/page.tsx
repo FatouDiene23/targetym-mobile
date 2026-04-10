@@ -53,7 +53,7 @@ export default function SuccessionPage() {
             <select
               value={filterCrit}
               onChange={e => handleFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-full sm:w-auto"
             >
               <option value="">Toutes criticités</option>
               <option value="critical">Critique</option>

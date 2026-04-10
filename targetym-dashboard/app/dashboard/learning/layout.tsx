@@ -31,12 +31,18 @@ function LearningContent({ children }: { children: React.ReactNode }) {
   const rawPathname = usePathname();
   const pathname = rawPathname?.replace(/\/$/, '') || rawPathname;
 
-  const page = PAGE_TITLES[pathname] ?? { title: 'Formation & Développement', subtitle: '' };
+  const normalizedPath = pathname.replace(/\/$/, '');
+  // Cherche d'abord la clé exacte, sinon par préfixe (le plus long match)
+  const page = PAGE_TITLES[normalizedPath] ??
+    Object.entries(PAGE_TITLES)
+      .filter(([key]) => key !== '/dashboard/learning' && normalizedPath.startsWith(key))
+      .sort((a, b) => b[0].length - a[0].length)[0]?.[1] ??
+    { title: 'Formation & Développement', subtitle: '' };
 
   if (isLoading) {
     return (
       <>
-        <Header title={page.title} subtitle={page.subtitle} />
+        <Header title={normalizedPath === '/dashboard/learning' ? 'Catalogue de Formations' : page.title} subtitle={page.subtitle} />
         <main className="flex-1 p-6 flex items-center justify-center bg-gray-50">
           <RefreshCw className="w-8 h-8 animate-spin text-primary-500" />
         </main>

@@ -1323,7 +1323,7 @@ function EmployeesPageInner() {
               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
                 <div className="flex flex-col md:flex-row gap-4">
                   <div className="flex-1 relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder="Rechercher..." value={invitationSearch} onChange={(e) => setInvitationSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" /></div>
-                  <select value={invitationFilter} onChange={(e) => setInvitationFilter(e.target.value)} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm"><option value="all">Tous</option><option value="not_invited">Non invités</option><option value="pending">En attente</option><option value="accepted">Acceptées</option></select>
+                  <select value={invitationFilter} onChange={(e) => setInvitationFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-full sm:w-auto"><option value="all">Tous</option><option value="not_invited">Non invités</option><option value="pending">En attente</option><option value="accepted">Acceptées</option></select>
                   <button onClick={fetchInvitations} className="flex items-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"><RefreshCw className={`w-4 h-4 mr-2 ${isLoadingInvitations ? 'animate-spin' : ''}`} />Actualiser</button>
                 </div>
               </div>

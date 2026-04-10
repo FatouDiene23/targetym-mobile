@@ -1128,14 +1128,14 @@ export default function MyCalendarPage() {
         )}
 
         {/* Quick stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6" data-tour="calendar-view">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3 mb-4 lg:mb-6" data-tour="calendar-view">
           {[
             { label: 'Événements', value: visibleEvents.length, icon: <CalendarIcon className="w-4 h-4" />, color: 'text-primary-600 bg-primary-50' },
             { label: 'Congés', value: (eventCountByType['my_leave'] || 0) + (eventCountByType['team_leave'] || 0), icon: <Briefcase className="w-4 h-4" />, color: 'text-primary-600 bg-primary-50' },
-            { label: 'Anniversaires', value: (eventCountByType['birthday'] || 0) + (eventCountByType['work_anniversary'] || 0), icon: <Cake className="w-4 h-4" />, color: 'text-pink-600 bg-pink-50' },
-            { label: 'Jours fériés', value: eventCountByType['holiday'] || 0, icon: <Star className="w-4 h-4" />, color: 'text-gray-600 bg-gray-100' },
+            { label: 'Anniv.', value: (eventCountByType['birthday'] || 0) + (eventCountByType['work_anniversary'] || 0), icon: <Cake className="w-4 h-4" />, color: 'text-pink-600 bg-pink-50' },
+            { label: 'Fériés', value: eventCountByType['holiday'] || 0, icon: <Star className="w-4 h-4" />, color: 'text-gray-600 bg-gray-100' },
           ].map(stat => (
-            <div key={stat.label} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
+            <div key={stat.label} className="bg-white rounded-xl border border-gray-200 p-3 lg:p-4 flex items-center gap-2 lg:gap-3">
               <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${stat.color}`}>
                 {stat.icon}
               </div>
@@ -1148,35 +1148,35 @@ export default function MyCalendarPage() {
         </div>
 
         {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+        <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
           {/* Navigation */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={goToday}
-              className="px-3 py-1.5 text-sm font-medium text-primary-600 border border-primary-300 rounded-lg hover:bg-primary-50 transition-colors"
+              className="px-2 lg:px-3 py-1.5 text-xs lg:text-sm font-medium text-primary-600 border border-primary-300 rounded-lg hover:bg-primary-50 transition-colors whitespace-nowrap"
             >
-              Aujourd&apos;hui
+              Auj.
             </button>
             <button onClick={goPrev} className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4 lg:w-5 lg:h-5" />
             </button>
             <button onClick={goNext} className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4 lg:w-5 lg:h-5" />
             </button>
-            <h2 className="text-lg font-semibold text-gray-900 ml-2">{viewTitle}</h2>
+            <h2 className="text-sm lg:text-lg font-semibold text-gray-900 ml-1 truncate max-w-[130px] lg:max-w-none">{viewTitle}</h2>
           </div>
 
           {/* View toggle */}
           <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
             {([
-              { key: 'month', label: 'Mois', icon: <Grid3X3 className="w-4 h-4" /> },
-              { key: 'week', label: 'Semaine', icon: <LayoutGrid className="w-4 h-4" /> },
-              { key: 'list', label: 'Liste', icon: <List className="w-4 h-4" /> },
+              { key: 'month', label: 'Mois', icon: <Grid3X3 className="w-3.5 h-3.5 lg:w-4 lg:h-4" /> },
+              { key: 'week', label: 'Sem.', icon: <LayoutGrid className="w-3.5 h-3.5 lg:w-4 lg:h-4" /> },
+              { key: 'list', label: 'Liste', icon: <List className="w-3.5 h-3.5 lg:w-4 lg:h-4" /> },
             ] as { key: ViewMode; label: string; icon: React.ReactNode }[]).map(v => (
               <button
                 key={v.key}
                 onClick={() => setViewMode(v.key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                className={`flex items-center gap-1 px-2 lg:px-3 py-1.5 text-xs lg:text-sm font-medium rounded-md transition-all ${
                   viewMode === v.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >

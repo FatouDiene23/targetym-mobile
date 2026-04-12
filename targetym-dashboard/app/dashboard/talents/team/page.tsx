@@ -18,6 +18,7 @@ import {
 import { useTalents } from '../TalentsContext';
 import { getInitials, ELIGIBILITY_LABELS, formatDate, getUserEmployeeId } from '../shared';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function TeamCareerPage() {
   const {
@@ -140,16 +141,16 @@ export default function TeamCareerPage() {
                 className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
               />
             </div>
-            <select
+            <CustomSelect
               value={eligFilter}
-              onChange={e => setEligFilter(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500 text-gray-600"
-            >
-              <option value="">Tous les statuts</option>
-              <option value="eligible">Éligible</option>
-              <option value="in_progress">En progression</option>
-              <option value="not_eligible">Non éligible</option>
-            </select>
+              onChange={setEligFilter}
+              options={[
+                { value: '', label: 'Tous les statuts' },
+                { value: 'eligible', label: 'Éligible' },
+                { value: 'in_progress', label: 'En progression' },
+                { value: 'not_eligible', label: 'Non éligible' },
+              ]}
+            />
             <p className="text-xs text-gray-400">{filtered.length} résultat(s)</p>
           </div>
 

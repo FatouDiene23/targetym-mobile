@@ -1009,7 +1009,7 @@ export default function MissionsPage() {
 
   if (!initialized) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <Header title="Gestion des Missions" subtitle="Ordres de missions & déplacements professionnels" />
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
@@ -1019,7 +1019,7 @@ export default function MissionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       {showTips && (
         <PageTourTips
           tips={missionsTips}

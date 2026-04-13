@@ -1164,25 +1164,33 @@ export default function OKRPage() {
         {/* Filters */}
         <div className="flex flex-wrap justify-between items-center gap-2 mb-6">
           <div className="flex flex-wrap gap-2">
-            <select value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value)} className="px-2 lg:px-4 py-2 border rounded-lg text-xs lg:text-sm bg-white">
-              <option value="all">Toutes périodes</option>
-              <option value="2026">2026</option>
-              <option value="Q1 2026">Q1 2026</option>
-              <option value="Q2 2026">Q2 2026</option>
-              <option value="Q3 2026">Q3 2026</option>
-              <option value="Q4 2026">Q4 2026</option>
-              <option value="2025">2025</option>
-              <option value="Q1 2025">Q1 2025</option>
-              <option value="Q2 2025">Q2 2025</option>
-              <option value="Q3 2025">Q3 2025</option>
-              <option value="Q4 2025">Q4 2025</option>
-            </select>
-            <select value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)} className="px-2 lg:px-4 py-2 border rounded-lg text-xs lg:text-sm bg-white">
-              <option value="all">Tous niveaux</option>
-              <option value="enterprise">Entreprise</option>
-              <option value="department">Département</option>
-              <option value="individual">Individuel</option>
-            </select>
+            <CustomSelect
+              value={filterPeriod}
+              onChange={setFilterPeriod}
+              options={[
+                { value: 'all', label: 'Toutes périodes' },
+                { value: '2026', label: '2026' },
+                { value: 'Q1 2026', label: 'Q1 2026' },
+                { value: 'Q2 2026', label: 'Q2 2026' },
+                { value: 'Q3 2026', label: 'Q3 2026' },
+                { value: 'Q4 2026', label: 'Q4 2026' },
+                { value: '2025', label: '2025' },
+                { value: 'Q1 2025', label: 'Q1 2025' },
+                { value: 'Q2 2025', label: 'Q2 2025' },
+                { value: 'Q3 2025', label: 'Q3 2025' },
+                { value: 'Q4 2025', label: 'Q4 2025' },
+              ]}
+            />
+            <CustomSelect
+              value={filterLevel}
+              onChange={setFilterLevel}
+              options={[
+                { value: 'all', label: 'Tous niveaux' },
+                { value: 'enterprise', label: 'Entreprise' },
+                { value: 'department', label: 'Département' },
+                { value: 'individual', label: 'Individuel' },
+              ]}
+            />
           </div>
           <div className="flex gap-2">
             <button

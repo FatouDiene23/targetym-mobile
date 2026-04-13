@@ -1066,8 +1066,8 @@ export default function MyCalendarPage() {
       {showTips && (
         <PageTourTips tips={calendarTips} onDismiss={dismissTips} pageTitle="Mon Calendrier" />
       )}
-      <div className="py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="py-4 px-2 sm:px-4 lg:px-8">
+      <div className="max-w-full lg:max-w-7xl mx-auto overflow-hidden">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>

@@ -9,6 +9,7 @@ import Header from '@/components/Header';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { ArrowUpRight, Check, X, Clock, Filter, RefreshCw, AlertTriangle } from 'lucide-react';
+import CustomSelect from '@/components/CustomSelect';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { promotionsTips } from '@/config/pageTips';
@@ -116,16 +117,16 @@ export default function PromotionsPage() {
         {activeTab === 'requests' && (
           <>
             <div className="flex justify-between items-center gap-4 mb-4" data-tour="eligibility-filters">
-              <select
+              <CustomSelect
                 value={filterStatus}
-                onChange={e => handleFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-full sm:w-auto"
-              >
-                <option value="">Tous les statuts</option>
-                <option value="pending">En attente</option>
-                <option value="approved">Approuvées</option>
-                <option value="rejected">Rejetées</option>
-              </select>
+                onChange={handleFilter}
+                options={[
+                  { value: '', label: 'Tous les statuts' },
+                  { value: 'pending', label: 'En attente' },
+                  { value: 'approved', label: 'Approuvées' },
+                  { value: 'rejected', label: 'Rejetées' },
+                ]}
+              />
             </div>
 
             <div className="space-y-3" data-tour="promotions-list">

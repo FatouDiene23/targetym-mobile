@@ -8,6 +8,7 @@ import {
   CheckCircle2, TrendingUp, Award, BookOpen, ListTodo, User,
 } from 'lucide-react';
 import Header from '@/components/Header';
+import CustomSelect from '@/components/CustomSelect';
 
 // =============================================
 // TYPES
@@ -495,16 +496,16 @@ function EvaluationReportModal({ session, onClose, onSuccess }: {
                         onChange={e => updateTask(task.id, 'due_date', e.target.value)}
                         className="px-2.5 py-1.5 border rounded text-xs bg-white"
                       />
-                      <select
+                      <CustomSelect
                         value={task.priority}
-                        onChange={e => updateTask(task.id, 'priority', e.target.value)}
-                        className="px-2.5 py-1.5 border rounded text-xs bg-white"
-                      >
-                        <option value="low">Faible</option>
-                        <option value="medium">Moyen</option>
-                        <option value="high">Élevé</option>
-                        <option value="urgent">Urgent</option>
-                      </select>
+                        onChange={val => updateTask(task.id, 'priority', val)}
+                        options={[
+                          { value: 'low', label: 'Faible' },
+                          { value: 'medium', label: 'Moyen' },
+                          { value: 'high', label: 'Élevé' },
+                          { value: 'urgent', label: 'Urgent' },
+                        ]}
+                      />
                     </div>
                   </div>
                   <button

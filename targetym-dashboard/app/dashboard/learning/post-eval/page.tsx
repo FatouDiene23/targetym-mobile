@@ -6,6 +6,7 @@ import { ClipboardCheck, Clock, CheckCircle, Eye, UserPlus, Link, Settings, Zap,
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useState } from 'react';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function PostEvalPage() {
   const {
@@ -238,10 +239,12 @@ export default function PostEvalPage() {
         <div className="space-y-4">
           <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
             <h4 className="font-semibold text-gray-900 mb-3">Sélectionner un collaborateur</h4>
-            <select onChange={(e) => { if (e.target.value) fetchEmployeeHistory(parseInt(e.target.value)); }} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-              <option value="">Choisir un collaborateur...</option>
-              {employees.map((emp) => (<option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>))}
-            </select>
+            <CustomSelect
+              value=""
+              onChange={(val) => { if (val) fetchEmployeeHistory(parseInt(val)); }}
+              placeholder="Choisir un collaborateur..."
+              options={employees.map((emp) => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` }))}
+            />
           </div>
 
           {showEpfHistory && (

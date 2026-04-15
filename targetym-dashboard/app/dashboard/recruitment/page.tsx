@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import Header from '@/components/Header';
+import CustomSelect from '@/components/CustomSelect';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { recruitmentTips } from '@/config/pageTips';
@@ -779,16 +780,14 @@ export default function RecruitmentPage() {
               <input type="text" placeholder="Rechercher candidat, compétence..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
             </div>
             {activeTab === 'kanban' && (
-              <select value={selectedJobFilter || ''} onChange={(e) => setSelectedJobFilter(e.target.value ? parseInt(e.target.value) : null)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                <option value="">Tous les postes</option>
-                {jobs.map(job => (<option key={job.id} value={job.id}>{job.title}{job.status === 'draft' ? ' (brouillon)' : ''}</option>))}
-              </select>
+              <CustomSelect value={String(selectedJobFilter ?? '')} onChange={v => setSelectedJobFilter(v ? parseInt(v) : null)} placeholder="Tous les postes" className="min-w-[180px]"
+                options={[{ value: '', label: 'Tous les postes' }, ...jobs.map(job => ({ value: String(job.id), label: `${job.title}${job.status === 'draft' ? ' (brouillon)' : ''}` }))]}
+              />
             )}
             {activeTab === 'interviews' && (
-              <select value={selectedJobFilter || ''} onChange={(e) => setSelectedJobFilter(e.target.value ? parseInt(e.target.value) : null)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                <option value="">Tous les postes</option>
-                {jobs.map(job => (<option key={job.id} value={job.id}>{job.title}</option>))}
-              </select>
+              <CustomSelect value={String(selectedJobFilter ?? '')} onChange={v => setSelectedJobFilter(v ? parseInt(v) : null)} placeholder="Tous les postes" className="min-w-[180px]"
+                options={[{ value: '', label: 'Tous les postes' }, ...jobs.map(job => ({ value: String(job.id), label: job.title }))]}
+              />
             )}
           </div>
           <div className="flex gap-3">

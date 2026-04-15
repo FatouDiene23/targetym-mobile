@@ -6,6 +6,7 @@
 'use client';
 
 import Header from '@/components/Header';
+import CustomSelect from '@/components/CustomSelect';
 import { useEffect, useState } from 'react';
 import { Crown, Plus, Eye, Edit, Trash2, UserPlus, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { useTalents } from '../TalentsContext';
@@ -50,16 +51,14 @@ export default function SuccessionPage() {
         {/* Actions */}
         <div className="flex justify-between items-center gap-4 mb-6">
           <div className="flex gap-3">
-            <select
-              value={filterCrit}
-              onChange={e => handleFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-full sm:w-auto"
-            >
-              <option value="">Toutes criticités</option>
-              <option value="critical">Critique</option>
-              <option value="high">Élevé</option>
-              <option value="medium">Moyen</option>
-            </select>
+            <CustomSelect value={filterCrit} onChange={handleFilter} placeholder="Toutes criticités" className="min-w-[160px]"
+              options={[
+                { value: '', label: 'Toutes criticités' },
+                { value: 'critical', label: 'Critique' },
+                { value: 'high', label: 'Élevé' },
+                { value: 'medium', label: 'Moyen' },
+              ]}
+            />
           </div>
           {canEdit && (
             <button

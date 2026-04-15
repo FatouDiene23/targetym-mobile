@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import CustomSelect from '@/components/CustomSelect';
 import {
   Scale, Search, Plus, Loader2, X, ChevronLeft, ChevronRight,
   Calendar, User, Filter, Upload, Download, Trash2, FileText,
@@ -1033,36 +1034,24 @@ export default function ContentieuxPage() {
 
         {showFilters && (
           <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t">
-            <select
-              value={filterStatus}
-              onChange={e => { setFilterStatus(e.target.value); setPage(1); }}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-            >
-              <option value="">{t.sanctions.allStatuses}</option>
-              {Object.keys(STATUS_COLORS).map(k => (
-                <option key={k} value={k}>{(t.sanctions.statuses as Record<string, string>)[k] || k}</option>
-              ))}
-            </select>
-            <select
-              value={filterStage}
-              onChange={e => { setFilterStage(e.target.value); setPage(1); }}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-            >
-              <option value="">{t.sanctions.allStages}</option>
-              {STAGES.map(s => (
-                <option key={s.key} value={s.key}>{(t.sanctions.stages as Record<string, string>)[s.key] || s.key}</option>
-              ))}
-            </select>
-            <select
-              value={filterAssigned}
-              onChange={e => { setFilterAssigned(e.target.value ? Number(e.target.value) : ''); setPage(1); }}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none min-w-[180px]"
-            >
-              <option value="">{t.sanctions.allLawyers}</option>
-              {juristes.map(j => (
-                <option key={j.id} value={j.id}>{j.first_name} {j.last_name}</option>
-              ))}
-            </select>
+            <CustomSelect value={filterStatus} onChange={v => { setFilterStatus(v); setPage(1); }} placeholder={t.sanctions.allStatuses} className="min-w-[150px]"
+              options={[
+                { value: '', label: t.sanctions.allStatuses },
+                ...Object.keys(STATUS_COLORS).map(k => ({ value: k, label: (t.sanctions.statuses as Record<string, string>)[k] || k })),
+              ]}
+            />
+            <CustomSelect value={filterStage} onChange={v => { setFilterStage(v); setPage(1); }} placeholder={t.sanctions.allStages} className="min-w-[150px]"
+              options={[
+                { value: '', label: t.sanctions.allStages },
+                ...STAGES.map(s => ({ value: s.key, label: (t.sanctions.stages as Record<string, string>)[s.key] || s.key })),
+              ]}
+            />
+            <CustomSelect value={String(filterAssigned)} onChange={v => { setFilterAssigned(v ? Number(v) : ''); setPage(1); }} placeholder={t.sanctions.allLawyers} className="min-w-[180px]"
+              options={[
+                { value: '', label: t.sanctions.allLawyers },
+                ...juristes.map(j => ({ value: String(j.id), label: `${j.first_name} ${j.last_name}` })),
+              ]}
+            />
             {(filterStatus || filterStage || filterAssigned) && (
               <button
                 onClick={() => { setFilterStatus(''); setFilterStage(''); setFilterAssigned(''); setPage(1); }}

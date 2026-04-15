@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import CustomSelect from '@/components/CustomSelect';
 import {
   Plus, ChevronDown, ChevronRight, Trash2, Edit, X,
   Building2, Users, User, Download, Link2, BarChart3, GitBranch, Layers, Loader2
@@ -1191,25 +1192,23 @@ export default function OKRPage() {
         {/* Filters */}
         <div className="flex justify-between items-center gap-4 mb-6">
           <div className="flex gap-3">
-            <select value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value)} className="px-4 py-2 border rounded-lg text-sm bg-white">
-              <option value="all">{t.okr.allPeriods}</option>
-              <option value="2026">2026</option>
-              <option value="Q1 2026">Q1 2026</option>
-              <option value="Q2 2026">Q2 2026</option>
-              <option value="Q3 2026">Q3 2026</option>
-              <option value="Q4 2026">Q4 2026</option>
-              <option value="2025">2025</option>
-              <option value="Q1 2025">Q1 2025</option>
-              <option value="Q2 2025">Q2 2025</option>
-              <option value="Q3 2025">Q3 2025</option>
-              <option value="Q4 2025">Q4 2025</option>
-            </select>
-            <select value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)} className="px-4 py-2 border rounded-lg text-sm bg-white">
-              <option value="all">{t.okr.allLevels}</option>
-              <option value="enterprise">{t.okr.enterprise}</option>
-              <option value="department">{t.okr.department}</option>
-              <option value="individual">{t.okr.individual}</option>
-            </select>
+            <CustomSelect value={filterPeriod} onChange={setFilterPeriod} placeholder={t.okr.allPeriods} className="min-w-[130px]"
+              options={[
+                { value: 'all', label: t.okr.allPeriods },
+                { value: '2026', label: '2026' }, { value: 'Q1 2026', label: 'Q1 2026' }, { value: 'Q2 2026', label: 'Q2 2026' },
+                { value: 'Q3 2026', label: 'Q3 2026' }, { value: 'Q4 2026', label: 'Q4 2026' },
+                { value: '2025', label: '2025' }, { value: 'Q1 2025', label: 'Q1 2025' }, { value: 'Q2 2025', label: 'Q2 2025' },
+                { value: 'Q3 2025', label: 'Q3 2025' }, { value: 'Q4 2025', label: 'Q4 2025' },
+              ]}
+            />
+            <CustomSelect value={filterLevel} onChange={setFilterLevel} placeholder={t.okr.allLevels} className="min-w-[130px]"
+              options={[
+                { value: 'all', label: t.okr.allLevels },
+                { value: 'enterprise', label: t.okr.enterprise },
+                { value: 'department', label: t.okr.department },
+                { value: 'individual', label: t.okr.individual },
+              ]}
+            />
           </div>
           <div className="flex gap-3">
             <button 

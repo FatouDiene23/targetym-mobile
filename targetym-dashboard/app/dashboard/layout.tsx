@@ -9,6 +9,7 @@ import AIChatBox from '@/components/AIChatBox';
 import BottomNav from '@/components/BottomNav';
 import GroupContextSwitcher from '@/components/GroupContextSwitcher';
 import { GroupContextProvider } from '@/context/GroupContext';
+import { I18nProvider } from '@/lib/i18n/I18nContext';
 import { getTourStepsByRole } from '@/components/AppTourSteps';
 import { useAppTour } from '@/hooks/useAppTour';
 import { HelpMenuProvider, useHelpMenu } from '@/hooks/useHelpMenu';
@@ -275,6 +276,7 @@ export default function DashboardLayout({
   }
 
   return (
+    <I18nProvider>
     <GroupContextProvider>
     <HelpMenuProvider>
       {needs2FASetup && (
@@ -292,6 +294,7 @@ export default function DashboardLayout({
       </DashboardContent>
     </HelpMenuProvider>
     </GroupContextProvider>
+    </I18nProvider>
   );
 }
 

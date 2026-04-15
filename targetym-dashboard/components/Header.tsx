@@ -1,8 +1,9 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Search, Bell, Plus, X, Loader2, User, UserPlus, Briefcase, GraduationCap, Target, FileText, Check, CheckCheck, ExternalLink, Handshake, Calendar, FileCheck, Plane, ClipboardList, PenLine } from 'lucide-react';
+import { Search, Bell, Plus, X, Loader2, User, UserPlus, Briefcase, GraduationCap, Target, FileText, Check, CheckCheck, ExternalLink, Handshake, Calendar, FileCheck, Plane, ClipboardList, PenLine, ArrowRight, Globe } from 'lucide-react';
+import { useI18n } from '@/lib/i18n/I18nContext';
 import AddModal from './AddModal';
 
 // ============================================
@@ -16,11 +17,79 @@ interface HeaderProps {
 
 interface SearchResult {
   id: string;
-  type: 'employee' | 'candidate' | 'job' | 'training' | 'okr';
+  type: 'employee' | 'candidate' | 'job' | 'training' | 'okr' | 'module';
   title: string;
   subtitle?: string;
   url: string;
 }
+
+const MODULE_ROUTES: { label: string; path: string; keywords: string; roles: string[]; description: string }[] = [
+  { label: "Tableau de Bord", path: "/dashboard", keywords: "accueil home dashboard", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Vue d'ensemble" },
+  { label: "OKR & Objectifs", path: "/dashboard/okr", keywords: "okr objectifs key results cascade", roles: ['manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Objectifs et résultats clés" },
+  { label: "Recrutement", path: "/dashboard/recruitment", keywords: "recrutement offres candidats embauche", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Offres, candidats, pipeline" },
+  { label: "Recrutement - Offres", path: "/dashboard/recruitment?tab=jobs", keywords: "offres emploi postes", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Offres d'emploi actives" },
+  { label: "Recrutement - Candidats", path: "/dashboard/recruitment?tab=applications", keywords: "candidats cv candidature", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Candidatures reçues" },
+  { label: "Onboarding", path: "/dashboard/onboarding", keywords: "onboarding intégration nouveaux", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Intégration des nouveaux collaborateurs" },
+  // Talents & Carrière
+  { label: "Talents & Carrière", path: "/dashboard/talents", keywords: "talents carrière succession 9box potentiel", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "9-Box, succession, parcours, promotions" },
+  { label: "Ma Carrière", path: "/dashboard/talents/my-career", keywords: "ma carrière évolution parcours", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Mon évolution de carrière" },
+  { label: "Mes Promotions", path: "/dashboard/talents/my-promotions", keywords: "mes promotions avancement mérite", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Historique de mes promotions" },
+  { label: "Mon Équipe (Talents)", path: "/dashboard/talents/team", keywords: "mon équipe talents carrière", roles: ['manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Talents de mon équipe" },
+  { label: "Collaborateurs (Talents)", path: "/dashboard/talents/employees", keywords: "collaborateurs talents carrière", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Fiches carrière des collaborateurs" },
+  { label: "Matrice 9-Box", path: "/dashboard/talents/ninebox", keywords: "matrice 9box évaluation potentiel performance", roles: ['rh', 'admin', 'dg', 'super_admin', 'manager'], description: "Cartographie des talents" },
+  { label: "Plans de Succession", path: "/dashboard/talents/succession", keywords: "succession plans postes critiques", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Plans de succession et postes critiques" },
+  { label: "Parcours de Carrière", path: "/dashboard/talents/paths", keywords: "parcours carrière niveaux compétences évolution", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Parcours et niveaux de carrière" },
+  { label: "Promotions", path: "/dashboard/talents/promotions", keywords: "promotions avancement mérite", roles: ['rh', 'admin', 'dg', 'super_admin', 'manager'], description: "Gestion des promotions" },
+  // Formation & Développement
+  { label: "Formation & Développement", path: "/dashboard/learning", keywords: "formation développement catalogue parcours apprentissage", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Catalogue, parcours, certifications" },
+  // Performance
+  { label: "Performance & Feedback", path: "/dashboard/performance", keywords: "performance évaluation 360 feedback entretien", roles: ['manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Évaluations 360°, feedback continu" },
+  { label: "Campagnes d'évaluation", path: "/dashboard/performance/campaigns", keywords: "campagne évaluation 360", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Campagnes d'évaluation périodiques" },
+  { label: "Feedback continu", path: "/dashboard/performance?tab=feedback", keywords: "feedback continu retour", roles: ['manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Feedback entre collaborateurs" },
+  { label: "Coaching 1-1", path: "/dashboard/performance/one-on-one", keywords: "coaching 1-1 entretien individuel", roles: ['manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Sessions de coaching individuel" },
+  { label: "Évaluation 1-1", path: "/dashboard/performance/evaluation-1-on-1", keywords: "évaluation 1-1 entretien report", roles: ['manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Rapports d'évaluation 1-on-1" },
+  // Analytics
+  { label: "People Analytics", path: "/dashboard/analytics", keywords: "analytics statistiques tableaux bord turnover effectifs", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Tableaux de bord, turnover, effectifs" },
+  // Personnel
+  { label: "Gestion du Personnel", path: "/dashboard/employees", keywords: "personnel employés annuaire collaborateurs", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Annuaire, organigramme, unités" },
+  { label: "Organigramme", path: "/dashboard/employees/orgchart", keywords: "organigramme hiérarchie structure", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Structure hiérarchique" },
+  { label: "Unités organisationnelles", path: "/dashboard/employees/units", keywords: "unités départements services directions", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Départements et services" },
+  { label: "Import employés", path: "/dashboard/employees/import", keywords: "import csv excel masse", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Import en masse CSV/Excel" },
+  // Congés
+  { label: "Gestion des Congés", path: "/dashboard/leaves", keywords: "congés absences demandes soldes", roles: ['manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Demandes, calendrier, soldes, rappels" },
+  { label: "Calendrier des Congés", path: "/dashboard/leaves?tab=calendar", keywords: "calendrier planning congés", roles: ['manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Planning visuel des congés" },
+  { label: "Rappels de Congé", path: "/dashboard/leaves?tab=recalls", keywords: "rappels congé rappeler", roles: ['manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Rappels de congé en cours" },
+  { label: "Déclarations Maladie", path: "/dashboard/leaves?tab=sick", keywords: "maladie certificat médical arrêt", roles: ['manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Certificats et arrêts maladie" },
+  // Missions
+  { label: "Gestion des Missions", path: "/dashboard/missions", keywords: "missions déplacements ordres frais", roles: ['manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Ordres de mission, déplacements" },
+  // Départs
+  { label: "Gestion des Départs", path: "/dashboard/departures", keywords: "départs offboarding solde tout compte", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Offboarding, solde de tout compte" },
+  // Contentieux
+  { label: "Gestion des Contentieux", path: "/dashboard/sanctions", keywords: "contentieux sanctions disciplinaire avertissement", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Sanctions, procédures disciplinaires" },
+  // Documents
+  { label: "Documents RH", path: "/dashboard/documents", keywords: "documents attestations certificats", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Attestations, certificats" },
+  // Paie
+  { label: "Paie", path: "/dashboard/payroll", keywords: "paie salaire bulletin cotisations", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Bulletins, cotisations, simulations" },
+  // Mon Espace
+  { label: "Mon Profil", path: "/dashboard/my-space/profile", keywords: "profil informations personnelles", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Informations personnelles" },
+  { label: "Mes Congés", path: "/dashboard/my-space/leaves", keywords: "mes congés demandes solde", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Demandes et solde de congés" },
+  { label: "Mes Objectifs", path: "/dashboard/my-space/objectives", keywords: "mes objectifs okr", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "OKR personnels" },
+  { label: "Mes Documents", path: "/dashboard/my-space/documents", keywords: "mes documents attestations", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Attestations et certificats" },
+  { label: "Mes Tâches", path: "/dashboard/my-space/tasks", keywords: "mes tâches checklist todo", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Tâches et checklist" },
+  { label: "Mon Calendrier", path: "/dashboard/my-space/calendar", keywords: "mon calendrier planning", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Planning personnel" },
+  { label: "Mon Parcours", path: "/dashboard/my-space/career", keywords: "mon parcours formation carrière", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Parcours et formation" },
+  { label: "Mes Enquêtes", path: "/dashboard/my-space/surveys", keywords: "mes enquêtes sondages", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Sondages et enquêtes" },
+  { label: "Mes Sanctions", path: "/dashboard/my-space/sanctions", keywords: "mes sanctions disciplinaire", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Historique disciplinaire" },
+  { label: "Daily Checklist", path: "/dashboard/my-space/daily-checklist", keywords: "daily checklist tâches quotidien", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Tâches quotidiennes" },
+  { label: "Offres Internes", path: "/dashboard/my-space/internal-jobs", keywords: "offres internes mobilité", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Mobilité interne" },
+  // Admin
+  { label: "Intégrations", path: "/dashboard/integrations", keywords: "intégrations api connecteurs", roles: ['admin', 'dg', 'super_admin'], description: "API et connecteurs" },
+  { label: "Sécurité 2FA", path: "/dashboard/security", keywords: "sécurité 2fa authentification", roles: ['admin', 'dg', 'super_admin'], description: "Authentification renforcée" },
+];
+
+const normalizeSearch = (str: string) =>
+  str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
 
 interface Notification {
   id: number;
@@ -40,7 +109,7 @@ interface Notification {
 // API CONFIG
 // ============================================
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 function getAuthHeaders(): HeadersInit {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
@@ -52,17 +121,17 @@ function getAuthHeaders(): HeadersInit {
 // ============================================
 
 const NOTIF_ICONS: Record<string, { icon: typeof Bell; color: string; bg: string }> = {
-  onboarding_task: { icon: Handshake, color: 'text-primary-600', bg: 'bg-primary-100' },
+  onboarding_task: { icon: Handshake, color: 'text-blue-600', bg: 'bg-blue-100' },
   onboarding_complete: { icon: CheckCheck, color: 'text-green-600', bg: 'bg-green-100' },
   get_to_know_scheduled: { icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-100' },
   get_to_know_reminder: { icon: Calendar, color: 'text-orange-600', bg: 'bg-orange-100' },
-  document_uploaded: { icon: FileCheck, color: 'text-primary-600', bg: 'bg-primary-100' },
+  document_uploaded: { icon: FileCheck, color: 'text-indigo-600', bg: 'bg-indigo-100' },
   leave_approved: { icon: Check, color: 'text-green-600', bg: 'bg-green-100' },
   leave_rejected: { icon: X, color: 'text-red-600', bg: 'bg-red-100' },
-  leave_request: { icon: Plane, color: 'text-primary-600', bg: 'bg-primary-100' },
-  mission_assigned: { icon: Briefcase, color: 'text-primary-600', bg: 'bg-primary-100' },
-  task_assigned: { icon: ClipboardList, color: 'text-primary-600', bg: 'bg-primary-100' },
-  signature_request: { icon: PenLine, color: 'text-primary-600', bg: 'bg-primary-100' },
+  leave_request: { icon: Plane, color: 'text-blue-600', bg: 'bg-blue-100' },
+  mission_assigned: { icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-100' },
+  task_assigned: { icon: ClipboardList, color: 'text-blue-600', bg: 'bg-blue-100' },
+  signature_request: { icon: PenLine, color: 'text-blue-600', bg: 'bg-blue-100' },
   signature_signed: { icon: CheckCheck, color: 'text-green-600', bg: 'bg-green-100' },
   signature_rejected: { icon: X, color: 'text-red-600', bg: 'bg-red-100' },
   sos_alert: { icon: Bell, color: 'text-red-600', bg: 'bg-red-100' },
@@ -95,77 +164,35 @@ function timeAgo(dateStr: string): string {
 
 async function globalSearch(query: string): Promise<SearchResult[]> {
   if (!query || query.length < 2) return [];
-  
-  const results: SearchResult[] = [];
-  
   try {
-    const empRes = await fetch(`${API_URL}/api/employees/?search=${encodeURIComponent(query)}&page_size=5`, {
-      headers: getAuthHeaders()
-    });
-    if (empRes.ok) {
-      const empData = await empRes.json();
-      (empData.items || []).forEach((emp: { id: number; employee_id: string; first_name: string; last_name: string; job_title?: string; department_name?: string }) => {
-        results.push({
-          id: `emp-${emp.id}`,
-          type: 'employee',
-          title: `${emp.first_name} ${emp.last_name}`,
-          subtitle: `${emp.employee_id} • ${emp.job_title || 'Employé'} • ${emp.department_name || ''}`,
-          url: `/dashboard/employees/${emp.id}`
-        });
-      });
-    }
+    const res = await fetch(
+      `${API_URL}/api/search?q=${encodeURIComponent(query)}`,
+      { headers: getAuthHeaders() }
+    );
+    if (!res.ok) throw new Error('Search failed');
+    const data = await res.json();
+    return (data.results || []).map((r: { id: number | string; type: SearchResult['type']; title: string; subtitle?: string; url: string }) => ({
+      id: `${r.type}-${r.id}`,
+      type: r.type,
+      title: r.title,
+      subtitle: r.subtitle || '',
+      url: r.url,
+    }));
   } catch (e) {
     console.error('Search error:', e);
+    return [];
   }
-  
-  try {
-    const candRes = await fetch(`${API_URL}/api/recruitment/applications?page_size=20`, {
-      headers: getAuthHeaders()
-    });
-    if (candRes.ok) {
-      const candData = await candRes.json();
-      (candData.items || [])
-        .filter((app: { candidate_name: string }) => app.candidate_name.toLowerCase().includes(query.toLowerCase()))
-        .slice(0, 3)
-        .forEach((app: { id: number; candidate_name: string; job_title?: string }) => {
-          results.push({
-            id: `cand-${app.id}`,
-            type: 'candidate',
-            title: app.candidate_name,
-            subtitle: `Candidat • ${app.job_title || 'Poste non spécifié'}`,
-            url: `/dashboard/recruitment`
-          });
-        });
-    }
-  } catch (e) {
-    console.error('Search error:', e);
-  }
-  
-  try {
-    const jobRes = await fetch(`${API_URL}/api/recruitment/jobs?page_size=20`, {
-      headers: getAuthHeaders()
-    });
-    if (jobRes.ok) {
-      const jobData = await jobRes.json();
-      (jobData.items || [])
-        .filter((job: { title: string }) => job.title.toLowerCase().includes(query.toLowerCase()))
-        .slice(0, 3)
-        .forEach((job: { id: number; title: string; department_name?: string; status: string }) => {
-          results.push({
-            id: `job-${job.id}`,
-            type: 'job',
-            title: job.title,
-            subtitle: `Offre d'emploi • ${job.department_name || ''} • ${job.status}`,
-            url: `/dashboard/recruitment`
-          });
-        });
-    }
-  } catch (e) {
-    console.error('Search error:', e);
-  }
-  
-  return results;
 }
+
+const TYPE_LABELS: Record<string, string> = {
+  employee: "Collaborateurs",
+  leave: "Congés",
+  okr: "OKR & Objectifs",
+  training: "Formations",
+  job: "Offres d'emploi",
+  candidate: "Candidats",
+  sanction: "Sanctions",
+};
 
 // ============================================
 // ROUTES AVEC ACTIONS CONTEXTUELLES
@@ -196,16 +223,37 @@ const CONTEXTUAL_LABELS: Record<string, string> = {
 // Routes où le bouton "+Ajouter" est masqué
 const HIDDEN_ADD_ROUTES = [
   '/dashboard/notifications',
+  '/dashboard/leaves',
   '/dashboard/my-space',
+  '/dashboard/my-space/calendar',
+  '/dashboard/my-space/career',
+  '/dashboard/my-space/daily-checklist',
+  '/dashboard/my-space/leaves',
+  '/dashboard/my-space/objectives',
+  '/dashboard/my-space/surveys',
+  '/dashboard/my-space/tasks',
+  '/dashboard/my-space/team',
   '/dashboard/analytics',
   '/dashboard/settings',
   '/dashboard/learning',
+  '/dashboard/learning/analytics',
+  '/dashboard/learning/certifications',
+  '/dashboard/learning/development',
+  '/dashboard/learning/my-learning',
+  '/dashboard/learning/paths',
+  '/dashboard/learning/plan-formation',
+  '/dashboard/learning/post-eval',
+  '/dashboard/learning/providers',
+  '/dashboard/learning/referentiel',
+  '/dashboard/learning/requests',
+  '/dashboard/learning/team',
   '/dashboard/talents',
   '/dashboard/certificates',
-  '/dashboard/my-space/daily-checklist',
   '/dashboard/employees',
   '/dashboard/compensation',
   '/dashboard/performance/evaluation-1-on-1',
+  '/dashboard/paie',
+  '/dashboard/surveys',
 ];
 
 // ============================================
@@ -218,8 +266,11 @@ export default function Header({ title, subtitle }: HeaderProps) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showLangMenu, setShowLangMenu] = useState(false);
+  const { locale, setLocale, t: i18n } = useI18n();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [moduleSearchResults, setModuleSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
 
   // Notifications state
@@ -321,27 +372,53 @@ export default function Header({ title, subtitle }: HeaderProps) {
     if (newState) fetchRecentNotifications();
   }
 
-  // Debounced search
+  // Recherche modules instantanée (filtrée par rôle)
+  useEffect(() => {
+    if (!searchQuery || searchQuery.length < 1) {
+      setModuleSearchResults([]);
+      return;
+    }
+    const role = userRole || 'employee';
+    const queryNorm = normalizeSearch(searchQuery);
+    const moduleResults: SearchResult[] = MODULE_ROUTES
+      .filter(m => m.roles.includes(role))
+      .filter(m =>
+        normalizeSearch(m.label).includes(queryNorm) ||
+        normalizeSearch(m.keywords).includes(queryNorm)
+      )
+      .slice(0, 5)
+      .map(m => ({
+        id: m.path,
+        type: 'module' as const,
+        title: m.label,
+        subtitle: m.description,
+        url: m.path,
+      }));
+    setModuleSearchResults(moduleResults);
+  }, [searchQuery, userRole]);
+
+  // Debounced search (API)
   useEffect(() => {
     if (!searchQuery || searchQuery.length < 2) {
       setSearchResults([]);
       return;
     }
-    
+
     const timer = setTimeout(async () => {
       setSearching(true);
       const results = await globalSearch(searchQuery);
       setSearchResults(results);
       setSearching(false);
     }, 300);
-    
+
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, userRole]);
 
   const handleResultClick = (result: SearchResult) => {
     setShowSearch(false);
     setSearchQuery('');
     setSearchResults([]);
+    setModuleSearchResults([]);
     router.push(result.url);
   };
 
@@ -358,7 +435,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'employee': return 'bg-primary-100 text-primary-600';
+      case 'employee': return 'bg-blue-100 text-blue-600';
       case 'candidate': return 'bg-green-100 text-green-600';
       case 'job': return 'bg-purple-100 text-purple-600';
       case 'training': return 'bg-orange-100 text-orange-600';
@@ -374,7 +451,10 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
   // Bouton Ajouter : contextuel selon la route
   const handleAddClick = () => {
-    const contextualEvent = CONTEXTUAL_ROUTES[pathname];
+    // Normaliser le pathname (retirer le trailing slash pour matcher les routes)
+    const normalizedPath = pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;
+    const contextualEvent = CONTEXTUAL_ROUTES[normalizedPath];
+    console.log('[Header] pathname:', pathname, '→ normalized:', normalizedPath, '→ event:', contextualEvent || 'NONE (opening AddModal)');
     if (contextualEvent) {
       window.dispatchEvent(new Event(contextualEvent));
     } else {
@@ -389,6 +469,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
         setShowSearch(false);
         setShowAddModal(false);
         setShowNotifications(false);
+        setShowLangMenu(false);
       }
     };
     document.addEventListener('keydown', handleEscape);
@@ -409,34 +490,34 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
   return (
     <>
-      <header className="bg-white border-b border-gray-200 px-3 lg:px-6 py-3 lg:py-4">
-        <div className="flex items-center justify-between flex-nowrap" style={{ flexWrap: 'nowrap' }}>
+      <header className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
           {/* Titre */}
-          <div className="min-w-0 flex-1 mr-2">
-            <h1 className="text-base lg:text-2xl font-bold text-gray-900 leading-tight">{title}</h1>
-            {subtitle && <p className="text-xs lg:text-sm text-gray-500 mt-0.5 hidden lg:block">{subtitle}</p>}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+            {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-1.5 lg:gap-3 flex-shrink-0" style={{ flexWrap: 'nowrap' }}>
+          <div className="flex items-center gap-3">
             {/* Recherche globale */}
             <div className="relative">
               <button
                 onClick={() => setShowSearch(!showSearch)}
                 className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Recherche globale (Ctrl+K)"
+                title={`${i18n.common.search} (Ctrl+K)`}
               >
                 <Search className="w-5 h-5" />
               </button>
 
               {showSearch && (
-                <div className="fixed lg:absolute inset-x-2 lg:inset-x-auto lg:right-0 top-24 lg:top-12 lg:w-96 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
+                <div className="absolute right-0 top-12 w-96 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
                   <div className="p-3 border-b border-gray-100">
                     <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
                       <Search className="w-4 h-4 text-gray-400" />
                       <input
                         type="text"
-                        placeholder="Rechercher employés, candidats, offres..."
+                        placeholder={i18n.header.searchPlaceholder}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="flex-1 text-sm outline-none bg-transparent"
@@ -452,40 +533,75 @@ export default function Header({ title, subtitle }: HeaderProps) {
                   </div>
                   
                   <div className="max-h-80 overflow-y-auto">
-                    {searchResults.length > 0 ? (
+                    {moduleSearchResults.length > 0 && (
                       <div className="py-2">
-                        {searchResults.map((result) => {
-                          const Icon = getTypeIcon(result.type);
-                          return (
-                            <button
-                              key={result.id}
-                              onClick={() => handleResultClick(result)}
-                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left transition-colors"
-                            >
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getTypeColor(result.type)}`}>
-                                <Icon className="w-4 h-4" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 truncate">{result.title}</p>
-                                {result.subtitle && (
-                                  <p className="text-xs text-gray-500 truncate">{result.subtitle}</p>
-                                )}
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : searchQuery.length >= 2 && !searching ? (
-                      <div className="py-8 text-center text-gray-500">
-                        <Search className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                        <p className="text-sm">Aucun résultat pour &quot;{searchQuery}&quot;</p>
-                      </div>
-                    ) : (
-                      <div className="py-6 px-4 text-center text-gray-500">
-                        <p className="text-sm">Tapez au moins 2 caractères</p>
-                        <p className="text-xs text-gray-400 mt-1">Recherchez par nom, matricule, poste...</p>
+                        <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                          Navigation
+                        </div>
+                        {moduleSearchResults.map((r) => (
+                          <button
+                            key={r.id}
+                            onClick={() => handleResultClick(r)}
+                            className="w-full flex items-center gap-3 px-3 py-2 hover:bg-blue-50 text-left transition-colors rounded-lg mx-1"
+                          >
+                            <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center shrink-0">
+                              <ArrowRight className="w-4 h-4 text-blue-500" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">{r.title}</p>
+                              <p className="text-xs text-gray-400 truncate">{r.subtitle}</p>
+                            </div>
+                          </button>
+                        ))}
                       </div>
                     )}
+                    {searchResults.length > 0 ? (
+                      <div className="py-2">
+                        {Object.entries(
+                          searchResults.reduce((acc, r) => {
+                            (acc[r.type] ||= []).push(r);
+                            return acc;
+                          }, {} as Record<string, SearchResult[]>)
+                        ).map(([type, items]) => (
+                          <div key={type}>
+                            <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider border-t border-gray-100 mt-1 pt-2">
+                              {TYPE_LABELS[type] || type}
+                            </div>
+                            {items.map((result) => {
+                              const Icon = getTypeIcon(result.type);
+                              return (
+                                <button
+                                  key={result.id}
+                                  onClick={() => handleResultClick(result)}
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left transition-colors"
+                                >
+                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getTypeColor(result.type)}`}>
+                                    <Icon className="w-4 h-4" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 truncate">{result.title}</p>
+                                    {result.subtitle && (
+                                      <p className="text-xs text-gray-500 truncate">{result.subtitle}</p>
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ))}
+                      </div>
+                    ) : searchQuery.length >= 2 && !searching && moduleSearchResults.length === 0 ? (
+                      <div className="py-8 text-center text-gray-500">
+                        <Search className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                        <p className="text-sm">{i18n.common.noResults} &quot;{searchQuery}&quot;</p>
+                      </div>
+                    ) : !searchQuery ? (
+                      <div className="py-6 px-4 text-center text-gray-500">
+                        <p className="text-sm">
+                          {i18n.header.searchHint}
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
                   
                   <div className="px-4 py-2 bg-gray-50 border-t border-gray-100">
@@ -499,12 +615,45 @@ export default function Header({ title, subtitle }: HeaderProps) {
               )}
             </div>
 
+            {/* ========== LANGUE ========== */}
+            <div className="relative">
+              <button
+                onClick={() => setShowLangMenu(!showLangMenu)}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                title={i18n.header.language}
+              >
+                <Globe className="w-5 h-5" />
+              </button>
+              {showLangMenu && (
+                <div className="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
+                  <button
+                    onClick={() => { setLocale('fr'); setShowLangMenu(false); }}
+                    className={`w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 rounded-t-xl flex items-center gap-2 ${locale === 'fr' ? 'text-primary-600 font-semibold bg-primary-50' : ''}`}
+                  >
+                    🇫🇷 Français
+                  </button>
+                  <button
+                    onClick={() => { setLocale('en'); setShowLangMenu(false); }}
+                    className={`w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2 ${locale === 'en' ? 'text-primary-600 font-semibold bg-primary-50' : ''}`}
+                  >
+                    🇬🇧 English
+                  </button>
+                  <button
+                    onClick={() => { setLocale('pt'); setShowLangMenu(false); }}
+                    className={`w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 rounded-b-xl flex items-center gap-2 ${locale === 'pt' ? 'text-primary-600 font-semibold bg-primary-50' : ''}`}
+                  >
+                    🇧🇷 Português
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* ========== NOTIFICATIONS ========== */}
             <div className="relative">
               <button
                 onClick={handleBellClick}
                 className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors relative"
-                title="Notifications"
+                title={i18n.header.notifications}
               >
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
@@ -515,11 +664,11 @@ export default function Header({ title, subtitle }: HeaderProps) {
               </button>
 
               {showNotifications && (
-                <div className="fixed lg:absolute inset-x-2 lg:inset-x-auto lg:right-0 top-24 lg:top-12 lg:w-96 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
+                <div className="absolute right-0 top-12 w-96 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
                   {/* Header */}
                   <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                     <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                      Notifications
+                      {i18n.notifications.title}
                       {unreadCount > 0 && (
                         <span className="bg-red-100 text-red-600 text-xs font-medium px-2 py-0.5 rounded-full">
                           {unreadCount}
@@ -531,7 +680,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
                         <button
                           onClick={markAllAsRead}
                           className="text-xs text-primary-600 hover:text-primary-700 font-medium"
-                          title="Tout marquer comme lu"
+                          title={i18n.notifications.markAllRead}
                         >
                           <CheckCheck className="w-4 h-4" />
                         </button>
@@ -583,7 +732,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
                     ) : (
                       <div className="p-8 text-center text-gray-500">
                         <Bell className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-                        <p className="text-sm">Aucune notification</p>
+                        <p className="text-sm">{i18n.notifications.noNotifications}</p>
                         <p className="text-xs text-gray-400 mt-1">Vous êtes à jour !</p>
                       </div>
                     )}
@@ -609,13 +758,13 @@ export default function Header({ title, subtitle }: HeaderProps) {
             </div>
 
             {/* Bouton Ajouter — masqué pour employés simples et certaines routes */}
-            {canAdd && !HIDDEN_ADD_ROUTES.some(r => pathname.startsWith(r)) && (
+            {canAdd && !HIDDEN_ADD_ROUTES.some(r => (pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname).startsWith(r)) && (
               <button
                 onClick={handleAddClick}
-                className="flex items-center px-3 lg:px-4 py-2 bg-primary-500 text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors whitespace-nowrap"
+                className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
               >
-                <Plus className="w-4 h-4 mr-1.5" />
-                <span>{CONTEXTUAL_LABELS[pathname] ?? 'Ajouter'}</span>
+                <Plus className="w-4 h-4 mr-2" />
+                {CONTEXTUAL_LABELS[pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname] ?? 'Ajouter'}
               </button>
             )}
           </div>
@@ -631,12 +780,13 @@ export default function Header({ title, subtitle }: HeaderProps) {
       )}
 
       {/* Overlay pour fermer les dropdowns */}
-      {(showSearch || showNotifications) && (
-        <div 
-          className="fixed inset-0 z-40" 
+      {(showSearch || showNotifications || showLangMenu) && (
+        <div
+          className="fixed inset-0 z-40"
           onClick={() => {
             setShowSearch(false);
             setShowNotifications(false);
+            setShowLangMenu(false);
           }}
         />
       )}

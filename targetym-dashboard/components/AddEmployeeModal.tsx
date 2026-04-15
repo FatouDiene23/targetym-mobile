@@ -7,6 +7,7 @@ import {
   type Department, type Employee, type GenderType, type ContractType, type StatusType, type EmployeeRole
 } from '@/lib/api';
 import NationalitySelect from '@/components/NationalitySelect';
+import CustomSelect from '@/components/CustomSelect';
 import { COUNTRIES } from '@/data/countries';
 
 interface TenantSkill {
@@ -510,16 +511,16 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
             {/* Genre */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Genre</label>
-              <select
-                name="gender"
+              <CustomSelect
                 value={formData.gender}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              >
-                <option value="male">Homme</option>
-                <option value="female">Femme</option>
-                <option value="other">Autre</option>
-              </select>
+                onChange={(v) => setFormData(prev => ({ ...prev, gender: v as GenderType }))}
+                placeholder="Genre"
+                options={[
+                  { value: 'male', label: 'Homme' },
+                  { value: 'female', label: 'Femme' },
+                  { value: 'other', label: 'Autre' },
+                ]}
+              />
             </div>
 
             {/* Date de naissance */}
@@ -562,60 +563,42 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
             {/* Unité */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Unité</label>
-              <select
-                name="department_id"
-                value={formData.department_id}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              <CustomSelect
+                value={String(formData.department_id)}
+                onChange={(v) => setFormData(prev => ({ ...prev, department_id: v }))}
+                placeholder={isLoadingData ? 'Chargement...' : 'Sélectionner...'}
                 disabled={isLoadingData}
-              >
-                <option value="">
-                  {isLoadingData ? 'Chargement...' : 'Sélectionner...'}
-                </option>
-                {departments.map(dept => (
-                  <option key={dept.id} value={dept.id}>
-                    {dept.parent_id ? `  ↳ ${dept.name}` : dept.name}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: '', label: 'Sélectionner...' },
+                  ...departments.map(d => ({ value: String(d.id), label: d.parent_id ? `↳ ${d.name}` : d.name })),
+                ]}
+              />
             </div>
 
             {/* Manager */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Manager (N+1)</label>
-              <select
-                name="manager_id"
-                value={formData.manager_id}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              <CustomSelect
+                value={String(formData.manager_id)}
+                onChange={(v) => setFormData(prev => ({ ...prev, manager_id: v }))}
+                placeholder={isLoadingData ? 'Chargement...' : 'Aucun (poste de direction)'}
                 disabled={isLoadingData}
-              >
-                <option value="">
-                  {isLoadingData ? 'Chargement...' : 'Aucun (poste de direction)'}
-                </option>
-                {managers.map(mgr => (
-                  <option key={mgr.id} value={mgr.id}>
-                    {mgr.first_name} {mgr.last_name} - {mgr.job_title || mgr.position || ''}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: '', label: 'Aucun (poste de direction)' },
+                  ...managers.map(m => ({ value: String(m.id), label: `${m.first_name} ${m.last_name}${m.job_title ? ` — ${m.job_title}` : ''}` })),
+                ]}
+              />
             </div>
 
             {/* Rôle système */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
-              <select
-                name="role"
+              <CustomSelect
                 value={formData.role}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              >
-                {ROLE_OPTIONS.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setFormData(prev => ({ ...prev, role: v as EmployeeRole }))}
+                placeholder="Rôle"
+                options={ROLE_OPTIONS.map(r => ({ value: r.value, label: r.label }))}
+              />
               <p className="text-xs text-gray-500 mt-1">
                 {ROLE_OPTIONS.find(r => r.value === formData.role)?.description}
               </p>
@@ -678,19 +661,19 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
             {/* Type de contrat */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Type de contrat</label>
-              <select
-                name="contract_type"
+              <CustomSelect
                 value={formData.contract_type}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              >
-                <option value="cdi">CDI</option>
-                <option value="cdd">CDD</option>
-                <option value="stage">Stage</option>
-                <option value="alternance">Alternance</option>
-                <option value="consultant">Consultant</option>
-                <option value="interim">Intérim</option>
-              </select>
+                onChange={(v) => setFormData(prev => ({ ...prev, contract_type: v as ContractType }))}
+                placeholder="Type de contrat"
+                options={[
+                  { value: 'cdi', label: 'CDI' },
+                  { value: 'cdd', label: 'CDD' },
+                  { value: 'stage', label: 'Stage' },
+                  { value: 'alternance', label: 'Alternance' },
+                  { value: 'consultant', label: 'Consultant' },
+                  { value: 'interim', label: 'Intérim' },
+                ]}
+              />
             </div>
 
             {/* Date de fin de contrat — conditionnel CDD/Stage/Alternance/Intérim */}
@@ -719,18 +702,18 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
             {/* Statut */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
-              <select
-                name="status"
+              <CustomSelect
                 value={formData.status}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              >
-                <option value="active">Actif</option>
-                <option value="probation">Période d&apos;essai</option>
-                <option value="on_leave">En congés</option>
-                <option value="suspended">Suspendu</option>
-                <option value="terminated">Terminé</option>
-              </select>
+                onChange={(v) => setFormData(prev => ({ ...prev, status: v as StatusType }))}
+                placeholder="Statut"
+                options={[
+                  { value: 'active', label: 'Actif' },
+                  { value: 'probation', label: "Période d'essai" },
+                  { value: 'on_leave', label: 'En congés' },
+                  { value: 'suspended', label: 'Suspendu' },
+                  { value: 'terminated', label: 'Terminé' },
+                ]}
+              />
             </div>
 
             {/* Fin de période d'essai — conditionnel */}
@@ -756,21 +739,21 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
             {/* Classification */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Classification</label>
-              <select
-                name="classification"
+              <CustomSelect
                 value={formData.classification}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              >
-                <option value="">Non définie</option>
-                <option value="Cadre dirigeant">Cadre dirigeant</option>
-                <option value="Cadre supérieur">Cadre supérieur</option>
-                <option value="Cadre">Cadre</option>
-                <option value="Agent de maîtrise">Agent de maîtrise</option>
-                <option value="Employé">Employé</option>
-                <option value="Non-cadre">Non-cadre</option>
-                <option value="Ouvrier">Ouvrier</option>
-              </select>
+                onChange={(v) => setFormData(prev => ({ ...prev, classification: v }))}
+                placeholder="Non définie"
+                options={[
+                  { value: '', label: 'Non définie' },
+                  { value: 'Cadre dirigeant', label: 'Cadre dirigeant' },
+                  { value: 'Cadre supérieur', label: 'Cadre supérieur' },
+                  { value: 'Cadre', label: 'Cadre' },
+                  { value: 'Agent de maîtrise', label: 'Agent de maîtrise' },
+                  { value: 'Employé', label: 'Employé' },
+                  { value: 'Non-cadre', label: 'Non-cadre' },
+                  { value: 'Ouvrier', label: 'Ouvrier' },
+                ]}
+              />
             </div>
 
             {/* Coefficient */}
@@ -843,20 +826,20 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
             {/* Situation matrimoniale */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Situation matrimoniale</label>
-              <select
-                name="marital_status"
+              <CustomSelect
                 value={formData.marital_status}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              >
-                <option value="">Non renseigné</option>
-                <option value="celibataire">Célibataire</option>
-                <option value="marie">Marié(e)</option>
-                <option value="concubinage">Concubinage</option>
-                <option value="divorce">Divorcé(e)</option>
-                <option value="veuvage">Veuvage</option>
-                <option value="autre">Autre</option>
-              </select>
+                onChange={(v) => setFormData(prev => ({ ...prev, marital_status: v }))}
+                placeholder="Non renseigné"
+                options={[
+                  { value: '', label: 'Non renseigné' },
+                  { value: 'celibataire', label: 'Célibataire' },
+                  { value: 'marie', label: 'Marié(e)' },
+                  { value: 'concubinage', label: 'Concubinage' },
+                  { value: 'divorce', label: 'Divorcé(e)' },
+                  { value: 'veuvage', label: 'Veuvage' },
+                  { value: 'autre', label: 'Autre' },
+                ]}
+              />
             </div>
 
             {/* Âge (calculé depuis date de naissance) */}

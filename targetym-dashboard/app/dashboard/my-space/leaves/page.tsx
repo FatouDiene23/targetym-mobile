@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import PageTourTips from '@/components/PageTourTips';
+import CustomSelect from '@/components/CustomSelect';
 import { usePageTour } from '@/hooks/usePageTour';
 import { myLeavesTips } from '@/config/pageTips';
 import {
@@ -499,6 +500,7 @@ function NewLeaveRequestModal({
               </label>
               <select
                 value={formData.leave_type_id}
+<<<<<<< HEAD
                 onChange={(e) => setFormData({ ...formData, leave_type_id: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 required
@@ -523,6 +525,23 @@ function NewLeaveRequestModal({
                   );
                 })}
               </select>
+=======
+                onChange={(v) => setFormData({ ...formData, leave_type_id: v })}
+                placeholder="Sélectionner..."
+                options={[
+                  { value: '', label: 'Sélectionner...' },
+                  ...leaveTypes.map((type) => {
+                    const bal = balances?.balances.find((b) => b.leave_type_id === type.id);
+                    let suffix = '';
+                    if (bal) suffix = ` — ${bal.available} j disponibles`;
+                    else if (type.is_annual) suffix = type.accrual_rate ? ` — ${type.accrual_rate} j/mois` : '';
+                    else if (type.default_days > 0) suffix = ` — quota : ${type.default_days} j/an`;
+                    else suffix = ' — sans quota fixe';
+                    return { value: String(type.id), label: `${type.name} (${type.code})${suffix}` };
+                  }),
+                ]}
+              />
+>>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
             </div>
 
             {formData.leave_type_id && (() => {

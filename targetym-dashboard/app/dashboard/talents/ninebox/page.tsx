@@ -127,7 +127,7 @@ export default function NineBoxPage() {
           <select
             value={selectedPeriod}
             onChange={e => handleFilterChange(e.target.value, undefined)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-full sm:w-auto"
           >
             <option value="">Dernière période</option>
             {data?.available_periods?.map(p => (
@@ -138,7 +138,7 @@ export default function NineBoxPage() {
             <select
               value={selectedDept}
               onChange={e => handleFilterChange(undefined, e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-full sm:w-auto"
             >
               <option value="">Tous les départements</option>
               {data?.available_departments?.map(d => (

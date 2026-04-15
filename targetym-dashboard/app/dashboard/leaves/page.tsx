@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import CustomSelect from '@/components/CustomSelect';
 import {
   Calendar, Clock, CheckCircle, XCircle, AlertCircle,
   Download, RefreshCw, Users, Settings, BarChart3, CalendarDays,
@@ -871,15 +872,12 @@ function InitializeBalancesModal({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Année
             </label>
-            <select
-              value={year}
-              onChange={(e) => setYear(parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            >
-              {[2024, 2025, 2026].map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={String(year)}
+              onChange={v => setYear(parseInt(v))}
+              placeholder="Année"
+              options={[2024, 2025, 2026].map(y => ({ value: String(y), label: String(y) }))}
+            />
             <p className="mt-2 text-sm text-gray-500">
               Cette action va initialiser les soldes de congés pour tous les employés actifs pour l&apos;année {year}.
             </p>
@@ -1285,19 +1283,15 @@ function NewLeaveRequestModal({
                   {selfName || 'Chargement...'}
                 </div>
               ) : (
-                <select
-                  value={employeeId}
-                  onChange={(e) => setEmployeeId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                >
-                  <option value="">-- Sélectionner un employé --</option>
-                  {employeesList.map(emp => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.first_name} {emp.last_name}
-                      {emp.id === storedUser.employeeId ? ' (moi)' : ''}
-                    </option>
-                  ))}
-                </select>
+                <CustomSelect
+                  value={String(employeeId)}
+                  onChange={v => setEmployeeId(v)}
+                  placeholder="-- Sélectionner un employé --"
+                  options={[
+                    { value: '', label: '-- Sélectionner un employé --' },
+                    ...employeesList.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}${emp.id === storedUser.employeeId ? ' (moi)' : ''}` })),
+                  ]}
+                />
               )}
             </div>
 
@@ -1306,16 +1300,15 @@ function NewLeaveRequestModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Type de congé <span className="text-red-500">*</span>
               </label>
-              <select
-                value={leaveTypeId}
-                onChange={(e) => setLeaveTypeId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              >
-                <option value="">-- Choisir --</option>
-                {leaveTypes.filter(t => t.is_active).map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={String(leaveTypeId)}
+                onChange={v => setLeaveTypeId(v)}
+                placeholder="-- Choisir --"
+                options={[
+                  { value: '', label: '-- Choisir --' },
+                  ...leaveTypes.filter(t => t.is_active).map(t => ({ value: String(t.id), label: t.name })),
+                ]}
+              />
             </div>
 
             {/* Dates */}
@@ -1695,29 +1688,25 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
             {loadingEmployees ? (
               <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
             ) : (
-              <select
-                value={selectedEmployeeId}
-                onChange={(e) => setSelectedEmployeeId(e.target.value ? parseInt(e.target.value) : '')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="">Sélectionner un employé...</option>
-                {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.first_name} {emp.last_name}{emp.department_name ? ` — ${emp.department_name}` : ''}
-                  </option>
-                ))}
-              </select>
+              <CustomSelect
+                value={String(selectedEmployeeId)}
+                onChange={v => setSelectedEmployeeId(v ? parseInt(v) : '')}
+                placeholder="Sélectionner un employé..."
+                options={[
+                  { value: '', label: 'Sélectionner un employé...' },
+                  ...employees.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}${emp.department_name ? ` — ${emp.department_name}` : ''}` })),
+                ]}
+              />
             )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Année</label>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            >
-              {years.map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
+            <CustomSelect
+              value={String(selectedYear)}
+              onChange={v => setSelectedYear(parseInt(v))}
+              placeholder="Année"
+              options={years.map(y => ({ value: String(y), label: String(y) }))}
+            />
           </div>
           {selectedEmployeeId && (
             <button
@@ -2087,36 +2076,38 @@ export default function LeavesManagementPage() {
                   placeholder="Rechercher un employé..."
                 />
               </div>
-              <select
+              <CustomSelect
                 value={statusFilter}
-                onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              >
-                <option value="all">Tous les statuts</option>
-                <option value="pending">En attente</option>
-                <option value="approved">Approuvées</option>
-                <option value="rejected">Refusées</option>
-              </select>
-              <select
-                value={departmentFilter || ''}
-                onChange={(e) => { setDepartmentFilter(e.target.value ? parseInt(e.target.value) : undefined); setPage(1); }}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              >
-                <option value="">Tous les départements</option>
-                {departments.map(dept => (
-                  <option key={dept.id} value={dept.id}>{dept.name}</option>
-                ))}
-              </select>
-              <select
-                value={leaveTypeFilter || ''}
-                onChange={(e) => { setLeaveTypeFilter(e.target.value ? parseInt(e.target.value) : undefined); setPage(1); }}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              >
-                <option value="">Tous les types</option>
-                {leaveTypes.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
+                onChange={v => { setStatusFilter(v); setPage(1); }}
+                placeholder="Tous les statuts"
+                className="min-w-[140px]"
+                options={[
+                  { value: 'all', label: 'Tous les statuts' },
+                  { value: 'pending', label: 'En attente' },
+                  { value: 'approved', label: 'Approuvées' },
+                  { value: 'rejected', label: 'Refusées' },
+                ]}
+              />
+              <CustomSelect
+                value={String(departmentFilter || '')}
+                onChange={v => { setDepartmentFilter(v ? parseInt(v) : undefined); setPage(1); }}
+                placeholder="Tous les départements"
+                className="min-w-[160px]"
+                options={[
+                  { value: '', label: 'Tous les départements' },
+                  ...departments.map(d => ({ value: String(d.id), label: d.name })),
+                ]}
+              />
+              <CustomSelect
+                value={String(leaveTypeFilter || '')}
+                onChange={v => { setLeaveTypeFilter(v ? parseInt(v) : undefined); setPage(1); }}
+                placeholder="Tous les types"
+                className="min-w-[140px]"
+                options={[
+                  { value: '', label: 'Tous les types' },
+                  ...leaveTypes.map(t => ({ value: String(t.id), label: t.name })),
+                ]}
+              />
               <button
                 onClick={loadRequests}
                 className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"

@@ -451,10 +451,19 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
   // Bouton Ajouter : contextuel selon la route
   const handleAddClick = () => {
+<<<<<<< HEAD
     // Normaliser le pathname (retirer le trailing slash pour matcher les routes)
     const normalizedPath = pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;
     const contextualEvent = CONTEXTUAL_ROUTES[normalizedPath];
     console.log('[Header] pathname:', pathname, '→ normalized:', normalizedPath, '→ event:', contextualEvent || 'NONE (opening AddModal)');
+=======
+    const normalizedPath = pathname.replace(/\/$/, '');
+    // Cherche d'abord correspondance exacte, sinon par préfixe (le plus long match)
+    const contextualEvent = CONTEXTUAL_ROUTES[normalizedPath] ??
+      Object.entries(CONTEXTUAL_ROUTES)
+        .filter(([key]) => normalizedPath.startsWith(key))
+        .sort((a, b) => b[0].length - a[0].length)[0]?.[1];
+>>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
     if (contextualEvent) {
       window.dispatchEvent(new Event(contextualEvent));
     } else {
@@ -758,13 +767,22 @@ export default function Header({ title, subtitle }: HeaderProps) {
             </div>
 
             {/* Bouton Ajouter — masqué pour employés simples et certaines routes */}
+<<<<<<< HEAD
             {canAdd && !HIDDEN_ADD_ROUTES.some(r => (pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname).startsWith(r)) && (
+=======
+            {canAdd && !HIDDEN_ADD_ROUTES.some(r => pathname.replace(/\/$/, '').startsWith(r)) && (
+>>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
               <button
                 onClick={handleAddClick}
                 className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
               >
+<<<<<<< HEAD
                 <Plus className="w-4 h-4 mr-2" />
                 {CONTEXTUAL_LABELS[pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname] ?? 'Ajouter'}
+=======
+                <Plus className="w-4 h-4 mr-1.5" />
+                <span>{CONTEXTUAL_LABELS[pathname.replace(/\/$/, '')] ?? 'Ajouter'}</span>
+>>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
               </button>
             )}
           </div>

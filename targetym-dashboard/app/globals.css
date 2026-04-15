@@ -247,6 +247,29 @@ select option:hover {
   .hidden-mobile {
     display: none;
   }
+
+  /* ===== SELECTS / FILTRES — responsive sur mobile ===== */
+  /* Tous les selects dans le dashboard deviennent pleine largeur sur mobile */
+  select {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    font-size: 0.8125rem !important; /* 13px */
+  }
+
+  /* Containers de filtres — empiler verticalement sur mobile */
+  .filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  /* Groupes de selects dans les barres de filtre */
+  .filter-bar select,
+  .filter-bar input[type="text"],
+  .filter-bar input[type="search"],
+  .filter-bar input[type="date"] {
+    width: 100% !important;
+  }
 }
 
 /* ============================================
@@ -291,10 +314,10 @@ select option:hover {
 
 @keyframes pulse-border {
   0%, 100% {
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.8), inset 0 0 30px rgba(59, 130, 246, 0.15);
+    box-shadow: 0 0 0 4px rgba(6, 108, 108, 0.4), 0 0 40px rgba(6, 108, 108, 0.8), inset 0 0 30px rgba(6, 108, 108, 0.15);
   }
   50% {
-    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.3), 0 0 60px rgba(59, 130, 246, 1), inset 0 0 40px rgba(59, 130, 246, 0.25);
+    box-shadow: 0 0 0 8px rgba(6, 108, 108, 0.3), 0 0 60px rgba(6, 108, 108, 1), inset 0 0 40px rgba(6, 108, 108, 0.25);
   }
 }
 
@@ -325,20 +348,20 @@ select option:hover {
 .page-tip-highlight {
   position: relative;
   animation: tipPulse 1.5s ease-in-out infinite;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5), 0 0 30px rgba(59, 130, 246, 0.7) !important;
+  box-shadow: 0 0 0 4px rgba(6, 108, 108, 0.5), 0 0 30px rgba(6, 108, 108, 0.7) !important;
   border-radius: 12px !important;
   z-index: 100 !important;
-  outline: 3px solid rgba(59, 130, 246, 0.6) !important;
+  outline: 3px solid rgba(6, 108, 108, 0.6) !important;
   outline-offset: 2px;
 }
 
 @keyframes tipPulse {
   0%, 100% {
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5), 0 0 30px rgba(59, 130, 246, 0.7);
+    box-shadow: 0 0 0 4px rgba(6, 108, 108, 0.5), 0 0 30px rgba(6, 108, 108, 0.7);
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.3), 0 0 50px rgba(59, 130, 246, 0.9);
+    box-shadow: 0 0 0 8px rgba(6, 108, 108, 0.3), 0 0 50px rgba(6, 108, 108, 0.9);
     transform: scale(1.02);
   }
 }

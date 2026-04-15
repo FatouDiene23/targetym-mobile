@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/Header';
+import CustomSelect from '@/components/CustomSelect';
 import {
   DollarSign, Scale, Shield, TrendingUp, Calculator, FileText, Building2,
   Plus, RefreshCw, ChevronRight, AlertTriangle, CheckCircle, XCircle,

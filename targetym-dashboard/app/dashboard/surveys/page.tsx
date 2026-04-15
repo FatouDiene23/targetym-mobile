@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import CustomSelect from '@/components/CustomSelect';
 import {
   Search, Plus, Loader2, X, ChevronLeft, ChevronRight,
   Calendar, Filter, Eye, Edit3, Play, Square, Archive,
@@ -913,21 +914,33 @@ export default function SurveysPage() {
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             />
           </div>
-          <select value={filterType} onChange={e => { setFilterType(e.target.value); setPage(1); }} className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
-            <option value="">Tous les types</option>
-            <option value="pulse">Enquête Flash</option>
-            <option value="moments_cles">Moments Clés</option>
-            <option value="thematique">Thématique</option>
-            <option value="annuelle">Enquête Annuelle</option>
-            <option value="feedback_managerial">Feedback Managérial</option>
-          </select>
-          <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1); }} className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
-            <option value="">Tous les statuts</option>
-            <option value="brouillon">Brouillon</option>
-            <option value="active">Active</option>
-            <option value="cloturee">Clôturée</option>
-            <option value="archivee">Archivée</option>
-          </select>
+          <CustomSelect
+            value={filterType}
+            onChange={v => { setFilterType(v); setPage(1); }}
+            placeholder="Tous les types"
+            className="min-w-[160px]"
+            options={[
+              { value: '', label: 'Tous les types' },
+              { value: 'pulse', label: 'Enquête Flash' },
+              { value: 'moments_cles', label: 'Moments Clés' },
+              { value: 'thematique', label: 'Thématique' },
+              { value: 'annuelle', label: 'Enquête Annuelle' },
+              { value: 'feedback_managerial', label: 'Feedback Managérial' },
+            ]}
+          />
+          <CustomSelect
+            value={filterStatus}
+            onChange={v => { setFilterStatus(v); setPage(1); }}
+            placeholder="Tous les statuts"
+            className="min-w-[150px]"
+            options={[
+              { value: '', label: 'Tous les statuts' },
+              { value: 'brouillon', label: 'Brouillon' },
+              { value: 'active', label: 'Active' },
+              { value: 'cloturee', label: 'Clôturée' },
+              { value: 'archivee', label: 'Archivée' },
+            ]}
+          />
         </div>
       </div>
 
@@ -1132,22 +1145,22 @@ export default function SurveysPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                    <select
+                    <CustomSelect
                       value={formData.survey_type}
-                      onChange={e => {
-                        const newType = e.target.value;
+                      onChange={newType => {
                         const freqConfig = FREQUENCY_BY_TYPE[newType] || FREQUENCY_BY_TYPE.pulse;
                         setFormData({ ...formData, survey_type: newType, frequency: freqConfig.default });
                         if (newType === 'moments_cles') loadTemplates();
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    >
-                      <option value="pulse">Enquête Flash</option>
-                      <option value="moments_cles">Moments Clés</option>
-                      <option value="thematique">Thématique</option>
-                      <option value="annuelle">Enquête Annuelle</option>
-                      <option value="feedback_managerial">Feedback Managérial</option>
-                    </select>
+                      placeholder="Type"
+                      options={[
+                        { value: 'pulse', label: 'Enquête Flash' },
+                        { value: 'moments_cles', label: 'Moments Clés' },
+                        { value: 'thematique', label: 'Thématique' },
+                        { value: 'annuelle', label: 'Enquête Annuelle' },
+                        { value: 'feedback_managerial', label: 'Feedback Managérial' },
+                      ]}
+                    />
                     {formData.survey_type === 'moments_cles' && (
                       <p className="mt-1 text-xs text-orange-600">Templates préconfigurés disponibles</p>
                     )}
@@ -1198,14 +1211,13 @@ export default function SurveysPage() {
                     {(() => {
                       const freqConfig = FREQUENCY_BY_TYPE[formData.survey_type] || FREQUENCY_BY_TYPE.pulse;
                       return (
-                        <select
+                        <CustomSelect
                           value={formData.frequency}
-                          onChange={e => setFormData({ ...formData, frequency: e.target.value })}
+                          onChange={v => setFormData({ ...formData, frequency: v })}
                           disabled={freqConfig.locked}
-                          className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 ${freqConfig.locked ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
-                        >
-                          {freqConfig.options.map(k => <option key={k} value={k}>{FREQUENCY_LABELS[k] || k}</option>)}
-                        </select>
+                          placeholder="Fréquence"
+                          options={freqConfig.options.map(k => ({ value: k, label: FREQUENCY_LABELS[k] || k }))}
+                        />
                       );
                     })()}
                   </div>
@@ -1247,9 +1259,13 @@ export default function SurveysPage() {
                         </div>
                         <input type="text" value={q.question_text} onChange={e => updateQuestion(idx, 'question_text', e.target.value)} placeholder="Texte de la question" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
                         <div className="flex items-center gap-4">
-                          <select value={q.question_type} onChange={e => updateQuestion(idx, 'question_type', e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
-                            {Object.entries(QUESTION_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                          </select>
+                          <CustomSelect
+                            value={q.question_type}
+                            onChange={v => updateQuestion(idx, 'question_type', v)}
+                            placeholder="Type"
+                            className="min-w-[140px]"
+                            options={Object.entries(QUESTION_TYPE_LABELS).map(([k, v]) => ({ value: k, label: v }))}
+                          />
                           <label className="flex items-center gap-2 text-sm text-gray-600">
                             <input type="checkbox" checked={q.is_required} onChange={e => updateQuestion(idx, 'is_required', e.target.checked)} className="rounded border-gray-300 text-primary-500 focus:ring-primary-500" />
                             Obligatoire
@@ -1490,15 +1506,13 @@ export default function SurveysPage() {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         />
                         <div className="flex items-center gap-4">
-                          <select
+                          <CustomSelect
                             value={q.question_type}
-                            onChange={e => updateConfigQuestion(idx, 'question_type', e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                          >
-                            {Object.entries(QUESTION_TYPE_LABELS).map(([k, v]) => (
-                              <option key={k} value={k}>{v}</option>
-                            ))}
-                          </select>
+                            onChange={v => updateConfigQuestion(idx, 'question_type', v)}
+                            placeholder="Type"
+                            className="min-w-[140px]"
+                            options={Object.entries(QUESTION_TYPE_LABELS).map(([k, v]) => ({ value: k, label: v }))}
+                          />
                           <label className="flex items-center gap-2 text-sm text-gray-600">
                             <input
                               type="checkbox"

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Target, ChevronRight } from 'lucide-react';
 import PerformanceStats from '../components/PerformanceStats';
 import Header from '@/components/Header';
@@ -81,8 +82,8 @@ export default function ObjectivesPage() {
       {/* Content */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         {/* Link to OKR page */}
-        <a 
-          href="/dashboard/okr" 
+        <Link
+          href="/dashboard/okr"
           className="flex items-center justify-between p-4 border rounded-xl hover:shadow-md hover:border-primary-300 transition-all group"
         >
           <div className="flex items-center gap-4">
@@ -95,7 +96,7 @@ export default function ObjectivesPage() {
             </div>
           </div>
           <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-primary-500 transition-colors" />
-        </a>
+        </Link>
         
         {/* Stats */}
         {stats && (

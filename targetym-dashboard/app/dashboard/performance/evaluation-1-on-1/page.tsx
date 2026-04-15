@@ -8,11 +8,7 @@ import {
   CheckCircle2, TrendingUp, Award, BookOpen, ListTodo, User,
 } from 'lucide-react';
 import Header from '@/components/Header';
-<<<<<<< HEAD
 import { useI18n } from '@/lib/i18n/I18nContext';
-=======
-import CustomSelect from '@/components/CustomSelect';
->>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
 
 // =============================================
 // TYPES
@@ -505,9 +501,8 @@ function EvaluationReportModal({ session, onClose, onSuccess }: {
                         onChange={e => updateTask(task.id, 'due_date', e.target.value)}
                         className="px-2.5 py-1.5 border rounded text-xs bg-white"
                       />
-                      <CustomSelect
+                      <select
                         value={task.priority}
-<<<<<<< HEAD
                         onChange={e => updateTask(task.id, 'priority', e.target.value)}
                         className="px-2.5 py-1.5 border rounded text-xs bg-white"
                       >
@@ -516,16 +511,6 @@ function EvaluationReportModal({ session, onClose, onSuccess }: {
                         <option value="high">{t.performance.priorityHigh}</option>
                         <option value="urgent">{t.performance.priorityUrgent}</option>
                       </select>
-=======
-                        onChange={val => updateTask(task.id, 'priority', val)}
-                        options={[
-                          { value: 'low', label: 'Faible' },
-                          { value: 'medium', label: 'Moyen' },
-                          { value: 'high', label: 'Élevé' },
-                          { value: 'urgent', label: 'Urgent' },
-                        ]}
-                      />
->>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
                     </div>
                   </div>
                   <button

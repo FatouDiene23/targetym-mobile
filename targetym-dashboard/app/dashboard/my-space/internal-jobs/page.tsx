@@ -12,7 +12,6 @@ import {
   ExternalLink, X, Loader2, CheckCircle,
   AlertCircle, Eye, TrendingUp
 } from 'lucide-react';
-import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES

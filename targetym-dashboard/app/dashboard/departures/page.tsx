@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/Header';
-import CustomSelect from '@/components/CustomSelect';
 import {
   UserMinus, Search, Plus, X, ChevronLeft, ChevronRight, Clock, CheckCircle,
   XCircle, AlertTriangle, Filter, Download, Eye, MoreHorizontal, Calendar,
@@ -723,7 +722,6 @@ export default function DeparturesPage() {
                       className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     />
                   </div>
-<<<<<<< HEAD
                   <select
                     value={filterType}
                     onChange={e => { setFilterType(e.target.value); setPage(1); }}
@@ -747,11 +745,6 @@ export default function DeparturesPage() {
                       <option value="validated">{t.departures.statusFilterOptions.validated}</option>
                       <option value="in_progress">{t.departures.statusFilterOptions.in_progress}</option>
                     </select>
-=======
-                  <CustomSelect value={filterType} onChange={v => { setFilterType(v); setPage(1); }} placeholder="Tous les types" className="min-w-[140px]" options={[{value:'',label:'Tous les types'},...Object.entries(DEPARTURE_TYPES).map(([k,v])=>({value:k,label:v.label}))]} />
-                  {activeTab === 'en_cours' && (
-                    <CustomSelect value={filterStatus} onChange={v => { setFilterStatus(v); setPage(1); }} placeholder="Tous les statuts" className="min-w-[160px]" options={[{value:'',label:'Tous les statuts'},{value:'pending_manager',label:'Attente Manager'},{value:'pending_rh',label:'Attente RH'},{value:'pending_direction',label:'Attente Direction'},{value:'validated',label:'Validé'},{value:'in_progress',label:'En cours'}]} />
->>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
                   )}
                 </div>
               </div>
@@ -1263,7 +1256,6 @@ export default function DeparturesPage() {
 
             {/* Primary reason */}
             <div>
-<<<<<<< HEAD
               <label className="text-xs text-gray-500">{t.departures.primaryDepartureReason}</label>
               <select
                 value={(interviewForm.primary_departure_reason ?? interview.primary_departure_reason) || ''}
@@ -1275,15 +1267,6 @@ export default function DeparturesPage() {
                   <option key={k} value={k}>{(t.departures.departureReasons as Record<string, string>)[k]}</option>
                 ))}
               </select>
-=======
-              <label className="text-xs text-gray-500">Raison principale du départ</label>
-              <CustomSelect
-                value={(interviewForm.primary_departure_reason ?? interview.primary_departure_reason) || ''}
-                onChange={v => setInterviewForm(prev => ({ ...prev, primary_departure_reason: v }))}
-                placeholder="Sélectionner..."
-                options={[{value:'',label:'Sélectionner...'},...Object.entries(DEPARTURE_REASONS).map(([k,v])=>({value:k,label:v}))]}
-              />
->>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
             </div>
 
             {/* Boolean questions */}
@@ -1563,7 +1546,6 @@ export default function DeparturesPage() {
               <div className="space-y-3">
                 <h3 className="font-medium text-gray-900">{t.departures.typeAndReason}</h3>
                 <div>
-<<<<<<< HEAD
                   <label className="text-sm text-gray-600">{t.departures.departureType}</label>
                   <select value={formType} onChange={e => setFormType(e.target.value)}
                     className="w-full border rounded-lg px-3 py-2 text-sm mt-1">
@@ -1571,10 +1553,6 @@ export default function DeparturesPage() {
                       <option key={k} value={k}>{(t.departures.types as Record<string, string>)[k] || k}</option>
                     ))}
                   </select>
-=======
-                  <label className="text-sm text-gray-600">Type de départ</label>
-                  <CustomSelect value={formType} onChange={v => setFormType(v)} placeholder="Type de départ" options={Object.entries(DEPARTURE_TYPES).map(([k,v])=>({value:k,label:v.label}))} />
->>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
                 </div>
                 {formType === 'termination' && (
                   <div>
@@ -1592,7 +1570,6 @@ export default function DeparturesPage() {
                         {t.departures.noSubsidiaryAvailable}
                       </p>
                     ) : (
-<<<<<<< HEAD
                       <select
                         value={formTargetTenantId ?? ''}
                         onChange={e => setFormTargetTenantId(Number(e.target.value) || null)}
@@ -1603,9 +1580,6 @@ export default function DeparturesPage() {
                           <option key={s.id} value={s.id}>{s.name}</option>
                         ))}
                       </select>
-=======
-                      <CustomSelect value={String(formTargetTenantId ?? '')} onChange={v => setFormTargetTenantId(Number(v) || null)} placeholder="— Sélectionner une filiale —" options={[{value:'',label:'— Sélectionner une filiale —'},...subsidiaries.map(s=>({value:String(s.id),label:s.name}))]} />
->>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
                     )}
                   </div>
                 )}

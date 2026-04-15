@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import CustomSelect from '@/components/CustomSelect';
 import {
   Plus, X, Loader2, AlertCircle, Search, ChevronLeft, ChevronRight,
   XCircle, Archive, RotateCcw, MoreVertical, Users
@@ -470,9 +469,8 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.common.details}</label>
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder={t.performance.descriptionOptional} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-<<<<<<< HEAD
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.evaluationType}</label>
                   <select value={campaignType} onChange={(e) => setCampaignType(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm">
                     <option value="annual">{t.performance.annualEvaluation}</option>
@@ -494,39 +492,6 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
                     <option value="semester">{t.performance.semester}</option>
                     <option value="quarterly">{t.performance.quarterly}</option>
                   </select>
-=======
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Type d&apos;évaluation</label>
-                  <CustomSelect
-                    value={campaignType}
-                    onChange={setCampaignType}
-                    placeholder="Type"
-                    options={[
-                      { value: 'annual', label: 'Évaluation Annuelle' },
-                      { value: 'mid_year', label: 'Évaluation Mi-Année' },
-                      { value: '360', label: 'Feedback 360°' },
-                      { value: 'probation', label: "Fin de Période d'Essai" },
-                      { value: 'evaluation_360', label: 'Évaluation 360°' },
-                      { value: 'entretien_1on1', label: "Entretien d'Évaluation 1-1" },
-                      { value: 'coaching_1on1', label: 'Session Coaching 1:1' },
-                      { value: 'revue_hebdo', label: 'Revue de Perf Hebdo' },
-                      { value: 'prise_de_fonction', label: 'Évaluation Prise de Fonction' },
-                      { value: 'prise_dessai', label: "Évaluation de Prise d'Essai" },
-                    ]}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Périodicité</label>
-                  <CustomSelect
-                    value={period}
-                    onChange={setPeriod}
-                    placeholder="Périodicité"
-                    options={[
-                      { value: 'annual', label: 'Annuelle' },
-                      { value: 'semester', label: 'Semestrielle' },
-                      { value: 'quarterly', label: 'Trimestrielle' },
-                    ]}
-                  />
->>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">

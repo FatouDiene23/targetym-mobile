@@ -16,7 +16,7 @@ import { usePageTour } from '@/hooks/usePageTour';
 import { missionsTips } from '@/config/pageTips';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import CountrySelect from '@/components/CountrySelect';
-import CustomSelect from '@/components/CustomSelect';
+
 
 // ============================================
 // TYPES

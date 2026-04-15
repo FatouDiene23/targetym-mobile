@@ -17,7 +17,6 @@ function LearningContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { t } = useI18n();
 
-<<<<<<< HEAD
   const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
     '/dashboard/learning':              { title: t.training.catalogTitle,          subtitle: t.training.allAvailableTrainings },
     '/dashboard/learning/my-learning':  { title: t.training.myLearning,           subtitle: t.training.myLearningSubtitle },
@@ -34,20 +33,11 @@ function LearningContent({ children }: { children: React.ReactNode }) {
   };
 
   const page = PAGE_TITLES[pathname] ?? { title: t.training.title, subtitle: '' };
-=======
-  const normalizedPath = pathname.replace(/\/$/, '');
-  // Cherche d'abord la clé exacte, sinon par préfixe (le plus long match)
-  const page = PAGE_TITLES[normalizedPath] ??
-    Object.entries(PAGE_TITLES)
-      .filter(([key]) => key !== '/dashboard/learning' && normalizedPath.startsWith(key))
-      .sort((a, b) => b[0].length - a[0].length)[0]?.[1] ??
-    { title: 'Formation & Développement', subtitle: '' };
->>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
 
   if (isLoading) {
     return (
       <>
-        <Header title={normalizedPath === '/dashboard/learning' ? 'Catalogue de Formations' : page.title} subtitle={page.subtitle} />
+        <Header title={page.title} subtitle={page.subtitle} />
         <main className="flex-1 p-6 flex items-center justify-center bg-gray-50">
           <RefreshCw className="w-8 h-8 animate-spin text-primary-500" />
         </main>

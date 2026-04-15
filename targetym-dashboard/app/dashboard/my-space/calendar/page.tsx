@@ -1033,24 +1033,10 @@ export default function MyCalendarPage() {
       {showTips && (
         <PageTourTips tips={calendarTips} onDismiss={dismissTips} pageTitle={t.mySpace.calendar.title} />
       )}
-<<<<<<< HEAD
       <Header title={t.mySpace.calendar.title} subtitle={t.mySpace.calendar.subtitle} />
       <div className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row items-end sm:items-center justify-end gap-4 mb-6">
-=======
-      <div className="py-4 px-2 sm:px-4 lg:px-8">
-      <div className="max-w-full lg:max-w-7xl mx-auto overflow-hidden">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-lg lg:text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <CalendarIcon className="w-6 h-6 text-primary-600" />
-              Mon Calendrier
-            </h1>
-            <p className="text-gray-500 mt-1">Vos événements, congés et rendez-vous importants</p>
-          </div>
->>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
           <div className="flex items-center gap-2">
             <button
               onClick={() => loadData()}
@@ -1102,21 +1088,14 @@ export default function MyCalendarPage() {
         )}
 
         {/* Quick stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3 mb-4 lg:mb-6" data-tour="calendar-view">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6" data-tour="calendar-view">
           {[
-<<<<<<< HEAD
             { label: t.mySpace.calendar.events, value: visibleEvents.length, icon: <CalendarIcon className="w-4 h-4" />, color: 'text-primary-600 bg-primary-50' },
             { label: t.mySpace.calendar.leaves, value: (eventCountByType['my_leave'] || 0) + (eventCountByType['team_leave'] || 0), icon: <Briefcase className="w-4 h-4" />, color: 'text-blue-600 bg-blue-50' },
             { label: t.mySpace.calendar.birthdays, value: (eventCountByType['birthday'] || 0) + (eventCountByType['work_anniversary'] || 0), icon: <Cake className="w-4 h-4" />, color: 'text-pink-600 bg-pink-50' },
             { label: t.mySpace.calendar.holidays, value: eventCountByType['holiday'] || 0, icon: <Star className="w-4 h-4" />, color: 'text-gray-600 bg-gray-100' },
-=======
-            { label: 'Événements', value: visibleEvents.length, icon: <CalendarIcon className="w-4 h-4" />, color: 'text-primary-600 bg-primary-50' },
-            { label: 'Congés', value: (eventCountByType['my_leave'] || 0) + (eventCountByType['team_leave'] || 0), icon: <Briefcase className="w-4 h-4" />, color: 'text-primary-600 bg-primary-50' },
-            { label: 'Anniv.', value: (eventCountByType['birthday'] || 0) + (eventCountByType['work_anniversary'] || 0), icon: <Cake className="w-4 h-4" />, color: 'text-pink-600 bg-pink-50' },
-            { label: 'Fériés', value: eventCountByType['holiday'] || 0, icon: <Star className="w-4 h-4" />, color: 'text-gray-600 bg-gray-100' },
->>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
           ].map(stat => (
-            <div key={stat.label} className="bg-white rounded-xl border border-gray-200 p-3 lg:p-4 flex items-center gap-2 lg:gap-3">
+            <div key={stat.label} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
               <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${stat.color}`}>
                 {stat.icon}
               </div>
@@ -1129,45 +1108,35 @@ export default function MyCalendarPage() {
         </div>
 
         {/* Toolbar */}
-        <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
           {/* Navigation */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <button
               onClick={goToday}
-              className="px-2 lg:px-3 py-1.5 text-xs lg:text-sm font-medium text-primary-600 border border-primary-300 rounded-lg hover:bg-primary-50 transition-colors whitespace-nowrap"
+              className="px-3 py-1.5 text-sm font-medium text-primary-600 border border-primary-300 rounded-lg hover:bg-primary-50 transition-colors"
             >
-<<<<<<< HEAD
               {t.mySpace.calendar.todayBtn}
-=======
-              Auj.
->>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
             </button>
             <button onClick={goPrev} className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-              <ChevronLeft className="w-4 h-4 lg:w-5 lg:h-5" />
+              <ChevronLeft className="w-5 h-5" />
             </button>
             <button onClick={goNext} className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-              <ChevronRight className="w-4 h-4 lg:w-5 lg:h-5" />
+              <ChevronRight className="w-5 h-5" />
             </button>
-            <h2 className="text-sm lg:text-lg font-semibold text-gray-900 ml-1 truncate max-w-[130px] lg:max-w-none">{viewTitle}</h2>
+            <h2 className="text-lg font-semibold text-gray-900 ml-2">{viewTitle}</h2>
           </div>
 
           {/* View toggle */}
           <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
             {([
-<<<<<<< HEAD
               { key: 'month', label: t.mySpace.calendar.monthView, icon: <Grid3X3 className="w-4 h-4" /> },
               { key: 'week', label: t.mySpace.calendar.weekView, icon: <LayoutGrid className="w-4 h-4" /> },
               { key: 'list', label: t.mySpace.calendar.listView, icon: <List className="w-4 h-4" /> },
-=======
-              { key: 'month', label: 'Mois', icon: <Grid3X3 className="w-3.5 h-3.5 lg:w-4 lg:h-4" /> },
-              { key: 'week', label: 'Sem.', icon: <LayoutGrid className="w-3.5 h-3.5 lg:w-4 lg:h-4" /> },
-              { key: 'list', label: 'Liste', icon: <List className="w-3.5 h-3.5 lg:w-4 lg:h-4" /> },
->>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
             ] as { key: ViewMode; label: string; icon: React.ReactNode }[]).map(v => (
               <button
                 key={v.key}
                 onClick={() => setViewMode(v.key)}
-                className={`flex items-center gap-1 px-2 lg:px-3 py-1.5 text-xs lg:text-sm font-medium rounded-md transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
                   viewMode === v.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >

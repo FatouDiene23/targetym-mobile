@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import PageTourTips from '@/components/PageTourTips';
-import CustomSelect from '@/components/CustomSelect';
 import { usePageTour } from '@/hooks/usePageTour';
 import { tasksTips } from '@/config/pageTips';
 import { 
@@ -539,7 +538,6 @@ function CreateTaskModal({
               </div>
 
               <div>
-<<<<<<< HEAD
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.mySpace.tasks.assignTo}</label>
                 <select
                   value={formData.assigned_to_id}
@@ -553,18 +551,6 @@ function CreateTaskModal({
                     </option>
                   ))}
                 </select>
-=======
-                <label className="block text-sm font-medium text-gray-700 mb-1">Assigner à *</label>
-                <CustomSelect
-                  value={String(formData.assigned_to_id)}
-                  onChange={v => setFormData({ ...formData, assigned_to_id: v })}
-                  placeholder="Moi-même"
-                  options={[
-                    { value: String(currentEmployeeId), label: 'Moi-même' },
-                    ...teamMembers.map(m => ({ value: String(m.id), label: `${m.name}${m.job_title ? ` (${m.job_title})` : ''}` })),
-                  ]}
-                />
->>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -580,7 +566,6 @@ function CreateTaskModal({
                   />
                 </div>
                 <div>
-<<<<<<< HEAD
                   <label className="block text-sm font-medium text-gray-700 mb-1">{t.mySpace.tasks.priority}</label>
                   <select
                     value={formData.priority}
@@ -592,20 +577,6 @@ function CreateTaskModal({
                     <option value="high">{t.mySpace.tasks.priorityHigh}</option>
                     <option value="urgent">{t.mySpace.tasks.priorityUrgent}</option>
                   </select>
-=======
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Priorité</label>
-                  <CustomSelect
-                    value={formData.priority}
-                    onChange={v => setFormData({ ...formData, priority: v as TaskPriority })}
-                    placeholder="Priorité"
-                    options={[
-                      { value: 'low', label: 'Basse' },
-                      { value: 'medium', label: 'Moyenne' },
-                      { value: 'high', label: 'Haute' },
-                      { value: 'urgent', label: 'Urgente' },
-                    ]}
-                  />
->>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
                 </div>
               </div>
 
@@ -658,7 +629,6 @@ function CreateTaskModal({
                     ) : (
                       <>
                         <div>
-<<<<<<< HEAD
                           <label className="block text-sm font-medium text-gray-700 mb-1">{t.mySpace.tasks.objectiveRequired}</label>
                           <select
                             value={formData.objective_id}
@@ -681,25 +651,10 @@ function CreateTaskModal({
                               </optgroup>
                             ))}
                           </select>
-=======
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Objectif *</label>
-                          <CustomSelect
-                            value={String(formData.objective_id)}
-                            onChange={v => setFormData({ ...formData, objective_id: v })}
-                            placeholder="-- Sélectionner un objectif --"
-                            options={[
-                              { value: '', label: '-- Sélectionner un objectif --' },
-                              ...Object.entries(groupedObjectives).flatMap(([level, objs]) =>
-                                objs.map(obj => ({ value: String(obj.id), label: `[${OKR_LEVEL_LABELS[level] || level}] ${obj.title} (${obj.progress.toFixed(0)}%)` }))
-                              ),
-                            ]}
-                          />
->>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
                         </div>
 
                         {formData.objective_id && availableKeyResults.length > 0 && (
                           <div>
-<<<<<<< HEAD
                             <label className="block text-sm font-medium text-gray-700 mb-1">{t.mySpace.tasks.keyResultOptional}</label>
                             <select
                               value={formData.key_result_id}
@@ -713,18 +668,6 @@ function CreateTaskModal({
                                 </option>
                               ))}
                             </select>
-=======
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Key Result (optionnel)</label>
-                            <CustomSelect
-                              value={String(formData.key_result_id)}
-                              onChange={v => setFormData({ ...formData, key_result_id: v })}
-                              placeholder="-- Tous les KRs --"
-                              options={[
-                                { value: '', label: '-- Tous les KRs --' },
-                                ...availableKeyResults.map(kr => ({ value: String(kr.id), label: `${kr.title} (${kr.current}/${kr.target} ${kr.unit || ''})` })),
-                              ]}
-                            />
->>>>>>> 90601c6384dce26fe07e59cf03eeb6d7d740787d
                           </div>
                         )}
 

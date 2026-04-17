@@ -11,8 +11,10 @@ import AddModal from './AddModal';
 // ============================================
 
 interface HeaderProps {
-  title: string;
+  title?: string;
   subtitle?: string;
+  hideAddButton?: boolean;
+  transparent?: boolean;
 }
 
 interface SearchResult {
@@ -53,7 +55,7 @@ const MODULE_ROUTES: { label: string; path: string; keywords: string; roles: str
   // Personnel
   { label: "Gestion du Personnel", path: "/dashboard/employees", keywords: "personnel employés annuaire collaborateurs", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Annuaire, organigramme, unités" },
   { label: "Organigramme", path: "/dashboard/employees/orgchart", keywords: "organigramme hiérarchie structure", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Structure hiérarchique" },
-  { label: "Unités organisationnelles", path: "/dashboard/employees/units", keywords: "unités départements services directions", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Départements et services" },
+  { label: "Unités organisationnelles", path: "/dashboard/employees?tab=departments", keywords: "unités départements services directions", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Départements et services" },
   { label: "Import employés", path: "/dashboard/employees/import", keywords: "import csv excel masse", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Import en masse CSV/Excel" },
   // Congés
   { label: "Gestion des Congés", path: "/dashboard/leaves", keywords: "congés absences demandes soldes", roles: ['manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Demandes, calendrier, soldes, rappels" },
@@ -66,8 +68,10 @@ const MODULE_ROUTES: { label: string; path: string; keywords: string; roles: str
   { label: "Gestion des Départs", path: "/dashboard/departures", keywords: "départs offboarding solde tout compte", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Offboarding, solde de tout compte" },
   // Contentieux
   { label: "Gestion des Contentieux", path: "/dashboard/sanctions", keywords: "contentieux sanctions disciplinaire avertissement", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Sanctions, procédures disciplinaires" },
+  // Notes de Service
+  { label: "Notes de Service", path: "/dashboard/notes-de-service", keywords: "notes service communication interne circulaire", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Gérer les notes de service" },
   // Documents
-  { label: "Documents RH", path: "/dashboard/documents", keywords: "documents attestations certificats", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Attestations, certificats" },
+  { label: "Documents RH", path: "/dashboard/certificates", keywords: "documents attestations certificats", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Attestations, certificats" },
   // Paie
   { label: "Paie", path: "/dashboard/payroll", keywords: "paie salaire bulletin cotisations", roles: ['rh', 'admin', 'dg', 'super_admin'], description: "Bulletins, cotisations, simulations" },
   // Mon Espace
@@ -80,6 +84,9 @@ const MODULE_ROUTES: { label: string; path: string; keywords: string; roles: str
   { label: "Mon Parcours", path: "/dashboard/my-space/career", keywords: "mon parcours formation carrière", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Parcours et formation" },
   { label: "Mes Enquêtes", path: "/dashboard/my-space/surveys", keywords: "mes enquêtes sondages", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Sondages et enquêtes" },
   { label: "Mes Sanctions", path: "/dashboard/my-space/sanctions", keywords: "mes sanctions disciplinaire", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Historique disciplinaire" },
+  { label: "Mes Notes de Service", path: "/dashboard/my-space/notes-de-service", keywords: "mes notes service communication", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Consulter mes notes de service" },
+  { label: "Réservation de Salles", path: "/dashboard/reservations", keywords: "réservation salles réunion booking room", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Réserver une salle de réunion" },
+  { label: "Mes Réservations", path: "/dashboard/my-space/reservations", keywords: "mes réservations salles réunion", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Mes réservations de salles" },
   { label: "Daily Checklist", path: "/dashboard/my-space/daily-checklist", keywords: "daily checklist tâches quotidien", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Tâches quotidiennes" },
   { label: "Offres Internes", path: "/dashboard/my-space/internal-jobs", keywords: "offres internes mobilité", roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'], description: "Mobilité interne" },
   // Admin
@@ -208,17 +215,24 @@ const CONTEXTUAL_ROUTES: Record<string, string> = {
   '/dashboard/performance/objectives': 'objectives-add',
   '/dashboard/performance/one-on-one': 'one-on-one-add',
   '/dashboard/departures': 'departures-add',
+  '/dashboard/missions': 'missions-add',
 };
 
-// Labels personnalisés par route (sinon "Ajouter" par défaut)
-const CONTEXTUAL_LABELS: Record<string, string> = {
-  '/dashboard/performance': 'Nouveau Feedback',
-  '/dashboard/performance/campaigns': 'Nouvelle Campagne',
-  '/dashboard/performance/evaluations': 'Nouvelle Évaluation',
-  '/dashboard/performance/objectives': 'Nouvel Objectif',
-  '/dashboard/performance/one-on-one': 'Planifier un 1-1',
-  '/dashboard/departures': 'Nouveau départ',
+// Labels personnalisés par route — resolved at render time via getContextualLabel()
+const CONTEXTUAL_LABEL_KEYS: Record<string, (t: typeof import('@/lib/i18n/translations/fr').fr) => string> = {
+  '/dashboard/performance': (t) => t.sidebar.newFeedback,
+  '/dashboard/performance/campaigns': (t) => t.sidebar.newCampaign,
+  '/dashboard/performance/evaluations': (t) => t.sidebar.newEvaluation,
+  '/dashboard/performance/objectives': (t) => t.sidebar.newObjective,
+  '/dashboard/performance/one-on-one': (t) => t.sidebar.planOneOnOne,
+  '/dashboard/departures': (t) => t.sidebar.newDeparture,
+  '/dashboard/missions': () => 'Nouvelle mission',
 };
+
+function getContextualLabel(pathname: string, t: typeof import('@/lib/i18n/translations/fr').fr): string {
+  const resolver = CONTEXTUAL_LABEL_KEYS[pathname];
+  return resolver ? resolver(t) : t.sidebar.add;
+}
 
 // Routes où le bouton "+Ajouter" est masqué
 const HIDDEN_ADD_ROUTES = [
@@ -260,7 +274,7 @@ const HIDDEN_ADD_ROUTES = [
 // COMPONENT
 // ============================================
 
-export default function Header({ title, subtitle }: HeaderProps) {
+export default function Header({ title, subtitle, hideAddButton, transparent }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [showAddModal, setShowAddModal] = useState(false);
@@ -451,7 +465,9 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
   // Bouton Ajouter : contextuel selon la route
   const handleAddClick = () => {
-    const contextualEvent = CONTEXTUAL_ROUTES[pathname];
+    // Normaliser le pathname (retirer le trailing slash pour matcher les routes mobile Capacitor)
+    const normalizedPath = pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;
+    const contextualEvent = CONTEXTUAL_ROUTES[normalizedPath];
     if (contextualEvent) {
       window.dispatchEvent(new Event(contextualEvent));
     } else {
@@ -487,13 +503,15 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
   return (
     <>
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <header className={`${transparent ? 'bg-transparent' : 'bg-white border-b border-gray-200'} px-6 py-4`}>
         <div className="flex items-center justify-between">
           {/* Titre */}
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-            {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
-          </div>
+          {title ? (
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+              {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+            </div>
+          ) : <div />}
 
           {/* Actions */}
           <div className="flex items-center gap-3">
@@ -533,7 +551,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
                     {moduleSearchResults.length > 0 && (
                       <div className="py-2">
                         <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                          Navigation
+                          {i18n.sidebar.navigation}
                         </div>
                         {moduleSearchResults.map((r) => (
                           <button
@@ -603,9 +621,9 @@ export default function Header({ title, subtitle }: HeaderProps) {
                   
                   <div className="px-4 py-2 bg-gray-50 border-t border-gray-100">
                     <p className="text-xs text-gray-400">
-                      <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">↵</kbd> pour sélectionner
+                      <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">↵</kbd> {i18n.sidebar.toSelect}
                       <span className="mx-2">•</span>
-                      <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">Esc</kbd> pour fermer
+                      <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-600">Esc</kbd> {i18n.sidebar.toClose}
                     </p>
                   </div>
                 </div>
@@ -730,7 +748,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
                       <div className="p-8 text-center text-gray-500">
                         <Bell className="w-10 h-10 mx-auto mb-3 text-gray-300" />
                         <p className="text-sm">{i18n.notifications.noNotifications}</p>
-                        <p className="text-xs text-gray-400 mt-1">Vous êtes à jour !</p>
+                        <p className="text-xs text-gray-400 mt-1">{i18n.sidebar.allUpToDate}</p>
                       </div>
                     )}
                   </div>
@@ -745,7 +763,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
                         }}
                         className="w-full text-center text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center justify-center gap-1"
                       >
-                        Voir toutes les notifications
+                        {i18n.sidebar.viewAllNotifications}
                         <ExternalLink className="w-3 h-3" />
                       </button>
                     </div>
@@ -755,13 +773,13 @@ export default function Header({ title, subtitle }: HeaderProps) {
             </div>
 
             {/* Bouton Ajouter — masqué pour employés simples et certaines routes */}
-            {canAdd && !HIDDEN_ADD_ROUTES.some(r => pathname.startsWith(r)) && (
+            {canAdd && !hideAddButton && !HIDDEN_ADD_ROUTES.some(r => (pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname).startsWith(r)) && (
               <button
                 onClick={handleAddClick}
-                className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
+                className="flex items-center px-2.5 sm:px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors flex-shrink-0"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                {CONTEXTUAL_LABELS[pathname] ?? 'Ajouter'}
+                <Plus className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">{getContextualLabel(pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname, i18n)}</span>
               </button>
             )}
           </div>

@@ -15,6 +15,7 @@ import { useGroupContext } from '@/hooks/useGroupContext';
 import AddOrganizationalUnitModal from './AddOrganizationalUnitModal';
 import ConfirmDialog from './ConfirmDialog';
 import Pagination from './Pagination';
+import { useI18n } from '@/lib/i18n/I18nContext';
 
 // ============================================
 // TYPES
@@ -28,6 +29,8 @@ interface DeptTreeNode extends Department {
 // MAIN COMPONENT
 // ============================================
 export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsidiaryTenantId?: number }) {
+  const { t } = useI18n();
+  const td = t.departments;
   const { context: groupContext } = useGroupContext();
   // En gestion du personnel, il n'y a pas de vue globale groupe :
   // sans filiale sélectionnée → chargement du tenant courant (jamais de vue agrégée)
@@ -101,7 +104,7 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
       const allIds = new Set((depts || []).map(d => d.id));
       setExpandedNodes(allIds);
     } catch (err) {
-      setError('Erreur lors du chargement');
+      setError(td.loadError);
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -148,7 +151,7 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
       setShowDeleteConfirm(null);
       loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
+      setError(err instanceof Error ? err.message : td.deleteError);
     }
   }
 
@@ -185,7 +188,7 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
   }
 
   function getParentName(parentId?: number): string {
-    if (!parentId) return '— Aucun (racine)';
+    if (!parentId) return td.noParent;
     const parent = departments.find(d => d.id === parentId);
     return parent ? parent.name : '—';
   }
@@ -226,11 +229,11 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
     if (!someSelected) return;
     const count = selectedIds.size;
     const hasEmployees = Array.from(selectedIds).some(id => getEmployeeCount(id) > 0);
-    const warning = hasEmployees ? '\n\nAttention : certaines unités contiennent des employés !' : '';
+    const warning = hasEmployees ? `\n\n${td.bulkDeleteWarning}` : '';
     setConfirmDialog({
       isOpen: true,
-      title: 'Suppression en masse',
-      message: `Supprimer ${count} unité(s) ?${warning}`,
+      title: td.bulkDeleteTitle,
+      message: `${td.bulkDeleteConfirm.replace('{count}', String(count))}${warning}`,
       danger: true,
       onConfirm: async () => {
         setConfirmDialog(null);
@@ -249,7 +252,7 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
 
   const handleBulkExport = () => {
     const selected = departments.filter(d => selectedIds.has(d.id));
-    const headers = ['Nom', 'Code', 'Niveau', 'Rattachement', 'Responsable', 'Effectif'];
+    const headers = [td.csvName, td.csvCode, td.csvLevel, td.csvParent, td.csvHead, td.csvHeadcount];
     const rows = selected.map(d => [
       d.name, d.code || '', d.level || '', getParentName(d.parent_id),
       getHeadName(d.id) || '', String(getEmployeeCount(d.id))
@@ -267,15 +270,16 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
   // ============================================
   function LevelBadge({ level }: { level?: string }) {
     if (!level) return null;
+    const badges = td.levelBadges;
     const config: Record<string, { bg: string; text: string; label: string }> = {
-      president: { bg: 'bg-slate-200', text: 'text-slate-800', label: 'Présidence' },
-      vice_president: { bg: 'bg-slate-100', text: 'text-slate-700', label: 'Vice-Présidence' },
-      dg: { bg: 'bg-red-100', text: 'text-red-700', label: 'DG' },
-      dga: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'DGA' },
-      direction_centrale: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Dir. Centrale' },
-      direction: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Direction' },
-      departement: { bg: 'bg-teal-100', text: 'text-teal-700', label: 'Département' },
-      service: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Service' },
+      president: { bg: 'bg-slate-200', text: 'text-slate-800', label: badges.president },
+      vice_president: { bg: 'bg-slate-100', text: 'text-slate-700', label: badges.vice_president },
+      dg: { bg: 'bg-red-100', text: 'text-red-700', label: badges.dg },
+      dga: { bg: 'bg-orange-100', text: 'text-orange-700', label: badges.dga },
+      direction_centrale: { bg: 'bg-purple-100', text: 'text-purple-700', label: badges.direction_centrale },
+      direction: { bg: 'bg-blue-100', text: 'text-blue-700', label: badges.direction },
+      departement: { bg: 'bg-teal-100', text: 'text-teal-700', label: badges.departement },
+      service: { bg: 'bg-gray-100', text: 'text-gray-700', label: badges.service },
     };
     const c = config[level] || config.service;
     return <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${c.bg} ${c.text}`}>{c.label}</span>;
@@ -318,10 +322,10 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
               <LevelBadge level={node.level} />
             </div>
             {headName ? (
-              <p className="text-xs text-gray-500 mt-0.5">Responsable : {headName}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{td.manager} : {headName}</p>
             ) : (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-orange-100 text-orange-700 mt-0.5">
-                Sans manager
+                {td.noManager}
               </span>
             )}
           </div>
@@ -337,14 +341,14 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
             <button
               onClick={() => handleEdit(node)}
               className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md"
-              title="Modifier"
+              title={td.editAction}
             >
               <Edit2 className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setShowDeleteConfirm(node)}
               className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md"
-              title="Supprimer"
+              title={td.deleteAction}
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -389,7 +393,7 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
         <td className="px-4 py-3 text-sm text-gray-600">
           {headName ? headName : (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-700">
-              Sans manager
+              {td.noManager}
             </span>
           )}
         </td>
@@ -423,13 +427,13 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
     return (
       <div>
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-800">Répartition des unités par filiale</h2>
-          <p className="text-sm text-gray-500 mt-1">Vue groupe — sélectionnez une filiale pour gérer ses unités organisationnelles</p>
+          <h2 className="text-lg font-semibold text-gray-800">{td.groupTitle}</h2>
+          <p className="text-sm text-gray-500 mt-1">{td.groupSubtitle}</p>
         </div>
         {groupSubsidiaries.length === 0 ? (
           <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-gray-100">
             <Building2 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-            <p className="text-gray-500">Aucune filiale disponible</p>
+            <p className="text-gray-500">{td.noSubsidiary}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -449,21 +453,21 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
                 <div className="grid grid-cols-3 gap-3">
                   <div className="text-center">
                     <p className="text-xl font-bold text-gray-800">{sub.departments_count}</p>
-                    <p className="text-xs text-gray-500">Unités</p>
+                    <p className="text-xs text-gray-500">{td.units}</p>
                   </div>
                   <div className="text-center">
                     <p className="text-xl font-bold text-green-600">{sub.active_employees}</p>
-                    <p className="text-xs text-gray-500">Actifs</p>
+                    <p className="text-xs text-gray-500">{td.active}</p>
                   </div>
                   <div className="text-center">
                     <p className="text-xl font-bold text-gray-600">{sub.total_employees}</p>
-                    <p className="text-xs text-gray-500">Total</p>
+                    <p className="text-xs text-gray-500">{td.total}</p>
                   </div>
                 </div>
                 {sub.pending_leaves > 0 && (
                   <div className="mt-3 flex items-center gap-1.5 text-xs text-yellow-700 bg-yellow-50 rounded-lg px-3 py-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
-                    {sub.pending_leaves} congé{sub.pending_leaves > 1 ? 's' : ''} en attente
+                    {sub.pending_leaves} {td.pendingLeaves}
                   </div>
                 )}
               </div>
@@ -498,7 +502,7 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Rechercher une unité..."
+              placeholder={td.searchUnit}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
@@ -510,13 +514,13 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
               onClick={() => setViewMode('list')}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
             >
-              Liste
+              {td.listView}
             </button>
             <button
               onClick={() => setViewMode('tree')}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${viewMode === 'tree' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
             >
-              <Network className="w-3.5 h-3.5 inline mr-1" />Arbre
+              <Network className="w-3.5 h-3.5 inline mr-1" />{td.treeView}
             </button>
           </div>
         </div>
@@ -526,26 +530,26 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
           className="px-4 py-2 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          Nouvelle unité
+          {td.newUnit}
         </button>
       </div>
 
       {/* Summary */}
       <div className="grid grid-cols-4 gap-4 mb-4">
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">Total unités</p>
+          <p className="text-xs text-gray-500 mb-1">{td.totalUnits}</p>
           <p className="text-2xl font-bold text-gray-900">{departments.length}</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">Niveaux racine</p>
+          <p className="text-xs text-gray-500 mb-1">{td.rootLevels}</p>
           <p className="text-2xl font-bold text-purple-600">{departments.filter(d => !d.parent_id).length}</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">Employés affectés</p>
+          <p className="text-xs text-gray-500 mb-1">{td.assignedEmployees}</p>
           <p className="text-2xl font-bold text-primary-600">{employees.filter(e => e.department_id).length}/{employees.length}</p>
         </div>
         <div className={`rounded-xl p-4 border shadow-sm ${departments.filter(d => !d.head_id).length > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-100'}`}>
-          <p className="text-xs text-gray-500 mb-1">Postes ouverts</p>
+          <p className="text-xs text-gray-500 mb-1">{td.openPositions}</p>
           <p className={`text-2xl font-bold ${departments.filter(d => !d.head_id).length > 0 ? 'text-orange-600' : 'text-gray-400'}`}>{departments.filter(d => !d.head_id).length}</p>
         </div>
       </div>
@@ -556,14 +560,14 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
           <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
             <p className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <Network className="w-4 h-4 text-gray-500" />
-              Hiérarchie organisationnelle
+              {td.orgHierarchy}
             </p>
           </div>
           <div className="py-2">
             {tree.length === 0 ? (
               <div className="text-center py-10 text-gray-500">
                 <Building2 className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-                <p className="text-sm">Aucune unité trouvée</p>
+                <p className="text-sm">{td.noUnitFound}</p>
               </div>
             ) : (
               tree.map(node => <TreeNode key={node.id} node={node} />)
@@ -575,13 +579,13 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
           {/* Barre d'actions groupées */}
           {someSelected && (
             <div className="mb-3 flex items-center gap-3 bg-primary-50 border border-primary-200 rounded-xl px-4 py-3">
-              <span className="text-sm font-medium text-primary-700">{selectedIds.size} sélectionnée{selectedIds.size > 1 ? 's' : ''}</span>
+              <span className="text-sm font-medium text-primary-700">{selectedIds.size > 1 ? td.selectedCountPlural.replace('{count}', String(selectedIds.size)) : td.selectedCount.replace('{count}', String(selectedIds.size))}</span>
               <div className="h-5 w-px bg-primary-200" />
               <button onClick={handleBulkExport} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <Download className="w-3.5 h-3.5" />Exporter
+                <Download className="w-3.5 h-3.5" />{td.export}
               </button>
               <button onClick={handleBulkDelete} disabled={bulkLoading} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
-                <Trash2 className="w-3.5 h-3.5" />Supprimer
+                <Trash2 className="w-3.5 h-3.5" />{td.deleteBulk}
               </button>
               <div className="flex-1" />
               <button onClick={() => setSelectedIds(new Set())} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors">
@@ -598,17 +602,17 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
                   <th className="w-10 px-3 py-3">
                     <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer" />
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Unité</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Niveau</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Rattachement</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Responsable</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Effectif</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-24">Actions</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{td.unit}</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{td.level}</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{td.parentUnit}</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{td.manager}</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{td.headcount}</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-24">{td.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filteredDepts.length === 0 ? (
-                  <tr><td colSpan={7} className="text-center py-10 text-gray-500 text-sm">Aucune unité trouvée</td></tr>
+                  <tr><td colSpan={7} className="text-center py-10 text-gray-500 text-sm">{td.noUnitFound}</td></tr>
                 ) : (
                   paginatedDepts.map(dept => <ListRow key={dept.id} dept={dept} />)
                 )}
@@ -623,13 +627,13 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Supprimer l&apos;unité</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">{td.deleteUnit}</h3>
             <p className="text-sm text-gray-600 mb-1">
-              Voulez-vous supprimer <strong>{showDeleteConfirm.name}</strong> ?
+              {td.deleteUnitConfirm} <strong>{showDeleteConfirm.name}</strong> ?
             </p>
             {getEmployeeCount(showDeleteConfirm.id) > 0 && (
               <p className="text-sm text-amber-600 bg-amber-50 p-2 rounded-lg mb-3">
-                ⚠️ Cette unité contient {getEmployeeCount(showDeleteConfirm.id)} employé(s). Ils seront détachés.
+                ⚠️ {td.detachWarning.replace('{count}', String(getEmployeeCount(showDeleteConfirm.id)))}
               </p>
             )}
             <div className="flex gap-3 mt-4">
@@ -637,13 +641,13 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
                 onClick={() => setShowDeleteConfirm(null)}
                 className="flex-1 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
               >
-                Annuler
+                {td.cancel}
               </button>
               <button
                 onClick={() => handleDelete(showDeleteConfirm)}
                 className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
               >
-                Supprimer
+                {t.common.delete}
               </button>
             </div>
           </div>
@@ -699,18 +703,20 @@ function EditDepartmentModal({
   onClose: () => void;
   onSave: (data: DepartmentCreate) => Promise<void>;
 }) {
+  const { t } = useI18n();
+  const td = t.departments;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const LEVEL_OPTIONS = [
-    { value: 'president', label: 'Présidence' },
-    { value: 'vice_president', label: 'Vice-Présidence' },
-    { value: 'dg', label: 'Direction Générale' },
-    { value: 'dga', label: 'Direction Générale Adjointe' },
-    { value: 'direction_centrale', label: 'Direction Centrale' },
-    { value: 'direction', label: 'Direction' },
-    { value: 'departement', label: 'Département' },
-    { value: 'service', label: 'Service' },
+    { value: 'president', label: td.levels.president },
+    { value: 'vice_president', label: td.levels.vice_president },
+    { value: 'dg', label: td.levels.dg },
+    { value: 'dga', label: td.levels.dga },
+    { value: 'direction_centrale', label: td.levels.direction_centrale },
+    { value: 'direction', label: td.levels.direction },
+    { value: 'departement', label: td.levels.departement },
+    { value: 'service', label: td.levels.service },
   ];
 
   const LEVEL_COLOR_MAP: Record<string, string> = {
@@ -730,7 +736,7 @@ function EditDepartmentModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) {
-      setError('Le nom est obligatoire');
+      setError(td.nameRequired);
       return;
     }
 
@@ -747,7 +753,7 @@ function EditDepartmentModal({
         head_id: form.head_id ? parseInt(form.head_id) : undefined,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur');
+      setError(err instanceof Error ? err.message : td.errorGeneric);
     } finally {
       setIsLoading(false);
     }
@@ -760,7 +766,7 @@ function EditDepartmentModal({
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
-          <h3 className="text-lg font-bold text-gray-900">Modifier l&apos;unité</h3>
+          <h3 className="text-lg font-bold text-gray-900">{td.editUnit}</h3>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
             <X className="w-5 h-5" />
           </button>
@@ -773,12 +779,12 @@ function EditDepartmentModal({
 
           {/* Nom */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{td.nameLabel} *</label>
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
-              placeholder="Direction des Ressources Humaines"
+              placeholder={td.namePlaceholder}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               required
               autoFocus
@@ -788,25 +794,25 @@ function EditDepartmentModal({
           <div className="grid grid-cols-2 gap-4">
             {/* Code */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{td.codeLabel}</label>
               <input
                 type="text"
                 value={form.code}
                 onChange={(e) => setForm(f => ({ ...f, code: e.target.value }))}
-                placeholder="DRH"
+                placeholder={td.codePlaceholder}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
             </div>
 
             {/* Niveau */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Niveau hiérarchique</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{td.hierarchyLevel}</label>
               <select
                 value={form.level}
                 onChange={(e) => setForm(f => ({ ...f, level: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               >
-                <option value="">Non défini</option>
+                <option value="">{td.notDefined}</option>
                 {LEVEL_OPTIONS.map(o => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
@@ -818,14 +824,14 @@ function EditDepartmentModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               <ArrowUpRight className="w-4 h-4 inline mr-1" />
-              Rattaché à
+              {td.attachedTo}
             </label>
             <select
               value={form.parent_id}
               onChange={(e) => setForm(f => ({ ...f, parent_id: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
             >
-              <option value="">Aucun (niveau racine)</option>
+              <option value="">{td.noneRoot}</option>
               {availableParents.map(d => (
                 <option key={d.id} value={d.id}>
                   {d.level ? `[${d.level.toUpperCase()}] ` : ''}{d.name}
@@ -836,13 +842,13 @@ function EditDepartmentModal({
 
           {/* Responsable */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Responsable</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{td.headLabel}</label>
             <select
               value={form.head_id}
               onChange={(e) => setForm(f => ({ ...f, head_id: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
             >
-              <option value="">Non assigné</option>
+              <option value="">{td.notAssigned}</option>
               {employees.map(m => (
                 <option key={m.id} value={m.id}>
                   {m.first_name} {m.last_name} {m.job_title ? `— ${m.job_title}` : ''}
@@ -853,11 +859,11 @@ function EditDepartmentModal({
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{td.descriptionLabel}</label>
             <textarea
               value={form.description}
               onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))}
-              placeholder="Description de l'unité..."
+              placeholder={td.descriptionPlaceholder}
               rows={2}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
             />
@@ -869,7 +875,7 @@ function EditDepartmentModal({
             onClick={onClose}
             className="px-4 py-2 text-sm text-gray-600 font-medium hover:bg-gray-200 rounded-lg"
           >
-            Annuler
+            {td.cancel}
           </button>
           <button
             onClick={handleSubmit}
@@ -878,7 +884,7 @@ function EditDepartmentModal({
           >
             {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
             <Save className="w-4 h-4" />
-            Enregistrer
+            {td.save}
           </button>
         </div>
       </div>

@@ -1,7 +1,9 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Header from '@/components/Header';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { useI18n } from '@/lib/i18n/I18nContext';
 import {
   PenLine, FileText, Plus, X, Loader2, CheckCircle2,
   Clock, XCircle, Trash2, Send, Ban, Download,
@@ -67,39 +69,37 @@ interface Employee {
 // CONFIG
 // ============================================
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 function getAuthHeaders(): HeadersInit {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-const DOC_TYPE_LABELS: Record<DocType, string> = {
-  contrat_travail: 'Contrat de travail',
-  avenant: 'Avenant',
-  accord: 'Accord',
-  nda: 'NDA / Confidentialité',
-  fiche_paie: 'Fiche de paie',
-  attestation: 'Attestation',
-  reglement_interieur: 'Règlement intérieur',
-  autre: 'Autre',
+const STATUS_COLORS: Record<DocStatus, string> = {
+  draft:            'bg-gray-100 text-gray-600',
+  sent:             'bg-blue-100 text-blue-700',
+  partially_signed: 'bg-orange-100 text-orange-700',
+  fully_signed:     'bg-green-100 text-green-700',
+  expired:          'bg-red-100 text-red-600',
+  cancelled:        'bg-gray-100 text-gray-500',
 };
 
-const STATUS_CONFIG: Record<DocStatus, { label: string; color: string; icon: React.ReactNode }> = {
-  draft:            { label: 'Brouillon',     color: 'bg-gray-100 text-gray-600',    icon: <FileText className="w-3 h-3" /> },
-  sent:             { label: 'Envoyé',        color: 'bg-primary-100 text-primary-700',    icon: <Send className="w-3 h-3" /> },
-  partially_signed: { label: 'Partiel',       color: 'bg-orange-100 text-orange-700', icon: <Clock className="w-3 h-3" /> },
-  fully_signed:     { label: 'Signé',         color: 'bg-green-100 text-green-700',  icon: <CheckCircle2 className="w-3 h-3" /> },
-  expired:          { label: 'Expiré',        color: 'bg-red-100 text-red-600',      icon: <XCircle className="w-3 h-3" /> },
-  cancelled:        { label: 'Annulé',        color: 'bg-gray-100 text-gray-500',    icon: <Ban className="w-3 h-3" /> },
+const STATUS_ICONS: Record<DocStatus, React.ReactNode> = {
+  draft:            <FileText className="w-3 h-3" />,
+  sent:             <Send className="w-3 h-3" />,
+  partially_signed: <Clock className="w-3 h-3" />,
+  fully_signed:     <CheckCircle2 className="w-3 h-3" />,
+  expired:          <XCircle className="w-3 h-3" />,
+  cancelled:        <Ban className="w-3 h-3" />,
 };
 
-const REQ_STATUS_CONFIG: Record<ReqStatus, { label: string; color: string }> = {
-  pending:  { label: 'En attente', color: 'bg-orange-50 text-orange-700' },
-  viewed:   { label: 'Consulté',   color: 'bg-primary-50 text-primary-700' },
-  signed:   { label: 'Signé',      color: 'bg-green-50 text-green-700' },
-  rejected: { label: 'Refusé',     color: 'bg-red-50 text-red-600' },
-  expired:  { label: 'Expiré',     color: 'bg-gray-100 text-gray-500' },
+const REQ_STATUS_COLORS: Record<ReqStatus, string> = {
+  pending:  'bg-orange-50 text-orange-700',
+  viewed:   'bg-blue-50 text-blue-700',
+  signed:   'bg-green-50 text-green-700',
+  rejected: 'bg-red-50 text-red-600',
+  expired:  'bg-gray-100 text-gray-500',
 };
 
 // ============================================
@@ -107,10 +107,40 @@ const REQ_STATUS_CONFIG: Record<ReqStatus, { label: string; color: string }> = {
 // ============================================
 
 export default function SignaturesPage() {
+  const { t } = useI18n();
+  const sig = t.employees.signatures;
   const [docs, setDocs] = useState<DocumentOut[]>([]);
   const [stats, setStats] = useState<StatsOut | null>(null);
   const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState<Employee[]>([]);
+
+  const DOC_TYPE_LABELS: Record<DocType, string> = {
+    contrat_travail: sig.docTypes.contratTravail,
+    avenant: sig.docTypes.avenant,
+    accord: sig.docTypes.accord,
+    nda: sig.docTypes.nda,
+    fiche_paie: sig.docTypes.fichePaie,
+    attestation: sig.docTypes.attestation,
+    reglement_interieur: sig.docTypes.reglementInterieur,
+    autre: sig.docTypes.autre,
+  };
+
+  const STATUS_LABELS: Record<DocStatus, string> = {
+    draft: sig.statuses.draft,
+    sent: sig.statuses.sent,
+    partially_signed: sig.statuses.partiallySigned,
+    fully_signed: sig.statuses.fullySigned,
+    expired: sig.statuses.expired,
+    cancelled: sig.statuses.cancelled,
+  };
+
+  const REQ_STATUS_LABELS: Record<ReqStatus, string> = {
+    pending: sig.reqStatuses.pending,
+    viewed: sig.reqStatuses.viewed,
+    signed: sig.reqStatuses.signed,
+    rejected: sig.reqStatuses.rejected,
+    expired: sig.reqStatuses.expired,
+  };
   const [expandedDoc, setExpandedDoc] = useState<number | null>(null);
 
   // Create modal
@@ -126,6 +156,7 @@ export default function SignaturesPage() {
   });
   const [selectedSignatories, setSelectedSignatories] = useState<number[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; danger?: boolean }>({ open: false, title: '', message: '', onConfirm: () => {} });
 
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
@@ -172,7 +203,7 @@ export default function SignaturesPage() {
       if (docsRes.ok) setDocs(await docsRes.json());
       if (statsRes.ok) setStats(await statsRes.json());
     } catch {
-      toast.error('Erreur lors du chargement');
+      toast.error(sig.loadingError);
     } finally {
       setLoading(false);
     }
@@ -197,7 +228,7 @@ export default function SignaturesPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.type !== 'application/pdf') {
-      toast.error('Seuls les fichiers PDF sont acceptés');
+      toast.error(sig.createModal.pdfOnly);
       return;
     }
     const reader = new FileReader();
@@ -210,7 +241,7 @@ export default function SignaturesPage() {
 
   const handleCreate = async () => {
     if (!createForm.title || !createForm.file_data) {
-      toast.error('Titre et fichier PDF obligatoires');
+      toast.error(sig.createModal.titleAndFileRequired);
       return;
     }
     setSubmitting(true);
@@ -226,7 +257,7 @@ export default function SignaturesPage() {
         body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error();
-      toast.success('Document créé !');
+      toast.success(sig.createModal.created);
       setShowCreateModal(false);
       setCreateForm({ title: '', description: '', document_type: 'contrat_travail', file_data: '', file_name: '', expires_at: '', notes: '' });
       setSelectedSignatories([]);
@@ -234,7 +265,7 @@ export default function SignaturesPage() {
       setSigDropOpen(false);
       fetchAll();
     } catch {
-      toast.error('Erreur lors de la création');
+      toast.error(sig.createModal.createError);
     } finally {
       setSubmitting(false);
     }
@@ -247,41 +278,54 @@ export default function SignaturesPage() {
         headers: getAuthHeaders(),
       });
       if (!res.ok) throw new Error();
-      toast.success('Document envoyé aux signataires');
+      toast.success(sig.actions.sentSuccess);
       fetchAll();
     } catch {
-      toast.error('Erreur lors de l\'envoi');
+      toast.error(sig.actions.sendError);
     }
   };
 
-  const handleCancel = async (docId: number) => {
-    if (!confirm('Annuler ce document ?')) return;
-    try {
-      const res = await fetch(`${API_URL}/api/signatures/documents/${docId}/cancel`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error();
-      toast.success('Document annulé');
-      fetchAll();
-    } catch {
-      toast.error('Erreur lors de l\'annulation');
-    }
+  const handleCancel = (docId: number) => {
+    setConfirmDialog({
+      open: true,
+      title: sig.actions.cancelTitle,
+      message: sig.actions.cancelMessage,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/signatures/documents/${docId}/cancel`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+          });
+          if (!res.ok) throw new Error();
+          toast.success(sig.actions.cancelledSuccess);
+          fetchAll();
+        } catch {
+          toast.error(sig.actions.cancelError);
+        }
+      },
+    });
   };
 
-  const handleDelete = async (docId: number) => {
-    if (!confirm('Supprimer définitivement ce document ?')) return;
-    try {
-      const res = await fetch(`${API_URL}/api/signatures/documents/${docId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error();
-      toast.success('Document supprimé');
-      fetchAll();
-    } catch {
-      toast.error('Erreur lors de la suppression');
-    }
+  const handleDelete = (docId: number) => {
+    setConfirmDialog({
+      open: true,
+      title: sig.actions.deleteTitle,
+      message: sig.actions.deleteMessage,
+      danger: true,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/signatures/documents/${docId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+          });
+          if (!res.ok) throw new Error();
+          toast.success(sig.actions.deletedSuccess);
+          fetchAll();
+        } catch {
+          toast.error(sig.actions.deleteError);
+        }
+      },
+    });
   };
 
   const handleDownloadFinalPdf = async (doc: DocumentOut) => {
@@ -291,14 +335,10 @@ export default function SignaturesPage() {
       });
       if (!res.ok) throw new Error();
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `signed_${doc.title.replace(/\s+/g, '_').slice(0, 50)}_${doc.id}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const { downloadFile } = await import('@/lib/capacitor-plugins');
+      await downloadFile(blob, `signed_${doc.title.replace(/\s+/g, '_').slice(0, 50)}_${doc.id}.pdf`);
     } catch {
-      toast.error('Erreur lors du téléchargement');
+      toast.error(sig.actions.downloadError);
     }
   };
 
@@ -307,21 +347,21 @@ export default function SignaturesPage() {
   return (
     <div className="p-6 space-y-6">
       <Header
-        title="Signatures électroniques"
-        subtitle="Gérer les documents à signer, suivre les signatures et l'audit trail"
+        title={sig.title}
+        subtitle={sig.subtitle}
       />
 
       {/* Stats */}
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
           {[
-            { label: 'Total', value: stats.total, color: 'bg-gray-50 text-gray-700' },
-            { label: 'Brouillons', value: stats.draft, color: 'bg-gray-100 text-gray-600' },
-            { label: 'Envoyés', value: stats.sent, color: 'bg-primary-50 text-primary-700' },
-            { label: 'Partiels', value: stats.partially_signed, color: 'bg-orange-50 text-orange-700' },
-            { label: 'Signés', value: stats.fully_signed, color: 'bg-green-50 text-green-700' },
-            { label: 'Expirés', value: stats.expired, color: 'bg-red-50 text-red-600' },
-            { label: 'Annulés', value: stats.cancelled, color: 'bg-gray-100 text-gray-500' },
+            { label: sig.total, value: stats.total, color: 'bg-gray-50 text-gray-700' },
+            { label: sig.drafts, value: stats.draft, color: 'bg-gray-100 text-gray-600' },
+            { label: sig.sent, value: stats.sent, color: 'bg-blue-50 text-blue-700' },
+            { label: sig.partial, value: stats.partially_signed, color: 'bg-orange-50 text-orange-700' },
+            { label: sig.signed, value: stats.fully_signed, color: 'bg-green-50 text-green-700' },
+            { label: sig.expired, value: stats.expired, color: 'bg-red-50 text-red-600' },
+            { label: sig.cancelled, value: stats.cancelled, color: 'bg-gray-100 text-gray-500' },
           ].map(s => (
             <div key={s.label} className={`rounded-xl p-3 text-center ${s.color}`}>
               <p className="text-2xl font-bold">{s.value}</p>
@@ -340,7 +380,7 @@ export default function SignaturesPage() {
               onClick={() => setFilterStatus(s)}
               className={`px-3 py-1.5 text-xs font-medium rounded-full border transition ${filterStatus === s ? 'bg-primary-600 text-white border-primary-600' : 'text-gray-600 border-gray-200 hover:bg-gray-50'}`}
             >
-              {s === 'all' ? 'Tous' : STATUS_CONFIG[s as DocStatus]?.label ?? s}
+              {s === 'all' ? sig.all : STATUS_LABELS[s as DocStatus] ?? s}
             </button>
           ))}
         </div>
@@ -349,7 +389,7 @@ export default function SignaturesPage() {
           className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-xl hover:bg-primary-700 transition shadow-sm"
         >
           <Plus className="w-4 h-4" />
-          Nouveau document
+          {sig.newDocument}
         </button>
       </div>
 
@@ -359,13 +399,13 @@ export default function SignaturesPage() {
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
           <PenLine className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-medium">Aucun document trouvé</p>
-          <p className="text-sm text-gray-400 mt-1">Créez votre premier document à signer</p>
+          <p className="text-gray-500 font-medium">{sig.noDocumentFound}</p>
+          <p className="text-sm text-gray-400 mt-1">{sig.createFirstDocument}</p>
         </div>
       ) : (
         <div className="space-y-3">
           {filtered.map(doc => {
-            const sc = STATUS_CONFIG[doc.status];
+            const sc = { label: STATUS_LABELS[doc.status], color: STATUS_COLORS[doc.status], icon: STATUS_ICONS[doc.status] };
             const isExpanded = expandedDoc === doc.id;
             const signedCount = doc.requests.filter(r => r.status === 'signed').length;
             const totalCount = doc.requests.length;
@@ -386,7 +426,7 @@ export default function SignaturesPage() {
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
                     {totalCount > 0 && (
-                      <span className="text-xs text-gray-500">{signedCount}/{totalCount} signé{signedCount > 1 ? 's' : ''}</span>
+                      <span className="text-xs text-gray-500">{signedCount > 1 ? sig.signedCountPlural.replace('{signed}', String(signedCount)).replace('{total}', String(totalCount)) : sig.signedCount.replace('{signed}', String(signedCount)).replace('{total}', String(totalCount))}</span>
                     )}
                     <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium ${sc.color}`}>
                       {sc.icon}{sc.label}
@@ -394,15 +434,15 @@ export default function SignaturesPage() {
                     {/* Actions */}
                     {doc.status === 'draft' && (
                       <>
-                        <button onClick={() => handleSend(doc.id)} title="Envoyer" className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-lg transition"><Send className="w-4 h-4" /></button>
-                        <button onClick={() => handleDelete(doc.id)} title="Supprimer" className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
+                        <button onClick={() => handleSend(doc.id)} title={sig.actions.send} className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-lg transition"><Send className="w-4 h-4" /></button>
+                        <button onClick={() => handleDelete(doc.id)} title={sig.actions.delete} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
                       </>
                     )}
                     {(doc.status === 'sent' || doc.status === 'partially_signed') && (
-                      <button onClick={() => handleCancel(doc.id)} title="Annuler" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg transition"><Ban className="w-4 h-4" /></button>
+                      <button onClick={() => handleCancel(doc.id)} title={sig.actions.cancel} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg transition"><Ban className="w-4 h-4" /></button>
                     )}
                     {(doc.status === 'sent' || doc.status === 'partially_signed' || doc.status === 'fully_signed') && (
-                      <button onClick={() => handleDownloadFinalPdf(doc)} title="Télécharger PDF final signé" className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition"><Download className="w-4 h-4" /></button>
+                      <button onClick={() => handleDownloadFinalPdf(doc)} title={sig.actions.downloadFinalPdf} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition"><Download className="w-4 h-4" /></button>
                     )}
                     {totalCount > 0 && (
                       <button
@@ -418,10 +458,11 @@ export default function SignaturesPage() {
                 {/* Expanded signatories */}
                 {isExpanded && (
                   <div className="border-t border-gray-100 bg-gray-50 px-4 py-3">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Signataires</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{sig.signatories}</p>
                     <div className="space-y-2">
                       {doc.requests.map(r => {
-                        const rc = REQ_STATUS_CONFIG[r.status];
+                        const rcColor = REQ_STATUS_COLORS[r.status];
+                        const rcLabel = REQ_STATUS_LABELS[r.status];
                         return (
                           <div key={r.id} className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2">
@@ -431,7 +472,7 @@ export default function SignaturesPage() {
                             <div className="flex items-center gap-2">
                               {r.signed_at && <span className="text-xs text-gray-400">{new Date(r.signed_at).toLocaleDateString('fr-FR')}</span>}
                               {r.rejection_reason && <span className="text-xs text-red-400 italic max-w-[160px] truncate" title={r.rejection_reason}>«&nbsp;{r.rejection_reason}&nbsp;»</span>}
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${rc.color}`}>{rc.label}</span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${rcColor}`}>{rcLabel}</span>
                             </div>
                           </div>
                         );
@@ -455,7 +496,7 @@ export default function SignaturesPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-white rounded-t-2xl">
               <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                 <Plus className="w-5 h-5 text-primary-600" />
-                Nouveau document à signer
+                {sig.createModal.title}
               </h3>
               <button onClick={() => { setShowCreateModal(false); setSigSearch(''); setSigDropOpen(false); setSelectedSignatories([]); }} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
@@ -464,23 +505,23 @@ export default function SignaturesPage() {
             <div className="p-6 space-y-4">
               {/* Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{sig.createModal.titleField}</label>
                 <input
                   type="text"
                   value={createForm.title}
                   onChange={e => setCreateForm(f => ({ ...f, title: e.target.value }))}
-                  placeholder="Ex: Contrat CDI – Jean Dupont"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  placeholder={sig.createModal.titlePlaceholder}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                 />
               </div>
 
               {/* Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Type de document *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{sig.createModal.docType}</label>
                 <select
                   value={createForm.document_type}
                   onChange={e => setCreateForm(f => ({ ...f, document_type: e.target.value as DocType }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                 >
                   {Object.entries(DOC_TYPE_LABELS).map(([k, v]) => (
                     <option key={k} value={k}>{v}</option>
@@ -490,7 +531,7 @@ export default function SignaturesPage() {
 
               {/* PDF Upload */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Fichier PDF *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{sig.createModal.pdfFile}</label>
                 <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center">
                   {createForm.file_name ? (
                     <div className="flex items-center justify-center gap-2 text-sm text-green-700">
@@ -504,7 +545,7 @@ export default function SignaturesPage() {
                     <>
                       <FileText className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                       <label className="cursor-pointer text-sm text-primary-600 hover:underline">
-                        Sélectionner un PDF
+                        {sig.createModal.selectPdf}
                         <input type="file" accept="application/pdf" className="hidden" onChange={handleFileChange} />
                       </label>
                     </>
@@ -514,33 +555,33 @@ export default function SignaturesPage() {
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{sig.createModal.description}</label>
                 <textarea
                   value={createForm.description}
                   onChange={e => setCreateForm(f => ({ ...f, description: e.target.value }))}
                   rows={2}
-                  placeholder="Description optionnelle..."
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  placeholder={sig.createModal.descriptionPlaceholder}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                 />
               </div>
 
               {/* Expiry */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date d'expiration (optionnel)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{sig.createModal.expiryDate}</label>
                 <input
                   type="date"
                   value={createForm.expires_at}
                   onChange={e => setCreateForm(f => ({ ...f, expires_at: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                 />
               </div>
 
               {/* Signatories – recherche */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Signataires
+                  {sig.createModal.signatories}
                   {selectedSignatories.length > 0 && (
-                    <span className="ml-2 text-xs font-normal text-primary-600">{selectedSignatories.length} sélectionné(s)</span>
+                    <span className="ml-2 text-xs font-normal text-primary-600">{sig.createModal.selectedCount.replace('{count}', String(selectedSignatories.length))}</span>
                   )}
                 </label>
 
@@ -555,14 +596,14 @@ export default function SignaturesPage() {
                           key={id}
                           className="inline-flex items-center gap-1.5 bg-primary-50 border border-primary-200 text-primary-800 text-xs px-2.5 py-1 rounded-full"
                         >
-                          <span className="w-4 h-4 bg-blue-200 text-primary-700 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                          <span className="w-4 h-4 bg-primary-200 text-primary-700 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0">
                             {idx + 1}
                           </span>
                           {emp.first_name} {emp.last_name}
                           <button
                             type="button"
                             onClick={() => removeSignatory(id)}
-                            className="text-blue-400 hover:text-primary-700 ml-0.5"
+                            className="text-primary-400 hover:text-primary-700 ml-0.5"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -574,21 +615,21 @@ export default function SignaturesPage() {
                       onClick={() => setSelectedSignatories([])}
                       className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 transition"
                     >
-                      <X className="w-3 h-3" /> Tout effacer
+                      <X className="w-3 h-3" /> {sig.createModal.clearAll}
                     </button>
                   </div>
                 )}
 
                 {/* Champ de recherche */}
                 <div className="relative" ref={sigSearchRef}>
-                  <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-blue-300 bg-white">
+                  <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-primary-300 bg-white">
                     <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
                     <input
                       type="text"
                       value={sigSearch}
                       onChange={e => { setSigSearch(e.target.value); setSigDropOpen(true); }}
                       onFocus={() => setSigDropOpen(true)}
-                      placeholder="Rechercher un employé..."
+                      placeholder={sig.createModal.searchEmployee}
                       className="flex-1 text-sm outline-none bg-transparent"
                     />
                     {sigSearch && (
@@ -603,7 +644,7 @@ export default function SignaturesPage() {
                     <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
                       {filteredEmployeesForSearch.length === 0 ? (
                         <p className="text-sm text-gray-400 text-center py-4">
-                          {sigSearch ? 'Aucun résultat' : 'Tous les employés sont déjà sélectionnés'}
+                          {sigSearch ? sig.createModal.noResult : sig.createModal.allSelected}
                         </p>
                       ) : (
                         filteredEmployeesForSearch.map(emp => (
@@ -631,7 +672,7 @@ export default function SignaturesPage() {
               {/* Actions */}
               <div className="flex gap-3 justify-end pt-2">
                 <button onClick={() => { setShowCreateModal(false); setSigSearch(''); setSigDropOpen(false); setSelectedSignatories([]); }} className="px-4 py-2 text-sm border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition">
-                  Annuler
+                  {t.common.cancel}
                 </button>
                 <button
                   onClick={handleCreate}
@@ -639,13 +680,21 @@ export default function SignaturesPage() {
                   className="px-5 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-2"
                 >
                   {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                  Créer le document
+                  {sig.createModal.createDocument}
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        danger={confirmDialog.danger}
+      />
     </div>
   );
 }

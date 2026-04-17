@@ -267,6 +267,13 @@ export default function MissionsPage() {
     setInitialized(true);
   }, []);
 
+  // Écouter l'event du header "+Ajouter" → ouvrir le modal de création
+  useEffect(() => {
+    const handler = () => setShowCreateModal(true);
+    window.addEventListener('missions-add', handler);
+    return () => window.removeEventListener('missions-add', handler);
+  }, []);
+
   // ============================================
   // DATA FETCHING
   // ============================================
@@ -487,7 +494,7 @@ export default function MissionsPage() {
     setBulkMissionLoading(false);
   };
 
-  const handleBulkExportMissions = (missionList: Mission[]) => {
+  const handleBulkExportMissions = async (missionList: Mission[]) => {
     const selected = missionList.filter(m => selectedMissionIds.has(m.id));
     const headers = ['Référence', 'Employé', 'Objet', 'Destination', 'Début', 'Fin', 'Durée', 'Transport', 'Statut', 'Per Diem'];
     const rows = selected.map(m => [
@@ -499,10 +506,8 @@ export default function MissionsPage() {
     ]);
     const csv = [headers, ...rows].map(r => r.map(c => `"${(c || '').replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `missions_selection_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click(); URL.revokeObjectURL(url);
+    const { downloadFile } = await import('@/lib/capacitor-plugins');
+    await downloadFile(blob, `missions_selection_${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
   const handleBulkDeleteMissions = async (missionList: Mission[]) => {
@@ -1060,7 +1065,7 @@ export default function MissionsPage() {
           <button
             data-tour="create-mission"
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
+            className="hidden lg:flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
             Nouvelle mission

@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import PerformanceStats from '../components/PerformanceStats';
 import Header from '@/components/Header';
+import CustomSelect from '@/components/CustomSelect';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
 // =============================================
@@ -708,14 +709,19 @@ export default function EvaluationsPage() {
               className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" 
             />
           </div>
-          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }} className="px-3 py-2 border rounded-lg text-sm">
-            <option value="all">{perf.allStatuses}</option>
-            <option value="pending">{perf.pendingStatus}</option>
-            <option value="in_progress">{perf.inProgress}</option>
-            <option value="submitted">{perf.submitted}</option>
-            <option value="validated">{perf.validated}</option>
-            {showCancelled && <option value="cancelled">{perf.cancelled}</option>}
-          </select>
+          <CustomSelect
+            value={filterStatus}
+            onChange={v => { setFilterStatus(v); setPage(1); }}
+            options={[
+              { value: 'all', label: perf.allStatuses },
+              { value: 'pending', label: perf.pendingStatus },
+              { value: 'in_progress', label: perf.inProgress },
+              { value: 'submitted', label: perf.submitted },
+              { value: 'validated', label: perf.validated },
+              ...(showCancelled ? [{ value: 'cancelled', label: perf.cancelled }] : []),
+            ]}
+            className="min-w-[140px]"
+          />
           
           {/* ✅ CHECKBOX AFFICHER LES ANNULÉES */}
           {cancelledCount > 0 && (

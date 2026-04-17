@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 // ============================================
 // PLAN CONSTANTS (mirror of backend plan_features.py)
@@ -37,7 +37,7 @@ export const FEATURE_GROUP_MODE = 'group_mode';
 
 // Plan level hierarchy
 export const PLAN_LEVEL: Record<string, number> = {
-  trial: 2, basique: 1, starter: 1,  // trial = accès Premium complet
+  trial: 3, basique: 1, starter: 1,  // trial = accès Entreprise complet
   premium: 2, professional: 2,
   entreprise: 3, enterprise: 3,
 };
@@ -72,7 +72,7 @@ const ENTREPRISE_FEATURES = new Set([
 ]);
 
 const PLAN_FEATURES: Record<string, Set<string>> = {
-  trial: PREMIUM_FEATURES, basique: BASIQUE_FEATURES, starter: BASIQUE_FEATURES,  // trial = accès Premium
+  trial: ENTREPRISE_FEATURES, basique: BASIQUE_FEATURES, starter: BASIQUE_FEATURES,  // trial = accès Entreprise
   premium: PREMIUM_FEATURES, professional: PREMIUM_FEATURES,
   entreprise: ENTREPRISE_FEATURES, enterprise: ENTREPRISE_FEATURES,
 };
@@ -85,7 +85,7 @@ ENTREPRISE_FEATURES.forEach(f => { if (!FEATURE_MIN_PLAN[f]) FEATURE_MIN_PLAN[f]
 
 // Employee limits per plan
 const PLAN_EMPLOYEE_LIMITS: Record<string, number> = {
-  trial: 50, basique: 25, starter: 25,  // trial = 50 employés
+  trial: 100, basique: 25, starter: 25,  // trial = 100 employés
   premium: 50, professional: 50,
   entreprise: 100, enterprise: 100,
 };

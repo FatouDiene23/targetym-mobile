@@ -103,9 +103,9 @@ export default function DevelopmentPage() {
                         </div>
                         {hasPermission(userRole, 'create_plan') && plan.status !== 'cancelled' && plan.status !== 'archived' && (
                           <div className="flex items-center gap-1">
-                            <button onClick={(e) => { e.stopPropagation(); openEditPlanModal(plan); }} className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="Modifier"><Edit className="w-5 h-5" /></button>
+                            <button onClick={(e) => { e.stopPropagation(); openEditPlanModal(plan); }} className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title={t.common.edit}><Edit className="w-5 h-5" /></button>
                             <button onClick={(e) => { e.stopPropagation(); setConfirmDialog({ isOpen: true, title: td.archivePlanTitle, message: td.archiveConfirmMessage, danger: false, onConfirm: async () => { setConfirmDialog(null); await archiveDevelopmentPlan(plan.id); } }); }} className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title={td.archivePlanTitle}><Archive className="w-5 h-5" /></button>
-                            <button onClick={(e) => { e.stopPropagation(); setPlanToCancel(plan); setCancelReason(''); setShowCancelPlan(true); }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Annuler"><Ban className="w-5 h-5" /></button>
+                            <button onClick={(e) => { e.stopPropagation(); setPlanToCancel(plan); setCancelReason(''); setShowCancelPlan(true); }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title={t.common.cancel}><Ban className="w-5 h-5" /></button>
                           </div>
                         )}
                       </div>

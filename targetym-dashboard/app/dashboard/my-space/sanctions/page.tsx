@@ -215,14 +215,8 @@ export default function MySanctionsPage() {
       }
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: data.mime_type || 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = data.file_name || 'politique-sanctions.pdf';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const { downloadFile } = await import('@/lib/capacitor-plugins');
+      await downloadFile(blob, data.file_name || 'politique-sanctions.pdf', data.mime_type || 'application/pdf');
     } catch {
       // silent fail
     } finally {

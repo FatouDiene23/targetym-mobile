@@ -5,6 +5,7 @@ import { useState, useRef } from 'react';
 import { X, Upload, FileText, Loader2, Download, Building2, User, Calendar, Briefcase } from 'lucide-react';
 import { Employee } from '@/lib/api';
 import jsPDF from 'jspdf';
+import { useI18n } from '@/lib/i18n/I18nContext';
 
 interface CertificateModalProps {
   employee: Employee;
@@ -19,17 +20,19 @@ interface CertificateModalProps {
   };
 }
 
-const departureReasons = [
-  { value: 'resignation', label: 'Démission' },
-  { value: 'end_contract', label: 'Fin de contrat (CDD)' },
-  { value: 'mutual_agreement', label: 'Rupture conventionnelle' },
-  { value: 'dismissal', label: 'Licenciement' },
-  { value: 'retirement', label: 'Départ à la retraite' },
-  { value: 'other', label: 'Autre' },
-];
-
 export default function CertificateModal({ employee, onClose, companyInfo }: CertificateModalProps) {
+  const { t, locale } = useI18n();
+  const cm = t.components.certificateModal;
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const departureReasons = [
+    { value: 'resignation', label: cm.resignation },
+    { value: 'end_contract', label: cm.endContract },
+    { value: 'mutual_agreement', label: cm.mutualAgreement },
+    { value: 'dismissal', label: cm.dismissal },
+    { value: 'retirement', label: cm.retirement },
+    { value: 'other', label: cm.other },
+  ];
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Formulaire pré-rempli
@@ -50,9 +53,9 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
     companyName: companyInfo?.name || 'TARGETYM',
     companyAddress: companyInfo?.address || '',
     
-    // Signataire
+    // {cm.signatory}
     signatoryName: companyInfo?.signatoryName || '',
-    signatoryTitle: companyInfo?.signatoryTitle || 'Directeur des Ressources Humaines',
+    signatoryTitle: companyInfo?.signatoryTitle || cm.defaultSignatoryTitle,
     signature: companyInfo?.signature || '',
     
     // Date du certificat
@@ -240,7 +243,7 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
       
     } catch (error) {
       console.error('Erreur génération PDF:', error);
-      toast.error('Erreur lors de la génération du certificat');
+      toast.error(cm.generationError);
     } finally {
       setIsGenerating(false);
     }
@@ -254,7 +257,7 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
           <div className="flex items-center text-white">
             <FileText className="w-6 h-6 mr-3" />
             <div>
-              <h2 className="text-lg font-bold">Générer un Certificat de Travail</h2>
+              <h2 className="text-lg font-bold">{cm.generateTitle}</h2>
               <p className="text-emerald-100 text-sm">{employee.first_name} {employee.last_name}</p>
             </div>
           </div>
@@ -270,11 +273,11 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
             <div className="bg-gray-50 rounded-xl p-4">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                 <User className="w-4 h-4 mr-2 text-emerald-500" />
-                Informations Employé
+                {cm.employeeInfo}
               </h3>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Nom complet</label>
+                  <label className="block text-sm text-gray-600 mb-1">{cm.fullName}</label>
                   <input
                     type="text"
                     name="employeeName"
@@ -285,7 +288,7 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Date de naissance</label>
+                  <label className="block text-sm text-gray-600 mb-1">{cm.birthDate}</label>
                   <input
                     type="date"
                     name="birthDate"
@@ -295,7 +298,7 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Poste occupé</label>
+                  <label className="block text-sm text-gray-600 mb-1">{cm.jobTitle}</label>
                   <input
                     type="text"
                     name="jobTitle"
@@ -305,7 +308,7 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Département</label>
+                  <label className="block text-sm text-gray-600 mb-1">{cm.department}</label>
                   <input
                     type="text"
                     name="department"
@@ -321,11 +324,11 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
             <div className="bg-gray-50 rounded-xl p-4">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                 <Calendar className="w-4 h-4 mr-2 text-emerald-500" />
-                Période d&apos;emploi
+                {cm.employmentPeriod}
               </h3>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Date d&apos;entrée</label>
+                  <label className="block text-sm text-gray-600 mb-1">{cm.entryDate}</label>
                   <input
                     type="date"
                     name="startDate"
@@ -335,7 +338,7 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Date de sortie *</label>
+                  <label className="block text-sm text-gray-600 mb-1">{cm.exitDate} *</label>
                   <input
                     type="date"
                     name="endDate"
@@ -346,7 +349,7 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm text-gray-600 mb-1">Motif de départ *</label>
+                  <label className="block text-sm text-gray-600 mb-1">{cm.departureReason} *</label>
                   <select
                     name="departureReason"
                     value={formData.departureReason}
@@ -360,13 +363,13 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                 </div>
                 {formData.departureReason === 'other' && (
                   <div className="md:col-span-2">
-                    <label className="block text-sm text-gray-600 mb-1">Précisez le motif</label>
+                    <label className="block text-sm text-gray-600 mb-1">{cm.specifyReason}</label>
                     <input
                       type="text"
                       name="customReason"
                       value={formData.customReason}
                       onChange={handleChange}
-                      placeholder="Motif de départ..."
+                      placeholder={cm.reasonPlaceholder}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
@@ -380,7 +383,7 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                       onChange={handleChange}
                       className="w-4 h-4 text-emerald-500 rounded mr-2"
                     />
-                    <span className="text-sm text-gray-700">Libre de tout engagement</span>
+                    <span className="text-sm text-gray-700">{cm.freeEngagement}</span>
                   </label>
                 </div>
               </div>
@@ -390,11 +393,11 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
             <div className="bg-gray-50 rounded-xl p-4">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                 <Building2 className="w-4 h-4 mr-2 text-emerald-500" />
-                Informations Entreprise
+                {cm.companyInfo}
               </h3>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Nom de l&apos;entreprise</label>
+                  <label className="block text-sm text-gray-600 mb-1">{cm.companyName}</label>
                   <input
                     type="text"
                     name="companyName"
@@ -404,13 +407,13 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Adresse</label>
+                  <label className="block text-sm text-gray-600 mb-1">{cm.address}</label>
                   <input
                     type="text"
                     name="companyAddress"
                     value={formData.companyAddress}
                     onChange={handleChange}
-                    placeholder="Adresse de l&apos;entreprise"
+                    placeholder={cm.addressPlaceholder}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
@@ -421,23 +424,23 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
             <div className="bg-gray-50 rounded-xl p-4">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                 <Briefcase className="w-4 h-4 mr-2 text-emerald-500" />
-                Signataire
+                {cm.signatory}
               </h3>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Nom du signataire *</label>
+                  <label className="block text-sm text-gray-600 mb-1">{cm.signatoryName} *</label>
                   <input
                     type="text"
                     name="signatoryName"
                     value={formData.signatoryName}
                     onChange={handleChange}
-                    placeholder="Ex: Jean Dupont"
+                    placeholder={cm.signatoryNamePlaceholder}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Fonction</label>
+                  <label className="block text-sm text-gray-600 mb-1">{cm.function}</label>
                   <input
                     type="text"
                     name="signatoryTitle"
@@ -447,18 +450,18 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Lieu</label>
+                  <label className="block text-sm text-gray-600 mb-1">{cm.place}</label>
                   <input
                     type="text"
                     name="certificatePlace"
                     value={formData.certificatePlace}
                     onChange={handleChange}
-                    placeholder="Ex: Dakar"
+                    placeholder={cm.placePlaceholder}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Date du certificat</label>
+                  <label className="block text-sm text-gray-600 mb-1">{cm.certificateDate}</label>
                   <input
                     type="date"
                     name="certificateDate"
@@ -468,7 +471,7 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm text-gray-600 mb-1">Signature (image PNG/JPG)</label>
+                  <label className="block text-sm text-gray-600 mb-1">{cm.signatureImage}</label>
                   <div className="flex items-center gap-4">
                     <input
                       type="file"
@@ -483,7 +486,7 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                       className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
                     >
                       <Upload className="w-4 h-4 mr-2" />
-                      {formData.signature ? 'Changer la signature' : 'Uploader signature'}
+                      {formData.signature ? cm.changeSignature : cm.uploadSignature}
                     </button>
                     {formData.signature && (
                       <div className="flex items-center gap-2">
@@ -494,7 +497,7 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                           onClick={() => setFormData(prev => ({ ...prev, signature: '' }))}
                           className="text-red-500 hover:text-red-700 text-sm"
                         >
-                          Supprimer
+                          {cm.deleteSignature}
                         </button>
                       </div>
                     )}
@@ -511,7 +514,7 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
             onClick={onClose}
             className="px-4 py-2 text-sm text-gray-600 font-medium hover:bg-gray-200 rounded-lg"
           >
-            Annuler
+            {cm.cancel}
           </button>
           <div className="flex gap-2">
             <button
@@ -524,7 +527,7 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
               ) : (
                 <Download className="w-4 h-4 mr-2" />
               )}
-              Générer le certificat
+              {cm.generate}
             </button>
           </div>
         </div>

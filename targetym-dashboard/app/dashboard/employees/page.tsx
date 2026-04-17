@@ -1,7 +1,6 @@
-﻿'use client';
+'use client';
 
 import Header from '@/components/Header';
-import CustomSelect from '@/components/CustomSelect';
 import EmployeeModal from '@/components/EmployeeModal';
 import AddModal from '@/components/AddModal';
 import EditEmployeeModal from '@/components/EditEmployeeModal';
@@ -26,12 +25,14 @@ import {
   Copy, Check, Maximize2, Minimize2, Network, ZoomIn, ZoomOut, FileText,
   Trash2, UserX, MoreHorizontal, Layers
 } from 'lucide-react';
+import { useGroupContext } from '@/hooks/useGroupContext';
 import { 
   getEmployees, getEmployee, getEmployeeStats, getDepartments, getDepartmentsTree, exportEmployeesToCSV,
-  getLeaveRequests, approveLeaveRequest, rejectLeaveRequest,
-  type Employee, type EmployeeStats, type Department, type DepartmentWithChildren, type LeaveRequest
+  getLeaveRequests, approveLeaveRequest, rejectLeaveRequest, getGroupViewMobility, getGroupViewPersonnel,
+  type Employee, type EmployeeStats, type Department, type DepartmentWithChildren, type LeaveRequest, type GroupMobilityView
 } from '@/lib/api';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { useI18n } from '@/lib/i18n/I18nContext';
 
 const locations = ['Tous', 'Abidjan', 'Dakar', 'Bamako', 'Ouagadougou', 'Conakry', 'Remote'];
 
@@ -144,53 +145,6 @@ const orgChartCSS = `
 @media (min-width: 768px) {
   .org-mobile-hint { display: none; }
 }
-/* Mobile: organigramme vertical */
-@media (max-width: 767px) {
-  .org-tree {
-    padding: 12px 8px 24px;
-    min-width: unset;
-    width: 100%;
-  }
-  .org-tree ul {
-    flex-direction: column;
-    align-items: stretch;
-    padding-top: 0;
-    padding-left: 16px;
-    gap: 0;
-  }
-  .org-tree ul::before {
-    top: 0;
-    left: 8px;
-    transform: none;
-    width: 2px;
-    height: 100%;
-  }
-  .org-tree li {
-    align-items: flex-start;
-    padding: 8px 0 0 16px;
-  }
-  .org-tree li::before {
-    top: 20px;
-    left: -8px;
-    transform: none;
-    width: 16px;
-    height: 2px;
-  }
-  .org-tree li::after {
-    display: none;
-  }
-  .org-tree > ul > li {
-    padding-left: 0;
-  }
-  .org-tree > ul > li::before {
-    display: none;
-  }
-  .org-card {
-    min-width: unset;
-    max-width: 100%;
-    width: 100%;
-  }
-}
 `;
 
 // ============================================
@@ -227,7 +181,7 @@ export const LEVEL_COLOR_MAP: Record<string, string> = {
   dg:                 '#c2410c',
   dga:                '#22c55e',
   direction_centrale: '#a855f7',
-  direction:          '#3b82f6',
+  direction:          '#066C6C',
   departement:        '#fdba74',
   service:            '#6b7280',
 };
@@ -239,6 +193,7 @@ function OrgCard({ node, isExpanded, hasChildren, onToggle, onSelect }: {
   node: OrgNode; isExpanded: boolean; hasChildren: boolean;
   onToggle: () => void; onSelect?: () => void;
 }) {
+  const { t } = useI18n();
   const s = getUnitStyle(node.department_level);
   const initials = `${node.first_name?.[0] || ''}${node.last_name?.[0] || ''}`.toUpperCase();
   const isVirtual = node.id === 0;
@@ -261,7 +216,7 @@ function OrgCard({ node, isExpanded, hasChildren, onToggle, onSelect }: {
               {node.first_name}
             </p>
             <p className="org-card-job text-orange-500 mt-0.5 leading-tight font-medium">
-              Poste à pourvoir
+              {t.employees.orgchart.vacantPosition}
             </p>
           </div>
         </div>
@@ -380,17 +335,18 @@ interface InvitationEmployee {
 }
 interface InvitationStats { total_employees: number; not_invited: number; pending: number; accepted: number; }
 
-const API_URL = 'https://api.targetym.ai';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 async function getAuthHeaders() {
   const token = localStorage.getItem('access_token');
   return { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' };
 }
 
-async function getInvitations(statusFilter?: string, search?: string): Promise<{ items: InvitationEmployee[], stats: InvitationStats }> {
+async function getInvitations(statusFilter?: string, search?: string, subsidiaryTenantId?: number): Promise<{ items: InvitationEmployee[], stats: InvitationStats }> {
   const params = new URLSearchParams();
   if (statusFilter && statusFilter !== 'all') params.append('status_filter', statusFilter);
   if (search) params.append('search', search);
+  if (subsidiaryTenantId) params.append('subsidiary_tenant_id', String(subsidiaryTenantId));
   const r = await fetch(`${API_URL}/api/invitations/?${params}`, { headers: await getAuthHeaders() });
   if (!r.ok) throw new Error('Erreur');
   return r.json();
@@ -409,6 +365,7 @@ async function resendInvitation(employeeId: number): Promise<{ success: boolean;
 }
 
 function TempPasswordModal({ isOpen, onClose, employeeName, email, tempPassword, emailSent }: { isOpen: boolean; onClose: () => void; employeeName: string; email: string; tempPassword: string; emailSent: boolean; }) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const handleCopy = () => { navigator.clipboard.writeText(tempPassword); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   if (!isOpen) return null;
@@ -422,13 +379,13 @@ function TempPasswordModal({ isOpen, onClose, employeeName, email, tempPassword,
               <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${emailSent ? 'bg-green-100' : 'bg-yellow-100'}`}>
                 {emailSent ? <MailCheck className="w-8 h-8 text-green-600" /> : <AlertCircle className="w-8 h-8 text-yellow-600" />}
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">{emailSent ? 'Invitation envoyée !' : 'Compte créé'}</h3>
-              <p className="text-sm text-gray-500 mt-1">{emailSent ? `Un email a été envoyé à ${employeeName}` : `L\u0027email n\u0027a pas pu être envoyé.`}</p>
+              <h3 className="text-lg font-semibold text-gray-900">{emailSent ? t.employees.invitationSent : t.employees.accountCreated}</h3>
+              <p className="text-sm text-gray-500 mt-1">{emailSent ? `${t.employees.emailSentTo} ${employeeName}` : t.employees.emailNotSent}</p>
             </div>
             <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <div className="mb-3"><label className="text-xs text-gray-500">Email</label><p className="font-medium text-gray-900">{email}</p></div>
+              <div className="mb-3"><label className="text-xs text-gray-500">{t.auth.email}</label><p className="font-medium text-gray-900">{email}</p></div>
               <div>
-                <label className="text-xs text-gray-500">Mot de passe temporaire</label>
+                <label className="text-xs text-gray-500">{t.employees.tempPassword}</label>
                 <div className="flex items-center gap-2 mt-1">
                   <code className="flex-1 bg-white px-3 py-2 rounded border border-gray-200 font-mono text-sm">{tempPassword}</code>
                   <button onClick={handleCopy} className={`p-2 rounded-lg transition-colors ${copied ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
@@ -437,8 +394,8 @@ function TempPasswordModal({ isOpen, onClose, employeeName, email, tempPassword,
                 </div>
               </div>
             </div>
-            {!emailSent && (<div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4"><p className="text-sm text-yellow-800"><strong>Note :</strong> Transmettez ces identifiants à {employeeName} de manière sécurisée.</p></div>)}
-            <button onClick={onClose} className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">Fermer</button>
+            {!emailSent && (<div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4"><p className="text-sm text-yellow-800"><strong>{t.employees.secureNote.split('{name}')[0]}</strong>{employeeName}{t.employees.secureNote.split('{name}')[1]}</p></div>)}
+            <button onClick={onClose} className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">{t.common.close}</button>
           </div>
         </div>
       </div>
@@ -450,6 +407,7 @@ function TempPasswordModal({ isOpen, onClose, employeeName, email, tempPassword,
 // PAGE PRINCIPALE
 // ============================================
 function EmployeesPageInner() {
+  const { t } = useI18n();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [stats, setStats] = useState<EmployeeStats | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -461,13 +419,13 @@ function EmployeesPageInner() {
   const [cardFilter, setCardFilter] = useState<string | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'employees' | 'leaves' | 'invitations' | 'orgchart' | 'documents' | 'departments' | 'import' | 'sanctions' | 'absences' | 'formations'>('employees');
+  const [activeTab, setActiveTab] = useState<'employees' | 'leaves' | 'invitations' | 'orgchart' | 'documents' | 'departments' | 'import' | 'sanctions' | 'absences' | 'formations' | 'mobility'>('employees');
   // Réagir aux changements de ?tab= dans l'URL (sidebar navigation)
   useEffect(() => {
     const tab = searchParams.get('tab');
-    const validTabs = ['employees', 'leaves', 'invitations', 'orgchart', 'documents', 'departments', 'import', 'sanctions', 'absences', 'formations'];
+    const validTabs = ['employees', 'leaves', 'invitations', 'orgchart', 'documents', 'departments', 'import', 'sanctions', 'absences', 'formations', 'mobility'];
     if (tab && validTabs.includes(tab)) {
-      setActiveTab(tab as 'employees' | 'leaves' | 'invitations' | 'orgchart' | 'documents' | 'departments' | 'import' | 'sanctions' | 'absences' | 'formations');
+      setActiveTab(tab as 'employees' | 'leaves' | 'invitations' | 'orgchart' | 'documents' | 'departments' | 'import' | 'sanctions' | 'absences' | 'formations' | 'mobility');
     }
   }, [searchParams]);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -517,6 +475,26 @@ function EmployeesPageInner() {
   // Page Tour
   const { showTips, dismissTips, resetTips } = usePageTour('employees');
 
+  // Contexte groupe / filiale
+  const { context: groupContext, selectedTenantId, selectedSubsidiary, selectTenant, isGlobalDashboardMode } = useGroupContext();
+  const isReadOnly = selectedTenantId !== null;
+  const [mobilityData, setMobilityData] = useState<GroupMobilityView | null>(null);
+  const [mobilityLoading, setMobilityLoading] = useState(false);
+
+  // Recharger données quand la filiale sélectionnée change
+  useEffect(() => {
+    if (isInitialized.current) {
+      // Reset et recharge toutes les données pour la filiale sélectionnée
+      isInitialized.current = false;
+      setEmployees([]);
+      setStats(null);
+      setDepartments([]);
+      setCurrentPage(1);
+      setTimeout(() => { isInitialized.current = true; loadAllData(); }, 0);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTenantId]);
+
   // ============================================
   // ORGANIGRAMME LOGIC — arbre basé sur les départements
   // ============================================
@@ -541,7 +519,7 @@ function EmployeesPageInner() {
           id: -(dept.id),
           first_name: dept.name,
           last_name: '',
-          job_title: 'Poste à pourvoir',
+          job_title: t.employees.orgchart.vacantPosition,
           department_name: dept.name,
           department_level: dept.level,
           isVacant: true,
@@ -571,18 +549,18 @@ function EmployeesPageInner() {
       id: 0,
       first_name: 'Organisation',
       last_name: '',
-      job_title: 'Vue d\'ensemble',
+      job_title: t.employees.orgchart.overview,
       children: sorted.map(convertDept),
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [t]);
 
   const fetchOrgChart = useCallback(async () => {
     setOrgLoading(true);
     try {
       const [empResponse, deptTree] = await Promise.all([
-        getEmployees({ page: 1, page_size: 500 }),
-        getDepartmentsTree(),
+        getEmployees({ page: 1, page_size: 500, subsidiary_tenant_id: selectedTenantId ?? undefined }),
+        getDepartmentsTree(selectedTenantId ?? undefined),
       ]);
       const empMap = new Map<number, Employee>(
         (empResponse.items || []).map(e => [e.id, e])
@@ -600,7 +578,7 @@ function EmployeesPageInner() {
       }
     } catch (err) { console.error('Error building org chart:', err); }
     finally { setOrgLoading(false); }
-  }, [buildDeptOrgTree]);
+  }, [buildDeptOrgTree, selectedTenantId]);
 
   const toggleOrgNode = (id: number) => { setExpandedNodes(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; }); };
   const expandAllNodes = () => { if (!orgData) return; const ids = new Set<number>(); const t = (n: OrgNode) => { ids.add(n.id); n.children.forEach(t); }; t(orgData); setExpandedNodes(ids); };
@@ -622,7 +600,17 @@ function EmployeesPageInner() {
     if (matchIds.size > 0) setExpandedNodes(matchIds);
   }, [orgSearch, orgData]);
 
-  useEffect(() => { if (activeTab === 'orgchart' && !orgData && !orgLoading) fetchOrgChart(); }, [activeTab, orgData, orgLoading, fetchOrgChart]);
+  // Charge l'organigramme à chaque changement de filiale ou d'onglet
+  useEffect(() => {
+    if (activeTab !== 'orgchart') return;
+    // Réinitialise puis charge avec le bon tenant
+    setOrgData(null);
+    setOrgLoading(false);
+    // Petit délai pour laisser les callbacks se mettre à jour
+    const t = setTimeout(() => { fetchOrgChart(); }, 50);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, selectedTenantId]);
 
   const handleOrgSelectEmployee = (empId: number) => {
     const emp = employees.find(e => e.id === empId);
@@ -636,26 +624,35 @@ function EmployeesPageInner() {
   const fetchEmployees = async (depts: Department[]) => {
     try {
       const deptId = selectedDepartment !== 'Tous' ? depts.find(d => d.name === selectedDepartment)?.id : undefined;
-      const response = await getEmployees({ page: currentPage, page_size: 10, search: searchTerm || undefined, department_id: deptId });
+      const response = await getEmployees({ page: currentPage, page_size: 10, search: searchTerm || undefined, department_id: deptId, subsidiary_tenant_id: selectedTenantId ?? undefined });
       setEmployees(response.items || []); setTotalPages(response.total_pages || 1); setTotalEmployees(response.total || 0);
     } catch (err) { console.error(err); setEmployees([]); }
   };
 
-  const fetchStats = async () => { try { const data = await getEmployeeStats(); setStats(data); } catch { setStats({ total: 0, active: 0, inactive: 0, on_leave: 0, by_department: {}, by_gender: {}, by_contract_type: {} }); } };
-  const fetchDepartments = async (): Promise<Department[]> => { try { const data = await getDepartments(); setDepartments(data || []); departmentsRef.current = data || []; return data || []; } catch { setDepartments([]); return []; } };
-  const fetchLeaveRequests = async () => { setIsLoadingLeaves(true); try { const response = await getLeaveRequests({ page_size: 100 }); setLeaveRequests(response.items || []); } catch { setLeaveRequests([]); } finally { setIsLoadingLeaves(false); } };
-  const fetchInvitations = async () => { setIsLoadingInvitations(true); try { const data = await getInvitations(invitationFilter !== 'all' ? invitationFilter : undefined, invitationSearch || undefined); setInvitations(data.items || []); setInvitationStats(data.stats); } catch { setInvitations([]); } finally { setIsLoadingInvitations(false); } };
+  const fetchStats = async () => {
+    try {
+      const data = await getEmployeeStats({ subsidiary_tenant_id: selectedTenantId ?? undefined });
+      setStats(data);
+    } catch {
+      setStats({ total: 0, active: 0, inactive: 0, on_leave: 0, by_department: {}, by_gender: {}, by_contract_type: {} });
+    }
+  };
+  const fetchDepartments = async (): Promise<Department[]> => { try { const data = await getDepartments(undefined, selectedTenantId ?? undefined); setDepartments(data || []); departmentsRef.current = data || []; return data || []; } catch { setDepartments([]); return []; } };
+  const fetchLeaveRequests = async () => { setIsLoadingLeaves(true); try { const response = await getLeaveRequests({ page_size: 100, subsidiary_tenant_id: selectedTenantId ?? undefined }); setLeaveRequests(response.items || []); } catch { setLeaveRequests([]); } finally { setIsLoadingLeaves(false); } };
+  const fetchInvitations = async () => { setIsLoadingInvitations(true); try { const data = await getInvitations(invitationFilter !== 'all' ? invitationFilter : undefined, invitationSearch || undefined, selectedTenantId ?? undefined); setInvitations(data.items || []); setInvitationStats(data.stats); } catch { setInvitations([]); } finally { setIsLoadingInvitations(false); } };
+  const fetchMobility = async () => { setMobilityLoading(true); try { const data = await getGroupViewMobility(); setMobilityData(data); } catch { setMobilityData(null); } finally { setMobilityLoading(false); } };
 
   const loadAllData = async () => {
     setIsLoading(true); setError(null);
     try { const depts = await fetchDepartments(); await fetchStats(); await fetchEmployees(depts); await fetchLeaveRequests(); await fetchInvitations(); }
-    catch { setError('Erreur lors du chargement'); }
+    catch { setError(t.employees.loadingError); }
     finally { setIsLoading(false); }
   };
 
   useEffect(() => { if (!isInitialized.current) { isInitialized.current = true; loadAllData(); } }, []);
   useEffect(() => { if (isInitialized.current && !isLoading) { const timer = setTimeout(() => { fetchEmployees(departmentsRef.current); }, 300); return () => clearTimeout(timer); } }, [searchTerm, selectedDepartment, currentPage]);
   useEffect(() => { if (isInitialized.current && activeTab === 'invitations') { const timer = setTimeout(() => { fetchInvitations(); }, 300); return () => clearTimeout(timer); } }, [invitationFilter, invitationSearch, activeTab]);
+  useEffect(() => { if (activeTab === 'mobility' && !mobilityLoading) { fetchMobility(); } }, [activeTab]);  // toujours rafraîchir au changement d'onglet
 
   // ============================================
   // COMPUTED
@@ -687,8 +684,8 @@ function EmployeesPageInner() {
   }) : filteredEmployees;
 
   const cardFilterLabels: Record<string, string> = {
-    active: 'Actifs', inactive: 'Inactifs', on_leave: 'En congés',
-    managers: 'Managers', female: 'Femmes', new_this_month: 'Nouveaux ce mois'
+    active: t.employees.stats.active, inactive: t.employees.inactive, on_leave: t.employees.onLeave,
+    managers: t.employees.managers, female: t.employees.women, new_this_month: t.employees.newThisMonth
   };
 
   const filteredLeaveRequests = leaveRequests.filter(leave => leaveStatusFilter === 'all' ? true : leave.status === leaveStatusFilter);
@@ -718,11 +715,11 @@ function EmployeesPageInner() {
   const handleBulkStatusChange = async (newStatus: string) => {
     if (!someSelected) return;
     const count = selectedIds.size;
-    const statusLabels: Record<string, string> = { active: 'Actif', inactive: 'Inactif', terminated: 'Terminé', suspended: 'Suspendu' };
+    const statusLabels: Record<string, string> = { active: t.employees.active, inactive: t.employees.inactive, terminated: t.employees.terminated, suspended: t.employees.suspended };
     setConfirmDialog({
       isOpen: true,
-      title: 'Changement de statut',
-      message: `Changer le statut de ${count} employé(s) en "${statusLabels[newStatus] || newStatus}" ?`,
+      title: t.employees.bulkActions.statusChange,
+      message: t.employees.bulkActions.statusChangeConfirm.replace('{count}', String(count)).replace('{status}', statusLabels[newStatus] || newStatus),
       danger: false,
       onConfirm: async () => {
         setConfirmDialog(null);
@@ -730,7 +727,7 @@ function EmployeesPageInner() {
         try {
           const token = localStorage.getItem('access_token');
           await Promise.all(Array.from(selectedIds).map(id =>
-            fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai'}/api/employees/${id}`, {
+            fetch(`${API_URL}/api/employees/${id}`, {
               method: 'PATCH',
               headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({ status: newStatus })
@@ -754,8 +751,8 @@ function EmployeesPageInner() {
     const count = selectedIds.size;
     setConfirmDialog({
       isOpen: true,
-      title: 'Suppression en masse',
-      message: `Supprimer définitivement ${count} employé(s) ? Cette action est irréversible.`,
+      title: t.employees.bulkActions.bulkDelete,
+      message: t.employees.bulkActions.bulkDeleteConfirm.replace('{count}', String(count)),
       danger: true,
       onConfirm: async () => {
         setConfirmDialog(null);
@@ -763,7 +760,7 @@ function EmployeesPageInner() {
         try {
           const token = localStorage.getItem('access_token');
           await Promise.all(Array.from(selectedIds).map(id =>
-            fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai'}/api/employees/${id}`, {
+            fetch(`${API_URL}/api/employees/${id}`, {
               method: 'DELETE',
               headers: { 'Authorization': `Bearer ${token}` }
             })
@@ -781,9 +778,9 @@ function EmployeesPageInner() {
     });
   };
 
-  const handleBulkExport = () => {
+  const handleBulkExport = async () => {
     const selected = employees.filter(e => selectedIds.has(e.id));
-    const headers = ['Prénom', 'Nom', 'Email', 'Département', 'Poste', 'Localisation', 'Statut', 'Contrat'];
+    const headers = [t.employees.firstName, t.employees.lastName, t.common.email, t.common.department, t.common.position, t.employees.location, t.common.status, t.employees.contract];
     const rows = selected.map(e => [
       e.first_name, e.last_name, e.email, e.department_name || '',
       e.position || e.job_title || '', e.location || e.site || '',
@@ -791,10 +788,8 @@ function EmployeesPageInner() {
     ]);
     const csv = [headers, ...rows].map(r => r.map(c => `"${(c || '').replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `employes_selection_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click(); URL.revokeObjectURL(url);
+    const { downloadFile } = await import('@/lib/capacitor-plugins');
+    await downloadFile(blob, `employes_selection_${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
   // ============================================
@@ -807,21 +802,21 @@ function EmployeesPageInner() {
   const getStatusBadge = (status: string) => {
     const s = status?.toLowerCase();
     switch (s) {
-      case 'active': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary-100 text-primary-700">Actif</span>;
-      case 'inactive': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Inactif</span>;
-      case 'on_leave': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">En congés</span>;
-      case 'terminated': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">Terminé</span>;
-      case 'probation': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700">Période d&apos;essai</span>;
-      case 'suspended': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-700">Suspendu</span>;
+      case 'active': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">{t.employees.active}</span>;
+      case 'inactive': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">{t.employees.inactive}</span>;
+      case 'on_leave': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">{t.employees.onLeave}</span>;
+      case 'terminated': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">{t.employees.terminated}</span>;
+      case 'probation': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700">{t.employees.probation}</span>;
+      case 'suspended': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-700">{t.employees.suspended}</span>;
       default: return <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">{status}</span>;
     }
   };
 
   const getInvitationStatusBadge = (status: string) => {
     switch (status) {
-      case 'accepted': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700 flex items-center gap-1"><CheckCircle className="w-3 h-3" />Acceptée</span>;
-      case 'pending': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700 flex items-center gap-1"><Clock className="w-3 h-3" />En attente</span>;
-      case 'not_invited': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600 flex items-center gap-1"><Mail className="w-3 h-3" />Non invité</span>;
+      case 'accepted': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700 flex items-center gap-1"><CheckCircle className="w-3 h-3" />{t.employees.invitations.accepted}</span>;
+      case 'pending': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700 flex items-center gap-1"><Clock className="w-3 h-3" />{t.employees.invitations.pending}</span>;
+      case 'not_invited': return <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600 flex items-center gap-1"><Mail className="w-3 h-3" />{t.employees.invitations.notInvited}</span>;
       default: return <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">{status}</span>;
     }
   };
@@ -871,11 +866,11 @@ function EmployeesPageInner() {
     const toInvite = invitations.filter(i => selectedInvIds.has(i.id) && i.invitation_status === 'not_invited');
     const toResend = invitations.filter(i => selectedInvIds.has(i.id) && i.invitation_status === 'pending');
     const count = toInvite.length + toResend.length;
-    if (count === 0) { toast.error('Aucun employé à inviter/relancer dans la sélection.'); return; }
+    if (count === 0) { toast.error(t.employees.invitations.noEmployeeToInvite); return; }
     setConfirmDialog({
       isOpen: true,
-      title: 'Envoyer les invitations',
-      message: `Envoyer ${toInvite.length} invitation(s) et ${toResend.length} relance(s) ?`,
+      title: t.employees.invitations.sendInvitations,
+      message: t.employees.invitations.sendConfirm.replace('{invites}', String(toInvite.length)).replace('{resends}', String(toResend.length)),
       danger: false,
       onConfirm: async () => {
         setBulkInvLoading(true);
@@ -890,10 +885,10 @@ function EmployeesPageInner() {
     });
   };
 
-  const handleBulkExportInv = () => {
+  const handleBulkExportInv = async () => {
     const selected = invitations.filter(i => selectedInvIds.has(i.id));
-    const headers = ['Prénom', 'Nom', 'Email', 'Poste', 'Département', 'Statut', 'Invité le', 'Dernière connexion'];
-    const statusLabels: Record<string, string> = { not_invited: 'Non invité', pending: 'En attente', accepted: 'Acceptée' };
+    const headers = [t.employees.firstName, t.employees.lastName, t.common.email, t.common.position, t.common.department, t.common.status, t.employees.invitations.invitedOn, t.employees.invitations.connectedOn];
+    const statusLabels: Record<string, string> = { not_invited: t.employees.invitations.notInvited, pending: t.employees.invitations.pending, accepted: t.employees.invitations.accepted };
     const rows = selected.map(i => [
       i.first_name, i.last_name, i.email, i.job_title || '', i.department_name || '',
       statusLabels[i.invitation_status] || i.invitation_status,
@@ -901,13 +896,11 @@ function EmployeesPageInner() {
     ]);
     const csv = [headers, ...rows].map(r => r.map(c => `"${(c || '').replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `invitations_selection_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click(); URL.revokeObjectURL(url);
+    const { downloadFile } = await import('@/lib/capacitor-plugins');
+    await downloadFile(blob, `invitations_selection_${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
-  const handleExport = () => exportEmployeesToCSV(filteredEmployees);
+  const handleExport = async () => { await exportEmployeesToCSV(filteredEmployees); };
   const handleSuccess = async (patch?: Partial<Employee>) => {
     const prevSelectedId = selectedEmployee?.id;
     const isEdit = patch !== undefined;
@@ -940,21 +933,23 @@ function EmployeesPageInner() {
   // RENDER
   // ============================================
   const tabHeaders: Record<string, { title: string; subtitle: string }> = {
-    employees:   { title: 'Annuaire',          subtitle: 'Liste et gestion des collaborateurs' },
-    departments: { title: 'Unités',            subtitle: 'Gestion des unités et sous-unités organisationnelles' },
-    orgchart:    { title: 'Organigramme',       subtitle: 'Structure hiérarchique de l\'organisation' },
-    documents:   { title: 'Documents RH',      subtitle: 'Gestion des documents et contrats des collaborateurs' },
-    leaves:      { title: 'Congés',            subtitle: 'Suivi et validation des demandes de congé' },
-    absences:    { title: 'Absences',          subtitle: 'Déclaration et suivi des absences non planifiées' },
-    formations:  { title: 'Formations',         subtitle: 'Formations assignées aux collaborateurs' },
-    sanctions:   { title: 'Sanctions',         subtitle: 'Gestion des mesures disciplinaires' },
-    invitations: { title: 'Invitations',       subtitle: 'Inviter des collaborateurs à rejoindre la plateforme' },
-    import:      { title: 'Import',            subtitle: 'Importer des collaborateurs en masse via fichier CSV' },
+    employees:   { title: t.employees.tabs.employees,    subtitle: t.employees.tabs.employeesSubtitle },
+    departments: { title: t.employees.tabs.departments,  subtitle: t.employees.tabs.departmentsSubtitle },
+    orgchart:    { title: t.employees.tabs.orgchart,     subtitle: t.employees.tabs.orgchartSubtitle },
+    documents:   { title: t.employees.tabs.documents,    subtitle: t.employees.tabs.documentsSubtitle },
+    leaves:      { title: t.employees.tabs.leaves,       subtitle: t.employees.tabs.leavesSubtitle },
+    absences:    { title: t.employees.tabs.absences,     subtitle: t.employees.tabs.absencesSubtitle },
+    formations:  { title: t.employees.tabs.formations,   subtitle: t.employees.tabs.formationsSubtitle },
+    sanctions:   { title: t.employees.tabs.sanctions,    subtitle: t.employees.tabs.sanctionsSubtitle },
+    invitations: { title: t.employees.tabs.invitations,  subtitle: t.employees.tabs.invitationsSubtitle },
+    import:      { title: t.employees.tabs.import,       subtitle: t.employees.tabs.importSubtitle },
+    mobility:    { title: t.employees.tabs.mobility,     subtitle: t.employees.tabs.mobilitySubtitle },
   };
-  const currentHeader = tabHeaders[activeTab] ?? { title: 'Gestion du Personnel', subtitle: 'Administration RH, effectifs et congés' };
+  const currentHeader = tabHeaders[activeTab] ?? { title: t.employees.title, subtitle: t.employees.tabs.defaultSubtitle };
+  const showMobilityTab = groupContext?.is_group || groupContext?.group_type === 'subsidiary';
 
   if (isLoading) {
-    return (<><Header title={currentHeader.title} subtitle={currentHeader.subtitle} /><main className="flex-1 p-6 flex items-center justify-center"><div className="text-center"><Loader2 className="w-12 h-12 animate-spin text-primary-500 mx-auto mb-4" /><p className="text-gray-500">Chargement...</p></div></main></>);
+    return (<><Header title={currentHeader.title} subtitle={currentHeader.subtitle} /><main className="flex-1 p-6 flex items-center justify-center"><div className="text-center"><Loader2 className="w-12 h-12 animate-spin text-primary-500 mx-auto mb-4" /><p className="text-gray-500">{t.common.loading}</p></div></main></>);
   }
 
   return (
@@ -969,51 +964,51 @@ function EmployeesPageInner() {
       )}
       <Header title={currentHeader.title} subtitle={currentHeader.subtitle} />
       <main className="flex-1 p-6 overflow-auto">
-        {error && (<div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between"><span className="text-red-700">{error}</span><button onClick={loadAllData} className="flex items-center text-red-600 hover:text-red-800"><RefreshCw className="w-4 h-4 mr-1" />Réessayer</button></div>)}
+        {error && (<div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between"><span className="text-red-700">{error}</span><button onClick={loadAllData} className="flex items-center text-red-600 hover:text-red-800"><RefreshCw className="w-4 h-4 mr-1" />{t.employees.retry}</button></div>)}
 
         {hasActiveFilter && activeTab === 'employees' && (
           <div className="mb-4 px-4 py-2 bg-primary-50 border border-primary-200 rounded-lg flex items-center justify-between">
-            <span className="text-sm text-primary-700"><Filter className="w-4 h-4 inline mr-2" />Filtres : {selectedDepartment !== 'Tous' && <span className="ml-2 px-2 py-0.5 bg-primary-100 rounded">{selectedDepartment}</span>}{selectedLocation !== 'Tous' && <span className="ml-2 px-2 py-0.5 bg-primary-100 rounded">{selectedLocation}</span>}{searchTerm && <span className="ml-2 px-2 py-0.5 bg-primary-100 rounded">&quot;{searchTerm}&quot;</span>}{cardFilter && <span className="ml-2 px-2 py-0.5 bg-primary-100 text-primary-700 rounded">{cardFilterLabels[cardFilter]}</span>}</span>
-            <button onClick={() => { setSelectedDepartment('Tous'); setSelectedLocation('Tous'); setSearchTerm(''); setCardFilter(null); setCurrentPage(1); }} className="text-sm text-primary-600 hover:text-primary-800 flex items-center"><X className="w-4 h-4 mr-1" />Effacer</button>
+            <span className="text-sm text-primary-700"><Filter className="w-4 h-4 inline mr-2" />{t.employees.filters} : {selectedDepartment !== 'Tous' && <span className="ml-2 px-2 py-0.5 bg-primary-100 rounded">{selectedDepartment}</span>}{selectedLocation !== 'Tous' && <span className="ml-2 px-2 py-0.5 bg-primary-100 rounded">{selectedLocation}</span>}{searchTerm && <span className="ml-2 px-2 py-0.5 bg-primary-100 rounded">&quot;{searchTerm}&quot;</span>}{cardFilter && <span className="ml-2 px-2 py-0.5 bg-primary-100 text-primary-700 rounded">{cardFilterLabels[cardFilter]}</span>}</span>
+            <button onClick={() => { setSelectedDepartment('Tous'); setSelectedLocation('Tous'); setSearchTerm(''); setCardFilter(null); setCurrentPage(1); }} className="text-sm text-primary-600 hover:text-primary-800 flex items-center"><X className="w-4 h-4 mr-1" />{t.employees.clear}</button>
           </div>
         )}
 
         {/* Stats — contextuelles par onglet */}
         {activeTab === 'employees' && (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
-            <div onClick={() => { setCardFilter(null); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${!cardFilter ? 'border-primary-300 ring-2 ring-blue-100' : 'border-gray-100'}`}><Users className="w-5 h-5 text-primary-500 mb-2" /><p className="text-2xl font-bold text-gray-900">{dynamicStats.total}</p><p className="text-xs text-gray-500">Total</p></div>
-            <div onClick={() => { setCardFilter(cardFilter === 'active' ? null : 'active'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'active' ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}><UserCheck className="w-5 h-5 text-green-500 mb-2" /><p className="text-2xl font-bold text-green-600">{dynamicStats.active}</p><p className="text-xs text-gray-500">Actifs</p></div>
-            <div onClick={() => { setCardFilter(cardFilter === 'new_this_month' ? null : 'new_this_month'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'new_this_month' ? 'border-primary-300 ring-2 ring-blue-100' : 'border-gray-100'}`}><UserPlus className="w-5 h-5 text-primary-500 mb-2" /><p className="text-2xl font-bold text-primary-600">{dynamicStats.new_this_month}</p><p className="text-xs text-gray-500">Nouveaux</p></div>
-            <div onClick={() => { setCardFilter(cardFilter === 'inactive' ? null : 'inactive'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'inactive' ? 'border-red-300 ring-2 ring-red-100' : 'border-gray-100'}`}><TrendingDown className="w-5 h-5 text-red-500 mb-2" /><p className="text-2xl font-bold text-red-600">{dynamicStats.inactive}</p><p className="text-xs text-gray-500">Inactifs</p></div>
-            <div onClick={() => { setCardFilter(cardFilter === 'managers' ? null : 'managers'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'managers' ? 'border-primary-300 ring-2 ring-indigo-100' : 'border-gray-100'}`}><Briefcase className="w-5 h-5 text-primary-500 mb-2" /><p className="text-2xl font-bold text-primary-600">{dynamicStats.managers}</p><p className="text-xs text-gray-500">Managers</p></div>
-            <div onClick={() => { setCardFilter(cardFilter === 'on_leave' ? null : 'on_leave'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'on_leave' ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}><Palmtree className="w-5 h-5 text-green-500 mb-2" /><p className="text-2xl font-bold text-green-600">{dynamicStats.on_leave}</p><p className="text-xs text-gray-500">En congés</p></div>
-            <div onClick={() => { setCardFilter(cardFilter === 'female' ? null : 'female'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'female' ? 'border-pink-300 ring-2 ring-pink-100' : 'border-gray-100'}`}><span className="text-sm font-bold text-pink-500 block mb-2">♀</span><p className="text-2xl font-bold text-pink-600">{dynamicStats.female}</p><p className="text-xs text-gray-500">Femmes</p></div>
+            <div onClick={() => { setCardFilter(null); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${!cardFilter ? 'border-primary-300 ring-2 ring-primary-100' : 'border-gray-100'}`}><Users className="w-5 h-5 text-primary-500 mb-2" /><p className="text-2xl font-bold text-gray-900">{dynamicStats.total}</p><p className="text-xs text-gray-500">{t.common.total}</p></div>
+            <div onClick={() => { setCardFilter(cardFilter === 'active' ? null : 'active'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'active' ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}><UserCheck className="w-5 h-5 text-green-500 mb-2" /><p className="text-2xl font-bold text-green-600">{dynamicStats.active}</p><p className="text-xs text-gray-500">{t.employees.stats.active}</p></div>
+            <div onClick={() => { setCardFilter(cardFilter === 'new_this_month' ? null : 'new_this_month'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'new_this_month' ? 'border-primary-300 ring-2 ring-primary-100' : 'border-gray-100'}`}><UserPlus className="w-5 h-5 text-primary-500 mb-2" /><p className="text-2xl font-bold text-primary-600">{dynamicStats.new_this_month}</p><p className="text-xs text-gray-500">{t.employees.newEmployees}</p></div>
+            <div onClick={() => { setCardFilter(cardFilter === 'inactive' ? null : 'inactive'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'inactive' ? 'border-red-300 ring-2 ring-red-100' : 'border-gray-100'}`}><TrendingDown className="w-5 h-5 text-red-500 mb-2" /><p className="text-2xl font-bold text-red-600">{dynamicStats.inactive}</p><p className="text-xs text-gray-500">{t.employees.inactive}</p></div>
+            <div onClick={() => { setCardFilter(cardFilter === 'managers' ? null : 'managers'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'managers' ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-gray-100'}`}><Briefcase className="w-5 h-5 text-indigo-500 mb-2" /><p className="text-2xl font-bold text-indigo-600">{dynamicStats.managers}</p><p className="text-xs text-gray-500">{t.employees.managers}</p></div>
+            <div onClick={() => { setCardFilter(cardFilter === 'on_leave' ? null : 'on_leave'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'on_leave' ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}><Palmtree className="w-5 h-5 text-green-500 mb-2" /><p className="text-2xl font-bold text-green-600">{dynamicStats.on_leave}</p><p className="text-xs text-gray-500">{t.employees.onLeave}</p></div>
+            <div onClick={() => { setCardFilter(cardFilter === 'female' ? null : 'female'); }} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${cardFilter === 'female' ? 'border-pink-300 ring-2 ring-pink-100' : 'border-gray-100'}`}><span className="text-sm font-bold text-pink-500 block mb-2">♀</span><p className="text-2xl font-bold text-pink-600">{dynamicStats.female}</p><p className="text-xs text-gray-500">{t.employees.women}</p></div>
           </div>
         )}
 
         {activeTab === 'orgchart' && (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Users className="w-5 h-5 text-primary-500 mb-2" /><p className="text-2xl font-bold text-gray-900">{dynamicStats.total}</p><p className="text-xs text-gray-500">Collaborateurs</p></div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Building2 className="w-5 h-5 text-purple-500 mb-2" /><p className="text-2xl font-bold text-purple-600">{departments.length}</p><p className="text-xs text-gray-500">Unités</p></div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Briefcase className="w-5 h-5 text-primary-500 mb-2" /><p className="text-2xl font-bold text-primary-600">{dynamicStats.managers}</p><p className="text-xs text-gray-500">Managers</p></div>
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Users className="w-5 h-5 text-primary-500 mb-2" /><p className="text-2xl font-bold text-gray-900">{dynamicStats.total}</p><p className="text-xs text-gray-500">{t.employees.collaborators}</p></div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Building2 className="w-5 h-5 text-purple-500 mb-2" /><p className="text-2xl font-bold text-purple-600">{departments.length}</p><p className="text-xs text-gray-500">{t.employees.units}</p></div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Briefcase className="w-5 h-5 text-indigo-500 mb-2" /><p className="text-2xl font-bold text-indigo-600">{dynamicStats.managers}</p><p className="text-xs text-gray-500">{t.employees.managers}</p></div>
           </div>
         )}
 
         {activeTab === 'leaves' && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Palmtree className="w-5 h-5 text-primary-500 mb-2" /><p className="text-2xl font-bold text-gray-900">{leaveStats.total}</p><p className="text-xs text-gray-500">Total demandes</p></div>
-            <div onClick={() => setLeaveStatusFilter('pending')} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${leaveStatusFilter === 'pending' ? 'border-yellow-300 ring-2 ring-yellow-100' : 'border-gray-100'}`}><Clock className="w-5 h-5 text-yellow-500 mb-2" /><p className="text-2xl font-bold text-yellow-600">{leaveStats.pending}</p><p className="text-xs text-gray-500">En attente</p></div>
-            <div onClick={() => setLeaveStatusFilter('approved')} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${leaveStatusFilter === 'approved' ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}><CheckCircle className="w-5 h-5 text-green-500 mb-2" /><p className="text-2xl font-bold text-green-600">{leaveStats.approved}</p><p className="text-xs text-gray-500">Approuvées</p></div>
-            <div onClick={() => setLeaveStatusFilter('rejected')} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${leaveStatusFilter === 'rejected' ? 'border-red-300 ring-2 ring-red-100' : 'border-gray-100'}`}><XCircle className="w-5 h-5 text-red-500 mb-2" /><p className="text-2xl font-bold text-red-600">{leaveStats.rejected}</p><p className="text-xs text-gray-500">Refusées</p></div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Palmtree className="w-5 h-5 text-primary-500 mb-2" /><p className="text-2xl font-bold text-gray-900">{leaveStats.total}</p><p className="text-xs text-gray-500">{t.employees.leaveRequests.totalRequests}</p></div>
+            <div onClick={() => setLeaveStatusFilter('pending')} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${leaveStatusFilter === 'pending' ? 'border-yellow-300 ring-2 ring-yellow-100' : 'border-gray-100'}`}><Clock className="w-5 h-5 text-yellow-500 mb-2" /><p className="text-2xl font-bold text-yellow-600">{leaveStats.pending}</p><p className="text-xs text-gray-500">{t.employees.leaveRequests.pending}</p></div>
+            <div onClick={() => setLeaveStatusFilter('approved')} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${leaveStatusFilter === 'approved' ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}><CheckCircle className="w-5 h-5 text-green-500 mb-2" /><p className="text-2xl font-bold text-green-600">{leaveStats.approved}</p><p className="text-xs text-gray-500">{t.employees.leaveRequests.approved}</p></div>
+            <div onClick={() => setLeaveStatusFilter('rejected')} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${leaveStatusFilter === 'rejected' ? 'border-red-300 ring-2 ring-red-100' : 'border-gray-100'}`}><XCircle className="w-5 h-5 text-red-500 mb-2" /><p className="text-2xl font-bold text-red-600">{leaveStats.rejected}</p><p className="text-xs text-gray-500">{t.employees.leaveRequests.rejected}</p></div>
           </div>
         )}
 
         {activeTab === 'invitations' && invitationStats && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Users className="w-5 h-5 text-primary-500 mb-2" /><p className="text-2xl font-bold text-gray-900">{invitationStats.total_employees}</p><p className="text-xs text-gray-500">Total employés</p></div>
-            <div onClick={() => setInvitationFilter(invitationFilter === 'not_invited' ? 'all' : 'not_invited')} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${invitationFilter === 'not_invited' ? 'border-gray-400 ring-2 ring-gray-100' : 'border-gray-100'}`}><UserX className="w-5 h-5 text-gray-400 mb-2" /><p className="text-2xl font-bold text-gray-600">{invitationStats.not_invited}</p><p className="text-xs text-gray-500">Non invités</p></div>
-            <div onClick={() => setInvitationFilter(invitationFilter === 'pending' ? 'all' : 'pending')} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${invitationFilter === 'pending' ? 'border-yellow-300 ring-2 ring-yellow-100' : 'border-gray-100'}`}><Clock className="w-5 h-5 text-yellow-500 mb-2" /><p className="text-2xl font-bold text-yellow-600">{invitationStats.pending}</p><p className="text-xs text-gray-500">En attente</p></div>
-            <div onClick={() => setInvitationFilter(invitationFilter === 'accepted' ? 'all' : 'accepted')} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${invitationFilter === 'accepted' ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}><UserCheck className="w-5 h-5 text-green-500 mb-2" /><p className="text-2xl font-bold text-green-600">{invitationStats.accepted}</p><p className="text-xs text-gray-500">Acceptées</p></div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Users className="w-5 h-5 text-primary-500 mb-2" /><p className="text-2xl font-bold text-gray-900">{invitationStats.total_employees}</p><p className="text-xs text-gray-500">{t.employees.invitations.total}</p></div>
+            <div onClick={() => setInvitationFilter(invitationFilter === 'not_invited' ? 'all' : 'not_invited')} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${invitationFilter === 'not_invited' ? 'border-gray-400 ring-2 ring-gray-100' : 'border-gray-100'}`}><UserX className="w-5 h-5 text-gray-400 mb-2" /><p className="text-2xl font-bold text-gray-600">{invitationStats.not_invited}</p><p className="text-xs text-gray-500">{t.employees.invitations.notInvited}</p></div>
+            <div onClick={() => setInvitationFilter(invitationFilter === 'pending' ? 'all' : 'pending')} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${invitationFilter === 'pending' ? 'border-yellow-300 ring-2 ring-yellow-100' : 'border-gray-100'}`}><Clock className="w-5 h-5 text-yellow-500 mb-2" /><p className="text-2xl font-bold text-yellow-600">{invitationStats.pending}</p><p className="text-xs text-gray-500">{t.employees.invitations.pending}</p></div>
+            <div onClick={() => setInvitationFilter(invitationFilter === 'accepted' ? 'all' : 'accepted')} className={`bg-white rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${invitationFilter === 'accepted' ? 'border-green-300 ring-2 ring-green-100' : 'border-gray-100'}`}><UserCheck className="w-5 h-5 text-green-500 mb-2" /><p className="text-2xl font-bold text-green-600">{invitationStats.accepted}</p><p className="text-xs text-gray-500">{t.employees.invitations.accepted}</p></div>
           </div>
         )}
 
@@ -1038,7 +1033,7 @@ function EmployeesPageInner() {
         {/* Tab: Gestion des Départements */}
         {/* ============================================ */}
         {activeTab === 'departments' && (
-          <DepartmentManagementTab />
+          <DepartmentManagementTab subsidiaryTenantId={selectedTenantId ?? undefined} />
         )}
 
         {/* ============================================ */}
@@ -1051,7 +1046,7 @@ function EmployeesPageInner() {
               <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">
                 <div className="flex-1 relative w-full">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input type="text" placeholder="Rechercher..." value={orgSearch} onChange={(e) => setOrgSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
+                  <input type="text" placeholder={`${t.common.search}...`} value={orgSearch} onChange={(e) => setOrgSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
                 </div>
                 <div className="flex flex-wrap gap-2 items-center">
                   <div className="flex items-center gap-1 bg-gray-100 rounded-lg px-2 py-1">
@@ -1059,12 +1054,12 @@ function EmployeesPageInner() {
                     <span className="text-xs text-gray-600 w-9 text-center">{orgZoom}%</span>
                     <button onClick={() => setOrgZoom(z => Math.min(150, z + 10))} className="p-1 hover:bg-gray-200 rounded"><ZoomIn className="w-4 h-4 text-gray-600" /></button>
                   </div>
-                  <button onClick={expandAllNodes} className="flex items-center px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"><Maximize2 className="w-3.5 h-3.5 mr-1" />Déplier</button>
-                  <button onClick={collapseAllNodes} className="flex items-center px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"><Minimize2 className="w-3.5 h-3.5 mr-1" />Replier</button>
-                  <button onClick={() => { setOrgData(null); fetchOrgChart(); }} className="flex items-center px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"><RefreshCw className={`w-3.5 h-3.5 mr-1 ${orgLoading ? 'animate-spin' : ''}`} />Actualiser</button>
+                  <button onClick={expandAllNodes} className="flex items-center px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"><Maximize2 className="w-3.5 h-3.5 mr-1" />{t.employees.orgchart.expand}</button>
+                  <button onClick={collapseAllNodes} className="flex items-center px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"><Minimize2 className="w-3.5 h-3.5 mr-1" />{t.employees.orgchart.collapse}</button>
+                  <button onClick={() => { setOrgData(null); fetchOrgChart(); }} className="flex items-center px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"><RefreshCw className={`w-3.5 h-3.5 mr-1 ${orgLoading ? 'animate-spin' : ''}`} />{t.employees.orgchart.refresh}</button>
                 </div>
               </div>
-              {orgData && <p className="text-xs text-gray-400 mt-2">{countDescendants(orgData)} collaborateurs • Touchez une carte pour voir le profil • +/− pour déplier/replier</p>}
+              {orgData && <p className="text-xs text-gray-400 mt-2">{countDescendants(orgData)} {t.employees.orgchart.touchHint}</p>}
             </div>
 
             {/* Conteneur scrollable avec support pinch-to-zoom */}
@@ -1094,7 +1089,7 @@ function EmployeesPageInner() {
                 <div className="flex items-center justify-center py-20">
                   <div className="text-center">
                     <Loader2 className="w-10 h-10 animate-spin text-primary-500 mx-auto mb-3" />
-                    <p className="text-gray-500">Construction de l&apos;organigramme...</p>
+                    <p className="text-gray-500">{t.employees.orgchart.building}</p>
                   </div>
                 </div>
               ) : orgData ? (
@@ -1102,7 +1097,7 @@ function EmployeesPageInner() {
                   {/* Hint scroll mobile */}
                   <div className="org-mobile-hint items-center justify-center gap-2 py-2 text-xs text-gray-400 bg-gray-50 border-b border-gray-100">
                     <span>←</span>
-                    <span>Faites glisser pour naviguer</span>
+                    <span>{t.employees.orgchart.dragToNavigate}</span>
                     <span>→</span>
                   </div>
                   <div style={{ transform: `scale(${orgZoom / 100})`, transformOrigin: 'top center', transition: 'transform 0.15s' }}>
@@ -1117,8 +1112,16 @@ function EmployeesPageInner() {
                 <div className="flex items-center justify-center py-20 text-center">
                   <div>
                     <Network className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 mb-2">Aucune donnée</p>
-                    <p className="text-sm text-gray-400">Vérifiez la structure des départements</p>
+                    {false ? (
+                      <>
+                        <p className="text-gray-500 mb-2 font-medium">{t.employees.orgchart.notAvailable}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-gray-500 mb-2">{t.employees.orgchart.noData}</p>
+                        <p className="text-sm text-gray-400">{t.employees.orgchart.checkDepartments}</p>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -1126,7 +1129,7 @@ function EmployeesPageInner() {
 
             {/* Légende */}
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-              <p className="text-xs font-medium text-gray-500 mb-2">Légende</p>
+              <p className="text-xs font-medium text-gray-500 mb-2">{t.employees.orgchart.legend}</p>
               <div className="flex flex-wrap gap-3">
                 {([
                   { label: 'Présidence',                key: 'president'          },
@@ -1145,7 +1148,7 @@ function EmployeesPageInner() {
                 ))}
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 h-3 rounded-full border-2 border-dashed border-orange-400 bg-orange-50" />
-                  <span className="text-xs text-orange-600">Poste à pourvoir</span>
+                  <span className="text-xs text-orange-600">{t.employees.orgchart.vacantPosition}</span>
                 </div>
               </div>
             </div>
@@ -1157,39 +1160,37 @@ function EmployeesPageInner() {
           <>
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
               <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder="Rechercher par nom, email ou poste..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" /></div>
-                <div className="flex gap-2 lg:gap-3 flex-wrap">
-                  <CustomSelect value={selectedDepartment} onChange={v => { setSelectedDepartment(v); setCurrentPage(1); }} placeholder="Tous départements" className="min-w-[130px]" options={[{ value: 'Tous', label: 'Tous départements' }, ...departments.map(d => ({ value: d.name, label: d.parent_id ? `↳ ${d.name}` : d.name }))]} />
-                  <CustomSelect value={selectedLocation} onChange={v => { setSelectedLocation(v); setCurrentPage(1); }} placeholder="Localisations" className="min-w-[120px]" options={locations.map(loc => ({ value: loc, label: loc === 'Tous' ? 'Localisations' : loc }))} />
-                  <button onClick={() => setShowAddModal(true)} className="flex items-center px-3 lg:px-4 py-2 lg:py-2.5 bg-primary-500 text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-primary-600"><Plus className="w-4 h-4 lg:mr-2" /><span className="hidden lg:inline">Ajouter</span></button>
-                  <button onClick={handleExport} className="flex items-center px-3 lg:px-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg text-xs lg:text-sm hover:bg-gray-50"><Download className="w-4 h-4 lg:mr-2" /><span className="hidden lg:inline">Exporter</span></button>
+                <div className="flex-1 relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder={t.employees.searchByNameEmailPosition} value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" /></div>
+                <div className="flex gap-3 flex-wrap">
+                  <select value={selectedDepartment} onChange={(e) => { setSelectedDepartment(e.target.value); setCurrentPage(1); }} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm"><option value="Tous">{t.employees.allDepartments}</option>{departments.map(dept => <option key={dept.id} value={dept.name}>{dept.parent_id ? `  ↳ ${dept.name}` : dept.name}</option>)}</select>
+                  <select value={selectedLocation} onChange={(e) => { setSelectedLocation(e.target.value); setCurrentPage(1); }} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm">{locations.map(loc => <option key={loc} value={loc}>{loc === 'Tous' ? t.employees.allLocations : loc}</option>)}</select>
+                  {!isReadOnly && <button onClick={() => setShowAddModal(true)} className="flex items-center px-4 py-2.5 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"><Plus className="w-4 h-4 mr-2" />{t.employees.add}</button>}
+                  <button onClick={handleExport} className="flex items-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"><Download className="w-4 h-4 mr-2" />{t.common.export}</button>
                 </div>
               </div>
             </div>
-            <div className="grid lg:grid-cols-3 gap-3 lg:gap-6">
+            <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
                 {/* Barre d'actions groupées */}
                 {someSelected && (
                   <div className="mb-3 flex items-center gap-3 bg-primary-50 border border-primary-200 rounded-xl px-4 py-3">
-                    <span className="text-sm font-medium text-primary-700">{selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}</span>
+                    <span className="text-sm font-medium text-primary-700">{selectedIds.size} {selectedIds.size > 1 ? t.employees.selectedPlural : t.employees.selected}</span>
                     <div className="h-5 w-px bg-primary-200" />
                     <button onClick={handleBulkExport} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                      <Download className="w-3.5 h-3.5" />Exporter
+                      <Download className="w-3.5 h-3.5" />{t.common.export}
                     </button>
                     <div className="relative group">
                       <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                        <UserX className="w-3.5 h-3.5" />Changer statut<ChevronDown className="w-3 h-3 ml-0.5" />
+                        <UserX className="w-3.5 h-3.5" />{t.employees.bulkActions.changeStatus}<ChevronDown className="w-3 h-3 ml-0.5" />
                       </button>
                       <div className="absolute left-0 top-full mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 hidden group-hover:block">
-                        <button onClick={() => handleBulkStatusChange('active')} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-primary-500" />Actif</button>
-                        <button onClick={() => handleBulkStatusChange('inactive')} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-gray-400" />Inactif</button>
-                        <button onClick={() => handleBulkStatusChange('suspended')} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-500" />Suspendu</button>
-                        <button onClick={() => handleBulkStatusChange('terminated')} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500" />Terminé</button>
+                        <button onClick={() => handleBulkStatusChange('active')} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-blue-500" />{t.employees.active}</button>
+                        <button onClick={() => handleBulkStatusChange('inactive')} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-gray-400" />{t.employees.inactive}</button>
+                        <button onClick={() => handleBulkStatusChange('suspended')} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-500" />{t.employees.suspended}</button>
+                        <button onClick={() => handleBulkStatusChange('terminated')} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-500" />{t.employees.terminated}</button>
                       </div>
                     </div>
-                    <button onClick={handleBulkDelete} disabled={bulkActionLoading} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
-                      <Trash2 className="w-3.5 h-3.5" />Supprimer
-                    </button>
+                    {!isReadOnly && <button onClick={handleBulkDelete} disabled={bulkActionLoading} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5" />{t.common.delete}</button>}
                     <div className="flex-1" />
                     <button onClick={() => setSelectedIds(new Set())} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors">
                       <X className="w-4 h-4" />
@@ -1200,7 +1201,11 @@ function EmployeesPageInner() {
 
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                   {displayedEmployees.length === 0 ? (
-                    <div className="p-12 text-center"><Users className="w-12 h-12 mx-auto mb-4 text-gray-300" /><p className="text-gray-500 mb-4">Aucun employé trouvé</p><button onClick={loadAllData} className="flex items-center mx-auto px-4 py-2 text-primary-600 hover:bg-primary-50 rounded-lg"><RefreshCw className="w-4 h-4 mr-2" />Actualiser</button></div>
+                    isGlobalDashboardMode && groupContext?.is_group ? (
+                      <div className="p-12 text-center"><Users className="w-12 h-12 mx-auto mb-4 text-purple-300" /><p className="text-gray-700 mb-2 font-medium">{t.employees.groupView}</p><p className="text-sm text-gray-400 mb-4">{t.employees.groupViewDescription}</p></div>
+                    ) : (
+                      <div className="p-12 text-center"><Users className="w-12 h-12 mx-auto mb-4 text-gray-300" /><p className="text-gray-500 mb-4">{t.employees.noEmployeeFound}</p><button onClick={loadAllData} className="flex items-center mx-auto px-4 py-2 text-primary-600 hover:bg-primary-50 rounded-lg"><RefreshCw className="w-4 h-4 mr-2" />{t.employees.refresh}</button></div>
+                    )
                   ) : (
                     <div className="w-full overflow-x-auto">
                     <table className="min-w-full">
@@ -1209,11 +1214,11 @@ function EmployeesPageInner() {
                           <th className="w-10 px-3 py-3">
                             <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer" />
                           </th>
-                          <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Employé</th>
-                          <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Département</th>
-                          <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Localisation</th>
-                          <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Statut</th>
-                          <th className="text-right px-5 py-3 text-sm font-semibold text-gray-600">Actions</th>
+                          <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">{t.common.employee}</th>
+                          <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">{t.common.department}</th>
+                          <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">{t.employees.location}</th>
+                          <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">{t.common.status}</th>
+                          <th className="text-right px-5 py-3 text-sm font-semibold text-gray-600">{t.common.actions}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1225,15 +1230,15 @@ function EmployeesPageInner() {
                             <td className="px-5 py-4"><div className="flex items-center"><div className="relative">{employee.photo_url ? (<img src={employee.photo_url} alt={`${employee.first_name} ${employee.last_name}`} className="w-10 h-10 rounded-full object-cover" />) : (<div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium">{getInitials(employee.first_name, employee.last_name)}</div>)}{employee.status?.toLowerCase() === 'on_leave' && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center"><Palmtree className="w-2.5 h-2.5 text-white" /></div>}</div><div className="ml-3"><div className="flex items-center"><p className="font-medium text-gray-900">{employee.first_name} {employee.last_name}</p>{employee.is_manager && <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">Mgr</span>}</div><p className="text-sm text-gray-500">{employee.position || employee.job_title || '-'}</p></div></div></td>
                             <td className="px-5 py-4"><span className="px-2 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">{employee.department_name || '-'}</span></td>
                             <td className="px-5 py-4 text-sm text-gray-600">{employee.location || employee.site || '-'}</td>
-                            <td className="px-5 py-4"><div className="flex items-center gap-1">{getStatusBadge(employee.status)}{employee.hire_date && (new Date().getTime() - new Date(employee.hire_date).getTime()) < 30 * 24 * 60 * 60 * 1000 && <span className="px-2 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700">Nouveau</span>}</div></td>
-                            <td className="px-5 py-4 text-right"><div className="flex items-center justify-end gap-1"><button onClick={(e) => { e.stopPropagation(); setSelectedEmployee(employee); setShowEditModal(true); }} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"><Edit2 className="w-4 h-4" /></button><button onClick={(e) => { e.stopPropagation(); setSelectedEmployee(employee); setShowViewModal(true); }} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"><Eye className="w-4 h-4" /></button></div></td>
+                            <td className="px-5 py-4"><div className="flex items-center gap-1">{getStatusBadge(employee.status)}{employee.hire_date && (new Date().getTime() - new Date(employee.hire_date).getTime()) < 30 * 24 * 60 * 60 * 1000 && <span className="px-2 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700">{t.employees.new}</span>}</div></td>
+                            <td className="px-5 py-4 text-right"><div className="flex items-center justify-end gap-1">{!isReadOnly && <button onClick={(e) => { e.stopPropagation(); setSelectedEmployee(employee); setShowEditModal(true); }} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"><Edit2 className="w-4 h-4" /></button>}<button onClick={(e) => { e.stopPropagation(); setSelectedEmployee(employee); setShowViewModal(true); }} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"><Eye className="w-4 h-4" /></button></div></td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                     </div>
                   )}
-                  {totalPages > 1 && (<div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between"><p className="text-sm text-gray-500">Page {currentPage}/{totalPages} • {totalEmployees} employés</p><div className="flex gap-2"><button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 hover:bg-gray-50">Précédent</button><button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 hover:bg-gray-50">Suivant</button></div></div>)}
+                  {totalPages > 1 && (<div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between"><p className="text-sm text-gray-500">{t.employees.page} {currentPage}/{totalPages} • {totalEmployees} {t.employees.employees}</p><div className="flex gap-2"><button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 hover:bg-gray-50">{t.employees.previous}</button><button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 hover:bg-gray-50">{t.employees.next}</button></div></div>)}
                 </div>
               </div>
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 h-fit sticky top-6">
@@ -1250,13 +1255,13 @@ function EmployeesPageInner() {
                       {selectedEmployee.phone && <div className="flex items-center text-sm text-gray-600"><Phone className="w-4 h-4 mr-3 text-gray-400" />{selectedEmployee.phone}</div>}
                       {(selectedEmployee.location || selectedEmployee.site) && <div className="flex items-center text-sm text-gray-600"><MapPin className="w-4 h-4 mr-3 text-gray-400" />{selectedEmployee.location || selectedEmployee.site}</div>}
                       {selectedEmployee.department_name && <div className="flex items-center text-sm text-gray-600"><Building2 className="w-4 h-4 mr-3 text-gray-400" />{selectedEmployee.department_name}</div>}
-                      <div className="flex items-center text-sm text-gray-600"><Calendar className="w-4 h-4 mr-3 text-gray-400" />Depuis le {formatDate(selectedEmployee.hire_date)}</div>
+                      <div className="flex items-center text-sm text-gray-600"><Calendar className="w-4 h-4 mr-3 text-gray-400" />{t.employees.since} {formatDate(selectedEmployee.hire_date)}</div>
                     </div>
-                    <div className="pt-4 border-t border-gray-100"><p className="text-sm text-gray-500 mb-2">Contrat</p><p className="font-medium text-gray-900">{selectedEmployee.contract_type?.toUpperCase() || '-'}</p></div>
-                    <div className="flex gap-2 mt-6"><button onClick={() => setShowViewModal(true)} className="flex-1 flex items-center justify-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"><Eye className="w-4 h-4 mr-2" />Profil</button><button onClick={() => setShowEditModal(true)} className="flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50"><Edit2 className="w-4 h-4" /></button></div>
+                    <div className="pt-4 border-t border-gray-100"><p className="text-sm text-gray-500 mb-2">{t.employees.contract}</p><p className="font-medium text-gray-900">{selectedEmployee.contract_type?.toUpperCase() || '-'}</p></div>
+                    <div className="flex gap-2 mt-6"><button onClick={() => setShowViewModal(true)} className="flex-1 flex items-center justify-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"><Eye className="w-4 h-4 mr-2" />{t.employees.profile}</button>{!isReadOnly && <button onClick={() => setShowEditModal(true)} className="flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50"><Edit2 className="w-4 h-4" /></button>}</div>
                   </>
                 ) : (
-                  <div className="text-center text-gray-500 py-12"><User className="w-12 h-12 mx-auto mb-4 text-gray-300" /><p>Sélectionnez un employé</p></div>
+                  <div className="text-center text-gray-500 py-12"><User className="w-12 h-12 mx-auto mb-4 text-gray-300" /><p>{t.employees.selectEmployee}</p></div>
                 )}
               </div>
             </div>
@@ -1265,28 +1270,28 @@ function EmployeesPageInner() {
 
         {/* Tab: Leaves */}
         {activeTab === 'leaves' && (
-          <div className="grid lg:grid-cols-3 gap-3 lg:gap-6">
+          <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-4">
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-900">Demandes de congés{leaveStatusFilter !== 'all' && <span className="ml-2 text-sm font-normal text-gray-500">({leaveStatusFilter === 'pending' ? 'En attente' : leaveStatusFilter === 'approved' ? 'Approuvées' : 'Refusées'})</span>}</h3>
+                  <h3 className="font-semibold text-gray-900">{t.employees.leaveRequests.title}{leaveStatusFilter !== 'all' && <span className="ml-2 text-sm font-normal text-gray-500">({leaveStatusFilter === 'pending' ? t.employees.leaveRequests.pending : leaveStatusFilter === 'approved' ? t.employees.leaveRequests.approved : t.employees.leaveRequests.rejected})</span>}</h3>
                   <div className="flex items-center gap-2">
-                    <button onClick={fetchLeaveRequests} className="flex items-center px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"><RefreshCw className={`w-4 h-4 mr-2 ${isLoadingLeaves ? 'animate-spin' : ''}`} />Actualiser</button>
+                    <button onClick={fetchLeaveRequests} className="flex items-center px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"><RefreshCw className={`w-4 h-4 mr-2 ${isLoadingLeaves ? 'animate-spin' : ''}`} />{t.employees.refresh}</button>
                     <div className="relative">
-                      <button onClick={() => setShowLeaveFilter(!showLeaveFilter)} className={`flex items-center px-3 py-1.5 text-sm rounded-lg ${leaveStatusFilter !== 'all' ? 'bg-primary-100 text-primary-700' : 'text-gray-600 hover:bg-gray-100'}`}><Filter className="w-4 h-4 mr-2" />Filtrer<ChevronDown className="w-4 h-4 ml-1" /></button>
+                      <button onClick={() => setShowLeaveFilter(!showLeaveFilter)} className={`flex items-center px-3 py-1.5 text-sm rounded-lg ${leaveStatusFilter !== 'all' ? 'bg-primary-100 text-primary-700' : 'text-gray-600 hover:bg-gray-100'}`}><Filter className="w-4 h-4 mr-2" />{t.common.filter}<ChevronDown className="w-4 h-4 ml-1" /></button>
                       {showLeaveFilter && (
                         <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
-                          <button onClick={() => { setLeaveStatusFilter('all'); setShowLeaveFilter(false); }} className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'all' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}>Toutes</button>
-                          <button onClick={() => { setLeaveStatusFilter('pending'); setShowLeaveFilter(false); }} className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'pending' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}><span className="inline-block w-2 h-2 bg-yellow-400 rounded-full mr-2"></span>En attente ({leaveStats.pending})</button>
-                          <button onClick={() => { setLeaveStatusFilter('approved'); setShowLeaveFilter(false); }} className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'approved' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}><span className="inline-block w-2 h-2 bg-green-400 rounded-full mr-2"></span>Approuvées ({leaveStats.approved})</button>
-                          <button onClick={() => { setLeaveStatusFilter('rejected'); setShowLeaveFilter(false); }} className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'rejected' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}><span className="inline-block w-2 h-2 bg-red-400 rounded-full mr-2"></span>Refusées ({leaveStats.rejected})</button>
+                          <button onClick={() => { setLeaveStatusFilter('all'); setShowLeaveFilter(false); }} className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'all' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}>{t.employees.leaveRequests.all}</button>
+                          <button onClick={() => { setLeaveStatusFilter('pending'); setShowLeaveFilter(false); }} className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'pending' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}><span className="inline-block w-2 h-2 bg-yellow-400 rounded-full mr-2"></span>{t.employees.leaveRequests.pending} ({leaveStats.pending})</button>
+                          <button onClick={() => { setLeaveStatusFilter('approved'); setShowLeaveFilter(false); }} className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'approved' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}><span className="inline-block w-2 h-2 bg-green-400 rounded-full mr-2"></span>{t.employees.leaveRequests.approved} ({leaveStats.approved})</button>
+                          <button onClick={() => { setLeaveStatusFilter('rejected'); setShowLeaveFilter(false); }} className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'rejected' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}><span className="inline-block w-2 h-2 bg-red-400 rounded-full mr-2"></span>{t.employees.leaveRequests.rejected} ({leaveStats.rejected})</button>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
                 <div className="divide-y divide-gray-100">
-                  {isLoadingLeaves ? (<div className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>) : filteredLeaveRequests.length === 0 ? (<div className="p-8 text-center text-gray-500"><Palmtree className="w-12 h-12 mx-auto mb-4 text-gray-300" /><p>Aucune demande</p></div>) : (
+                  {isLoadingLeaves ? (<div className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>) : filteredLeaveRequests.length === 0 ? (<div className="p-8 text-center text-gray-500"><Palmtree className="w-12 h-12 mx-auto mb-4 text-gray-300" /><p>{t.employees.leaveRequests.noRequest}</p></div>) : (
                     filteredLeaveRequests.map((leave) => (
                       <div key={leave.id} className="px-5 py-4 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => { setSelectedLeaveRequest(leave); setShowLeaveModal(true); }}>
                         <div className="flex items-center justify-between">
@@ -1294,8 +1299,8 @@ function EmployeesPageInner() {
                           <div className="text-right"><p className="text-sm font-medium text-gray-900">{leave.days_requested} jour{leave.days_requested > 1 ? 's' : ''}</p><p className="text-xs text-gray-500">{formatDate(leave.start_date)} → {formatDate(leave.end_date)}</p></div>
                         </div>
                         <div className="flex items-center justify-between mt-3">
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${leave.status === 'approved' ? 'bg-green-100 text-green-700' : leave.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : leave.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>{leave.status === 'approved' ? 'Approuvé' : leave.status === 'pending' ? 'En attente' : leave.status === 'rejected' ? 'Refusé' : leave.status}</span>
-                          {leave.status === 'pending' && (<div className="flex gap-2" onClick={(e) => e.stopPropagation()}><button onClick={(e) => { e.stopPropagation(); handleApproveLeave(leave.id); }} className="flex items-center px-3 py-1.5 bg-green-500 text-white text-xs font-medium rounded-lg hover:bg-green-600"><CheckCircle className="w-3.5 h-3.5 mr-1" />Approuver</button><button onClick={(e) => { e.stopPropagation(); setSelectedLeaveRequest(leave); setShowLeaveModal(true); }} className="flex items-center px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-red-600"><XCircle className="w-3.5 h-3.5 mr-1" />Refuser</button></div>)}
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${leave.status === 'approved' ? 'bg-green-100 text-green-700' : leave.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : leave.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>{leave.status === 'approved' ? t.employees.leaveRequests.approvedStatus : leave.status === 'pending' ? t.employees.leaveRequests.pendingStatus : leave.status === 'rejected' ? t.employees.leaveRequests.rejectedStatus : leave.status}</span>
+                          {leave.status === 'pending' && (<div className="flex gap-2" onClick={(e) => e.stopPropagation()}><button onClick={(e) => { e.stopPropagation(); handleApproveLeave(leave.id); }} className="flex items-center px-3 py-1.5 bg-green-500 text-white text-xs font-medium rounded-lg hover:bg-green-600"><CheckCircle className="w-3.5 h-3.5 mr-1" />{t.employees.leaveRequests.approve}</button><button onClick={(e) => { e.stopPropagation(); setSelectedLeaveRequest(leave); setShowLeaveModal(true); }} className="flex items-center px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-red-600"><XCircle className="w-3.5 h-3.5 mr-1" />{t.employees.leaveRequests.reject}</button></div>)}
                         </div>
                       </div>
                     ))
@@ -1305,12 +1310,12 @@ function EmployeesPageInner() {
             </div>
             <div className="space-y-4">
               <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <h3 className="font-semibold text-gray-900 mb-4">Résumé</h3>
+                <h3 className="font-semibold text-gray-900 mb-4">{t.employees.leaveRequests.summary}</h3>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600">En congés</span><span className="font-semibold text-green-600">{stats?.on_leave || 0}</span></div>
-                  <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded" onClick={() => setLeaveStatusFilter('pending')}><span className="text-sm text-gray-600">En attente</span><span className="font-semibold text-yellow-600">{leaveStats.pending}</span></div>
-                  <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded" onClick={() => setLeaveStatusFilter('approved')}><span className="text-sm text-gray-600">Approuvées</span><span className="font-semibold text-primary-600">{leaveStats.approved}</span></div>
-                  <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded" onClick={() => setLeaveStatusFilter('rejected')}><span className="text-sm text-gray-600">Refusées</span><span className="font-semibold text-red-600">{leaveStats.rejected}</span></div>
+                  <div className="flex items-center justify-between"><span className="text-sm text-gray-600">{t.employees.leaveRequests.onLeave}</span><span className="font-semibold text-green-600">{stats?.on_leave || 0}</span></div>
+                  <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded" onClick={() => setLeaveStatusFilter('pending')}><span className="text-sm text-gray-600">{t.employees.leaveRequests.pending}</span><span className="font-semibold text-yellow-600">{leaveStats.pending}</span></div>
+                  <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded" onClick={() => setLeaveStatusFilter('approved')}><span className="text-sm text-gray-600">{t.employees.leaveRequests.approved}</span><span className="font-semibold text-primary-600">{leaveStats.approved}</span></div>
+                  <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded" onClick={() => setLeaveStatusFilter('rejected')}><span className="text-sm text-gray-600">{t.employees.leaveRequests.rejected}</span><span className="font-semibold text-red-600">{leaveStats.rejected}</span></div>
                 </div>
               </div>
             </div>
@@ -1319,25 +1324,25 @@ function EmployeesPageInner() {
 
         {/* Tab: Invitations */}
         {activeTab === 'invitations' && (
-          <div className="grid lg:grid-cols-3 gap-3 lg:gap-6">
+          <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-4">
               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
                 <div className="flex flex-col md:flex-row gap-4">
-                  <div className="flex-1 relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder="Rechercher..." value={invitationSearch} onChange={(e) => setInvitationSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" /></div>
-                  <select value={invitationFilter} onChange={(e) => setInvitationFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-full sm:w-auto"><option value="all">Tous</option><option value="not_invited">Non invités</option><option value="pending">En attente</option><option value="accepted">Acceptées</option></select>
-                  <button onClick={fetchInvitations} className="flex items-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"><RefreshCw className={`w-4 h-4 mr-2 ${isLoadingInvitations ? 'animate-spin' : ''}`} />Actualiser</button>
+                  <div className="flex-1 relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder={`${t.common.search}...`} value={invitationSearch} onChange={(e) => setInvitationSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" /></div>
+                  <select value={invitationFilter} onChange={(e) => setInvitationFilter(e.target.value)} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm"><option value="all">{t.common.all}</option><option value="not_invited">{t.employees.invitations.notInvited}</option><option value="pending">{t.employees.invitations.pending}</option><option value="accepted">{t.employees.invitations.accepted}</option></select>
+                  <button onClick={fetchInvitations} className="flex items-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"><RefreshCw className={`w-4 h-4 mr-2 ${isLoadingInvitations ? 'animate-spin' : ''}`} />{t.employees.refresh}</button>
                 </div>
               </div>
               {/* Barre d'actions groupées — Invitations */}
               {someInvSelected && (
                 <div className="flex items-center gap-3 bg-primary-50 border border-primary-200 rounded-xl px-4 py-3">
-                  <span className="text-sm font-medium text-primary-700">{selectedInvIds.size} sélectionné{selectedInvIds.size > 1 ? 's' : ''}</span>
+                  <span className="text-sm font-medium text-primary-700">{selectedInvIds.size} {selectedInvIds.size > 1 ? t.employees.selectedPlural : t.employees.selected}</span>
                   <div className="h-5 w-px bg-primary-200" />
-                  <button onClick={handleBulkInvite} disabled={bulkInvLoading} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 disabled:opacity-50 transition-colors">
-                    <Send className="w-3.5 h-3.5" />Inviter / Relancer
-                  </button>
+                  {!isReadOnly && <button onClick={handleBulkInvite} disabled={bulkInvLoading} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 disabled:opacity-50 transition-colors">
+                    <Send className="w-3.5 h-3.5" />{t.employees.invitations.inviteResend}
+                  </button>}
                   <button onClick={handleBulkExportInv} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                    <Download className="w-3.5 h-3.5" />Exporter
+                    <Download className="w-3.5 h-3.5" />{t.common.export}
                   </button>
                   <div className="flex-1" />
                   <button onClick={() => setSelectedInvIds(new Set())} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors">
@@ -1349,32 +1354,29 @@ function EmployeesPageInner() {
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-900">Invitations ({invitations.length})</h3>
+                  <h3 className="font-semibold text-gray-900">{t.employees.invitations.title} ({invitations.length})</h3>
                   {invitations.length > 0 && (
                     <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
                       <input type="checkbox" checked={allInvSelected} onChange={toggleSelectAllInv} className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer" />
-                      Tout sélectionner
+                      {t.employees.invitations.selectAll}
                     </label>
                   )}
                 </div>
                 <div className="divide-y divide-gray-100">
-                  {isLoadingInvitations ? (<div className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>) : invitations.length === 0 ? (<div className="p-8 text-center text-gray-500"><Send className="w-12 h-12 mx-auto mb-4 text-gray-300" /><p>Aucune invitation</p></div>) : (
+                  {isLoadingInvitations ? (<div className="p-8 text-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" /></div>) : invitations.length === 0 ? (<div className="p-8 text-center text-gray-500"><Send className="w-12 h-12 mx-auto mb-4 text-gray-300" /><p>{t.employees.invitations.noInvitation}</p></div>) : (
                     invitations.map((inv) => (
-                      <div key={inv.id} className={`px-3 lg:px-5 py-3 lg:py-4 hover:bg-gray-50 transition-colors ${selectedInvIds.has(inv.id) ? 'bg-primary-50/50' : ''}`}>
-                        <div className="flex items-start gap-2">
-                          <input type="checkbox" checked={selectedInvIds.has(inv.id)} onChange={() => toggleSelectInv(inv.id)} className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer mt-1 flex-shrink-0" />
-                          <div className={`w-9 h-9 lg:w-10 lg:h-10 rounded-full flex items-center justify-center font-medium text-sm flex-shrink-0 ${inv.invitation_status === 'accepted' ? 'bg-green-100 text-green-700' : inv.invitation_status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>{getInitials(inv.first_name, inv.last_name)}</div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium text-gray-900 text-sm truncate">{inv.first_name} {inv.last_name}</p>
-                            <p className="text-xs text-gray-500 truncate">{inv.email}</p>
-                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                              {getInvitationStatusBadge(inv.invitation_status)}
-                              {inv.invitation_status === 'not_invited' && (<button onClick={() => handleSendInvitation(inv)} disabled={sendingInvitation === inv.id} className="flex items-center px-2 py-1 bg-primary-500 text-white text-xs font-medium rounded-lg hover:bg-primary-600 disabled:opacity-50">{sendingInvitation === inv.id ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Send className="w-3 h-3 mr-1" />}Inviter</button>)}
-                              {inv.invitation_status === 'pending' && (<button onClick={() => handleResendInvitation(inv)} disabled={sendingInvitation === inv.id} className="flex items-center px-2 py-1 bg-yellow-500 text-white text-xs font-medium rounded-lg hover:bg-yellow-600 disabled:opacity-50">{sendingInvitation === inv.id ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1" />}Relancer</button>)}
-                            </div>
+                      <div key={inv.id} className={`px-5 py-4 hover:bg-gray-50 transition-colors ${selectedInvIds.has(inv.id) ? 'bg-primary-50/50' : ''}`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <input type="checkbox" checked={selectedInvIds.has(inv.id)} onChange={() => toggleSelectInv(inv.id)} className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer mr-3 flex-shrink-0" />
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-medium ${inv.invitation_status === 'accepted' ? 'bg-green-100 text-green-700' : inv.invitation_status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>{getInitials(inv.first_name, inv.last_name)}</div><div className="ml-3"><p className="font-medium text-gray-900">{inv.first_name} {inv.last_name}</p><p className="text-sm text-gray-500">{inv.email}</p></div></div>
+                          <div className="flex items-center gap-3">
+                            {getInvitationStatusBadge(inv.invitation_status)}
+                            {inv.invitation_status === 'not_invited' && !isReadOnly && (<button onClick={() => handleSendInvitation(inv)} disabled={sendingInvitation === inv.id} className="flex items-center px-3 py-1.5 bg-primary-500 text-white text-xs font-medium rounded-lg hover:bg-primary-600 disabled:opacity-50">{sendingInvitation === inv.id ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}{t.employees.invitations.invite}</button>)}
+                            {inv.invitation_status === 'pending' && !isReadOnly && (<button onClick={() => handleResendInvitation(inv)} disabled={sendingInvitation === inv.id} className="flex items-center px-3 py-1.5 bg-yellow-500 text-white text-xs font-medium rounded-lg hover:bg-yellow-600 disabled:opacity-50">{sendingInvitation === inv.id ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}{t.employees.invitations.resend}</button>)}
                           </div>
                         </div>
-                        <div className="mt-2 ml-11 lg:ml-14 flex items-center gap-2 lg:gap-4 text-xs text-gray-500 flex-wrap">{inv.job_title && <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" />{inv.job_title}</span>}{inv.department_name && <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{inv.department_name}</span>}{inv.invitation_sent_at && <span className="flex items-center gap-1"><Mail className="w-3 h-3" />Invité {formatDateTime(inv.invitation_sent_at)}</span>}{inv.last_login && <span className="flex items-center gap-1 text-green-600"><CheckCircle className="w-3 h-3" />Connecté {formatDateTime(inv.last_login)}</span>}</div>
+                        <div className="mt-2 ml-[66px] flex items-center gap-4 text-xs text-gray-500">{inv.job_title && <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" />{inv.job_title}</span>}{inv.department_name && <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{inv.department_name}</span>}{inv.invitation_sent_at && <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{t.employees.invitations.invitedOn} {formatDateTime(inv.invitation_sent_at)}</span>}{inv.last_login && <span className="flex items-center gap-1 text-green-600"><CheckCircle className="w-3 h-3" />{t.employees.invitations.connectedOn} {formatDateTime(inv.last_login)}</span>}</div>
                       </div>
                     ))
                   )}
@@ -1383,17 +1385,17 @@ function EmployeesPageInner() {
             </div>
             <div className="space-y-4">
               <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <h3 className="font-semibold text-gray-900 mb-4">Résumé</h3>
+                <h3 className="font-semibold text-gray-900 mb-4">{t.employees.leaveRequests.summary}</h3>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded" onClick={() => setInvitationFilter('all')}><span className="text-sm text-gray-600">Total</span><span className="font-semibold text-gray-900">{invitationStats?.total_employees || 0}</span></div>
-                  <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded" onClick={() => setInvitationFilter('not_invited')}><span className="text-sm text-gray-600 flex items-center gap-2"><Mail className="w-4 h-4 text-gray-400" />Non invités</span><span className="font-semibold text-gray-600">{invitationStats?.not_invited || 0}</span></div>
-                  <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded" onClick={() => setInvitationFilter('pending')}><span className="text-sm text-gray-600 flex items-center gap-2"><Clock className="w-4 h-4 text-yellow-500" />En attente</span><span className="font-semibold text-yellow-600">{invitationStats?.pending || 0}</span></div>
-                  <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded" onClick={() => setInvitationFilter('accepted')}><span className="text-sm text-gray-600 flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-500" />Acceptées</span><span className="font-semibold text-green-600">{invitationStats?.accepted || 0}</span></div>
+                  <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded" onClick={() => setInvitationFilter('all')}><span className="text-sm text-gray-600">{t.common.total}</span><span className="font-semibold text-gray-900">{invitationStats?.total_employees || 0}</span></div>
+                  <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded" onClick={() => setInvitationFilter('not_invited')}><span className="text-sm text-gray-600 flex items-center gap-2"><Mail className="w-4 h-4 text-gray-400" />{t.employees.invitations.notInvited}</span><span className="font-semibold text-gray-600">{invitationStats?.not_invited || 0}</span></div>
+                  <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded" onClick={() => setInvitationFilter('pending')}><span className="text-sm text-gray-600 flex items-center gap-2"><Clock className="w-4 h-4 text-yellow-500" />{t.employees.invitations.pending}</span><span className="font-semibold text-yellow-600">{invitationStats?.pending || 0}</span></div>
+                  <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded" onClick={() => setInvitationFilter('accepted')}><span className="text-sm text-gray-600 flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-500" />{t.employees.invitations.accepted}</span><span className="font-semibold text-green-600">{invitationStats?.accepted || 0}</span></div>
                 </div>
               </div>
-              <div className="bg-primary-50 border border-primary-200 rounded-xl p-4">
-                <h4 className="font-medium text-primary-900 mb-2 flex items-center gap-2"><AlertCircle className="w-4 h-4" />Comment ça marche ?</h4>
-                <ul className="text-sm text-primary-800 space-y-2"><li className="flex items-start gap-2"><span className="text-primary-500">1.</span>Cliquez sur &quot;Inviter&quot;</li><li className="flex items-start gap-2"><span className="text-primary-500">2.</span>L&apos;employé reçoit son mot de passe</li><li className="flex items-start gap-2"><span className="text-primary-500">3.</span>Une fois connecté → &quot;Acceptée&quot;</li></ul>
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2"><AlertCircle className="w-4 h-4" />{t.employees.invitations.howItWorks}</h4>
+                <ul className="text-sm text-blue-800 space-y-2"><li className="flex items-start gap-2"><span className="text-blue-500">1.</span>{t.employees.invitations.step1}</li><li className="flex items-start gap-2"><span className="text-blue-500">2.</span>{t.employees.invitations.step2}</li><li className="flex items-start gap-2"><span className="text-blue-500">3.</span>{t.employees.invitations.step3}</li></ul>
               </div>
             </div>
           </div>
@@ -1410,14 +1412,16 @@ function EmployeesPageInner() {
         {/* Tab: Import */}
         {/* ============================================ */}
         {activeTab === 'import' && (
-          <ImportEmployeesTab onImportDone={handleSuccess} />
+          isReadOnly
+            ? <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center text-amber-700">{t.employees.importDisabledReadOnly}</div>
+            : <ImportEmployeesTab onImportDone={handleSuccess} />
         )}
 
         {/* ============================================ */}
         {/* Tab: Absences / Retards */}
         {/* ============================================ */}
         {activeTab === 'absences' && (
-          <AbsencesTab employeesList={employees} />
+          <AbsencesTab employeesList={employees} subsidiaryTenantId={selectedTenantId ?? undefined} />
         )}
 
         {/* ============================================ */}
@@ -1426,10 +1430,106 @@ function EmployeesPageInner() {
         {activeTab === 'formations' && (
           <FormationsTab employeesList={employees} />
         )}
+
+        {/* ============================================ */}
+        {/* Tab: Mobilité Interne */}
+        {/* ============================================ */}
+        {activeTab === 'mobility' && (
+          <div className="space-y-6">
+            {mobilityLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-10 h-10 animate-spin text-primary-500" />
+              </div>
+            ) : !mobilityData ? (
+              <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-gray-100">
+                <Network className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p className="text-gray-500">{t.employees.mobility.dataNotAvailable}</p>
+                <button onClick={fetchMobility} className="mt-4 text-sm text-primary-600 hover:underline">{t.employees.retry}</button>
+              </div>
+            ) : (
+              <>
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                    <Users className="w-5 h-5 text-indigo-500 mb-2" />
+                    <p className="text-2xl font-bold text-gray-900">{mobilityData.total_transfers}</p>
+                    <p className="text-xs text-gray-500">{t.employees.mobility.totalTransfers}</p>
+                  </div>
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                    <Clock className="w-5 h-5 text-yellow-500 mb-2" />
+                    <p className="text-2xl font-bold text-yellow-600">{mobilityData.pending_transfers}</p>
+                    <p className="text-xs text-gray-500">{t.employees.mobility.inProgress}</p>
+                  </div>
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                    <CheckCircle className="w-5 h-5 text-green-500 mb-2" />
+                    <p className="text-2xl font-bold text-green-600">{mobilityData.completed_transfers}</p>
+                    <p className="text-xs text-gray-500">{t.employees.mobility.completed}</p>
+                  </div>
+                </div>
+
+                {/* Historique des transferts */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-900">{t.employees.mobility.transferHistory}</h3>
+                    <button onClick={fetchMobility} className="flex items-center text-sm text-gray-500 hover:text-gray-700"><RefreshCw className="w-4 h-4 mr-1" />{t.employees.refresh}</button>
+                  </div>
+                  {mobilityData.transfers.length === 0 ? (
+                    <div className="p-12 text-center text-gray-400">
+                      <Network className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+                      <p>{t.employees.mobility.noTransfer}</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.common.employee}</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.employees.mobility.from}</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.employees.mobility.to}</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.common.date}</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.common.status}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {mobilityData.transfers.map(tr => (
+                            <tr key={tr.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                  {tr.photo_url ? (
+                                    <img src={tr.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-semibold">
+                                      {tr.employee_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                                    </div>
+                                  )}
+                                  <span className="text-sm font-medium text-gray-900">{tr.employee_name}</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-600">{tr.from_subsidiary}</td>
+                              <td className="px-6 py-4 text-sm text-gray-600">{tr.to_subsidiary}</td>
+                              <td className="px-6 py-4 text-sm text-gray-500">{tr.transfer_date ? new Date(tr.transfer_date).toLocaleDateString('fr-FR') : '—'}</td>
+                              <td className="px-6 py-4">
+                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                  tr.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                  tr.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                  'bg-gray-100 text-gray-600'
+                                }`}>{tr.status === 'completed' ? t.employees.mobility.completedStatus : tr.status === 'pending' ? t.employees.mobility.pendingStatus : tr.status}</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </main>
 
       {showLeaveFilter && <div className="fixed inset-0 z-0" onClick={() => setShowLeaveFilter(false)} />}
-      {showViewModal && selectedEmployee && <EmployeeModal employee={selectedEmployee} onClose={() => setShowViewModal(false)} onEdit={() => { setShowViewModal(false); setShowEditModal(true); }} />}
+      {showViewModal && selectedEmployee && <EmployeeModal employee={selectedEmployee} onClose={() => setShowViewModal(false)} onEdit={!isReadOnly ? () => { setShowViewModal(false); setShowEditModal(true); } : undefined} isReadOnly={isReadOnly} />}
       {showAddModal && <AddModal onClose={() => setShowAddModal(false)} onSuccess={handleSuccess} />}
       {showEditModal && selectedEmployee && <EditEmployeeModal employee={selectedEmployee} onClose={() => setShowEditModal(false)} onSuccess={handleSuccess} />}
       {showLeaveModal && selectedLeaveRequest && <LeaveRequestModal request={{ id: selectedLeaveRequest.id, employee_id: selectedLeaveRequest.employee_id, employee_name: selectedLeaveRequest.employee_name || 'Employé', leave_type_id: selectedLeaveRequest.leave_type_id, leave_type_name: selectedLeaveRequest.leave_type_name || 'Congé', leave_type_code: selectedLeaveRequest.leave_type_code, start_date: selectedLeaveRequest.start_date, end_date: selectedLeaveRequest.end_date, days_requested: selectedLeaveRequest.days_requested, start_half_day: selectedLeaveRequest.start_half_day, end_half_day: selectedLeaveRequest.end_half_day, status: selectedLeaveRequest.status, reason: selectedLeaveRequest.reason, department: selectedLeaveRequest.department, job_title: selectedLeaveRequest.job_title, manager_name: selectedLeaveRequest.manager_name, leave_balance: selectedLeaveRequest.leave_balance, approved_by_name: selectedLeaveRequest.approved_by_name, approved_at: selectedLeaveRequest.approved_at, rejection_reason: selectedLeaveRequest.rejection_reason, created_at: selectedLeaveRequest.created_at }} onClose={() => { setShowLeaveModal(false); setSelectedLeaveRequest(null); }} onApprove={handleApproveLeave} onReject={handleRejectLeave} />}

@@ -10,6 +10,79 @@ import { Capacitor } from '@capacitor/core';
 export const isNative = () => Capacitor.isNativePlatform();
 export const getPlatform = () => Capacitor.getPlatform(); // 'ios' | 'android' | 'web'
 
+// ─── TÉLÉCHARGEMENT DE FICHIERS (CSV, PDF, etc.) ─────────────────────────────
+// Utilise Capacitor Filesystem sur mobile, fallback navigateur sur web
+export async function downloadFile(content: string | Blob, filename: string, mimeType = 'text/csv;charset=utf-8;') {
+  if (!isNative()) {
+    // Web : téléchargement classique via <a>.click()
+    const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    return;
+  }
+
+  // Mobile : écrire dans le dossier Documents + partager
+  const { Filesystem, Directory } = await import('@capacitor/filesystem');
+  const { Share } = await import('@capacitor/share').catch(() => ({ Share: null }));
+
+  // Convertir le content en base64
+  let base64Data: string;
+  if (content instanceof Blob) {
+    base64Data = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+      reader.readAsDataURL(content);
+    });
+  } else {
+    base64Data = btoa(unescape(encodeURIComponent(content)));
+  }
+
+  // Essayer plusieurs répertoires (certains échouent selon les permissions)
+  const directories = [Directory.Cache, Directory.Data, Directory.Documents, Directory.External];
+  let result: { uri: string } | null = null;
+  let lastError: unknown = null;
+
+  for (const directory of directories) {
+    try {
+      result = await Filesystem.writeFile({
+        path: filename,
+        data: base64Data,
+        directory,
+        recursive: true,
+      });
+      break;
+    } catch (e) {
+      lastError = e;
+      console.warn(`Écriture échouée dans ${directory}:`, e);
+    }
+  }
+
+  if (!result) {
+    console.error('Erreur téléchargement:', lastError);
+    alert(`Erreur lors du téléchargement : ${(lastError as Error)?.message || 'Impossible de créer le fichier'}`);
+    return;
+  }
+
+  // Tenter de partager le fichier (pour que l'utilisateur puisse l'ouvrir/l'enregistrer)
+  if (Share) {
+    try {
+      await Share.share({
+        title: filename,
+        url: result.uri,
+        dialogTitle: 'Enregistrer le fichier',
+      });
+    } catch {
+      alert(`Fichier sauvegardé : ${result.uri}`);
+    }
+  } else {
+    alert(`Fichier sauvegardé : ${filename}`);
+  }
+}
+
 // ─── NOTIFICATIONS PUSH ────────────────────────────────────────────────────────
 export async function registerPushNotifications() {
   if (!isNative()) return null;

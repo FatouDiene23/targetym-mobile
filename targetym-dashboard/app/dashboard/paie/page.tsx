@@ -22,7 +22,6 @@ export default function PaieIndexPage() {
   useEffect(() => {
     getRuns()
       .then(({ items }) => {
-        // Le backend renvoie les runs triés par date desc — on prend le premier
         setLastRun(items[0] ?? null);
       })
       .catch(() => setLastRun(null))
@@ -37,7 +36,17 @@ export default function PaieIndexPage() {
       });
       if (!res.ok) throw new Error(t.payroll.tokenError);
       const { token } = await res.json();
-      window.location.href = `${PAIE_APP_URL}/auth/exchange?token=${encodeURIComponent(token)}`;
+      const url = `${PAIE_APP_URL}/auth/exchange?token=${encodeURIComponent(token)}`;
+
+      // Sur mobile : ouvrir dans un navigateur in-app Capacitor
+      const { isNative } = await import('@/lib/capacitor-plugins');
+      if (isNative()) {
+        const { Browser } = await import('@capacitor/browser');
+        await Browser.open({ url, presentationStyle: 'fullscreen' });
+        setRedirecting(false);
+      } else {
+        window.location.href = url;
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t.payroll.connectionError);
       setRedirecting(false);
@@ -128,4 +137,3 @@ export default function PaieIndexPage() {
     </div>
   );
 }
-

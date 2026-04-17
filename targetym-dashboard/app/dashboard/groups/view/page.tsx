@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -12,17 +12,14 @@ import {
   type GroupRecruitmentView, type GroupPersonnelView, type GroupMobilityView,
   type GroupKeyEmployee,
 } from '@/lib/api';
+import { useI18n } from '@/lib/i18n/I18nContext';
 
 // ============================================
 // TAB IDs
 // ============================================
 type TabId = 'recruitment' | 'personnel' | 'mobility';
 
-const TABS: { id: TabId; label: string; icon: React.FC<{ className?: string }> }[] = [
-  { id: 'recruitment', label: 'Recrutement', icon: UserPlus },
-  { id: 'personnel', label: 'Gestion du Personnel', icon: Users },
-  { id: 'mobility', label: 'Mobilité Interne', icon: ArrowLeftRight },
-];
+// TABS are built inside the component to access translations
 
 // ============================================
 // KPI CARD
@@ -109,6 +106,7 @@ function SubRow({ cells }: { cells: (string | number)[] }) {
 // KEY EMPLOYEE CARD
 // ============================================
 function KeyEmployeeCard({ emp }: { emp: GroupKeyEmployee }) {
+  const { t } = useI18n();
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col gap-3 hover:shadow-md transition-shadow">
       <div className="flex items-start gap-3">
@@ -125,8 +123,8 @@ function KeyEmployeeCard({ emp }: { emp: GroupKeyEmployee }) {
       {(emp.salary_category || emp.salaire_brut != null) && (
         <div className="text-xs text-gray-500 border-t border-gray-50 pt-2">
           {emp.salaire_brut != null
-            ? <><span className="font-medium text-gray-700">Salaire : </span>{emp.salaire_brut.toLocaleString('fr-FR')} XOF</>
-            : emp.salary_category && <><span className="font-medium text-gray-700">Catégorie : </span>{emp.salary_category}</>
+            ? <><span className="font-medium text-gray-700">{t.groups.salary} : </span>{emp.salaire_brut.toLocaleString('fr-FR')} XOF</>
+            : emp.salary_category && <><span className="font-medium text-gray-700">{t.groups.category} : </span>{emp.salary_category}</>
           }
         </div>
       )}
@@ -138,14 +136,15 @@ function KeyEmployeeCard({ emp }: { emp: GroupKeyEmployee }) {
 // TRANSFER STATUS BADGE
 // ============================================
 function TransferStatusBadge({ status }: { status: string }) {
+  const { t } = useI18n();
   if (status === 'completed') return (
     <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
-      <CheckCircle2 className="w-3 h-3" /> Terminé
+      <CheckCircle2 className="w-3 h-3" /> {t.groups.completed}
     </span>
   );
   if (status === 'pending') return (
     <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-      <Clock className="w-3 h-3" /> En cours
+      <Clock className="w-3 h-3" /> {t.groups.pending}
     </span>
   );
   return (
@@ -159,26 +158,27 @@ function TransferStatusBadge({ status }: { status: string }) {
 // RECRUITMENT TAB
 // ============================================
 function RecruitmentTab({ data }: { data: GroupRecruitmentView }) {
+  const { t } = useI18n();
   return (
     <div className="space-y-6">
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <KpiCard label="Postes ouverts" value={data.total_open_jobs} icon={Briefcase} color="bg-primary-100 text-primary-600" />
-        <KpiCard label="Candidatures" value={data.total_applications} icon={UserPlus} color="bg-teal-100 text-teal-600" />
-        <KpiCard label="Recrutements finalisés" value={data.total_hired} icon={UserCheck} color="bg-green-100 text-green-600" />
-        <KpiCard label="Taux de conversion" value={`${data.overall_conversion_rate}%`} icon={BarChart3} color="bg-amber-100 text-amber-600" />
+        <KpiCard label={t.groups.openPositions} value={data.total_open_jobs} icon={Briefcase} color="bg-indigo-100 text-indigo-600" />
+        <KpiCard label={t.groups.applications} value={data.total_applications} icon={UserPlus} color="bg-teal-100 text-teal-600" />
+        <KpiCard label={t.groups.hiredFinalized} value={data.total_hired} icon={UserCheck} color="bg-green-100 text-green-600" />
+        <KpiCard label={t.groups.conversionRate} value={`${data.overall_conversion_rate}%`} icon={BarChart3} color="bg-amber-100 text-amber-600" />
       </div>
 
       {/* Table par filiale */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100">
-          <h3 className="font-semibold text-gray-900">Détail par filiale</h3>
+          <h3 className="font-semibold text-gray-900">{t.groups.detailBySubsidiary}</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50">
-                {['Filiale', 'Postes ouverts', 'Candidatures', 'En cours', 'Engagés', 'Conversion'].map((h, i) => (
+                {[t.groups.subsidiary, t.groups.openPositions, t.groups.applications, t.groups.inProgress, t.groups.hired, t.groups.conversion].map((h, i) => (
                   <th key={h} className={`px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide ${i === 0 ? 'text-left' : 'text-right'}`}>
                     {h}
                   </th>
@@ -211,13 +211,14 @@ function RecruitmentTab({ data }: { data: GroupRecruitmentView }) {
 // EMPLOYEE DETAIL DRAWER
 // ============================================
 function EmployeeDetailDrawer({ emp, onClose }: { emp: GroupKeyEmployee; onClose: () => void }) {
+  const { t } = useI18n();
   return (
     <div className="fixed inset-0 z-50 flex" role="dialog" aria-modal="true">
       <div className="flex-1 bg-black/40" onClick={onClose} />
       <div className="w-80 bg-white h-full shadow-2xl overflow-y-auto flex flex-col">
         {/* Header */}
         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900">Profil Collaborateur</h2>
+          <h2 className="font-semibold text-gray-900">{t.groups.employeeProfile}</h2>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 transition-colors">
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -237,10 +238,10 @@ function EmployeeDetailDrawer({ emp, onClose }: { emp: GroupKeyEmployee; onClose
           )}
           {(emp.salary_category || emp.salaire_brut != null) && (
             <div className="w-full bg-gray-50 rounded-xl p-4 text-sm">
-              <p className="font-medium text-gray-700 mb-1">Rémunération</p>
+              <p className="font-medium text-gray-700 mb-1">{t.groups.remuneration}</p>
               {emp.salaire_brut != null
-                ? <p className="text-gray-600">{emp.salaire_brut.toLocaleString('fr-FR')} XOF / mois</p>
-                : <p className="text-gray-600">Catégorie : {emp.salary_category}</p>
+                ? <p className="text-gray-600">{emp.salaire_brut.toLocaleString('fr-FR')} XOF {t.groups.perMonth}</p>
+                : <p className="text-gray-600">{t.groups.category} : {emp.salary_category}</p>
               }
             </div>
           )}
@@ -254,20 +255,21 @@ function EmployeeDetailDrawer({ emp, onClose }: { emp: GroupKeyEmployee; onClose
 // PERSONNEL TAB
 // ============================================
 function PersonnelTab({ data, onSelectEmployee }: { data: GroupPersonnelView; onSelectEmployee: (emp: GroupKeyEmployee) => void }) {
+  const { t } = useI18n();
   return (
     <div className="space-y-6">
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        <KpiCard label="Collaborateurs actifs" value={data.total_active_employees} sub={`/ ${data.total_employees} au total`} icon={Users} color="bg-teal-100 text-teal-600" />
-        <KpiCard label="Total effectifs" value={data.total_employees} icon={Building2} color="bg-primary-100 text-primary-600" />
-        <KpiCard label="Congés en attente" value={data.total_pending_leaves} icon={Clock} color="bg-amber-100 text-amber-600" />
+        <KpiCard label={t.groups.activeEmployees} value={data.total_active_employees} sub={t.groups.ofTotal.replace('{n}', String(data.total_employees))} icon={Users} color="bg-teal-100 text-teal-600" />
+        <KpiCard label={t.groups.totalEmployees} value={data.total_employees} icon={Building2} color="bg-indigo-100 text-indigo-600" />
+        <KpiCard label={t.groups.pendingLeaves} value={data.total_pending_leaves} icon={Clock} color="bg-amber-100 text-amber-600" />
       </div>
 
       {/* Collaborateurs clés */}
       {data.key_employees.length > 0 && (
         <div>
           <h3 className="font-semibold text-gray-900 mb-3">
-            Collaborateurs clés
+            {t.groups.keyEmployees}
             <span className="ml-2 text-xs font-normal text-gray-400">({data.key_employees.length})</span>
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -287,13 +289,13 @@ function PersonnelTab({ data, onSelectEmployee }: { data: GroupPersonnelView; on
       {/* Table par filiale */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100">
-          <h3 className="font-semibold text-gray-900">Effectifs par filiale</h3>
+          <h3 className="font-semibold text-gray-900">{t.groups.staffBySubsidiary}</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50">
-                {['Filiale', 'Actifs', 'Total', 'Congés en attente', 'Départements'].map((h, i) => (
+                {[t.groups.subsidiary, t.groups.active, t.common.total, t.groups.pendingLeaves, t.groups.departments].map((h, i) => (
                   <th key={h} className={`px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide ${i === 0 ? 'text-left' : 'text-right'}`}>
                     {h}
                   </th>
@@ -319,30 +321,32 @@ function PersonnelTab({ data, onSelectEmployee }: { data: GroupPersonnelView; on
 // MOBILITY TAB
 // ============================================
 function MobilityTab({ data }: { data: GroupMobilityView; onInitiateTransfer: () => void }) {
+  const { t, locale } = useI18n();
+  const dateLocale = locale === 'en' ? 'en-US' : locale === 'pt' ? 'pt-BR' : 'fr-FR';
   return (
     <div className="space-y-6">
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        <KpiCard label="Transferts en cours" value={data.pending_transfers} icon={Clock} color="bg-amber-100 text-amber-600" />
-        <KpiCard label="Transferts réalisés" value={data.completed_transfers} icon={CheckCircle2} color="bg-green-100 text-green-600" />
-        <KpiCard label="Total transferts" value={data.total_transfers} icon={ArrowLeftRight} color="bg-primary-100 text-primary-600" />
+        <KpiCard label={t.groups.pendingTransfers} value={data.pending_transfers} icon={Clock} color="bg-amber-100 text-amber-600" />
+        <KpiCard label={t.groups.completedTransfers} value={data.completed_transfers} icon={CheckCircle2} color="bg-green-100 text-green-600" />
+        <KpiCard label={t.groups.totalTransfers} value={data.total_transfers} icon={ArrowLeftRight} color="bg-indigo-100 text-indigo-600" />
       </div>
 
       {/* Historique */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900">Historique des transferts</h3>
+          <h3 className="font-semibold text-gray-900">{t.groups.transferHistory}</h3>
         </div>
         {data.transfers.length === 0 ? (
           <div className="px-5 py-10 text-center text-gray-400 text-sm">
-            Aucun transfert enregistré
+            {t.groups.noTransfer}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50">
-                  {['Collaborateur', 'De', 'Vers', 'Date', 'Motif', 'Statut'].map((h, i) => (
+                  {[t.groups.employee, t.groups.from, t.groups.to, t.groups.date, t.groups.reason, t.groups.statusLabel].map((h, i) => (
                     <th key={h} className={`px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide ${i === 0 ? 'text-left' : i === 5 ? 'text-center' : 'text-left'}`}>
                       {h}
                     </th>
@@ -350,24 +354,24 @@ function MobilityTab({ data }: { data: GroupMobilityView; onInitiateTransfer: ()
                 </tr>
               </thead>
               <tbody>
-                {data.transfers.map(t => (
-                  <tr key={t.id} className="border-t border-gray-50 hover:bg-gray-50 transition-colors">
+                {data.transfers.map(tr => (
+                  <tr key={tr.id} className="border-t border-gray-50 hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <Avatar name={t.employee_name} photoUrl={t.photo_url} size={8} />
-                        <span className="text-sm font-medium text-gray-800">{t.employee_name}</span>
+                        <Avatar name={tr.employee_name} photoUrl={tr.photo_url} size={8} />
+                        <span className="text-sm font-medium text-gray-800">{tr.employee_name}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{t.from_subsidiary}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{tr.from_subsidiary}</td>
                     <td className="px-4 py-3 text-sm text-gray-600 flex items-center gap-1">
                       <ChevronRight className="w-3 h-3 text-gray-400" />
-                      {t.to_subsidiary}
+                      {tr.to_subsidiary}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">
-                      {t.transfer_date ? new Date(t.transfer_date).toLocaleDateString('fr-FR') : '—'}
+                      {tr.transfer_date ? new Date(tr.transfer_date).toLocaleDateString(dateLocale) : '\u2014'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500 max-w-[160px] truncate">{t.reason || '—'}</td>
-                    <td className="px-4 py-3 text-center"><TransferStatusBadge status={t.status} /></td>
+                    <td className="px-4 py-3 text-sm text-gray-500 max-w-[160px] truncate">{tr.reason || '\u2014'}</td>
+                    <td className="px-4 py-3 text-center"><TransferStatusBadge status={tr.status} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -385,8 +389,15 @@ function MobilityTab({ data }: { data: GroupMobilityView; onInitiateTransfer: ()
 export default function GroupViewPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { t } = useI18n();
   const activeTab: TabId = (searchParams.get('tab') as TabId | null) ?? 'recruitment';
   const setActiveTab = (tab: TabId) => router.push(`/dashboard/groups/view?tab=${tab}`);
+
+  const TABS: { id: TabId; label: string; icon: React.FC<{ className?: string }> }[] = [
+    { id: 'recruitment', label: t.groups.recruitment, icon: UserPlus },
+    { id: 'personnel', label: t.groups.personnel, icon: Users },
+    { id: 'mobility', label: t.groups.mobility, icon: ArrowLeftRight },
+  ];
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -408,7 +419,7 @@ export default function GroupViewPage() {
         setMobilityData(await getGroupViewMobility());
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Erreur lors du chargement');
+      setError(e instanceof Error ? e.message : t.groups.loadingError);
     } finally {
       setLoading(false);
     }
@@ -422,7 +433,7 @@ export default function GroupViewPage() {
       else if (activeTab === 'personnel') setPersonnelData(await getGroupViewPersonnel());
       else if (activeTab === 'mobility') setMobilityData(await getGroupViewMobility());
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Erreur');
+      setError(e instanceof Error ? e.message : t.groups.error);
     } finally {
       setLoading(false);
     }
@@ -432,15 +443,15 @@ export default function GroupViewPage() {
     loadTab(activeTab);
   }, [activeTab, loadTab]);
 
-  const groupName = recruitmentData?.group_name || personnelData?.group_name || mobilityData?.group_name || 'Groupe';
+  const groupName = recruitmentData?.group_name || personnelData?.group_name || mobilityData?.group_name || t.groups.group;
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Vue Groupe</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{groupName} — Données consolidées, lecture seule</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t.groups.title}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{groupName} — {t.groups.consolidatedData}</p>
         </div>
         <button
           onClick={refresh}
@@ -448,7 +459,7 @@ export default function GroupViewPage() {
           className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors shadow-sm"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Actualiser
+          {t.groups.refresh}
         </button>
       </div>
 

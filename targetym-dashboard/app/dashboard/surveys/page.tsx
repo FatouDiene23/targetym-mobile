@@ -1,7 +1,6 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import CustomSelect from '@/components/CustomSelect';
 import {
   Search, Plus, Loader2, X, ChevronLeft, ChevronRight,
   Calendar, Filter, Eye, Edit3, Play, Square, Archive,
@@ -11,6 +10,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
+import CustomSelect from '@/components/CustomSelect';
+import { useI18n } from '@/lib/i18n/I18nContext';
 import { fetchWithAuth, API_URL, getDepartments, getEmployees, type Employee } from '@/lib/api';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -107,17 +108,17 @@ interface Department {
 const STATUS_COLORS: Record<string, { label: string; color: string }> = {
   brouillon: { label: 'Brouillon', color: 'bg-gray-100 text-gray-700' },
   active: { label: 'Active', color: 'bg-green-100 text-green-700' },
-  cloturee: { label: 'Clôturée', color: 'bg-primary-100 text-primary-700' },
+  cloturee: { label: 'Clôturée', color: 'bg-blue-100 text-blue-700' },
   archivee: { label: 'Archivée', color: 'bg-red-100 text-red-700' },
 };
 
 const TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  pulse: { label: 'Enquête Flash', color: 'bg-primary-100 text-primary-700' },
+  pulse: { label: 'Enquête Flash', color: 'bg-blue-100 text-blue-700' },
   ad_hoc: { label: 'Moments Clés', color: 'bg-orange-100 text-orange-700' },
   moments_cles: { label: 'Moments Clés', color: 'bg-orange-100 text-orange-700' },
   thematique: { label: 'Thématique', color: 'bg-purple-100 text-purple-700' },
   annuelle: { label: 'Enquête Annuelle', color: 'bg-green-100 text-green-700' },
-  feedback_managerial: { label: 'Feedback Managérial', color: 'bg-primary-100 text-primary-700' },
+  feedback_managerial: { label: 'Feedback Managérial', color: 'bg-indigo-100 text-indigo-700' },
 };
 
 const FREQUENCY_LABELS: Record<string, string> = {
@@ -160,6 +161,7 @@ const BAR_COLOR = '#066C6C';
 // ── Component ───────────────────────────────────────────────────────────────
 
 export default function SurveysPage() {
+  const { t } = useI18n();
   // Auth
   const [userRole, setUserRole] = useState('');
 
@@ -311,7 +313,7 @@ export default function SurveysPage() {
           options: q.options || [],
           is_required: q.is_required,
         })));
-        toast.success(`Template "${data.title}" chargé — ${data.questions.length} questions pré-remplies`);
+        toast.success(`${t.surveys.toastTemplateLoaded} "${data.title}" — ${data.questions.length} ${t.surveys.questionsPreloaded}`);
         setCreateStep(2);
       }
     } catch (err: any) {
@@ -376,7 +378,7 @@ export default function SurveysPage() {
   const saveTemplateConfig = async () => {
     if (!configuringTemplate) return;
     if (configQuestions.some(q => !q.question_text.trim())) {
-      toast.error('Toutes les questions doivent avoir un texte');
+      toast.error(t.surveys.toastQuestionsNeedText);
       return;
     }
     setSavingConfig(true);
@@ -444,9 +446,9 @@ export default function SurveysPage() {
       }
 
       if (!backendSupportsQuestionEdits && (deletedIds.length > 0 || configQuestions.some(q => !q.id) || configQuestions.length !== originals.length)) {
-        toast.success('Configuration sauvegardée. Pour modifier les questions, contactez l\'administrateur.');
+        toast.success(t.surveys.toastConfigSavedContactAdmin);
       } else {
-        toast.success('Configuration sauvegardée');
+        toast.success(t.surveys.toastConfigSaved);
       }
       setShowConfigureModal(false);
       loadTemplates();
@@ -548,9 +550,9 @@ export default function SurveysPage() {
   };
 
   const handleCreate = async () => {
-    if (!formData.title.trim()) { toast.error('Le titre est obligatoire'); return; }
-    if (formQuestions.length === 0) { toast.error('Ajoutez au moins une question'); return; }
-    if (formQuestions.some(q => !q.question_text.trim())) { toast.error('Toutes les questions doivent avoir un texte'); return; }
+    if (!formData.title.trim()) { toast.error(t.surveys.toastTitleRequired); return; }
+    if (formQuestions.length === 0) { toast.error(t.surveys.toastAddQuestion); return; }
+    if (formQuestions.some(q => !q.question_text.trim())) { toast.error(t.surveys.toastQuestionsNeedText); return; }
 
     setCreating(true);
     try {
@@ -603,12 +605,12 @@ export default function SurveysPage() {
       if (createStep === 4) {
         try {
           await apiFetch(`/api/surveys/${survey.id}/activate`, { method: 'POST' });
-          toast.success('Enquête créée et activée');
+          toast.success(t.surveys.toastCreatedActivated);
         } catch {
-          toast.success('Enquête créée en brouillon');
+          toast.success(t.surveys.toastCreatedDraft);
         }
       } else {
-        toast.success('Enquête créée en brouillon');
+        toast.success(t.surveys.toastCreatedDraft);
       }
 
       setShowCreateModal(false);
@@ -625,7 +627,7 @@ export default function SurveysPage() {
   const activateSurvey = async (id: number) => {
     try {
       await apiFetch(`/api/surveys/${id}/activate`, { method: 'POST' });
-      toast.success('Enquête activée');
+      toast.success(t.surveys.toastActivated);
       loadSurveys();
       if (selectedSurvey?.id === id) openDetail(id);
     } catch (err: any) {
@@ -636,7 +638,7 @@ export default function SurveysPage() {
   const closeSurvey = async (id: number) => {
     try {
       await apiFetch(`/api/surveys/${id}/close`, { method: 'POST' });
-      toast.success('Enquête clôturée');
+      toast.success(t.surveys.toastClosed);
       loadSurveys();
       if (selectedSurvey?.id === id) openDetail(id);
     } catch (err: any) {
@@ -647,7 +649,7 @@ export default function SurveysPage() {
   const archiveSurvey = async (id: number) => {
     try {
       await apiFetch(`/api/surveys/${id}`, { method: 'DELETE' });
-      toast.success('Enquête archivée');
+      toast.success(t.surveys.toastArchived);
       if (selectedSurvey?.id === id) setSelectedSurvey(null);
       loadSurveys();
     } catch (err: any) {
@@ -669,7 +671,7 @@ export default function SurveysPage() {
       <div className="p-6 max-w-6xl mx-auto space-y-6">
         {/* Back button */}
         <button onClick={() => setSelectedSurvey(null)} className="flex items-center gap-2 text-gray-500 hover:text-gray-700 text-sm">
-          <ChevronLeft className="w-4 h-4" /> Retour aux enquêtes
+          <ChevronLeft className="w-4 h-4" /> {t.surveys.backToSurveys}
         </button>
 
         {/* Header */}
@@ -686,7 +688,7 @@ export default function SurveysPage() {
                 </span>
               </div>
               {selectedSurvey.description && <p className="mt-2 text-gray-600">{selectedSurvey.description}</p>}
-              <div className="flex items-center gap-6 mt-3 text-sm text-gray-500">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-3 text-sm text-gray-500">
                 {selectedSurvey.start_date && <span className="flex items-center gap-1"><Calendar className="w-4 h-4" /> Du {selectedSurvey.start_date}</span>}
                 {selectedSurvey.end_date && <span>au {selectedSurvey.end_date}</span>}
                 <span className="flex items-center gap-1"><Users className="w-4 h-4" /> {selectedSurvey.completed_responses}/{selectedSurvey.total_responses} réponses</span>
@@ -726,9 +728,9 @@ export default function SurveysPage() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                {tab === 'questions' && 'Questions'}
-                {tab === 'results' && 'Résultats'}
-                {tab === 'responses' && 'Réponses'}
+                {tab === 'questions' && t.surveys.questionsTab}
+                {tab === 'results' && t.surveys.resultsTab}
+                {tab === 'responses' && t.surveys.responsesTab}
               </button>
             ))}
           </nav>
@@ -785,7 +787,7 @@ export default function SurveysPage() {
                             <XAxis dataKey="name" />
                             <YAxis allowDecimals={false} label={{ value: 'Réponses', angle: -90, position: 'insideLeft' }} />
                             <Tooltip formatter={(value: number) => [`${value} réponses`, '']} />
-                            <Bar dataKey="count" name="Réponses" fill={BAR_COLOR} radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="count" name={t.surveys.answersLabel} fill={BAR_COLOR} radius={[4, 4, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -824,7 +826,7 @@ export default function SurveysPage() {
                           <XAxis type="number" allowDecimals={false} label={{ value: 'Réponses', position: 'insideBottom', offset: -5 }} />
                           <YAxis type="category" dataKey="name" width={150} />
                           <Tooltip formatter={(value: number) => [`${value} réponses`, '']} />
-                          <Bar dataKey="count" name="Réponses" fill={BAR_COLOR} radius={[0, 4, 4, 0]} />
+                          <Bar dataKey="count" name={t.surveys.answersLabel} fill={BAR_COLOR} radius={[0, 4, 4, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     )}
@@ -891,12 +893,12 @@ export default function SurveysPage() {
 
   return (
     <>
-    <Header title="Enquêtes" subtitle="Gestion des enquêtes et moments clés" />
+    <Header title={t.surveys.title} subtitle={t.surveys.subtitle} />
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-end">
         {isAdminOrRH && (
           <button onClick={openCreateModal} className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 flex items-center gap-2 text-sm font-medium">
-            <Plus className="w-4 h-4" /> Nouvelle enquête
+            <Plus className="w-4 h-4" /> {t.surveys.newSurvey}
           </button>
         )}
       </div>
@@ -908,7 +910,7 @@ export default function SurveysPage() {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Rechercher une enquête..."
+              placeholder={t.surveys.searchPlaceholder}
               value={searchText}
               onChange={e => setSearchText(e.target.value)}
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
@@ -917,29 +919,27 @@ export default function SurveysPage() {
           <CustomSelect
             value={filterType}
             onChange={v => { setFilterType(v); setPage(1); }}
-            placeholder="Tous les types"
-            className="min-w-[160px]"
             options={[
-              { value: '', label: 'Tous les types' },
-              { value: 'pulse', label: 'Enquête Flash' },
-              { value: 'moments_cles', label: 'Moments Clés' },
-              { value: 'thematique', label: 'Thématique' },
-              { value: 'annuelle', label: 'Enquête Annuelle' },
-              { value: 'feedback_managerial', label: 'Feedback Managérial' },
+              { value: '', label: t.surveys.allTypes },
+              { value: 'pulse', label: t.surveys.flashSurvey },
+              { value: 'moments_cles', label: t.surveys.keyMoments },
+              { value: 'thematique', label: t.surveys.thematic },
+              { value: 'annuelle', label: t.surveys.annualSurvey },
+              { value: 'feedback_managerial', label: t.surveys.managerialFeedback },
             ]}
+            className="min-w-[160px]"
           />
           <CustomSelect
             value={filterStatus}
             onChange={v => { setFilterStatus(v); setPage(1); }}
-            placeholder="Tous les statuts"
-            className="min-w-[150px]"
             options={[
-              { value: '', label: 'Tous les statuts' },
-              { value: 'brouillon', label: 'Brouillon' },
-              { value: 'active', label: 'Active' },
-              { value: 'cloturee', label: 'Clôturée' },
-              { value: 'archivee', label: 'Archivée' },
+              { value: '', label: t.surveys.allStatuses },
+              { value: 'brouillon', label: t.surveys.draft },
+              { value: 'active', label: t.surveys.activeSurvey },
+              { value: 'cloturee', label: t.surveys.closed },
+              { value: 'archivee', label: t.surveys.archivedSurvey },
             ]}
+            className="min-w-[140px]"
           />
         </div>
       </div>
@@ -950,8 +950,8 @@ export default function SurveysPage() {
           <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-3">
             <Zap className="w-5 h-5 text-orange-500" />
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Déclencheurs Automatiques</h2>
-              <p className="text-sm text-gray-500">Enquêtes envoyées automatiquement lors des moments clés du parcours collaborateur</p>
+              <h2 className="text-lg font-semibold text-gray-900">{t.surveys.autoTriggers}</h2>
+              <p className="text-sm text-gray-500">{t.surveys.autoTriggersDesc}</p>
             </div>
           </div>
           {loadingTemplates ? (
@@ -998,10 +998,10 @@ export default function SurveysPage() {
                     )}
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         onClick={() => openConfigureModal(tpl)}
-                        className="flex-1 px-3 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 flex items-center justify-center gap-1.5"
+                        className="flex-1 min-w-[120px] px-3 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 flex items-center justify-center gap-1.5"
                       >
                         <Settings className="w-4 h-4" /> Configurer
                       </button>
@@ -1042,19 +1042,19 @@ export default function SurveysPage() {
         ) : filteredSurveys.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
             <BarChart3 className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p className="font-medium">Aucune enquête</p>
-            <p className="text-sm mt-1">Créez votre première enquête pour commencer</p>
+            <p className="font-medium">{t.surveys.noSurvey}</p>
+            <p className="text-sm mt-1">{t.surveys.createFirstSurvey}</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-500 text-left">
               <tr>
-                <th className="px-4 py-3 font-medium">Titre</th>
-                <th className="px-4 py-3 font-medium">Type</th>
-                <th className="px-4 py-3 font-medium">Statut</th>
-                <th className="px-4 py-3 font-medium">Fréquence</th>
-                <th className="px-4 py-3 font-medium">Date fin</th>
-                <th className="px-4 py-3 font-medium text-right">Actions</th>
+                <th className="px-4 py-3 font-medium">{t.surveys.titleCol}</th>
+                <th className="px-4 py-3 font-medium">{t.surveys.typeCol}</th>
+                <th className="px-4 py-3 font-medium">{t.surveys.statusCol}</th>
+                <th className="px-4 py-3 font-medium">{t.surveys.frequencyCol}</th>
+                <th className="px-4 py-3 font-medium">{t.surveys.endDateCol}</th>
+                <th className="px-4 py-3 font-medium text-right">{t.surveys.actionsCol}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -1075,21 +1075,21 @@ export default function SurveysPage() {
                   <td className="px-4 py-3 text-gray-500">{s.end_date ? new Date(s.end_date).toLocaleDateString('fr-FR') : '—'}</td>
                   <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => openDetail(s.id)} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100" title="Voir">
+                      <button onClick={() => openDetail(s.id)} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100" title={t.common.details}>
                         <Eye className="w-4 h-4" />
                       </button>
                       {s.status === 'brouillon' && isAdminOrRH && (
-                        <button onClick={() => activateSurvey(s.id)} className="p-1.5 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50" title="Activer">
+                        <button onClick={() => activateSurvey(s.id)} className="p-1.5 text-green-500 hover:text-green-700 rounded-lg hover:bg-green-50" title={t.surveys.activate}>
                           <Play className="w-4 h-4" />
                         </button>
                       )}
                       {s.status === 'active' && isAdminOrRH && (
-                        <button onClick={() => closeSurvey(s.id)} className="p-1.5 text-primary-500 hover:text-primary-700 rounded-lg hover:bg-primary-50" title="Clôturer">
+                        <button onClick={() => closeSurvey(s.id)} className="p-1.5 text-primary-500 hover:text-primary-700 rounded-lg hover:bg-primary-50" title={t.surveys.closeSurvey}>
                           <Square className="w-4 h-4" />
                         </button>
                       )}
                       {isAdminOrRH && (
-                        <button onClick={() => archiveSurvey(s.id)} className="p-1.5 text-red-400 hover:text-red-600 rounded-lg hover:bg-red-50" title="Archiver">
+                        <button onClick={() => archiveSurvey(s.id)} className="p-1.5 text-red-400 hover:text-red-600 rounded-lg hover:bg-red-50" title={t.surveys.archivedSurvey}>
                           <Archive className="w-4 h-4" />
                         </button>
                       )}
@@ -1124,7 +1124,7 @@ export default function SurveysPage() {
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Nouvelle enquête — Étape {createStep}/4</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{t.surveys.newSurveyStep} {createStep}/4</h2>
               <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
             </div>
 
@@ -1145,22 +1145,22 @@ export default function SurveysPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                    <CustomSelect
+                    <select
                       value={formData.survey_type}
-                      onChange={newType => {
+                      onChange={e => {
+                        const newType = e.target.value;
                         const freqConfig = FREQUENCY_BY_TYPE[newType] || FREQUENCY_BY_TYPE.pulse;
                         setFormData({ ...formData, survey_type: newType, frequency: freqConfig.default });
                         if (newType === 'moments_cles') loadTemplates();
                       }}
-                      placeholder="Type"
-                      options={[
-                        { value: 'pulse', label: 'Enquête Flash' },
-                        { value: 'moments_cles', label: 'Moments Clés' },
-                        { value: 'thematique', label: 'Thématique' },
-                        { value: 'annuelle', label: 'Enquête Annuelle' },
-                        { value: 'feedback_managerial', label: 'Feedback Managérial' },
-                      ]}
-                    />
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    >
+                      <option value="pulse">Enquête Flash</option>
+                      <option value="moments_cles">Moments Clés</option>
+                      <option value="thematique">Thématique</option>
+                      <option value="annuelle">Enquête Annuelle</option>
+                      <option value="feedback_managerial">Feedback Managérial</option>
+                    </select>
                     {formData.survey_type === 'moments_cles' && (
                       <p className="mt-1 text-xs text-orange-600">Templates préconfigurés disponibles</p>
                     )}
@@ -1211,13 +1211,14 @@ export default function SurveysPage() {
                     {(() => {
                       const freqConfig = FREQUENCY_BY_TYPE[formData.survey_type] || FREQUENCY_BY_TYPE.pulse;
                       return (
-                        <CustomSelect
+                        <select
                           value={formData.frequency}
-                          onChange={v => setFormData({ ...formData, frequency: v })}
+                          onChange={e => setFormData({ ...formData, frequency: e.target.value })}
                           disabled={freqConfig.locked}
-                          placeholder="Fréquence"
-                          options={freqConfig.options.map(k => ({ value: k, label: FREQUENCY_LABELS[k] || k }))}
-                        />
+                          className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 ${freqConfig.locked ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+                        >
+                          {freqConfig.options.map(k => <option key={k} value={k}>{FREQUENCY_LABELS[k] || k}</option>)}
+                        </select>
                       );
                     })()}
                   </div>
@@ -1259,13 +1260,9 @@ export default function SurveysPage() {
                         </div>
                         <input type="text" value={q.question_text} onChange={e => updateQuestion(idx, 'question_text', e.target.value)} placeholder="Texte de la question" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
                         <div className="flex items-center gap-4">
-                          <CustomSelect
-                            value={q.question_type}
-                            onChange={v => updateQuestion(idx, 'question_type', v)}
-                            placeholder="Type"
-                            className="min-w-[140px]"
-                            options={Object.entries(QUESTION_TYPE_LABELS).map(([k, v]) => ({ value: k, label: v }))}
-                          />
+                          <select value={q.question_type} onChange={e => updateQuestion(idx, 'question_type', e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
+                            {Object.entries(QUESTION_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                          </select>
                           <label className="flex items-center gap-2 text-sm text-gray-600">
                             <input type="checkbox" checked={q.is_required} onChange={e => updateQuestion(idx, 'is_required', e.target.checked)} className="rounded border-gray-300 text-primary-500 focus:ring-primary-500" />
                             Obligatoire
@@ -1292,7 +1289,7 @@ export default function SurveysPage() {
               {/* Step 3 — Targets */}
               {createStep === 3 && (
                 <>
-                  <h3 className="font-medium text-gray-900">Cibles de l&apos;enquête</h3>
+                  <h3 className="font-medium text-gray-900">{t.surveys.surveyTargets}</h3>
                   <div className="space-y-3">
                     {(['all', 'department', 'employee'] as const).map(mode => (
                       <button
@@ -1302,9 +1299,9 @@ export default function SurveysPage() {
                           targetMode === mode ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'
                         }`}
                       >
-                        {mode === 'all' && 'Tous les employés'}
-                        {mode === 'department' && 'Par département'}
-                        {mode === 'employee' && 'Employés spécifiques'}
+                        {mode === 'all' && t.surveys.allEmployees}
+                        {mode === 'department' && t.surveys.byDepartment}
+                        {mode === 'employee' && t.surveys.specificEmployees}
                       </button>
                     ))}
                   </div>
@@ -1354,7 +1351,7 @@ export default function SurveysPage() {
               {/* Step 4 — Summary */}
               {createStep === 4 && (
                 <>
-                  <h3 className="font-medium text-gray-900">Résumé</h3>
+                  <h3 className="font-medium text-gray-900">{t.surveys.summary}</h3>
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between border-b border-gray-100 pb-2">
                       <span className="text-gray-500">Titre</span>
@@ -1391,7 +1388,7 @@ export default function SurveysPage() {
                       </div>
                     )}
                   </div>
-                  <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 text-sm text-primary-700">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
                     En cliquant &quot;Créer &amp; Activer&quot;, l&apos;enquête sera envoyée aux employés ciblés.
                   </div>
                 </>
@@ -1404,24 +1401,24 @@ export default function SurveysPage() {
                 onClick={() => { if (createStep > 1) setCreateStep(createStep - 1); else setShowCreateModal(false); }}
                 className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm"
               >
-                {createStep === 1 ? 'Annuler' : 'Précédent'}
+                {createStep === 1 ? t.surveys.cancel : t.surveys.previous}
               </button>
               <div className="flex gap-2">
                 {createStep < 4 ? (
                   <button
                     onClick={() => {
-                      if (createStep === 1 && !formData.title.trim()) { toast.error('Le titre est obligatoire'); return; }
-                      if (createStep === 2 && formQuestions.length === 0) { toast.error('Ajoutez au moins une question'); return; }
+                      if (createStep === 1 && !formData.title.trim()) { toast.error(t.surveys.toastTitleRequired); return; }
+                      if (createStep === 2 && formQuestions.length === 0) { toast.error(t.surveys.toastAddQuestion); return; }
                       setCreateStep(createStep + 1);
                     }}
                     className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm font-medium"
                   >
-                    Suivant
+                    {t.surveys.next}
                   </button>
                 ) : (
                   <>
                     <button onClick={() => { setCreateStep(0); handleCreate(); }} disabled={creating} className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 disabled:opacity-50">
-                      {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Enregistrer brouillon'}
+                      {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : t.surveys.saveDraft}
                     </button>
                     <button onClick={handleCreate} disabled={creating} className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm font-medium flex items-center gap-1 disabled:opacity-50">
                       {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Play className="w-4 h-4" /> Créer &amp; Activer</>}
@@ -1506,13 +1503,15 @@ export default function SurveysPage() {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         />
                         <div className="flex items-center gap-4">
-                          <CustomSelect
+                          <select
                             value={q.question_type}
-                            onChange={v => updateConfigQuestion(idx, 'question_type', v)}
-                            placeholder="Type"
-                            className="min-w-[140px]"
-                            options={Object.entries(QUESTION_TYPE_LABELS).map(([k, v]) => ({ value: k, label: v }))}
-                          />
+                            onChange={e => updateConfigQuestion(idx, 'question_type', e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                          >
+                            {Object.entries(QUESTION_TYPE_LABELS).map(([k, v]) => (
+                              <option key={k} value={k}>{v}</option>
+                            ))}
+                          </select>
                           <label className="flex items-center gap-2 text-sm text-gray-600">
                             <input
                               type="checkbox"

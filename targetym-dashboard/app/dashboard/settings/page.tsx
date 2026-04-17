@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Header from '@/components/Header';
 import { useState, useEffect, useCallback } from 'react';
@@ -31,6 +31,7 @@ import {
   Lock,
   Eye,
   EyeOff,
+  ShieldOff,
 } from 'lucide-react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
@@ -39,9 +40,13 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { usePlan, PLAN_LABELS, PLAN_LEVEL, PLAN_PRICING } from '@/hooks/usePlan';
 import { UpgradeModal } from '@/components/PlanGate';
 import SignatureCanvas from '@/components/SignatureCanvas';
+import { useI18n } from '@/lib/i18n/I18nContext';
 import { getIntegrations, connectIntegration, disconnectIntegration, syncIntegration, type Integration,
   requestGroupConversion, getMyConversionRequestStatus, getMyGroupContext, createMySubsidiary,
   type ConversionRequestItem, type SubsidiaryItem } from '@/lib/api';
+import LicensesTab from '@/components/LicensesTab';
+import { useLicenseStatus } from '@/hooks/useLicenseStatus';
+import { KeyRound } from 'lucide-react';
 
 const GROUP_BASE_PRICE = 100_000;       // XOF/mois
 const GROUP_PRICE_PER_SUB = 30_000;    // XOF/mois par filiale
@@ -55,7 +60,7 @@ type GroupQuotaState = {
   remaining: number;
 };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 function getAuthHeaders(): HeadersInit {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
@@ -81,6 +86,7 @@ const PROVIDER_LETTERS: Record<string, string> = {
 // COMPOSANT : Intégration IntoWork
 // ============================================
 function IntoWorkIntegrationSection() {
+  const { t } = useI18n();
   const [status, setStatus] = useState<{ linked: boolean; intowork_company_id?: number; linked_at?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLinking, setIsLinking] = useState(false);
@@ -136,9 +142,9 @@ function IntoWorkIntegrationSection() {
       const data = await r.json();
       setTargetymKey(data.api_key);
       setTargetymKeyPreview(data.api_key.slice(0, 8) + '****');
-      toast.success('Clé générée — copiez-la dans IntoWork');
+      toast.success(t.settings.toastKeyGenerated);
     } catch {
-      toast.error('Erreur lors de la génération');
+      toast.error(t.settings.toastKeyGenError);
     } finally {
       setIsGenerating(false);
     }
@@ -152,7 +158,7 @@ function IntoWorkIntegrationSection() {
   };
 
   const handleLink = async () => {
-    if (!companyId || !intoworkApiKey) { toast.error('Veuillez remplir tous les champs'); return; }
+    if (!companyId || !intoworkApiKey) { toast.error(t.settings.toastFillAllFields); return; }
     setIsLinking(true);
     try {
       const r = await fetch(`${API_URL}/api/integrations/intowork/link`, {
@@ -163,10 +169,10 @@ function IntoWorkIntegrationSection() {
       if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
       const data = await r.json();
       setStatus({ linked: true, intowork_company_id: data.intowork_company_id, linked_at: data.linked_at });
-      toast.success('✅ Compte IntoWork lié avec succès !');
+      toast.success(t.settings.toastLinkedSuccess);
       setCompanyId(''); setIntoworkApiKey('');
     } catch (e: any) {
-      toast.error(e.message || 'Erreur de liaison');
+      toast.error(e.message || t.settings.toastLinkError);
     } finally {
       setIsLinking(false);
     }
@@ -178,17 +184,17 @@ function IntoWorkIntegrationSection() {
       const r = await fetch(`${API_URL}/api/integrations/intowork/sync-jobs`, {
         method: 'POST', headers: getAuthHeaders(),
       });
-      if (!r.ok) throw new Error((await r.json()).detail || 'Erreur');
+      if (!r.ok) throw new Error((await r.json()).detail || t.common.error);
       const data = await r.json();
       if (data.synced === 0 && data.total === 0) {
-        toast('Aucun poste actif à synchroniser', { icon: 'ℹ️' });
+        toast(t.settings.toastNoJobToSync, { icon: 'ℹ️' });
       } else if (data.failed > 0) {
-        toast.error(`${data.synced} synchronisé(s), ${data.failed} échec(s)`);
+        toast.error(`${data.synced} ${t.settings.toastSyncPartial} ${data.failed} ${t.settings.toastSyncFailed}`);
       } else {
-        toast.success(`✅ ${data.synced} poste(s) synchronisé(s) vers IntoWork`);
+        toast.success(`${data.synced} ${t.settings.toastSyncSuccess}`);
       }
     } catch (e: any) {
-      toast.error(e.message || 'Erreur de synchronisation');
+      toast.error(e.message || t.settings.toastSyncError);
     } finally {
       setIsSyncing(false);
     }
@@ -211,21 +217,21 @@ function IntoWorkIntegrationSection() {
             <h4 className="font-semibold text-gray-900 text-base">IntoWork Search</h4>
                   {myTenantId && (
                     <div className="mt-1 flex items-center gap-2">
-                      <span className="text-xs text-gray-500">Votre Tenant ID Targetym :</span>
+                      <span className="text-xs text-gray-500">{t.settings.yourTenantId}</span>
                       <span className="font-mono font-bold text-primary-700 bg-primary-50 px-2 py-0.5 rounded text-sm select-all">#{myTenantId}</span>
-                      <span className="text-xs text-gray-400">(à donner au RH IntoWork)</span>
+                      <span className="text-xs text-gray-400">{t.settings.giveToHr}</span>
                     </div>
                   )}
-            <p className="text-xs text-gray-500">Plateforme de recrutement B2B2C</p>
+            <p className="text-xs text-gray-500">{t.settings.recruitmentPlatform}</p>
           </div>
         </div>
         {status?.linked ? (
           <span className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-            <Check className="w-3.5 h-3.5" /> Liés
+            <Check className="w-3.5 h-3.5" /> {t.settings.linked}
           </span>
         ) : (
           <span className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">
-            Non lié
+            {t.settings.notLinked}
           </span>
         )}
       </div>
@@ -233,11 +239,11 @@ function IntoWorkIntegrationSection() {
         {status?.linked ? (
           <>
             <div className="p-4 bg-green-50 rounded-xl border border-green-200 text-sm text-gray-700 space-y-1">
-              <p><span className="text-gray-500">Company IntoWork :</span> <span className="font-medium">#{status.intowork_company_id}</span></p>
-              <p><span className="text-gray-500">Lié le :</span> <span className="font-medium">{status.linked_at ? new Date(status.linked_at).toLocaleDateString('fr-FR') : '—'}</span></p>
+              <p><span className="text-gray-500">{t.settings.intoworkCompany}</span> <span className="font-medium">#{status.intowork_company_id}</span></p>
+              <p><span className="text-gray-500">{t.settings.linkedOn}</span> <span className="font-medium">{status.linked_at ? new Date(status.linked_at).toLocaleDateString() : '—'}</span></p>
             </div>
             <div className="space-y-2">
-              {['Candidats embauchés → Employés créés automatiquement', 'Postes ouverts synchronisés vers IntoWork'].map((f, i) => (
+              {[t.settings.candidatesHired, t.settings.jobsSynced].map((f, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm text-gray-700">
                   <div className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
                     <Check className="w-2.5 h-2.5 text-green-600" />
@@ -247,10 +253,10 @@ function IntoWorkIntegrationSection() {
               ))}
             </div>
             <button onClick={handleSyncJobs} disabled={isSyncing} className="w-full py-2 text-sm font-medium rounded-lg bg-primary-50 text-primary-700 hover:bg-primary-100 border border-primary-200 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-              {isSyncing ? <><Loader2 className="w-4 h-4 animate-spin" />Synchronisation...</> : <><RefreshCw className="w-4 h-4" />Synchroniser les offres maintenant</>}
+              {isSyncing ? <><Loader2 className="w-4 h-4 animate-spin" />{t.settings.syncing}</> : <><RefreshCw className="w-4 h-4" />{t.settings.syncJobsNow}</>}
             </button>
             <button onClick={handleUnlink} disabled={isUnlinking} className="w-full py-2 text-sm font-medium rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition-colors disabled:opacity-50">
-              {isUnlinking ? 'Suppression...' : 'Délier IntoWork'}
+              {isUnlinking ? t.settings.deleting : t.settings.unlinkIntowork}
             </button>
           </>
         ) : (
@@ -258,25 +264,25 @@ function IntoWorkIntegrationSection() {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full bg-primary-500 text-white text-xs flex items-center justify-center font-bold flex-shrink-0">1</span>
-                <p className="text-sm font-medium text-gray-800">Générez votre clé API Targetym</p>
+                <p className="text-sm font-medium text-gray-800">{t.settings.generateApiKey}</p>
               </div>
-              <p className="text-xs text-gray-500 ml-7">Copiez cette clé et collez-la dans IntoWork (Dashboard → Intégrations → Targetym).</p>
+              <p className="text-xs text-gray-500 ml-7">{t.settings.generateApiKeyDesc}</p>
               {targetymKey ? (
                 <div className="ml-7 flex items-center gap-2">
                   <code className="flex-1 px-3 py-2 bg-gray-800 text-green-400 rounded-lg text-xs font-mono truncate">{targetymKey}</code>
                   <button onClick={handleCopy} className="px-3 py-2 text-xs font-medium rounded-lg bg-primary-100 text-primary-700 hover:bg-primary-200 transition-colors flex items-center gap-1 flex-shrink-0">
-                    {copied ? <><Check className="w-3.5 h-3.5" />Copié !</> : 'Copier'}
+                    {copied ? <><Check className="w-3.5 h-3.5" />{t.settings.copied}</> : t.settings.copy}
                   </button>
                 </div>
               ) : targetymKeyPreview ? (
                 <div className="ml-7 flex items-center gap-2 text-xs text-gray-500">
                   <code className="px-3 py-1.5 bg-gray-100 rounded-lg font-mono">{targetymKeyPreview}</code>
-                  <span>— Régénérez si besoin</span>
+                  <span>{t.settings.regenerateIfNeeded}</span>
                 </div>
               ) : null}
               <div className="ml-7">
                 <button onClick={handleGenerateKey} disabled={isGenerating} className="px-4 py-2 text-sm font-medium rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors disabled:opacity-50 flex items-center gap-2">
-                  {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin" />Génération...</> : targetymKeyPreview ? '🔄 Régénérer la clé' : '⚡ Générer la clé API'}
+                  {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin" />{t.settings.generating}</> : targetymKeyPreview ? `🔄 ${t.settings.regenerateKey}` : `⚡ ${t.settings.generateKey}`}
                 </button>
               </div>
             </div>
@@ -284,24 +290,24 @@ function IntoWorkIntegrationSection() {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <span className="w-5 h-5 rounded-full bg-primary-500 text-white text-xs flex items-center justify-center font-bold flex-shrink-0">2</span>
-                <p className="text-sm font-medium text-gray-800">Entrez les informations IntoWork</p>
+                <p className="text-sm font-medium text-gray-800">{t.settings.enterIntoworkInfo}</p>
               </div>
-              <p className="text-xs text-gray-500 ml-7">Récupérez votre ID Company et votre clé API depuis IntoWork → Intégrations → Targetym.</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <p className="text-xs text-gray-500 ml-7">{t.settings.enterIntoworkInfoDesc}</p>
+              <div className="ml-7 grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">ID Company IntoWork</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">{t.settings.intoworkCompanyId}</label>
                   <input type="number" value={companyId} onChange={(e) => setCompanyId(e.target.value)} placeholder="ex: 12" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Clé API IntoWork</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">{t.settings.intoworkApiKey}</label>
                   <input type="text" value={intoworkApiKey} onChange={(e) => setIntoworkApiKey(e.target.value)} placeholder="iw_..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none font-mono" />
                 </div>
               </div>
               <div className="ml-7">
                 <button onClick={handleLink} disabled={isLinking || !companyId || !intoworkApiKey || !targetymKeyPreview} className="px-4 py-2.5 text-sm font-medium rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-                  {isLinking ? <><Loader2 className="w-4 h-4 animate-spin" />Liaison...</> : <><Link2 className="w-4 h-4" />Lier les comptes</>}
+                  {isLinking ? <><Loader2 className="w-4 h-4 animate-spin" />{t.settings.linking}</> : <><Link2 className="w-4 h-4" />{t.settings.linkAccounts}</>}
                 </button>
-                {!targetymKeyPreview && <p className="text-xs text-amber-600 mt-1">⚠ Générez d'abord la clé API (étape 1)</p>}
+                {!targetymKeyPreview && <p className="text-xs text-amber-600 mt-1">⚠ {t.settings.generateKeyFirst}</p>}
               </div>
             </div>
           </>
@@ -310,10 +316,10 @@ function IntoWorkIntegrationSection() {
       {confirmUnlink && (
         <ConfirmDialog
           isOpen={confirmUnlink}
-          title="Supprimer la liaison IntoWork"
-          message="Confirmer la suppression de la liaison avec IntoWork ?"
+          title={t.settings.deleteIntoworkLink}
+          message={t.settings.deleteIntoworkConfirm}
           danger={true}
-          confirmText="Supprimer"
+          confirmText={t.settings.deleteLinkBtn}
           onClose={() => setConfirmUnlink(false)}
           onConfirm={async () => {
             setConfirmUnlink(false);
@@ -324,7 +330,7 @@ function IntoWorkIntegrationSection() {
               });
               if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
               setStatus({ linked: false });
-              toast.success('Liaison IntoWork supprimée');
+              toast.success(t.settings.toastUnlinked);
             } catch (e: any) {
               toast.error(e.message || 'Erreur');
             } finally {
@@ -370,6 +376,7 @@ interface CertificateSettings {
 }
 
 export default function SettingsPage() {
+  const { t, setLocale } = useI18n();
   const [activeTab, setActiveTab] = useState('general');
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -383,6 +390,7 @@ export default function SettingsPage() {
     email: '',
     phone: '',
     currency: 'XOF',
+    default_language: 'fr',
   });
   const [currencies, setCurrencies] = useState<CurrencyOption[]>([]);
   
@@ -428,6 +436,9 @@ export default function SettingsPage() {
   const [securitySettings, setSecuritySettings] = useState<{ require_2fa: boolean; total_users: number; users_with_2fa: number }>({ require_2fa: false, total_users: 0, users_with_2fa: 0 });
   const [loadingSecurity, setLoadingSecurity] = useState(false);
   const [savingSecurity, setSavingSecurity] = useState(false);
+  const [employees2FA, setEmployees2FA] = useState<{ id: number; user_id?: number; first_name?: string; last_name?: string; email: string; totp_enabled?: boolean }[]>([]);
+  const [loading2FAEmployees, setLoading2FAEmployees] = useState(false);
+  const [resetting2FA, setResetting2FA] = useState<number | null>(null);
 
   // États pour le changement de mot de passe
   const [passwordForm, setPasswordForm] = useState({ current: '', newPwd: '', confirm: '' });
@@ -492,11 +503,11 @@ export default function SettingsPage() {
     }
 
     if (connected) {
-      toast.success(`${connected.charAt(0).toUpperCase() + connected.slice(1)} connecté avec succès !`);
+      toast.success(`${connected.charAt(0).toUpperCase() + connected.slice(1)} ${t.settings.toastConnectedSuccess}`);
       window.history.replaceState({}, '', '/dashboard/settings?tab=integrations');
     }
     if (error) {
-      toast.error(`Erreur de connexion ${error}`);
+      toast.error(`${t.settings.toastConnectionError} ${error}`);
       window.history.replaceState({}, '', '/dashboard/settings?tab=integrations');
     }
   }, [searchParams]);
@@ -521,6 +532,7 @@ export default function SettingsPage() {
           email: tenant.email || '',
           phone: tenant.phone || '',
           currency: tenant.currency || 'XOF',
+          default_language: tenant.default_language || 'fr',
         });
       }
       if (currenciesRes.ok) {
@@ -551,15 +563,18 @@ export default function SettingsPage() {
         if (data.tenant) {
           setTenantData(prev => prev ? { ...prev, ...data.tenant } : prev);
         }
+        if (tenantForm.default_language) {
+          setLocale(tenantForm.default_language as 'fr' | 'en' | 'pt');
+        }
         setSavedTenant(true);
         setTimeout(() => setSavedTenant(false), 2000);
       } else {
         const err = await res.json();
-        toast.error(err.detail || 'Erreur lors de la sauvegarde');
+        toast.error(err.detail || t.settings.toastSaveError);
       }
     } catch (error) {
-      console.error('Erreur:', error);
-      toast.error('Erreur de connexion');
+      console.error('Error:', error);
+      toast.error(t.settings.toastConnectionError);
     } finally {
       setSavingTenant(false);
     }
@@ -601,17 +616,55 @@ export default function SettingsPage() {
     }
   }, []);
 
+  const load2FAEmployees = useCallback(async () => {
+    setLoading2FAEmployees(true);
+    try {
+      const res = await fetch(`${API_URL}/api/employees/?page_size=500`, { headers: getAuthHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        const list = (data.items || data || []).filter((e: { totp_enabled?: boolean }) => e.totp_enabled);
+        setEmployees2FA(list);
+      }
+    } catch (error) {
+      console.error('Erreur chargement employés 2FA:', error);
+    } finally {
+      setLoading2FAEmployees(false);
+    }
+  }, []);
+
+  const handleReset2FA = async (userId: number) => {
+    if (!confirm(t.employees?.reset2FAConfirm || "Réinitialiser la 2FA de cet employé ? Il devra la reconfigurer à sa prochaine connexion.")) return;
+    setResetting2FA(userId);
+    try {
+      const res = await fetch(`${API_URL}/api/auth/2fa/reset/${userId}`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.detail || "Erreur");
+        return;
+      }
+      toast.success(t.employees?.reset2FASuccess || "2FA réinitialisée avec succès");
+      setEmployees2FA(prev => prev.filter(e => e.user_id !== userId && e.id !== userId));
+    } catch {
+      toast.error(t.common?.error || "Erreur");
+    } finally {
+      setResetting2FA(null);
+    }
+  };
+
   const handleChangePassword = async () => {
     if (!passwordForm.current || !passwordForm.newPwd || !passwordForm.confirm) {
-      toast.error('Veuillez remplir tous les champs');
+      toast.error(t.settings.toastFillAllFields);
       return;
     }
     if (passwordForm.newPwd.length < 8) {
-      toast.error('Le nouveau mot de passe doit contenir au moins 8 caractères');
+      toast.error(t.settings.toastPasswordMinLength);
       return;
     }
     if (passwordForm.newPwd !== passwordForm.confirm) {
-      toast.error('Les mots de passe ne correspondent pas');
+      toast.error(t.settings.toastPasswordMismatch);
       return;
     }
     setChangingPassword(true);
@@ -623,15 +676,15 @@ export default function SettingsPage() {
         body: JSON.stringify({ current_password: passwordForm.current, new_password: passwordForm.newPwd }),
       });
       if (res.ok) {
-        toast.success('Mot de passe modifié avec succès');
+        toast.success(t.settings.toastPasswordChanged);
         setPasswordForm({ current: '', newPwd: '', confirm: '' });
         setShowPasswordSection(false);
       } else {
         const err = await res.json();
-        toast.error(err.detail || 'Erreur lors du changement de mot de passe');
+        toast.error(err.detail || t.settings.toastPasswordChangeError);
       }
     } catch {
-      toast.error('Erreur de connexion');
+      toast.error(t.settings.toastConnectionError);
     } finally {
       setChangingPassword(false);
     }
@@ -646,13 +699,13 @@ export default function SettingsPage() {
         body: JSON.stringify({ require_2fa: securitySettings.require_2fa }),
       });
       if (res.ok) {
-        toast.success('Paramètres de sécurité enregistrés');
+        toast.success(t.settings.toastSecuritySaved);
       } else {
-        toast.error('Erreur lors de la sauvegarde');
+        toast.error(t.settings.toastSaveError);
       }
     } catch (error) {
-      console.error('Erreur:', error);
-      toast.error('Erreur de connexion');
+      console.error('Error:', error);
+      toast.error(t.settings.toastConnectionError);
     } finally {
       setSavingSecurity(false);
     }
@@ -684,13 +737,13 @@ export default function SettingsPage() {
         body: JSON.stringify({ preferences }),
       });
       if (res.ok) {
-        toast.success('Préférences enregistrées');
+        toast.success(t.settings.toastNotifSaved);
       } else {
-        toast.error('Erreur lors de la sauvegarde');
+        toast.error(t.settings.toastSaveError);
       }
     } catch (error) {
-      console.error('Erreur:', error);
-      toast.error('Erreur de connexion');
+      console.error('Error:', error);
+      toast.error(t.settings.toastConnectionError);
     } finally {
       setSavingNotifPrefs(false);
     }
@@ -731,7 +784,7 @@ export default function SettingsPage() {
         }
       }, 500);
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'Erreur de connexion');
+      toast.error(error instanceof Error ? error.message : t.settings.toastConnectionError);
       setConnectingProvider(null);
     }
   };
@@ -740,10 +793,10 @@ export default function SettingsPage() {
     setDisconnectingProvider(provider);
     try {
       await disconnectIntegration(provider);
-      toast.success('Intégration déconnectée');
+      toast.success(t.settings.toastDisconnected);
       loadIntegrations();
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'Erreur');
+      toast.error(error instanceof Error ? error.message : t.common.error);
     } finally {
       setDisconnectingProvider(null);
     }
@@ -753,10 +806,10 @@ export default function SettingsPage() {
     setSyncingProvider(provider);
     try {
       await syncIntegration(provider);
-      toast.success('Synchronisation réussie');
+      toast.success(t.settings.toastSyncSuccessGeneric);
       loadIntegrations();
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'Erreur de synchronisation');
+      toast.error(error instanceof Error ? error.message : t.settings.toastSyncError);
     } finally {
       setSyncingProvider(null);
     }
@@ -771,6 +824,7 @@ export default function SettingsPage() {
     }
     if (activeTab === 'security') {
       loadSecuritySettings();
+      load2FAEmployees();
     }
     if (activeTab === 'integrations') {
       loadIntegrations();
@@ -793,7 +847,7 @@ export default function SettingsPage() {
         })
         .catch(() => {});
     }
-  }, [activeTab, loadCertificateSettings, loadNotifPreferences, loadSecuritySettings, loadIntegrations]);
+  }, [activeTab, loadCertificateSettings, loadNotifPreferences, loadSecuritySettings, load2FAEmployees, loadIntegrations]);
 
   const handlePlanChangeRequest = async () => {
     setSendingPlanRequest(true);
@@ -808,9 +862,9 @@ export default function SettingsPage() {
       });
       if (!res.ok) throw new Error('Erreur lors de l\'envoi');
       setPlanRequestSent(true);
-      toast.success('Demande envoyée ! Notre équipe vous contactera sous 24h.');
+      toast.success(t.settings.toastPlanRequestSent);
     } catch {
-      toast.error('Erreur lors de l\'envoi de la demande. Contactez support@agiltym.com');
+      toast.error(t.settings.toastPlanRequestError);
     } finally {
       setSendingPlanRequest(false);
     }
@@ -835,11 +889,11 @@ export default function SettingsPage() {
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
       } else {
-        toast.error('Erreur lors de la sauvegarde');
+        toast.error(t.settings.toastSaveError);
       }
     } catch (error) {
-      console.error('Erreur:', error);
-      toast.error('Erreur de connexion');
+      console.error('Error:', error);
+      toast.error(t.settings.toastConnectionError);
     } finally {
       setSavingCertSettings(false);
     }
@@ -866,22 +920,23 @@ export default function SettingsPage() {
         }));
       } else {
         const error = await response.json();
-        toast.error(error.detail || 'Erreur lors de l\'upload');
+        toast.error(error.detail || t.settings.toastUploadError);
       }
     } catch (error) {
-      console.error('Erreur upload:', error);
-      toast.error('Erreur de connexion');
+      console.error('Upload error:', error);
+      toast.error(t.settings.toastConnectionError);
     } finally {
       setUploadingFile(null);
     }
   };
 
   const handleFileDelete = async (fileType: 'logo' | 'signature' | 'stamp') => {
-    const fileLabel = fileType === 'logo' ? 'le logo' : fileType === 'signature' ? 'la signature' : 'le cachet';
+    const titleMap = { logo: t.settings.deleteLogoTitle, signature: t.settings.deleteSignatureTitle, stamp: t.settings.deleteStampTitle };
+    const msgMap = { logo: t.settings.deleteLogoMsg, signature: t.settings.deleteSignatureMsg, stamp: t.settings.deleteStampMsg };
     setConfirmDialog({
       isOpen: true,
-      title: `Supprimer ${fileLabel}`,
-      message: `Êtes-vous sûr de vouloir supprimer ${fileLabel} ?`,
+      title: titleMap[fileType],
+      message: msgMap[fileType],
       danger: true,
       onConfirm: async () => {
         setConfirmDialog(null);
@@ -897,13 +952,13 @@ export default function SettingsPage() {
               ...prev,
               [`certificate_${fileType}`]: null,
             }));
-            toast.success('Fichier supprimé');
+            toast.success(t.settings.toastFileDeleted);
           } else {
-            toast.error('Erreur lors de la suppression');
+            toast.error(t.settings.toastDeleteError);
           }
         } catch (error) {
-          console.error('Erreur suppression:', error);
-          toast.error('Erreur de connexion');
+          console.error('Delete error:', error);
+          toast.error(t.settings.toastConnectionError);
         }
       },
     });
@@ -936,7 +991,7 @@ export default function SettingsPage() {
         <div className="flex flex-col items-center">
           {currentUrl ? (
             <div className="relative w-full">
-              <img src={`${API_URL}${currentUrl}`} alt={label} className="max-h-24 mx-auto object-contain rounded-lg" />
+              <img src={currentUrl.startsWith('data:') ? currentUrl : `${API_URL}${currentUrl}`} alt={label} className="max-h-24 mx-auto object-contain rounded-lg" />
               <button onClick={() => handleFileDelete(fileType)} className="absolute -top-2 -right-2 p-1 bg-red-100 text-red-600 rounded-full hover:bg-red-200">
                 <X className="w-4 h-4" />
               </button>
@@ -1079,19 +1134,24 @@ export default function SettingsPage() {
     }
   };
 
+  // License management — admin/dg only
+  const isLicenseAdmin = ['admin', 'dg'].includes(tenantRole?.toLowerCase());
+  const { data: licenseData, refresh: refreshLicenses } = useLicenseStatus();
+
   const tabs = [
-    { id: 'general', name: 'Général', icon: Building2 },
-    { id: 'billing', name: 'Abonnement', icon: CreditCard },
-    { id: 'certificates', name: 'Signatures & Cachets', icon: FileText },
-    { id: 'notifications', name: 'Notifications', icon: Bell },
-    { id: 'security', name: 'Sécurité', icon: Shield },
-    { id: 'integrations', name: 'Intégrations', icon: Link2 },
+    { id: 'general', name: t.settings.tabGeneral, icon: Building2 },
+    { id: 'billing', name: t.settings.tabBilling, icon: CreditCard },
+    ...(isLicenseAdmin ? [{ id: 'licenses', name: t.licenses.title, icon: KeyRound }] : []),
+    { id: 'certificates', name: t.settings.tabCertificates, icon: FileText },
+    { id: 'notifications', name: t.settings.tabNotifications, icon: Bell },
+    { id: 'security', name: t.settings.tabSecurity, icon: Shield },
+    { id: 'integrations', name: t.settings.tabIntegrations, icon: Link2 },
   ];
 
   if (loading) {
     return (
       <>
-        <Header title="Paramètres" subtitle="Configuration de votre espace Targetym AI" />
+        <Header title={t.settings.title} subtitle={t.settings.subtitle} />
         <main className="flex-1 p-6 flex items-center justify-center">
           <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
         </main>
@@ -1105,14 +1165,14 @@ export default function SettingsPage() {
         <PageTourTips
           tips={settingsTips}
           onDismiss={dismissTips}
-          pageTitle="Paramètres"
+          pageTitle={t.settings.title}
         />
       )}
       
-      <Header title="Paramètres" subtitle="Configuration de votre espace Targetym AI" />
+      <Header title={t.settings.title} subtitle={t.settings.subtitle} />
       
       <main className="flex-1 p-6 overflow-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
+        <div className="grid lg:grid-cols-4 gap-6">
           {/* Sidebar */}
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 h-fit" data-tour="settings-tabs">
             <nav className="space-y-1">
@@ -1140,23 +1200,23 @@ export default function SettingsPage() {
             {activeTab === 'general' && (
               <>
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Paramètres de l&apos;Entreprise</h3>
-                <p className="text-sm text-gray-500 mb-6">Informations générales de votre organisation.</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.settings.companySettings}</h3>
+                <p className="text-sm text-gray-500 mb-6">{t.settings.companySettingsDesc}</p>
                 
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Nom de l&apos;Entreprise</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.companyName}</label>
                     <input
                       type="text"
                       value={tenantForm.name}
                       onChange={(e) => setTenantForm(prev => ({ ...prev, name: e.target.value }))}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                      placeholder="Nom de votre entreprise"
+                      placeholder={t.settings.companyNamePlaceholder}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email de Contact</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.contactEmail}</label>
                     <input
                       type="email"
                       value={tenantForm.email}
@@ -1167,7 +1227,7 @@ export default function SettingsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Téléphone</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.phone}</label>
                     <input
                       type="tel"
                       value={tenantForm.phone}
@@ -1178,7 +1238,7 @@ export default function SettingsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Devise par défaut</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.defaultCurrency}</label>
                     <select
                       value={tenantForm.currency}
                       onChange={(e) => setTenantForm(prev => ({ ...prev, currency: e.target.value }))}
@@ -1191,7 +1251,23 @@ export default function SettingsPage() {
                       )}
                     </select>
                     <p className="mt-1.5 text-xs text-gray-400">
-                      Cette devise sera utilisée pour les statistiques salariales. Les salaires dans d&apos;autres devises seront convertis automatiquement.
+                      {t.settings.currencyHint}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.defaultLanguage}</label>
+                    <select
+                      value={tenantForm.default_language}
+                      onChange={(e) => setTenantForm(prev => ({ ...prev, default_language: e.target.value }))}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-white"
+                    >
+                      <option value="fr">🇫🇷 Français</option>
+                      <option value="en">🇬🇧 English</option>
+                      <option value="pt">🇧🇷 Português</option>
+                    </select>
+                    <p className="mt-1.5 text-xs text-gray-400">
+                      {t.settings.languageHint}
                     </p>
                   </div>
 
@@ -1274,7 +1350,7 @@ export default function SettingsPage() {
                           {/* Nombre de filiales */}
                           <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">
-                              {isGroupTenant ? 'Nombre de filiales supplémentaires souhaitées' : 'Nombre de filiales souhaitées'} <span className="text-red-500">*</span>
+                              {isGroupTenant ? t.settings.nbSubsidiariesExtra : t.settings.nbSubsidiaries} <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="number"
@@ -1287,7 +1363,7 @@ export default function SettingsPage() {
                           </div>
                           {/* Téléphone */}
                           <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">Téléphone de contact</label>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">{t.settings.contactPhone}</label>
                             <input
                               type="tel"
                               value={convPhone}
@@ -1298,18 +1374,18 @@ export default function SettingsPage() {
                           </div>
                           {/* Motif */}
                           <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">Motif <span className="text-gray-400">(optionnel)</span></label>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">{t.settings.reason} <span className="text-gray-400">({t.settings.optional})</span></label>
                             <textarea
                               value={convReason}
                               onChange={e => setConvReason(e.target.value)}
-                              placeholder="Expliquez pourquoi vous souhaitez devenir un groupe..."
+                              placeholder={t.settings.explainReason}
                               rows={2}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                             />
                           </div>
                           {/* Aperçu du prix */}
                           <div className="bg-purple-50 border border-purple-200 rounded-lg px-4 py-3">
-                            <p className="text-xs text-purple-700 font-medium mb-1">Estimation mensuelle</p>
+                            <p className="text-xs text-purple-700 font-medium mb-1">{t.settings.monthlyEstimate}</p>
                             <p className="text-xl font-bold text-purple-900">{formatXOF(calcGroupPrice(convNbSubsidiaries, !isGroupTenant))}</p>
                             {isGroupTenant ? (
                               <p className="text-xs text-purple-600 mt-1">
@@ -1320,7 +1396,7 @@ export default function SettingsPage() {
                                 Forfait groupe 100 000 XOF + {convNbSubsidiaries} filiale{convNbSubsidiaries > 1 ? 's' : ''} × 30 000 XOF/mois
                               </p>
                             )}
-                            <p className="text-xs text-purple-500 mt-1 italic">Le SuperAdmin vous contactera pour finaliser le paiement.</p>
+                            <p className="text-xs text-purple-500 mt-1 italic">{t.settings.superAdminContact}</p>
                           </div>
                           <div className="flex gap-2">
                             <button
@@ -1360,14 +1436,14 @@ export default function SettingsPage() {
                 <div className="mt-4 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center">
-                        <Layers className="w-5 h-5 text-primary-600" />
+                      <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+                        <Layers className="w-5 h-5 text-indigo-600" />
                       </div>
                       <div>
                         <h4 className="font-semibold text-gray-900">Mes filiales</h4>
                         <p className="text-xs text-gray-500">Gérez les entités de votre groupe</p>
                         {groupQuota && (
-                          <p className="text-xs text-primary-600 mt-1">
+                          <p className="text-xs text-indigo-600 mt-1">
                             Quota utilisé : {groupQuota.used}/{groupQuota.allowed} · Restant : {groupQuota.remaining}
                           </p>
                         )}
@@ -1385,7 +1461,7 @@ export default function SettingsPage() {
                       className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                         isQuotaReached
                           ? 'bg-amber-500 text-white hover:bg-amber-600'
-                          : 'bg-primary-600 text-white hover:bg-primary-700'
+                          : 'bg-indigo-600 text-white hover:bg-indigo-700'
                       }`}
                     >
                       <span className="text-lg leading-none">{isQuotaReached ? '↗' : '+'}</span>
@@ -1408,11 +1484,11 @@ export default function SettingsPage() {
 
                   {loadingSubsidiaries ? (
                     <div className="flex items-center justify-center py-6">
-                      <Loader2 className="w-5 h-5 animate-spin text-primary-500" />
+                      <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
                     </div>
                   ) : groupSubsidiaries.length === 0 ? (
                     <div
-                      className="text-center py-8 text-gray-400 cursor-pointer hover:text-primary-500 transition-colors border-2 border-dashed border-gray-200 rounded-lg"
+                      className="text-center py-8 text-gray-400 cursor-pointer hover:text-indigo-500 transition-colors border-2 border-dashed border-gray-200 rounded-lg"
                       onClick={() => {
                         if (isQuotaReached) {
                           setShowConvForm(true);
@@ -1441,8 +1517,8 @@ export default function SettingsPage() {
                             {sub.logo_url ? (
                               <img src={sub.logo_url} alt={sub.name} className="w-8 h-8 rounded-lg object-cover" />
                             ) : (
-                              <div className="w-8 h-8 rounded-lg bg-primary-100 flex items-center justify-center">
-                                <span className="text-xs font-bold text-primary-600">{sub.name.charAt(0).toUpperCase()}</span>
+                              <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+                                <span className="text-xs font-bold text-indigo-600">{sub.name.charAt(0).toUpperCase()}</span>
                               </div>
                             )}
                             <div>
@@ -1464,7 +1540,7 @@ export default function SettingsPage() {
                   {!loadingSubsidiaries && groupSubsidiaries.length === 0 && (
                     <button
                       onClick={fetchGroupSubsidiaries}
-                      className="mt-3 text-xs text-primary-500 hover:text-primary-700 underline"
+                      className="mt-3 text-xs text-indigo-500 hover:text-indigo-700 underline"
                     >
                       Charger mes filiales
                     </button>
@@ -1485,11 +1561,11 @@ export default function SettingsPage() {
                     <div className="p-6 space-y-4">
                       {isQuotaReached && (
                         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-                          <p className="text-xs text-amber-800">Quota atteint. Cette création sera bloquée tant qu&apos;une demande d&apos;extension n&apos;est pas approuvée.</p>
+                          <p className="text-xs text-amber-800">{t.settings.quotaBlocked}</p>
                         </div>
                       )}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Nom de la filiale <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t.settings.subsidiaryName} <span className="text-red-500">*</span></label>
                         <input
                           type="text"
                           value={newSubName}
@@ -1504,50 +1580,50 @@ export default function SettingsPage() {
                             setNewSubSlug(slug);
                           }}
                           placeholder="Ex: Filiale Dakar"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Identifiant unique (slug) <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t.settings.uniqueSlug} <span className="text-red-500">*</span></label>
                         <input
                           type="text"
                           value={newSubSlug}
                           onChange={e => setNewSubSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                           placeholder="Ex: filiale-dakar"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
                         />
-                        <p className="text-xs text-gray-400 mt-1">Lettres minuscules, chiffres et tirets uniquement</p>
+                        <p className="text-xs text-gray-400 mt-1">{t.settings.slugHint}</p>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email de contact <span className="text-gray-400">(optionnel)</span></label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t.settings.contactEmailOpt} <span className="text-gray-400">({t.settings.optional})</span></label>
                         <input
                           type="email"
                           value={newSubEmail}
                           onChange={e => setNewSubEmail(e.target.value)}
                           placeholder="Ex: filiale@monentreprise.com"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email admin de la filiale <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t.settings.subsidiaryAdminEmail} <span className="text-red-500">*</span></label>
                         <input
                           type="email"
                           value={newSubAdminEmail}
                           onChange={e => setNewSubAdminEmail(e.target.value)}
                           placeholder="Ex: admin.filiale@monentreprise.com"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe initial admin <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t.settings.adminInitialPwd} <span className="text-red-500">*</span></label>
                         <input
                           type="password"
                           value={newSubAdminPassword}
                           onChange={e => setNewSubAdminPassword(e.target.value)}
-                          placeholder="Minimum 8 caractères"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          placeholder={t.settings.minChars}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
-                        <p className="text-xs text-gray-400 mt-1">L'admin de la filiale utilisera ces identifiants puis pourra changer son mot de passe.</p>
+                        <p className="text-xs text-gray-400 mt-1">{t.settings.adminCredentialsHint}</p>
                       </div>
                     </div>
                     <div className="flex gap-3 p-6 pt-0">
@@ -1555,12 +1631,12 @@ export default function SettingsPage() {
                         onClick={() => setShowSubsidiaryModal(false)}
                         className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
                       >
-                        Annuler
+                        {t.settings.cancel}
                       </button>
                       <button
                         onClick={handleCreateSubsidiary}
                         disabled={isQuotaReached || creatingSubsidiary || !newSubName.trim() || !newSubSlug.trim() || !newSubAdminEmail.trim() || !newSubAdminPassword.trim()}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors"
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
                       >
                         {creatingSubsidiary ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                         Créer la filiale
@@ -1580,12 +1656,12 @@ export default function SettingsPage() {
                 {/* Plan actuel */}
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Plan actuel</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">{t.settings.currentPlan}</h3>
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                       isTrial ? 'bg-amber-100 text-amber-700' : planLevel >= 3 ? 'bg-amber-100 text-amber-700' : planLevel >= 2 ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'
                     }`}>
                       <Crown className="w-4 h-4 mr-1.5" />
-                      {isTrial ? 'Essai gratuit' : planLabel}
+                      {isTrial ? t.settings.freeTrial : planLabel}
                     </span>
                   </div>
 
@@ -1595,7 +1671,7 @@ export default function SettingsPage() {
                       <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Plan</p>
                       <p className="text-lg font-bold text-gray-900">{isTrial ? `Essai (${planLabel})` : planLabel}</p>
                       <p className="text-sm text-gray-500 mt-1">
-                        {isTrial ? 'Essai gratuit 30 jours (accès Premium)' : (PLAN_PRICING[plan]?.label || '—')}
+                        {isTrial ? 'Essai gratuit 90 jours (accès Entreprise)' : (PLAN_PRICING[plan]?.label || '—')}
                       </p>
                     </div>
 
@@ -1629,14 +1705,14 @@ export default function SettingsPage() {
 
                 {/* Utilisation */}
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Utilisation</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">{t.settings.usage}</h3>
                   <div className="flex items-center gap-4">
                     <div className="flex-shrink-0 w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center">
                       <Users className="w-6 h-6 text-primary-600" />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-700">Employés</span>
+                        <span className="text-sm font-medium text-gray-700">{t.settings.employees}</span>
                         <span className="text-sm font-bold text-gray-900">
                           {employeeCount} / {employeeLimit}
                         </span>
@@ -1663,7 +1739,7 @@ export default function SettingsPage() {
 
                 {/* Historique des factures */}
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Historique des factures</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">{t.settings.invoiceHistory}</h3>
                   {isTrial ? (
                     <div className="text-center py-8">
                       <Calendar className="w-10 h-10 text-gray-300 mx-auto mb-3" />
@@ -1702,7 +1778,7 @@ export default function SettingsPage() {
 
                 {/* Changer de plan */}
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Changer de plan</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.settings.changePlan}</h3>
                   <p className="text-sm text-gray-500 mb-6">
                     Soumettez une demande de changement de plan. Notre équipe vous contactera sous 24h.
                   </p>
@@ -1724,7 +1800,7 @@ export default function SettingsPage() {
                           const pricing = PLAN_PRICING[p];
                           const currentLevel = PLAN_LEVEL[plan] || 1;
                           const cardLevel = PLAN_LEVEL[p] || 1;
-                          const isCurrentPlan = isTrial ? p === 'premium' : plan === p;
+                          const isCurrentPlan = isTrial ? p === 'entreprise' : plan === p;
                           const isLowerPlan = cardLevel < currentLevel;
                           const isDisabled = isCurrentPlan || isLowerPlan;
                           return (
@@ -1744,7 +1820,7 @@ export default function SettingsPage() {
                             >
                               {isCurrentPlan && (
                                 <span className="absolute -top-2 right-2 text-[10px] font-bold bg-green-500 text-white px-2 py-0.5 rounded-full">
-                                  {isTrial ? 'Essai' : 'Actuel'}
+                                  {isTrial ? t.settings.trial : t.settings.current}
                                 </span>
                               )}
                               <p className="font-bold text-gray-900">{PLAN_LABELS[p]}</p>
@@ -1759,13 +1835,13 @@ export default function SettingsPage() {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                          Message (optionnel)
+                          {t.settings.messageOptional}
                         </label>
                         <textarea
                           value={planChangeForm.message}
                           onChange={(e) => setPlanChangeForm(prev => ({ ...prev, message: e.target.value }))}
                           rows={3}
-                          placeholder="Précisez vos besoins, le nombre d'employés souhaité, etc."
+                          placeholder={t.settings.messagePlaceholder}
                           className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-none"
                         />
                       </div>
@@ -1775,7 +1851,7 @@ export default function SettingsPage() {
                           onClick={() => setShowUpgradeModal(true)}
                           className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center"
                         >
-                          Comparer les plans
+                          {t.settings.comparePlans}
                           <ArrowUpRight className="w-4 h-4 ml-1" />
                         </button>
                         <button
@@ -1788,7 +1864,7 @@ export default function SettingsPage() {
                           ) : (
                             <Send className="w-4 h-4 mr-2" />
                           )}
-                          Envoyer la demande
+                          {t.settings.sendRequestBtn}
                         </button>
                       </div>
                     </div>
@@ -1798,7 +1874,7 @@ export default function SettingsPage() {
                 {/* Contact */}
                 <div className="bg-gray-50 rounded-xl p-4 text-center">
                   <p className="text-sm text-gray-500">
-                    Besoin d&apos;aide ? Contactez-nous à{' '}
+                    {t.settings.needHelp}{' '}
                     <a href="mailto:support@agiltym.com" className="text-primary-600 hover:text-primary-700 font-medium">
                       support@agiltym.com
                     </a>
@@ -1814,14 +1890,27 @@ export default function SettingsPage() {
             />
 
             {/* ============================== */}
+            {/* ONGLET: LICENCES               */}
+            {/* ============================== */}
+            {activeTab === 'licenses' && isLicenseAdmin && (
+              licenseData ? (
+                <LicensesTab data={licenseData} onRefresh={refreshLicenses} />
+              ) : (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
+                </div>
+              )
+            )}
+
+            {/* ============================== */}
             {/* ONGLET: CERTIFICATS            */}
             {/* ============================== */}
             {activeTab === 'certificates' && (
               <div className="space-y-6" data-tour="certificate-config">
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Documents Visuels</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.settings.visualDocuments}</h3>
                   <p className="text-sm text-gray-500 mb-6">
-                    Ces éléments apparaîtront sur vos certificats de travail et autres documents officiels.
+                    {t.settings.visualDocumentsDesc}
                   </p>
                   
                   {loadingCertSettings ? (
@@ -1830,14 +1919,17 @@ export default function SettingsPage() {
                     </div>
                   ) : (
                     <div className="grid md:grid-cols-3 gap-4">
-                      <FileUploadBox fileType="logo" label="Logo de l'entreprise" icon={ImageIcon} currentUrl={certificateSettings.certificate_logo} />
+                      <div>
+                        <FileUploadBox fileType="logo" label={t.settings.companyLogo} icon={ImageIcon} currentUrl={certificateSettings.certificate_logo} />
+                        <p className="text-xs text-gray-400 mt-1">Format recommandé : PNG ou WebP avec fond transparent — 151 × 76 px — Max 2 Mo</p>
+                      </div>
 
                       {/* Signature du signataire — système de signature électronique */}
                       <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-primary-300 transition-colors">
                         <div className="flex flex-col items-center">
                           {certificateSettings.certificate_signature ? (
                             <div className="relative w-full">
-                              <img src={`${API_URL}${certificateSettings.certificate_signature}`} alt="Signature du signataire" className="max-h-24 mx-auto object-contain rounded-lg" />
+                              <img src={certificateSettings.certificate_signature.startsWith('data:') ? certificateSettings.certificate_signature : `${API_URL}${certificateSettings.certificate_signature}`} alt={t.settings.signatorySignature} className="max-h-24 mx-auto object-contain rounded-lg" />
                               <button onClick={() => handleFileDelete('signature')} className="absolute -top-2 -right-2 p-1 bg-red-100 text-red-600 rounded-full hover:bg-red-200">
                                 <X className="w-4 h-4" />
                               </button>
@@ -1847,8 +1939,8 @@ export default function SettingsPage() {
                               <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
                                 <PenTool className="w-6 h-6 text-gray-400" />
                               </div>
-                              <p className="text-sm font-medium text-gray-700 mb-1">Signature du signataire</p>
-                              <p className="text-xs text-gray-500 mb-3">Dessinez ou importez</p>
+                              <p className="text-sm font-medium text-gray-700 mb-1">{t.settings.signatorySignature}</p>
+                              <p className="text-xs text-gray-500 mb-3">{t.settings.drawOrImport}</p>
                             </>
                           )}
 
@@ -1868,16 +1960,16 @@ export default function SettingsPage() {
                                 className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50"
                               >
                                 {uploadingFile === 'signature' ? (
-                                  <><Loader2 className="w-4 h-4 animate-spin" /> Enregistrement...</>
+                                  <><Loader2 className="w-4 h-4 animate-spin" /> {t.settings.savingSignature}</>
                                 ) : (
-                                  <><PenTool className="w-4 h-4" /> Dessiner la signature</>
+                                  <><PenTool className="w-4 h-4" /> {t.settings.drawSignature}</>
                                 )}
                               </button>
                               <label className={`cursor-pointer flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 uploadingFile === 'signature' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
                               }`}>
                                 <Upload className="w-4 h-4" />
-                                {certificateSettings.certificate_signature ? 'Changer (fichier)' : 'Uploader un fichier'}
+                                {certificateSettings.certificate_signature ? t.settings.changeFile : t.settings.uploadFile}
                                 <input type="file" accept="image/png,image/jpeg,image/jpg" className="hidden" disabled={uploadingFile === 'signature'}
                                   onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFileUpload('signature', file); }}
                                 />
@@ -1885,34 +1977,38 @@ export default function SettingsPage() {
                             </div>
                           )}
                         </div>
+                        <p className="text-xs text-gray-400 mt-1">Format recommandé : PNG avec fond transparent — 151 × 76 px — Max 2 Mo</p>
                       </div>
 
-                      <FileUploadBox fileType="stamp" label="Cachet de l'entreprise" icon={Stamp} currentUrl={certificateSettings.certificate_stamp} />
+                      <div>
+                        <FileUploadBox fileType="stamp" label={t.settings.companyStamp} icon={Stamp} currentUrl={certificateSettings.certificate_stamp} />
+                        <p className="text-xs text-gray-400 mt-1">Format recommandé : PNG avec fond transparent — 113 × 113 px — Max 2 Mo</p>
+                      </div>
                     </div>
                   )}
                 </div>
 
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Informations de l&apos;Entreprise</h3>
-                  <p className="text-sm text-gray-500 mb-6">Ces informations apparaîtront dans l&apos;en-tête des certificats.</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.settings.companyInfo}</h3>
+                  <p className="text-sm text-gray-500 mb-6">{t.settings.companyInfoDesc}</p>
                   
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Nom officiel de l&apos;entreprise</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.officialName}</label>
                       <input type="text" value={certificateSettings.certificate_company_name || ''}
                         onChange={(e) => setCertificateSettings(prev => ({ ...prev, certificate_company_name: e.target.value }))}
                         placeholder="Ex: TARGETYM SARL"
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Adresse complète</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.fullAddress}</label>
                       <textarea value={certificateSettings.certificate_company_address || ''}
                         onChange={(e) => setCertificateSettings(prev => ({ ...prev, certificate_company_address: e.target.value }))}
                         placeholder="Ex: 123 Avenue de la République" rows={2}
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Ville</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.city}</label>
                       <input type="text" value={certificateSettings.certificate_company_city || ''}
                         onChange={(e) => setCertificateSettings(prev => ({ ...prev, certificate_company_city: e.target.value }))}
                         placeholder="Ex: Dakar"
@@ -1922,19 +2018,19 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Signataire Habilité</h3>
-                  <p className="text-sm text-gray-500 mb-6">Personne autorisée à signer les certificats de travail.</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.settings.authorizedSignatory}</h3>
+                  <p className="text-sm text-gray-500 mb-6">{t.settings.authorizedSignatoryDesc}</p>
                   
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Nom complet</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.fullName}</label>
                       <input type="text" value={certificateSettings.certificate_signatory_name || ''}
                         onChange={(e) => setCertificateSettings(prev => ({ ...prev, certificate_signatory_name: e.target.value }))}
                         placeholder="Ex: Jean-Pierre DUPONT"
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Fonction</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.functionLabel}</label>
                       <input type="text" value={certificateSettings.certificate_signatory_title || ''}
                         onChange={(e) => setCertificateSettings(prev => ({ ...prev, certificate_signatory_title: e.target.value }))}
                         placeholder="Ex: Directeur des Ressources Humaines"
@@ -1956,8 +2052,8 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
-                  <p className="text-sm text-primary-800">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800">
                     <strong>Conseil :</strong> Pour un rendu optimal, utilisez un logo avec fond transparent (PNG) 
                     et une signature scannée sur fond blanc. Le cachet doit être au format carré ou rond.
                   </p>
@@ -1970,8 +2066,8 @@ export default function SettingsPage() {
             {/* ============================== */}
             {activeTab === 'notifications' && (
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Préférences de Notifications</h3>
-                <p className="text-sm text-gray-500 mb-6">Choisissez les notifications que vous souhaitez recevoir pour chaque module.</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.settings.notifPreferences}</h3>
+                <p className="text-sm text-gray-500 mb-6">{t.settings.notifPreferencesDesc}</p>
 
                 {loadingNotifPrefs ? (
                   <div className="flex items-center justify-center py-12">
@@ -2018,7 +2114,7 @@ export default function SettingsPage() {
             {activeTab === 'security' && (
               <div className="space-y-6">
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Authentification à deux facteurs (2FA)</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.settings.twoFactorAuth}</h3>
                   <p className="text-sm text-gray-500 mb-6">
                     Renforcez la sécurité de votre entreprise en exigeant une vérification via une application d&apos;authentification
                     (Google Authenticator, Authy, Microsoft Authenticator, etc.).
@@ -2050,22 +2146,22 @@ export default function SettingsPage() {
                       </div>
 
                       {securitySettings.require_2fa && securitySettings.total_users > 0 && (
-                        <div className="mt-6 p-5 bg-primary-50 border border-primary-200 rounded-xl">
-                          <h4 className="font-semibold text-primary-900 mb-3">Adoption 2FA</h4>
+                        <div className="mt-6 p-5 bg-blue-50 border border-blue-200 rounded-xl">
+                          <h4 className="font-semibold text-blue-900 mb-3">Adoption 2FA</h4>
                           <div className="flex items-center gap-4">
                             <div className="flex-1">
                               <div className="w-full h-3 bg-blue-200 rounded-full overflow-hidden">
                                 <div
-                                  className="h-full bg-primary-600 rounded-full transition-all duration-500"
+                                  className="h-full bg-blue-600 rounded-full transition-all duration-500"
                                   style={{ width: `${Math.round((securitySettings.users_with_2fa / securitySettings.total_users) * 100)}%` }}
                                 />
                               </div>
                             </div>
-                            <span className="text-sm font-semibold text-primary-900 whitespace-nowrap">
+                            <span className="text-sm font-semibold text-blue-900 whitespace-nowrap">
                               {securitySettings.users_with_2fa}/{securitySettings.total_users} utilisateurs
                             </span>
                           </div>
-                          <p className="text-xs text-primary-700 mt-2">
+                          <p className="text-xs text-blue-700 mt-2">
                             {securitySettings.users_with_2fa === securitySettings.total_users
                               ? 'Tous les utilisateurs ont configuré leur 2FA.'
                               : `${securitySettings.total_users - securitySettings.users_with_2fa} utilisateur(s) devront configurer leur 2FA à la prochaine connexion.`
@@ -2098,6 +2194,59 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
+                {/* Section Gestion 2FA des employés */}
+                {['admin', 'rh', 'dg', 'super_admin'].includes(tenantRole?.toLowerCase()) && (
+                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                      <ShieldOff className="w-5 h-5 text-orange-500" />
+                      {t.settings.employee2FA}
+                    </h3>
+                    <p className="text-sm text-gray-500 mb-6">{t.settings.employee2FADesc}</p>
+
+                    {loading2FAEmployees ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 text-primary-500 animate-spin" />
+                      </div>
+                    ) : employees2FA.length === 0 ? (
+                      <p className="text-sm text-gray-400 text-center py-6">{t.settings.no2FAEmployees}</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-200">
+                              <th className="text-left py-2 px-3 font-medium text-gray-600">{t.employees?.firstName || 'Nom'}</th>
+                              <th className="text-left py-2 px-3 font-medium text-gray-600">Email</th>
+                              <th className="text-right py-2 px-3 font-medium text-gray-600">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {employees2FA.map((emp) => (
+                              <tr key={emp.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                <td className="py-2.5 px-3 text-gray-900">{emp.first_name} {emp.last_name}</td>
+                                <td className="py-2.5 px-3 text-gray-500">{emp.email}</td>
+                                <td className="py-2.5 px-3 text-right">
+                                  <button
+                                    onClick={() => handleReset2FA(emp.user_id || emp.id)}
+                                    disabled={resetting2FA === (emp.user_id || emp.id)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 border border-orange-200 disabled:opacity-50"
+                                  >
+                                    {resetting2FA === (emp.user_id || emp.id) ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <ShieldOff className="w-3.5 h-3.5" />
+                                    )}
+                                    {t.employees?.reset2FA || "Réinitialiser 2FA"}
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Section Changer le mot de passe */}
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                   <div className="flex items-center justify-between">
@@ -2113,7 +2262,7 @@ export default function SettingsPage() {
                         onClick={() => setShowPasswordSection(true)}
                         className="px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
                       >
-                        Changer le mot de passe
+                        {t.settings.changePassword}
                       </button>
                     )}
                   </div>
@@ -2121,14 +2270,14 @@ export default function SettingsPage() {
                   {showPasswordSection && (
                     <div className="mt-5 space-y-4 max-w-md">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe actuel</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t.settings.currentPassword}</label>
                         <div className="relative">
                           <input
                             type={showCurrentPwd ? 'text' : 'password'}
                             value={passwordForm.current}
                             onChange={(e) => setPasswordForm(prev => ({ ...prev, current: e.target.value }))}
                             className="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-                            placeholder="Votre mot de passe actuel"
+                            placeholder={t.settings.currentPasswordPlaceholder}
                           />
                           <button type="button" onClick={() => setShowCurrentPwd(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                             {showCurrentPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -2136,14 +2285,14 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Nouveau mot de passe</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t.settings.newPassword}</label>
                         <div className="relative">
                           <input
                             type={showNewPwd ? 'text' : 'password'}
                             value={passwordForm.newPwd}
                             onChange={(e) => setPasswordForm(prev => ({ ...prev, newPwd: e.target.value }))}
                             className="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-                            placeholder="Minimum 8 caractères"
+                            placeholder={t.settings.minChars}
                           />
                           <button type="button" onClick={() => setShowNewPwd(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                             {showNewPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -2151,14 +2300,14 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Confirmer le nouveau mot de passe</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t.settings.confirmNewPassword}</label>
                         <div className="relative">
                           <input
                             type={showConfirmPwd ? 'text' : 'password'}
                             value={passwordForm.confirm}
                             onChange={(e) => setPasswordForm(prev => ({ ...prev, confirm: e.target.value }))}
                             className="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-                            placeholder="Répétez le nouveau mot de passe"
+                            placeholder={t.settings.repeatNewPassword}
                           />
                           <button type="button" onClick={() => setShowConfirmPwd(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                             {showConfirmPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -2171,7 +2320,7 @@ export default function SettingsPage() {
                           disabled={changingPassword}
                           className="flex items-center gap-2 px-5 py-2.5 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 disabled:opacity-50 transition-colors"
                         >
-                          {changingPassword ? <><Loader2 className="w-4 h-4 animate-spin" />Enregistrement...</> : <><Lock className="w-4 h-4" />Enregistrer</>}
+                          {changingPassword ? <><Loader2 className="w-4 h-4 animate-spin" />{t.settings.saving}</> : <><Lock className="w-4 h-4" />{t.settings.save}</>}
                         </button>
                         <button
                           onClick={() => { setShowPasswordSection(false); setPasswordForm({ current: '', newPwd: '', confirm: '' }); }}
@@ -2191,9 +2340,9 @@ export default function SettingsPage() {
             {/* ============================== */}
             {activeTab === 'integrations' && (
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100" data-tour="integrations">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Intégrations</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.settings.integrationsTitle}</h3>
                 <p className="text-sm text-gray-500 mb-6">
-                  Connectez Targetym à vos autres outils pour automatiser vos flux RH.
+                  {t.settings.integrationsDesc}
                 </p>
 
                 {/* ── IntoWork ───────────────────────────────── */}
@@ -2201,7 +2350,7 @@ export default function SettingsPage() {
 
                 {/* ── Autres intégrations (Teams, Asana, Google...) ── */}
                 <div className="mt-8 pt-6 border-t border-gray-100">
-                  <p className="text-sm font-medium text-gray-700 mb-4">Autres intégrations</p>
+                  <p className="text-sm font-medium text-gray-700 mb-4">{t.settings.otherIntegrations}</p>
                   {loadingIntegrations ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
@@ -2232,13 +2381,13 @@ export default function SettingsPage() {
                                 className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-lg bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors disabled:opacity-50"
                               >
                                 <RefreshCw className={`w-3.5 h-3.5 ${syncingProvider === integration.id ? 'animate-spin' : ''}`} />
-                                Synchroniser
+                                {t.settings.synchronize}
                               </button>
                               <button
                                 onClick={() => setConfirmDialog({
                                   isOpen: true,
-                                  title: "Déconnecter l'intégration",
-                                  message: `Voulez-vous vraiment déconnecter ${integration.name} ?`,
+                                  title: t.settings.disconnectIntegration,
+                                  message: `${t.settings.disconnectConfirm} ${integration.name} ?`,
                                   onConfirm: () => { handleDisconnect(integration.id); setConfirmDialog(null); },
                                   danger: true,
                                 })}
@@ -2255,7 +2404,7 @@ export default function SettingsPage() {
                               className="w-full flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50"
                             >
                               {connectingProvider === integration.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
-                              Connecter
+                              {t.settings.connect}
                             </button>
                           )}
                         </div>

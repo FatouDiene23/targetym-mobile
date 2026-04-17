@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 import toast from 'react-hot-toast';
+import { useI18n } from '@/lib/i18n/I18nContext';
 
 // ============================================
 // CONFIG
@@ -79,30 +80,19 @@ interface SimpleEmployee {
 // ============================================
 // CONSTANTS
 // ============================================
-const DOC_TYPE_MAP: Record<string, { label: string; icon: string }> = {
-  contrat_travail: { label: 'Contrat de travail', icon: '📝' },
-  avenant: { label: 'Avenant', icon: '📋' },
-  cni: { label: 'CNI', icon: '🪪' },
-  passeport: { label: 'Passeport', icon: '🛂' },
-  diplome: { label: 'Diplôme', icon: '🎓' },
-  cv: { label: 'CV', icon: '📄' },
-  attestation_employeur: { label: 'Attestation', icon: '📑' },
-  fiche_paie: { label: 'Fiche de paie', icon: '💰' },
-  certificat_travail: { label: 'Certificat de travail', icon: '🏅' },
-  rib: { label: 'RIB', icon: '🏦' },
-  carte_vitale: { label: 'Assurance santé', icon: '🏥' },
-  permis_conduire: { label: 'Permis de conduire', icon: '🚗' },
-  photo_identite: { label: 'Photo d\'identité', icon: '📸' },
-  certificat_residence: { label: 'Certificat de résidence', icon: '🏠' },
-  autre: { label: 'Autre', icon: '📁' },
+const DOC_TYPE_ICONS: Record<string, string> = {
+  contrat_travail: '📝', avenant: '📋', cni: '🪪', passeport: '🛂',
+  diplome: '🎓', cv: '📄', attestation_employeur: '📑', fiche_paie: '💰',
+  certificat_travail: '🏅', rib: '🏦', carte_vitale: '🏥', permis_conduire: '🚗',
+  photo_identite: '📸', certificat_residence: '🏠', autre: '📁',
 };
 
-const ALL_DOC_TYPES = Object.entries(DOC_TYPE_MAP).map(([value, info]) => ({
-  value, ...info
-}));
-
-function getDocInfo(type: string) {
-  return DOC_TYPE_MAP[type] || { label: 'Autre', icon: '📁' };
+function buildDocTypeMap(docTypes: Record<string, string>): Record<string, { label: string; icon: string }> {
+  const map: Record<string, { label: string; icon: string }> = {};
+  for (const [key, icon] of Object.entries(DOC_TYPE_ICONS)) {
+    map[key] = { label: docTypes[key as keyof typeof docTypes] || key, icon };
+  }
+  return map;
 }
 function formatSize(bytes: number | null): string {
   if (!bytes) return '';
@@ -127,6 +117,12 @@ interface HRDocumentsTabProps {
 }
 
 export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenantId }: HRDocumentsTabProps) {
+  const { t } = useI18n();
+  const td = t.hrDocuments;
+  const DOC_TYPE_MAP = buildDocTypeMap(td.docTypes);
+  const ALL_DOC_TYPES = Object.entries(DOC_TYPE_MAP).map(([value, info]) => ({ value, ...info }));
+  const getDocInfo = (type: string) => DOC_TYPE_MAP[type] || { label: td.docTypes.autre, icon: '📁' };
+
   // Data
   const [documents, setDocuments] = useState<DocItem[]>([]);
   const [stats, setStats] = useState<DocStats | null>(null);
@@ -268,7 +264,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
-      setUploadError('Fichier trop volumineux (max 10 Mo)');
+      setUploadError(td.fileTooLarge);
       return;
     }
     setUploadFile(file);
@@ -309,11 +305,11 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || 'Erreur upload');
+        throw new Error(err.detail || td.uploadError);
       }
 
       const selectedEmp = employees.find(e => e.id === uploadEmployeeId);
-      setUploadSuccess(`Document ajouté au dossier de ${selectedEmp?.first_name} ${selectedEmp?.last_name}`);
+      setUploadSuccess(`${td.documentAddedTo} ${selectedEmp?.first_name} ${selectedEmp?.last_name}`);
 
       // Reset form but keep employee for batch uploads
       setUploadFile(null);
@@ -369,8 +365,8 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
   async function handleDelete(doc: DocItem) {
     setConfirmDialog({
       isOpen: true,
-      title: 'Supprimer le document',
-      message: `Voulez-vous vraiment supprimer "${doc.title}" du dossier de ${doc.employee_name} ?`,
+      title: td.deleteDocument,
+      message: td.deleteDocConfirm.replace('{title}', doc.title).replace('{name}', doc.employee_name),
       danger: true,
       onConfirm: async () => {
         setConfirmDialog(null);
@@ -383,14 +379,14 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
           if (res.ok) {
             fetchDocuments(page);
             fetchStats();
-            toast.success('Document supprimé');
+            toast.success(td.documentDeleted);
           } else {
             const err = await res.json().catch(() => ({}));
-            toast.error(err.detail || 'Erreur lors de la suppression');
+            toast.error(err.detail || td.deleteError);
           }
         } catch (e) {
           console.error('Delete error:', e);
-          toast.error('Erreur lors de la suppression');
+          toast.error(td.deleteError);
         } finally {
           setDeleting(null);
         }
@@ -441,8 +437,8 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
     if (!someDocsSelected) return;
     setConfirmDialog({
       isOpen: true,
-      title: `Supprimer ${selectedIds.size} document(s) ?`,
-      message: `Cette action est irréversible.`,
+      title: td.bulkDeleteTitle.replace('{count}', String(selectedIds.size)),
+      message: td.bulkDeleteMessage,
       danger: true,
       onConfirm: async () => {
         setBulkLoading(true);
@@ -461,11 +457,11 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
 
   const handleBulkExportDocs = () => {
     const selected = documents.filter(d => selectedIds.has(d.id));
-    const headers = ['Titre', 'Fichier', 'Employé', 'Type', 'Date', 'Expiration', 'Confidentiel', 'Visible'];
+    const headers = [td.csvTitle, td.csvFile, td.csvEmployee, td.csvType, td.csvDate, td.csvExpiration, td.csvConfidential, td.csvVisible];
     const rows = selected.map(d => [
       d.title, d.file_name, d.employee_name, getDocInfo(d.document_type).label,
       formatDate(d.created_at), formatDate(d.expiry_date),
-      d.is_confidential ? 'Oui' : 'Non', d.visible_to_employee ? 'Oui' : 'Non'
+      d.is_confidential ? t.common.yes : t.common.no, d.visible_to_employee ? t.common.yes : t.common.no
     ]);
     const csv = [headers, ...rows].map(r => r.map(c => `"${(c || '').replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -499,37 +495,37 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <FileText className="w-5 h-5 text-primary-500 mb-2" />
             <p className="text-2xl font-bold text-gray-900">{stats.total_documents}</p>
-            <p className="text-xs text-gray-500">Documents</p>
+            <p className="text-xs text-gray-500">{td.documents}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <TrendingUp className="w-5 h-5 text-green-500 mb-2" />
             <p className="text-2xl font-bold text-green-600">{stats.uploaded_this_month}</p>
-            <p className="text-xs text-gray-500">Ce mois</p>
+            <p className="text-xs text-gray-500">{td.thisMonth}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <Users className="w-5 h-5 text-purple-500 mb-2" />
             <p className="text-2xl font-bold text-purple-600">{stats.total_employees}</p>
-            <p className="text-xs text-gray-500">Employés actifs</p>
+            <p className="text-xs text-gray-500">{td.activeEmployees}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 cursor-pointer hover:border-red-200" onClick={() => setExpiredFilter(true)}>
             <AlertTriangle className="w-5 h-5 text-red-500 mb-2" />
             <p className="text-2xl font-bold text-red-600">{stats.expired}</p>
-            <p className="text-xs text-gray-500">Expirés</p>
+            <p className="text-xs text-gray-500">{td.expired}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <Clock className="w-5 h-5 text-orange-500 mb-2" />
             <p className="text-2xl font-bold text-orange-600">{stats.expiring_soon}</p>
-            <p className="text-xs text-gray-500">Expirent bientôt</p>
+            <p className="text-xs text-gray-500">{td.expiringSoon}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <File className="w-5 h-5 text-red-500 mb-2" />
             <p className="text-2xl font-bold text-red-600">{stats.employees_no_contract}</p>
-            <p className="text-xs text-gray-500">Sans contrat</p>
+            <p className="text-xs text-gray-500">{td.noContract}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <Users className="w-5 h-5 text-gray-400 mb-2" />
             <p className="text-2xl font-bold text-gray-500">{stats.employees_no_docs}</p>
-            <p className="text-xs text-gray-500">Dossiers vides</p>
+            <p className="text-xs text-gray-500">{td.emptyFiles}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <BarChart3 className="w-5 h-5 text-indigo-500 mb-2" />
@@ -538,7 +534,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
                 ? Math.round(((stats.total_employees - stats.employees_no_docs) / stats.total_employees) * 100)
                 : 0}%
             </p>
-            <p className="text-xs text-gray-500">Complétude</p>
+            <p className="text-xs text-gray-500">{td.completeness}</p>
           </div>
         </div>
       )}
@@ -550,16 +546,16 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
             <div className="flex items-center gap-2">
               <Bell className="w-5 h-5 text-red-500" />
               <h3 className="font-semibold text-gray-900">
-                Alertes ({alerts.length})
+                {td.alertsTitle} ({alerts.length})
               </h3>
               {alertCounts.high > 0 && (
                 <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">
-                  {alertCounts.high} urgente{alertCounts.high > 1 ? 's' : ''}
+                  {alertCounts.high} {alertCounts.high > 1 ? td.urgentPlural : td.urgent.toLowerCase()}
                 </span>
               )}
               {alertCounts.medium > 0 && (
                 <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">
-                  {alertCounts.medium} attention
+                  {alertCounts.medium} {td.attention.toLowerCase()}
                 </span>
               )}
             </div>
@@ -568,7 +564,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
                 onClick={() => setActiveSubTab('alerts')}
                 className="text-sm text-red-600 hover:text-red-800 font-medium"
               >
-                Voir tout
+                {td.viewAll}
               </button>
               <button onClick={() => setShowAlerts(false)} className="p-1 hover:bg-red-100 rounded">
                 <X className="w-4 h-4 text-red-400" />
@@ -607,7 +603,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
             }`}
           >
             <FileText className="w-4 h-4 inline mr-2" />
-            Documents ({totalDocs})
+            {td.documents} ({totalDocs})
           </button>
           <button
             onClick={() => setActiveSubTab('alerts')}
@@ -616,7 +612,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
             }`}
           >
             <AlertTriangle className="w-4 h-4 inline mr-2" />
-            Alertes
+            {td.alerts}
             {alerts.length > 0 && (
               <span className="ml-2 px-1.5 py-0.5 bg-red-100 text-red-700 text-xs rounded-full">{alerts.length}</span>
             )}
@@ -627,7 +623,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
           className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700"
         >
           <Plus className="w-4 h-4" />
-          Ajouter un document
+          {td.addDocument}
         </button>
       </div>
 
@@ -637,7 +633,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
           <div className="flex items-center justify-between">
             <h4 className="font-semibold text-primary-900 flex items-center gap-2">
               <Upload className="w-4 h-4" />
-              Upload rapide
+              {td.quickUpload}
             </h4>
             <button onClick={() => { setShowUpload(false); setUploadError(''); setUploadSuccess(''); }}>
               <X className="w-5 h-5 text-primary-400 hover:text-primary-600" />
@@ -654,7 +650,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
 
           {/* Employee selector */}
           <div className="relative">
-            <label className="text-xs font-medium text-gray-700 mb-1 block">Employé *</label>
+            <label className="text-xs font-medium text-gray-700 mb-1 block">{td.employee} *</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
@@ -662,7 +658,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
                 value={employeeSearch}
                 onChange={e => { setEmployeeSearch(e.target.value); setShowEmployeeDropdown(true); }}
                 onFocus={() => setShowEmployeeDropdown(true)}
-                placeholder="Rechercher un employé..."
+                placeholder={td.searchEmployee}
                 className="w-full pl-9 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none"
               />
               {uploadEmployeeId && (
@@ -696,7 +692,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
                   </button>
                 ))}
                 {filteredEmployeesForDropdown.length === 0 && (
-                  <p className="px-4 py-3 text-sm text-gray-500">Aucun employé trouvé</p>
+                  <p className="px-4 py-3 text-sm text-gray-500">{td.noEmployeeFound}</p>
                 )}
               </div>
             )}
@@ -704,7 +700,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Type de document *</label>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">{td.documentType} *</label>
               <select
                 value={uploadType}
                 onChange={e => setUploadType(e.target.value)}
@@ -716,22 +712,22 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Titre *</label>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">{td.titleLabel} *</label>
               <input
                 type="text"
                 value={uploadTitle}
                 onChange={e => setUploadTitle(e.target.value)}
-                placeholder="Ex: Contrat CDI Janvier 2026"
+                placeholder={td.titlePlaceholder}
                 className="w-full border rounded-lg px-3 py-2.5 text-sm"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Description</label>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">{td.description}</label>
               <input
                 type="text"
                 value={uploadDesc}
                 onChange={e => setUploadDesc(e.target.value)}
-                placeholder="Notes optionnelles..."
+                placeholder={td.descPlaceholder}
                 className="w-full border rounded-lg px-3 py-2.5 text-sm"
               />
             </div>
@@ -739,22 +735,22 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
 
           <div className="grid grid-cols-4 gap-3">
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Date du document</label>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">{td.documentDate}</label>
               <input type="date" value={uploadDocDate} onChange={e => setUploadDocDate(e.target.value)} className="w-full border rounded-lg px-3 py-2.5 text-sm" />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Date d&apos;expiration</label>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">{td.expiryDate}</label>
               <input type="date" value={uploadExpiry} onChange={e => setUploadExpiry(e.target.value)} className="w-full border rounded-lg px-3 py-2.5 text-sm" />
             </div>
             <div className="flex items-end gap-4">
               <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer pb-2.5">
                 <input type="checkbox" checked={uploadVisible} onChange={e => setUploadVisible(e.target.checked)} className="rounded" />
-                Visible employé
+                {td.visibleEmployee}
               </label>
               <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer pb-2.5">
                 <input type="checkbox" checked={uploadConfidential} onChange={e => setUploadConfidential(e.target.checked)} className="rounded" />
                 <Shield className="w-3.5 h-3.5 text-gray-400" />
-                Confidentiel
+                {td.confidential}
               </label>
             </div>
             <div className="flex items-end justify-end gap-2">
@@ -770,7 +766,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
                 ) : (
                   <>
                     <Upload className="w-4 h-4" />
-                    Fichier
+                    {td.file}
                   </>
                 )}
               </button>
@@ -781,7 +777,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
                 className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50"
               >
                 {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                {uploading ? 'Upload...' : 'Uploader'}
+                {uploading ? td.uploading : td.uploadBtn}
               </button>
             </div>
           </div>
@@ -802,7 +798,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
                   type="text"
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
-                  placeholder="Rechercher par titre, nom d'employé ou fichier..."
+                  placeholder={td.searchPlaceholder}
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none text-sm"
                 />
               </div>
@@ -811,7 +807,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
                 onChange={e => setTypeFilter(e.target.value)}
                 className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
               >
-                <option value="all">Tous les types</option>
+                <option value="all">{td.allTypes}</option>
                 {ALL_DOC_TYPES.map(t => (
                   <option key={t.value} value={t.value}>{t.icon} {t.label}</option>
                 ))}
@@ -821,7 +817,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
                 onChange={e => setEmployeeFilter(e.target.value ? Number(e.target.value) : null)}
                 className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm max-w-[200px]"
               >
-                <option value="">Tous les employés</option>
+                <option value="">{td.allEmployees}</option>
                 {employees.map(emp => (
                   <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
                 ))}
@@ -829,12 +825,12 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
               <label className="flex items-center gap-2 px-3 py-2.5 border border-gray-300 rounded-lg text-sm cursor-pointer hover:bg-gray-50">
                 <input type="checkbox" checked={expiredFilter} onChange={e => setExpiredFilter(e.target.checked)} className="rounded" />
                 <AlertTriangle className="w-4 h-4 text-red-500" />
-                Expirés
+                {td.expiredOnly}
               </label>
               {hasFilters && (
                 <button onClick={resetFilters} className="flex items-center gap-1 px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">
                   <X className="w-4 h-4" />
-                  Effacer
+                  {td.clearFilters}
                 </button>
               )}
               <button onClick={() => { fetchDocuments(1); fetchStats(); fetchAlerts(); }} className="flex items-center gap-1 px-3 py-2.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
@@ -852,10 +848,10 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
             ) : documents.length === 0 ? (
               <div className="py-16 text-center">
                 <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p className="text-gray-500 mb-2">Aucun document trouvé</p>
+                <p className="text-gray-500 mb-2">{td.noDocumentFound}</p>
                 {hasFilters && (
                   <button onClick={resetFilters} className="text-sm text-primary-600 hover:text-primary-800">
-                    Effacer les filtres
+                    {td.clearTheFilters}
                   </button>
                 )}
               </div>
@@ -864,16 +860,16 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
                 {/* Barre d'actions groupées */}
                 {someDocsSelected && (
                   <div className="mx-4 mt-3 mb-1 flex items-center gap-3 bg-primary-50 border border-primary-200 rounded-xl px-4 py-3">
-                    <span className="text-sm font-medium text-primary-700">{selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}</span>
+                    <span className="text-sm font-medium text-primary-700">{selectedIds.size > 1 ? td.selectedCountPlural.replace('{count}', String(selectedIds.size)) : td.selectedCount.replace('{count}', String(selectedIds.size))}</span>
                     <div className="h-5 w-px bg-primary-200" />
                     <button onClick={handleBulkExportDocs} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                      <Download className="w-3.5 h-3.5" />Exporter CSV
+                      <Download className="w-3.5 h-3.5" />{td.exportCsv}
                     </button>
                     <button onClick={handleBulkDownload} disabled={bulkLoading} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-primary-600 bg-white border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors">
-                      <Download className="w-3.5 h-3.5" />Télécharger
+                      <Download className="w-3.5 h-3.5" />{td.download}
                     </button>
                     <button onClick={handleBulkDeleteDocs} disabled={bulkLoading} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
-                      <Trash2 className="w-3.5 h-3.5" />Supprimer
+                      <Trash2 className="w-3.5 h-3.5" />{td.deleteSelected}
                     </button>
                     <div className="flex-1" />
                     <button onClick={() => setSelectedIds(new Set())} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors">
@@ -889,13 +885,13 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
                       <th className="w-10 px-3 py-3">
                         <input type="checkbox" checked={allDocsSelected} onChange={toggleSelectAllDocs} className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer" />
                       </th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Document</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Employé</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Type</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Date</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Expiration</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Statut</th>
-                      <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{td.document}</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{td.employee}</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{td.type}</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{td.date}</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{td.expiration}</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{td.statusCol}</th>
+                      <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{td.actions}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -947,13 +943,13 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1">
                               {doc.is_confidential && (
-                                <span title="Confidentiel" className="p-1"><Shield className="w-3.5 h-3.5 text-orange-500" /></span>
+                                <span title={td.confidentialLabel} className="p-1"><Shield className="w-3.5 h-3.5 text-orange-500" /></span>
                               )}
                               {!doc.visible_to_employee && (
-                                <span title="Non visible par l'employé" className="p-1"><Eye className="w-3.5 h-3.5 text-gray-400" /></span>
+                                <span title={td.notVisibleToEmployee} className="p-1"><Eye className="w-3.5 h-3.5 text-gray-400" /></span>
                               )}
                               {doc.visible_to_employee && !doc.is_confidential && (
-                                <span className="text-xs text-green-600">✓ Visible</span>
+                                <span className="text-xs text-green-600">✓ {td.visible}</span>
                               )}
                             </div>
                           </td>
@@ -963,14 +959,14 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
                                 onClick={() => handleDownload(doc)}
                                 disabled={downloading === doc.id}
                                 className="p-1.5 hover:bg-primary-100 rounded text-primary-600"
-                                title="Télécharger"
+                                title={td.downloadAction}
                               >
                                 {downloading === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                               </button>
                               <button
                                 onClick={() => onOpenEmployeeProfile?.(doc.employee_id)}
                                 className="p-1.5 hover:bg-gray-100 rounded text-gray-500"
-                                title="Voir le dossier"
+                                title={td.viewFile}
                               >
                                 <ExternalLink className="w-4 h-4" />
                               </button>
@@ -978,7 +974,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
                                 onClick={() => handleDelete(doc)}
                                 disabled={deleting === doc.id}
                                 className="p-1.5 hover:bg-red-100 rounded text-red-500"
-                                title="Supprimer"
+                                title={td.deleteAction}
                               >
                                 {deleting === doc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                               </button>
@@ -994,7 +990,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
                 {totalPages > 1 && (
                   <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
                     <p className="text-sm text-gray-500">
-                      Page {page}/{totalPages} • {totalDocs} documents
+                      {td.pageOf.replace('{page}', String(page)).replace('{total}', String(totalPages)).replace('{count}', String(totalDocs))}
                     </p>
                     <div className="flex gap-2">
                       <button
@@ -1002,14 +998,14 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
                         disabled={page <= 1}
                         className="px-3 py-1.5 border border-gray-300 rounded text-sm disabled:opacity-50 hover:bg-gray-50"
                       >
-                        Précédent
+                        {td.previous}
                       </button>
                       <button
                         onClick={() => fetchDocuments(page + 1)}
                         disabled={page >= totalPages}
                         className="px-3 py-1.5 border border-gray-300 rounded text-sm disabled:opacity-50 hover:bg-gray-50"
                       >
-                        Suivant
+                        {td.next}
                       </button>
                     </div>
                   </div>
@@ -1023,7 +1019,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-indigo-500" />
-                Répartition par type
+                {td.distributionByType}
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                 {stats.by_type.map(item => {
@@ -1060,21 +1056,21 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="font-semibold text-gray-900">
-                Toutes les alertes ({alerts.length})
+                {td.allAlerts} ({alerts.length})
               </h3>
               <button
                 onClick={fetchAlerts}
                 className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
               >
                 <RefreshCw className="w-4 h-4" />
-                Actualiser
+                {td.refresh}
               </button>
             </div>
 
             {alerts.length === 0 ? (
               <div className="py-16 text-center">
                 <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-300" />
-                <p className="text-gray-500">Aucune alerte — tous les dossiers sont en ordre !</p>
+                <p className="text-gray-500">{td.noAlerts}</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-50">
@@ -1102,7 +1098,7 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                         alert.severity === 'high' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
                       }`}>
-                        {alert.severity === 'high' ? 'Urgent' : 'Attention'}
+                        {alert.severity === 'high' ? td.urgent : td.attention}
                       </span>
                       <ExternalLink className="w-4 h-4 text-gray-400" />
                     </div>

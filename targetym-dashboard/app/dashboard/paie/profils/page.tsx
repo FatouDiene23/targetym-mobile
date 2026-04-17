@@ -1,10 +1,11 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { User, Pencil, Plus, Loader2, X, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { useI18n } from '@/lib/i18n/I18nContext';
 import { getEmployees, type Employee } from '@/lib/api';
 import {
   getBulkPayrollProfiles, createEmployeePayrollProfile, updateEmployeePayrollProfile,
@@ -40,6 +41,7 @@ function ProfileModal({
   onClose: () => void;
   onSaved: (p: EmployeePayrollProfile) => void;
 }) {
+  const { t } = useI18n();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<EmployeePayrollProfileCreate>({
     // Si profil paie existant → ses valeurs, sinon → fallback depuis la fiche employé
@@ -65,7 +67,7 @@ function ProfileModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.base_salary || form.base_salary <= 0) {
-      return toast.error('Le salaire net est requis');
+      return toast.error(t.payroll.profiles.salaryRequired);
     }
     setSaving(true);
     try {
@@ -78,14 +80,14 @@ function ProfileModal({
       let saved: EmployeePayrollProfile;
       if (existing) {
         saved = await updateEmployeePayrollProfile(employee.id, payload);
-        toast.success('Profil mis à jour');
+        toast.success(t.payroll.profiles.profileUpdated);
       } else {
         saved = await createEmployeePayrollProfile(employee.id, payload);
-        toast.success('Profil créé');
+        toast.success(t.payroll.profiles.profileCreated);
       }
       onSaved(saved);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur');
+      toast.error(err instanceof Error ? err.message : t.common.error);
     } finally {
       setSaving(false);
     }
@@ -97,7 +99,7 @@ function ProfileModal({
         <div className="flex items-center justify-between p-5 border-b sticky top-0 bg-white z-10">
           <div>
             <h2 className="font-semibold text-gray-800 text-lg">
-              {existing ? 'Modifier le profil de paie' : 'Configurer le profil de paie'}
+              {existing ? t.payroll.profiles.editProfile : t.payroll.profiles.configureProfile}
             </h2>
             <p className="text-sm text-gray-500 mt-0.5">
               {employee.first_name} {employee.last_name}
@@ -111,16 +113,16 @@ function ProfileModal({
         <form onSubmit={handleSubmit} className="p-5 space-y-5">
           {/* Bannière info préremplissage */}
           {!existing && (employee.salaire_brut || employee.salary || employee.classification || employee.contract_type) && (
-            <div className="flex items-start gap-2 bg-primary-50 border border-blue-100 rounded-lg px-3 py-2.5 text-sm text-primary-700">
+            <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5 text-sm text-blue-700">
               <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-blue-400" />
-              <span>Certains champs ont été préremplis depuis la fiche employé. Vérifiez et complétez si nécessaire.</span>
+              <span>{t.payroll.profiles.prefillBanner}</span>
             </div>
           )}
 
           {/* Contrat et classification */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Type de contrat</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.profiles.contractType}</label>
               <select
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={form.contract_type ?? ''}
@@ -132,11 +134,11 @@ function ProfileModal({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Classification</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.profiles.classification}</label>
               <input
                 type="text"
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="ex. Cadre, Agent de maîtrise…"
+                placeholder={t.payroll.profiles.classificationPlaceholder}
                 value={form.classification ?? ''}
                 onChange={e => set('classification', e.target.value)}
               />
@@ -145,11 +147,11 @@ function ProfileModal({
 
           {/* Salaires */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 border-b pb-1">Rémunération (XOF)</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3 border-b pb-1">{t.payroll.profiles.remuneration}</h3>
             <div className="grid grid-cols-1 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Salaire net <span className="text-red-500">*</span>
+                  {t.payroll.profiles.netSalary} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -164,7 +166,7 @@ function ProfileModal({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Indemnité transport</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.profiles.transportAllowance}</label>
                   <input
                     type="number"
                     min={0}
@@ -176,7 +178,7 @@ function ProfileModal({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Indemnité logement</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.profiles.housingAllowance}</label>
                   <input
                     type="number"
                     min={0}
@@ -189,7 +191,7 @@ function ProfileModal({
                 </div>
               </div>
               <div className="w-1/2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Parts fiscales</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.profiles.taxParts}</label>
                 <input
                   type="number"
                   min={1}
@@ -206,13 +208,13 @@ function ProfileModal({
 
           {/* Cotisations sociales */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 border-b pb-1">Cotisations sociales</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3 border-b pb-1">{t.payroll.profiles.socialContributions}</h3>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { key: 'ipres_enrolled', label: 'IPRES (retraite)' },
-                { key: 'ipm_enrolled', label: 'IPM (maladie)' },
-                { key: 'css_enrolled', label: 'CSS / MSAS' },
-                { key: 'cfce_enrolled', label: 'CFCE' },
+                { key: 'ipres_enrolled', label: t.payroll.profiles.ipres },
+                { key: 'ipm_enrolled', label: t.payroll.profiles.ipm },
+                { key: 'css_enrolled', label: t.payroll.profiles.cssMsas },
+                { key: 'cfce_enrolled', label: t.payroll.profiles.cfce },
               ].map(({ key, label }) => (
                 <label key={key} className="flex items-center gap-2 cursor-pointer select-none">
                   <input
@@ -229,10 +231,10 @@ function ProfileModal({
 
           {/* Banque */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 border-b pb-1">Coordonnées bancaires <span className="font-normal text-gray-400">(optionnel)</span></h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3 border-b pb-1">{t.payroll.profiles.bankDetails} <span className="font-normal text-gray-400">({t.payroll.profiles.optional})</span></h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Banque</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.profiles.bankName}</label>
                 <input
                   type="text"
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -242,7 +244,7 @@ function ProfileModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Numéro de compte</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.profiles.accountNumber}</label>
                 <input
                   type="text"
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -256,7 +258,7 @@ function ProfileModal({
 
           <div className="pt-2 flex justify-end gap-3">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border rounded-lg hover:bg-gray-50">
-              Annuler
+              {t.common.cancel}
             </button>
             <button
               type="submit"
@@ -264,7 +266,7 @@ function ProfileModal({
               className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              {existing ? 'Enregistrer' : 'Créer le profil'}
+              {existing ? t.common.save : t.payroll.profiles.createProfile}
             </button>
           </div>
         </form>
@@ -276,6 +278,7 @@ function ProfileModal({
 // ── Page principale ───────────────────────────────────────────────────────────
 
 export default function ProfilsPayePage() {
+  const { t } = useI18n();
   const [employees, setEmployees] = useState<EmployeeWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalEmployee, setModalEmployee] = useState<EmployeeWithProfile | null>(null);
@@ -294,7 +297,7 @@ export default function ProfilsPayePage() {
       const profilesMap = await getBulkPayrollProfiles(ids);
       setEmployees(emps.map(e => ({ ...e, profile: profilesMap[String(e.id)] ?? null, profileLoaded: true })));
     } catch {
-      toast.error('Erreur lors du chargement');
+      toast.error(t.payroll.profiles.loadingError);
     } finally {
       setLoading(false);
     }
@@ -312,8 +315,8 @@ export default function ProfilsPayePage() {
   const handleDelete = (emp: EmployeeWithProfile) => {
     setConfirmDialog({
       open: true,
-      title: 'Retirer la configuration',
-      message: `Retirer la configuration de paie de ${emp.first_name} ${emp.last_name} ? Cette action est réversible.`,
+      title: t.payroll.profiles.removeConfig,
+      message: t.payroll.profiles.removeConfigMessage.replace('{name}', `${emp.first_name} ${emp.last_name}`),
       onConfirm: async () => {
         setConfirmDialog(p => ({ ...p, open: false }));
         try {
@@ -321,9 +324,9 @@ export default function ProfilsPayePage() {
           setEmployees(prev => prev.map(e =>
             e.id === emp.id ? { ...e, profile: null } : e
           ));
-          toast.success('Profil de paie retiré');
+          toast.success(t.payroll.profiles.profileRemoved);
         } catch (err: unknown) {
-          toast.error(err instanceof Error ? err.message : 'Erreur');
+          toast.error(err instanceof Error ? err.message : t.common.error);
         }
       },
     });
@@ -343,22 +346,22 @@ export default function ProfilsPayePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header title="Profils de paie" subtitle="Configurez le salaire et les paramètres de paie de chaque employé" />
+      <Header title={t.payroll.profiles.title} subtitle={t.payroll.profiles.subtitle} />
 
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
 
         {/* Résumé */}
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-white rounded-xl border p-4">
-            <p className="text-xs text-gray-500 mb-1">Employés actifs</p>
+            <p className="text-xs text-gray-500 mb-1">{t.payroll.profiles.activeEmployees}</p>
             <p className="text-2xl font-bold text-gray-800">{employees.length}</p>
           </div>
           <div className="bg-white rounded-xl border p-4">
-            <p className="text-xs text-gray-500 mb-1">Profils configurés</p>
+            <p className="text-xs text-gray-500 mb-1">{t.payroll.profiles.configuredProfiles}</p>
             <p className="text-2xl font-bold text-green-600">{configured}</p>
           </div>
           <div className="bg-white rounded-xl border p-4">
-            <p className="text-xs text-gray-500 mb-1">À configurer</p>
+            <p className="text-xs text-gray-500 mb-1">{t.payroll.profiles.toBeConfigured}</p>
             <p className="text-2xl font-bold text-orange-500">{employees.length - configured}</p>
           </div>
         </div>
@@ -367,7 +370,7 @@ export default function ProfilsPayePage() {
         <div className="bg-white rounded-xl border p-4">
           <input
             type="text"
-            placeholder="Rechercher un employé…"
+            placeholder={t.payroll.profiles.searchEmployee}
             className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -382,7 +385,7 @@ export default function ProfilsPayePage() {
         ) : (
           <div className="bg-white rounded-xl border divide-y">
             {filtered.length === 0 && (
-              <div className="py-12 text-center text-gray-400 text-sm">Aucun employé trouvé</div>
+              <div className="py-12 text-center text-gray-400 text-sm">{t.payroll.profiles.noEmployeeFound}</div>
             )}
             {filtered.map(emp => {
               const p = emp.profile;
@@ -413,14 +416,14 @@ export default function ProfilsPayePage() {
                     ) : (
                       <span className="flex items-center gap-1 text-xs text-orange-500 bg-orange-50 rounded-full px-2.5 py-1">
                         <AlertCircle className="w-3.5 h-3.5" />
-                        Non configuré
+                        {t.payroll.profiles.notConfigured}
                       </span>
                     )}
 
                     {p && (
                       <span className="hidden sm:flex items-center gap-1 text-xs text-green-600 bg-green-50 rounded-full px-2.5 py-1">
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        Configuré
+                        {t.payroll.profiles.configured}
                       </span>
                     )}
 
@@ -429,17 +432,17 @@ export default function ProfilsPayePage() {
                       className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border hover:bg-gray-50 text-gray-600"
                     >
                       {p ? <Pencil className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                      {p ? 'Modifier' : 'Configurer'}
+                      {p ? t.common.edit : t.payroll.profiles.configure}
                     </button>
 
                     {p && (
                       <button
                         onClick={() => handleDelete(emp)}
-                        title="Retirer la configuration"
+                        title={t.payroll.profiles.removeConfig}
                         className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 text-red-500"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                        Retirer
+                        {t.payroll.profiles.remove}
                       </button>
                     )}
                   </div>

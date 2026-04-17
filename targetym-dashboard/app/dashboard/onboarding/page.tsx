@@ -1441,7 +1441,7 @@ export default function OnboardingPage() {
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.dueDayLabel}</label>
               <input type="number" value={dueDay} onChange={e => setDueDay(parseInt(e.target.value) || 1)} min={1} className="w-full border rounded-lg px-3 py-2 text-sm" />
-              <p className="text-xs text-gray-400 mt-1">Nombre de jours après le début de l'onboarding</p>
+              <p className="text-xs text-gray-400 mt-1">{t.onboarding.daysAfterStart}</p>
             </div>
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2 text-sm">
@@ -1469,9 +1469,9 @@ export default function OnboardingPage() {
             )}
           </div>
           <div className="px-6 py-4 border-t flex justify-end gap-2">
-            <button onClick={() => { setShowTaskModal(false); setEditingTask(null); }} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Annuler</button>
+            <button onClick={() => { setShowTaskModal(false); setEditingTask(null); }} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">{t.common.cancel}</button>
             <button onClick={handleSave} disabled={saving || !title.trim()} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50">
-              {saving ? <Loader2 size={16} className="animate-spin" /> : editingTask ? 'Modifier' : 'Ajouter'}
+              {saving ? <Loader2 size={16} className="animate-spin" /> : editingTask ? t.onboarding.edit : t.onboarding.add}
             </button>
           </div>
         </div>
@@ -1525,7 +1525,7 @@ export default function OnboardingPage() {
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
           <div className="px-6 py-4 border-b flex items-center justify-between">
-            <h3 className="font-semibold">Assigner un onboarding</h3>
+            <h3 className="font-semibold">{t.onboarding.assignOnboarding}</h3>
             <button onClick={() => { setShowAssignModal(false); setQueueStartItem(null); setPreselectedEmployeeId(''); setPreselectedEmployeeName(''); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
           </div>
           {queueStartItem && (
@@ -1536,66 +1536,66 @@ export default function OnboardingPage() {
           )}
           <div className="p-6 space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Employé *</label>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.employeeRequired}</label>
               {preselectedEmployeeId || queueStartItem?.employee_id ? (
                 <div className="flex items-center gap-3 px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg">
                   <UserCheck size={16} className="text-emerald-600 shrink-0" />
                   <span className="text-sm font-medium text-emerald-900">
                     {preselectedEmployeeName || queueStartItem?.employee_name || (preselectedEmployeeId ? `Employé #${preselectedEmployeeId}` : `Employé #${queueStartItem?.employee_id}`)}
                   </span>
-                  <span className="ml-auto px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">Pré-sélectionné</span>
+                  <span className="ml-auto px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">{t.onboarding.preSelected}</span>
                 </div>
               ) : (
                 <SearchableSelect
                   value={empId}
                   onChange={setEmpId}
-                  placeholder="Sélectionner un employé"
+                  placeholder={t.onboarding.selectEmployee}
                   options={employees.map(e => ({ value: String(e.id), label: `${e.first_name} ${e.last_name}`, subtitle: e.job_title || '' }))}
                 />
               )}
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Programme *</label>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.programmeRequired}</label>
               <SearchableSelect
                 value={progId}
                 onChange={setProgId}
-                placeholder="Sélectionner un programme"
+                placeholder={t.onboarding.selectProgram}
                 options={programs.filter(p => p.is_active).map(p => ({ value: String(p.id), label: p.name, subtitle: `${p.task_count} tâches` }))}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Manager</label>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.manager}</label>
                 <SearchableSelect
                   value={managerId}
                   onChange={setManagerId}
-                  placeholder="Auto (depuis fiche)"
+                  placeholder={t.onboarding.autoFromFile}
                   options={employees.map(e => ({ value: String(e.id), label: `${e.first_name} ${e.last_name}`, subtitle: e.job_title || '' }))}
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Buddy / Parrain</label>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.buddy}</label>
                 <SearchableSelect
                   value={buddyId}
                   onChange={setBuddyId}
-                  placeholder="Aucun"
+                  placeholder={t.onboarding.none}
                   options={employees.map(e => ({ value: String(e.id), label: `${e.first_name} ${e.last_name}`, subtitle: e.job_title || '' }))}
                 />
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Date de début</label>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.startDate}</label>
               <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Notes</label>
-              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Informations complémentaires..." />
+              <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.notes}</label>
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder={t.onboarding.additionalInfo} />
             </div>
           </div>
           <div className="px-6 py-4 border-t flex justify-end gap-2">
-            <button onClick={() => { setShowAssignModal(false); setQueueStartItem(null); setPreselectedEmployeeId(''); setPreselectedEmployeeName(''); }} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Annuler</button>
+            <button onClick={() => { setShowAssignModal(false); setQueueStartItem(null); setPreselectedEmployeeId(''); setPreselectedEmployeeName(''); }} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">{t.common.cancel}</button>
             <button onClick={handleSave} disabled={saving || !empId || !progId} className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50">
-              {saving ? <Loader2 size={16} className="animate-spin" /> : 'Assigner'}
+              {saving ? <Loader2 size={16} className="animate-spin" /> : t.onboarding.assign}
             </button>
           </div>
         </div>
@@ -1638,25 +1638,25 @@ export default function OnboardingPage() {
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
           <div className="px-6 py-4 border-b flex items-center justify-between">
-            <h3 className="font-semibold">Planifier un Get to Know</h3>
+            <h3 className="font-semibold">{t.onboarding.planGetToKnowTitle}</h3>
             <button onClick={() => setShowGTKModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
           </div>
           <div className="p-6 space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Nouvel employé *</label>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.newEmployee} *</label>
               <SearchableSelect
                 value={newEmpId}
                 onChange={setNewEmpId}
-                placeholder="Sélectionner"
+                placeholder={t.common.search}
                 options={employees.map(e => ({ value: String(e.id), label: `${e.first_name} ${e.last_name}`, subtitle: e.job_title || '' }))}
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Rencontre avec *</label>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.meetWith} *</label>
               <SearchableSelect
                 value={meetEmpId}
                 onChange={setMeetEmpId}
-                placeholder="Sélectionner"
+                placeholder={t.common.search}
                 options={employees.filter(e => e.id.toString() !== newEmpId).map(e => ({ value: String(e.id), label: `${e.first_name} ${e.last_name}`, subtitle: e.job_title || '' }))}
               />
             </div>
@@ -1669,35 +1669,35 @@ export default function OnboardingPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Date *</label>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.dateRequired}</label>
                 <input type="date" value={date_} onChange={e => setDate_(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Heure</label>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.time}</label>
                 <input type="time" value={time_} onChange={e => setTime_(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Durée (min)</label>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.durationMin}</label>
                 <input type="number" value={duration} onChange={e => setDuration(parseInt(e.target.value) || 30)} className="w-full border rounded-lg px-3 py-2 text-sm" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Lieu</label>
-                <input value={location} onChange={e => setLocation(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Salle de réunion, etc." />
+                <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.locationLabel}</label>
+                <input value={location} onChange={e => setLocation(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder={t.onboarding.locationPlaceholder} />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Lien visio</label>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.videoLink}</label>
                 <input value={link} onChange={e => setLink(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="https://..." />
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Sujet / Thème</label>
-              <input value={topic} onChange={e => setTopic(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Présentation de l'équipe, etc." />
+              <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.topicLabel}</label>
+              <input value={topic} onChange={e => setTopic(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder={t.onboarding.topicPlaceholder} />
             </div>
           </div>
           <div className="px-6 py-4 border-t flex justify-end gap-2">
-            <button onClick={() => setShowGTKModal(false)} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Annuler</button>
+            <button onClick={() => setShowGTKModal(false)} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">{t.common.cancel}</button>
             <button onClick={handleSave} disabled={saving || !newEmpId || !meetEmpId || !date_} className="px-4 py-2 text-sm bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50">
               {saving ? <Loader2 size={16} className="animate-spin" /> : 'Planifier'}
             </button>
@@ -1716,8 +1716,8 @@ export default function OnboardingPage() {
       return (
         <div className="text-center py-16 text-gray-400">
           <UserCheck size={48} className="mx-auto mb-3 opacity-30" />
-          <p className="font-medium">Aucun candidat en attente d'onboarding</p>
-          <p className="text-sm mt-1">Les candidats embauchés apparaîtront ici automatiquement</p>
+          <p className="font-medium">{t.onboarding.noPendingCandidates}</p>
+          <p className="text-sm mt-1">{t.onboarding.noPendingCandidatesHint}</p>
         </div>
       );
     }
@@ -1726,18 +1726,18 @@ export default function OnboardingPage() {
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b flex items-center justify-between">
           <div>
-            <h3 className="font-semibold text-gray-900">Candidats embauchés à onboarder</h3>
-            <p className="text-sm text-gray-500 mt-0.5">{queueItems.length} personne{queueItems.length > 1 ? 's' : ''} en attente</p>
+            <h3 className="font-semibold text-gray-900">{t.onboarding.candidatesToOnboard}</h3>
+            <p className="text-sm text-gray-500 mt-0.5">{queueItems.length} {queueItems.length > 1 ? t.onboarding.personsWaitingPlural : t.onboarding.personsWaiting}</p>
           </div>
         </div>
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b">
             <tr>
-              <th className="text-left px-6 py-3 font-medium text-gray-600">Candidat</th>
-              <th className="text-left px-6 py-3 font-medium text-gray-600">Poste</th>
-              <th className="text-left px-6 py-3 font-medium text-gray-600">Département</th>
-              <th className="text-left px-6 py-3 font-medium text-gray-600">Date d'embauche</th>
-              <th className="text-right px-6 py-3 font-medium text-gray-600">Action</th>
+              <th className="text-left px-6 py-3 font-medium text-gray-600">{t.onboarding.tableHeaders.candidate}</th>
+              <th className="text-left px-6 py-3 font-medium text-gray-600">{t.onboarding.tableHeaders.position}</th>
+              <th className="text-left px-6 py-3 font-medium text-gray-600">{t.onboarding.tableHeaders.department}</th>
+              <th className="text-left px-6 py-3 font-medium text-gray-600">{t.onboarding.tableHeaders.hireDate}</th>
+              <th className="text-right px-6 py-3 font-medium text-gray-600">{t.onboarding.tableHeaders.action}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -1767,7 +1767,7 @@ export default function OnboardingPage() {
                     }}
                     className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                   >
-                    <Play size={12} /> Démarrer l'onboarding
+                    <Play size={12} /> {t.onboarding.startOnboardingBtn}
                   </button>
                 </td>
               </tr>
@@ -1783,11 +1783,11 @@ export default function OnboardingPage() {
   // ============================================
 
   const tabs: { id: TabType; label: string; icon: any; badge?: number }[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    { id: 'programmes', label: 'Programmes', icon: ClipboardList },
-    { id: 'suivi', label: 'Suivi', icon: Users, badge: dashData?.stats.in_progress },
-    { id: 'get_to_know', label: 'Get to Know', icon: Handshake },
-    { id: 'queue', label: 'Nouveaux employés', icon: UserPlus, badge: queueItems.length || undefined },
+    { id: 'dashboard', label: t.onboarding.tabs.dashboard, icon: BarChart3 },
+    { id: 'programmes', label: t.onboarding.tabs.programmes, icon: ClipboardList },
+    { id: 'suivi', label: t.onboarding.tabs.suivi, icon: Users, badge: dashData?.stats.in_progress },
+    { id: 'get_to_know', label: t.onboarding.tabs.getToKnow, icon: Handshake },
+    { id: 'queue', label: t.onboarding.tabs.queue, icon: UserPlus, badge: queueItems.length || undefined },
   ];
 
   // ============================================
@@ -1804,20 +1804,32 @@ export default function OnboardingPage() {
         />
       )}
       
-      <Header title="Onboarding" subtitle="Gestion de l'intégration des nouveaux collaborateurs" />
+      <Header title={t.onboarding.title} subtitle={t.onboarding.subtitle} />
 
       {/* Dropdown flottant déclenché par le bouton Header "+" */}
       {showAddDropdown && (
-        <div ref={addDropdownRef} className="fixed top-16 right-6 w-56 bg-white rounded-xl shadow-lg border border-gray-200 z-50 py-1">
-          <button onClick={() => { setShowAddDropdown(false); setEditingProgram(null); setShowProgramModal(true); }}
-            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
-            <ClipboardList size={16} className="text-primary-500" /> Créer un programme
-          </button>
-          <button onClick={() => { setShowAddDropdown(false); setShowAssignModal(true); }}
-            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
-            <UserPlus size={16} className="text-green-500" /> Assigner un programme
-          </button>
-        </div>
+        <>
+          {/* Overlay sombre cliquable pour fermer */}
+          <div
+            onClick={() => setShowAddDropdown(false)}
+            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.3)', zIndex: 9998 }}
+          />
+          {/* Menu positionné en haut à droite */}
+          <div
+            ref={addDropdownRef}
+            style={{ position: 'fixed', top: '72px', right: '12px', zIndex: 9999, width: '220px' }}
+            className="bg-white rounded-xl shadow-lg border border-gray-200 py-1"
+          >
+            <button onClick={() => { setShowAddDropdown(false); setEditingProgram(null); setShowProgramModal(true); }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
+              <ClipboardList size={16} className="text-primary-500" /> {t.onboarding.createProgram}
+            </button>
+            <button onClick={() => { setShowAddDropdown(false); setShowAssignModal(true); }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
+              <UserPlus size={16} className="text-green-500" /> {t.onboarding.assignProgram}
+            </button>
+          </div>
+        </>
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">

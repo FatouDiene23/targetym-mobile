@@ -8,11 +8,12 @@ import {
   Key, Loader2, CheckCircle, XCircle, Shield, DollarSign, Printer,
   Target, CheckCircle2, Star, MessageSquare, ThumbsUp, ExternalLink,
   BookOpen, AlertTriangle, Plus, Trash2, ChevronDown, ChevronUp, Maximize2, Minimize2, Gift,
-  UserMinus, UserCheck
+  UserMinus, UserCheck, ShieldOff
 } from 'lucide-react';
 import { getEmployeeAccessStatus, activateEmployeeAccess, type AccessStatus } from '@/lib/api';
 import EmployeeDocuments from '@/components/EmployeeDocuments';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { useI18n } from '@/lib/i18n/I18nContext';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
@@ -90,6 +91,8 @@ interface Employee {
   comex_member?: string;
   hrbp?: string;
   salary_category?: string;
+  // 2FA
+  totp_enabled?: boolean;
 }
 
 interface EmployeeModalProps {
@@ -219,9 +222,7 @@ interface SalaryHistoryItem {
 // CONSTANTS
 // ============================================
 
-const ROLE_LABELS: Record<string, string> = {
-  employee: 'Employé', manager: 'Manager', rh: 'RH', admin: 'Administrateur', dg: 'Direction Générale',
-};
+// ROLE_LABELS moved inside component for i18n
 
 const LEAVE_COLORS: Record<string, { bg: string; text: string }> = {
   'ANNUAL': { bg: 'bg-green-100', text: 'text-green-700' },
@@ -234,13 +235,7 @@ const LEAVE_COLORS: Record<string, { bg: string; text: string }> = {
   'sick': { bg: 'bg-orange-100', text: 'text-orange-700' },
 };
 
-const FEEDBACK_TYPES: Record<string, { label: string; emoji: string; color: string }> = {
-  recognition: { label: 'Reconnaissance', emoji: '🌟', color: 'text-yellow-600' },
-  encouragement: { label: 'Encouragement', emoji: '💪', color: 'text-blue-600' },
-  constructive: { label: 'Constructif', emoji: '🔧', color: 'text-orange-600' },
-  suggestion: { label: 'Suggestion', emoji: '💡', color: 'text-purple-600' },
-  gratitude: { label: 'Gratitude', emoji: '🙏', color: 'text-green-600' },
-};
+// FEEDBACK_TYPES moved inside component for i18n
 
 const SANCTION_TYPES: Record<string, { icon: string; color: string }> = {
   'Avertissement': { icon: '⚠️', color: 'bg-yellow-100 text-yellow-800' },
@@ -267,7 +262,7 @@ function getLeaveColor(code: string) {
   return LEAVE_COLORS[code] || { bg: 'bg-gray-100', text: 'text-gray-700' };
 }
 
-function calculateSeniority(hireDate: string): { years: number; months: number; text: string } {
+function calculateSeniority(hireDate: string, labels?: { year: string; years: string; months: string; lessThanAMonth: string }): { years: number; months: number; text: string } {
   const hire = new Date(hireDate);
   const now = new Date();
   let years = now.getFullYear() - hire.getFullYear();
@@ -275,9 +270,11 @@ function calculateSeniority(hireDate: string): { years: number; months: number; 
   if (months < 0) { years--; months += 12; }
   if (now.getDate() < hire.getDate()) { months--; if (months < 0) { years--; months += 12; } }
   const parts: string[] = [];
-  if (years > 0) parts.push(`${years} an${years > 1 ? 's' : ''}`);
-  if (months > 0) parts.push(`${months} mois`);
-  if (parts.length === 0) parts.push("Moins d'un mois");
+  const yearLabel = labels ? (years > 1 ? labels.years : labels.year) : (years > 1 ? 'years' : 'year');
+  const monthLabel = labels ? labels.months : 'months';
+  if (years > 0) parts.push(`${years} ${yearLabel}`);
+  if (months > 0) parts.push(`${months} ${monthLabel}`);
+  if (parts.length === 0) parts.push(labels?.lessThanAMonth || "Less than a month");
   return { years, months, text: parts.join(' ') };
 }
 
@@ -342,6 +339,16 @@ function getStatusBadge(status: string) {
 // ============================================
 
 export default function EmployeeModal({ employee, onClose, onEdit, isReadOnly = false }: EmployeeModalProps) {
+  const { t } = useI18n();
+  const ROLE_LABELS: Record<string, string> = {
+    admin: 'Administrateur', rh: 'RH', manager: 'Manager', employee: 'Employé', dg: 'DG',
+  };
+  const FEEDBACK_TYPES: Record<string, { label: string; emoji: string; color: string }> = {
+    praise: { label: 'Félicitations', emoji: '🎉', color: 'text-green-600' },
+    suggestion: { label: 'Suggestion', emoji: '💡', color: 'text-blue-600' },
+    concern: { label: 'Remarque', emoji: '⚠️', color: 'text-yellow-600' },
+    question: { label: 'Question', emoji: '❓', color: 'text-purple-600' },
+  };
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // ---- Original states ----
@@ -412,7 +419,8 @@ export default function EmployeeModal({ employee, onClose, onEdit, isReadOnly = 
   if (employee.birthYear) { age = new Date().getFullYear() - employee.birthYear; }
   else if (employee.date_of_birth) { age = new Date().getFullYear() - new Date(employee.date_of_birth).getFullYear(); }
 
-  const seniority = displayHireDate ? calculateSeniority(displayHireDate) : null;
+  const seniorityLabels = { year: t.components.employeeDetail.year, years: t.components.employeeDetail.years, months: t.components.employeeDetail.months, lessThanAMonth: t.components.employeeDetail.lessThanAMonth };
+  const seniority = displayHireDate ? calculateSeniority(displayHireDate, seniorityLabels) : null;
   const contractTypeDisplay = CONTRACT_LABELS[employee.contract_type || ''] || employee.contract_type || '-';
 
   const completedTrainings = trainings.filter(t => t.status === 'completed').length;
@@ -555,8 +563,27 @@ export default function EmployeeModal({ employee, onClose, onEdit, isReadOnly = 
       const result = await activateEmployeeAccess(employee.id, false);
       setTempPassword(result.temp_password);
       setAccessStatus({ has_access: true, user_id: result.user_id, is_active: true, is_verified: false, last_login: null, role: result.role });
-    } catch (err) { setError(err instanceof Error ? err.message : "Erreur lors de l'activation"); }
+    } catch (err) { setError(err instanceof Error ? err.message : t.components.employeeDetail.activationError); }
     finally { setIsActivating(false); }
+  }
+
+  async function handleReset2FA() {
+    if (!accessStatus?.user_id) return;
+    if (!confirm(t.employees?.reset2FAConfirm || "Réinitialiser la 2FA de cet employé ? Il devra la reconfigurer à sa prochaine connexion.")) return;
+    try {
+      const res = await fetch(`${API_URL}/api/auth/2fa/reset/${accessStatus.user_id}`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.detail || t.common?.error || "Erreur");
+        return;
+      }
+      toast.success(t.employees?.reset2FASuccess || "2FA réinitialisée avec succès");
+    } catch {
+      toast.error(t.common?.error || "Erreur");
+    }
   }
 
   async function handleToggleStatus() {
@@ -581,7 +608,7 @@ export default function EmployeeModal({ employee, onClose, onEdit, isReadOnly = 
           setEmployeeStatus(data.status);
           toast.success(data.message);
         } catch {
-          toast.error('Erreur lors du changement de statut');
+          toast.error(t.components.employeeDetail.statusChangeError);
         } finally {
           setIsTogglingStatus(false);
         }
@@ -780,7 +807,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
           </div>
           <div className="flex items-center gap-2">
             {onEdit && (
-              <button onClick={onEdit} className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg" title="Modifier">
+              <button onClick={onEdit} className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg" title={t.components.employeeDetail.editTooltip}>
                 <Edit2 className="w-5 h-5" />
               </button>
             )}
@@ -797,10 +824,10 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                   : <UserCheck className="w-5 h-5" />
               }
             </button>}
-            <button onClick={handleExportPDF} disabled={isExporting} className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg" title="Télécharger le dossier">
+            <button onClick={handleExportPDF} disabled={isExporting} className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg" title={t.components.employeeDetail.downloadTooltip}>
               {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
             </button>
-            <button onClick={() => setIsFullscreen(!isFullscreen)} className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg" title={isFullscreen ? 'Réduire' : 'Plein écran'}>
+            <button onClick={() => setIsFullscreen(!isFullscreen)} className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg" title={isFullscreen ? t.components.employeeDetail.reduce : t.components.employeeDetail.fullscreen}>
               {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
             </button>
             <button onClick={onClose} className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg">
@@ -860,6 +887,16 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                         <span className="text-sm text-gray-900">{new Date(accessStatus.last_login).toLocaleDateString('fr-FR')}</span>
                       </div>
                     )}
+                    {(() => {
+                      const currentRole = (() => { try { return JSON.parse(localStorage.getItem('user') || '{}').role || ''; } catch { return ''; } })();
+                      return ['admin', 'rh', 'dg', 'super_admin'].includes(currentRole) && employee.totp_enabled && (
+                        <button onClick={handleReset2FA}
+                          className="flex items-center gap-2 px-3 py-1.5 text-sm text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 border border-orange-200 mt-3">
+                          <ShieldOff className="w-4 h-4" />
+                          {t.employees?.reset2FA || "Réinitialiser 2FA"}
+                        </button>
+                      );
+                    })()}
                   </div>
                 ) : (
                   <div className="text-center py-4">
@@ -1102,7 +1139,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
               {seniority && (
                 <div className="bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl p-5">
                   <div className="flex items-center justify-between">
-                    <div><p className="text-xs text-primary-600">Ancienneté</p><p className="text-2xl font-bold text-primary-700">{seniority.text}</p></div>
+                    <div><p className="text-xs text-primary-600">{t.components.employeeDetail.seniority}</p><p className="text-2xl font-bold text-primary-700">{seniority.text}</p></div>
                     <Clock className="w-10 h-10 text-primary-300" />
                   </div>
                 </div>
@@ -1472,7 +1509,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                           try { await apiFetch(`/api/benefits/${b.id}`, { method: 'DELETE' }); } catch {}
                           setBenefits(prev => prev.filter(x => x.id !== b.id));
                         }}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-600 transition-opacity" title="Supprimer">
+                        className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-600 transition-opacity" title={t.common.delete}>
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -1552,7 +1589,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                           {s.issued_by && <p className="text-xs text-gray-400 mt-0.5">Par {s.issued_by}</p>}
                         </div>
                         <button onClick={() => handleDeleteSanction(s.id)}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-600 transition-opacity" title="Supprimer">
+                          className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-600 transition-opacity" title={t.common.delete}>
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>

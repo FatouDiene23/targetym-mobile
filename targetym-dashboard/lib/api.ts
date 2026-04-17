@@ -735,7 +735,8 @@ export async function deleteDepartment(id: number): Promise<void> {
 // EXPORT CSV
 // ============================================
 
-export function exportEmployeesToCSV(employees: Employee[]): void {
+export async function exportEmployeesToCSV(employees: Employee[]): Promise<void> {
+  const { downloadFile } = await import('@/lib/capacitor-plugins');
   const headers = [
     'Matricule', 'Prénom', 'Nom', 'Email', 'Téléphone', 'Poste',
     'Département', 'Site', 'Date embauche', 'Statut', 'Type contrat', 'Genre'
@@ -762,16 +763,7 @@ export function exportEmployeesToCSV(employees: Employee[]): void {
   ].join('\n');
 
   const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  
-  link.setAttribute('href', url);
-  link.setAttribute('download', `employees_${new Date().toISOString().split('T')[0]}.csv`);
-  link.style.visibility = 'hidden';
-  
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  await downloadFile(blob, `employees_${new Date().toISOString().split('T')[0]}.csv`);
 }
 
 // ============================================
@@ -1736,6 +1728,22 @@ export interface UserListItem {
   last_login?: string;
 }
 
+export interface PaginatedTenantsResponse {
+  items: TenantListItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface PaginatedUsersResponse {
+  items: UserListItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
 export interface UserCreateData {
   email: string;
   password: string;
@@ -1779,16 +1787,16 @@ export async function getPlatformStats(): Promise<PlatformStats> {
  * Récupère la liste de tous les tenants
  */
 export async function getAllTenants(params?: {
-  skip?: number;
-  limit?: number;
+  page?: number;
+  page_size?: number;
   search?: string;
   plan?: string;
   is_active?: boolean;
   status?: 'pending' | 'active' | 'expired' | 'subscribed' | 'all';
-}): Promise<TenantListItem[]> {
+}): Promise<PaginatedTenantsResponse> {
   const searchParams = new URLSearchParams();
-  if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
-  if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+  if (params?.page !== undefined) searchParams.append('page', params.page.toString());
+  if (params?.page_size !== undefined) searchParams.append('page_size', params.page_size.toString());
   if (params?.search) searchParams.append('search', params.search);
   if (params?.plan) searchParams.append('plan', params.plan);
   if (params?.is_active !== undefined) searchParams.append('is_active', params.is_active.toString());
@@ -1848,16 +1856,16 @@ export async function blockTenant(
  * Récupère la liste de tous les users (cross-tenant)
  */
 export async function getAllUsers(params?: {
-  skip?: number;
-  limit?: number;
+  page?: number;
+  page_size?: number;
   search?: string;
   role?: string;
   tenant_id?: number;
   is_active?: boolean;
-}): Promise<UserListItem[]> {
+}): Promise<PaginatedUsersResponse> {
   const searchParams = new URLSearchParams();
-  if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
-  if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+  if (params?.page !== undefined) searchParams.append('page', params.page.toString());
+  if (params?.page_size !== undefined) searchParams.append('page_size', params.page_size.toString());
   if (params?.search) searchParams.append('search', params.search);
   if (params?.role) searchParams.append('role', params.role);
   if (params?.tenant_id !== undefined) searchParams.append('tenant_id', params.tenant_id.toString());
@@ -2868,4 +2876,54 @@ export async function updateSOSAlertStatus(
   });
   if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
   return response.json();
+}
+
+// ============================================
+// LICENSE MANAGEMENT
+// ============================================
+
+export interface LicenseStatus {
+  plan: string;
+  limit: number;
+  active_count: number;
+  surplus: number;
+  surplus_blocked: boolean;
+  grace_period_ends_at: string | null;
+  suspended_employees: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+    position?: string;
+    suspended_at: string;
+    reason?: string;
+  }[];
+  active_employees: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+    position?: string;
+    created_at: string;
+  }[];
+}
+
+export async function getLicenseStatus(): Promise<LicenseStatus> {
+  const response = await fetchWithAuth(`${API_URL}/api/licenses/status`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function activateLicense(employeeId: number): Promise<void> {
+  const response = await fetchWithAuth(`${API_URL}/api/licenses/activate/${employeeId}`, {
+    method: 'POST',
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+}
+
+export async function suspendLicense(employeeId: number): Promise<void> {
+  const response = await fetchWithAuth(`${API_URL}/api/licenses/suspend/${employeeId}`, {
+    method: 'POST',
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
 }

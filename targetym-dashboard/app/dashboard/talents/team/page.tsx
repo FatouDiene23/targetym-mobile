@@ -12,15 +12,18 @@ import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { talentsTeamTips } from '@/config/pageTips';
 import {
-  Search, RefreshCw, ChevronRight, ChevronLeft, CheckCircle2, Circle,
+  Search, RefreshCw, ChevronRight, CheckCircle2, Circle,
   TrendingUp, BookOpen, Heart, ArrowUpRight, Users, AlertCircle
 } from 'lucide-react';
 import { useTalents } from '../TalentsContext';
 import { getInitials, ELIGIBILITY_LABELS, formatDate, getUserEmployeeId } from '../shared';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import CustomSelect from '@/components/CustomSelect';
+import { useI18n } from '@/lib/i18n/I18nContext';
 
 export default function TeamCareerPage() {
+  const { t } = useI18n();
+  const tp = t.talents.teamPage;
   const {
     teamCareers, loadTeamCareers,
     syncProgress, loadEmployeeCareerDetail,
@@ -90,8 +93,8 @@ export default function TeamCareerPage() {
   const handlePromotion = async (ecId: number) => {
     setConfirmDialog({
       isOpen: true,
-      title: 'Demande de promotion',
-      message: 'Envoyer une demande de promotion pour cet employé ?',
+      title: tp.promotionRequestTitle,
+      message: tp.promotionRequestMessage,
       danger: false,
       onConfirm: async () => {
         setConfirmDialog(null);
@@ -103,7 +106,7 @@ export default function TeamCareerPage() {
             setDetail(res);
             await loadTeamCareers();
           }
-          toast.success('Demande envoyée');
+          toast.success(tp.requestSent);
         } catch (e: any) {
           toast.error(e.message);
         } finally {
@@ -118,16 +121,16 @@ export default function TeamCareerPage() {
   return (
     <>
       {showTips && (
-        <PageTourTips tips={talentsTeamTips} onDismiss={dismissTips} pageTitle="Mon Équipe" />
+        <PageTourTips tips={talentsTeamTips} onDismiss={dismissTips} pageTitle={tp.title} />
       )}
       <Header
-        title="Mon Équipe"
-        subtitle={`${teamCareers.length} collaborateur(s) · ${eligibleCount} éligible(s) à la promotion`}
+        title={tp.title}
+        subtitle={tp.subtitle(teamCareers.length, eligibleCount)}
       />
       <main className="flex-1 flex overflow-hidden bg-gray-50" style={{ height: 'calc(100vh - 64px)' }}>
 
         {/* ─── Panneau gauche : liste ─── */}
-        <div className={`w-full lg:w-80 flex-shrink-0 bg-white border-r border-gray-200 flex-col ${selected ? 'hidden lg:flex' : 'flex'}`}>
+        <div className="w-80 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
 
           {/* Filtres */}
           <div className="p-4 border-b border-gray-100 space-y-2">
@@ -135,7 +138,7 @@ export default function TeamCareerPage() {
               <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Rechercher..."
+                placeholder={tp.searchPlaceholder}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
@@ -143,15 +146,16 @@ export default function TeamCareerPage() {
             </div>
             <CustomSelect
               value={eligFilter}
-              onChange={setEligFilter}
+              onChange={v => setEligFilter(v)}
               options={[
-                { value: '', label: 'Tous les statuts' },
-                { value: 'eligible', label: 'Éligible' },
-                { value: 'in_progress', label: 'En progression' },
-                { value: 'not_eligible', label: 'Non éligible' },
+                { value: '', label: tp.allStatuses },
+                { value: 'eligible', label: tp.eligible },
+                { value: 'in_progress', label: tp.inProgress },
+                { value: 'not_eligible', label: tp.notEligible },
               ]}
+              className="w-full"
             />
-            <p className="text-xs text-gray-400">{filtered.length} résultat(s)</p>
+            <p className="text-xs text-gray-400">{tp.resultCount(filtered.length)}</p>
           </div>
 
           {/* Liste */}
@@ -159,7 +163,7 @@ export default function TeamCareerPage() {
             {filtered.length === 0 ? (
               <div className="p-8 text-center">
                 <Users className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-                <p className="text-sm text-gray-400">Aucun collaborateur</p>
+                <p className="text-sm text-gray-400">{tp.noEmployee}</p>
               </div>
             ) : filtered.map(ec => {
               const progress = ec.total_count ? Math.round(((ec.validated_count || 0) / ec.total_count) * 100) : 0;
@@ -207,11 +211,11 @@ export default function TeamCareerPage() {
         </div>
 
         {/* ─── Panneau droit : détail ─── */}
-        <div className={`flex-1 overflow-y-auto ${!selected ? 'hidden lg:block' : ''}`}>
+        <div className="flex-1 overflow-y-auto">
           {!selected ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-3">
               <Users className="w-12 h-12 text-gray-200" />
-              <p className="text-sm">Sélectionnez un collaborateur pour voir son détail</p>
+              <p className="text-sm">{tp.selectEmployee}</p>
             </div>
           ) : loadingDetail ? (
             <div className="flex items-center justify-center h-full">
@@ -220,11 +224,10 @@ export default function TeamCareerPage() {
           ) : !detail?.careers?.length ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-400">
               <AlertCircle className="w-10 h-10 text-gray-200" />
-              <p className="text-sm">Aucun détail disponible</p>
+              <p className="text-sm">{tp.noDetail}</p>
             </div>
           ) : (
             <div className="p-6 space-y-5">
-              <button onClick={() => setSelected(null)} className="lg:hidden flex items-center gap-2 text-sm text-gray-600 mb-3"><ChevronLeft size={16} />Retour</button>
               {detail.careers.map((career: any) => {
                 const validatedCount = career.competency_progress?.filter((c: any) => c.effective_status === 'validated').length || 0;
                 const totalCount = career.competency_progress?.length || 0;
@@ -250,7 +253,7 @@ export default function TeamCareerPage() {
                           className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 disabled:opacity-50 flex items-center gap-1.5"
                         >
                           <RefreshCw className={`w-3.5 h-3.5 ${syncing === selected.employee_id ? 'animate-spin' : ''}`} />
-                          Synchroniser
+                          {tp.sync}
                         </button>
                         {career.eligibility_status === 'eligible' && career.next_level_id && (
                           <button
@@ -259,7 +262,7 @@ export default function TeamCareerPage() {
                             className="px-3 py-1.5 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 flex items-center gap-1.5"
                           >
                             <ArrowUpRight className="w-3.5 h-3.5" />
-                            {promoting === career.id ? 'Envoi...' : 'Demander promotion'}
+                            {promoting === career.id ? tp.sending : tp.requestPromotion}
                           </button>
                         )}
                       </div>
@@ -280,7 +283,7 @@ export default function TeamCareerPage() {
                                   {isPast ? '✓' : level.level_order}
                                 </div>
                                 <p className="text-[10px] mt-1 text-center max-w-[60px] leading-tight text-gray-500">{level.title}</p>
-                                {isCurrent && <span className="mt-0.5 text-[9px] text-primary-500 font-medium">Actuel</span>}
+                                {isCurrent && <span className="mt-0.5 text-[9px] text-primary-500 font-medium">{tp.current}</span>}
                               </div>
                               {i < career.all_levels.length - 1 && (
                                 <div className={`flex-1 h-0.5 mx-1 mt-[-14px] ${isPast ? 'bg-green-400' : 'bg-gray-200'}`} />
@@ -292,20 +295,20 @@ export default function TeamCareerPage() {
                     </div>
 
                     {/* Stats */}
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-4" data-tour="performance-matrix">
+                    <div className="grid grid-cols-3 gap-3 mb-4" data-tour="performance-matrix">
                       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
-                        <p className="text-xs text-gray-500 mb-1">Progression</p>
+                        <p className="text-xs text-gray-500 mb-1">{tp.progression}</p>
                         <p className="text-2xl font-bold text-primary-600">{career.overall_progress || 0}%</p>
                       </div>
                       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
-                        <p className="text-xs text-gray-500 mb-1">Compétences</p>
+                        <p className="text-xs text-gray-500 mb-1">{tp.competencies}</p>
                         <p className="text-2xl font-bold text-gray-800">
                           {validatedCount}
                           <span className="text-base text-gray-400">/{totalCount}</span>
                         </p>
                       </div>
                       <div className={`rounded-xl border shadow-sm p-4 text-center ${elig.color}`}>
-                        <p className="text-xs opacity-70 mb-1">Éligibilité</p>
+                        <p className="text-xs opacity-70 mb-1">{tp.eligibility}</p>
                         <p className="text-sm font-bold">{elig.label}</p>
                       </div>
                     </div>
@@ -314,7 +317,7 @@ export default function TeamCareerPage() {
                     {totalCount > 0 && (
                       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
                         <h4 className="font-medium text-gray-900 mb-3">
-                          Compétences — {career.next_level_title ? `"${career.next_level_title}"` : 'niveau actuel'}
+                          {career.next_level_title ? tp.competenciesFor(career.next_level_title) : tp.competenciesCurrentLevel}
                         </h4>
                         <div className="space-y-2">
                           {career.competency_progress.map((comp: any) => {
@@ -345,7 +348,7 @@ export default function TeamCareerPage() {
                                 </div>
                                 <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 font-medium
                                   ${comp.effective_status === 'validated' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                  {comp.effective_status === 'validated' ? 'Validée' : 'En cours'}
+                                  {comp.effective_status === 'validated' ? tp.validated : tp.inProgressStatus}
                                 </span>
                               </div>
                             );
@@ -357,7 +360,7 @@ export default function TeamCareerPage() {
                     {/* Historique promotions */}
                     {career.promotion_history?.length > 0 && (
                       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mt-4">
-                        <h4 className="font-medium text-gray-900 mb-3">Historique des promotions</h4>
+                        <h4 className="font-medium text-gray-900 mb-3">{tp.promotionHistory}</h4>
                         <div className="space-y-2">
                           {career.promotion_history.map((pr: any) => (
                             <div key={pr.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
@@ -368,7 +371,7 @@ export default function TeamCareerPage() {
                                   ${pr.status === 'approved' ? 'bg-green-100 text-green-600' :
                                     pr.status === 'rejected' ? 'bg-red-100 text-red-600' :
                                     'bg-yellow-100 text-yellow-600'}`}>
-                                  {pr.status === 'approved' ? 'Approuvée' : pr.status === 'rejected' ? 'Refusée' : 'En attente'}
+                                  {pr.status === 'approved' ? tp.approved : pr.status === 'rejected' ? tp.rejected : tp.pending}
                                 </span>
                               </div>
                             </div>

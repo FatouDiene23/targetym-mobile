@@ -755,11 +755,9 @@ export default function RecruitmentPage() {
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
           <div className="flex border-b border-gray-200">
-            {!isMobile && (
-              <button onClick={() => setActiveTab('kanban')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'kanban' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
-                <Users className="w-4 h-4 inline mr-2" />Pipeline Candidats
-              </button>
-            )}
+            <button onClick={() => setActiveTab('kanban')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'kanban' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
+              <Users className="w-4 h-4 inline mr-2" />Pipeline Candidats
+            </button>
             <button onClick={() => setActiveTab('jobs')} className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'jobs' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}>
               <Briefcase className="w-4 h-4 inline mr-2" />Offres d&apos;Emploi
             </button>

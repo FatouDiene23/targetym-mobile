@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import CustomSelect from '@/components/CustomSelect';
 import {
   Plus, ChevronDown, ChevronRight, Trash2, Edit, X,
   Building2, Users, User, Download, Link2, BarChart3, GitBranch, Layers, Loader2
@@ -1181,6 +1182,7 @@ export default function OKRPage() {
         </div>
 
         {/* Filters */}
+<<<<<<< HEAD
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mb-6">
           <div className="flex gap-2 sm:gap-3 flex-wrap">
             <select value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value)} className="px-3 py-2 border rounded-lg text-sm bg-white min-w-[140px]">
@@ -1202,6 +1204,27 @@ export default function OKRPage() {
               <option value="department">{t.okr.department}</option>
               <option value="individual">{t.okr.individual}</option>
             </select>
+=======
+        <div className="flex justify-between items-center gap-4 mb-6">
+          <div className="flex gap-3">
+            <CustomSelect value={filterPeriod} onChange={setFilterPeriod} placeholder={t.okr.allPeriods} className="min-w-[130px]"
+              options={[
+                { value: 'all', label: t.okr.allPeriods },
+                { value: '2026', label: '2026' }, { value: 'Q1 2026', label: 'Q1 2026' }, { value: 'Q2 2026', label: 'Q2 2026' },
+                { value: 'Q3 2026', label: 'Q3 2026' }, { value: 'Q4 2026', label: 'Q4 2026' },
+                { value: '2025', label: '2025' }, { value: 'Q1 2025', label: 'Q1 2025' }, { value: 'Q2 2025', label: 'Q2 2025' },
+                { value: 'Q3 2025', label: 'Q3 2025' }, { value: 'Q4 2025', label: 'Q4 2025' },
+              ]}
+            />
+            <CustomSelect value={filterLevel} onChange={setFilterLevel} placeholder={t.okr.allLevels} className="min-w-[130px]"
+              options={[
+                { value: 'all', label: t.okr.allLevels },
+                { value: 'enterprise', label: t.okr.enterprise },
+                { value: 'department', label: t.okr.department },
+                { value: 'individual', label: t.okr.individual },
+              ]}
+            />
+>>>>>>> 06e5c0474c8e2dfa103a9dcf614de1d1517194ee
           </div>
           <div className="flex gap-2 sm:gap-3 flex-wrap">
             <button 

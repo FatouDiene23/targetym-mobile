@@ -1285,22 +1285,25 @@ function MobileSidebarWrapper({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener('click', handleClick);
   }, [open]);
 
-  if (!isMobile) return <>{children}</>;
-
   return (
     <>
-      {/* Overlay sombre */}
+      {/* Overlay mobile */}
       {open && (
         <div
-          className="fixed inset-0 bg-black/50 z-40"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setOpen(false)}
         />
       )}
-      {/* Sidebar en drawer */}
+      {/*
+        Desktop (lg+) : position statique dans le flex layout
+        Mobile : drawer fixe, glisse depuis la gauche
+      */}
       <div
-        className={`fixed top-0 left-0 h-full z-50 transition-transform duration-300 ${
-          open ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`
+          lg:relative lg:translate-x-0 lg:z-auto
+          fixed top-0 left-0 h-full z-50 transition-transform duration-300
+          ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
       >
         {children}
       </div>

@@ -11,7 +11,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { usePageTour } from '@/hooks/usePageTour';
 import PageTourTips from '@/components/PageTourTips';
-import { platformAdminUsersTips } from '@/config/pageTips';
 import {
   getAllUsers,
   getAllTenants,
@@ -729,7 +728,7 @@ export default function PlatformUsersManagement() {
 
       {showTips && (
         <PageTourTips
-          tips={platformAdminUsersTips}
+          pageId="platformAdminUsers"
           onDismiss={dismissTips}
           pageTitle="Gestion des Utilisateurs"
         />

@@ -9,14 +9,13 @@ import { useEffect, useState } from 'react';
 import Header from '@/components/Header';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import { myCareerTips } from '@/config/pageTips';
 import {
   CheckCircle2, Circle, BookOpen, TrendingUp, Heart,
   ArrowUpRight, Trophy, AlertCircle, Clock, ListChecks,
-  GraduationCap, Star, ChevronRight, Timer, ExternalLink
+  GraduationCap, Star, ChevronRight, Timer, ExternalLink, Users
 } from 'lucide-react';
 import Link from 'next/link';
-import { apiFetch, formatDate, ELIGIBILITY_LABELS } from '../shared';
+import { apiFetch, formatDate, ELIGIBILITY_LABELS, getUserRole } from '../shared';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
 export default function MyCareerPage() {
@@ -24,18 +23,27 @@ export default function MyCareerPage() {
   const tp = t.talents.myCareer;
   const [data, setData] = useState<any>(null);
   const [attitudeScores, setAttitudeScores] = useState<any>(null);
+  const [allCareers, setAllCareers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string>('employee');
 
   const { showTips, dismissTips, resetTips } = usePageTour('myCareer');
 
   useEffect(() => {
+    const role = getUserRole();
+    setUserRole(role);
+
+    const isHRAdminDG = ['rh', 'admin', 'directeur', 'dg'].includes(role);
+
     Promise.all([
       apiFetch('/api/careers/employees/my-career'),
       apiFetch('/api/attitudes/scores/me').catch(() => null),
-    ]).then(([career, attitudes]) => {
+      isHRAdminDG ? apiFetch('/api/careers/employees/all').catch(() => []) : Promise.resolve([]),
+    ]).then(([career, attitudes, allCareersData]) => {
       setData(career);
       setAttitudeScores(attitudes);
+      setAllCareers(Array.isArray(allCareersData) ? allCareersData : []);
     }).catch((e: any) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
@@ -44,7 +52,7 @@ export default function MyCareerPage() {
     return (
       <>
         {showTips && (
-          <PageTourTips tips={myCareerTips} onDismiss={dismissTips} pageTitle={tp.title} />
+          <PageTourTips pageId="myCareer" onDismiss={dismissTips} pageTitle={tp.title} />
         )}
         <Header title={tp.title} subtitle={tp.loading} />
         <main className="flex-1 p-6 bg-gray-50 flex items-center justify-center">
@@ -68,7 +76,111 @@ export default function MyCareerPage() {
     );
   }
 
+  const isHRAdminDG = ['rh', 'admin', 'directeur', 'dg'].includes(userRole);
+
   if (!data?.careers?.length) {
+    // Vue management pour RH / Admin / DG
+    if (isHRAdminDG) {
+      const eligibleCount = allCareers.filter((c: any) => c.eligibility_status === 'eligible').length;
+      const inProgressCount = allCareers.filter((c: any) => c.eligibility_status === 'in_progress').length;
+      const pathNames = [...new Set(allCareers.map((c: any) => c.path_name).filter(Boolean))];
+
+      return (
+        <>
+          <Header title={tp.title} subtitle="Vue d'ensemble des parcours" />
+          <main className="flex-1 p-6 bg-gray-50 space-y-6">
+            {/* Intro RH */}
+            <div className="bg-primary-50 border border-primary-100 rounded-xl p-5 flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
+                <Users className="w-5 h-5 text-primary-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-primary-900">Vous gérez les parcours de carrière</p>
+                <p className="text-sm text-primary-700 mt-0.5">
+                  Vous n'avez pas de parcours personnel assigné. Retrouvez ci-dessous un aperçu des parcours de vos collaborateurs.
+                </p>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 text-center">
+                <p className="text-3xl font-bold text-gray-900">{allCareers.length}</p>
+                <p className="text-sm text-gray-500 mt-1">Collaborateurs assignés</p>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 text-center">
+                <p className="text-3xl font-bold text-green-600">{eligibleCount}</p>
+                <p className="text-sm text-gray-500 mt-1">Éligibles à promotion</p>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 text-center">
+                <p className="text-3xl font-bold text-blue-600">{inProgressCount}</p>
+                <p className="text-sm text-gray-500 mt-1">En progression</p>
+              </div>
+            </div>
+
+            {/* Parcours actifs */}
+            {pathNames.length > 0 && (
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+                <h3 className="font-semibold text-gray-900 mb-4">Parcours actifs</h3>
+                <div className="flex flex-wrap gap-2">
+                  {pathNames.map((name: string) => (
+                    <span key={name} className="px-3 py-1.5 bg-primary-50 text-primary-700 rounded-full text-sm font-medium">
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Raccourcis */}
+            <div className="grid grid-cols-2 gap-4">
+              <Link href="/dashboard/talents/employees" className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex items-center gap-4 hover:border-primary-300 hover:shadow-md transition-all group">
+                <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center group-hover:bg-primary-100 transition-colors">
+                  <Users className="w-5 h-5 text-primary-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">Collaborateurs</p>
+                  <p className="text-sm text-gray-500">Voir les parcours individuels</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-300 ml-auto" />
+              </Link>
+              <Link href="/dashboard/talents/paths" className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex items-center gap-4 hover:border-primary-300 hover:shadow-md transition-all group">
+                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                  <TrendingUp className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">Parcours</p>
+                  <p className="text-sm text-gray-500">Gérer les parcours de carrière</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-300 ml-auto" />
+              </Link>
+              <Link href="/dashboard/talents/promotions" className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex items-center gap-4 hover:border-primary-300 hover:shadow-md transition-all group">
+                <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center group-hover:bg-green-100 transition-colors">
+                  <ArrowUpRight className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">Promotions</p>
+                  <p className="text-sm text-gray-500">Gérer les demandes de promotion</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-300 ml-auto" />
+              </Link>
+              <Link href="/dashboard/talents" className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex items-center gap-4 hover:border-primary-300 hover:shadow-md transition-all group">
+                <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center group-hover:bg-orange-100 transition-colors">
+                  <Star className="w-5 h-5 text-orange-500" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">Dashboard Talents</p>
+                  <p className="text-sm text-gray-500">Vue d'ensemble talents</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-300 ml-auto" />
+              </Link>
+            </div>
+          </main>
+        </>
+      );
+    }
+
+    // Vue employé sans parcours assigné
     return (
       <>
         <Header title={tp.title} subtitle={tp.yourProgression} />

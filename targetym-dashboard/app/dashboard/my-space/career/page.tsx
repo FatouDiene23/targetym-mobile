@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import { careerTips } from '@/config/pageTips';
 import {
   Briefcase, TrendingUp, GraduationCap, Award, MapPin, Calendar,
   AlertCircle, ChevronDown, ChevronUp, DollarSign, Star, Users,
@@ -651,7 +650,7 @@ export default function MyCareerPage() {
   return (
     <>
       {showTips && (
-        <PageTourTips tips={careerTips} onDismiss={dismissTips} pageTitle={t.mySpace.career.title} />
+        <PageTourTips pageId="career" onDismiss={dismissTips} pageTitle={t.mySpace.career.title} />
       )}
       <Header title={t.mySpace.career.title} subtitle={t.mySpace.career.subtitle} />
       <div className="py-8 px-4 sm:px-6 lg:px-8">

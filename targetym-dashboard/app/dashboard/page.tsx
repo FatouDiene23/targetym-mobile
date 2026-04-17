@@ -30,7 +30,6 @@ import {
 } from '@/lib/api';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import { dashboardTips } from '@/config/pageTips';
 import { useGroupContext } from '@/hooks/useGroupContext';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
@@ -1184,7 +1183,7 @@ export default function DashboardPage() {
         {/* Page Tour Tips - Suggestions contextuelles */}
         {showTips && (
           <PageTourTips
-            tips={dashboardTips}
+            pageId="dashboard"
             onDismiss={dismissTips}
             pageTitle={t.sidebar.dashboard}
           />
@@ -1230,7 +1229,7 @@ export default function DashboardPage() {
       {/* Page Tour Tips - Suggestions contextuelles */}
       {showTips && (
         <PageTourTips
-          tips={dashboardTips}
+          pageId="dashboard"
           onDismiss={dismissTips}
           pageTitle="Tableau de Bord"
         />

@@ -10,7 +10,6 @@ import toast from 'react-hot-toast';
 import Header from '@/components/Header';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import { talentsTeamTips } from '@/config/pageTips';
 import {
   Search, RefreshCw, ChevronRight, CheckCircle2, Circle,
   TrendingUp, BookOpen, Heart, ArrowUpRight, Users, AlertCircle
@@ -121,7 +120,7 @@ export default function TeamCareerPage() {
   return (
     <>
       {showTips && (
-        <PageTourTips tips={talentsTeamTips} onDismiss={dismissTips} pageTitle={tp.title} />
+        <PageTourTips pageId="talentsTeam" onDismiss={dismissTips} pageTitle={tp.title} />
       )}
       <Header
         title={tp.title}

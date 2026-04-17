@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import CustomSelect from '@/components/CustomSelect';
 import {
   Plus, ChevronDown, ChevronRight, Trash2, Edit, X,
   Building2, Users, User, Download, Link2, BarChart3, GitBranch, Layers, Loader2
@@ -10,8 +9,8 @@ import {
 import Header from '@/components/Header';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import { okrTips } from '@/config/pageTips';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CustomSelect from '@/components/CustomSelect';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
@@ -305,7 +304,7 @@ const getLevelColor = (l: string) => {
 };
 
 // Export OKRs to CSV
-async function exportOKRsToCSV(objectives: Objective[]): Promise<void> {
+function exportOKRsToCSV(objectives: Objective[]): void {
   const headers = [
     'Niveau', 'Titre', 'Département', 'Propriétaire', 'Période', 
     'Progression', 'Statut', 'Key Results'
@@ -328,8 +327,16 @@ async function exportOKRsToCSV(objectives: Objective[]): Promise<void> {
   ].join('\n');
 
   const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-  const { downloadFile } = await import('@/lib/capacitor-plugins');
-  await downloadFile(blob, `okr_export_${new Date().toISOString().split('T')[0]}.csv`);
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute('href', url);
+  link.setAttribute('download', `okr_export_${new Date().toISOString().split('T')[0]}.csv`);
+  link.style.visibility = 'hidden';
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 // ============================================
@@ -1124,7 +1131,7 @@ export default function OKRPage() {
     <>
       {showTips && (
         <PageTourTips
-          tips={okrTips}
+          pageId="okr"
           onDismiss={dismissTips}
           pageTitle={t.okr.title}
         />
@@ -1182,51 +1189,29 @@ export default function OKRPage() {
         </div>
 
         {/* Filters */}
-<<<<<<< HEAD
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mb-6">
-          <div className="flex gap-2 sm:gap-3 flex-wrap">
-            <select value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value)} className="px-3 py-2 border rounded-lg text-sm bg-white min-w-[140px]">
-              <option value="all">{t.okr.allPeriods}</option>
-              <option value="2026">2026</option>
-              <option value="Q1 2026">Q1 2026</option>
-              <option value="Q2 2026">Q2 2026</option>
-              <option value="Q3 2026">Q3 2026</option>
-              <option value="Q4 2026">Q4 2026</option>
-              <option value="2025">2025</option>
-              <option value="Q1 2025">Q1 2025</option>
-              <option value="Q2 2025">Q2 2025</option>
-              <option value="Q3 2025">Q3 2025</option>
-              <option value="Q4 2025">Q4 2025</option>
-            </select>
-            <select value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)} className="px-3 py-2 border rounded-lg text-sm bg-white min-w-[130px]">
-              <option value="all">{t.okr.allLevels}</option>
-              <option value="enterprise">{t.okr.enterprise}</option>
-              <option value="department">{t.okr.department}</option>
-              <option value="individual">{t.okr.individual}</option>
-            </select>
-=======
         <div className="flex justify-between items-center gap-4 mb-6">
           <div className="flex gap-3">
-            <CustomSelect value={filterPeriod} onChange={setFilterPeriod} placeholder={t.okr.allPeriods} className="min-w-[130px]"
-              options={[
-                { value: 'all', label: t.okr.allPeriods },
-                { value: '2026', label: '2026' }, { value: 'Q1 2026', label: 'Q1 2026' }, { value: 'Q2 2026', label: 'Q2 2026' },
-                { value: 'Q3 2026', label: 'Q3 2026' }, { value: 'Q4 2026', label: 'Q4 2026' },
-                { value: '2025', label: '2025' }, { value: 'Q1 2025', label: 'Q1 2025' }, { value: 'Q2 2025', label: 'Q2 2025' },
-                { value: 'Q3 2025', label: 'Q3 2025' }, { value: 'Q4 2025', label: 'Q4 2025' },
-              ]}
-            />
-            <CustomSelect value={filterLevel} onChange={setFilterLevel} placeholder={t.okr.allLevels} className="min-w-[130px]"
-              options={[
-                { value: 'all', label: t.okr.allLevels },
-                { value: 'enterprise', label: t.okr.enterprise },
-                { value: 'department', label: t.okr.department },
-                { value: 'individual', label: t.okr.individual },
-              ]}
-            />
->>>>>>> 06e5c0474c8e2dfa103a9dcf614de1d1517194ee
+            <CustomSelect value={filterPeriod} onChange={setFilterPeriod} options={[
+              { value: 'all', label: t.okr.allPeriods },
+              { value: '2026', label: '2026' },
+              { value: 'Q1 2026', label: 'Q1 2026' },
+              { value: 'Q2 2026', label: 'Q2 2026' },
+              { value: 'Q3 2026', label: 'Q3 2026' },
+              { value: 'Q4 2026', label: 'Q4 2026' },
+              { value: '2025', label: '2025' },
+              { value: 'Q1 2025', label: 'Q1 2025' },
+              { value: 'Q2 2025', label: 'Q2 2025' },
+              { value: 'Q3 2025', label: 'Q3 2025' },
+              { value: 'Q4 2025', label: 'Q4 2025' },
+            ]} className="min-w-[130px]" />
+            <CustomSelect value={filterLevel} onChange={setFilterLevel} options={[
+              { value: 'all', label: t.okr.allLevels },
+              { value: 'enterprise', label: t.okr.enterprise },
+              { value: 'department', label: t.okr.department },
+              { value: 'individual', label: t.okr.individual },
+            ]} className="min-w-[130px]" />
           </div>
-          <div className="flex gap-2 sm:gap-3 flex-wrap">
+          <div className="flex gap-3">
             <button 
               onClick={() => exportOKRsToCSV(objectives)}
               className="flex items-center px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-50"
@@ -1281,48 +1266,16 @@ export default function OKRPage() {
                     {section.data.map((obj) => (
                       <div key={obj.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                         <div className="p-4 cursor-pointer hover:bg-gray-50" onClick={() => toggleExpand(obj.id)}>
-                          <div className="flex items-start gap-2">
-                            <button className={`mt-0.5 w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center transition-all flex-shrink-0 ${obj.expanded ? `${section.bgLight} ${section.textColor}` : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
-                              {obj.expanded
-                                ? <ChevronDown className="w-5 h-5" />
-                                : <ChevronRight className="w-5 h-5" />
-                              }
-                            </button>
-                            <div className="flex-1 min-w-0">
-                              {/* Progress et actions en haut sur mobile */}
-                              <div className="flex sm:hidden items-center justify-between gap-2 mb-2">
-                                <div className="flex-1 min-w-0 flex items-center gap-2">
-                                  <span className="text-base font-bold text-gray-900 whitespace-nowrap">{Math.round(obj.progress)}%</span>
-                                  <div className="flex-1 h-2 bg-gray-200 rounded-full">
-                                    <div className={`h-full rounded-full ${getProgressColor(obj.progress)}`} style={{ width: `${Math.min(obj.progress, 100)}%` }} />
-                                  </div>
-                                </div>
-                                {canEditObjective(obj) && (
-                                  <div className="flex items-center gap-1 flex-shrink-0">
-                                    <button
-                                      className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditingObjective(obj);
-                                        setShowObjectiveModal(true);
-                                      }}
-                                    >
-                                      <Edit className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteObjective(obj.id);
-                                      }}
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start flex-1">
+                              {/* Flèche de repli OKR individuel - PLUS VISIBLE */}
+                              <button className={`mt-0.5 mr-3 w-8 h-8 rounded-lg flex items-center justify-center transition-all ${obj.expanded ? `${section.bgLight} ${section.textColor}` : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+                                {obj.expanded 
+                                  ? <ChevronDown className="w-5 h-5" /> 
+                                  : <ChevronRight className="w-5 h-5" />
+                                }
+                              </button>
+                              <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
                                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${getLevelColor(obj.level)}`}>
                                     {getLevelIcon(obj.level)}{getLevelLabel(obj.level, t)}
@@ -1344,10 +1297,11 @@ export default function OKRPage() {
                                     {getStatusLabel(obj.status, t)}
                                   </span>
                                 </div>
-                                </div>
-                                <div className="hidden sm:flex items-center gap-4 flex-shrink-0">
-                              <div className="text-right flex-shrink-0">
-                                <span className="text-2xl font-bold text-gray-900 whitespace-nowrap">{Math.round(obj.progress)}%</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <span className="text-2xl font-bold text-gray-900">{Math.round(obj.progress)}%</span>
                                 <div className="w-28 h-2 bg-gray-200 rounded-full mt-1">
                                   <div className={`h-full rounded-full ${getProgressColor(obj.progress)}`} style={{ width: `${Math.min(obj.progress, 100)}%` }} />
                                 </div>
@@ -1376,11 +1330,9 @@ export default function OKRPage() {
                                 </div>
                               )}
                             </div>
-                              </div>
-                            </div>
                           </div>
                         </div>
-
+                        
                         {obj.expanded && (
                           <div className="border-t border-gray-100 bg-gray-50 p-4">
                             <div className="flex items-center justify-between mb-3">
@@ -1502,9 +1454,9 @@ export default function OKRPage() {
                           </div>
                           <h3 className="font-semibold text-gray-900">{entOKR.title}</h3>
                         </div>
-                        <div className="text-right flex-shrink-0">
-                          <span className="text-xl sm:text-2xl font-bold text-purple-600 whitespace-nowrap">{Math.round(entOKR.progress)}%</span>
-                          <div className="w-24 sm:w-32 h-2 bg-purple-200 rounded-full mt-1">
+                        <div className="text-right">
+                          <span className="text-2xl font-bold text-purple-600">{Math.round(entOKR.progress)}%</span>
+                          <div className="w-32 h-2 bg-purple-200 rounded-full mt-1">
                             <div className="h-full bg-purple-600 rounded-full" style={{ width: `${Math.min(entOKR.progress, 100)}%` }} />
                           </div>
                         </div>
@@ -1520,8 +1472,8 @@ export default function OKRPage() {
                                 <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
                                   <Users className="w-4 h-4 text-white" />
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
                                     <span className="text-xs font-medium text-primary-600">{deptOKR.department_name}</span>
                                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(deptOKR.status)}`}>
                                       {getStatusLabel(deptOKR.status, t)}
@@ -1530,9 +1482,9 @@ export default function OKRPage() {
                                   <h4 className="font-medium text-gray-900 text-sm">{deptOKR.title}</h4>
                                   {deptOKR.owner_name && <p className="text-xs text-gray-500 mt-1">{t.okr.responsible}: {deptOKR.owner_name}</p>}
                                 </div>
-                                <div className="text-right flex-shrink-0">
-                                  <span className="text-lg sm:text-xl font-bold text-primary-600 whitespace-nowrap">{Math.round(deptOKR.progress)}%</span>
-                                  <div className="w-20 sm:w-24 h-1.5 bg-primary-200 rounded-full mt-1">
+                                <div className="text-right">
+                                  <span className="text-xl font-bold text-primary-600">{Math.round(deptOKR.progress)}%</span>
+                                  <div className="w-24 h-1.5 bg-primary-200 rounded-full mt-1">
                                     <div className="h-full bg-primary-600 rounded-full" style={{ width: `${Math.min(deptOKR.progress, 100)}%` }} />
                                   </div>
                                 </div>
@@ -1546,11 +1498,11 @@ export default function OKRPage() {
                                     <div className="w-6 h-6 bg-teal-600 rounded flex items-center justify-center text-xs font-medium text-white">
                                       {indOKR.owner_initials || '?'}
                                     </div>
-                                    <div className="flex-1 min-w-0">
+                                    <div className="flex-1">
                                       <p className="text-sm font-medium text-gray-900">{indOKR.title}</p>
                                       <p className="text-xs text-gray-500">{indOKR.owner_name}</p>
                                     </div>
-                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 ${getStatusColor(indOKR.status)}`}>
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(indOKR.status)}`}>
                                       {Math.round(indOKR.progress)}%
                                     </span>
                                   </div>

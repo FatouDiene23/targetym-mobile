@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import { notificationsTips } from '@/config/pageTips';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import type { Translations } from '@/lib/i18n';
 
@@ -170,7 +169,7 @@ export default function NotificationsPage() {
     <>
       {showTips && (
         <PageTourTips
-          tips={notificationsTips}
+          pageId="notifications"
           onDismiss={dismissTips}
           pageTitle={t.notifications.title}
         />

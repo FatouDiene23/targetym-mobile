@@ -23,7 +23,7 @@ export default function GroupContextSwitcher({ hideGlobalOption = false }: { hid
 
   return (
     <div className="sticky top-0 z-30 bg-white border-b border-purple-100 px-6 py-2 flex items-center gap-3 shadow-sm">
-      <span className="text-xs text-purple-600 font-medium hidden sm:inline">Contexte&nbsp;:</span>
+      <span className="text-xs text-purple-600 font-medium hidden sm:inline">Vue&nbsp;:</span>
 
       <div className="relative">
         <button

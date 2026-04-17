@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import { objectivesTips } from '@/config/pageTips';
 import { 
   Target, ChevronDown, ChevronRight, Edit2, Check, X, 
   TrendingUp, AlertCircle, Clock, CheckCircle, Loader2,
@@ -463,7 +462,7 @@ export default function MyObjectivesPage() {
   return (
     <>
       {showTips && (
-        <PageTourTips tips={objectivesTips} onDismiss={dismissTips} pageTitle={t.mySpace.myObjectivesTitle} />
+        <PageTourTips pageId="objectives" onDismiss={dismissTips} pageTitle={t.mySpace.myObjectivesTitle} />
       )}
       <Header title={t.mySpace.myObjectivesTitle} subtitle={t.mySpace.myObjectivesSubtitle} />
       <div className="min-h-screen bg-gray-50">

@@ -10,7 +10,6 @@ import toast from 'react-hot-toast';
 import Header from '@/components/Header';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import { myPromotionsTips } from '@/config/pageTips';
 import {
   ArrowUpRight, CheckCircle2, Clock, XCircle, AlertCircle,
   Trophy, ChevronRight, MessageSquare
@@ -81,7 +80,7 @@ export default function MyPromotionsPage() {
     return (
       <>
         {showTips && (
-          <PageTourTips tips={myPromotionsTips} onDismiss={dismissTips} pageTitle={tp.title} />
+          <PageTourTips pageId="myPromotions" onDismiss={dismissTips} pageTitle={tp.title} />
         )}
         <Header title={tp.title} subtitle={tp.loading} />
         <main className="flex-1 p-6 bg-gray-50 flex items-center justify-center">

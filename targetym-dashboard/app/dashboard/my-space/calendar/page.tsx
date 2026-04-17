@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import { calendarTips } from '@/config/pageTips';
 import {
   Calendar as CalendarIcon, ChevronLeft, ChevronRight, List, Grid3X3, LayoutGrid,
   AlertCircle, Filter, Cake, Plane, GraduationCap, Users, Coffee,
@@ -1031,7 +1030,7 @@ export default function MyCalendarPage() {
   return (
     <>
       {showTips && (
-        <PageTourTips tips={calendarTips} onDismiss={dismissTips} pageTitle={t.mySpace.calendar.title} />
+        <PageTourTips pageId="calendar" onDismiss={dismissTips} pageTitle={t.mySpace.calendar.title} />
       )}
       <Header title={t.mySpace.calendar.title} subtitle={t.mySpace.calendar.subtitle} />
       <div className="py-8 px-4 sm:px-6 lg:px-8">

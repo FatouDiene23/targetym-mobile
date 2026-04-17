@@ -3,9 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import PageTourTips from '@/components/PageTourTips';
-import CustomSelect from '@/components/CustomSelect';
 import { usePageTour } from '@/hooks/usePageTour';
-import { tasksTips } from '@/config/pageTips';
 import { 
   ClipboardList, Clock, Plus, CheckCircle2, Circle, AlertTriangle,
   Play, Check, X, Send, Calendar, Flag, MoreVertical, Loader2,
@@ -22,6 +20,7 @@ import {
   type DailyValidation, type ObjectiveForLinking
 } from '@/lib/api';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CustomSelect from '@/components/CustomSelect';
 import Header from '@/components/Header';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
@@ -1267,18 +1266,16 @@ function MyTasksTab({
             
             <div className="flex items-center gap-3">
               {subTab === 'today' && (
-                <CustomSelect
+                <select
                   value={statusFilter}
-                  onChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}
-                  placeholder={t.mySpace.tasks.allStatuses}
-                  className="min-w-[150px]"
-                  options={[
-                    { value: 'all', label: t.mySpace.tasks.allStatuses },
-                    { value: 'todo', label: t.mySpace.tasks.toDo },
-                    { value: 'in_progress', label: t.mySpace.tasks.inProgress },
-                    { value: 'completed', label: t.mySpace.tasks.completed },
-                  ]}
-                />
+                  onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+                >
+                  <option value="all">{t.mySpace.tasks.allStatuses}</option>
+                  <option value="todo">{t.mySpace.tasks.toDo}</option>
+                  <option value="in_progress">{t.mySpace.tasks.inProgress}</option>
+                  <option value="completed">{t.mySpace.tasks.completed}</option>
+                </select>
               )}
 
               {/* Bouton soumettre */}
@@ -1515,26 +1512,24 @@ function TeamTasksTab({
 
           <CustomSelect
             value={selectedEmployee}
-            onChange={(v) => { setSelectedEmployee(v); setCurrentPage(1); }}
-            placeholder={`${t.mySpace.tasks.allEmployees} (${teamMembers.length})`}
-            className="min-w-[180px]"
+            onChange={v => { setSelectedEmployee(v); setCurrentPage(1); }}
             options={[
               { value: 'all', label: `${t.mySpace.tasks.allEmployees} (${teamMembers.length})` },
-              ...teamMembers.map((member) => ({ value: String(member.id), label: member.name })),
+              ...teamMembers.map(m => ({ value: m.id, label: m.name })),
             ]}
+            className="min-w-[160px]"
           />
 
           <CustomSelect
             value={selectedStatus}
-            onChange={(v) => { setSelectedStatus(v); setCurrentPage(1); }}
-            placeholder={t.mySpace.tasks.allStatuses}
-            className="min-w-[150px]"
+            onChange={v => { setSelectedStatus(v); setCurrentPage(1); }}
             options={[
               { value: 'all', label: t.mySpace.tasks.allStatuses },
               { value: 'pending', label: t.mySpace.tasks.toDo },
               { value: 'in_progress', label: t.mySpace.tasks.inProgress },
               { value: 'completed', label: t.mySpace.tasks.completed },
             ]}
+            className="min-w-[130px]"
           />
 
           <button
@@ -1764,9 +1759,7 @@ function HistoryTab() {
 
           <CustomSelect
             value={periodFilter}
-            onChange={setPeriodFilter}
-            placeholder={t.mySpace.tasks.todayLabel}
-            className="min-w-[150px]"
+            onChange={v => setPeriodFilter(v)}
             options={[
               { value: '0', label: t.mySpace.tasks.todayLabel },
               { value: '1', label: t.mySpace.tasks.yesterday },
@@ -1775,6 +1768,7 @@ function HistoryTab() {
               { value: '90', label: t.mySpace.tasks.last3Months },
               { value: 'all', label: t.mySpace.tasks.allTime },
             ]}
+            className="min-w-[130px]"
           />
 
           {subTab === 'validations' && (
@@ -1782,15 +1776,14 @@ function HistoryTab() {
               <span className="text-sm font-medium text-gray-700">{t.mySpace.tasks.statusLabel}</span>
               <CustomSelect
                 value={validationStatusFilter}
-                onChange={setValidationStatusFilter}
-                placeholder={t.common.all}
-                className="min-w-[150px]"
+                onChange={v => setValidationStatusFilter(v)}
                 options={[
                   { value: 'all', label: t.common.all },
                   { value: 'approved', label: t.mySpace.tasks.validated },
                   { value: 'rejected', label: t.mySpace.tasks.rejected },
                   { value: 'pending', label: t.mySpace.tasks.pending },
                 ]}
+                className="min-w-[120px]"
               />
             </>
           )}
@@ -2067,14 +2060,13 @@ function StatsTab({
           <span className="text-sm font-medium text-gray-700">{t.mySpace.tasks.period}</span>
           <CustomSelect
             value={periodFilter}
-            onChange={setPeriodFilter}
-            placeholder={t.mySpace.tasks.periodThisWeek}
-            className="min-w-[150px]"
+            onChange={v => setPeriodFilter(v)}
             options={[
               { value: '7', label: t.mySpace.tasks.periodThisWeek },
               { value: '30', label: t.mySpace.tasks.periodThisMonth },
               { value: '90', label: t.mySpace.tasks.periodThisQuarter },
             ]}
+            className="min-w-[130px]"
           />
         </div>
       </div>
@@ -2280,7 +2272,7 @@ export default function MyTasksPage() {
   return (
     <>
       {showTips && (
-        <PageTourTips tips={tasksTips} onDismiss={dismissTips} pageTitle={t.mySpace.tasks.title} />
+        <PageTourTips pageId="tasks" onDismiss={dismissTips} pageTitle={t.mySpace.tasks.title} />
       )}
       <Header title={t.mySpace.tasks.title} subtitle={t.mySpace.tasks.subtitle} />
       <div className="py-8 px-4 sm:px-6 lg:px-8">

@@ -10,7 +10,6 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import { talentsDashboardTips } from '@/config/pageTips';
 import {
   Users, Star, TrendingUp, AlertTriangle, Crown, Target,
   ArrowUpRight, Award, BarChart3, UserCheck, Briefcase
@@ -45,7 +44,7 @@ export default function TalentsDashboard() {
   return (
     <>
       {showTips && (
-        <PageTourTips tips={talentsDashboardTips} onDismiss={dismissTips} pageTitle={t.talents.title} />
+        <PageTourTips pageId="talentsDashboard" onDismiss={dismissTips} pageTitle={t.talents.title} />
       )}
       <Header title={t.talents.title} subtitle={t.talents.subtitle} />
       <main className="flex-1 p-6 overflow-auto bg-gray-50">

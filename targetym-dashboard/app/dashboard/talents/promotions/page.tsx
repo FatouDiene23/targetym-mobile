@@ -11,10 +11,8 @@ import toast from 'react-hot-toast';
 import { ArrowUpRight, Check, X, Clock, Filter, RefreshCw, AlertTriangle } from 'lucide-react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import { promotionsTips } from '@/config/pageTips';
 import { useTalents } from '../TalentsContext';
 import { ELIGIBILITY_LABELS, getInitials, formatDate, isRH } from '../shared';
-import CustomSelect from '@/components/CustomSelect';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
 export default function PromotionsPage() {
@@ -86,7 +84,7 @@ export default function PromotionsPage() {
   return (
     <>
       {showTips && (
-        <PageTourTips tips={promotionsTips} onDismiss={dismissTips} pageTitle={tp.title} />
+        <PageTourTips pageId="promotions" onDismiss={dismissTips} pageTitle={tp.title} />
       )}
       <Header title={tp.title} subtitle={tp.subtitle} />
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
@@ -120,17 +118,16 @@ export default function PromotionsPage() {
         {activeTab === 'requests' && (
           <>
             <div className="flex justify-between items-center gap-4 mb-4" data-tour="eligibility-filters">
-              <CustomSelect
+              <select
                 value={filterStatus}
-                onChange={v => handleFilter(v)}
-                options={[
-                  { value: '', label: tp.allStatuses },
-                  { value: 'pending', label: tp.pending },
-                  { value: 'approved', label: tp.approved },
-                  { value: 'rejected', label: tp.rejected },
-                ]}
-                className="min-w-[150px]"
-              />
+                onChange={e => handleFilter(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+              >
+                <option value="">{tp.allStatuses}</option>
+                <option value="pending">{tp.pending}</option>
+                <option value="approved">{tp.approved}</option>
+                <option value="rejected">{tp.rejected}</option>
+              </select>
             </div>
 
             <div className="space-y-3" data-tour="promotions-list">

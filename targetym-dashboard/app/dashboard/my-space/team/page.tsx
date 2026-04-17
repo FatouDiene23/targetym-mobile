@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import { teamTips } from '@/config/pageTips';
 import {
   Users, CheckCircle, XCircle, Clock, AlertCircle, Calendar,
   ChevronDown, ChevronUp, User, TrendingUp, Briefcase, Target,
@@ -707,7 +706,7 @@ export default function MyTeamPage() {
 
   return (
     <>
-      {showTips && <PageTourTips tips={teamTips} onDismiss={dismissTips} pageTitle={t.mySpace.myTeamTitle} />}
+      {showTips && <PageTourTips pageId="team" onDismiss={dismissTips} pageTitle={t.mySpace.myTeamTitle} />}
       <Header title={t.mySpace.myTeamTitle} subtitle={t.mySpace.myTeamSubtitle} />
       <div className="py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">

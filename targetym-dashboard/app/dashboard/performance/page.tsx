@@ -23,7 +23,6 @@ import Header from '@/components/Header';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import { performanceTips } from '@/config/pageTips';
 
 // =============================================
 // TYPES
@@ -1015,7 +1014,7 @@ export default function FeedbackPage() {
     <>
       {showTips && (
         <PageTourTips
-          tips={performanceTips}
+          pageId="performance"
           onDismiss={dismissTips}
           pageTitle={t.performance.feedbackTitle}
         />

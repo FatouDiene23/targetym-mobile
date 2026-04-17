@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import { myLeavesTips } from '@/config/pageTips';
 import {
   Calendar, Plus, X, AlertCircle, Clock, CheckCircle, XCircle, Info, ChevronDown, ChevronUp, Heart, FileText
 } from 'lucide-react';
@@ -1084,7 +1083,7 @@ export default function MyLeavesPage() {
   return (
     <>
       {showTips && (
-        <PageTourTips tips={myLeavesTips} onDismiss={dismissTips} pageTitle={t.mySpace.myLeavesTitle} />
+        <PageTourTips pageId="myLeaves" onDismiss={dismissTips} pageTitle={t.mySpace.myLeavesTitle} />
       )}
       <Header title={t.mySpace.myLeavesTitle} subtitle={t.mySpace.myLeavesSubtitle} />
       <div className="py-8 px-4 sm:px-6 lg:px-8">

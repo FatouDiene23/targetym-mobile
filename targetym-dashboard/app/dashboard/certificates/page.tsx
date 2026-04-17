@@ -10,7 +10,6 @@ import {
 import Header from '@/components/Header';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import { certificatesTips } from '@/config/pageTips';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
 // ============================================
@@ -305,8 +304,14 @@ export default function CertificatesPage() {
       const blob = await generateDocument(employee.id, docType);
       const docLabel = docType === 'attestation' ? 'Attestation_Travail' : 'Certificat_Travail';
       const fullName = `${employee.last_name}_${employee.first_name}`.replace(/\s+/g, '_');
-      const { downloadFile } = await import('@/lib/capacitor-plugins');
-      await downloadFile(blob, `${docLabel}_${fullName}_${new Date().toISOString().split('T')[0]}.pdf`);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${docLabel}_${fullName}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t.documents.generationError);
     } finally {
@@ -321,7 +326,7 @@ export default function CertificatesPage() {
     <>
       {showTips && (
         <PageTourTips
-          tips={certificatesTips}
+          pageId="certificates"
           onDismiss={dismissTips}
           pageTitle={t.documents.title}
         />

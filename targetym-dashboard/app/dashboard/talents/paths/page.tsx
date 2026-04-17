@@ -9,7 +9,6 @@ import Header from '@/components/Header';
 import { useEffect, useState } from 'react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import { pathsTips } from '@/config/pageTips';
 import {
   Plus, Edit, Trash2, Copy, ChevronDown, ChevronRight, X,
   GraduationCap, Target, Award, Settings, Users, Layers
@@ -67,7 +66,7 @@ export default function PathsPage() {
   return (
     <>
       {showTips && (
-        <PageTourTips tips={pathsTips} onDismiss={dismissTips} pageTitle={tp.title} />
+        <PageTourTips pageId="paths" onDismiss={dismissTips} pageTitle={tp.title} />
       )}
       <Header title={tp.title} subtitle={tp.subtitle} />
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
@@ -182,7 +181,7 @@ export default function PathsPage() {
                 {/* Timeline visual */}
                 {selectedPath.levels && selectedPath.levels.length > 0 && (
                   <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-                    <h3 className="text-sm font-semibold text-gray-700 mb-3">Parcours</h3>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">{t.talents.careerPathsPage.path}</h3>
                     <div className="flex items-center gap-1 overflow-x-auto pb-2">
                       {selectedPath.levels.map((lv: CareerLevel, i: number) => (
                         <div key={lv.id} className="flex items-center">
@@ -202,11 +201,11 @@ export default function PathsPage() {
 
                 {/* Levels */}
                 <div className="flex justify-between items-center">
-                  <h3 className="font-semibold text-gray-900">Niveaux</h3>
+                  <h3 className="font-semibold text-gray-900">{t.talents.careerPathsPage.levelsTitle}</h3>
                   {canEdit && (
                     <button onClick={() => setShowAddLevel(true)}
                       className="flex items-center px-3 py-1.5 border border-gray-300 text-gray-700 text-xs rounded-lg hover:bg-gray-50">
-                      <Plus className="w-3 h-3 mr-1" />Ajouter niveau
+                      <Plus className="w-3 h-3 mr-1" />{t.talents.careerPathsPage.addLevel}
                     </button>
                   )}
                 </div>
@@ -238,7 +237,7 @@ export default function PathsPage() {
                               <button
                                 onClick={e => { e.stopPropagation(); setEditLevelId(level.id); }}
                                 className="p-1 text-gray-400 hover:text-primary-500"
-                                title="Modifier le niveau"
+                                title={t.talents.careerPathsPage.deleteLevelTitle}
                               >
                                 <Edit className="w-3.5 h-3.5" />
                               </button>
@@ -259,7 +258,7 @@ export default function PathsPage() {
                               {canEdit && (
                                 <button onClick={() => setAddCompForLevel(level.id)}
                                   className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800 font-medium">
-                                  <Plus className="w-3 h-3" />Ajouter
+                                  <Plus className="w-3 h-3" />{t.talents.careerPathsPage.add}
                                 </button>
                               )}
                             </div>
@@ -272,9 +271,9 @@ export default function PathsPage() {
                                         <p className="text-sm font-medium text-gray-900">{comp.competency_name}</p>
                                         {comp.description && <p className="text-xs text-gray-500 mt-0.5">{comp.description}</p>}
                                         <div className="flex gap-3 mt-1 text-xs text-gray-500">
-                                          <span>Perf ≥ {comp.performance_threshold}%</span>
-                                          <span>Attitude ≥ {comp.attitude_threshold}%</span>
-                                          {comp.is_mandatory && <span className="text-red-500">Obligatoire</span>}
+                                          <span>{t.talents.careerPathsPage.perfThreshold} ≥ {comp.performance_threshold}%</span>
+                                          <span>{t.talents.careerPathsPage.attThreshold} ≥ {comp.attitude_threshold}%</span>
+                                          {comp.is_mandatory && <span className="text-red-500">{t.talents.careerPathsPage.mandatory}</span>}
                                         </div>
                                         {comp.trainings && comp.trainings.length > 0 && (
                                           <div className="flex flex-wrap gap-1 mt-2">
@@ -297,7 +296,7 @@ export default function PathsPage() {
                                 ))}
                               </div>
                             ) : (
-                              <p className="text-xs text-gray-400">Aucune compétence définie</p>
+                              <p className="text-xs text-gray-400">{t.talents.careerPathsPage.noCompetencyDefined}</p>
                             )}
                           </div>
 
@@ -310,7 +309,7 @@ export default function PathsPage() {
                               {canEdit && (
                                 <button onClick={() => setAddAttForLevel(level.id)}
                                   className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800 font-medium">
-                                  <Plus className="w-3 h-3" />Configurer
+                                  <Plus className="w-3 h-3" />{t.talents.careerPathsPage.configure}
                                 </button>
                               )}
                             </div>
@@ -323,7 +322,7 @@ export default function PathsPage() {
                                 ))}
                               </div>
                             ) : (
-                              <p className="text-xs text-gray-400">Aucune attitude requise</p>
+                              <p className="text-xs text-gray-400">{t.talents.careerPathsPage.noRequiredAttitude}</p>
                             )}
                           </div>
 
@@ -336,7 +335,7 @@ export default function PathsPage() {
                               {canEdit && (
                                 <button onClick={() => setAddFactorForLevel(level.id)}
                                   className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800 font-medium">
-                                  <Plus className="w-3 h-3" />Ajouter
+                                  <Plus className="w-3 h-3" />{t.talents.careerPathsPage.add}
                                 </button>
                               )}
                             </div>
@@ -347,7 +346,7 @@ export default function PathsPage() {
                                     <span className="text-xs text-gray-700">{f.factor_name}</span>
                                     <div className="flex items-center gap-2">
                                       <span className="text-xs text-gray-500">{f.factor_type}</span>
-                                      {f.is_blocking && <span className="text-xs text-red-500">Bloquant</span>}
+                                      {f.is_blocking && <span className="text-xs text-red-500">{t.talents.careerPathsPage.blocking}</span>}
                                       {canEdit && (
                                         <>
                                           <button onClick={() => setEditFactorId(f.id)} className="text-gray-400 hover:text-primary-500" title={t.common.edit}>
@@ -363,7 +362,7 @@ export default function PathsPage() {
                                 ))}
                               </div>
                             ) : (
-                              <p className="text-xs text-gray-400">Aucun facteur défini</p>
+                              <p className="text-xs text-gray-400">{t.talents.careerPathsPage.noFactorDefined}</p>
                             )}
                           </div>
 
@@ -379,7 +378,7 @@ export default function PathsPage() {
                                   onConfirm: () => { setConfirmDialog(null); deleteLevel(level.id); },
                                 });
                               }}
-                                className="text-xs text-red-500 hover:text-red-700">Supprimer le niveau</button>
+                                className="text-xs text-red-500 hover:text-red-700">{t.talents.careerPathsPage.deleteLevel}</button>
                             </div>
                           )}
                         </div>
@@ -391,7 +390,7 @@ export default function PathsPage() {
                 {(!selectedPath.levels || selectedPath.levels.length === 0) && (
                   <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 text-center">
                     <Layers className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-                    <p className="text-sm text-gray-400">Aucun niveau dans ce parcours</p>
+                    <p className="text-sm text-gray-400">{t.talents.careerPathsPage.noLevelInPath}</p>
                   </div>
                 )}
 
@@ -409,7 +408,7 @@ export default function PathsPage() {
                           onClick={() => setShowAssign(true)}
                           className="flex items-center px-3 py-1.5 bg-primary-500 text-white text-xs font-medium rounded-lg hover:bg-primary-600"
                         >
-                          <Plus className="w-3 h-3 mr-1" />Assigner un employé
+                          <Plus className="w-3 h-3 mr-1" />{t.talents.careerPathsPage.assignEmployee}
                         </button>
                       )}
                     </div>
@@ -417,13 +416,13 @@ export default function PathsPage() {
                     {employeeCareers.length === 0 ? (
                       <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 text-center">
                         <Users className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-                        <p className="text-sm text-gray-400">Aucun employé assigné à ce parcours</p>
+                        <p className="text-sm text-gray-400">{t.talents.careerPathsPage.noEmployeeAssigned}</p>
                         {canEdit && (
                           <button
                             onClick={() => setShowAssign(true)}
                             className="mt-3 inline-flex items-center px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600"
                           >
-                            <Plus className="w-4 h-4 mr-1" />Assigner le premier employé
+                            <Plus className="w-4 h-4 mr-1" />{t.talents.careerPathsPage.assignFirstEmployee}
                           </button>
                         )}
                       </div>
@@ -473,7 +472,7 @@ export default function PathsPage() {
                                       });
                                     }}
                                     className="p-1.5 text-gray-400 hover:text-red-500 rounded"
-                                    title="Retirer du parcours"
+                                    title={t.talents.careerPathsPage.removeFromPath}
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
@@ -500,7 +499,7 @@ export default function PathsPage() {
             ) : (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
                 <Settings className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p className="text-gray-500">Sélectionnez un parcours pour voir ses détails</p>
+                <p className="text-gray-500">{t.talents.careerPathsPage.selectPathDetail}</p>
               </div>
             )}
           </div>
@@ -638,6 +637,7 @@ export default function PathsPage() {
 // ============================================
 
 function CreatePathModal({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string, desc?: string) => Promise<void> }) {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
   const [saving, setSaving] = useState(false);
@@ -652,7 +652,7 @@ function CreatePathModal({ onClose, onCreate }: { onClose: () => void; onCreate:
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-white rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Nouveau Parcours</h3>
+          <h3 className="text-lg font-semibold">{t.talents.careerPathsPage.newPath}</h3>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <div className="space-y-4">
@@ -662,13 +662,13 @@ function CreatePathModal({ onClose, onCreate }: { onClose: () => void; onCreate:
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Ex: Carrière Direction Technique" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t.talents.careerPathsPage.description}</label>
             <textarea value={desc} onChange={e => setDesc(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" rows={2} />
           </div>
         </div>
         <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">Annuler</button>
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">{t.common.cancel}</button>
           <button onClick={handleSubmit} disabled={saving || !name.trim()}
             className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
             {saving ? 'Création...' : 'Créer'}
@@ -684,6 +684,7 @@ function EditPathModal({ path, onClose, onSave }: {
   onClose: () => void;
   onSave: (data: { name: string; description?: string; is_active: boolean }) => Promise<void>;
 }) {
+  const { t } = useI18n();
   const [name, setName] = useState(path.name);
   const [desc, setDesc] = useState(path.description || '');
   const [isActive, setIsActive] = useState(path.is_active !== false);
@@ -701,7 +702,7 @@ function EditPathModal({ path, onClose, onSave }: {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-white rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Modifier le Parcours</h3>
+          <h3 className="text-lg font-semibold">{t.talents.careerPathsPage.editPath}</h3>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <div className="space-y-4">
@@ -711,18 +712,18 @@ function EditPathModal({ path, onClose, onSave }: {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t.talents.careerPathsPage.description}</label>
             <textarea value={desc} onChange={e => setDesc(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" rows={2} />
           </div>
           <div className="flex items-center gap-3">
             <input type="checkbox" id="pathActive" checked={isActive} onChange={e => setIsActive(e.target.checked)}
               className="w-4 h-4 rounded border-gray-300 text-primary-500" />
-            <label htmlFor="pathActive" className="text-sm text-gray-700">Parcours actif</label>
+            <label htmlFor="pathActive" className="text-sm text-gray-700">{t.talents.careerPathsPage.pathActive}</label>
           </div>
         </div>
         <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">Annuler</button>
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">{t.common.cancel}</button>
           <button onClick={handleSubmit} disabled={saving || !name.trim()}
             className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
             {saving ? 'Enregistrement...' : 'Enregistrer'}
@@ -738,6 +739,7 @@ function AssignEmployeeModal({ path, onClose, onAssign }: {
   onClose: () => void;
   onAssign: (employeeId: number, levelId: number) => Promise<void>;
 }) {
+  const { t } = useI18n();
   const [search, setSearch] = useState('');
   const [employees, setEmployees] = useState<any[]>([]);
   const [filtered, setFiltered] = useState<any[]>([]);
@@ -783,14 +785,14 @@ function AssignEmployeeModal({ path, onClose, onAssign }: {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-white rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Assigner un Employé</h3>
+          <h3 className="text-lg font-semibold">{t.talents.careerPathsPage.assignEmployeeTitle}</h3>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
 
         <div className="space-y-4">
           {/* Employee search */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Employé</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t.talents.careerPathsPage.employee}</label>
             {selectedEmployee ? (
               <div className="flex items-center gap-2 px-3 py-2 border border-primary-300 bg-primary-50 rounded-lg">
                 <div className="w-7 h-7 rounded-full bg-primary-200 flex items-center justify-center text-primary-700 text-xs font-semibold flex-shrink-0">
@@ -845,7 +847,7 @@ function AssignEmployeeModal({ path, onClose, onAssign }: {
 
           {/* Level selector */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Niveau d'entrée</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t.talents.careerPathsPage.entryLevelLabel}</label>
             <select
               value={selectedLevelId}
               onChange={e => setSelectedLevelId(Number(e.target.value))}
@@ -881,6 +883,7 @@ function AssignEmployeeModal({ path, onClose, onAssign }: {
 function AddLevelModal({ pathId, existingCount, onClose, onAdd }: {
   pathId: number; existingCount: number; onClose: () => void; onAdd: (pathId: number, data: any) => Promise<void>;
 }) {
+  const { t } = useI18n();
   const [title, setTitle] = useState('');
   const [order, setOrder] = useState(existingCount + 1);
   const [tenure, setTenure] = useState(0);
@@ -900,23 +903,23 @@ function AddLevelModal({ pathId, existingCount, onClose, onAdd }: {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-white rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Ajouter un Niveau</h3>
+          <h3 className="text-lg font-semibold">{t.talents.careerPathsPage.addLevelTitle}</h3>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Titre du niveau</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t.talents.careerPathsPage.levelTitle}</label>
             <input value={title} onChange={e => setTitle(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Ex: Chef de Service" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ordre</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.talents.careerPathsPage.order}</label>
               <input type="number" value={order} onChange={e => setOrder(parseInt(e.target.value))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ancienneté min (mois)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.talents.careerPathsPage.minTenure}</label>
               <input type="number" value={tenure} onChange={e => setTenure(parseInt(e.target.value))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
             </div>
@@ -924,11 +927,11 @@ function AddLevelModal({ pathId, existingCount, onClose, onAdd }: {
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={isEntry} onChange={e => setIsEntry(e.target.checked)}
               className="rounded border-gray-300" />
-            <span className="text-sm text-gray-700">Niveau d'entrée</span>
+            <span className="text-sm text-gray-700">{t.talents.careerPathsPage.entryLevelCheckbox}</span>
           </label>
         </div>
         <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">Annuler</button>
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">{t.common.cancel}</button>
           <button onClick={handleSubmit} disabled={saving || !title.trim()}
             className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
             {saving ? 'Ajout...' : 'Ajouter'}
@@ -956,6 +959,7 @@ function AddCompetencyModal({ levelId, onClose, onAdd }: {
   onClose: () => void;
   onAdd: (data: any) => Promise<void>;
 }) {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
   const [perfThreshold, setPerfThreshold] = useState(75);
@@ -1029,7 +1033,7 @@ function AddCompetencyModal({ levelId, onClose, onAdd }: {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-white rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Ajouter une Compétence</h3>
+          <h3 className="text-lg font-semibold">{t.talents.careerPathsPage.addCompetencyTitle}</h3>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <div className="space-y-4">
@@ -1074,7 +1078,7 @@ function AddCompetencyModal({ levelId, onClose, onAdd }: {
                 </div>
                 <ul className="max-h-48 overflow-y-auto">
                   {filteredSkills.length === 0 ? (
-                    <li className="px-3 py-3 text-sm text-gray-400 text-center">Aucun résultat</li>
+                    <li className="px-3 py-3 text-sm text-gray-400 text-center">{t.talents.careerPathsPage.noResult}</li>
                   ) : filteredSkills.map(s => (
                     <li key={s.id}>
                       <button
@@ -1108,7 +1112,7 @@ function AddCompetencyModal({ levelId, onClose, onAdd }: {
               placeholder="Ex: Maîtrise des outils de gestion de projet" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t.talents.careerPathsPage.description}</label>
             <textarea value={desc} onChange={e => setDesc(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" rows={2}
               placeholder="Description de la compétence attendue..." />
@@ -1136,12 +1140,12 @@ function AddCompetencyModal({ levelId, onClose, onAdd }: {
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={isMandatory} onChange={e => setIsMandatory(e.target.checked)}
               className="rounded border-gray-300 text-primary-500" />
-            <span className="text-sm text-gray-700">Compétence obligatoire</span>
+            <span className="text-sm text-gray-700">{t.talents.careerPathsPage.mandatoryCompetency}</span>
             <span className="text-xs text-gray-400">(bloque la promotion si non validée)</span>
           </label>
         </div>
         <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">Annuler</button>
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">{t.common.cancel}</button>
           <button onClick={handleSubmit} disabled={saving || !name.trim()}
             className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
             {saving ? 'Ajout...' : 'Ajouter'}
@@ -1163,6 +1167,7 @@ function LinkAttitudesModal({ levelId, currentAttitudes, availableAttitudes, onC
   onClose: () => void;
   onSave: (attitudeIds: number[], threshold: number) => Promise<void>;
 }) {
+  const { t } = useI18n();
   const [selected, setSelected] = useState<number[]>(currentAttitudes.map(a => a.attitude_id));
   const [threshold, setThreshold] = useState(95);
   const [saving, setSaving] = useState(false);
@@ -1180,7 +1185,7 @@ function LinkAttitudesModal({ levelId, currentAttitudes, availableAttitudes, onC
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-white rounded-xl p-6 w-full max-w-lg" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Configurer les Attitudes</h3>
+          <h3 className="text-lg font-semibold">{t.talents.careerPathsPage.configureAttitudes}</h3>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
 
@@ -1194,10 +1199,10 @@ function LinkAttitudesModal({ levelId, currentAttitudes, availableAttitudes, onC
           <div className="flex justify-between text-xs text-gray-400 mt-1"><span>50%</span><span>100%</span></div>
         </div>
 
-        <p className="text-xs text-gray-500 mb-3">Sélectionnez les attitudes requises pour ce niveau :</p>
+        <p className="text-xs text-gray-500 mb-3">{t.talents.careerPathsPage.selectRequiredAttitudes}</p>
 
         {availableAttitudes.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-4">Aucune attitude disponible. Configurez-les dans les paramètres.</p>
+          <p className="text-sm text-gray-400 text-center py-4">{t.talents.careerPathsPage.noAttitudeAvailable}</p>
         ) : (
           <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
             {availableAttitudes.map(att => (
@@ -1218,7 +1223,7 @@ function LinkAttitudesModal({ levelId, currentAttitudes, availableAttitudes, onC
         </p>
 
         <div className="flex gap-3 mt-4">
-          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">Annuler</button>
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">{t.common.cancel}</button>
           <button onClick={handleSave} disabled={saving}
             className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50">
             {saving ? 'Sauvegarde...' : 'Enregistrer'}
@@ -1238,6 +1243,7 @@ function AddFactorModal({ levelId, onClose, onAdd }: {
   onClose: () => void;
   onAdd: (data: { name: string; is_blocking: boolean }) => Promise<void>;
 }) {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [isBlocking, setIsBlocking] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -1252,7 +1258,7 @@ function AddFactorModal({ levelId, onClose, onAdd }: {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
       <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Ajouter un Facteur d'Évolution</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{t.talents.careerPathsPage.addEvolutionFactorTitle}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
         </div>
         <div className="space-y-4">
@@ -1269,12 +1275,12 @@ function AddFactorModal({ levelId, onClose, onAdd }: {
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={isBlocking} onChange={e => setIsBlocking(e.target.checked)}
               className="rounded border-gray-300 text-red-500" />
-            <span className="text-sm text-gray-700">Facteur bloquant</span>
+            <span className="text-sm text-gray-700">{t.talents.careerPathsPage.blockingFactor}</span>
             <span className="text-xs text-gray-400">(la promotion est impossible sans ce critère)</span>
           </label>
         </div>
         <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">Annuler</button>
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">{t.common.cancel}</button>
           <button onClick={handleSubmit} disabled={saving || !name.trim()}
             className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
             {saving ? 'Ajout...' : 'Ajouter'}
@@ -1290,6 +1296,7 @@ function AddFactorModalNew({ levelId, onClose, onAdd }: {
   onClose: () => void;
   onAdd: (data: any) => Promise<void>;
 }) {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [factorType, setFactorType] = useState<'auto' | 'committee' | 'n_plus_1'>('auto');
   const [thresholdValue, setThresholdValue] = useState('');
@@ -1312,14 +1319,14 @@ function AddFactorModalNew({ levelId, onClose, onAdd }: {
         threshold_value: thresholdValue || null,
         is_blocking: isBlocking,
       });
-    } catch (e: any) { setSaving(false); toast.error(e?.message || "Erreur lors de l'ajout"); }
+    } catch (e: any) { setSaving(false); toast.error(e?.message || t.talents.careerPathsPage.addError); }
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-white rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Ajouter un Facteur de Promotion</h3>
+          <h3 className="text-lg font-semibold">{t.talents.careerPathsPage.addFactorTitle}</h3>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <div className="space-y-4">
@@ -1330,7 +1337,7 @@ function AddFactorModalNew({ levelId, onClose, onAdd }: {
               placeholder="Ex: Ancienneté ≥ 12 mois, Évaluation ≥ 4/5..." />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Type de validation</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t.talents.careerPathsPage.validationType}</label>
             <div className="space-y-2">
               {FACTOR_TYPES.map(ft => (
                 <label key={ft.value} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
@@ -1347,7 +1354,7 @@ function AddFactorModalNew({ levelId, onClose, onAdd }: {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Seuil / Valeur (optionnel)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t.talents.careerPathsPage.thresholdValue}</label>
             <input value={thresholdValue} onChange={e => setThresholdValue(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
               placeholder="Ex: 12, 80%, Approuvé..." />
@@ -1355,12 +1362,12 @@ function AddFactorModalNew({ levelId, onClose, onAdd }: {
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={isBlocking} onChange={e => setIsBlocking(e.target.checked)}
               className="rounded border-gray-300 text-red-500" />
-            <span className="text-sm text-gray-700">Facteur bloquant</span>
+            <span className="text-sm text-gray-700">{t.talents.careerPathsPage.blockingFactor}</span>
             <span className="text-xs text-gray-400">(la promotion est impossible sans ce critère)</span>
           </label>
         </div>
         <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">Annuler</button>
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">{t.common.cancel}</button>
           <button onClick={handleSubmit} disabled={saving || !name.trim()}
             className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
             {saving ? 'Ajout...' : 'Ajouter'}
@@ -1376,6 +1383,7 @@ function EditLevelModal({ level, onClose, onSave }: {
   onClose: () => void;
   onSave: (data: any) => Promise<void>;
 }) {
+  const { t } = useI18n();
   const [title, setTitle] = useState(level.title);
   const [tenure, setTenure] = useState(level.min_tenure_months);
   const [isEntry, setIsEntry] = useState(level.is_entry_level);
@@ -1394,34 +1402,34 @@ function EditLevelModal({ level, onClose, onSave }: {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-white rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Modifier le Niveau</h3>
+          <h3 className="text-lg font-semibold">{t.talents.careerPathsPage.editLevelTitle}</h3>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t.talents.careerPathsPage.levelTitleLabel}</label>
             <input value={title} onChange={e => setTitle(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
               placeholder="Ex: Chef de Service" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t.talents.careerPathsPage.description}</label>
             <textarea value={description} onChange={e => setDescription(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" rows={2} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Ancienneté minimum (mois)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t.talents.careerPathsPage.minTenureLabel}</label>
             <input type="number" value={tenure} onChange={e => setTenure(parseInt(e.target.value) || 0)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" min={0} />
           </div>
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={isEntry} onChange={e => setIsEntry(e.target.checked)}
               className="rounded border-gray-300 text-primary-500" />
-            <span className="text-sm text-gray-700">Niveau d'entrée dans le parcours</span>
+            <span className="text-sm text-gray-700">{t.talents.careerPathsPage.entryLevelInPath}</span>
           </label>
         </div>
         <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">Annuler</button>
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">{t.common.cancel}</button>
           <button onClick={handleSubmit} disabled={saving || !title.trim()}
             className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
             {saving ? 'Enregistrement...' : 'Enregistrer'}
@@ -1437,6 +1445,7 @@ function EditFactorModal({ factor, onClose, onSave }: {
   onClose: () => void;
   onSave: (data: any) => Promise<void>;
 }) {
+  const { t } = useI18n();
   const [name, setName] = useState(factor.factor_name);
   const [factorType, setFactorType] = useState<'auto' | 'committee' | 'n_plus_1'>(factor.factor_type);
   const [thresholdValue, setThresholdValue] = useState(factor.threshold_value || '');
@@ -1445,7 +1454,7 @@ function EditFactorModal({ factor, onClose, onSave }: {
 
   const FACTOR_TYPES = [
     { value: 'auto', label: 'Automatique', desc: 'Validé automatiquement par le système' },
-    { value: 'committee', label: 'Comité RH', desc: "Requiert l'approbation du comité" },
+    { value: 'committee', label: t.talents.careerPathsPage.factorCommittee, desc: t.talents.careerPathsPage.factorCommitteeDesc },
     { value: 'n_plus_1', label: 'Manager N+1', desc: 'Validé par le manager direct' },
   ];
 
@@ -1466,7 +1475,7 @@ function EditFactorModal({ factor, onClose, onSave }: {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-white rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Modifier le Facteur de Promotion</h3>
+          <h3 className="text-lg font-semibold">{t.talents.careerPathsPage.editFactorTitle}</h3>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <div className="space-y-4">
@@ -1477,7 +1486,7 @@ function EditFactorModal({ factor, onClose, onSave }: {
               placeholder="Ex: Ancienneté ≥ 12 mois..." />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Type de validation</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t.talents.careerPathsPage.validationType}</label>
             <div className="space-y-2">
               {FACTOR_TYPES.map(ft => (
                 <label key={ft.value} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
@@ -1494,7 +1503,7 @@ function EditFactorModal({ factor, onClose, onSave }: {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Seuil / Valeur (optionnel)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t.talents.careerPathsPage.thresholdValue}</label>
             <input value={thresholdValue} onChange={e => setThresholdValue(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
               placeholder="Ex: 12, 80%, Approuvé..." />
@@ -1502,12 +1511,12 @@ function EditFactorModal({ factor, onClose, onSave }: {
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={isBlocking} onChange={e => setIsBlocking(e.target.checked)}
               className="rounded border-gray-300 text-red-500" />
-            <span className="text-sm text-gray-700">Facteur bloquant</span>
+            <span className="text-sm text-gray-700">{t.talents.careerPathsPage.blockingFactor}</span>
             <span className="text-xs text-gray-400">(la promotion est impossible sans ce critère)</span>
           </label>
         </div>
         <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">Annuler</button>
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm">{t.common.cancel}</button>
           <button onClick={handleSubmit} disabled={saving || !name.trim()}
             className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50">
             {saving ? 'Enregistrement...' : 'Enregistrer'}

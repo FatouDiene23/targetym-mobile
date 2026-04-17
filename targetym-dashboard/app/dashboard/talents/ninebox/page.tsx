@@ -15,7 +15,6 @@ import {
 } from '../shared';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import { talentsTips } from '@/config/pageTips';
 import toast from 'react-hot-toast';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
@@ -121,7 +120,7 @@ export default function NineBoxPage() {
     <>
       {showTips && (
         <PageTourTips
-          tips={talentsTips}
+          pageId="talents"
           onDismiss={dismissTips}
           pageTitle={tp.title}
         />

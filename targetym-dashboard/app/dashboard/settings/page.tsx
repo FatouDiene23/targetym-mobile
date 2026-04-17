@@ -35,7 +35,6 @@ import {
 } from 'lucide-react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import { settingsTips } from '@/config/pageTips';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { usePlan, PLAN_LABELS, PLAN_LEVEL, PLAN_PRICING } from '@/hooks/usePlan';
 import { UpgradeModal } from '@/components/PlanGate';
@@ -1163,7 +1162,7 @@ export default function SettingsPage() {
     <>
       {showTips && (
         <PageTourTips
-          tips={settingsTips}
+          pageId="settings"
           onDismiss={dismissTips}
           pageTitle={t.settings.title}
         />

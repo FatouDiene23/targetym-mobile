@@ -1,6 +1,7 @@
 'use client';
 
 import Header from '@/components/Header';
+import CustomSelect from '@/components/CustomSelect';
 import EmployeeModal from '@/components/EmployeeModal';
 import AddModal from '@/components/AddModal';
 import EditEmployeeModal from '@/components/EditEmployeeModal';
@@ -1162,8 +1163,21 @@ function EmployeesPageInner() {
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1 relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder={t.employees.searchByNameEmailPosition} value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" /></div>
                 <div className="flex gap-3 flex-wrap">
-                  <select value={selectedDepartment} onChange={(e) => { setSelectedDepartment(e.target.value); setCurrentPage(1); }} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm"><option value="Tous">{t.employees.allDepartments}</option>{departments.map(dept => <option key={dept.id} value={dept.name}>{dept.parent_id ? `  ↳ ${dept.name}` : dept.name}</option>)}</select>
-                  <select value={selectedLocation} onChange={(e) => { setSelectedLocation(e.target.value); setCurrentPage(1); }} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm">{locations.map(loc => <option key={loc} value={loc}>{loc === 'Tous' ? t.employees.allLocations : loc}</option>)}</select>
+                  <CustomSelect
+                    value={selectedDepartment}
+                    onChange={v => { setSelectedDepartment(v); setCurrentPage(1); }}
+                    options={[
+                      { value: 'Tous', label: t.employees.allDepartments },
+                      ...departments.map(dept => ({ value: dept.name, label: dept.parent_id ? `  ↳ ${dept.name}` : dept.name })),
+                    ]}
+                    className="min-w-[150px]"
+                  />
+                  <CustomSelect
+                    value={selectedLocation}
+                    onChange={v => { setSelectedLocation(v); setCurrentPage(1); }}
+                    options={locations.map(loc => ({ value: loc, label: loc === 'Tous' ? t.employees.allLocations : loc }))}
+                    className="min-w-[130px]"
+                  />
                   {!isReadOnly && <button onClick={() => setShowAddModal(true)} className="flex items-center px-4 py-2.5 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600"><Plus className="w-4 h-4 mr-2" />{t.employees.add}</button>}
                   <button onClick={handleExport} className="flex items-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"><Download className="w-4 h-4 mr-2" />{t.common.export}</button>
                 </div>
@@ -1329,7 +1343,17 @@ function EmployeesPageInner() {
               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
                 <div className="flex flex-col md:flex-row gap-4">
                   <div className="flex-1 relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder={`${t.common.search}...`} value={invitationSearch} onChange={(e) => setInvitationSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" /></div>
-                  <select value={invitationFilter} onChange={(e) => setInvitationFilter(e.target.value)} className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm"><option value="all">{t.common.all}</option><option value="not_invited">{t.employees.invitations.notInvited}</option><option value="pending">{t.employees.invitations.pending}</option><option value="accepted">{t.employees.invitations.accepted}</option></select>
+                  <CustomSelect
+                    value={invitationFilter}
+                    onChange={v => setInvitationFilter(v)}
+                    options={[
+                      { value: 'all', label: t.common.all },
+                      { value: 'not_invited', label: t.employees.invitations.notInvited },
+                      { value: 'pending', label: t.employees.invitations.pending },
+                      { value: 'accepted', label: t.employees.invitations.accepted },
+                    ]}
+                    className="min-w-[140px]"
+                  />
                   <button onClick={fetchInvitations} className="flex items-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"><RefreshCw className={`w-4 h-4 mr-2 ${isLoadingInvitations ? 'animate-spin' : ''}`} />{t.employees.refresh}</button>
                 </div>
               </div>

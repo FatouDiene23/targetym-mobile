@@ -8,7 +8,6 @@ import {
 import PageTourTips from '@/components/PageTourTips';
 import Pagination from '@/components/Pagination';
 import { usePageTour } from '@/hooks/usePageTour';
-import { learningTips } from '@/config/pageTips';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
 export default function CatalogPage() {
@@ -28,7 +27,7 @@ export default function CatalogPage() {
     <div>
       {showTips && (
         <PageTourTips
-          tips={learningTips}
+          pageId="learning"
           onDismiss={dismissTips}
           pageTitle={t.training.catalogTitle}
         />

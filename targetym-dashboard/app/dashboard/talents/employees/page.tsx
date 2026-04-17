@@ -10,8 +10,9 @@ import toast from 'react-hot-toast';
 import Header from '@/components/Header';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
+import { talentsEmployeesTips } from '@/config/pageTips';
 import {
-  Search, RefreshCw, ChevronRight, CheckCircle2, Circle,
+  Search, RefreshCw, ChevronRight, ChevronLeft, CheckCircle2, Circle,
   TrendingUp, BookOpen, Heart, ArrowUpRight, Users, AlertCircle,
   Filter
 } from 'lucide-react';
@@ -20,6 +21,7 @@ import { useTalents } from '../TalentsContext';
 import { getInitials, ELIGIBILITY_LABELS, formatDate } from '../shared';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CustomSelect from '@/components/CustomSelect';
 import CompetencyModal from './CompetencyModal';
 
 export default function AllEmployeesCareerPage() {
@@ -132,7 +134,7 @@ export default function AllEmployeesCareerPage() {
   return (
     <>
       {showTips && (
-        <PageTourTips pageId="talentsEmployees" onDismiss={dismissTips} pageTitle={tp.title} />
+        <PageTourTips tips={talentsEmployeesTips} onDismiss={dismissTips} pageTitle={tp.title} />
       )}
       <Header
         title={tp.title}
@@ -141,7 +143,7 @@ export default function AllEmployeesCareerPage() {
       <main className="flex-1 flex overflow-hidden bg-gray-50" style={{ height: 'calc(100vh - 64px)' }}>
 
         {/* ─── Panneau gauche : liste ─── */}
-        <div className="w-80 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
+        <div className={`w-full md:w-80 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col ${selected ? 'hidden md:flex' : 'flex'}`}>
 
           {/* Filtres */}
           <div className="p-4 border-b border-gray-100 space-y-2" data-tour="talent-filters">
@@ -155,27 +157,27 @@ export default function AllEmployeesCareerPage() {
                 className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
               />
             </div>
-            <select
+            <CustomSelect
               value={eligFilter}
-              onChange={e => setEligFilter(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500 text-gray-600"
-            >
-              <option value="">{tp.allStatuses}</option>
-              <option value="eligible">{tp.eligible}</option>
-              <option value="in_progress">{tp.inProgress}</option>
-              <option value="not_eligible">{tp.notEligible}</option>
-            </select>
+              onChange={v => setEligFilter(v)}
+              options={[
+                { value: '', label: tp.allStatuses },
+                { value: 'eligible', label: tp.eligible },
+                { value: 'in_progress', label: tp.inProgress },
+                { value: 'not_eligible', label: tp.notEligible },
+              ]}
+              className="w-full"
+            />
             {paths.length > 0 && (
-              <select
+              <CustomSelect
                 value={pathFilter}
-                onChange={e => setPathFilter(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500 text-gray-600"
-              >
-                <option value="">{tp.allPaths}</option>
-                {paths.map(p => (
-                  <option key={p.id} value={String(p.id)}>{p.name}</option>
-                ))}
-              </select>
+                onChange={v => setPathFilter(v)}
+                options={[
+                  { value: '', label: tp.allPaths },
+                  ...paths.map(p => ({ value: String(p.id), label: p.name })),
+                ]}
+                className="w-full"
+              />
             )}
             <p className="text-xs text-gray-400">{tp.resultCount(filtered.length)}</p>
           </div>
@@ -234,7 +236,15 @@ export default function AllEmployeesCareerPage() {
         </div>
 
         {/* ─── Panneau droit : détail ─── */}
-        <div className="flex-1 overflow-y-auto">
+        <div className={`flex-1 overflow-y-auto ${!selected ? 'hidden md:block' : ''}`}>
+          {selected && (
+            <div className="md:hidden sticky top-0 bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-2 z-10">
+              <button onClick={() => setSelected(null)} className="p-1.5 rounded-lg hover:bg-gray-100">
+                <ChevronLeft className="w-5 h-5 text-gray-700" />
+              </button>
+              <span className="text-sm font-medium text-gray-900">Retour à la liste</span>
+            </div>
+          )}
           {!selected ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-3">
               <Users className="w-12 h-12 text-gray-200" />
@@ -269,7 +279,7 @@ export default function AllEmployeesCareerPage() {
                           <p className="text-sm text-gray-500">{career.job_title} · {career.path_name}</p>
                         </div>
                       </div>
-                      <div className="flex gap-2 flex-shrink-0">
+                      <div className="flex gap-2 flex-wrap">
                         <button
                           onClick={() => setCompetencyModal({ id: selected.employee_id, name: `${career.first_name} ${career.last_name}` })}
                           className="px-3 py-1.5 text-sm border border-indigo-200 rounded-lg hover:bg-indigo-50 text-indigo-600 flex items-center gap-1.5"

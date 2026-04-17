@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
+import { onboardingTips } from '@/config/pageTips';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
@@ -1797,7 +1798,7 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-gray-50">
       {showTips && (
         <PageTourTips
-          pageId="onboarding"
+          tips={onboardingTips}
           onDismiss={dismissTips}
           pageTitle="Onboarding"
         />
@@ -1807,16 +1808,28 @@ export default function OnboardingPage() {
 
       {/* Dropdown flottant déclenché par le bouton Header "+" */}
       {showAddDropdown && (
-        <div ref={addDropdownRef} className="fixed top-16 right-6 w-56 bg-white rounded-xl shadow-lg border border-gray-200 z-50 py-1">
-          <button onClick={() => { setShowAddDropdown(false); setEditingProgram(null); setShowProgramModal(true); }}
-            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
-            <ClipboardList size={16} className="text-primary-500" /> {t.onboarding.createProgram}
-          </button>
-          <button onClick={() => { setShowAddDropdown(false); setShowAssignModal(true); }}
-            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
-            <UserPlus size={16} className="text-green-500" /> {t.onboarding.assignProgram}
-          </button>
-        </div>
+        <>
+          {/* Overlay sombre cliquable pour fermer */}
+          <div
+            onClick={() => setShowAddDropdown(false)}
+            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.3)', zIndex: 9998 }}
+          />
+          {/* Menu positionné en haut à droite */}
+          <div
+            ref={addDropdownRef}
+            style={{ position: 'fixed', top: '72px', right: '12px', zIndex: 9999, width: '220px' }}
+            className="bg-white rounded-xl shadow-lg border border-gray-200 py-1"
+          >
+            <button onClick={() => { setShowAddDropdown(false); setEditingProgram(null); setShowProgramModal(true); }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
+              <ClipboardList size={16} className="text-primary-500" /> {t.onboarding.createProgram}
+            </button>
+            <button onClick={() => { setShowAddDropdown(false); setShowAssignModal(true); }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
+              <UserPlus size={16} className="text-green-500" /> {t.onboarding.assignProgram}
+            </button>
+          </div>
+        </>
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">

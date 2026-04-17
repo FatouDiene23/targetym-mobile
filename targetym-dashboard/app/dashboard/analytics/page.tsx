@@ -2313,7 +2313,7 @@ export default function PeopleAnalyticsPage() {
           <h1 className="text-2xl font-bold text-gray-900">{(SECTION_HEADERS[currentSection] ?? SECTION_HEADERS['overview']).title}</h1>
           <p className="text-gray-500 text-sm mt-1">{(SECTION_HEADERS[currentSection] ?? SECTION_HEADERS['overview']).subtitle}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {/* Filtre département */}
           <div className="relative">
             <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />

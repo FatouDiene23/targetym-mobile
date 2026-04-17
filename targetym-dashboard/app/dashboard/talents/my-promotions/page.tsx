@@ -17,8 +17,11 @@ import {
 } from 'lucide-react';
 import { apiFetch, formatDate, ELIGIBILITY_LABELS } from '../shared';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { useI18n } from '@/lib/i18n/I18nContext';
 
 export default function MyPromotionsPage() {
+  const { t } = useI18n();
+  const tp = t.talents.myPromotions;
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,8 +53,8 @@ export default function MyPromotionsPage() {
   const handleRequestPromotion = async (ecId: number) => {
     setConfirmDialog({
       isOpen: true,
-      title: 'Demande de promotion',
-      message: 'Envoyer une demande de promotion ?',
+      title: tp.promotionRequestTitle,
+      message: tp.promotionRequestMessage,
       danger: false,
       onConfirm: async () => {
         setConfirmDialog(null);
@@ -64,7 +67,7 @@ export default function MyPromotionsPage() {
           });
           setRequestSuccess(true);
           await load();
-          toast.success('Demande envoyée');
+          toast.success(tp.requestSent);
         } catch (e: any) {
           toast.error(e.message);
         } finally {
@@ -78,9 +81,9 @@ export default function MyPromotionsPage() {
     return (
       <>
         {showTips && (
-          <PageTourTips tips={myPromotionsTips} onDismiss={dismissTips} pageTitle="Mes Promotions" />
+          <PageTourTips tips={myPromotionsTips} onDismiss={dismissTips} pageTitle={tp.title} />
         )}
-        <Header title="Mes Promotions" subtitle="Chargement..." />
+        <Header title={tp.title} subtitle={tp.loading} />
         <main className="flex-1 p-6 bg-gray-50 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
         </main>
@@ -91,7 +94,7 @@ export default function MyPromotionsPage() {
   if (error) {
     return (
       <>
-        <Header title="Mes Promotions" subtitle="Erreur" />
+        <Header title={tp.title} subtitle={tp.error} />
         <main className="flex-1 p-6 bg-gray-50">
           <div className="bg-red-50 border border-red-200 rounded-xl p-6 flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
@@ -105,12 +108,12 @@ export default function MyPromotionsPage() {
   if (!data?.careers?.length) {
     return (
       <>
-        <Header title="Mes Promotions" subtitle="Historique de vos demandes" />
+        <Header title={tp.title} subtitle={tp.requestHistory} />
         <main className="flex-1 p-6 bg-gray-50 flex items-center justify-center">
           <div className="text-center py-16 bg-white rounded-xl border border-gray-100 shadow-sm px-12">
             <Trophy className="w-12 h-12 text-gray-200 mx-auto mb-4" />
-            <p className="text-gray-600 font-medium">Aucun parcours assigné</p>
-            <p className="text-sm text-gray-400 mt-1">Contactez votre responsable RH pour être assigné à un parcours de carrière.</p>
+            <p className="text-gray-600 font-medium">{tp.noPathAssigned}</p>
+            <p className="text-sm text-gray-400 mt-1">{tp.contactHR}</p>
           </div>
         </main>
       </>
@@ -130,7 +133,7 @@ export default function MyPromotionsPage() {
   return (
     <>
       <Header
-        title="Mes Promotions"
+        title={tp.title}
         subtitle={`${career.path_name} · ${career.current_level_title}`}
       />
       <main className="flex-1 p-6 overflow-auto bg-gray-50 space-y-6">
@@ -138,7 +141,7 @@ export default function MyPromotionsPage() {
         {requestSuccess && (
           <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
             <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
-            <p className="text-green-700 text-sm font-medium">Demande de promotion envoyée avec succès !</p>
+            <p className="text-green-700 text-sm font-medium">{tp.requestSentSuccess}</p>
           </div>
         )}
 
@@ -146,7 +149,7 @@ export default function MyPromotionsPage() {
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6" data-tour="eligibility-criteria">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <h3 className="font-semibold text-gray-900 mb-1">Statut d'éligibilité</h3>
+              <h3 className="font-semibold text-gray-900 mb-1">{tp.eligibilityStatus}</h3>
               <div className="flex items-center gap-3">
                 <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${elig.color}`}>
                   {elig.label}
@@ -172,19 +175,19 @@ export default function MyPromotionsPage() {
                 className="px-5 py-2.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 flex items-center gap-2 font-medium"
               >
                 <ArrowUpRight className="w-4 h-4" />
-                {requesting ? 'Envoi en cours...' : 'Demander ma promotion'}
+                {requesting ? tp.sendingRequest : tp.requestMyPromotion}
               </button>
             )}
             {hasPendingPromotion && (
               <span className="px-4 py-2 bg-yellow-50 text-yellow-700 rounded-lg border border-yellow-200 text-sm font-medium flex items-center gap-2">
                 <Clock className="w-4 h-4" />
-                Demande en cours de traitement
+                {tp.requestBeingProcessed}
               </span>
             )}
             {!career.next_level_id && (
               <span className="px-4 py-2 bg-green-50 text-green-700 rounded-lg border border-green-200 text-sm font-medium flex items-center gap-2">
                 <Trophy className="w-4 h-4" />
-                Niveau maximum atteint
+                {tp.maxLevelReached}
               </span>
             )}
           </div>
@@ -195,15 +198,15 @@ export default function MyPromotionsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 text-center">
               <p className="text-3xl font-bold text-gray-900">{totalRequests}</p>
-              <p className="text-sm text-gray-500 mt-1">Demande(s) totale(s)</p>
+              <p className="text-sm text-gray-500 mt-1">{tp.totalRequests}</p>
             </div>
             <div className="bg-green-50 rounded-xl border border-green-100 shadow-sm p-5 text-center">
               <p className="text-3xl font-bold text-green-600">{approvedCount}</p>
-              <p className="text-sm text-green-600 mt-1">Approuvée(s)</p>
+              <p className="text-sm text-green-600 mt-1">{tp.approved}</p>
             </div>
             <div className={`rounded-xl border shadow-sm p-5 text-center ${pendingCount > 0 ? 'bg-yellow-50 border-yellow-100' : 'bg-gray-50 border-gray-100'}`}>
               <p className={`text-3xl font-bold ${pendingCount > 0 ? 'text-yellow-600' : 'text-gray-400'}`}>{pendingCount}</p>
-              <p className={`text-sm mt-1 ${pendingCount > 0 ? 'text-yellow-600' : 'text-gray-400'}`}>En attente</p>
+              <p className={`text-sm mt-1 ${pendingCount > 0 ? 'text-yellow-600' : 'text-gray-400'}`}>{tp.pending}</p>
             </div>
           </div>
         )}
@@ -212,10 +215,10 @@ export default function MyPromotionsPage() {
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6" data-tour="promotion-status">
           <div className="flex items-center gap-2 mb-5">
             <ArrowUpRight className="w-5 h-5 text-primary-500" />
-            <h3 className="font-semibold text-gray-900">Historique des demandes</h3>
+            <h3 className="font-semibold text-gray-900">{tp.requestHistory2}</h3>
             {totalRequests > 0 && (
               <span className="ml-auto text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                {totalRequests} demande(s)
+                {tp.requestCount(totalRequests)}
               </span>
             )}
           </div>
@@ -223,15 +226,15 @@ export default function MyPromotionsPage() {
           {totalRequests === 0 ? (
             <div className="text-center py-12 text-gray-400">
               <ArrowUpRight className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-              <p className="font-medium text-gray-500">Aucune demande de promotion pour le moment</p>
+              <p className="font-medium text-gray-500">{tp.noPromotionRequest}</p>
               {career.eligibility_status !== 'eligible' && career.next_level_id && (
                 <p className="text-sm mt-2 text-gray-400">
-                  Validez toutes vos compétences pour devenir éligible à une promotion.
+                  {tp.validateCompetencies}
                 </p>
               )}
               {career.eligibility_status === 'eligible' && !hasPendingPromotion && (
                 <p className="text-sm mt-2 text-green-600 font-medium">
-                  Vous êtes éligible ! Utilisez le bouton ci-dessus pour faire votre demande.
+                  {tp.eligibleMessage}
                 </p>
               )}
             </div>
@@ -262,7 +265,7 @@ export default function MyPromotionsPage() {
                             ${pr.status === 'approved' ? 'bg-green-100 text-green-700' :
                               pr.status === 'rejected' ? 'bg-red-100 text-red-700' :
                               'bg-yellow-100 text-yellow-700'}`}>
-                            {pr.status === 'approved' ? 'Approuvée' : pr.status === 'rejected' ? 'Refusée' : 'En attente'}
+                            {pr.status === 'approved' ? tp.approved2 : pr.status === 'rejected' ? tp.rejected : tp.pendingStatus}
                           </span>
                           <span className="text-sm font-medium text-gray-700">
                             {pr.from_level_title}
@@ -278,7 +281,7 @@ export default function MyPromotionsPage() {
                         )}
                         {pr.committee_decision && (
                           <p className="text-sm text-gray-500 mt-1.5">
-                            <span className="font-medium">Décision comité :</span> {pr.committee_decision}
+                            <span className="font-medium">{tp.committeeDecision} :</span> {pr.committee_decision}
                           </p>
                         )}
                       </div>
@@ -287,7 +290,7 @@ export default function MyPromotionsPage() {
                       {pr.decision_date ? (
                         <p className="text-xs text-gray-500">{formatDate(pr.decision_date)}</p>
                       ) : (
-                        <p className="text-xs text-yellow-600 font-medium">En cours de traitement</p>
+                        <p className="text-xs text-yellow-600 font-medium">{tp.beingProcessed}</p>
                       )}
                     </div>
                   </div>

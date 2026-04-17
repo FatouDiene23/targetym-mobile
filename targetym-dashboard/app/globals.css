@@ -214,15 +214,29 @@ select option:hover {
     overflow-x: auto !important;
     flex-wrap: nowrap !important;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    position: relative;
+    /* Indicateur de scroll : ombrage/gradient fade à droite */
+    mask-image: linear-gradient(to right, black calc(100% - 24px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black calc(100% - 24px), transparent 100%);
   }
+  /* Scrollbar mobile fine et visible */
   .overflow-x-auto::-webkit-scrollbar,
   [role="tablist"]::-webkit-scrollbar,
   .flex.border-b::-webkit-scrollbar,
   .bg-gray-100.rounded-lg::-webkit-scrollbar,
   .bg-gray-100.rounded-xl::-webkit-scrollbar,
   .bg-white.rounded-xl.border.border-gray-200::-webkit-scrollbar {
-    display: none;
+    height: 3px;
+    display: block;
+  }
+  .overflow-x-auto::-webkit-scrollbar-thumb,
+  [role="tablist"]::-webkit-scrollbar-thumb,
+  .flex.border-b::-webkit-scrollbar-thumb,
+  .bg-gray-100.rounded-lg::-webkit-scrollbar-thumb,
+  .bg-gray-100.rounded-xl::-webkit-scrollbar-thumb,
+  .bg-white.rounded-xl.border.border-gray-200::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.5);
+    border-radius: 3px;
   }
 
   /* Les boutons/liens DANS les tabs — ne pas rétrécir */

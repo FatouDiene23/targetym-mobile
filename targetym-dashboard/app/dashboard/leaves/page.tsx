@@ -1,15 +1,16 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import CustomSelect from '@/components/CustomSelect';
 import {
   Calendar, Clock, CheckCircle, XCircle, AlertCircle,
   Download, RefreshCw, Users, Settings, BarChart3, CalendarDays,
   ChevronLeft, ChevronRight, X, Search, Plus, Brain, Sparkles,
-  Upload, FileDown, Save
+  Upload, FileDown, Save, Heart, FileText
 } from 'lucide-react';
 import Header from '@/components/Header';
+import { useI18n } from '@/lib/i18n/I18nContext';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import Pagination from '@/components/Pagination';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
@@ -118,7 +119,7 @@ interface ManagerSuggestion {
 // API
 // ============================================
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 function getAuthHeaders(): HeadersInit {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
@@ -348,7 +349,7 @@ async function initializeEmployeeBalances(employeeId: number, year: number): Pro
     method: 'POST',
     headers: getAuthHeaders(),
   });
-  if (!response.ok) throw new Error('Erreur initialisation');
+  if (!response.ok) throw new Error('Erreur réinitialisation');
 }
 
 async function submitLeaveRequest(data: {
@@ -389,15 +390,597 @@ async function fetchManagerSuggestion(leaveRequestId: number): Promise<ManagerSu
 }
 
 // ============================================
+// LEAVE RECALLS — API & TYPES
+// ============================================
+
+interface LeaveRecall {
+  id: number;
+  leave_id: number;
+  employee_id: number;
+  employee_name?: string;
+  initiated_by?: number;
+  initiated_by_name?: string;
+  recall_date: string;
+  recall_reason: string;
+  nb_days_recalled: number;
+  is_urgent: boolean;
+  urgency_justification?: string | null;
+  resume_leave_after: boolean;
+  compensation_type?: string | null;
+  compensation_days?: number | null;
+  compensation_end_date?: string | null;
+  status: string;
+  validated_at?: string | null;
+  compensation_chosen_at?: string | null;
+  compensation_validated_at?: string | null;
+  return_declared_at?: string | null;
+  closed_at?: string | null;
+  notes?: string | null;
+  created_at?: string;
+}
+
+async function getLeaveRecalls(): Promise<LeaveRecall[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/leave-recalls/`, { headers: getAuthHeaders() });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? data : (data.items || []);
+  } catch {
+    return [];
+  }
+}
+
+async function createLeaveRecall(payload: {
+  leave_id: number;
+  recall_date: string;
+  recall_reason: string;
+  nb_days_recalled: number;
+  is_urgent: boolean;
+  urgency_justification?: string;
+  resume_leave_after: boolean;
+  compensation_type?: string;
+  compensation_days?: number;
+  compensation_end_date?: string;
+}): Promise<void> {
+  const response = await fetch(`${API_URL}/api/leave-recalls/`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Erreur création rappel');
+  }
+}
+
+async function validateRecallRh(recallId: number): Promise<void> {
+  const response = await fetch(`${API_URL}/api/leave-recalls/${recallId}/validate-rh`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Erreur validation RH');
+}
+
+async function closeRecall(recallId: number): Promise<void> {
+  const response = await fetch(`${API_URL}/api/leave-recalls/${recallId}/close`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Erreur clôture');
+}
+
+async function validateRecallCompensation(recallId: number): Promise<void> {
+  const response = await fetch(`${API_URL}/api/leave-recalls/${recallId}/validate-compensation`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Erreur validation compensation');
+}
+
+async function getTenantRecallPolicy(): Promise<'employee_chooses' | 'employer_decides'> {
+  try {
+    const response = await fetch(`${API_URL}/api/auth/tenant-settings`, { headers: getAuthHeaders() });
+    if (!response.ok) return 'employee_chooses';
+    const data = await response.json();
+    return (data.recall_compensation_policy || 'employee_chooses') as 'employee_chooses' | 'employer_decides';
+  } catch {
+    return 'employee_chooses';
+  }
+}
+
+async function updateTenantRecallPolicy(value: 'employee_chooses' | 'employer_decides'): Promise<void> {
+  const response = await fetch(`${API_URL}/api/auth/tenant-settings`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ recall_compensation_policy: value }),
+  });
+  if (!response.ok) throw new Error('Erreur lors de la mise à jour de la politique');
+}
+
+const RECALL_STATUS_STYLES: Record<string, { bg: string; text: string }> = {
+  initie: { bg: 'bg-gray-100', text: 'text-gray-800' },
+  valide_rh: { bg: 'bg-blue-100', text: 'text-blue-800' },
+  notifie: { bg: 'bg-orange-100', text: 'text-orange-800' },
+  compensation_proposee: { bg: 'bg-purple-100', text: 'text-purple-800' },
+  compensation_validee: { bg: 'bg-cyan-100', text: 'text-cyan-800' },
+  retour_declare: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+  cloture: { bg: 'bg-green-100', text: 'text-green-800' },
+};
+
+function RecallStatusBadge({ status }: { status: string }) {
+  const { t } = useI18n();
+  const style = RECALL_STATUS_STYLES[status] || RECALL_STATUS_STYLES.initie;
+  const label = (t.leaves.recallStatus as Record<string, string>)[status] || (t.leaves.recallStatus as Record<string, string>).initie;
+  return (
+    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${style.bg} ${style.text}`}>
+      {label}
+    </span>
+  );
+}
+
+function RecallsTab({
+  recalls,
+  userRole,
+  onNew,
+  onSelect,
+  onRefresh,
+}: {
+  recalls: LeaveRecall[];
+  userRole: string;
+  onNew: () => void;
+  onSelect: (r: LeaveRecall) => void;
+  onRefresh: () => void;
+}) {
+  const { t } = useI18n();
+  const canCreate = ['manager', 'rh', 'admin', 'dg'].includes(userRole);
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900">{t.leaves.leaveRecalls}</h3>
+        <div className="flex gap-2">
+          <button
+            onClick={onRefresh}
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+            title={t.leaves.refresh}
+          >
+            <RefreshCw className="w-5 h-5" />
+          </button>
+          {canCreate && (
+            <button
+              onClick={onNew}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" /> {t.leaves.newRecall}
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.leaves.collaborator}</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.leaves.relatedLeave}</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.leaves.recallDate}</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.leaves.nbDays}</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.leaves.urgency}</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.common.status}</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.common.actions}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {recalls.map((r) => (
+              <tr key={r.id} className="hover:bg-gray-50">
+                <td className="px-4 py-4 text-sm font-medium text-gray-900">{r.employee_name || `#${r.employee_id}`}</td>
+                <td className="px-4 py-4 text-sm text-gray-500">{t.leaves.leaveHash}{r.leave_id}</td>
+                <td className="px-4 py-4 text-sm text-gray-500">{new Date(r.recall_date).toLocaleDateString('fr-FR')}</td>
+                <td className="px-4 py-4 text-sm font-medium text-gray-900">{r.nb_days_recalled}</td>
+                <td className="px-4 py-4">
+                  {r.is_urgent ? (
+                    <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">{t.leaves.urgent}</span>
+                  ) : (
+                    <span className="text-xs text-gray-400">—</span>
+                  )}
+                </td>
+                <td className="px-4 py-4"><RecallStatusBadge status={r.status} /></td>
+                <td className="px-4 py-4">
+                  <button
+                    onClick={() => onSelect(r)}
+                    className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                  >
+                    {t.leaves.view}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {recalls.length === 0 && (
+          <div className="text-center py-12 text-gray-500">
+            <AlertCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <p>{t.leaves.noRecall}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NewRecallModal({
+  isOpen,
+  onClose,
+  policy,
+  onSuccess,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  policy: 'employee_chooses' | 'employer_decides';
+  onSuccess: () => void;
+}) {
+  const { t } = useI18n();
+  const [onLeaveList, setOnLeaveList] = useState<LeaveRequest[]>([]);
+  const [form, setForm] = useState({
+    leave_id: '',
+    recall_date: new Date().toISOString().slice(0, 10),
+    recall_reason: '',
+    nb_days_recalled: 1,
+    is_urgent: false,
+    urgency_justification: '',
+    resume_leave_after: true,
+    compensation_type: 'prolongation',
+    compensation_days: 0,
+    compensation_end_date: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    // Fetch approved leaves currently covering today
+    (async () => {
+      const data = await getLeaveRequests({ status: 'approved', page: 1, page_size: 100 });
+      const today = new Date().toISOString().slice(0, 10);
+      const filtered = data.items.filter((l) => l.start_date <= today && l.end_date >= today);
+      setOnLeaveList(filtered);
+    })();
+  }, [isOpen]);
+
+  // Pré-remplit compensation_days et compensation_end_date selon le congé sélectionné,
+  // le nombre de jours rappelés et le type de compensation choisi.
+  const withCompensationDefaults = (next: typeof form) => {
+    const days = next.nb_days_recalled || 0;
+    const updated = { ...next, compensation_days: days };
+    if (next.compensation_type === 'prolongation') {
+      const leaveIdNum = parseInt(next.leave_id || '0');
+      const selectedLeave = onLeaveList.find((l) => l.id === leaveIdNum);
+      if (selectedLeave?.end_date && days > 0) {
+        const endDate = new Date(selectedLeave.end_date);
+        endDate.setDate(endDate.getDate() + days);
+        updated.compensation_end_date = endDate.toISOString().split('T')[0];
+      } else {
+        updated.compensation_end_date = '';
+      }
+    } else {
+      updated.compensation_end_date = '';
+    }
+    return updated;
+  };
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.leave_id || !form.recall_reason) {
+      toast.error(t.leaves.requiredFieldsMissing);
+      return;
+    }
+    if (form.is_urgent && !form.urgency_justification) {
+      toast.error(t.leaves.urgentJustificationRequired);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await createLeaveRecall({
+        leave_id: parseInt(form.leave_id),
+        recall_date: form.recall_date,
+        recall_reason: form.recall_reason,
+        nb_days_recalled: form.nb_days_recalled,
+        is_urgent: form.is_urgent,
+        urgency_justification: form.is_urgent ? form.urgency_justification : undefined,
+        resume_leave_after: form.resume_leave_after,
+        compensation_type: form.compensation_type || undefined,
+        compensation_days: form.compensation_type === 'solde' ? form.compensation_days : undefined,
+        compensation_end_date: form.compensation_type === 'prolongation' ? form.compensation_end_date : undefined,
+      });
+      toast.success(t.leaves.recallCreated);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t.leaves.error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+        <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-900">{t.leaves.newLeaveRecall}</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.leaves.collaboratorOnLeave} <span className="text-red-500">*</span></label>
+              <select
+                value={form.leave_id}
+                onChange={(e) => setForm(withCompensationDefaults({ ...form, leave_id: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                required
+              >
+                <option value="">{t.leaves.select}</option>
+                {onLeaveList.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.employee_name} — {new Date(l.start_date).toLocaleDateString('fr-FR')} → {new Date(l.end_date).toLocaleDateString('fr-FR')}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t.leaves.recallDate} <span className="text-red-500">*</span></label>
+                <input
+                  type="date"
+                  value={form.recall_date}
+                  onChange={(e) => setForm({ ...form, recall_date: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t.leaves.nbDaysRecalled} <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  min={1}
+                  value={form.nb_days_recalled}
+                  onChange={(e) => setForm(withCompensationDefaults({ ...form, nb_days_recalled: parseInt(e.target.value || '1') }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.leaves.recallReason} <span className="text-red-500">*</span></label>
+              <textarea
+                value={form.recall_reason}
+                onChange={(e) => setForm({ ...form, recall_reason: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                rows={3}
+                required
+              />
+            </div>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={form.is_urgent}
+                onChange={(e) => setForm({ ...form, is_urgent: e.target.checked })}
+              />
+              <span className="text-sm text-gray-700">{t.leaves.urgentRecall}</span>
+            </label>
+            {form.is_urgent && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t.leaves.urgencyJustification} <span className="text-red-500">*</span></label>
+                <textarea
+                  value={form.urgency_justification}
+                  onChange={(e) => setForm({ ...form, urgency_justification: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  rows={2}
+                  required
+                />
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t.leaves.resumeAfterRecall}</label>
+              <div className="space-y-1">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    checked={form.resume_leave_after === true}
+                    onChange={() => setForm(withCompensationDefaults({ ...form, resume_leave_after: true, compensation_type: 'prolongation' }))}
+                  />
+                  {t.leaves.resumeLeaveAutomatically}
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    checked={form.resume_leave_after === false}
+                    onChange={() => setForm(withCompensationDefaults({ ...form, resume_leave_after: false, compensation_type: 'solde' }))}
+                  />
+                  {t.leaves.suspendPermanently}
+                </label>
+              </div>
+            </div>
+            <div className="border-t border-gray-200 pt-4 space-y-3">
+              <div>
+                <label className="text-sm font-medium text-gray-700">{t.leaves.compensationType}</label>
+                <p className="mt-1 px-3 py-2 bg-gray-50 rounded-lg text-sm text-gray-600 border border-gray-200">
+                  {form.compensation_type === 'prolongation'
+                    ? t.leaves.leaveExtension
+                    : t.leaves.addToLeaveBalance}
+                </p>
+              </div>
+            </div>
+            {policy === 'employer_decides' && (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.leaves.daysToCompensate}</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.compensation_days}
+                    onChange={(e) => setForm({ ...form, compensation_days: parseInt(e.target.value || '0') })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                {form.compensation_type === 'prolongation' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.leaves.extendedEndDate}</label>
+                    <input
+                      type="date"
+                      value={form.compensation_end_date}
+                      onChange={(e) => setForm({ ...form, compensation_end_date: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="flex gap-3 pt-4">
+              <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">{t.common.cancel}</button>
+              <button type="submit" disabled={submitting} className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50">
+                {submitting ? t.leaves.sending : t.leaves.createRecall}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RecallDetailModal({
+  recall,
+  userRole,
+  policy,
+  onClose,
+  onSuccess,
+}: {
+  recall: LeaveRecall | null;
+  userRole: string;
+  policy: 'employee_chooses' | 'employer_decides';
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const { t } = useI18n();
+  if (!recall) return null;
+
+  const isRh = ['rh', 'admin', 'dg'].includes(userRole);
+  const isManagerOrRh = ['manager', 'rh', 'admin', 'dg'].includes(userRole);
+
+  const steps = [
+    { key: 'initie', label: t.leaves.recallStatus.initie, done: true },
+    { key: 'valide_rh', label: t.leaves.recallStatus.valide_rh, done: !!recall.validated_at || ['notifie', 'compensation_proposee', 'compensation_validee', 'retour_declare', 'cloture'].includes(recall.status) },
+    { key: 'notifie', label: t.leaves.notifiedCollaborator, done: ['notifie', 'compensation_proposee', 'compensation_validee', 'retour_declare', 'cloture'].includes(recall.status) },
+    { key: 'compensation', label: `${t.leaves.compensationLabel.replace(' :', '')} (${policy === 'employer_decides' ? t.leaves.compensationDecidedByEmployer : t.leaves.compensationChosenByCollaborator})`, done: ['compensation_validee', 'retour_declare', 'cloture'].includes(recall.status) },
+    { key: 'retour_declare', label: t.leaves.recallStatus.retour_declare, done: ['retour_declare', 'cloture'].includes(recall.status) },
+    { key: 'cloture', label: t.leaves.recallStatus.cloture, done: recall.status === 'cloture' },
+  ];
+
+  const handleValidateRh = async () => {
+    try {
+      await validateRecallRh(recall.id);
+      toast.success(t.leaves.recallValidated);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t.leaves.error);
+    }
+  };
+
+  const handleClose = async () => {
+    try {
+      await closeRecall(recall.id);
+      toast.success(t.leaves.recallClosed);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t.leaves.error);
+    }
+  };
+
+  const handleValidateCompensation = async () => {
+    try {
+      await validateRecallCompensation(recall.id);
+      toast.success(t.leaves.compensationValidated);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t.leaves.error);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+        <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">{t.leaves.recallHash}{recall.id}</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+          </div>
+          <div className="space-y-2 text-sm text-gray-700 mb-6">
+            <div><span className="text-gray-500">{t.leaves.collaborator} :</span> <span className="font-medium">{recall.employee_name || `#${recall.employee_id}`}</span></div>
+            <div><span className="text-gray-500">{t.leaves.recallDateLabel}</span> {new Date(recall.recall_date).toLocaleDateString('fr-FR')}</div>
+            <div><span className="text-gray-500">{t.leaves.nbDaysRecalledLabel}</span> {recall.nb_days_recalled}</div>
+            <div><span className="text-gray-500">{t.leaves.reasonColon}</span> {recall.recall_reason}</div>
+            {recall.is_urgent && (
+              <div className="p-2 bg-red-50 border border-red-200 rounded text-red-700">
+                <strong>Urgent</strong>{recall.urgency_justification ? ` — ${recall.urgency_justification}` : ''}
+              </div>
+            )}
+            <div><span className="text-gray-500">{t.leaves.resumeLabel}</span> {recall.resume_leave_after ? t.leaves.resumeAutomatic : t.leaves.suspendedPermanently}</div>
+            {recall.compensation_type && (
+              <div><span className="text-gray-500">{t.leaves.compensationLabel}</span> {recall.compensation_type}{recall.compensation_days ? ` (${recall.compensation_days} j)` : ''}{recall.compensation_end_date ? ` (${t.leaves.newEnd} ${new Date(recall.compensation_end_date).toLocaleDateString('fr-FR')})` : ''}</div>
+            )}
+            <div><span className="text-gray-500">{t.leaves.currentStatus}</span> <RecallStatusBadge status={recall.status} /></div>
+          </div>
+
+          <div className="border-t border-gray-200 pt-4">
+            <h4 className="text-sm font-semibold text-gray-900 mb-3">{t.leaves.workflow}</h4>
+            <ol className="space-y-3">
+              {steps.map((s, idx) => (
+                <li key={s.key} className="flex items-start gap-3">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${s.done ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                    {s.done ? <CheckCircle className="w-4 h-4" /> : idx + 1}
+                  </div>
+                  <div className="flex-1 pt-0.5">
+                    <p className={`text-sm ${s.done ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>{s.label}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="flex flex-wrap gap-2 pt-6 border-t border-gray-200 mt-6">
+            {isRh && recall.status === 'initie' && (
+              <button onClick={handleValidateRh} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">{t.leaves.validateRh}</button>
+            )}
+            {isManagerOrRh && recall.status === 'compensation_proposee' && (
+              <button onClick={handleValidateCompensation} className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700">{t.leaves.validateCompensation}</button>
+            )}
+            {isManagerOrRh && recall.status === 'retour_declare' && (
+              <button onClick={handleClose} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">{t.leaves.closeRecall}</button>
+            )}
+            <button onClick={onClose} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 ml-auto">{t.common.close}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
 // COMPONENTS
 // ============================================
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useI18n();
   const configs: Record<string, { bg: string; text: string; label: string }> = {
-    pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'En attente' },
-    approved: { bg: 'bg-green-100', text: 'text-green-800', label: 'Approuvé' },
-    rejected: { bg: 'bg-red-100', text: 'text-red-800', label: 'Refusé' },
-    cancelled: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Annulé' },
+    pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: t.leaves.pending },
+    approved: { bg: 'bg-green-100', text: 'text-green-800', label: t.leaves.approved },
+    rejected: { bg: 'bg-red-100', text: 'text-red-800', label: t.leaves.refused },
+    cancelled: { bg: 'bg-gray-100', text: 'text-gray-800', label: t.leaves.cancelled },
   };
   const config = configs[status] || configs.pending;
   return (
@@ -442,9 +1025,9 @@ function LeaveCalendar({
   onPrevMonth: () => void;
   onNextMonth: () => void;
 }) {
-  const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
-                      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
-  const dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  const { t } = useI18n();
+  const monthNames = t.leaves.monthNames;
+  const dayNames = t.leaves.dayNames;
 
   const firstDay = new Date(year, month - 1, 1);
   const lastDay = new Date(year, month, 0);
@@ -474,7 +1057,7 @@ function LeaveCalendar({
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <CalendarDays className="w-5 h-5 text-primary-600" />
-          Calendrier des absences
+          {t.leaves.absenceCalendar}
         </h3>
         <div className="flex items-center gap-2">
           <button onClick={onPrevMonth} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -551,11 +1134,13 @@ function LeaveTypesModal({
   leaveTypes: LeaveType[];
   onRefresh: () => void;
 }) {
+  const { t } = useI18n();
   const [editingType, setEditingType] = useState<LeaveType | null>(null);
   const [newType, setNewType] = useState({ name: '', code: '', default_days: 0, is_annual: false, accrual_rate: 2.0, max_carryover: null as number | null });
   const [showAddForm, setShowAddForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void; danger?: boolean }>({ open: false, title: '', message: '', onConfirm: () => {} });
 
   const handleSaveEdit = async () => {
     if (!editingType) return;
@@ -586,17 +1171,24 @@ function LeaveTypesModal({
     }
   };
 
-  const handleDeleteType = async (type: LeaveType) => {
-    if (!confirm(`Supprimer le type "${type.name}" ? Cette action le désactivera définitivement.`)) return;
-    setDeletingId(type.id);
-    try {
-      await deleteLeaveType(type.id);
-      onRefresh();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setDeletingId(null);
-    }
+  const handleDeleteType = (type: LeaveType) => {
+    setConfirmDialog({
+      open: true,
+      title: t.leaves.deleteLeaveType,
+      message: t.leaves.deleteLeaveTypeConfirm.replace('{name}', type.name),
+      danger: true,
+      onConfirm: async () => {
+        setDeletingId(type.id);
+        try {
+          await deleteLeaveType(type.id);
+          onRefresh();
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   };
 
   if (!isOpen) return null;
@@ -610,7 +1202,7 @@ function LeaveTypesModal({
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Settings className="w-5 h-5 text-primary-600" />
-              Types de congés
+              {t.leaves.leaveTypes}
             </h3>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
               <X className="w-5 h-5" />
@@ -627,14 +1219,14 @@ function LeaveTypesModal({
                       value={editingType.name}
                       onChange={(e) => setEditingType({ ...editingType, name: e.target.value })}
                       className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                      placeholder="Nom"
+                      placeholder={t.leaves.nameLabel}
                     />
                     <input
                       type="text"
                       value={editingType.code}
                       onChange={(e) => setEditingType({ ...editingType, code: e.target.value })}
                       className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                      placeholder="Code"
+                      placeholder={t.leaves.codeLabel}
                     />
                     <label className="flex items-center gap-2 text-sm col-span-full">
                       <input
@@ -643,7 +1235,7 @@ function LeaveTypesModal({
                         onChange={(e) => setEditingType({ ...editingType, is_annual: e.target.checked })}
                         className="rounded border-gray-300"
                       />
-                      Congé annuel (acquisition mensuelle)
+                      {t.leaves.annualLeave}
                     </label>
                     {editingType.is_annual ? (
                       <>
@@ -653,14 +1245,14 @@ function LeaveTypesModal({
                           value={editingType.accrual_rate ?? 2}
                           onChange={(e) => setEditingType({ ...editingType, accrual_rate: parseFloat(e.target.value) || 0 })}
                           className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          placeholder="Taux mensuel (j/mois)"
+                          placeholder={t.leaves.monthlyRate}
                         />
                         <input
                           type="number"
                           value={editingType.max_carryover ?? ''}
                           onChange={(e) => setEditingType({ ...editingType, max_carryover: e.target.value ? parseInt(e.target.value) : null })}
                           className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          placeholder="Plafond report (vide = illimité)"
+                          placeholder={t.leaves.carryoverCap}
                         />
                       </>
                     ) : (
@@ -669,7 +1261,7 @@ function LeaveTypesModal({
                         value={editingType.default_days}
                         onChange={(e) => setEditingType({ ...editingType, default_days: parseInt(e.target.value) || 0 })}
                         className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        placeholder="Quota (jours)"
+                        placeholder={t.leaves.quota}
                       />
                     )}
                   </div>
@@ -679,16 +1271,16 @@ function LeaveTypesModal({
                       <span className="font-medium text-gray-900">{type.name}</span>
                       <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">{type.code}</span>
                       {type.is_annual ? (
-                        <span className="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded">Annuel &mdash; {type.accrual_rate ?? 2}j/mois</span>
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">{t.leaves.annual} &mdash; {type.accrual_rate ?? 2}j/mois</span>
                       ) : (
-                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Spécial &mdash; {type.default_days} j</span>
+                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">{t.leaves.special} &mdash; {type.default_days} j</span>
                       )}
                       {!type.is_active && (
-                        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">Inactif</span>
+                        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">{t.leaves.inactive}</span>
                       )}
                     </div>
                     {type.is_annual && type.max_carryover != null && (
-                      <p className="text-xs text-gray-500 mt-0.5">Plafond report : {type.max_carryover} j</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{t.leaves.carryoverCapLabel} : {type.max_carryover} j</p>
                     )}
                   </div>
                 )}
@@ -700,14 +1292,14 @@ function LeaveTypesModal({
                         onClick={() => setEditingType(null)}
                         className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-200 rounded-lg"
                       >
-                        Annuler
+                        {t.common.cancel}
                       </button>
                       <button
                         onClick={handleSaveEdit}
                         disabled={saving}
                         className="px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
                       >
-                        {saving ? '...' : 'Sauver'}
+                        {saving ? t.leaves.saving : t.leaves.saveSave}
                       </button>
                     </>
                   ) : (
@@ -716,14 +1308,14 @@ function LeaveTypesModal({
                         onClick={() => setEditingType(type)}
                         className="px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg"
                       >
-                        Modifier
+                        {t.common.edit}
                       </button>
                       <button
                         onClick={() => handleDeleteType(type)}
                         disabled={deletingId === type.id}
                         className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50"
                       >
-                        {deletingId === type.id ? '...' : 'Supprimer'}
+                        {deletingId === type.id ? '...' : t.common.delete}
                       </button>
                     </>
                   )}
@@ -741,14 +1333,14 @@ function LeaveTypesModal({
                   value={newType.name}
                   onChange={(e) => setNewType({ ...newType, name: e.target.value })}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  placeholder="Nom du type"
+                  placeholder={t.leaves.typeName}
                 />
                 <input
                   type="text"
                   value={newType.code}
                   onChange={(e) => setNewType({ ...newType, code: e.target.value.toUpperCase() })}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  placeholder="Code (ex: CP)"
+                  placeholder={t.leaves.typeCode}
                 />
                 <label className="flex items-center gap-2 text-sm col-span-full">
                   <input
@@ -757,7 +1349,7 @@ function LeaveTypesModal({
                     onChange={(e) => setNewType({ ...newType, is_annual: e.target.checked })}
                     className="rounded border-gray-300"
                   />
-                  Congé annuel (acquisition mensuelle)
+                  {t.leaves.annualLeave}
                 </label>
                 {newType.is_annual ? (
                   <>
@@ -767,14 +1359,14 @@ function LeaveTypesModal({
                       value={newType.accrual_rate}
                       onChange={(e) => setNewType({ ...newType, accrual_rate: parseFloat(e.target.value) || 0 })}
                       className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                      placeholder="Taux mensuel (j/mois)"
+                      placeholder={t.leaves.monthlyRate}
                     />
                     <input
                       type="number"
                       value={newType.max_carryover ?? ''}
                       onChange={(e) => setNewType({ ...newType, max_carryover: e.target.value ? parseInt(e.target.value) : null })}
                       className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                      placeholder="Plafond report (vide = illimité)"
+                      placeholder={t.leaves.carryoverCap}
                     />
                   </>
                 ) : (
@@ -783,7 +1375,7 @@ function LeaveTypesModal({
                     value={newType.default_days || ''}
                     onChange={(e) => setNewType({ ...newType, default_days: parseInt(e.target.value) || 0 })}
                     className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    placeholder="Quota (jours)"
+                    placeholder={t.leaves.quota}
                   />
                 )}
               </div>
@@ -792,14 +1384,14 @@ function LeaveTypesModal({
                   onClick={() => setShowAddForm(false)}
                   className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
                 >
-                  Annuler
+                  {t.common.cancel}
                 </button>
                 <button
                   onClick={handleAddType}
                   disabled={saving || !newType.name || !newType.code}
                   className="px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
                 >
-                  {saving ? 'Ajout...' : 'Ajouter'}
+                  {saving ? t.leaves.adding : t.common.create}
                 </button>
               </div>
             </div>
@@ -809,11 +1401,19 @@ function LeaveTypesModal({
               className="mt-4 w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-primary-500 hover:text-primary-600 transition-colors flex items-center justify-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              Ajouter un type de congé
+              {t.leaves.addLeaveType}
             </button>
           )}
         </div>
       </div>
+      <ConfirmDialog
+        isOpen={confirmDialog.open}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        danger={confirmDialog.danger}
+      />
     </div>
   );
 }
@@ -828,6 +1428,7 @@ function InitializeBalancesModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const { t } = useI18n();
   const [year, setYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -841,7 +1442,7 @@ function InitializeBalancesModal({
       onClose();
     } catch (e) {
       console.error(e);
-      setError('Erreur lors de l\'initialisation');
+      setError(t.leaves.initializationError);
     } finally {
       setLoading(false);
     }
@@ -856,7 +1457,7 @@ function InitializeBalancesModal({
         
         <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Initialiser les soldes</h3>
+            <h3 className="text-lg font-semibold text-gray-900">{t.leaves.initializeBalances}</h3>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
               <X className="w-5 h-5" />
             </button>
@@ -870,22 +1471,25 @@ function InitializeBalancesModal({
 
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Année
+              {t.leaves.year}
             </label>
-            <CustomSelect
-              value={String(year)}
-              onChange={v => setYear(parseInt(v))}
-              placeholder="Année"
-              options={[2024, 2025, 2026].map(y => ({ value: String(y), label: String(y) }))}
-            />
+            <select
+              value={year}
+              onChange={(e) => setYear(parseInt(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            >
+              {[2024, 2025, 2026].map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
             <p className="mt-2 text-sm text-gray-500">
-              Cette action va initialiser les soldes de congés pour tous les employés actifs pour l&apos;année {year}.
+              {t.leaves.initializeBalancesDescription.replace('{year}', String(year))}
             </p>
           </div>
 
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6">
             <p className="text-sm text-amber-800">
-              <strong>Attention :</strong> Les soldes existants pour cette année seront remplacés.
+              <strong>{t.common.warning} :</strong> {t.leaves.initializeBalancesWarning}
             </p>
           </div>
 
@@ -894,14 +1498,14 @@ function InitializeBalancesModal({
               onClick={onClose}
               className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
             >
-              Annuler
+              {t.common.cancel}
             </button>
             <button
               onClick={handleInitialize}
               disabled={loading}
               className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
             >
-              {loading ? 'Initialisation...' : 'Initialiser'}
+              {loading ? t.leaves.initializing : t.leaves.initialize}
             </button>
           </div>
         </div>
@@ -920,6 +1524,7 @@ function RequestActionModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const { t } = useI18n();
   const [rejectionReason, setRejectionReason] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -930,7 +1535,7 @@ function RequestActionModal({
   const handleAction = async (approved: boolean) => {
     if (!request) return;
     if (!approved && !rejectionReason.trim()) {
-      toast.error('Veuillez indiquer un motif de refus');
+      toast.error(t.leaves.pleaseIndicateRejectionReason);
       return;
     }
     
@@ -954,7 +1559,7 @@ function RequestActionModal({
       setAiSuggestion(suggestion);
     } catch (e) {
       console.error(e);
-      toast.error('Erreur lors de l\'analyse IA');
+      toast.error(t.leaves.aiError);
     } finally {
       setAiLoading(false);
     }
@@ -969,9 +1574,9 @@ function RequestActionModal({
     gray: 'bg-gray-50 border-gray-200',
   };
   const suggestionLabel: Record<string, string> = {
-    approve: '✅ Recommandation : Approuver',
-    caution: '⚠️ Recommandation : Approuver avec précautions',
-    review: '🔍 Recommandation : Examiner avec attention',
+    approve: `✅ ${t.leaves.aiRecommendApprove}`,
+    caution: `⚠️ ${t.leaves.aiRecommendCaution}`,
+    review: `🔍 ${t.leaves.aiRecommendReview}`,
   };
 
   return (
@@ -982,7 +1587,7 @@ function RequestActionModal({
         <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900">
-              {request.status === 'pending' ? 'Traiter la demande' : 'Détail de la demande'}
+              {request.status === 'pending' ? t.leaves.processRequest : t.leaves.requestDetail}
             </h3>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
               <X className="w-5 h-5" />
@@ -994,7 +1599,7 @@ function RequestActionModal({
             <p className="text-sm text-primary-600">{request.leave_type_name}</p>
             <p className="text-sm text-gray-500 mt-2">
               {new Date(request.start_date).toLocaleDateString('fr-FR')} → {new Date(request.end_date).toLocaleDateString('fr-FR')}
-              <span className="ml-2 font-medium">({request.days_requested} jour(s))</span>
+              <span className="ml-2 font-medium">({request.days_requested} {t.leaves.dayCount})</span>
             </p>
             {request.reason && (
               <p className="text-sm text-gray-500 mt-2 italic">&quot;{request.reason}&quot;</p>
@@ -1003,10 +1608,10 @@ function RequestActionModal({
               <div className="mt-3 pt-3 border-t border-gray-200">
                 <StatusBadge status={request.status} />
                 {request.approved_by_name && (
-                  <p className="text-xs text-gray-500 mt-1">Par {request.approved_by_name}</p>
+                  <p className="text-xs text-gray-500 mt-1">{t.leaves.by} {request.approved_by_name}</p>
                 )}
                 {request.rejection_reason && (
-                  <p className="text-xs text-red-600 mt-1">Motif : {request.rejection_reason}</p>
+                  <p className="text-xs text-red-600 mt-1">{t.leaves.reasonLabel} : {request.rejection_reason}</p>
                 )}
               </div>
             )}
@@ -1032,13 +1637,13 @@ function RequestActionModal({
                   {aiSuggestion.has_okr_issues && (
                     <div className="mt-2 pt-2 border-t border-current border-opacity-20">
                       <p className="text-xs font-medium mb-1 flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" /> OKRs concernés :
+                        <Sparkles className="w-3 h-3" /> {t.leaves.aiOkrsConcerned}
                       </p>
                       <ul className="pl-4 list-disc space-y-0.5">
                         {aiSuggestion.okrs_at_risk.map((o) => (
                           <li key={o.id} className="text-xs">
                             {o.title} — {o.progress.toFixed(0)}%
-                            {o.deadline_during_leave && <span className="text-red-600 font-medium"> ⚠ deadline {o.end_date}</span>}
+                            {o.deadline_during_leave && <span className="text-red-600 font-medium"> ⚠ {t.leaves.aiDeadline} {o.end_date}</span>}
                           </li>
                         ))}
                       </ul>
@@ -1054,12 +1659,12 @@ function RequestActionModal({
                   {aiLoading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                      Analyse en cours…
+                      {t.leaves.aiAnalyzing}
                     </>
                   ) : (
                     <>
                       <Brain className="w-4 h-4" />
-                      Analyse IA (OKRs + recommandation)
+                      {t.leaves.aiAnalysis}
                     </>
                   )}
                 </button>
@@ -1071,14 +1676,14 @@ function RequestActionModal({
             <>
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Motif de refus (si refusé)
+                  {t.leaves.rejectionReason}
                 </label>
                 <textarea
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   rows={3}
-                  placeholder="Indiquez le motif du refus..."
+                  placeholder={t.leaves.rejectionPlaceholder}
                 />
               </div>
               <div className="flex gap-3">
@@ -1088,7 +1693,7 @@ function RequestActionModal({
                   className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <XCircle className="w-4 h-4" />
-                  Refuser
+                  {t.leaves.refuse}
                 </button>
                 <button
                   onClick={() => handleAction(true)}
@@ -1096,7 +1701,7 @@ function RequestActionModal({
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <CheckCircle className="w-4 h-4" />
-                  Approuver
+                  {t.leaves.approve}
                 </button>
               </div>
             </>
@@ -1105,7 +1710,7 @@ function RequestActionModal({
               onClick={onClose}
               className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
             >
-              Fermer
+              {t.common.close}
             </button>
           )}
         </div>
@@ -1129,6 +1734,7 @@ function NewLeaveRequestModal({
   leaveTypes: LeaveType[];
   onSuccess: () => void;
 }) {
+  const { t } = useI18n();
   const [employeeId, setEmployeeId] = useState('');
   const [leaveTypeId, setLeaveTypeId] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -1167,7 +1773,7 @@ function NewLeaveRequestModal({
             if (!cancelled && me) {
               setSelfName(`${me.first_name} ${me.last_name}`);
             } else if (!cancelled) {
-              setSelfName(stored.firstName && stored.lastName ? `${stored.firstName} ${stored.lastName}` : `Employé #${empId}`);
+              setSelfName(stored.firstName && stored.lastName ? `${stored.firstName} ${stored.lastName}` : `${t.common.employee} #${empId}`);
             }
           }
           setEmployeesList([]);
@@ -1219,7 +1825,7 @@ function NewLeaveRequestModal({
 
   const handleSubmit = async () => {
     if (!employeeId || !leaveTypeId || !startDate || !endDate) {
-      toast.error('Veuillez remplir tous les champs obligatoires.');
+      toast.error(t.leaves.fillAllRequired);
       return;
     }
     setSubmitting(true);
@@ -1231,11 +1837,11 @@ function NewLeaveRequestModal({
         end_date: endDate,
         reason: reason || undefined,
       });
-      toast.success('Demande créée avec succès');
+      toast.success(t.leaves.requestCreated);
       onSuccess();
       onClose();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Erreur lors de la création');
+      toast.error(e instanceof Error ? e.message : t.leaves.requestCreationError);
     } finally {
       setSubmitting(false);
     }
@@ -1243,7 +1849,7 @@ function NewLeaveRequestModal({
 
   const warningColors = {
     none: '',
-    low: 'bg-primary-50 border-primary-200 text-primary-800',
+    low: 'bg-blue-50 border-blue-200 text-blue-800',
     medium: 'bg-yellow-50 border-yellow-200 text-yellow-800',
     high: 'bg-red-50 border-red-200 text-red-800',
   };
@@ -1260,7 +1866,7 @@ function NewLeaveRequestModal({
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-primary-600" />
-              Nouvelle demande de congé
+              {t.leaves.newLeaveRequest}
             </h3>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
               <X className="w-5 h-5" />
@@ -1271,51 +1877,56 @@ function NewLeaveRequestModal({
             {/* Employee — role-based selector */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Employé <span className="text-red-500">*</span>
+                {t.leaves.employee} <span className="text-red-500">*</span>
               </label>
               {loadingEmployees ? (
                 <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-400">
                   <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
-                  Chargement...
+                  {t.common.loading}
                 </div>
               ) : userRole === 'employee' ? (
                 <div className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-700">
-                  {selfName || 'Chargement...'}
+                  {selfName || t.common.loading}
                 </div>
               ) : (
-                <CustomSelect
-                  value={String(employeeId)}
-                  onChange={v => setEmployeeId(v)}
-                  placeholder="-- Sélectionner un employé --"
-                  options={[
-                    { value: '', label: '-- Sélectionner un employé --' },
-                    ...employeesList.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}${emp.id === storedUser.employeeId ? ' (moi)' : ''}` })),
-                  ]}
-                />
+                <select
+                  value={employeeId}
+                  onChange={(e) => setEmployeeId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  <option value="">{t.leaves.selectEmployee}</option>
+                  {employeesList.map(emp => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.first_name} {emp.last_name}
+                      {emp.id === storedUser.employeeId ? ` ${t.leaves.me}` : ''}
+                    </option>
+                  ))}
+                </select>
               )}
             </div>
 
             {/* Leave type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Type de congé <span className="text-red-500">*</span>
+                {t.leaves.leaveType} <span className="text-red-500">*</span>
               </label>
-              <CustomSelect
-                value={String(leaveTypeId)}
-                onChange={v => setLeaveTypeId(v)}
-                placeholder="-- Choisir --"
-                options={[
-                  { value: '', label: '-- Choisir --' },
-                  ...leaveTypes.filter(t => t.is_active).map(t => ({ value: String(t.id), label: t.name })),
-                ]}
-              />
+              <select
+                value={leaveTypeId}
+                onChange={(e) => setLeaveTypeId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              >
+                <option value="">{t.leaves.selectLeaveType}</option>
+                {leaveTypes.filter(t => t.is_active).map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
             </div>
 
             {/* Dates */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Début <span className="text-red-500">*</span>
+                  {t.leaves.startLabel} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
@@ -1326,7 +1937,7 @@ function NewLeaveRequestModal({
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Fin <span className="text-red-500">*</span>
+                  {t.leaves.endLabel} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
@@ -1342,7 +1953,7 @@ function NewLeaveRequestModal({
             {okrLoading && (
               <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
                 <div className="w-4 h-4 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" />
-                Analyse de l&apos;impact OKR…
+                {t.leaves.okrImpactAnalysis}
               </div>
             )}
             {!okrLoading && okrImpact && okrImpact.has_okrs && okrImpact.warning_level !== 'none' && (
@@ -1355,9 +1966,9 @@ function NewLeaveRequestModal({
                   {okrImpact.okrs_at_risk.map((o) => (
                     <li key={o.id}>
                       <span className="font-medium">{o.title}</span>
-                      {' '}— {o.progress.toFixed(0)}% complété
+                      {' '}— {o.progress.toFixed(0)}% {t.leaves.completed}
                       {o.deadline_during_leave && (
-                        <span className="ml-1 font-semibold text-red-700">⚠ deadline le {o.end_date}</span>
+                        <span className="ml-1 font-semibold text-red-700">⚠ {t.leaves.deadlineOn} {o.end_date}</span>
                       )}
                     </li>
                   ))}
@@ -1367,13 +1978,13 @@ function NewLeaveRequestModal({
 
             {/* Reason */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Motif (optionnel)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.leaves.reasonOptional}</label>
               <textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 rows={2}
-                placeholder="Motif de la demande…"
+                placeholder={t.leaves.reasonPlaceholder}
               />
             </div>
           </div>
@@ -1383,7 +1994,7 @@ function NewLeaveRequestModal({
               onClick={onClose}
               className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
             >
-              Annuler
+              {t.common.cancel}
             </button>
             <button
               onClick={handleSubmit}
@@ -1391,9 +2002,9 @@ function NewLeaveRequestModal({
               className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {submitting ? (
-                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Envoi…</>
+                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{t.leaves.sending}</>
               ) : (
-                <>Envoyer la demande</>
+                <>{t.leaves.sendRequest}</>
               )}
             </button>
           </div>
@@ -1408,6 +2019,7 @@ function NewLeaveRequestModal({
 // ============================================
 
 function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
+  const { t } = useI18n();
   const currentYear = new Date().getFullYear();
   const [employees, setEmployees] = useState<EmployeeShort[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | ''>('');
@@ -1462,9 +2074,9 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
     try {
       await initializeEmployeeBalances(selectedEmployeeId as number, selectedYear);
       await loadBalances(selectedEmployeeId as number, selectedYear);
-      toast.success('Soldes initialisés');
+      toast.success(t.leaves.balancesInitialized);
     } catch {
-      toast.error('Erreur lors de l\'initialisation');
+      toast.error(t.leaves.initializationError);
     } finally {
       setInitializing(false);
     }
@@ -1486,7 +2098,7 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
   const handleSaveAll = async () => {
     const modified = getModifiedRows();
     if (modified.length === 0) {
-      toast('Aucune modification détectée');
+      toast(t.leaves.noChangesDetected);
       return;
     }
     setSavingAll(true);
@@ -1505,13 +2117,13 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
       const selectedEmp = employees.find((e) => e.id === selectedEmployeeId);
       const empName = selectedEmp ? `${selectedEmp.first_name} ${selectedEmp.last_name}` : '';
       if (failures.length === 0) {
-        toast.success(`Soldes enregistrés pour ${empName}`);
+        toast.success(t.leaves.balancesSaved.replace('{name}', empName));
       } else {
-        toast.error(`${failures.length} erreur(s) sur ${modified.length} lignes`);
+        toast.error(t.leaves.balancesSaveErrors.replace('{failures}', String(failures.length)).replace('{total}', String(modified.length)));
       }
       await loadBalances(selectedEmployeeId as number, selectedYear);
     } catch {
-      toast.error('Erreur lors de la sauvegarde');
+      toast.error(t.leaves.balancesSaveError);
     } finally {
       setSavingAll(false);
     }
@@ -1520,12 +2132,12 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
   const handleCsvImport = async (file: File) => {
     setCsvImporting(true);
     setCsvResult(null);
-    setCsvProgress('Lecture du fichier...');
+    setCsvProgress(t.leaves.csvReadingFile);
     try {
       const text = await file.text();
       const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
       if (lines.length < 2) {
-        toast.error('Le fichier CSV est vide ou ne contient que l\'en-tête');
+        toast.error(t.leaves.csvEmptyFile);
         return;
       }
       const dataLines = lines.slice(1); // skip header
@@ -1542,7 +2154,7 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
 
       for (let i = 0; i < dataLines.length; i++) {
         const lineNum = i + 2;
-        setCsvProgress(`Traitement ligne ${i + 1}/${dataLines.length}...`);
+        setCsvProgress(t.leaves.csvProcessingLine.replace('{current}', String(i + 1)).replace('{total}', String(dataLines.length)));
         const cols = dataLines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
         if (cols.length < 4) {
           errors.push({ line: lineNum, error: 'Nombre de colonnes insuffisant (attendu: 4 — matricule, leave_type_code, year, initial_balance)' });
@@ -1598,12 +2210,12 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
       }
       setCsvResult({ success, errors });
       setCsvProgress('');
-      if (success > 0) toast.success(`${success} solde(s) importé(s) avec succès`);
-      if (errors.length > 0) toast.error(`${errors.length} erreur(s) lors de l'import`);
+      if (success > 0) toast.success(t.leaves.csvImportSuccess.replace('{count}', String(success)));
+      if (errors.length > 0) toast.error(t.leaves.csvImportErrors.replace('{count}', String(errors.length)));
       // Reload current view if applicable
       if (selectedEmployeeId) loadBalances(selectedEmployeeId as number, selectedYear);
     } catch (err) {
-      toast.error('Erreur de lecture du fichier CSV');
+      toast.error(t.leaves.csvReadError);
       console.error(err);
     } finally {
       setCsvImporting(false);
@@ -1611,15 +2223,10 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
     }
   };
 
-  const downloadCsvTemplate = () => {
+  const downloadCsvTemplate = async () => {
+    const { downloadFile } = await import('@/lib/capacitor-plugins');
     const csv = 'matricule,leave_type_code,year,initial_balance\nEMP001,CA,2026,10\nEMP002,RTT,2026,25';
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'template_soldes_initiaux.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+    await downloadFile('\uFEFF' + csv, 'template_soldes_initiaux.csv');
   };
 
   const selectedEmployee = employees.find((e) => e.id === selectedEmployeeId);
@@ -1632,11 +2239,10 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
           <Upload className="w-5 h-5 text-primary-600" />
-          Import CSV des soldes initiaux
+          {t.leaves.csvImportTitle}
         </h3>
         <p className="text-sm text-gray-500 mb-4">
-          Importez les soldes initiaux de plusieurs employés en une seule opération via un fichier CSV.
-          Colonnes attendues : matricule, leave_type_code (ex: CA, RTT), year, initial_balance.
+          {t.leaves.csvImportDescription}
         </p>
         <div className="flex gap-3">
           <button
@@ -1644,11 +2250,11 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
             className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2 text-sm"
           >
             <FileDown className="w-4 h-4" />
-            Télécharger le template
+            {t.leaves.downloadTemplate}
           </button>
           <label className={`px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2 text-sm cursor-pointer ${csvImporting ? 'opacity-50 pointer-events-none' : ''}`}>
             <Upload className="w-4 h-4" />
-            {csvImporting ? csvProgress || 'Import...' : 'Importer CSV'}
+            {csvImporting ? csvProgress || t.leaves.importing : t.leaves.importCsv}
             <input
               type="file"
               accept=".csv"
@@ -1665,13 +2271,13 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
         {csvResult && (
           <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm">
             <p className="font-medium text-gray-900 mb-1">
-              Résultat : {csvResult.success} succès, {csvResult.errors.length} erreur(s)
+              {t.leaves.csvResult} : {csvResult.success} {t.leaves.csvSuccess}, {csvResult.errors.length} {t.leaves.csvErrors}
             </p>
             {csvResult.errors.length > 0 && (
               <div className="mt-2 max-h-40 overflow-y-auto space-y-1">
                 {csvResult.errors.map((err, i) => (
                   <p key={i} className="text-xs text-red-600">
-                    Ligne {err.line} : {err.error}
+                    {t.leaves.csvLine} {err.line} : {err.error}
                   </p>
                 ))}
               </div>
@@ -1683,30 +2289,34 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
       {/* Sélecteurs */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex-1 min-w-0 sm:min-w-[260px]">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Employé</label>
+          <div className="flex-1 min-w-[260px]">
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t.leaves.employee}</label>
             {loadingEmployees ? (
               <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
             ) : (
-              <CustomSelect
-                value={String(selectedEmployeeId)}
-                onChange={v => setSelectedEmployeeId(v ? parseInt(v) : '')}
-                placeholder="Sélectionner un employé..."
-                options={[
-                  { value: '', label: 'Sélectionner un employé...' },
-                  ...employees.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}${emp.department_name ? ` — ${emp.department_name}` : ''}` })),
-                ]}
-              />
+              <select
+                value={selectedEmployeeId}
+                onChange={(e) => setSelectedEmployeeId(e.target.value ? parseInt(e.target.value) : '')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="">Sélectionner un employé...</option>
+                {employees.map((emp) => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.first_name} {emp.last_name}{emp.department_name ? ` — ${emp.department_name}` : ''}
+                  </option>
+                ))}
+              </select>
             )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Année</label>
-            <CustomSelect
-              value={String(selectedYear)}
-              onChange={v => setSelectedYear(parseInt(v))}
-              placeholder="Année"
-              options={years.map(y => ({ value: String(y), label: String(y) }))}
-            />
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            >
+              {years.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
           </div>
           {selectedEmployeeId && (
             <button
@@ -1715,7 +2325,7 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
               className="px-4 py-2 border border-primary-300 text-primary-700 rounded-lg hover:bg-primary-50 flex items-center gap-2 disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${initializing ? 'animate-spin' : ''}`} />
-              {balances.length === 0 ? 'Initialiser les soldes' : 'Réinitialiser'}
+              {balances.length === 0 ? 'Initialiser les soldes' : 'Réinitialiser les soldes'}
             </button>
           )}
         </div>
@@ -1747,7 +2357,7 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
                 disabled={initializing}
                 className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
               >
-                Initialiser les soldes
+                Réinitialiser les soldes
               </button>
             </div>
           ) : (
@@ -1848,11 +2458,475 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
 }
 
 // ============================================
+// SICK DECLARATIONS
+// ============================================
+
+interface SickDeclaration {
+  id: number;
+  leave_id: number;
+  employee_id: number;
+  declared_by: number;
+  sick_start_date: string;
+  estimated_duration_days: number;
+  estimated_end_date: string;
+  actual_end_date?: string | null;
+  certificate_url: string;
+  certificate_filename?: string | null;
+  status: string;
+  recovery_type?: string | null;
+  days_credited?: number | null;
+  notes?: string | null;
+  created_at: string;
+  employee_name?: string;
+}
+
+const SICK_STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
+  active: { label: 'En cours', bg: 'bg-orange-100', text: 'text-orange-800' },
+  prolongee: { label: 'Prolongée', bg: 'bg-orange-100', text: 'text-orange-800' },
+  guerie_conge_repris: { label: 'Congé repris', bg: 'bg-green-100', text: 'text-green-800' },
+  guerie_retour_travail: { label: 'Retour travail', bg: 'bg-blue-100', text: 'text-blue-800' },
+  cloture: { label: 'Clôturé', bg: 'bg-gray-100', text: 'text-gray-800' },
+};
+
+async function getSickDeclarations(params: { status?: string } = {}): Promise<SickDeclaration[]> {
+  const qs = new URLSearchParams();
+  if (params.status) qs.append('status', params.status);
+  const response = await fetch(`${API_URL}/api/leave-sick-declarations/?${qs.toString()}`, { headers: getAuthHeaders() });
+  if (!response.ok) return [];
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+}
+
+async function createSickDeclarationRH(payload: {
+  leave_id: number;
+  sick_start_date: string;
+  estimated_duration_days: number;
+  notes?: string;
+  certificate: File;
+}): Promise<void> {
+  const fd = new FormData();
+  fd.append('leave_id', String(payload.leave_id));
+  fd.append('sick_start_date', payload.sick_start_date);
+  fd.append('estimated_duration_days', String(payload.estimated_duration_days));
+  if (payload.notes) fd.append('notes', payload.notes);
+  fd.append('certificate', payload.certificate);
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  const response = await fetch(`${API_URL}/api/leave-sick-declarations/`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: fd,
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Erreur');
+  }
+}
+
+async function recoverSickDeclarationRH(id: number, recovery_type: 'resume_leave' | 'return_to_work'): Promise<void> {
+  const response = await fetch(`${API_URL}/api/leave-sick-declarations/${id}/recover`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ recovery_type }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Erreur');
+  }
+}
+
+function SickStatusBadge({ status }: { status: string }) {
+  const cfg = SICK_STATUS_CONFIG[status] || SICK_STATUS_CONFIG.active;
+  return (
+    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${cfg.bg} ${cfg.text}`}>
+      {cfg.label}
+    </span>
+  );
+}
+
+function SickDeclarationsTab({
+  declarations,
+  onNew,
+  onRefresh,
+  onRecover,
+  statusFilter,
+  setStatusFilter,
+  searchTerm,
+  setSearchTerm,
+}: {
+  declarations: SickDeclaration[];
+  onNew: () => void;
+  onRefresh: () => void;
+  onRecover: (d: SickDeclaration) => void;
+  statusFilter: string;
+  setStatusFilter: (v: string) => void;
+  searchTerm: string;
+  setSearchTerm: (v: string) => void;
+}) {
+  const { t } = useI18n();
+  const total = declarations.length;
+  const inProgress = declarations.filter((d) => d.status === 'active' || d.status === 'prolongee').length;
+  const closed = declarations.filter((d) => d.status === 'cloture' || d.status.startsWith('guerie')).length;
+  const totalDays = declarations.reduce((sum, d) => sum + (d.estimated_duration_days || 0), 0);
+
+  const filtered = declarations.filter((d) => {
+    if (statusFilter === 'active' && !(d.status === 'active' || d.status === 'prolongee')) return false;
+    if (statusFilter === 'closed' && !(d.status === 'cloture' || d.status.startsWith('guerie'))) return false;
+    if (searchTerm && !(d.employee_name || '').toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    return true;
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <StatCard icon={Heart} value={total} label={t.leaves.totalDeclarations} color="bg-orange-500" />
+        <StatCard icon={Clock} value={inProgress} label={t.leaves.inProgress} color="bg-yellow-500" />
+        <StatCard icon={CheckCircle} value={closed} label={t.leaves.closed} color="bg-green-500" />
+        <StatCard icon={Calendar} value={`${totalDays}j`} label={t.leaves.sickDays} color="bg-blue-500" />
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Heart className="w-5 h-5 text-orange-500" /> {t.leaves.sickDeclarationsTitle}
+          </h3>
+          <div className="flex flex-wrap gap-2 items-center">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={t.leaves.searchCollaborator}
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm"
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            >
+              <option value="all">{t.leaves.allFilter}</option>
+              <option value="active">{t.leaves.activeFilter}</option>
+              <option value="closed">{t.leaves.closedFilter}</option>
+            </select>
+            <button
+              onClick={onRefresh}
+              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              title={t.employees.refresh}
+            >
+              <RefreshCw className="w-5 h-5" />
+            </button>
+            <button
+              onClick={onNew}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" /> {t.leaves.newDeclaration}
+            </button>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.leaves.collaborator}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.leaves.leave}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.leaves.sickStart}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.leaves.estimatedEnd}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.leaves.actualEnd}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.leaves.duration}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.common.status}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.leaves.certificate}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.common.actions}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filtered.map((d) => (
+                <tr key={d.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-4 text-sm font-medium text-gray-900">{d.employee_name || `#${d.employee_id}`}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500">{t.leaves.leave} #{d.leave_id}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500">{new Date(d.sick_start_date).toLocaleDateString(t.dashboard.dateLocale)}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500">{new Date(d.estimated_end_date).toLocaleDateString(t.dashboard.dateLocale)}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500">
+                    {d.actual_end_date ? new Date(d.actual_end_date).toLocaleDateString(t.dashboard.dateLocale) : '—'}
+                  </td>
+                  <td className="px-4 py-4 text-sm font-medium text-gray-900">{d.estimated_duration_days}j</td>
+                  <td className="px-4 py-4"><SickStatusBadge status={d.status} /></td>
+                  <td className="px-4 py-4">
+                    <a
+                      href={d.certificate_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-primary-600 hover:text-primary-700 inline-flex items-center gap-1"
+                    >
+                      <FileText className="w-3.5 h-3.5" /> {t.leaves.view}
+                    </a>
+                  </td>
+                  <td className="px-4 py-4">
+                    {(d.status === 'active' || d.status === 'prolongee') && (
+                      <button
+                        onClick={() => onRecover(d)}
+                        className="text-sm text-green-600 hover:text-green-700 font-medium"
+                      >
+                        {t.leaves.close}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filtered.length === 0 && (
+            <div className="text-center py-12 text-gray-500">
+              <Heart className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p>{t.leaves.noDeclaration}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NewSickDeclarationModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [onLeaveList, setOnLeaveList] = useState<LeaveRequest[]>([]);
+  const [leaveId, setLeaveId] = useState('');
+  const [sickStartDate, setSickStartDate] = useState(new Date().toISOString().slice(0, 10));
+  const [duration, setDuration] = useState(1);
+  const [notes, setNotes] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const { t } = useI18n();
+
+  useEffect(() => {
+    if (!isOpen) return;
+    (async () => {
+      const data = await getLeaveRequests({ status: 'approved', page: 1, page_size: 100 });
+      const today = new Date().toISOString().slice(0, 10);
+      setOnLeaveList(data.items.filter((l) => l.start_date <= today && l.end_date >= today));
+    })();
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!leaveId || !file) {
+      toast.error(t.leaves.collaboratorAndCertificateRequired);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await createSickDeclarationRH({
+        leave_id: parseInt(leaveId),
+        sick_start_date: sickStartDate,
+        estimated_duration_days: duration,
+        notes: notes || undefined,
+        certificate: file,
+      });
+      toast.success(t.leaves.declarationCreated);
+      onSuccess();
+      onClose();
+      setLeaveId('');
+      setDuration(1);
+      setNotes('');
+      setFile(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erreur');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+        <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Heart className="w-5 h-5 text-orange-500" /> {t.leaves.newDeclaration}
+            </h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t.leaves.collaboratorOnLeaveLabel} <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={leaveId}
+                onChange={(e) => setLeaveId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                required
+              >
+                <option value="">{t.leaves.select}</option>
+                {onLeaveList.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.employee_name} — {new Date(l.start_date).toLocaleDateString('fr-FR')} → {new Date(l.end_date).toLocaleDateString('fr-FR')}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t.leaves.sickStartDate} <span className="text-red-500">*</span>
+              </label>
+              <input type="date" value={sickStartDate} onChange={(e) => setSickStartDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t.leaves.estimatedDuration} <span className="text-red-500">*</span>
+              </label>
+              <input type="number" min={1} value={duration} onChange={(e) => setDuration(parseInt(e.target.value) || 1)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t.leaves.medicalCertificate} <span className="text-red-500">*</span>
+              </label>
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                className="w-full text-sm text-gray-700" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.leaves.notes}</label>
+              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">{t.common.cancel}</button>
+              <button type="submit" disabled={submitting} className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50">
+                {submitting ? t.leaves.sending : t.leaves.declare}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RecoverSickModalRH({
+  declaration,
+  onClose,
+  onSuccess,
+}: {
+  declaration: SickDeclaration | null;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [recoveryType, setRecoveryType] = useState<'resume_leave' | 'return_to_work'>('resume_leave');
+  const [submitting, setSubmitting] = useState(false);
+  const { t } = useI18n();
+
+  if (!declaration) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await recoverSickDeclarationRH(declaration.id, recoveryType);
+      toast.success(t.leaves.declarationClosed);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erreur');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+        <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">{t.leaves.closeSickness}</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer ${
+                recoveryType === 'resume_leave' ? 'border-primary-600 bg-primary-50' : 'border-gray-200 hover:bg-gray-50'
+              }`}>
+                <input type="radio" checked={recoveryType === 'resume_leave'} onChange={() => setRecoveryType('resume_leave')} className="mt-1" />
+                <div>
+                  <div className="font-medium text-gray-900">{t.leaves.resumeLeave}</div>
+                  <div className="text-xs text-gray-600">{t.leaves.resumeLeaveDescription}</div>
+                </div>
+              </label>
+              <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer ${
+                recoveryType === 'return_to_work' ? 'border-primary-600 bg-primary-50' : 'border-gray-200 hover:bg-gray-50'
+              }`}>
+                <input type="radio" checked={recoveryType === 'return_to_work'} onChange={() => setRecoveryType('return_to_work')} className="mt-1" />
+                <div>
+                  <div className="font-medium text-gray-900">{t.leaves.returnToWork}</div>
+                  <div className="text-xs text-gray-600">{t.leaves.returnToWorkDescription}</div>
+                </div>
+              </label>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">{t.common.cancel}</button>
+              <button type="submit" disabled={submitting} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
+                {submitting ? t.leaves.sending : t.leaves.close}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
 // MAIN PAGE
 // ============================================
 
 export default function LeavesManagementPage() {
-  const [activeTab, setActiveTab] = useState<'requests' | 'calendar' | 'settings' | 'balances'>('requests');
+  const { t } = useI18n();
+  const [activeTab, setActiveTab] = useState<'requests' | 'calendar' | 'settings' | 'balances' | 'recalls' | 'sick'>('requests');
+  const [recalls, setRecalls] = useState<LeaveRecall[]>([]);
+  const [sickDeclarations, setSickDeclarations] = useState<SickDeclaration[]>([]);
+  const [showNewSickModal, setShowNewSickModal] = useState(false);
+  const [recoverSickDecl, setRecoverSickDecl] = useState<SickDeclaration | null>(null);
+  const [sickStatusFilter, setSickStatusFilter] = useState('all');
+  const [sickSearchTerm, setSickSearchTerm] = useState('');
+
+  const loadSickDeclarations = useCallback(async () => {
+    const data = await getSickDeclarations();
+    setSickDeclarations(data);
+  }, []);
+  const [showNewRecallModal, setShowNewRecallModal] = useState(false);
+  const [selectedRecall, setSelectedRecall] = useState<LeaveRecall | null>(null);
+  const [recallPolicy, setRecallPolicy] = useState<'employee_chooses' | 'employer_decides'>('employee_chooses');
+  const [currentUserRole, setCurrentUserRole] = useState<string>('employee');
+
+  const loadRecalls = useCallback(async () => {
+    const data = await getLeaveRecalls();
+    setRecalls(data);
+  }, []);
+
+  useEffect(() => {
+    setCurrentUserRole(getUserFromStorage().role);
+    getTenantRecallPolicy().then(setRecallPolicy);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'recalls') loadRecalls();
+    if (activeTab === 'sick') loadSickDeclarations();
+  }, [activeTab, loadRecalls, loadSickDeclarations]);
+
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [totalRequests, setTotalRequests] = useState(0);
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
@@ -1948,7 +3022,8 @@ export default function LeavesManagementPage() {
     }
   };
 
-  const exportToCSV = () => {
+  const exportToCSV = async () => {
+    const { downloadFile } = await import('@/lib/capacitor-plugins');
     const rows = requests.map(r => [
       r.employee_name ?? '',
       r.department_name ?? '',
@@ -1963,13 +3038,7 @@ export default function LeavesManagementPage() {
     const csv = [header, ...rows]
       .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
       .join('\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `conges_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    await downloadFile('\uFEFF' + csv, `conges_${new Date().toISOString().slice(0, 10)}.csv`);
   };
 
   const filteredRequests = requests.filter(r => {
@@ -1980,7 +3049,7 @@ export default function LeavesManagementPage() {
   if (loading) {
     return (
       <>
-        <Header title="Gestion des Congés" subtitle="Administration des congés et absences" />
+        <Header title={t.leaves.title} subtitle={t.leaves.subtitle} />
         <div className="flex-1 flex items-center justify-center p-20">
           <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
         </div>
@@ -1990,62 +3059,67 @@ export default function LeavesManagementPage() {
 
   return (
     <>
-      <Header title="Gestion des Congés" subtitle="Administration des congés et absences" />
+      <Header title={t.leaves.title} subtitle={t.leaves.subtitle} />
       {showTips && (
         <PageTourTips
           tips={leavesTips}
           onDismiss={dismissTips}
-          pageTitle="Gestion des Congés"
+          pageTitle={t.leaves.title}
         />
       )}
       <div className="py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Actions */}
-        <div className="flex flex-wrap justify-end gap-2 lg:gap-3 mb-6">
+        <div className="flex flex-wrap justify-end gap-2 sm:gap-3 mb-6">
             <button
               onClick={() => setShowNewLeaveModal(true)}
-              className="px-3 lg:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-1.5 text-xs lg:text-sm"
+              className="px-3 sm:px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm"
             >
               <Plus className="w-4 h-4" />
-              Nouvelle demande
+              <span>{t.leaves.newRequest}</span>
             </button>
-            <button
-              onClick={() => setShowInitModal(true)}
-              className="px-3 lg:px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-1.5 text-xs lg:text-sm"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span className="hidden sm:inline">Initialiser soldes</span>
-              <span className="sm:hidden">Soldes</span>
-            </button>
-            <button
-              onClick={exportToCSV}
-              className="hidden lg:flex px-3 lg:px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 items-center gap-1.5 text-xs lg:text-sm"
-            >
-              <Download className="w-4 h-4" />
-              <span>Exporter</span>
-            </button>
+            {['rh', 'admin', 'dg', 'super_admin'].includes(currentUserRole) && (
+              <>
+                <button
+                  onClick={() => setShowInitModal(true)}
+                  className="px-3 sm:px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>{t.leaves.initializeBalances}</span>
+                </button>
+                <button
+                  onClick={exportToCSV}
+                  className="px-3 sm:px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>{t.leaves.exportCsv}</span>
+                </button>
+              </>
+            )}
           </div>
 
         {/* Stats */}
         {stats && (
           <div data-tour="leaves-stats" className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
-            <StatCard icon={BarChart3} value={stats.total_requests} label="Total demandes" color="bg-primary-500" />
-            <StatCard icon={Clock} value={stats.pending} label="En attente" color="bg-yellow-500" />
-            <StatCard icon={CheckCircle} value={stats.approved} label="Approuvées" color="bg-green-500" />
-            <StatCard icon={XCircle} value={stats.rejected} label="Refusées" color="bg-red-500" />
-            <StatCard icon={Users} value={stats.on_leave_today} label="En congés auj." color="bg-orange-500" />
-            <StatCard icon={Calendar} value={`${stats.avg_days_per_request}j`} label="Moy. jours/dem." color="bg-purple-500" />
+            <StatCard icon={BarChart3} value={stats.total_requests} label={t.leaves.stats.totalRequests} color="bg-primary-500" />
+            <StatCard icon={Clock} value={stats.pending} label={t.leaves.stats.pending} color="bg-yellow-500" />
+            <StatCard icon={CheckCircle} value={stats.approved} label={t.leaves.stats.approved} color="bg-green-500" />
+            <StatCard icon={XCircle} value={stats.rejected} label={t.leaves.stats.refused} color="bg-red-500" />
+            <StatCard icon={Users} value={stats.on_leave_today} label={t.leaves.stats.onLeaveToday2} color="bg-orange-500" />
+            <StatCard icon={Calendar} value={`${stats.avg_days_per_request}j`} label={t.leaves.stats.avgDaysPerRequest} color="bg-purple-500" />
           </div>
         )}
 
         {/* Tabs */}
-        <div data-tour="leaves-tabs" className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
-          {[
-            { key: 'requests', label: 'Demandes', icon: Clock },
-            { key: 'calendar', label: 'Calendrier', icon: CalendarDays },
-            { key: 'balances', label: 'Soldes', icon: BarChart3 },
-            { key: 'settings', label: 'Paramètres', icon: Settings },
-          ].map((tab) => (
+        <div data-tour="leaves-tabs" className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg overflow-x-auto max-w-full" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
+          {([
+            { key: 'requests', label: t.leaves.tabs.requests, icon: Clock, roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'] as string[] },
+            { key: 'calendar', label: t.leaves.tabs.calendar, icon: CalendarDays, roles: ['employee', 'manager', 'rh', 'admin', 'dg', 'super_admin'] as string[] },
+            { key: 'balances', label: t.leaves.tabs.balances, icon: BarChart3, roles: ['rh', 'admin', 'dg', 'super_admin'] as string[] },
+            { key: 'recalls', label: t.leaves.tabs.recalls, icon: AlertCircle, roles: ['manager', 'rh', 'admin', 'dg', 'super_admin'] as string[] },
+            { key: 'sick', label: t.leaves.tabs.sickDeclarations, icon: Heart, roles: ['manager', 'rh', 'admin', 'dg', 'super_admin'] as string[] },
+            { key: 'settings', label: t.leaves.tabs.settings, icon: Settings, roles: ['rh', 'admin', 'dg', 'super_admin'] as string[] },
+          ]).filter((tab) => tab.roles.includes(currentUserRole)).map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as typeof activeTab)}
@@ -2065,53 +3139,53 @@ export default function LeavesManagementPage() {
         {activeTab === 'requests' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             {/* Filters */}
-            <div data-tour="leaves-filters" className="p-3 lg:p-4 border-b border-gray-200 flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3">
-              <div className="relative flex-1 min-w-0">
+            <div data-tour="leaves-filters" className="p-4 border-b border-gray-200 grid grid-cols-1 sm:flex sm:flex-wrap gap-3 sm:gap-4">
+              <div className="relative w-full sm:flex-1 sm:min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm"
-                  placeholder="Rechercher un employé..."
+                  placeholder={t.leaves.searchEmployee}
                 />
               </div>
-              <CustomSelect
+              <select
                 value={statusFilter}
-                onChange={v => { setStatusFilter(v); setPage(1); }}
-                placeholder="Tous les statuts"
-                className="min-w-[140px]"
-                options={[
-                  { value: 'all', label: 'Tous les statuts' },
-                  { value: 'pending', label: 'En attente' },
-                  { value: 'approved', label: 'Approuvées' },
-                  { value: 'rejected', label: 'Refusées' },
-                ]}
-              />
-              <CustomSelect
-                value={String(departmentFilter || '')}
-                onChange={v => { setDepartmentFilter(v ? parseInt(v) : undefined); setPage(1); }}
-                placeholder="Tous les départements"
-                className="min-w-[160px]"
-                options={[
-                  { value: '', label: 'Tous les départements' },
-                  ...departments.map(d => ({ value: String(d.id), label: d.name })),
-                ]}
-              />
-              <CustomSelect
-                value={String(leaveTypeFilter || '')}
-                onChange={v => { setLeaveTypeFilter(v ? parseInt(v) : undefined); setPage(1); }}
-                placeholder="Tous les types"
-                className="min-w-[140px]"
-                options={[
-                  { value: '', label: 'Tous les types' },
-                  ...leaveTypes.map(t => ({ value: String(t.id), label: t.name })),
-                ]}
-              />
+                onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm min-w-[140px]"
+              >
+                <option value="all">{t.leaves.allStatuses}</option>
+                <option value="pending">{t.leaves.pending}</option>
+                <option value="approved">{t.leaves.stats.approved}</option>
+                <option value="rejected">{t.leaves.stats.refused}</option>
+              </select>
+              {['rh', 'admin', 'dg', 'super_admin'].includes(currentUserRole) && (
+                <select
+                  value={departmentFilter || ''}
+                  onChange={(e) => { setDepartmentFilter(e.target.value ? parseInt(e.target.value) : undefined); setPage(1); }}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  <option value="">{t.leaves.allDepartments}</option>
+                  {departments.map(dept => (
+                    <option key={dept.id} value={dept.id}>{dept.name}</option>
+                  ))}
+                </select>
+              )}
+              <select
+                value={leaveTypeFilter || ''}
+                onChange={(e) => { setLeaveTypeFilter(e.target.value ? parseInt(e.target.value) : undefined); setPage(1); }}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm min-w-[140px]"
+              >
+                <option value="">{t.leaves.allTypes}</option>
+                {leaveTypes.map(lt => (
+                  <option key={lt.id} value={lt.id}>{lt.name}</option>
+                ))}
+              </select>
               <button
                 onClick={loadRequests}
                 className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                title="Actualiser"
+                title={t.employees.refresh}
               >
                 <RefreshCw className="w-5 h-5" />
               </button>
@@ -2122,12 +3196,12 @@ export default function LeavesManagementPage() {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employé</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Période</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jours</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.leaves.employee}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.leaves.type}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.leaves.period}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.leaves.days}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.leaves.status}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t.common.actions}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -2153,7 +3227,7 @@ export default function LeavesManagementPage() {
                           onClick={() => setSelectedRequest(request)}
                           className="text-sm text-primary-600 hover:text-primary-700 font-medium"
                         >
-                          {request.status === 'pending' ? 'Traiter' : 'Voir'}
+                          {request.status === 'pending' ? t.leaves.process : t.leaves.view}
                         </button>
                       </td>
                     </tr>
@@ -2164,7 +3238,7 @@ export default function LeavesManagementPage() {
               {filteredRequests.length === 0 && (
                 <div className="text-center py-12 text-gray-500">
                   <AlertCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <p>Aucune demande trouvée</p>
+                  <p>{t.leaves.noRequestFound}</p>
                 </div>
               )}
             </div>
@@ -2188,37 +3262,100 @@ export default function LeavesManagementPage() {
           <EmployeeBalancesTab leaveTypes={leaveTypes} />
         )}
 
+        {activeTab === 'sick' && (
+          <SickDeclarationsTab
+            declarations={sickDeclarations}
+            onNew={() => setShowNewSickModal(true)}
+            onRefresh={loadSickDeclarations}
+            onRecover={(d) => setRecoverSickDecl(d)}
+            statusFilter={sickStatusFilter}
+            setStatusFilter={setSickStatusFilter}
+            searchTerm={sickSearchTerm}
+            setSearchTerm={setSickSearchTerm}
+          />
+        )}
+
+        {activeTab === 'recalls' && (
+          <RecallsTab
+            recalls={recalls}
+            userRole={currentUserRole}
+            onNew={() => setShowNewRecallModal(true)}
+            onSelect={(r) => setSelectedRecall(r)}
+            onRefresh={loadRecalls}
+          />
+        )}
+
         {activeTab === 'settings' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 lg:p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Settings className="w-5 h-5 text-primary-600" />
-                Types de congés
+                {t.leaves.leaveTypesSettings}
               </h3>
               <p className="text-gray-500 text-sm mb-4">
-                Configurez les différents types de congés disponibles.
+                {t.leaves.leaveTypesSettingsDescription}
               </p>
               <button
                 onClick={() => setShowTypesModal(true)}
                 className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
               >
-                Gérer les types
+                {t.leaves.manageTypes}
               </button>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            {['admin', 'rh'].includes(currentUserRole) && (
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1 flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-primary-600" />
+                  {t.leaves.recallCompensationPolicy}
+                </h3>
+                <p className="text-gray-500 text-sm mb-4">
+                  {t.leaves.recallCompensationPolicyDescription}
+                </p>
+                <div className="space-y-2">
+                  {([
+                    { value: 'employee_chooses', label: t.leaves.employeeChoosesCompensation },
+                    { value: 'employer_decides', label: t.leaves.employerDecidesCompensation },
+                  ] as const).map((opt) => (
+                    <label key={opt.value} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        name="recall_compensation_policy"
+                        value={opt.value}
+                        checked={recallPolicy === opt.value}
+                        onChange={async () => {
+                          const previous = recallPolicy;
+                          setRecallPolicy(opt.value);
+                          try {
+                            await updateTenantRecallPolicy(opt.value);
+                            toast.success(t.leaves.policyUpdated);
+                          } catch (err) {
+                            setRecallPolicy(previous);
+                            toast.error(err instanceof Error ? err.message : 'Erreur');
+                          }
+                        }}
+                        className="w-4 h-4 text-primary-600"
+                      />
+                      <span className="text-sm text-gray-900">{opt.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <RefreshCw className="w-5 h-5 text-primary-600" />
-                Initialisation annuelle
+                {t.leaves.annualInitialization}
               </h3>
               <p className="text-gray-500 text-sm mb-4">
-                Initialisez les soldes de congés pour tous les employés.
+                {t.leaves.annualInitializationDescription}
               </p>
               <button
                 onClick={() => setShowInitModal(true)}
                 className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
               >
-                Initialiser les soldes
+                {t.leaves.initializeBalancesBtn}
               </button>
             </div>
           </div>
@@ -2251,6 +3388,32 @@ export default function LeavesManagementPage() {
         onClose={() => setShowNewLeaveModal(false)}
         leaveTypes={leaveTypes}
         onSuccess={() => { loadRequests(); loadData(); }}
+      />
+
+      <NewRecallModal
+        isOpen={showNewRecallModal}
+        onClose={() => setShowNewRecallModal(false)}
+        policy={recallPolicy}
+        onSuccess={() => { loadRecalls(); }}
+      />
+
+      <RecallDetailModal
+        recall={selectedRecall}
+        userRole={currentUserRole}
+        policy={recallPolicy}
+        onClose={() => setSelectedRecall(null)}
+        onSuccess={() => { loadRecalls(); }}
+      />
+
+      <NewSickDeclarationModal
+        isOpen={showNewSickModal}
+        onClose={() => setShowNewSickModal(false)}
+        onSuccess={loadSickDeclarations}
+      />
+      <RecoverSickModalRH
+        declaration={recoverSickDecl}
+        onClose={() => setRecoverSickDecl(null)}
+        onSuccess={loadSickDeclarations}
       />
     </>
   );

@@ -305,14 +305,8 @@ export default function CertificatesPage() {
       const blob = await generateDocument(employee.id, docType);
       const docLabel = docType === 'attestation' ? 'Attestation_Travail' : 'Certificat_Travail';
       const fullName = `${employee.last_name}_${employee.first_name}`.replace(/\s+/g, '_');
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${docLabel}_${fullName}_${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      const { downloadFile } = await import('@/lib/capacitor-plugins');
+      await downloadFile(blob, `${docLabel}_${fullName}_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t.documents.generationError);
     } finally {

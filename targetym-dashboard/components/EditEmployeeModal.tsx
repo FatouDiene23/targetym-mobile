@@ -8,20 +8,13 @@ import {
 } from '@/lib/api';
 import NationalitySelect from '@/components/NationalitySelect';
 import { COUNTRIES } from '@/data/countries';
+import { useI18n } from '@/lib/i18n/I18nContext';
 
 interface EditEmployeeModalProps {
   employee: Employee;
   onClose: () => void;
   onSuccess: (patch?: Partial<Employee>) => void;
 }
-
-const ROLE_OPTIONS: { value: EmployeeRole; label: string; description: string }[] = [
-  { value: 'employee', label: 'Employé', description: 'Collaborateur standard' },
-  { value: 'manager', label: 'Manager', description: 'Gère une équipe' },
-  { value: 'rh', label: 'RH', description: 'Équipe Ressources Humaines' },
-  { value: 'admin', label: 'Administrateur', description: 'DAF, Directeur...' },
-  { value: 'dg', label: 'Direction Générale', description: 'DG, CODIR' },
-];
 
 const CONTRACT_TYPES_WITH_END_DATE = ['cdd', 'stage', 'alternance', 'interim'];
 
@@ -66,6 +59,15 @@ const normalizeRole = (value?: string): EmployeeRole => {
 };
 
 export default function EditEmployeeModal({ employee, onClose, onSuccess }: EditEmployeeModalProps) {
+  const { t } = useI18n();
+
+  const ROLE_OPTIONS: { value: EmployeeRole; label: string; description: string }[] = [
+    { value: 'employee', label: t.components.addEmployee.roles.employee, description: t.components.addEmployee.roles.employeeDesc },
+    { value: 'manager', label: t.components.addEmployee.roles.manager, description: t.components.addEmployee.roles.managerDesc },
+    { value: 'rh', label: t.components.addEmployee.roles.rh, description: t.components.addEmployee.roles.rhDesc },
+    { value: 'admin', label: t.components.addEmployee.roles.admin, description: t.components.addEmployee.roles.adminDesc },
+    { value: 'dg', label: t.components.addEmployee.roles.dg, description: t.components.addEmployee.roles.dgDesc },
+  ];
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -251,7 +253,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('Erreur lors de la mise à jour');
+        setError('{t.components.editEmployee.errorUpdating}');
       }
     } finally {
       setIsLoading(false);
@@ -270,7 +272,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('Erreur lors de la suppression');
+        setError('{t.components.editEmployee.errorDeleting}');
       }
     } finally {
       setIsDeleting(false);
@@ -303,7 +305,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">Modifier l&apos;employé</h2>
+          <h2 className="text-xl font-bold text-gray-900">{t.components.editEmployee.title}</h2>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
             <X className="w-5 h-5" />
           </button>
@@ -320,7 +322,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
           <div className="grid grid-cols-2 gap-4">
             {/* Matricule */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Matricule</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.employeeId}</label>
               <input
                 type="text"
                 name="employee_id"
@@ -332,7 +334,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.email} *</label>
               <input
                 type="email"
                 name="email"
@@ -345,7 +347,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* Prénom */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.firstName} *</label>
               <input
                 type="text"
                 name="first_name"
@@ -358,7 +360,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* Nom */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.lastName} *</label>
               <input
                 type="text"
                 name="last_name"
@@ -371,7 +373,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* Téléphone */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.phone}</label>
               <input
                 type="tel"
                 name="phone"
@@ -383,22 +385,22 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* Genre */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Genre</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.gender}</label>
               <select
                 name="gender"
                 value={formData.gender}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               >
-                <option value="male">Homme</option>
-                <option value="female">Femme</option>
-                <option value="other">Autre</option>
+                <option value="male">{t.components.addEmployee.fields.male}</option>
+                <option value="female">{t.components.addEmployee.fields.female}</option>
+                <option value="other">{t.components.addEmployee.fields.other}</option>
               </select>
             </div>
 
             {/* Date de naissance */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date de naissance</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.dateOfBirth}</label>
               <input
                 type="date"
                 name="date_of_birth"
@@ -410,18 +412,18 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* Nationalité */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nationalité</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.nationality}</label>
               <NationalitySelect
                 value={formData.nationality}
                 onChange={(val) => setFormData(prev => ({ ...prev, nationality: val }))}
-                placeholder="Sélectionner un pays..."
+                placeholder={t.components.addEmployee.fields.selectCountry}
                 options={COUNTRIES}
               />
             </div>
 
             {/* Poste */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Poste</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.jobTitle}</label>
               <input
                 type="text"
                 name="job_title"
@@ -433,7 +435,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* Unité */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Unité</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.unit}</label>
               <select
                 name="department_id"
                 value={formData.department_id}
@@ -442,7 +444,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                 disabled={isLoadingData}
               >
                 <option value="">
-                  {isLoadingData ? 'Chargement...' : 'Sélectionner...'}
+                  {isLoadingData ? t.common.loading : t.components.addEmployee.fields.selectOption}
                 </option>
                 {departments.map(dept => (
                   <option key={dept.id} value={dept.id}>
@@ -454,7 +456,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* Manager (N+1) */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Manager (N+1)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.managerN1}</label>
               <select
                 name="manager_id"
                 value={formData.manager_id}
@@ -463,7 +465,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                 disabled={isLoadingData}
               >
                 <option value="">
-                  {isLoadingData ? 'Chargement...' : 'Aucun (poste de direction)'}
+                  {isLoadingData ? t.common.loading : t.components.addEmployee.fields.noManager}
                 </option>
                 {managers.map(mgr => (
                   <option key={mgr.id} value={mgr.id}>
@@ -475,7 +477,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* Rôle système */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.role}</label>
               <select
                 name="role"
                 value={formData.role}
@@ -503,7 +505,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                   onChange={handleChange}
                   className="w-4 h-4 text-primary-500 border-gray-300 rounded focus:ring-primary-500"
                 />
-                <span className="ml-2 text-sm text-gray-700">Est un manager</span>
+                <span className="ml-2 text-sm text-gray-700">{t.components.addEmployee.fields.isManager}</span>
               </label>
             </div>
 
@@ -517,13 +519,13 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                   onChange={handleChange}
                   className="w-4 h-4 text-primary-500 border-gray-300 rounded focus:ring-primary-500"
                 />
-                <span className="ml-2 text-sm text-gray-700">Juriste (accès module Contentieux)</span>
+                <span className="ml-2 text-sm text-gray-700">{t.components.addEmployee.fields.isJuriste}</span>
               </label>
             </div>
 
             {/* Site */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Site / Localisation</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.site}</label>
               <input
                 type="text"
                 name="site"
@@ -535,7 +537,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* Date d'embauche */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date d&apos;embauche</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.hireDate}</label>
               <input
                 type="date"
                 name="hire_date"
@@ -547,19 +549,19 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* Type de contrat */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Type de contrat</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.contractType}</label>
               <select
                 name="contract_type"
                 value={formData.contract_type}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               >
-                <option value="cdi">CDI</option>
-                <option value="cdd">CDD</option>
-                <option value="stage">Stage</option>
-                <option value="alternance">Alternance</option>
-                <option value="consultant">Consultant</option>
-                <option value="interim">Intérim</option>
+                <option value="cdi">{t.components.addEmployee.fields.cdi}</option>
+                <option value="cdd">{t.components.addEmployee.fields.cdd}</option>
+                <option value="stage">{t.components.addEmployee.fields.stage}</option>
+                <option value="alternance">{t.components.addEmployee.fields.alternance}</option>
+                <option value="consultant">{t.components.addEmployee.fields.consultant}</option>
+                <option value="interim">{t.components.addEmployee.fields.interim}</option>
               </select>
             </div>
 
@@ -567,7 +569,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
             {CONTRACT_TYPES_WITH_END_DATE.includes(formData.contract_type) && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date de fin de contrat *
+                  {t.components.addEmployee.fields.contractEndDate} *
                 </label>
                 <input
                   type="date"
@@ -578,28 +580,28 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {formData.contract_type === 'cdd' && "Date d'échéance du CDD"}
-                  {formData.contract_type === 'stage' && 'Date de fin du stage'}
-                  {formData.contract_type === 'alternance' && "Date de fin de l'alternance"}
-                  {formData.contract_type === 'interim' && 'Date de fin de mission'}
+                  {formData.contract_type === 'cdd' && "{t.components.addEmployee.fields.cddEndHint}"}
+                  {formData.contract_type === 'stage' && '{t.components.addEmployee.fields.stageEndHint}'}
+                  {formData.contract_type === 'alternance' && "{t.components.addEmployee.fields.alternanceEndHint}"}
+                  {formData.contract_type === 'interim' && '{t.components.addEmployee.fields.interimEndHint}'}
                 </p>
               </div>
             )}
 
             {/* Statut */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.status}</label>
               <select
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               >
-                <option value="active">Actif</option>
-                <option value="probation">Période d&apos;essai</option>
-                <option value="on_leave">En congés</option>
-                <option value="suspended">Suspendu</option>
-                <option value="terminated">Terminé</option>
+                <option value="active">{t.components.addEmployee.fields.active}</option>
+                <option value="probation">{t.components.addEmployee.fields.probation}</option>
+                <option value="on_leave">{t.components.addEmployee.fields.onLeave}</option>
+                <option value="suspended">{t.components.addEmployee.fields.suspended}</option>
+                <option value="terminated">{t.components.addEmployee.fields.terminated}</option>
               </select>
             </div>
 
@@ -607,7 +609,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
             {formData.status === 'probation' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Fin de période d&apos;essai *
+                  {t.components.addEmployee.fields.probationEnd} *
                 </label>
                 <input
                   type="date"
@@ -618,34 +620,34 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Date à laquelle la période d&apos;essai se termine
+                  {t.components.addEmployee.fields.probationEndHint}
                 </p>
               </div>
             )}
 
             {/* Classification */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Classification</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.classification}</label>
               <select
                 name="classification"
                 value={formData.classification}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               >
-                <option value="">Non définie</option>
-                <option value="Cadre dirigeant">Cadre dirigeant</option>
-                <option value="Cadre supérieur">Cadre supérieur</option>
-                <option value="Cadre">Cadre</option>
-                <option value="Agent de maîtrise">Agent de maîtrise</option>
-                <option value="Employé">Employé</option>
-                <option value="Non-cadre">Non-cadre</option>
-                <option value="Ouvrier">Ouvrier</option>
+                <option value="">{t.components.addEmployee.fields.notDefined}</option>
+                <option value="Cadre dirigeant">{t.components.addEmployee.fields.cadreDir}</option>
+                <option value="Cadre supérieur">{t.components.addEmployee.fields.cadreSup}</option>
+                <option value="Cadre">{t.components.addEmployee.fields.cadre}</option>
+                <option value="Agent de maîtrise">{t.components.addEmployee.fields.agentMaitrise}</option>
+                <option value="Employé">{t.components.addEmployee.fields.employeeClass}</option>
+                <option value="Non-cadre">{t.components.addEmployee.fields.nonCadre}</option>
+                <option value="Ouvrier">{t.components.addEmployee.fields.ouvrier}</option>
               </select>
             </div>
 
             {/* Coefficient */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Coefficient</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.coefficient}</label>
               <input
                 type="text"
                 name="coefficient"
@@ -654,12 +656,12 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                 placeholder="Ex: 350"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
-              <p className="text-xs text-gray-500 mt-1">Niveau dans la grille de la convention collective</p>
+              <p className="text-xs text-gray-500 mt-1">{t.components.addEmployee.fields.coefficientHint}</p>
             </div>
 
             {/* Salaire brut mensuel */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Salaire brut mensuel</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.grossSalary}</label>
               <div className="flex">
                 <input
                   type="number"
@@ -691,7 +693,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* Part variable */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Part variable</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.variablePay}</label>
               <input
                 type="number"
                 name="part_variable"
@@ -702,15 +704,15 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                 min="0"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
-              <p className="text-xs text-gray-500 mt-1">Prime ou commission variable mensuelle</p>
+              <p className="text-xs text-gray-500 mt-1">{t.components.addEmployee.fields.variablePayHint}</p>
             </div>
 
             {/* Photo de profil */}
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Photo de profil</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t.components.editEmployee.profilePhoto}</label>
               <div className="flex items-center gap-4">
                 {photoPreview ? (
-                  <img src={photoPreview} alt="Photo de profil" className="w-16 h-16 rounded-full object-cover border border-gray-200 flex-shrink-0" />
+                  <img src={photoPreview} alt={t.components.editEmployee.profilePhoto} className="w-16 h-16 rounded-full object-cover border border-gray-200 flex-shrink-0" />
                 ) : (
                   <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-300 flex-shrink-0">
                     <Camera className="w-6 h-6" />
@@ -723,38 +725,38 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                     onChange={handlePhotoChange}
                     className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 cursor-pointer"
                   />
-                  <p className="text-xs text-gray-400 mt-1">PNG, JPEG, WebP — max 5 Mo</p>
+                  <p className="text-xs text-gray-400 mt-1">{t.components.addEmployee.sections.photoHint}</p>
                 </div>
               </div>
             </div>
 
             {/* === INFO FAMILIALE === */}
             <div className="col-span-2 mt-4 mb-1">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">Informations Familiales</h3>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">{t.components.addEmployee.sections.familyInfo}</h3>
             </div>
 
             {/* Situation matrimoniale */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Situation matrimoniale</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.maritalStatus}</label>
               <select
                 name="marital_status"
                 value={formData.marital_status}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               >
-                <option value="">Non renseigné</option>
-                <option value="celibataire">Célibataire</option>
-                <option value="marie">Marié(e)</option>
-                <option value="concubinage">Concubinage</option>
-                <option value="divorce">Divorcé(e)</option>
-                <option value="veuvage">Veuvage</option>
-                <option value="autre">Autre</option>
+                <option value="">{t.components.addEmployee.sections.notSpecified}</option>
+                <option value="celibataire">{t.components.addEmployee.sections.single}</option>
+                <option value="marie">{t.components.addEmployee.sections.married}</option>
+                <option value="concubinage">{t.components.addEmployee.sections.cohabitation}</option>
+                <option value="divorce">{t.components.addEmployee.sections.divorced}</option>
+                <option value="veuvage">{t.components.addEmployee.sections.widowed}</option>
+                <option value="autre">{t.components.addEmployee.fields.other}</option>
               </select>
             </div>
 
             {/* Nombre d'enfants */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre d&apos;enfants à charge</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.childrenCount}</label>
               <input
                 type="number"
                 name="nb_enfants"
@@ -764,33 +766,33 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                 max={20}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
-              <p className="text-xs text-gray-500 mt-1">Utilisé pour le calcul des parts fiscales (paie)</p>
+              <p className="text-xs text-gray-500 mt-1">{t.components.addEmployee.sections.childrenHint}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Âge</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.age}</label>
               <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 text-sm">
                 {formData.date_of_birth
-                  ? `${Math.floor((new Date().getTime() - new Date(formData.date_of_birth).getTime()) / (365.25 * 24 * 3600 * 1000))} ans`
-                  : 'Renseigner la date de naissance'}
+                  ? `${Math.floor((new Date().getTime() - new Date(formData.date_of_birth).getTime()) / (365.25 * 24 * 3600 * 1000))} ${t.components.addEmployee.sections.yearsOld}`
+                  : t.components.addEmployee.sections.enterDob}
               </div>
             </div>
 
             {/* Conjoint(e) - Nom & Prénom */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Conjoint(e) — Nom & Prénom</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.spouseName}</label>
               <input
                 type="text"
                 name="spouse_name"
                 value={formData.spouse_name}
                 onChange={handleChange}
-                placeholder="Nom et prénom du conjoint"
+                placeholder={t.components.addEmployee.sections.spouseNamePlaceholder}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
             </div>
 
             {/* Conjoint(e) - Date de naissance */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Conjoint(e) — Date de naissance</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.spouseDob}</label>
               <input
                 type="date"
                 name="spouse_birth_date"
@@ -802,12 +804,12 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* === ADRESSE PROFESSIONNELLE === */}
             <div className="col-span-2 mt-4 mb-1">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">Adresse Professionnelle</h3>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">{t.components.addEmployee.sections.workAddress}</h3>
             </div>
 
             {/* Email professionnel */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email professionnel</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.workEmail}</label>
               <input
                 type="email"
                 name="work_email"
@@ -820,7 +822,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* Téléphone professionnel */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone professionnel</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.workPhone}</label>
               <input
                 type="tel"
                 name="work_phone"
@@ -833,7 +835,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* === INFORMATION MÉDICALE === */}
             <div className="col-span-2 mt-4 mb-1">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">Information Médicale</h3>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">{t.components.addEmployee.sections.medicalInfo}</h3>
             </div>
 
             {/* Handicap */}
@@ -846,20 +848,20 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                   onChange={handleChange}
                   className="w-4 h-4 text-primary-500 border-gray-300 rounded focus:ring-primary-500"
                 />
-                <span className="ml-2 text-sm text-gray-700">Situation de handicap</span>
+                <span className="ml-2 text-sm text-gray-700">{t.components.addEmployee.sections.disability}</span>
               </label>
             </div>
 
             {/* Nature du handicap (conditionnel) */}
             {formData.has_disability && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nature du handicap</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.disabilityNature}</label>
                 <input
                   type="text"
                   name="disability_description"
                   value={formData.disability_description}
                   onChange={handleChange}
-                  placeholder="Décrire la nature du handicap"
+                  placeholder={t.components.addEmployee.sections.disabilityPlaceholder}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 />
               </div>
@@ -867,20 +869,20 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* Contact urgence - Nom & Prénom */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Personne à contacter — Nom & Prénom</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.emergencyName}</label>
               <input
                 type="text"
                 name="emergency_contact_name"
                 value={formData.emergency_contact_name}
                 onChange={handleChange}
-                placeholder="Nom et prénom"
+                placeholder={t.components.addEmployee.sections.emergencyName}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
             </div>
 
             {/* Contact urgence - Téléphone */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Personne à contacter — Téléphone</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.emergencyPhone}</label>
               <input
                 type="tel"
                 name="emergency_contact_phone"
@@ -893,12 +895,12 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* === ORGANISATION === */}
             <div className="col-span-2 mt-4 mb-1">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">Organisation</h3>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">{t.components.addEmployee.sections.organization}</h3>
             </div>
 
             {/* Membre COMEX */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Membre COMEX</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.comexMember}</label>
               <input
                 type="text"
                 name="comex_member"
@@ -911,7 +913,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* HRBP */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">HRBP</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.hrbp}</label>
               <input
                 type="text"
                 name="hrbp"
@@ -924,7 +926,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* Catégorie salariale */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie salariale</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.salaryCategory}</label>
               <input
                 type="text"
                 name="salary_category"
@@ -937,17 +939,17 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
 
             {/* === ADRESSE PERSONNELLE === */}
             <div className="col-span-2 mt-4 mb-1">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">Adresse Personnelle</h3>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">{t.components.addEmployee.sections.personalAddress}</h3>
             </div>
 
             {/* Adresse */}
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.address}</label>
               <textarea
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
-                placeholder="Adresse complète"
+                placeholder={t.components.addEmployee.sections.addressPlaceholder}
                 rows={2}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
               />
@@ -958,7 +960,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
           {showDeleteConfirm && (
             <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-700 mb-3">
-                Êtes-vous sûr de vouloir supprimer cet employé ? Cette action est irréversible.
+                {t.components.editEmployee.deleteConfirmMessage}
               </p>
               <div className="flex gap-2">
                 <button
@@ -968,7 +970,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                   className="px-3 py-1.5 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center"
                 >
                   {isDeleting && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
-                  Confirmer la suppression
+                  {t.components.editEmployee.confirmDelete}
                 </button>
                 <button
                   type="button"

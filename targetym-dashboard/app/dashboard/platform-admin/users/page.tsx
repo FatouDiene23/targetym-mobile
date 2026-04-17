@@ -37,6 +37,14 @@ export default function PlatformUsersManagement() {
   const [filterRole, setFilterRole] = useState('');
   const [filterTenant, setFilterTenant] = useState<number | ''>('');
   const [filterActive, setFilterActive] = useState<boolean | undefined>(undefined);
+
+  // Pagination
+  const PAGE_SIZE = 20;
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const searchDebounceRef = React.useRef<NodeJS.Timeout | null>(null);
+
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -90,37 +98,74 @@ export default function PlatformUsersManagement() {
     loadData(tenantIdParam ? parseInt(tenantIdParam, 10) : undefined);
   }, [router, searchParams]);
 
-  // Recharger les users côté serveur quand le filtre tenant change (dropdown)
-  const isFirstRender = React.useRef(true);
-  useEffect(() => {
-    if (isFirstRender.current) { isFirstRender.current = false; return; }
-    const tid = typeof filterTenant === 'number' && filterTenant > 0 ? filterTenant : undefined;
-    const reloadUsers = async () => {
-      try {
-        setLoading(true);
-        const data = await getAllUsers({ limit: 500, tenant_id: tid });
-        setUsers(data);
-      } catch { /* ignore */ } finally { setLoading(false); }
-    };
-    reloadUsers();
-  }, [filterTenant]);
-  
+  // Charger les users avec filtres + pagination
+  const doReloadUsers = async (
+    p: number,
+    curSearch: string,
+    curRole: string,
+    curTenant: number | '',
+    curActive: boolean | undefined
+  ) => {
+    setLoading(true);
+    try {
+      const tid = typeof curTenant === 'number' && curTenant > 0 ? curTenant : undefined;
+      const data = await getAllUsers({
+        page: p,
+        page_size: PAGE_SIZE,
+        search: curSearch || undefined,
+        role: curRole || undefined,
+        tenant_id: tid,
+        is_active: curActive,
+      });
+      setUsers(data.items);
+      setTotal(data.total);
+      setPage(p);
+    } catch { /* ignore */ } finally { setLoading(false); }
+  };
+
   const loadData = async (tenantIdFilter?: number) => {
     try {
       setLoading(true);
       const [usersData, tenantsData] = await Promise.all([
-        getAllUsers({ limit: 500, tenant_id: tenantIdFilter }),
-        getAllTenants({ limit: 500 })
+        getAllUsers({ page: 1, page_size: PAGE_SIZE, tenant_id: tenantIdFilter }),
+        getAllTenants({ page: 1, page_size: 200 })
       ]);
-      
-      setUsers(usersData);
-      setTenants(tenantsData);
+      setUsers(usersData.items);
+      setTotal(usersData.total);
+      setTenants(tenantsData.items);
     } catch (error) {
       console.error('Erreur chargement données:', error);
       toast.error('Erreur lors du chargement des données');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (p: number) => {
+    doReloadUsers(p, searchTerm, filterRole, filterTenant, filterActive);
+  };
+
+  const handleSearchChange = (val: string) => {
+    setSearchTerm(val);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      doReloadUsers(1, val, filterRole, filterTenant, filterActive);
+    }, 350);
+  };
+
+  const handleRoleChange = (val: string) => {
+    setFilterRole(val);
+    doReloadUsers(1, searchTerm, val, filterTenant, filterActive);
+  };
+
+  const handleTenantChange = (val: number | '') => {
+    setFilterTenant(val);
+    doReloadUsers(1, searchTerm, filterRole, val, filterActive);
+  };
+
+  const handleActiveChange = (val: boolean | undefined) => {
+    setFilterActive(val);
+    doReloadUsers(1, searchTerm, filterRole, filterTenant, val);
   };
   
   const handleImpersonate = (user: UserListItem) => {
@@ -233,9 +278,7 @@ export default function PlatformUsersManagement() {
       }
 
       setShowModal(false);
-      // Recharger en conservant le filtre tenant actif
-      const tid = typeof filterTenant === 'number' && filterTenant > 0 ? filterTenant : undefined;
-      loadData(tid);
+      doReloadUsers(1, searchTerm, filterRole, filterTenant, filterActive);
     } catch (error: unknown) {
       console.error('Erreur:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors de l\'opération';
@@ -254,7 +297,7 @@ export default function PlatformUsersManagement() {
         try {
           await deletePlatformUser(user.id);
           toast.success('Utilisateur supprimé avec succès');
-          loadData();
+          doReloadUsers(1, searchTerm, filterRole, filterTenant, filterActive);
         } catch (error: unknown) {
           console.error('Erreur:', error);
           const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la suppression';
@@ -263,35 +306,6 @@ export default function PlatformUsersManagement() {
       },
     });
   };
-  
-  const filteredUsers = users.filter(user => {
-    let match = true;
-    
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      const emailMatch = user.email.toLowerCase().includes(search);
-      const firstNameMatch = user.first_name?.toLowerCase().includes(search) || false;
-      const lastNameMatch = user.last_name?.toLowerCase().includes(search) || false;
-      const tenantMatch = user.tenant_name?.toLowerCase().includes(search) || false;
-      
-      match = match && (emailMatch || firstNameMatch || lastNameMatch || tenantMatch);
-    }
-    
-    if (filterRole) {
-      match = match && user.role === filterRole;
-    }
-    
-    if (filterTenant !== '') {
-      match = match && user.tenant_id === filterTenant;
-    }
-    
-    if (filterActive !== undefined) {
-      const isActiveMatch = user.is_active === filterActive;
-      match = match && isActiveMatch;
-    }
-    
-    return match;
-  });
   
   if (loading) {
     return (
@@ -337,7 +351,7 @@ export default function PlatformUsersManagement() {
                 type="text"
                 placeholder="Rechercher par nom, email, entreprise..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
@@ -345,7 +359,7 @@ export default function PlatformUsersManagement() {
           
           <select
             value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
+            onChange={(e) => handleRoleChange(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="">Tous les rôles</option>
@@ -359,7 +373,7 @@ export default function PlatformUsersManagement() {
           
           <select
             value={filterTenant}
-            onChange={(e) => setFilterTenant(e.target.value === '' ? '' : Number.parseInt(e.target.value, 10))}
+            onChange={(e) => handleTenantChange(e.target.value === '' ? '' : Number.parseInt(e.target.value, 10))}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 max-w-xs"
           >
             <option value="">Toutes les entreprises</option>
@@ -371,7 +385,7 @@ export default function PlatformUsersManagement() {
           
           <select
             value={filterActive === undefined ? '' : filterActive.toString()}
-            onChange={(e) => setFilterActive(e.target.value === '' ? undefined : e.target.value === 'true')}
+            onChange={(e) => handleActiveChange(e.target.value === '' ? undefined : e.target.value === 'true')}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="">Tous les statuts</option>
@@ -385,18 +399,18 @@ export default function PlatformUsersManagement() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
           <p className="text-sm text-gray-600">Total Users</p>
-          <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+          <p className="text-2xl font-bold text-gray-900">{total}</p>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-          <p className="text-sm text-gray-600">Actifs</p>
+          <p className="text-sm text-gray-600">Actifs (page)</p>
           <p className="text-2xl font-bold text-green-600">{users.filter(u => u.is_active).length}</p>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-          <p className="text-sm text-gray-600">Inactifs</p>
+          <p className="text-sm text-gray-600">Inactifs (page)</p>
           <p className="text-2xl font-bold text-red-600">{users.filter(u => !u.is_active).length}</p>
         </div>
         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-          <p className="text-sm text-gray-600">SUPER_ADMIN</p>
+          <p className="text-sm text-gray-600">SUPER_ADMIN (page)</p>
           <p className="text-2xl font-bold text-purple-600">
             {users.filter(u => u.role === 'SUPER_ADMIN' || u.role === 'super_admin').length}
           </p>
@@ -418,14 +432,14 @@ export default function PlatformUsersManagement() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredUsers.length === 0 ? (
+              {users.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                     Aucun utilisateur trouvé
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((user) => (
+                users.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div>
@@ -508,6 +522,48 @@ export default function PlatformUsersManagement() {
           </table>
         </div>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between bg-white rounded-xl px-6 py-4 shadow-sm border border-gray-100">
+          <p className="text-sm text-gray-500">
+            {total} utilisateur{total > 1 ? 's' : ''} — page {page} / {totalPages}
+          </p>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => handlePageChange(page - 1)}
+              disabled={page <= 1}
+              className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50 transition-colors"
+            >
+              ←
+            </button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const pageNum = page <= 3 ? i + 1 : page - 2 + i;
+              if (pageNum < 1 || pageNum > totalPages) return null;
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => handlePageChange(pageNum)}
+                  className={`px-3 py-1.5 text-sm rounded-lg border ${
+                    pageNum === page
+                      ? 'bg-primary-600 text-white border-primary-600'
+                      : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                  } transition-colors`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => handlePageChange(page + 1)}
+              disabled={page >= totalPages}
+              className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50 transition-colors"
+            >
+              →
+            </button>
+          </div>
+        </div>
+      )}
       
       {/* Modal Create/Edit */}
       {showModal && (

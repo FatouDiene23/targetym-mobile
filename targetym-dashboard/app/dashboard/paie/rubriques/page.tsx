@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
+import { useI18n } from '@/lib/i18n/I18nContext';
 import {
   getComponents, createComponent, updateComponent, deactivateComponent, seedLegalComponents,
   COMPONENT_TYPE_LABEL, COMPONENT_TYPE_COLOR,
@@ -45,21 +46,22 @@ function CalcParamsFields({
   value: Record<string, unknown>;
   onChange: (v: Record<string, unknown>) => void;
 }) {
+  const { t } = useI18n();
   const set = (k: string, v: unknown) => onChange({ ...value, [k]: v });
   const num = (k: string, def = 0) => (value[k] as number) ?? def;
   const str = (k: string, def = '') => (value[k] as string) ?? def;
 
   const baseSelect = (
     <div>
-      <label className="block text-xs font-medium text-gray-500 mb-1">Base de calcul</label>
+      <label className="block text-xs font-medium text-gray-500 mb-1">{t.payroll.components.calcBase}</label>
       <select
         className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
         value={str('base', 'brut')}
         onChange={e => set('base', e.target.value)}
       >
-        <option value="brut">Salaire brut</option>
-        <option value="taxable">Revenu imposable</option>
-        <option value="base_salary">Salaire de base</option>
+        <option value="brut">{t.payroll.components.grossSalary}</option>
+        <option value="taxable">{t.payroll.components.taxableIncome}</option>
+        <option value="base_salary">{t.payroll.components.baseSalary}</option>
       </select>
     </div>
   );
@@ -67,7 +69,7 @@ function CalcParamsFields({
   if (calcType === 'fixed_amount') {
     return (
       <div>
-        <label className="block text-xs font-medium text-gray-500 mb-1">Montant fixe (XOF) — laisser 0 si variable</label>
+        <label className="block text-xs font-medium text-gray-500 mb-1">{t.payroll.components.fixedAmountLabel}</label>
         <input
           type="number" min={0} step={1}
           className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -82,7 +84,7 @@ function CalcParamsFields({
     return (
       <div className="grid grid-cols-3 gap-3">
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Taux (%)</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">{t.payroll.components.ratePercent}</label>
           <input type="number" min={0} max={100} step={0.001}
             className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={+(num('rate') * 100).toFixed(4)}
@@ -90,7 +92,7 @@ function CalcParamsFields({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Plafond (XOF)</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">{t.payroll.components.capXOF}</label>
           <input type="number" min={0} step={1}
             className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={num('cap')}
@@ -106,7 +108,7 @@ function CalcParamsFields({
     return (
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Taux (%)</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">{t.payroll.components.ratePercent}</label>
           <input type="number" min={0} max={100} step={0.001}
             className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={+(num('rate') * 100).toFixed(4)}
@@ -114,7 +116,7 @@ function CalcParamsFields({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Plancher (XOF)</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">{t.payroll.components.floorXOF}</label>
           <input type="number" min={0} step={1}
             className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={num('floor')}
@@ -122,7 +124,7 @@ function CalcParamsFields({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Plafond (XOF)</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">{t.payroll.components.capXOF}</label>
           <input type="number" min={0} step={1}
             className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={num('cap')}
@@ -138,7 +140,7 @@ function CalcParamsFields({
     return (
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Code de la table</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">{t.payroll.components.tableCode}</label>
           <input
             className="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500"
             value={str('table_code')}
@@ -155,7 +157,7 @@ function CalcParamsFields({
     return (
       <div>
         {baseSelect}
-        <p className="text-xs text-gray-400 mt-2">Les tranches progressives sont configurées séparément dans les paramètres fiscaux.</p>
+        <p className="text-xs text-gray-400 mt-2">{t.payroll.components.progressiveNote}</p>
       </div>
     );
   }
@@ -163,14 +165,14 @@ function CalcParamsFields({
   if (calcType === 'formula') {
     return (
       <div>
-        <label className="block text-xs font-medium text-gray-500 mb-1">Expression de calcul</label>
+        <label className="block text-xs font-medium text-gray-500 mb-1">{t.payroll.components.formulaExpression}</label>
         <input
           className="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500"
           value={str('formula')}
           onChange={e => set('formula', e.target.value)}
           placeholder="Ex : base_salary * 0.3 / 26"
         />
-        <p className="text-xs text-gray-400 mt-1">Variables disponibles : base_salary, brut_total, days_worked</p>
+        <p className="text-xs text-gray-400 mt-1">{t.payroll.components.formulaVarsNote}</p>
       </div>
     );
   }
@@ -209,6 +211,7 @@ function ComponentModal({
   onClose: () => void;
   onSaved: (c: PayComponent) => void;
 }) {
+  const { t } = useI18n();
   const [form, setForm] = useState<PayComponentCreate>(
     initial
       ? {
@@ -242,10 +245,10 @@ function ComponentModal({
       const result = initial
         ? await updateComponent(initial.id, payload)
         : await createComponent(payload);
-      toast.success(initial ? 'Rubrique mise à jour' : 'Rubrique créée');
+      toast.success(initial ? t.payroll.components.componentUpdated : t.payroll.components.componentCreated);
       onSaved(result);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur');
+      toast.error(err instanceof Error ? err.message : t.common.error);
     } finally {
       setSaving(false);
     }
@@ -257,7 +260,7 @@ function ComponentModal({
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b">
           <h2 className="font-semibold text-gray-800 text-lg">
-            {initial ? 'Modifier la rubrique' : 'Nouvelle rubrique'}
+            {initial ? t.payroll.components.editComponent : t.payroll.components.newComponent}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
@@ -268,7 +271,7 @@ function ComponentModal({
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.components.code} *</label>
               <input
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={form.code}
@@ -279,7 +282,7 @@ function ComponentModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ordre affiché</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.components.displayOrder}</label>
               <input
                 type="number"
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -291,7 +294,7 @@ function ComponentModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Libellé *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.components.label} *</label>
             <input
               className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               value={form.name}
@@ -303,33 +306,47 @@ function ComponentModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.components.type}</label>
               <select
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={form.component_type}
                 onChange={e => set('component_type', e.target.value as PayComponent['component_type'])}
               >
-                {COMPONENT_TYPES.map(t => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
+                {[
+                  { value: 'earning', label: t.payroll.components.componentTypes.earning },
+                  { value: 'deduction_employee', label: t.payroll.components.componentTypes.deductionEmployee },
+                  { value: 'deduction_employer', label: t.payroll.components.componentTypes.deductionEmployer },
+                  { value: 'employer_contribution', label: t.payroll.components.componentTypes.employerContribution },
+                  { value: 'net_adjustment', label: t.payroll.components.componentTypes.netAdjustment },
+                ].map(ct => (
+                  <option key={ct.value} value={ct.value}>{ct.label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mode de calcul</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.components.calcMode}</label>
               <select
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={form.calc_type}
                 onChange={e => handleCalcTypeChange(e.target.value)}
               >
-                {CALC_TYPES.map(t => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
+                {[
+                  { value: 'fixed_amount', label: t.payroll.components.calcTypes.fixedAmount },
+                  { value: 'rate_with_cap', label: t.payroll.components.calcTypes.rateWithCap },
+                  { value: 'rate_with_floor_and_cap', label: t.payroll.components.calcTypes.rateWithFloorAndCap },
+                  { value: 'lookup_table', label: t.payroll.components.calcTypes.lookupTable },
+                  { value: 'progressive', label: t.payroll.components.calcTypes.progressive },
+                  { value: 'formula', label: t.payroll.components.calcTypes.formula },
+                  { value: 'manual_variable', label: t.payroll.components.calcTypes.manualVariable },
+                ].map(ct => (
+                  <option key={ct.value} value={ct.value}>{ct.label}</option>
                 ))}
               </select>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Paramètres de calcul</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.components.calcParams}</label>
             <div className="bg-gray-50 rounded-lg p-3 border">
               <CalcParamsFields
                 calcType={form.calc_type}
@@ -347,7 +364,7 @@ function ComponentModal({
                 checked={form.is_taxable}
                 onChange={e => set('is_taxable', e.target.checked)}
               />
-              Imposable (IR)
+              {t.payroll.components.taxableIR}
             </label>
             <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
               <input
@@ -356,7 +373,7 @@ function ComponentModal({
                 checked={form.is_subject_to_cotisations}
                 onChange={e => set('is_subject_to_cotisations', e.target.checked)}
               />
-              Soumis cotisations
+              {t.payroll.components.subjectToContributions}
             </label>
             <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
               <input
@@ -365,7 +382,7 @@ function ComponentModal({
                 checked={form.is_active}
                 onChange={e => set('is_active', e.target.checked)}
               />
-              Actif
+              {t.payroll.components.active}
             </label>
           </div>
 
@@ -375,7 +392,7 @@ function ComponentModal({
               onClick={onClose}
               className="px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
             >
-              Annuler
+              {t.common.cancel}
             </button>
             <button
               type="submit"
@@ -383,7 +400,7 @@ function ComponentModal({
               className="px-5 py-2 text-sm text-white bg-primary-600 rounded-lg hover:bg-primary-700 flex items-center gap-2 disabled:opacity-60"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              {initial ? 'Enregistrer' : 'Créer'}
+              {initial ? t.common.save : t.common.create}
             </button>
           </div>
         </form>
@@ -395,6 +412,7 @@ function ComponentModal({
 // ── Page principale ───────────────────────────────────────────────────────────
 
 export default function RubriquesPage() {
+  const { t } = useI18n();
   const [components, setComponents] = useState<PayComponent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInactive, setShowInactive] = useState(false);
@@ -409,7 +427,7 @@ export default function RubriquesPage() {
       const data = await getComponents(showInactive);
       setComponents(data);
     } catch {
-      toast.error('Erreur lors du chargement des rubriques');
+      toast.error(t.payroll.components.loadingError);
     } finally {
       setLoading(false);
     }
@@ -422,14 +440,14 @@ export default function RubriquesPage() {
   const closeModal = () => setModalOpen(false);
 
   const handleSeedLegal = async () => {
-    if (!confirm('Initialiser les 19 rubriques légales sénégalaises (IPRES, IR, TRIMF, CSS, CFCE…) ? Cette opération est sans risque et peut être relancée.')) return;
+    if (!confirm(t.payroll.components.seedConfirm)) return;
     setSeeding(true);
     try {
       const result = await seedLegalComponents();
-      toast.success(`${result.count} rubriques initialisées`);
+      toast.success(t.payroll.components.seedSuccess.replace('{count}', String(result.count)));
       setComponents(result.components);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Erreur');
+      toast.error(err instanceof Error ? err.message : t.common.error);
     } finally {
       setSeeding(false);
     }
@@ -449,14 +467,14 @@ export default function RubriquesPage() {
   };
 
   const handleDeactivate = async (c: PayComponent) => {
-    if (!confirm(`Désactiver « ${c.name} » ?`)) return;
+    if (!confirm(t.payroll.components.deactivateConfirm.replace('{name}', c.name))) return;
     setDeactivating(c.id);
     try {
       await deactivateComponent(c.id);
-      toast.success('Rubrique désactivée');
+      toast.success(t.payroll.components.deactivated);
       setComponents(prev => prev.map(x => x.id === c.id ? { ...x, is_active: false } : x));
     } catch {
-      toast.error('Erreur désactivation');
+      toast.error(t.payroll.components.deactivateError);
     } finally {
       setDeactivating(null);
     }
@@ -466,15 +484,15 @@ export default function RubriquesPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
-      <Header title="Paie" />
+      <Header title={t.payroll.title} />
 
       <main className="flex-1 p-6 max-w-6xl mx-auto w-full">
         {/* Fil d'Ariane */}
         <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
           <Receipt className="w-4 h-4" />
-          <span>Paie</span>
+          <span>{t.payroll.components.breadcrumbPayroll}</span>
           <ChevronDown className="w-3 h-3 rotate-[-90deg]" />
-          <span className="text-gray-700 font-medium">Rubriques de paie</span>
+          <span className="text-gray-700 font-medium">{t.payroll.components.breadcrumbComponents}</span>
         </div>
 
         {/* En-tête */}
@@ -482,10 +500,12 @@ export default function RubriquesPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
               <Settings2 className="w-6 h-6 text-primary-600" />
-              Rubriques de paie
+              {t.payroll.components.title}
             </h1>
             <p className="text-sm text-gray-500 mt-1">
-              {visible.length} rubrique{visible.length > 1 ? 's' : ''}
+              {visible.length > 1
+                ? t.payroll.components.componentCountPlural.replace('{count}', String(visible.length))
+                : t.payroll.components.componentCount.replace('{count}', String(visible.length))}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -496,7 +516,7 @@ export default function RubriquesPage() {
                 checked={showInactive}
                 onChange={e => setShowInactive(e.target.checked)}
               />
-              Afficher inactives
+              {t.payroll.components.showInactive}
             </label>
             <button
               onClick={handleSeedLegal}
@@ -504,14 +524,14 @@ export default function RubriquesPage() {
               className="flex items-center gap-2 bg-emerald-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-emerald-700 transition disabled:opacity-60"
             >
               {seeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Settings2 className="w-4 h-4" />}
-              Rubriques légales SN
+              {t.payroll.components.legalComponentsSN}
             </button>
             <button
               onClick={openCreate}
               className="flex items-center gap-2 bg-primary-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-primary-700 transition"
             >
               <Plus className="w-4 h-4" />
-              Nouvelle rubrique
+              {t.payroll.components.newComponent}
             </button>
           </div>
         </div>
@@ -520,13 +540,13 @@ export default function RubriquesPage() {
         {loading ? (
           <div className="flex items-center justify-center h-48 text-gray-400">
             <Loader2 className="w-6 h-6 animate-spin mr-2" />
-            Chargement…
+            {t.payroll.components.loading}
           </div>
         ) : visible.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center text-gray-400">
             <Settings2 className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-            <p className="font-medium">Aucune rubrique{showInactive ? '' : ' active'}</p>
-            <p className="text-sm mt-1">Créez votre première rubrique de paie</p>
+            <p className="font-medium">{showInactive ? t.payroll.components.noComponent : t.payroll.components.noActiveComponent}</p>
+            <p className="text-sm mt-1">{t.payroll.components.createFirstComponent}</p>
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
@@ -534,13 +554,13 @@ export default function RubriquesPage() {
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 w-12">#</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500">Code</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500">Libellé</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500">Type</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500">Calcul</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">{t.payroll.components.code}</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">{t.payroll.components.label}</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">{t.payroll.components.type}</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">{t.payroll.components.calcMode}</th>
                   <th className="text-center px-4 py-3 font-medium text-gray-500">IR</th>
                   <th className="text-center px-4 py-3 font-medium text-gray-500">Cot.</th>
-                  <th className="text-center px-4 py-3 font-medium text-gray-500">Statut</th>
+                  <th className="text-center px-4 py-3 font-medium text-gray-500">{t.payroll.components.status}</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -576,11 +596,11 @@ export default function RubriquesPage() {
                     <td className="px-4 py-3 text-center">
                       {c.is_active ? (
                         <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                          <ToggleRight className="w-3 h-3" />Actif
+                          <ToggleRight className="w-3 h-3" />{t.payroll.components.active}
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
-                          <ToggleLeft className="w-3 h-3" />Inactif
+                          <ToggleLeft className="w-3 h-3" />{t.payroll.components.inactive}
                         </span>
                       )}
                     </td>
@@ -589,7 +609,7 @@ export default function RubriquesPage() {
                         <button
                           onClick={() => openEdit(c)}
                           className="p-1.5 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-primary-50 transition"
-                          title="Modifier"
+                          title={t.common.edit}
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
@@ -598,7 +618,7 @@ export default function RubriquesPage() {
                             onClick={() => handleDeactivate(c)}
                             disabled={deactivating === c.id}
                             className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition disabled:opacity-50"
-                            title="Désactiver"
+                            title={t.common.delete}
                           >
                             {deactivating === c.id
                               ? <Loader2 className="w-4 h-4 animate-spin" />

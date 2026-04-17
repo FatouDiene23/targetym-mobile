@@ -16,13 +16,14 @@ import {
   ArrowUpRight, Award, BarChart3, UserCheck, Briefcase
 } from 'lucide-react';
 import { useTalents } from './TalentsContext';
-import { QUADRANT_LABELS, ELIGIBILITY_LABELS, formatDate, getInitials, getUserRole, isRH, isManager } from './shared';
+import { getQuadrantLabels, ELIGIBILITY_LABELS, formatDate, getInitials, getUserRole, isRH, isManager } from './shared';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
 export default function TalentsDashboard() {
   const { dashboard, loadDashboard } = useTalents();
   const router = useRouter();
   const { t } = useI18n();
+  const QUADRANT_LABELS = getQuadrantLabels(t);
 
   const { showTips, dismissTips, resetTips } = usePageTour('talentsDashboard');
 

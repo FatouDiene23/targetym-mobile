@@ -18,8 +18,11 @@ import { useTalents } from '../TalentsContext';
 import { CareerPath, CareerLevel, PromotionFactor, isRH, getInitials, apiFetch, getAuthHeaders, ELIGIBILITY_LABELS } from '../shared';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import toast from 'react-hot-toast';
+import { useI18n } from '@/lib/i18n/I18nContext';
 
 export default function PathsPage() {
+  const { t } = useI18n();
+  const tp = t.talents.careerPathsPage;
   const {
     paths, selectedPath, loadPaths, loadPathDetail,
     createPath, updatePath, deletePath, duplicatePath,
@@ -64,21 +67,21 @@ export default function PathsPage() {
   return (
     <>
       {showTips && (
-        <PageTourTips tips={pathsTips} onDismiss={dismissTips} pageTitle="Parcours de Carrière" />
+        <PageTourTips tips={pathsTips} onDismiss={dismissTips} pageTitle={tp.title} />
       )}
-      <Header title="Parcours de Carrière" subtitle="Configuration des filières et niveaux" />
+      <Header title={tp.title} subtitle={tp.subtitle} />
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left: Path List */}
           <div className="space-y-4" data-tour="paths-list">
             <div className="flex justify-between items-center">
-              <h3 className="font-semibold text-gray-900">Filières ({paths.length})</h3>
+              <h3 className="font-semibold text-gray-900">{tp.branches(paths.length)}</h3>
               {canEdit && (
                 <button onClick={() => setShowCreate(true)}
                   className="flex items-center px-3 py-1.5 bg-primary-500 text-white text-xs font-medium rounded-lg hover:bg-primary-600"
                   data-tour="create-path"
                 >
-                  <Plus className="w-3 h-3 mr-1" />Nouvelle
+                  <Plus className="w-3 h-3 mr-1" />{tp.new}
                 </button>
               )}
             </div>
@@ -97,12 +100,12 @@ export default function PathsPage() {
                     {path.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{path.description}</p>}
                   </div>
                   {!path.is_active && (
-                    <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded">Inactif</span>
+                    <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded">{tp.inactive}</span>
                   )}
                 </div>
                 <div className="flex gap-4 mt-3 text-xs text-gray-500">
-                  <span className="flex items-center gap-1"><Layers className="w-3 h-3" />{path.level_count || 0} niveaux</span>
-                  <span className="flex items-center gap-1"><Users className="w-3 h-3" />{path.employee_count || 0} employés</span>
+                  <span className="flex items-center gap-1"><Layers className="w-3 h-3" />{path.level_count || 0} {tp.levels}</span>
+                  <span className="flex items-center gap-1"><Users className="w-3 h-3" />{path.employee_count || 0} {tp.employees}</span>
                 </div>
               </div>
             ))}
@@ -110,7 +113,7 @@ export default function PathsPage() {
             {paths.length === 0 && (
               <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 text-center">
                 <Layers className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-                <p className="text-sm text-gray-400">Aucun parcours créé</p>
+                <p className="text-sm text-gray-400">{tp.noPathCreated}</p>
               </div>
             )}
           </div>
@@ -126,14 +129,14 @@ export default function PathsPage() {
                       <h2 className="text-xl font-bold text-gray-900">{selectedPath.name}</h2>
                       {selectedPath.description && <p className="text-sm text-gray-500 mt-1">{selectedPath.description}</p>}
                       <div className="flex gap-4 mt-2 text-xs text-gray-500">
-                        <span>{selectedPath.levels?.length || 0} niveaux</span>
-                        <span>{selectedPath.employee_count || 0} employés assignés</span>
+                        <span>{selectedPath.levels?.length || 0} {tp.levels}</span>
+                        <span>{selectedPath.employee_count || 0} {tp.assignedEmployees}</span>
                       </div>
                     </div>
                     {canEdit && (
                       <div className="flex gap-2">
                         <button onClick={() => setShowEditPath(true)}
-                          className="p-2 text-gray-400 hover:text-primary-500" title="Modifier">
+                          className="p-2 text-gray-400 hover:text-primary-500" title={t.common.edit}>
                           <Edit className="w-4 h-4" />
                         </button>
                         <button onClick={() => duplicatePath(selectedPath.id)}
@@ -149,7 +152,7 @@ export default function PathsPage() {
                             onConfirm: () => { setConfirmDialog(null); deletePath(selectedPath.id); },
                           });
                         }}
-                          className="p-2 text-gray-400 hover:text-red-500" title="Supprimer">
+                          className="p-2 text-gray-400 hover:text-red-500" title={t.common.delete}>
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -347,10 +350,10 @@ export default function PathsPage() {
                                       {f.is_blocking && <span className="text-xs text-red-500">Bloquant</span>}
                                       {canEdit && (
                                         <>
-                                          <button onClick={() => setEditFactorId(f.id)} className="text-gray-400 hover:text-primary-500" title="Modifier">
+                                          <button onClick={() => setEditFactorId(f.id)} className="text-gray-400 hover:text-primary-500" title={t.common.edit}>
                                             <Edit className="w-3 h-3" />
                                           </button>
-                                          <button onClick={() => deleteFactor(f.id)} className="text-gray-400 hover:text-red-500" title="Supprimer">
+                                          <button onClick={() => deleteFactor(f.id)} className="text-gray-400 hover:text-red-500" title={t.common.delete}>
                                             <Trash2 className="w-3 h-3" />
                                           </button>
                                         </>

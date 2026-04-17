@@ -1,4 +1,4 @@
-﻿// ============================================
+// ============================================
 // app/dashboard/talents/employees/page.tsx
 // Vue RH — Tous les collaborateurs (carrière)
 // ============================================
@@ -19,10 +19,13 @@ import {
 import Pagination from '@/components/Pagination';
 import { useTalents } from '../TalentsContext';
 import { getInitials, ELIGIBILITY_LABELS, formatDate } from '../shared';
+import { useI18n } from '@/lib/i18n/I18nContext';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import CompetencyModal from './CompetencyModal';
 
 export default function AllEmployeesCareerPage() {
+  const { t } = useI18n();
+  const tp = t.talents.employeesPage;
   const {
     employeeCareers, loadEmployeeCareers,
     syncProgress, loadEmployeeCareerDetail,
@@ -102,8 +105,8 @@ export default function AllEmployeesCareerPage() {
   const handlePromotion = async (ecId: number) => {
     setConfirmDialog({
       isOpen: true,
-      title: 'Demande de promotion',
-      message: 'Envoyer une demande de promotion pour cet employé ?',
+      title: tp.promotionRequestTitle,
+      message: tp.promotionRequestMessage,
       danger: false,
       onConfirm: async () => {
         setConfirmDialog(null);
@@ -115,7 +118,7 @@ export default function AllEmployeesCareerPage() {
             setDetail(res);
             await loadEmployeeCareers();
           }
-          toast.success('Demande envoyée');
+          toast.success(tp.requestSent);
         } catch (e: any) {
           toast.error(e.message);
         } finally {
@@ -130,16 +133,16 @@ export default function AllEmployeesCareerPage() {
   return (
     <>
       {showTips && (
-        <PageTourTips tips={talentsEmployeesTips} onDismiss={dismissTips} pageTitle="Collaborateurs" />
+        <PageTourTips tips={talentsEmployeesTips} onDismiss={dismissTips} pageTitle={tp.title} />
       )}
       <Header
-        title="Collaborateurs"
-        subtitle={`${employeeCareers.length} collaborateur(s) assigné(s) · ${eligibleCount} éligible(s) à la promotion`}
+        title={tp.title}
+        subtitle={tp.subtitle(employeeCareers.length, eligibleCount)}
       />
       <main className="flex-1 flex overflow-hidden bg-gray-50" style={{ height: 'calc(100vh - 64px)' }}>
 
         {/* ─── Panneau gauche : liste ─── */}
-        <div className={`w-full lg:w-80 flex-shrink-0 bg-white border-r border-gray-200 flex-col ${selected ? 'hidden lg:flex' : 'flex'}`}>
+        <div className={`w-full md:w-80 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col ${selected ? 'hidden md:flex' : 'flex'}`}>
 
           {/* Filtres */}
           <div className="p-4 border-b border-gray-100 space-y-2" data-tour="talent-filters">
@@ -147,7 +150,7 @@ export default function AllEmployeesCareerPage() {
               <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Rechercher..."
+                placeholder={tp.searchPlaceholder}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
@@ -158,10 +161,10 @@ export default function AllEmployeesCareerPage() {
               onChange={e => setEligFilter(e.target.value)}
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500 text-gray-600"
             >
-              <option value="">Tous les statuts</option>
-              <option value="eligible">Éligible</option>
-              <option value="in_progress">En progression</option>
-              <option value="not_eligible">Non éligible</option>
+              <option value="">{tp.allStatuses}</option>
+              <option value="eligible">{tp.eligible}</option>
+              <option value="in_progress">{tp.inProgress}</option>
+              <option value="not_eligible">{tp.notEligible}</option>
             </select>
             {paths.length > 0 && (
               <select
@@ -169,13 +172,13 @@ export default function AllEmployeesCareerPage() {
                 onChange={e => setPathFilter(e.target.value)}
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500 text-gray-600"
               >
-                <option value="">Tous les parcours</option>
+                <option value="">{tp.allPaths}</option>
                 {paths.map(p => (
                   <option key={p.id} value={String(p.id)}>{p.name}</option>
                 ))}
               </select>
             )}
-            <p className="text-xs text-gray-400">{filtered.length} résultat(s)</p>
+            <p className="text-xs text-gray-400">{tp.resultCount(filtered.length)}</p>
           </div>
 
           {/* Liste */}
@@ -183,7 +186,7 @@ export default function AllEmployeesCareerPage() {
             {filtered.length === 0 ? (
               <div className="p-8 text-center">
                 <Users className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-                <p className="text-sm text-gray-400">Aucun collaborateur</p>
+                <p className="text-sm text-gray-400">{tp.noEmployee}</p>
               </div>
             ) : paginated.map(ec => {
               const progress = ec.total_count ? Math.round(((ec.validated_count || 0) / ec.total_count) * 100) : 0;
@@ -232,11 +235,19 @@ export default function AllEmployeesCareerPage() {
         </div>
 
         {/* ─── Panneau droit : détail ─── */}
-        <div className={`flex-1 overflow-y-auto ${!selected ? 'hidden lg:block' : ''}`}>
+        <div className={`flex-1 overflow-y-auto ${!selected ? 'hidden md:block' : ''}`}>
+          {selected && (
+            <div className="md:hidden sticky top-0 bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-2 z-10">
+              <button onClick={() => setSelected(null)} className="p-1.5 rounded-lg hover:bg-gray-100">
+                <ChevronLeft className="w-5 h-5 text-gray-700" />
+              </button>
+              <span className="text-sm font-medium text-gray-900">Retour à la liste</span>
+            </div>
+          )}
           {!selected ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-3">
               <Users className="w-12 h-12 text-gray-200" />
-              <p className="text-sm">Sélectionnez un collaborateur pour voir son détail</p>
+              <p className="text-sm">{tp.selectEmployee}</p>
             </div>
           ) : loadingDetail ? (
             <div className="flex items-center justify-center h-full">
@@ -245,11 +256,10 @@ export default function AllEmployeesCareerPage() {
           ) : !detail?.careers?.length ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-400">
               <AlertCircle className="w-10 h-10 text-gray-200" />
-              <p className="text-sm">Aucun détail disponible</p>
+              <p className="text-sm">{tp.noDetail}</p>
             </div>
           ) : (
             <div className="p-6 space-y-5">
-              <button onClick={() => setSelected(null)} className="lg:hidden flex items-center gap-2 text-sm text-gray-600 mb-3"><ChevronLeft size={16} />Retour</button>
               {detail.careers.map((career: any) => {
                 const validatedCount = career.competency_progress?.filter((c: any) => c.effective_status === 'validated').length || 0;
                 const totalCount = career.competency_progress?.length || 0;
@@ -268,12 +278,12 @@ export default function AllEmployeesCareerPage() {
                           <p className="text-sm text-gray-500">{career.job_title} · {career.path_name}</p>
                         </div>
                       </div>
-                      <div className="flex gap-2 flex-shrink-0">
+                      <div className="flex gap-2 flex-wrap">
                         <button
                           onClick={() => setCompetencyModal({ id: selected.employee_id, name: `${career.first_name} ${career.last_name}` })}
-                          className="px-3 py-1.5 text-sm border border-primary-200 rounded-lg hover:bg-primary-50 text-primary-600 flex items-center gap-1.5"
+                          className="px-3 py-1.5 text-sm border border-indigo-200 rounded-lg hover:bg-indigo-50 text-indigo-600 flex items-center gap-1.5"
                         >
-                          🧠 Compétences
+                          🧠 {tp.competencies}
                         </button>
                         <button
                           onClick={() => handleSync(selected.employee_id)}
@@ -281,7 +291,7 @@ export default function AllEmployeesCareerPage() {
                           className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 disabled:opacity-50 flex items-center gap-1.5"
                         >
                           <RefreshCw className={`w-3.5 h-3.5 ${syncing === selected.employee_id ? 'animate-spin' : ''}`} />
-                          Synchroniser
+                          {tp.sync}
                         </button>
                         {career.eligibility_status === 'eligible' && career.next_level_id && (
                           <button
@@ -290,7 +300,7 @@ export default function AllEmployeesCareerPage() {
                             className="px-3 py-1.5 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 flex items-center gap-1.5"
                           >
                             <ArrowUpRight className="w-3.5 h-3.5" />
-                            {promoting === career.id ? 'Envoi...' : 'Demander promotion'}
+                            {promoting === career.id ? tp.sending : tp.requestPromotion}
                           </button>
                         )}
                       </div>
@@ -311,7 +321,7 @@ export default function AllEmployeesCareerPage() {
                                   {isPast ? '✓' : level.level_order}
                                 </div>
                                 <p className="text-[10px] mt-1 text-center max-w-[60px] leading-tight text-gray-500">{level.title}</p>
-                                {isCurrent && <span className="mt-0.5 text-[9px] text-primary-500 font-medium">Actuel</span>}
+                                {isCurrent && <span className="mt-0.5 text-[9px] text-primary-500 font-medium">{tp.current}</span>}
                               </div>
                               {i < career.all_levels.length - 1 && (
                                 <div className={`flex-1 h-0.5 mx-1 mt-[-14px] ${isPast ? 'bg-green-400' : 'bg-gray-200'}`} />
@@ -325,18 +335,18 @@ export default function AllEmployeesCareerPage() {
                     {/* Stats */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
-                        <p className="text-xs text-gray-500 mb-1">Progression</p>
+                        <p className="text-xs text-gray-500 mb-1">{tp.progression}</p>
                         <p className="text-2xl font-bold text-primary-600">{career.overall_progress || 0}%</p>
                       </div>
                       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
-                        <p className="text-xs text-gray-500 mb-1">Compétences</p>
+                        <p className="text-xs text-gray-500 mb-1">{tp.competencies}</p>
                         <p className="text-2xl font-bold text-gray-800">
                           {validatedCount}
                           <span className="text-base text-gray-400">/{totalCount}</span>
                         </p>
                       </div>
                       <div className={`rounded-xl border shadow-sm p-4 text-center ${elig.color}`}>
-                        <p className="text-xs opacity-70 mb-1">Éligibilité</p>
+                        <p className="text-xs opacity-70 mb-1">{tp.eligibility}</p>
                         <p className="text-sm font-bold">{elig.label}</p>
                       </div>
                     </div>
@@ -345,7 +355,7 @@ export default function AllEmployeesCareerPage() {
                     {totalCount > 0 && (
                       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
                         <h4 className="font-medium text-gray-900 mb-3">
-                          Compétences — {career.next_level_title ? `"${career.next_level_title}"` : 'niveau actuel'}
+                          {career.next_level_title ? tp.competenciesFor(career.next_level_title) : tp.competenciesCurrentLevel}
                         </h4>
                         <div className="space-y-2">
                           {career.competency_progress.map((comp: any) => {
@@ -376,7 +386,7 @@ export default function AllEmployeesCareerPage() {
                                 </div>
                                 <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 font-medium
                                   ${comp.effective_status === 'validated' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                  {comp.effective_status === 'validated' ? 'Validée' : 'En cours'}
+                                  {comp.effective_status === 'validated' ? tp.validated : tp.inProgressStatus}
                                 </span>
                               </div>
                             );
@@ -388,7 +398,7 @@ export default function AllEmployeesCareerPage() {
                     {/* Historique promotions */}
                     {career.promotion_history?.length > 0 && (
                       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mt-4">
-                        <h4 className="font-medium text-gray-900 mb-3">Historique des promotions</h4>
+                        <h4 className="font-medium text-gray-900 mb-3">{tp.promotionHistory}</h4>
                         <div className="space-y-2">
                           {career.promotion_history.map((pr: any) => (
                             <div key={pr.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
@@ -399,7 +409,7 @@ export default function AllEmployeesCareerPage() {
                                   ${pr.status === 'approved' ? 'bg-green-100 text-green-600' :
                                     pr.status === 'rejected' ? 'bg-red-100 text-red-600' :
                                     'bg-yellow-100 text-yellow-600'}`}>
-                                  {pr.status === 'approved' ? 'Approuvée' : pr.status === 'rejected' ? 'Refusée' : 'En attente'}
+                                  {pr.status === 'approved' ? tp.approved : pr.status === 'rejected' ? tp.rejected : tp.pending}
                                 </span>
                               </div>
                             </div>

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -10,8 +10,10 @@ import {
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { notificationsTips } from '@/config/pageTips';
+import { useI18n } from '@/lib/i18n/I18nContext';
+import type { Translations } from '@/lib/i18n';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 function getAuthHeaders(): HeadersInit {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
@@ -32,53 +34,52 @@ interface Notification {
   created_at: string;
 }
 
-const NOTIF_STYLES: Record<string, { icon: typeof Bell; color: string; bg: string; label: string }> = {
-  onboarding_task: { icon: Handshake, color: 'text-primary-600', bg: 'bg-primary-100', label: 'Onboarding' },
-  onboarding_complete: { icon: CheckCheck, color: 'text-green-600', bg: 'bg-green-100', label: 'Onboarding terminé' },
-  get_to_know_scheduled: { icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-100', label: 'Get to Know' },
-  get_to_know_reminder: { icon: Calendar, color: 'text-orange-600', bg: 'bg-orange-100', label: 'Rappel' },
-  get_to_know_confirmed: { icon: Calendar, color: 'text-green-600', bg: 'bg-green-100', label: 'Get to Know' },
-  document_uploaded: { icon: FileCheck, color: 'text-primary-600', bg: 'bg-primary-100', label: 'Document' },
-  document_shared: { icon: FileCheck, color: 'text-primary-600', bg: 'bg-primary-100', label: 'Document' },
-  leave_approved: { icon: Check, color: 'text-green-600', bg: 'bg-green-100', label: 'Congé approuvé' },
-  leave_rejected: { icon: X, color: 'text-red-600', bg: 'bg-red-100', label: 'Congé refusé' },
-  leave_request: { icon: Plane, color: 'text-primary-600', bg: 'bg-primary-100', label: 'Demande congé' },
-  mission_assigned: { icon: Briefcase, color: 'text-primary-600', bg: 'bg-primary-100', label: 'Mission' },
-  mission_approved: { icon: Check, color: 'text-green-600', bg: 'bg-green-100', label: 'Mission' },
-  mission_rejected: { icon: X, color: 'text-red-600', bg: 'bg-red-100', label: 'Mission' },
-  task_assigned: { icon: ClipboardList, color: 'text-primary-600', bg: 'bg-primary-100', label: 'Tâche' },
-  evaluation_scheduled: { icon: Calendar, color: 'text-yellow-600', bg: 'bg-yellow-100', label: 'Évaluation' },
-  general: { icon: Bell, color: 'text-gray-600', bg: 'bg-gray-100', label: 'Général' },
-  system: { icon: Bell, color: 'text-gray-600', bg: 'bg-gray-100', label: 'Système' },
-};
-
-function getStyle(type: string) {
-  return NOTIF_STYLES[type] || NOTIF_STYLES.general;
+function getNotifStyles(t: Translations) {
+  return {
+    onboarding_task: { icon: Handshake, color: 'text-blue-600', bg: 'bg-blue-100', label: 'Onboarding' },
+    onboarding_complete: { icon: CheckCheck, color: 'text-green-600', bg: 'bg-green-100', label: t.notifications.onboardingComplete },
+    get_to_know_scheduled: { icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-100', label: 'Get to Know' },
+    get_to_know_reminder: { icon: Calendar, color: 'text-orange-600', bg: 'bg-orange-100', label: t.notifications.reminder },
+    get_to_know_confirmed: { icon: Calendar, color: 'text-green-600', bg: 'bg-green-100', label: 'Get to Know' },
+    document_uploaded: { icon: FileCheck, color: 'text-indigo-600', bg: 'bg-indigo-100', label: 'Document' },
+    document_shared: { icon: FileCheck, color: 'text-indigo-600', bg: 'bg-indigo-100', label: 'Document' },
+    leave_approved: { icon: Check, color: 'text-green-600', bg: 'bg-green-100', label: t.notifications.leaveApproved },
+    leave_rejected: { icon: X, color: 'text-red-600', bg: 'bg-red-100', label: t.notifications.leaveRejected },
+    leave_request: { icon: Plane, color: 'text-blue-600', bg: 'bg-blue-100', label: t.notifications.leaveRequest },
+    mission_assigned: { icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-100', label: 'Mission' },
+    mission_approved: { icon: Check, color: 'text-green-600', bg: 'bg-green-100', label: 'Mission' },
+    mission_rejected: { icon: X, color: 'text-red-600', bg: 'bg-red-100', label: 'Mission' },
+    task_assigned: { icon: ClipboardList, color: 'text-blue-600', bg: 'bg-blue-100', label: t.notifications.task },
+    evaluation_scheduled: { icon: Calendar, color: 'text-yellow-600', bg: 'bg-yellow-100', label: t.notifications.evaluation },
+    general: { icon: Bell, color: 'text-gray-600', bg: 'bg-gray-100', label: t.notifications.general },
+    system: { icon: Bell, color: 'text-gray-600', bg: 'bg-gray-100', label: t.notifications.system },
+  } as Record<string, { icon: typeof Bell; color: string; bg: string; label: string }>;
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, t: Translations, locale: string): string {
   const date = new Date(dateStr);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMin = Math.floor(diffMs / 60000);
   const diffH = Math.floor(diffMin / 60);
   const diffD = Math.floor(diffH / 24);
-  if (diffMin < 1) return "À l'instant";
-  if (diffMin < 60) return `Il y a ${diffMin} min`;
-  if (diffH < 24) return `Il y a ${diffH}h`;
-  if (diffD < 2) return 'Hier';
-  if (diffD < 7) return `Il y a ${diffD} jours`;
-  return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  if (diffMin < 1) return t.notifications.justNow;
+  if (diffMin < 60) return t.notifications.minutesAgo.replace('{n}', String(diffMin));
+  if (diffH < 24) return t.notifications.hoursAgo.replace('{n}', String(diffH));
+  if (diffD < 2) return t.notifications.yesterday;
+  if (diffD < 7) return t.notifications.daysAgo.replace('{n}', String(diffD));
+  return date.toLocaleDateString(locale === 'en' ? 'en-US' : locale === 'pt' ? 'pt-BR' : 'fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-function getPriorityBadge(priority: string) {
-  if (priority === 'urgent') return <span className="px-1.5 py-0.5 text-[10px] font-medium bg-red-100 text-red-700 rounded">Urgent</span>;
-  if (priority === 'high') return <span className="px-1.5 py-0.5 text-[10px] font-medium bg-orange-100 text-orange-700 rounded">Haute</span>;
+function getPriorityBadge(priority: string, t: Translations) {
+  if (priority === 'urgent') return <span className="px-1.5 py-0.5 text-[10px] font-medium bg-red-100 text-red-700 rounded">{t.notifications.priorityUrgent}</span>;
+  if (priority === 'high') return <span className="px-1.5 py-0.5 text-[10px] font-medium bg-orange-100 text-orange-700 rounded">{t.notifications.priorityHigh}</span>;
   return null;
 }
 
 export default function NotificationsPage() {
   const router = useRouter();
+  const { t, locale } = useI18n();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -87,6 +88,9 @@ export default function NotificationsPage() {
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const pageSize = 15;
+
+  const NOTIF_STYLES = getNotifStyles(t);
+  const getStyle = (type: string) => NOTIF_STYLES[type] || NOTIF_STYLES.general;
 
   // Tour tips
   const { showTips, dismissTips, resetTips } = usePageTour('notifications');
@@ -144,16 +148,17 @@ export default function NotificationsPage() {
   const unreadInView = notifications.filter(n => !n.is_read).length;
 
   // Grouper par jour
+  const dateLocale = locale === 'en' ? 'en-US' : locale === 'pt' ? 'pt-BR' : 'fr-FR';
   const groupedByDay = notifications.reduce((acc, notif) => {
     const date = new Date(notif.created_at);
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     let label: string;
-    if (date.toDateString() === today.toDateString()) label = "Aujourd'hui";
-    else if (date.toDateString() === yesterday.toDateString()) label = 'Hier';
+    if (date.toDateString() === today.toDateString()) label = t.notifications.today;
+    else if (date.toDateString() === yesterday.toDateString()) label = t.notifications.yesterday;
     else {
-      label = date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+      label = date.toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' });
       label = label.charAt(0).toUpperCase() + label.slice(1);
     }
     if (!acc[label]) acc[label] = [];
@@ -167,11 +172,11 @@ export default function NotificationsPage() {
         <PageTourTips
           tips={notificationsTips}
           onDismiss={dismissTips}
-          pageTitle="Notifications"
+          pageTitle={t.notifications.title}
         />
       )}
-      
-      <Header title="Notifications" subtitle={`${total} notification${total > 1 ? 's' : ''}`} />
+
+      <Header title={t.notifications.title} subtitle={`${total} notification${total > 1 ? 's' : ''}`} />
       <div className="p-6 max-w-4xl mx-auto">
 
         {/* Toolbar */}
@@ -186,7 +191,7 @@ export default function NotificationsPage() {
                     filter === f ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  {f === 'all' ? 'Toutes' : f === 'unread' ? 'Non lues' : 'Lues'}
+                  {f === 'all' ? t.notifications.allFilter : f === 'unread' ? t.notifications.unread : t.notifications.read}
                 </button>
               ))}
             </div>
@@ -197,7 +202,7 @@ export default function NotificationsPage() {
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg transition-colors font-medium"
               >
                 <CheckCheck className="w-4 h-4" />
-                Tout marquer comme lu
+                {t.notifications.markAllRead}
               </button>
             )}
           </div>
@@ -208,7 +213,7 @@ export default function NotificationsPage() {
           {loading ? (
             <div className="py-16 flex flex-col items-center justify-center text-gray-400">
               <Loader2 className="w-8 h-8 animate-spin mb-3" />
-              <p className="text-sm">Chargement...</p>
+              <p className="text-sm">{t.notifications.loading}</p>
             </div>
           ) : notifications.length === 0 ? (
             <div className="py-16 text-center">
@@ -216,9 +221,9 @@ export default function NotificationsPage() {
                 <Bell className="w-8 h-8 text-gray-300" />
               </div>
               <p className="text-gray-500 font-medium">
-                {filter === 'unread' ? 'Aucune notification non lue' : 'Aucune notification'}
+                {filter === 'unread' ? t.notifications.noUnread : t.notifications.noNotifications}
               </p>
-              <p className="text-sm text-gray-400 mt-1">Vous êtes à jour !</p>
+              <p className="text-sm text-gray-400 mt-1">{t.notifications.upToDate}</p>
             </div>
           ) : (
             <>
@@ -235,7 +240,7 @@ export default function NotificationsPage() {
                         key={notif.id}
                         onClick={() => handleClick(notif)}
                         className={`w-full flex items-start gap-4 px-4 py-4 text-left transition-colors border-b border-gray-50 last:border-0 group ${
-                          notif.is_read ? 'hover:bg-gray-50' : 'bg-primary-50/30 hover:bg-primary-50/50'
+                          notif.is_read ? 'hover:bg-gray-50' : 'bg-blue-50/30 hover:bg-blue-50/50'
                         }`}
                       >
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${style.bg}`}>
@@ -247,15 +252,15 @@ export default function NotificationsPage() {
                               <p className={`text-sm ${notif.is_read ? 'text-gray-700' : 'text-gray-900 font-semibold'}`}>
                                 {notif.title}
                               </p>
-                              {getPriorityBadge(notif.priority)}
-                              {!notif.is_read && <span className="w-2 h-2 rounded-full bg-primary-500 flex-shrink-0" />}
+                              {getPriorityBadge(notif.priority, t)}
+                              {!notif.is_read && <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />}
                             </div>
                             <div className="flex items-center gap-1 flex-shrink-0">
-                              <span className="text-xs text-gray-400">{formatDate(notif.created_at)}</span>
+                              <span className="text-xs text-gray-400">{formatDate(notif.created_at, t, locale)}</span>
                               <button
                                 onClick={(e) => handleDelete(e, notif.id)}
                                 className="p-1 opacity-0 group-hover:opacity-100 hover:bg-red-50 rounded transition-all"
-                                title="Supprimer"
+                                title={t.notifications.deleteTitle}
                               >
                                 {actionLoading === notif.id ? (
                                   <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />
@@ -268,7 +273,7 @@ export default function NotificationsPage() {
                           <p className="text-sm text-gray-500 mt-0.5">{notif.message}</p>
                           <div className="flex items-center gap-2 mt-1.5">
                             <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${style.bg} ${style.color}`}>{style.label}</span>
-                            {notif.action_url && <span className="text-[10px] text-primary-500">Cliquer pour voir →</span>}
+                            {notif.action_url && <span className="text-[10px] text-primary-500">{t.notifications.clickToSee}</span>}
                           </div>
                         </div>
                       </button>
@@ -279,7 +284,7 @@ export default function NotificationsPage() {
 
               {totalPages > 1 && (
                 <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
-                  <p className="text-sm text-gray-500">Page {page} sur {totalPages} ({total} résultats)</p>
+                  <p className="text-sm text-gray-500">{t.notifications.pageOf.replace('{page}', String(page)).replace('{totalPages}', String(totalPages)).replace('{total}', String(total))}</p>
                   <div className="flex items-center gap-2">
                     <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
                       className="p-1.5 rounded-lg border border-gray-200 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed">

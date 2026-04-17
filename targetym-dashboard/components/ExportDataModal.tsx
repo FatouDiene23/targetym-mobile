@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
@@ -12,6 +12,8 @@ import {
   getEmployees, getLeaveRequests, getDepartments, getTeamTasks,
   type Employee, type LeaveRequest, type Department, type Task
 } from '@/lib/api';
+import { useI18n } from '@/lib/i18n/I18nContext';
+import type { Translations } from '@/lib/i18n';
 
 // ============================================
 // TYPES
@@ -38,90 +40,98 @@ interface ExportFilters {
 // ============================================
 // COLUMN DEFINITIONS PER DATA TYPE
 // ============================================
-const EMPLOYEE_COLUMNS: ColumnDef[] = [
-  { key: 'employee_id', label: 'Matricule', checked: true, getValue: (e: Employee) => e.employee_id || '' },
-  { key: 'last_name', label: 'Nom', checked: true, getValue: (e: Employee) => e.last_name },
-  { key: 'first_name', label: 'Prénom', checked: true, getValue: (e: Employee) => e.first_name },
-  { key: 'email', label: 'Email', checked: true, getValue: (e: Employee) => e.email },
-  { key: 'phone', label: 'Téléphone', checked: false, getValue: (e: Employee) => e.phone || '' },
-  { key: 'gender', label: 'Genre', checked: false, getValue: (e: Employee) => {
-    const g = e.gender?.toLowerCase();
-    return g === 'male' ? 'Homme' : g === 'female' ? 'Femme' : g || '';
-  }},
-  { key: 'date_of_birth', label: 'Date de naissance', checked: false, getValue: (e: Employee) => fmtDate(e.date_of_birth) },
-  { key: 'nationality', label: 'Nationalité', checked: false, getValue: (e: Employee) => e.nationality || '' },
-  { key: 'address', label: 'Adresse', checked: false, getValue: (e: Employee) => e.address || '' },
-  { key: 'job_title', label: 'Poste', checked: true, getValue: (e: Employee) => e.job_title || e.position || '' },
-  { key: 'department_name', label: 'Département', checked: true, getValue: (e: Employee) => e.department_name || '' },
-  { key: 'site', label: 'Site / Localisation', checked: true, getValue: (e: Employee) => e.site || e.location || '' },
-  { key: 'manager_name', label: 'Manager', checked: false, getValue: (e: Employee) => e.manager_name || '' },
-  { key: 'role', label: 'Rôle système', checked: false, getValue: (e: Employee) => {
-    const roles: Record<string, string> = { employee: 'Employé', manager: 'Manager', rh: 'RH', admin: 'Admin', dg: 'DG' };
-    return roles[e.role || ''] || e.role || '';
-  }},
-  { key: 'is_manager', label: 'Est manager', checked: false, getValue: (e: Employee) => e.is_manager ? 'Oui' : 'Non' },
-  { key: 'hire_date', label: "Date d'embauche", checked: true, getValue: (e: Employee) => fmtDate(e.hire_date) },
-  { key: 'status', label: 'Statut', checked: true, getValue: (e: Employee) => {
-    const s: Record<string, string> = { active: 'Actif', inactive: 'Inactif', on_leave: 'En congés', terminated: 'Terminé', probation: "Période d'essai", suspended: 'Suspendu' };
-    return s[e.status?.toLowerCase() || ''] || e.status || '';
-  }},
-  { key: 'contract_type', label: 'Type de contrat', checked: true, getValue: (e: Employee) => (e.contract_type || '').toUpperCase() },
-  { key: 'classification', label: 'Classification', checked: false, getValue: (e: Employee) => e.classification || '' },
-  { key: 'coefficient', label: 'Coefficient', checked: false, getValue: (e: Employee) => e.coefficient || '' },
-  { key: 'salary', label: 'Salaire', checked: false, getValue: (e: Employee) => e.salary ? `${Number(e.salary).toLocaleString('fr-FR')} ${e.currency || 'XOF'}` : '' },
-  { key: 'probation_end_date', label: "Fin période d'essai", checked: false, getValue: (e: Employee) => fmtDate(e.probation_end_date) },
-  { key: 'contract_end_date', label: 'Fin de contrat', checked: false, getValue: (e: Employee) => fmtDate(e.contract_end_date) },
-];
+function getEmployeeColumns(x: Translations['components']['exportModal'], common: Translations['common']): ColumnDef[] {
+  return [
+    { key: 'employee_id', label: x.colEmployeeId, checked: true, getValue: (e: Employee) => e.employee_id || '' },
+    { key: 'last_name', label: x.colLastName, checked: true, getValue: (e: Employee) => e.last_name },
+    { key: 'first_name', label: x.colFirstName, checked: true, getValue: (e: Employee) => e.first_name },
+    { key: 'email', label: x.colEmail, checked: true, getValue: (e: Employee) => e.email },
+    { key: 'phone', label: x.colPhone, checked: false, getValue: (e: Employee) => e.phone || '' },
+    { key: 'gender', label: x.colGender, checked: false, getValue: (e: Employee) => {
+      const g = e.gender?.toLowerCase();
+      return g === 'male' ? x.colMale : g === 'female' ? x.colFemale : g || '';
+    }},
+    { key: 'date_of_birth', label: x.colBirthDate, checked: false, getValue: (e: Employee) => fmtDate(e.date_of_birth) },
+    { key: 'nationality', label: x.colNationality, checked: false, getValue: (e: Employee) => e.nationality || '' },
+    { key: 'address', label: x.colAddress, checked: false, getValue: (e: Employee) => e.address || '' },
+    { key: 'job_title', label: x.colJobTitle, checked: true, getValue: (e: Employee) => e.job_title || e.position || '' },
+    { key: 'department_name', label: x.colDepartment, checked: true, getValue: (e: Employee) => e.department_name || '' },
+    { key: 'site', label: x.colSite, checked: true, getValue: (e: Employee) => e.site || e.location || '' },
+    { key: 'manager_name', label: x.colManager, checked: false, getValue: (e: Employee) => e.manager_name || '' },
+    { key: 'role', label: x.colRole, checked: false, getValue: (e: Employee) => {
+      const roles: Record<string, string> = { employee: x.roleEmployee, manager: x.roleManager, rh: x.roleRH, admin: x.roleAdmin, dg: x.roleDG };
+      return roles[e.role || ''] || e.role || '';
+    }},
+    { key: 'is_manager', label: x.colIsManager, checked: false, getValue: (e: Employee) => e.is_manager ? common.yes : common.no },
+    { key: 'hire_date', label: x.colHireDate, checked: true, getValue: (e: Employee) => fmtDate(e.hire_date) },
+    { key: 'status', label: x.colStatus, checked: true, getValue: (e: Employee) => {
+      const s: Record<string, string> = { active: x.statusActive, inactive: x.statusInactive, on_leave: x.statusOnLeave, terminated: x.statusTerminated, probation: x.statusProbation, suspended: x.statusSuspended };
+      return s[e.status?.toLowerCase() || ''] || e.status || '';
+    }},
+    { key: 'contract_type', label: x.colContractType, checked: true, getValue: (e: Employee) => (e.contract_type || '').toUpperCase() },
+    { key: 'classification', label: x.colClassification, checked: false, getValue: (e: Employee) => e.classification || '' },
+    { key: 'coefficient', label: x.colCoefficient, checked: false, getValue: (e: Employee) => e.coefficient || '' },
+    { key: 'salary', label: x.colSalary, checked: false, getValue: (e: Employee) => e.salary ? `${Number(e.salary).toLocaleString('fr-FR')} ${e.currency || 'XOF'}` : '' },
+    { key: 'probation_end_date', label: x.colProbationEnd, checked: false, getValue: (e: Employee) => fmtDate(e.probation_end_date) },
+    { key: 'contract_end_date', label: x.colContractEnd, checked: false, getValue: (e: Employee) => fmtDate(e.contract_end_date) },
+  ];
+}
 
-const LEAVE_COLUMNS: ColumnDef[] = [
-  { key: 'employee_name', label: 'Employé', checked: true, getValue: (l: LeaveRequest) => l.employee_name || '' },
-  { key: 'leave_type_name', label: 'Type de congé', checked: true, getValue: (l: LeaveRequest) => l.leave_type_name || '' },
-  { key: 'start_date', label: 'Date début', checked: true, getValue: (l: LeaveRequest) => fmtDate(l.start_date) },
-  { key: 'end_date', label: 'Date fin', checked: true, getValue: (l: LeaveRequest) => fmtDate(l.end_date) },
-  { key: 'days_requested', label: 'Jours demandés', checked: true, getValue: (l: LeaveRequest) => l.days_requested?.toString() || '' },
-  { key: 'status', label: 'Statut', checked: true, getValue: (l: LeaveRequest) => {
-    const s: Record<string, string> = { pending: 'En attente', approved: 'Approuvé', rejected: 'Refusé', cancelled: 'Annulé', draft: 'Brouillon' };
-    return s[l.status] || l.status;
-  }},
-  { key: 'reason', label: 'Motif', checked: false, getValue: (l: LeaveRequest) => l.reason || '' },
-  { key: 'department', label: 'Département', checked: true, getValue: (l: LeaveRequest) => l.department || '' },
-  { key: 'approved_by_name', label: 'Approuvé par', checked: false, getValue: (l: LeaveRequest) => l.approved_by_name || '' },
-  { key: 'approved_at', label: 'Date approbation', checked: false, getValue: (l: LeaveRequest) => fmtDate(l.approved_at) },
-  { key: 'rejection_reason', label: 'Motif refus', checked: false, getValue: (l: LeaveRequest) => l.rejection_reason || '' },
-  { key: 'created_at', label: 'Date demande', checked: true, getValue: (l: LeaveRequest) => fmtDate(l.created_at) },
-];
+function getLeaveColumns(x: Translations['components']['exportModal']): ColumnDef[] {
+  return [
+    { key: 'employee_name', label: x.colEmployee, checked: true, getValue: (l: LeaveRequest) => l.employee_name || '' },
+    { key: 'leave_type_name', label: x.colLeaveType, checked: true, getValue: (l: LeaveRequest) => l.leave_type_name || '' },
+    { key: 'start_date', label: x.colStartDate, checked: true, getValue: (l: LeaveRequest) => fmtDate(l.start_date) },
+    { key: 'end_date', label: x.colEndDate, checked: true, getValue: (l: LeaveRequest) => fmtDate(l.end_date) },
+    { key: 'days_requested', label: x.colDaysRequested, checked: true, getValue: (l: LeaveRequest) => l.days_requested?.toString() || '' },
+    { key: 'status', label: x.colStatus, checked: true, getValue: (l: LeaveRequest) => {
+      const s: Record<string, string> = { pending: x.statusPending, approved: x.statusApproved, rejected: x.statusRejected, cancelled: x.statusCancelled, draft: x.statusDraft };
+      return s[l.status] || l.status;
+    }},
+    { key: 'reason', label: x.colReason, checked: false, getValue: (l: LeaveRequest) => l.reason || '' },
+    { key: 'department', label: x.colDepartment, checked: true, getValue: (l: LeaveRequest) => l.department || '' },
+    { key: 'approved_by_name', label: x.colApprovedBy, checked: false, getValue: (l: LeaveRequest) => l.approved_by_name || '' },
+    { key: 'approved_at', label: x.colApprovalDate, checked: false, getValue: (l: LeaveRequest) => fmtDate(l.approved_at) },
+    { key: 'rejection_reason', label: x.colRejectionReason, checked: false, getValue: (l: LeaveRequest) => l.rejection_reason || '' },
+    { key: 'created_at', label: x.colRequestDate, checked: true, getValue: (l: LeaveRequest) => fmtDate(l.created_at) },
+  ];
+}
 
-const DEPARTMENT_COLUMNS: ColumnDef[] = [
-  { key: 'name', label: 'Nom', checked: true, getValue: (d: Department) => d.name },
-  { key: 'code', label: 'Code', checked: true, getValue: (d: Department) => d.code || '' },
-  { key: 'level', label: 'Niveau', checked: true, getValue: (d: Department) => {
-    const levels: Record<string, string> = { president: 'Présidence', vice_president: 'Vice-Présidence', dg: 'DG', dga: 'DGA', direction_centrale: 'Dir. Centrale', direction: 'Direction', departement: 'Département', service: 'Service' };
-    return levels[d.level || ''] || d.level || '';
-  }},
-  { key: 'employee_count', label: 'Effectif', checked: true, getValue: (d: Department) => d.employee_count?.toString() || '0' },
-  { key: 'is_active', label: 'Actif', checked: false, getValue: (d: Department) => d.is_active !== false ? 'Oui' : 'Non' },
-  { key: 'description', label: 'Description', checked: false, getValue: (d: Department) => d.description || '' },
-];
+function getDepartmentColumns(x: Translations['components']['exportModal'], common: Translations['common']): ColumnDef[] {
+  return [
+    { key: 'name', label: x.colName, checked: true, getValue: (d: Department) => d.name },
+    { key: 'code', label: x.colCode, checked: true, getValue: (d: Department) => d.code || '' },
+    { key: 'level', label: x.colLevel, checked: true, getValue: (d: Department) => {
+      const levels: Record<string, string> = { president: x.levelPresident, vice_president: x.levelVicePresident, dg: x.levelDG, dga: x.levelDGA, direction_centrale: x.levelCentralDir, direction: x.levelDirection, departement: x.levelDepartment, service: x.levelService };
+      return levels[d.level || ''] || d.level || '';
+    }},
+    { key: 'employee_count', label: x.colHeadcount, checked: true, getValue: (d: Department) => d.employee_count?.toString() || '0' },
+    { key: 'is_active', label: x.colActive, checked: false, getValue: (d: Department) => d.is_active !== false ? common.yes : common.no },
+    { key: 'description', label: x.colDescription, checked: false, getValue: (d: Department) => d.description || '' },
+  ];
+}
 
-const TASK_COLUMNS: ColumnDef[] = [
-  { key: 'title', label: 'Titre', checked: true, getValue: (t: Task) => t.title },
-  { key: 'assigned_to_name', label: 'Assigné à', checked: true, getValue: (t: Task) => t.assigned_to_name || '' },
-  { key: 'due_date', label: 'Échéance', checked: true, getValue: (t: Task) => fmtDate(t.due_date) },
-  { key: 'status', label: 'Statut', checked: true, getValue: (t: Task) => {
-    const s: Record<string, string> = { pending: 'En attente', in_progress: 'En cours', completed: 'Terminée', cancelled: 'Annulée' };
-    return s[t.status] || t.status;
-  }},
-  { key: 'priority', label: 'Priorité', checked: true, getValue: (t: Task) => {
-    const p: Record<string, string> = { low: 'Basse', medium: 'Moyenne', high: 'Haute', urgent: 'Urgente' };
-    return p[t.priority] || t.priority;
-  }},
-  { key: 'description', label: 'Description', checked: false, getValue: (t: Task) => t.description || '' },
-  { key: 'created_by_name', label: 'Créé par', checked: false, getValue: (t: Task) => t.created_by_name || '' },
-  { key: 'completed_at', label: 'Date achèvement', checked: false, getValue: (t: Task) => fmtDate(t.completed_at) },
-  { key: 'is_overdue', label: 'En retard', checked: false, getValue: (t: Task) => t.is_overdue ? 'Oui' : 'Non' },
-  { key: 'objective_title', label: 'Objectif lié', checked: false, getValue: (t: Task) => t.objective_title || '' },
-  { key: 'created_at', label: 'Date création', checked: true, getValue: (t: Task) => fmtDate(t.created_at) },
-];
+function getTaskColumns(x: Translations['components']['exportModal'], common: Translations['common']): ColumnDef[] {
+  return [
+    { key: 'title', label: x.colTitle, checked: true, getValue: (tk: Task) => tk.title },
+    { key: 'assigned_to_name', label: x.colAssignedTo, checked: true, getValue: (tk: Task) => tk.assigned_to_name || '' },
+    { key: 'due_date', label: x.colDueDate, checked: true, getValue: (tk: Task) => fmtDate(tk.due_date) },
+    { key: 'status', label: x.colStatus, checked: true, getValue: (tk: Task) => {
+      const s: Record<string, string> = { pending: x.statusPending, in_progress: x.statusInProgress, completed: x.statusCompleted, cancelled: x.statusCancelled };
+      return s[tk.status] || tk.status;
+    }},
+    { key: 'priority', label: x.colPriority, checked: true, getValue: (tk: Task) => {
+      const p: Record<string, string> = { low: x.priorityLow, medium: x.priorityMedium, high: x.priorityHigh, urgent: x.priorityUrgent };
+      return p[tk.priority] || tk.priority;
+    }},
+    { key: 'description', label: x.colDescription, checked: false, getValue: (tk: Task) => tk.description || '' },
+    { key: 'created_by_name', label: x.colCreatedBy, checked: false, getValue: (tk: Task) => tk.created_by_name || '' },
+    { key: 'completed_at', label: x.colCompletedAt, checked: false, getValue: (tk: Task) => fmtDate(tk.completed_at) },
+    { key: 'is_overdue', label: x.colOverdue, checked: false, getValue: (tk: Task) => tk.is_overdue ? common.yes : common.no },
+    { key: 'objective_title', label: x.colObjective, checked: false, getValue: (tk: Task) => tk.objective_title || '' },
+    { key: 'created_at', label: x.colCreatedAt, checked: true, getValue: (tk: Task) => fmtDate(tk.created_at) },
+  ];
+}
 
 function fmtDate(ds?: string): string {
   if (!ds) return '';
@@ -136,18 +146,22 @@ function escapeHtml(str: string): string {
 // ============================================
 // DATA TYPE / FORMAT CONFIG
 // ============================================
-const DATA_TYPES = [
-  { key: 'employees' as DataType, label: 'Employés', sublabel: 'Annuaire complet', icon: Users, color: 'bg-primary-500' },
-  { key: 'leaves' as DataType, label: 'Congés', sublabel: 'Demandes & absences', icon: Palmtree, color: 'bg-green-500' },
-  { key: 'departments' as DataType, label: 'Organisation', sublabel: 'Départements & unités', icon: Building2, color: 'bg-purple-500' },
-  { key: 'tasks' as DataType, label: 'Tâches', sublabel: 'Suivi des activités', icon: ClipboardList, color: 'bg-amber-500' },
-];
+function getDataTypes(x: Translations['components']['exportModal']) {
+  return [
+    { key: 'employees' as DataType, label: x.employees, sublabel: x.employeesSublabel, icon: Users, color: 'bg-primary-500' },
+    { key: 'leaves' as DataType, label: x.leaves, sublabel: x.leavesSublabel, icon: Palmtree, color: 'bg-green-500' },
+    { key: 'departments' as DataType, label: x.organization, sublabel: x.organizationSublabel, icon: Building2, color: 'bg-purple-500' },
+    { key: 'tasks' as DataType, label: x.tasks, sublabel: x.tasksSublabel, icon: ClipboardList, color: 'bg-amber-500' },
+  ];
+}
 
-const FORMAT_OPTIONS = [
-  { key: 'csv' as ExportFormat, label: 'CSV', sublabel: 'Tableur simple', icon: FileText, ext: '.csv' },
-  { key: 'xlsx' as ExportFormat, label: 'Excel', sublabel: 'Microsoft Excel', icon: FileSpreadsheet, ext: '.xlsx' },
-  { key: 'pdf' as ExportFormat, label: 'PDF', sublabel: 'Document PDF', icon: File, ext: '.pdf' },
-];
+function getFormatOptions(x: Translations['components']['exportModal']) {
+  return [
+    { key: 'csv' as ExportFormat, label: 'CSV', sublabel: x.csvSublabel, icon: FileText, ext: '.csv' },
+    { key: 'xlsx' as ExportFormat, label: 'Excel', sublabel: x.excelSublabel, icon: FileSpreadsheet, ext: '.xlsx' },
+    { key: 'pdf' as ExportFormat, label: 'PDF', sublabel: x.pdfSublabel, icon: File, ext: '.pdf' },
+  ];
+}
 
 // ============================================
 // MAIN COMPONENT
@@ -159,6 +173,11 @@ interface ExportDataModalProps {
 }
 
 export default function ExportDataModal({ onClose, initialDataType, departments: propDepartments }: ExportDataModalProps) {
+  const { t } = useI18n();
+  const x = t.components.exportModal;
+  const DATA_TYPES = getDataTypes(x);
+  const FORMAT_OPTIONS = getFormatOptions(x);
+
   const [step, setStep] = useState(initialDataType ? 2 : 1);
   const [dataType, setDataType] = useState<DataType>(initialDataType || 'employees');
   const [format, setFormat] = useState<ExportFormat>('xlsx');
@@ -179,14 +198,15 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
 
   useEffect(() => {
     const colMap: Record<DataType, ColumnDef[]> = {
-      employees: EMPLOYEE_COLUMNS,
-      leaves: LEAVE_COLUMNS,
-      departments: DEPARTMENT_COLUMNS,
-      tasks: TASK_COLUMNS,
+      employees: getEmployeeColumns(x, t.common),
+      leaves: getLeaveColumns(x),
+      departments: getDepartmentColumns(x, t.common),
+      tasks: getTaskColumns(x, t.common),
     };
     setColumns(colMap[dataType].map(c => ({ ...c })));
     setFilters({});
     setDataCount(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataType]);
 
   useEffect(() => {
@@ -284,7 +304,7 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
       setTimeout(() => setExportSuccess(false), 3000);
     } catch (err) {
       console.error('Export error:', err);
-      toast.error("Erreur lors de l'export.");
+      toast.error(x.exportError);
     } finally {
       setIsExporting(false);
     }
@@ -301,8 +321,7 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
 
   // --- XLSX (via HTML table that Excel opens natively) ---
   function exportXLSX(headers: string[], rows: string[][], filename: string) {
-    const typeLabels: Record<DataType, string> = { employees: 'Employés', leaves: 'Congés', departments: 'Organisation', tasks: 'Tâches' };
-    const title = `Export ${typeLabels[dataType]}`;
+    const title = `Export ${DATA_TYPES.find(d => d.key === dataType)?.label || dataType}`;
 
     let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
 <head><meta charset="UTF-8">
@@ -312,7 +331,7 @@ export default function ExportDataModal({ onClose, initialDataType, departments:
 </x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
 <style>
   td, th { padding: 4px 8px; border: 1px solid #ccc; font-family: Calibri, sans-serif; font-size: 11pt; }
-  th { background: #3B82F6; color: white; font-weight: bold; }
+  th { background: #066C6C; color: white; font-weight: bold; }
   tr:nth-child(even) { background: #F5F7FA; }
 </style>
 </head><body>
@@ -327,13 +346,12 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
 
   // --- PDF (via print window) ---
   function exportPDF(headers: string[], rows: string[][], filename: string) {
-    const typeLabels: Record<DataType, string> = { employees: 'Employés', leaves: 'Congés', departments: 'Organisation', tasks: 'Tâches' };
-    const title = `Export ${typeLabels[dataType]}`;
+    const title = `Export ${DATA_TYPES.find(d => d.key === dataType)?.label || dataType}`;
     const dateStr = new Date().toLocaleDateString('fr-FR');
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-      toast.error('Veuillez autoriser les popups pour exporter en PDF.');
+      toast.error(x.popupError);
       return;
     }
 
@@ -345,7 +363,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
   h1 { font-size: 18px; color: #1e3a5f; margin: 0 0 4px 0; }
   .meta { font-size: 11px; color: #666; margin-bottom: 16px; }
   table { width: 100%; border-collapse: collapse; font-size: 10px; }
-  th { background: #3B82F6; color: white; padding: 6px 8px; text-align: left; font-weight: 600; }
+  th { background: #066C6C; color: white; padding: 6px 8px; text-align: left; font-weight: 600; }
   td { padding: 5px 8px; border-bottom: 1px solid #e5e7eb; }
   tr:nth-child(even) { background: #f8f9fb; }
   tr:hover { background: #eef2ff; }
@@ -353,7 +371,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
 </style>
 </head><body>
 <h1>${escapeHtml(title)}</h1>
-<p class="meta">Généré le ${dateStr} — ${rows.length} enregistrement${rows.length > 1 ? 's' : ''}</p>
+<p class="meta">${x.generatedOn} ${dateStr} — ${rows.length} enregistrement${rows.length > 1 ? 's' : ''}</p>
 <table>
 <thead><tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>
 <tbody>
@@ -382,7 +400,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
   function renderStep1() {
     return (
       <div className="p-6">
-        <h3 className="text-sm font-medium text-gray-500 mb-4">Quel type de données exporter ?</h3>
+        <h3 className="text-sm font-medium text-gray-500 mb-4">{x.whatDataType}</h3>
         <div className="grid grid-cols-2 gap-3">
           {DATA_TYPES.map(dt => {
             const Icon = dt.icon;
@@ -418,18 +436,18 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
       <div className="p-6 space-y-5">
         <div>
           <h3 className="text-sm font-medium text-gray-500 mb-3 flex items-center gap-2">
-            <Filter className="w-4 h-4" /> Filtres
+            <Filter className="w-4 h-4" /> {x.filters}
           </h3>
           <div className="grid grid-cols-2 gap-3">
             {(dataType === 'employees' || dataType === 'leaves') && (
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Département</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">{x.colDepartment}</label>
                 <select
                   value={filters.department_id || ''}
                   onChange={(e) => setFilters(f => ({ ...f, department_id: e.target.value ? parseInt(e.target.value) : undefined }))}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 >
-                  <option value="">Tous les départements</option>
+                  <option value="">{x.allDepartments}</option>
                   {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
@@ -437,18 +455,18 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
 
             {dataType === 'employees' && (
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Statut</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">{x.colStatus}</label>
                 <select
                   value={filters.status || ''}
                   onChange={(e) => setFilters(f => ({ ...f, status: e.target.value || undefined }))}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 >
-                  <option value="">Tous les statuts</option>
-                  <option value="active">Actif</option>
-                  <option value="probation">Période d&apos;essai</option>
-                  <option value="on_leave">En congés</option>
-                  <option value="suspended">Suspendu</option>
-                  <option value="terminated">Terminé</option>
+                  <option value="">{x.allStatuses}</option>
+                  <option value="active">{x.activeSt}</option>
+                  <option value="probation">{x.probation}</option>
+                  <option value="on_leave">{x.onLeave}</option>
+                  <option value="suspended">{x.suspended}</option>
+                  <option value="terminated">{x.terminated}</option>
                 </select>
               </div>
             )}
@@ -456,25 +474,25 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
             {dataType === 'leaves' && (
               <>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Statut</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">{x.colStatus}</label>
                   <select
                     value={filters.status || ''}
                     onChange={(e) => setFilters(f => ({ ...f, status: e.target.value || undefined }))}
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                   >
-                    <option value="">Tous</option>
-                    <option value="pending">En attente</option>
-                    <option value="approved">Approuvé</option>
-                    <option value="rejected">Refusé</option>
+                    <option value="">{x.allFilter}</option>
+                    <option value="pending">{x.pendingSt}</option>
+                    <option value="approved">{x.approved}</option>
+                    <option value="rejected">{x.rejected}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Du</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">{x.from}</label>
                   <input type="date" value={filters.date_from || ''} onChange={(e) => setFilters(f => ({ ...f, date_from: e.target.value || undefined }))}
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Au</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">{x.to}</label>
                   <input type="date" value={filters.date_to || ''} onChange={(e) => setFilters(f => ({ ...f, date_to: e.target.value || undefined }))}
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
                 </div>
@@ -483,24 +501,24 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
 
             {dataType === 'tasks' && (
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Statut</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">{x.colStatus}</label>
                 <select
                   value={filters.status || ''}
                   onChange={(e) => setFilters(f => ({ ...f, status: e.target.value || undefined }))}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 >
-                  <option value="">Tous</option>
-                  <option value="pending">En attente</option>
-                  <option value="in_progress">En cours</option>
-                  <option value="completed">Terminée</option>
+                  <option value="">{x.allFilter}</option>
+                  <option value="pending">{x.pendingSt}</option>
+                  <option value="in_progress">{x.inProgressSt}</option>
+                  <option value="completed">{x.completedSt}</option>
                 </select>
               </div>
             )}
 
             {dataType === 'employees' && (
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Recherche</label>
-                <input type="text" placeholder="Nom, email, poste..." value={filters.search || ''}
+                <label className="block text-xs font-medium text-gray-600 mb-1">{x.search}</label>
+                <input type="text" placeholder={x.searchPlaceholder} value={filters.search || ''}
                   onChange={(e) => setFilters(f => ({ ...f, search: e.target.value || undefined }))}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
               </div>
@@ -510,7 +528,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
           <div className="mt-3 flex items-center gap-2">
             {isLoadingData ? <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" /> : <div className="w-2 h-2 bg-green-500 rounded-full" />}
             <span className="text-xs text-gray-500">
-              {dataCount !== null ? `${dataCount} enregistrement${dataCount > 1 ? 's' : ''} trouvé${dataCount > 1 ? 's' : ''}` : 'Chargement...'}
+              {dataCount !== null ? x.recordsFound.replace('{n}', String(dataCount)) : 'x.loadingData'}
             </span>
           </div>
         </div>
@@ -518,19 +536,19 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-gray-500 flex items-center gap-2">
-              <Columns className="w-4 h-4" /> Colonnes ({checkedColumns.length}/{columns.length})
+              <Columns className="w-4 h-4" /> {x.columns} ({checkedColumns.length}/{columns.length})
             </h3>
             <div className="flex gap-2">
-              <button onClick={selectAllColumns} className="text-xs text-primary-600 hover:text-primary-700 font-medium">Tout cocher</button>
+              <button onClick={selectAllColumns} className="text-xs text-primary-600 hover:text-primary-700 font-medium">{x.checkAll}</button>
               <span className="text-gray-300">|</span>
-              <button onClick={deselectAllColumns} className="text-xs text-gray-500 hover:text-gray-700 font-medium">Tout décocher</button>
+              <button onClick={deselectAllColumns} className="text-xs text-gray-500 hover:text-gray-700 font-medium">{x.uncheckAll}</button>
             </div>
           </div>
 
           {columns.length > 8 && (
             <div className="relative mb-2">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-              <input type="text" placeholder="Filtrer les colonnes..." value={columnSearch} onChange={(e) => setColumnSearch(e.target.value)}
+              <input type="text" placeholder={x.filterColumns} value={columnSearch} onChange={(e) => setColumnSearch(e.target.value)}
                 className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
             </div>
           )}
@@ -563,8 +581,8 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
     return (
       <div className="p-6 space-y-5">
         <div>
-          <h3 className="text-sm font-medium text-gray-500 mb-3">Format d&apos;export</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+          <h3 className="text-sm font-medium text-gray-500 mb-3">{x.exportFormat}</h3>
+          <div className="grid grid-cols-3 gap-3">
             {FORMAT_OPTIONS.map(f => {
               const Icon = f.icon;
               const isSelected = format === f.key;
@@ -588,15 +606,15 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
         </div>
 
         <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-          <h3 className="text-sm font-semibold text-gray-700">Résumé de l&apos;export</h3>
+          <h3 className="text-sm font-semibold text-gray-700">{x.exportSummary}</h3>
           <div className="grid grid-cols-2 gap-y-2 text-sm">
-            <span className="text-gray-500">Données</span>
+            <span className="text-gray-500">{x.data}</span>
             <span className="font-medium text-gray-900">{DATA_TYPES.find(d => d.key === dataType)?.label}</span>
-            <span className="text-gray-500">Colonnes</span>
-            <span className="font-medium text-gray-900">{checkedColumns.length} sélectionnée{checkedColumns.length > 1 ? 's' : ''}</span>
-            <span className="text-gray-500">Enregistrements</span>
+            <span className="text-gray-500">{x.columns}</span>
+            <span className="font-medium text-gray-900">{x.selectedColumns.replace('{n}', String(checkedColumns.length))}</span>
+            <span className="text-gray-500">{x.records}</span>
             <span className="font-medium text-gray-900">{dataCount ?? '...'}</span>
-            <span className="text-gray-500">Format</span>
+            <span className="text-gray-500">{x.format}</span>
             <span className="font-medium text-gray-900">{FORMAT_OPTIONS.find(f => f.key === format)?.label} ({FORMAT_OPTIONS.find(f => f.key === format)?.ext})</span>
           </div>
         </div>
@@ -604,7 +622,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
         {exportSuccess && (
           <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
             <Check className="w-4 h-4" />
-            Export réussi ! Le fichier a été téléchargé.
+            {x.exportSuccess}
           </div>
         )}
       </div>
@@ -624,7 +642,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
           <div>
             <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
               <Download className="w-5 h-5 text-primary-500" />
-              Exporter des données
+              {x.title}
             </h2>
             <div className="flex items-center gap-2 mt-1">
               {[1, 2, 3].map(s => (
@@ -637,7 +655,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
                     {s < step ? <Check className="w-3.5 h-3.5" /> : s}
                   </div>
                   <span className={`text-xs ${s === step ? 'text-primary-700 font-medium' : 'text-gray-400'}`}>
-                    {s === 1 ? 'Données' : s === 2 ? 'Colonnes' : 'Export'}
+                    {s === 1 ? x.dataStep : s === 2 ? x.columnsStep : x.exportStep}
                   </span>
                   {s < 3 && <ChevronRight className="w-3 h-3 text-gray-300 mx-1" />}
                 </div>
@@ -663,7 +681,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
             className="flex items-center gap-1 px-4 py-2 text-sm text-gray-600 font-medium hover:bg-gray-200 rounded-lg"
           >
             <ChevronLeft className="w-4 h-4" />
-            {step > 1 ? 'Retour' : 'Annuler'}
+            {step > 1 ? x.back : x.cancel}
           </button>
 
           {step < 3 ? (
@@ -682,7 +700,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
               className="flex items-center gap-2 px-5 py-2 text-sm text-white font-medium bg-primary-500 rounded-lg hover:bg-primary-600 disabled:opacity-50"
             >
               {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              {isExporting ? 'Export en cours...' : 'Exporter'}
+              {isExporting ? x.exporting : x.exportBtn}
             </button>
           )}
         </div>

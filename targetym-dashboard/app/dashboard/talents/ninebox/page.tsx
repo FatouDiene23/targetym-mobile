@@ -10,13 +10,14 @@ import { useEffect, useState } from 'react';
 import { Target, User, Filter, Eye, Edit, ArrowRight, ArrowUpRight, Award, RefreshCw, Zap } from 'lucide-react';
 import { useTalents } from '../TalentsContext';
 import {
-  NineBoxEmployee, QUADRANT_LABELS, PERFORMANCE_LABELS, POTENTIAL_LABELS,
+  NineBoxEmployee, getQuadrantLabels, getPerformanceLabels, getPotentialLabels,
   getInitials, formatDate, isRH, getUserDepartment
 } from '../shared';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { talentsTips } from '@/config/pageTips';
 import toast from 'react-hot-toast';
+import { useI18n } from '@/lib/i18n/I18nContext';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
@@ -30,6 +31,11 @@ function getAuthHeaders(): HeadersInit {
 }
 
 export default function NineBoxPage() {
+  const { t } = useI18n();
+  const tp = t.talents.nineBoxPage;
+  const QUADRANT_LABELS = getQuadrantLabels(t);
+  const PERFORMANCE_LABELS = getPerformanceLabels(t);
+  const POTENTIAL_LABELS = getPotentialLabels(t);
   const { nineBoxData, loadNineBox } = useTalents();
   const [selectedPeriod, setSelectedPeriod] = useState<string>('');
   const [selectedDept, setSelectedDept] = useState<string>('');
@@ -44,7 +50,7 @@ export default function NineBoxPage() {
     const period = selectedPeriod || new Date().getFullYear() + '-annual';
     setConfirmOpen(false);
     setAutoComputing(true);
-    const toastId = toast.loading('Calcul en cours…');
+    const toastId = toast.loading(tp.computingToast);
     try {
       const res = await fetch(`${API_URL}/api/careers/ninebox/auto-compute?period=${encodeURIComponent(period)}`, {
         method: 'POST', headers: getAuthHeaders(),
@@ -52,15 +58,15 @@ export default function NineBoxPage() {
       if (res.ok) {
         const data = await res.json();
         toast.success(
-          `${data.computed} placement${data.computed > 1 ? 's' : ''} calculé${data.computed > 1 ? 's' : ''} pour ${data.period}`,
+          tp.computeSuccess(data.computed, data.period),
           { id: toastId }
         );
         loadNineBox(period || undefined, selectedDept || undefined);
       } else {
-        toast.error('Erreur lors du calcul automatique', { id: toastId });
+        toast.error(tp.computeError, { id: toastId });
       }
     } catch {
-      toast.error('Erreur réseau', { id: toastId });
+      toast.error(tp.networkError, { id: toastId });
     } finally { setAutoComputing(false); }
   };
 
@@ -117,19 +123,19 @@ export default function NineBoxPage() {
         <PageTourTips
           tips={talentsTips}
           onDismiss={dismissTips}
-          pageTitle="Matrice 9-Box"
+          pageTitle={tp.title}
         />
       )}
-      <Header title="Matrice 9-Box" subtitle="Performance × Potentiel" />
+      <Header title={tp.title} subtitle={tp.subtitle} />
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
         {/* Filters */}
         <div data-tour="ninebox-filters" className="flex flex-wrap gap-3 mb-6">
           <select
             value={selectedPeriod}
             onChange={e => handleFilterChange(e.target.value, undefined)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-full sm:w-auto"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
           >
-            <option value="">Dernière période</option>
+            <option value="">{tp.lastPeriod}</option>
             {data?.available_periods?.map(p => (
               <option key={p} value={p}>{p}</option>
             ))}
@@ -138,9 +144,9 @@ export default function NineBoxPage() {
             <select
               value={selectedDept}
               onChange={e => handleFilterChange(undefined, e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-full sm:w-auto"
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
             >
-              <option value="">Tous les départements</option>
+              <option value="">{tp.allDepartments}</option>
               {data?.available_departments?.map(d => (
                 <option key={d} value={d}>{d}</option>
               ))}
@@ -148,25 +154,25 @@ export default function NineBoxPage() {
           ) : (
             <div className="px-4 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-600 flex items-center gap-2">
               <span className="w-2 h-2 bg-primary-500 rounded-full" />
-              {getUserDepartment() || 'Mon département'}
+              {getUserDepartment() || tp.myDepartment}
             </div>
           )}
 
           {/* Stats inline */}
           <div className="ml-auto flex gap-3 items-center text-sm flex-wrap">
-            <span className="text-gray-500">Total: <strong className="text-gray-900">{data?.total || 0}</strong></span>
-            <span className="text-green-600">Stars: <strong>{data?.stats?.stars || 0}</strong></span>
-            <span className="text-blue-600">Hauts Pot.: <strong>{data?.stats?.high_potentials || 0}</strong></span>
-            <span className="text-red-600">À risque: <strong>{data?.stats?.at_risk || 0}</strong></span>
+            <span className="text-gray-500">{tp.total}: <strong className="text-gray-900">{data?.total || 0}</strong></span>
+            <span className="text-green-600">{tp.stars}: <strong>{data?.stats?.stars || 0}</strong></span>
+            <span className="text-blue-600">{tp.highPotentials}: <strong>{data?.stats?.high_potentials || 0}</strong></span>
+            <span className="text-red-600">{tp.atRisk}: <strong>{data?.stats?.at_risk || 0}</strong></span>
             {isRHUser && (
               <button
                 onClick={handleAutoCompute}
                 disabled={autoComputing}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:opacity-50 ml-2"
-                title="Calcule automatiquement depuis évaluations, OKR et compétences"
+                title={t.talents.nineBox.autoComputeTooltip}
               >
                 {autoComputing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-                {autoComputing ? 'Calcul…' : 'Auto-calculer'}
+                {autoComputing ? tp.computing : tp.autoCompute}
               </button>
             )}
           </div>
@@ -175,12 +181,12 @@ export default function NineBoxPage() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* 9-Box Grid */}
           <div data-tour="ninebox-grid" className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Matrice Performance × Potentiel</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">{tp.matrixTitle}</h3>
 
             <div className="relative">
               {/* Y-axis label */}
               <div className="absolute -left-8 top-1/2 -translate-y-1/2 -rotate-90 text-sm font-medium text-gray-500 whitespace-nowrap">
-                POTENTIEL →
+                {tp.potential}
               </div>
 
               <div className="ml-4">
@@ -235,17 +241,17 @@ export default function NineBoxPage() {
                   ))}
                 </div>
 
-                <div className="text-center mt-2 text-sm font-medium text-gray-500">← PERFORMANCE</div>
+                <div className="text-center mt-2 text-sm font-medium text-gray-500">{tp.performance}</div>
               </div>
             </div>
 
             {/* Legend */}
             <div data-tour="ninebox-legend" className="mt-6 grid grid-cols-3 gap-4 text-xs">
-              <div className="flex items-center gap-2"><div className="w-4 h-4 bg-green-500 rounded"></div><span>Stars / Hauts Potentiels</span></div>
-              <div className="flex items-center gap-2"><div className="w-4 h-4 bg-blue-500 rounded"></div><span>Performants Clés</span></div>
-              <div className="flex items-center gap-2"><div className="w-4 h-4 bg-yellow-500 rounded"></div><span>À Développer</span></div>
-              <div className="flex items-center gap-2"><div className="w-4 h-4 bg-orange-500 rounded"></div><span>Attention Requise</span></div>
-              <div className="flex items-center gap-2"><div className="w-4 h-4 bg-red-500 rounded"></div><span>Action Urgente</span></div>
+              <div className="flex items-center gap-2"><div className="w-4 h-4 bg-green-500 rounded"></div><span>{tp.legendStars}</span></div>
+              <div className="flex items-center gap-2"><div className="w-4 h-4 bg-blue-500 rounded"></div><span>{tp.legendPerformers}</span></div>
+              <div className="flex items-center gap-2"><div className="w-4 h-4 bg-yellow-500 rounded"></div><span>{tp.legendDevelop}</span></div>
+              <div className="flex items-center gap-2"><div className="w-4 h-4 bg-orange-500 rounded"></div><span>{tp.legendAttention}</span></div>
+              <div className="flex items-center gap-2"><div className="w-4 h-4 bg-red-500 rounded"></div><span>{tp.legendUrgent}</span></div>
             </div>
           </div>
 
@@ -256,7 +262,7 @@ export default function NineBoxPage() {
             ) : (
               <div className="text-center text-gray-500 py-12">
                 <User className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>Cliquez sur un collaborateur dans la matrice pour voir son profil</p>
+                <p>{tp.clickEmployee}</p>
               </div>
             )}
           </div>
@@ -272,25 +278,25 @@ export default function NineBoxPage() {
                 <Zap className="w-5 h-5 text-indigo-600" />
               </div>
               <div>
-                <p className="font-semibold text-gray-900">Calcul automatique 9-Box</p>
-                <p className="text-sm text-gray-500">Période : {selectedPeriod || new Date().getFullYear() + '-annual'}</p>
+                <p className="font-semibold text-gray-900">{tp.autoComputeTitle}</p>
+                <p className="text-sm text-gray-500">{t.talents.nineBox.period} {selectedPeriod || new Date().getFullYear() + '-annual'}</p>
               </div>
             </div>
             <p className="text-sm text-gray-600 mb-5">
-              Les placements seront recalculés depuis les évaluations, OKR et compétences pour tous les collaborateurs actifs.
+              {tp.autoComputeDescription}
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setConfirmOpen(false)}
                 className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                Annuler
+                {tp.cancel}
               </button>
               <button
                 onClick={doAutoCompute}
                 className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
               >
-                Calculer
+                {tp.compute}
               </button>
             </div>
           </div>
@@ -305,6 +311,8 @@ export default function NineBoxPage() {
 // ============================================
 
 function EmployeePanel({ employee }: { employee: NineBoxEmployee }) {
+  const { t } = useI18n();
+  const tp = t.talents.nineBoxPage;
   const { loadEmployeeCareerDetail } = useTalents();
   const [careerData, setCareerData] = useState<any>(null);
 
@@ -327,27 +335,27 @@ function EmployeePanel({ employee }: { employee: NineBoxEmployee }) {
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="text-center p-3 bg-gray-50 rounded-lg">
           <p className="text-2xl font-bold text-primary-600">{employee.performance}/5</p>
-          <p className="text-xs text-gray-500">Performance</p>
+          <p className="text-xs text-gray-500">{tp.performanceLabel}</p>
         </div>
         <div className="text-center p-3 bg-gray-50 rounded-lg">
           <p className="text-2xl font-bold text-green-600">{employee.potential}/5</p>
-          <p className="text-xs text-gray-500">Potentiel</p>
+          <p className="text-xs text-gray-500">{tp.potentialLabel}</p>
         </div>
       </div>
 
       {career && (
         <div className="space-y-4">
           <div>
-            <p className="text-xs text-gray-500 mb-1">Parcours</p>
+            <p className="text-xs text-gray-500 mb-1">{tp.path}</p>
             <p className="font-medium text-gray-900">{career.path_name}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500 mb-1">Niveau Actuel</p>
+            <p className="text-xs text-gray-500 mb-1">{tp.currentLevel}</p>
             <p className="font-medium text-gray-900">{career.current_level_title}</p>
           </div>
           {career.next_level_title && (
             <div>
-              <p className="text-xs text-gray-500 mb-1">Prochain Niveau</p>
+              <p className="text-xs text-gray-500 mb-1">{tp.nextLevel}</p>
               <div className="flex items-center gap-2">
                 <ArrowUpRight className="w-4 h-4 text-primary-500" />
                 <span className="font-medium text-gray-900">{career.next_level_title}</span>
@@ -355,7 +363,7 @@ function EmployeePanel({ employee }: { employee: NineBoxEmployee }) {
             </div>
           )}
           <div>
-            <p className="text-xs text-gray-500 mb-1">Progression</p>
+            <p className="text-xs text-gray-500 mb-1">{tp.progression}</p>
             <div className="flex items-center gap-2">
               <div className="flex-1 h-2 bg-gray-200 rounded-full">
                 <div
@@ -369,7 +377,7 @@ function EmployeePanel({ employee }: { employee: NineBoxEmployee }) {
 
           {career.all_levels && (
             <div>
-              <p className="text-xs text-gray-500 mb-2">Parcours Complet</p>
+              <p className="text-xs text-gray-500 mb-2">{tp.fullPath}</p>
               <div className="flex items-center gap-1 text-xs text-gray-600 flex-wrap">
                 {career.all_levels.map((lv: any, i: number) => (
                   <span key={lv.id} className="flex items-center">
@@ -386,7 +394,7 @@ function EmployeePanel({ employee }: { employee: NineBoxEmployee }) {
       )}
 
       {!career && (
-        <p className="text-sm text-gray-400 text-center mt-4">Aucun parcours de carrière assigné</p>
+        <p className="text-sm text-gray-400 text-center mt-4">{tp.noCareerPath}</p>
       )}
     </>
   );

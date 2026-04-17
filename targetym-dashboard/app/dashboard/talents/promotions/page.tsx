@@ -1,4 +1,4 @@
-﻿// ============================================
+// ============================================
 // app/dashboard/talents/promotions/page.tsx
 // Demandes de Promotion & Approbations
 // ============================================
@@ -9,14 +9,16 @@ import Header from '@/components/Header';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { ArrowUpRight, Check, X, Clock, Filter, RefreshCw, AlertTriangle } from 'lucide-react';
-import CustomSelect from '@/components/CustomSelect';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { promotionsTips } from '@/config/pageTips';
 import { useTalents } from '../TalentsContext';
 import { ELIGIBILITY_LABELS, getInitials, formatDate, isRH } from '../shared';
+import { useI18n } from '@/lib/i18n/I18nContext';
 
 export default function PromotionsPage() {
+  const { t } = useI18n();
+  const tp = t.talents.promotionsPage;
   const {
     promotions, loadPromotions, decidePromotion, cancelPromotion,
     employeeCareers, loadEmployeeCareers, requestPromotion,
@@ -83,9 +85,9 @@ export default function PromotionsPage() {
   return (
     <>
       {showTips && (
-        <PageTourTips tips={promotionsTips} onDismiss={dismissTips} pageTitle="Promotions" />
+        <PageTourTips tips={promotionsTips} onDismiss={dismissTips} pageTitle={tp.title} />
       )}
-      <Header title="Promotions" subtitle="Demandes, éligibilités et approbations" />
+      <Header title={tp.title} subtitle={tp.subtitle} />
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
@@ -95,7 +97,7 @@ export default function PromotionsPage() {
               className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'requests' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}
             >
               <Clock className="w-4 h-4 inline mr-2" />
-              Demandes de Promotion
+              {tp.promotionRequests}
               {pendingCount > 0 && (
                 <span className="ml-2 px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-full">{pendingCount}</span>
               )}
@@ -105,7 +107,7 @@ export default function PromotionsPage() {
               className={`flex-1 px-6 py-4 text-sm font-medium ${activeTab === 'eligible' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'}`}
             >
               <ArrowUpRight className="w-4 h-4 inline mr-2" />
-              Employés Éligibles
+              {tp.eligibleEmployees}
               {eligibles.length > 0 && (
                 <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">{eligibles.length}</span>
               )}
@@ -117,30 +119,30 @@ export default function PromotionsPage() {
         {activeTab === 'requests' && (
           <>
             <div className="flex justify-between items-center gap-4 mb-4" data-tour="eligibility-filters">
-              <CustomSelect
+              <select
                 value={filterStatus}
-                onChange={handleFilter}
-                options={[
-                  { value: '', label: 'Tous les statuts' },
-                  { value: 'pending', label: 'En attente' },
-                  { value: 'approved', label: 'Approuvées' },
-                  { value: 'rejected', label: 'Rejetées' },
-                ]}
-              />
+                onChange={e => handleFilter(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+              >
+                <option value="">{tp.allStatuses}</option>
+                <option value="pending">{tp.pending}</option>
+                <option value="approved">{tp.approved}</option>
+                <option value="rejected">{tp.rejected}</option>
+              </select>
             </div>
 
             <div className="space-y-3" data-tour="promotions-list">
               {promotions.length === 0 ? (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
                   <ArrowUpRight className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p className="text-gray-500">Aucune demande de promotion</p>
+                  <p className="text-gray-500">{tp.noPromotionRequest}</p>
                 </div>
               ) : (
                 promotions.map(req => {
                   const statusInfo = {
-                    pending: { label: 'En attente', color: 'text-orange-600 bg-orange-100', icon: Clock },
-                    approved: { label: 'Approuvée', color: 'text-green-600 bg-green-100', icon: Check },
-                    rejected: { label: 'Rejetée', color: 'text-red-600 bg-red-100', icon: X },
+                    pending: { label: tp.pendingLabel, color: 'text-orange-600 bg-orange-100', icon: Clock },
+                    approved: { label: tp.approvedLabel, color: 'text-green-600 bg-green-100', icon: Check },
+                    rejected: { label: tp.rejectedLabel, color: 'text-red-600 bg-red-100', icon: X },
                   }[req.status] || { label: req.status, color: 'text-gray-600 bg-gray-100', icon: Clock };
 
                   const StatusIcon = statusInfo.icon;
@@ -182,7 +184,7 @@ export default function PromotionsPage() {
                                   <input
                                     value={decisionForm.comments}
                                     onChange={e => setDecisionForm({ ...decisionForm, comments: e.target.value })}
-                                    placeholder="Commentaire..."
+                                    placeholder={tp.commentPlaceholder}
                                     className="px-2 py-1 border border-gray-300 rounded text-xs w-32"
                                   />
                                   <button onClick={() => handleDecision(req.id, 'approved')}
@@ -204,15 +206,15 @@ export default function PromotionsPage() {
                                     onClick={() => setDecidingId(req.id)}
                                     className="px-3 py-1.5 bg-primary-500 text-white text-xs font-medium rounded hover:bg-primary-600"
                                   >
-                                    Décider
+                                    {tp.decide}
                                   </button>
                                   <button
                                     onClick={() => handleCancel(req.id)}
                                     disabled={cancellingId === req.id}
                                     className="px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-medium rounded hover:bg-gray-200 disabled:opacity-50"
-                                    title="Annuler la demande"
+                                    title={tp.cancel}
                                   >
-                                    {cancellingId === req.id ? '...' : 'Annuler'}
+                                    {cancellingId === req.id ? '...' : tp.cancel}
                                   </button>
                                 </div>
                               )}
@@ -225,10 +227,10 @@ export default function PromotionsPage() {
                       {req.status !== 'pending' && req.comments && (
                         <div className="mt-3 pt-3 border-t border-gray-100">
                           <p className="text-xs text-gray-500">
-                            <strong>Commentaire :</strong> {req.comments}
+                            <strong>{tp.comment} :</strong> {req.comments}
                           </p>
                           {req.decision_date && (
-                            <p className="text-xs text-gray-400 mt-1">Décision le {formatDate(req.decision_date)}</p>
+                            <p className="text-xs text-gray-400 mt-1">{tp.decisionOn(formatDate(req.decision_date))}</p>
                           )}
                         </div>
                       )}
@@ -244,7 +246,7 @@ export default function PromotionsPage() {
         {activeTab === 'eligible' && (
           <>
             <div className="flex justify-between items-center mb-4">
-              <p className="text-sm text-gray-500">{eligibles.length} employé(s) éligible(s) à une promotion</p>
+              <p className="text-sm text-gray-500">{tp.eligibleCount(eligibles.length)}</p>
               {canApprove && (
                 <button
                   onClick={handleSync}
@@ -252,7 +254,7 @@ export default function PromotionsPage() {
                   className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 disabled:opacity-50"
                 >
                   <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-                  {syncing ? 'Synchronisation...' : 'Synchroniser toutes les progressions'}
+                  {syncing ? tp.syncing : tp.syncAll}
                 </button>
               )}
             </div>
@@ -262,13 +264,13 @@ export default function PromotionsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="bg-gray-50 text-xs text-gray-500 uppercase">
-                    <th className="px-4 py-3 text-left">Employé</th>
-                    <th className="px-4 py-3 text-left">Parcours</th>
-                    <th className="px-4 py-3 text-left">Niveau actuel</th>
-                    <th className="px-4 py-3 text-left">Prochain</th>
-                    <th className="px-4 py-3 text-center">Progression</th>
-                    <th className="px-4 py-3 text-center">Statut</th>
-                    <th className="px-4 py-3 text-center">Action</th>
+                    <th className="px-4 py-3 text-left">{tp.employeeCol}</th>
+                    <th className="px-4 py-3 text-left">{tp.pathCol}</th>
+                    <th className="px-4 py-3 text-left">{tp.currentLevel}</th>
+                    <th className="px-4 py-3 text-left">{tp.nextCol}</th>
+                    <th className="px-4 py-3 text-center">{tp.progressionCol}</th>
+                    <th className="px-4 py-3 text-center">{tp.statusCol}</th>
+                    <th className="px-4 py-3 text-center">{tp.actionCol}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -312,7 +314,7 @@ export default function PromotionsPage() {
                               onClick={() => handleRequestPromo(ec.id)}
                               className="px-3 py-1 bg-green-500 text-white text-xs font-medium rounded hover:bg-green-600"
                             >
-                              Promouvoir
+                              {tp.promote}
                             </button>
                           )}
                         </td>
@@ -322,7 +324,7 @@ export default function PromotionsPage() {
                   {employeeCareers.length === 0 && (
                     <tr>
                       <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                        Aucun employé assigné à un parcours
+                        {tp.noEmployeeAssigned}
                       </td>
                     </tr>
                   )}

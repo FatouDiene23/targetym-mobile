@@ -559,12 +559,8 @@ export default function DeparturesPage() {
       });
       if (!res.ok) throw new Error();
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `solde_tout_compte_${selectedDep.employee_name.replace(/ /g, '_')}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const { downloadFile } = await import('@/lib/capacitor-plugins');
+      await downloadFile(blob, `solde_tout_compte_${selectedDep.employee_name.replace(/ /g, '_')}.pdf`);
       toast.success(t.departures.pdfGenerated);
     } catch {
       toast.error(t.departures.pdfGenerationError);
@@ -580,12 +576,8 @@ export default function DeparturesPage() {
       });
       if (!res.ok) throw new Error();
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `certificat_travail_${selectedDep.employee_name.replace(/ /g, '_')}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const { downloadFile } = await import('@/lib/capacitor-plugins');
+      await downloadFile(blob, `certificat_travail_${selectedDep.employee_name.replace(/ /g, '_')}.pdf`);
       toast.success(t.departures.certificateGenerated);
     } catch {
       toast.error(t.departures.certificateGenerationError);

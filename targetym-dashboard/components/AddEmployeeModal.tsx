@@ -7,8 +7,8 @@ import {
   type Department, type Employee, type GenderType, type ContractType, type StatusType, type EmployeeRole
 } from '@/lib/api';
 import NationalitySelect from '@/components/NationalitySelect';
-import CustomSelect from '@/components/CustomSelect';
 import { COUNTRIES } from '@/data/countries';
+import { useI18n } from '@/lib/i18n/I18nContext';
 
 interface TenantSkill {
   id: number;
@@ -24,17 +24,18 @@ interface AddEmployeeModalProps {
   onSuccess: () => void;
 }
 
-const ROLE_OPTIONS: { value: EmployeeRole; label: string; description: string }[] = [
-  { value: 'employee', label: 'Employé', description: 'Collaborateur standard' },
-  { value: 'manager', label: 'Manager', description: 'Gère une équipe' },
-  { value: 'rh', label: 'RH', description: 'Équipe Ressources Humaines' },
-  { value: 'admin', label: 'Administrateur', description: 'DAF, Directeur...' },
-  { value: 'dg', label: 'Direction Générale', description: 'DG, CODIR' },
-];
-
 const CONTRACT_TYPES_WITH_END_DATE = ['cdd', 'stage', 'alternance', 'interim'];
 
 export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModalProps) {
+  const { t } = useI18n();
+
+  const ROLE_OPTIONS: { value: EmployeeRole; label: string; description: string }[] = [
+    { value: 'employee', label: t.components.addEmployee.roles.employee, description: t.components.addEmployee.roles.employeeDesc },
+    { value: 'manager', label: t.components.addEmployee.roles.manager, description: t.components.addEmployee.roles.managerDesc },
+    { value: 'rh', label: t.components.addEmployee.roles.rh, description: t.components.addEmployee.roles.rhDesc },
+    { value: 'admin', label: t.components.addEmployee.roles.admin, description: t.components.addEmployee.roles.adminDesc },
+    { value: 'dg', label: t.components.addEmployee.roles.dg, description: t.components.addEmployee.roles.dgDesc },
+  ];
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -280,7 +281,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('Erreur lors de la création');
+        setError(t.components.addEmployee.errorCreating);
       }
     } finally {
       setIsLoading(false);
@@ -316,9 +317,9 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
   if (showSkillsStep && createdEmployee) {
     const skillsByType: Record<string, TenantSkill[]> = {};
     for (const s of availableSkills) {
-      const group = s.skill_type === 'technical' ? 'Compétences techniques'
-        : s.skill_type === 'soft_skill' ? 'Soft skills'
-        : 'Management';
+      const group = s.skill_type === 'technical' ? t.components.addEmployee.skills.technical
+        : s.skill_type === 'soft_skill' ? t.components.addEmployee.skills.softSkills
+        : t.components.addEmployee.skills.management;
       skillsByType[group] = [...(skillsByType[group] || []), s];
     }
     return (
@@ -329,8 +330,8 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               <Brain className="w-5 h-5 text-purple-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Compétences initiales</h2>
-              <p className="text-xs text-gray-500">Définissez les niveaux de départ pour ce collaborateur (0 = non évalué)</p>
+              <h2 className="text-lg font-bold text-gray-900">{t.components.addEmployee.skills.title}</h2>
+              <p className="text-xs text-gray-500">{t.components.addEmployee.skills.subtitle}</p>
             </div>
           </div>
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -366,7 +367,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               onClick={() => { setShowSkillsStep(false); proceedAfterSkills(); }}
               className="text-sm text-gray-500 hover:text-gray-700"
             >
-              Passer cette étape
+              {t.components.addEmployee.skills.skipStep}
             </button>
             <button
               onClick={proceedAfterSkills}
@@ -374,7 +375,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               className="flex items-center gap-2 px-5 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50"
             >
               {isSavingSkills ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
-              Enregistrer et continuer
+              {t.components.addEmployee.skills.saveAndContinue}
             </button>
           </div>
         </div>
@@ -391,19 +392,18 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Key className="w-8 h-8 text-green-600" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Compte créé avec succès !</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">{t.components.addEmployee.accessCreated}</h2>
             <p className="text-gray-600 mb-6">
-              Un compte a été créé pour <strong>{createdEmployee.email}</strong>
+              {t.components.addEmployee.accessCreatedFor} <strong>{createdEmployee.email}</strong>
             </p>
-            
+
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-              <p className="text-sm text-yellow-800 mb-2">Mot de passe temporaire :</p>
+              <p className="text-sm text-yellow-800 mb-2">{t.components.addEmployee.tempPassword}</p>
               <p className="font-mono text-lg font-bold text-yellow-900 select-all">
                 {tempPassword}
               </p>
               <p className="text-xs text-yellow-700 mt-2">
-                ⚠️ Notez ce mot de passe, il ne sera plus affiché.
-                L&apos;employé devra le changer à sa première connexion.
+                {t.components.addEmployee.tempPasswordWarning}
               </p>
             </div>
             
@@ -411,7 +411,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
               onClick={handleCloseAfterAccess}
               className="w-full px-4 py-2 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600"
             >
-              Fermer
+              {t.common.close}
             </button>
           </div>
         </div>
@@ -427,7 +427,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <h2 className="text-xl font-bold text-gray-900">Nouvel Employé</h2>
+          <h2 className="text-xl font-bold text-gray-900">{t.components.addEmployee.title}</h2>
         </div>
 
         {/* Form */}
@@ -441,7 +441,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
           <div className="grid grid-cols-2 gap-4">
             {/* Matricule */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Matricule *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{`${t.components.addEmployee.fields.employeeId} *`}</label>
               <input
                 type="text"
                 name="employee_id"
@@ -455,7 +455,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{`${t.components.addEmployee.fields.email} *`}</label>
               <input
                 type="email"
                 name="email"
@@ -469,13 +469,13 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* Prénom */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.firstName} *</label>
               <input
                 type="text"
                 name="first_name"
                 value={formData.first_name}
                 onChange={handleChange}
-                placeholder="Prénom"
+                placeholder={t.components.addEmployee.fields.firstName}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 required
               />
@@ -483,13 +483,13 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* Nom */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.lastName} *</label>
               <input
                 type="text"
                 name="last_name"
                 value={formData.last_name}
                 onChange={handleChange}
-                placeholder="Nom"
+                placeholder={t.components.addEmployee.fields.lastName}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 required
               />
@@ -497,7 +497,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* Téléphone */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.phone}</label>
               <input
                 type="tel"
                 name="phone"
@@ -510,22 +510,22 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* Genre */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Genre</label>
-              <CustomSelect
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.gender}</label>
+              <select
+                name="gender"
                 value={formData.gender}
-                onChange={(v) => setFormData(prev => ({ ...prev, gender: v as GenderType }))}
-                placeholder="Genre"
-                options={[
-                  { value: 'male', label: 'Homme' },
-                  { value: 'female', label: 'Femme' },
-                  { value: 'other', label: 'Autre' },
-                ]}
-              />
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              >
+                <option value="male">{t.components.addEmployee.fields.male}</option>
+                <option value="female">{t.components.addEmployee.fields.female}</option>
+                <option value="other">{t.components.addEmployee.fields.other}</option>
+              </select>
             </div>
 
             {/* Date de naissance */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date de naissance</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.dateOfBirth}</label>
               <input
                 type="date"
                 name="date_of_birth"
@@ -537,18 +537,18 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* Nationalité */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nationalité</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.nationality}</label>
               <NationalitySelect
                 value={formData.nationality}
                 onChange={(val) => setFormData(prev => ({ ...prev, nationality: val }))}
-                placeholder="Sélectionner un pays..."
+                placeholder={t.components.addEmployee.fields.selectCountry}
                 options={COUNTRIES}
               />
             </div>
 
             {/* Poste */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Poste *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.jobTitle} *</label>
               <input
                 type="text"
                 name="job_title"
@@ -562,43 +562,61 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* Unité */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Unité</label>
-              <CustomSelect
-                value={String(formData.department_id)}
-                onChange={(v) => setFormData(prev => ({ ...prev, department_id: v }))}
-                placeholder={isLoadingData ? 'Chargement...' : 'Sélectionner...'}
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.unit}</label>
+              <select
+                name="department_id"
+                value={formData.department_id}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 disabled={isLoadingData}
-                options={[
-                  { value: '', label: 'Sélectionner...' },
-                  ...departments.map(d => ({ value: String(d.id), label: d.parent_id ? `↳ ${d.name}` : d.name })),
-                ]}
-              />
+              >
+                <option value="">
+                  {isLoadingData ? t.common.loading : t.components.addEmployee.fields.selectOption}
+                </option>
+                {departments.map(dept => (
+                  <option key={dept.id} value={dept.id}>
+                    {dept.parent_id ? `  ↳ ${dept.name}` : dept.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Manager */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Manager (N+1)</label>
-              <CustomSelect
-                value={String(formData.manager_id)}
-                onChange={(v) => setFormData(prev => ({ ...prev, manager_id: v }))}
-                placeholder={isLoadingData ? 'Chargement...' : 'Aucun (poste de direction)'}
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.managerN1}</label>
+              <select
+                name="manager_id"
+                value={formData.manager_id}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 disabled={isLoadingData}
-                options={[
-                  { value: '', label: 'Aucun (poste de direction)' },
-                  ...managers.map(m => ({ value: String(m.id), label: `${m.first_name} ${m.last_name}${m.job_title ? ` — ${m.job_title}` : ''}` })),
-                ]}
-              />
+              >
+                <option value="">
+                  {isLoadingData ? t.common.loading : t.components.addEmployee.fields.noManager}
+                </option>
+                {managers.map(mgr => (
+                  <option key={mgr.id} value={mgr.id}>
+                    {mgr.first_name} {mgr.last_name} - {mgr.job_title || mgr.position || ''}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Rôle système */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
-              <CustomSelect
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.role}</label>
+              <select
+                name="role"
                 value={formData.role}
-                onChange={(v) => setFormData(prev => ({ ...prev, role: v as EmployeeRole }))}
-                placeholder="Rôle"
-                options={ROLE_OPTIONS.map(r => ({ value: r.value, label: r.label }))}
-              />
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              >
+                {ROLE_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
               <p className="text-xs text-gray-500 mt-1">
                 {ROLE_OPTIONS.find(r => r.value === formData.role)?.description}
               </p>
@@ -614,7 +632,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
                   onChange={handleChange}
                   className="w-4 h-4 text-primary-500 border-gray-300 rounded focus:ring-primary-500"
                 />
-                <span className="ml-2 text-sm text-gray-700">Est un manager</span>
+                <span className="ml-2 text-sm text-gray-700">{t.components.addEmployee.fields.isManager}</span>
               </label>
             </div>
 
@@ -628,13 +646,13 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
                   onChange={handleChange}
                   className="w-4 h-4 text-primary-500 border-gray-300 rounded focus:ring-primary-500"
                 />
-                <span className="ml-2 text-sm text-gray-700">Juriste (accès module Contentieux)</span>
+                <span className="ml-2 text-sm text-gray-700">{t.components.addEmployee.fields.isJuriste}</span>
               </label>
             </div>
 
             {/* Site */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Site / Localisation</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.site}</label>
               <input
                 type="text"
                 name="site"
@@ -647,7 +665,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* Date d'embauche */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date d&apos;embauche *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.hireDate} *</label>
               <input
                 type="date"
                 name="hire_date"
@@ -660,27 +678,27 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* Type de contrat */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Type de contrat</label>
-              <CustomSelect
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.contractType}</label>
+              <select
+                name="contract_type"
                 value={formData.contract_type}
-                onChange={(v) => setFormData(prev => ({ ...prev, contract_type: v as ContractType }))}
-                placeholder="Type de contrat"
-                options={[
-                  { value: 'cdi', label: 'CDI' },
-                  { value: 'cdd', label: 'CDD' },
-                  { value: 'stage', label: 'Stage' },
-                  { value: 'alternance', label: 'Alternance' },
-                  { value: 'consultant', label: 'Consultant' },
-                  { value: 'interim', label: 'Intérim' },
-                ]}
-              />
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              >
+                <option value="cdi">{t.components.addEmployee.fields.cdi}</option>
+                <option value="cdd">{t.components.addEmployee.fields.cdd}</option>
+                <option value="stage">{t.components.addEmployee.fields.stage}</option>
+                <option value="alternance">{t.components.addEmployee.fields.alternance}</option>
+                <option value="consultant">{t.components.addEmployee.fields.consultant}</option>
+                <option value="interim">{t.components.addEmployee.fields.interim}</option>
+              </select>
             </div>
 
             {/* Date de fin de contrat — conditionnel CDD/Stage/Alternance/Intérim */}
             {CONTRACT_TYPES_WITH_END_DATE.includes(formData.contract_type) && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date de fin de contrat *
+                  {t.components.addEmployee.fields.contractEndDate} *
                 </label>
                 <input
                   type="date"
@@ -691,36 +709,36 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {formData.contract_type === 'cdd' && "Date d'échéance du CDD"}
-                  {formData.contract_type === 'stage' && 'Date de fin du stage'}
-                  {formData.contract_type === 'alternance' && "Date de fin de l'alternance"}
-                  {formData.contract_type === 'interim' && 'Date de fin de mission'}
+                  {formData.contract_type === 'cdd' && t.components.addEmployee.fields.cddEndHint}
+                  {formData.contract_type === 'stage' && t.components.addEmployee.fields.stageEndHint}
+                  {formData.contract_type === 'alternance' && t.components.addEmployee.fields.alternanceEndHint}
+                  {formData.contract_type === 'interim' && t.components.addEmployee.fields.interimEndHint}
                 </p>
               </div>
             )}
 
             {/* Statut */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
-              <CustomSelect
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.status}</label>
+              <select
+                name="status"
                 value={formData.status}
-                onChange={(v) => setFormData(prev => ({ ...prev, status: v as StatusType }))}
-                placeholder="Statut"
-                options={[
-                  { value: 'active', label: 'Actif' },
-                  { value: 'probation', label: "Période d'essai" },
-                  { value: 'on_leave', label: 'En congés' },
-                  { value: 'suspended', label: 'Suspendu' },
-                  { value: 'terminated', label: 'Terminé' },
-                ]}
-              />
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              >
+                <option value="active">{t.components.addEmployee.fields.active}</option>
+                <option value="probation">{t.components.addEmployee.fields.probation}</option>
+                <option value="on_leave">{t.components.addEmployee.fields.onLeave}</option>
+                <option value="suspended">{t.components.addEmployee.fields.suspended}</option>
+                <option value="terminated">{t.components.addEmployee.fields.terminated}</option>
+              </select>
             </div>
 
             {/* Fin de période d'essai — conditionnel */}
             {formData.status === 'probation' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Fin de période d&apos;essai *
+                  {t.components.addEmployee.fields.probationEnd} *
                 </label>
                 <input
                   type="date"
@@ -731,34 +749,34 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Date à laquelle la période d&apos;essai se termine
+                  {t.components.addEmployee.fields.probationEndHint}
                 </p>
               </div>
             )}
 
             {/* Classification */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Classification</label>
-              <CustomSelect
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.classification}</label>
+              <select
+                name="classification"
                 value={formData.classification}
-                onChange={(v) => setFormData(prev => ({ ...prev, classification: v }))}
-                placeholder="Non définie"
-                options={[
-                  { value: '', label: 'Non définie' },
-                  { value: 'Cadre dirigeant', label: 'Cadre dirigeant' },
-                  { value: 'Cadre supérieur', label: 'Cadre supérieur' },
-                  { value: 'Cadre', label: 'Cadre' },
-                  { value: 'Agent de maîtrise', label: 'Agent de maîtrise' },
-                  { value: 'Employé', label: 'Employé' },
-                  { value: 'Non-cadre', label: 'Non-cadre' },
-                  { value: 'Ouvrier', label: 'Ouvrier' },
-                ]}
-              />
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              >
+                <option value="">{t.components.addEmployee.fields.notDefined}</option>
+                <option value="Cadre dirigeant">{t.components.addEmployee.fields.cadreDir}</option>
+                <option value="Cadre supérieur">{t.components.addEmployee.fields.cadreSup}</option>
+                <option value="Cadre">{t.components.addEmployee.fields.cadre}</option>
+                <option value="Agent de maîtrise">{t.components.addEmployee.fields.agentMaitrise}</option>
+                <option value="Employé">{t.components.addEmployee.fields.employeeClass}</option>
+                <option value="Non-cadre">{t.components.addEmployee.fields.nonCadre}</option>
+                <option value="Ouvrier">{t.components.addEmployee.fields.ouvrier}</option>
+              </select>
             </div>
 
             {/* Coefficient */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Coefficient</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.coefficient}</label>
               <input
                 type="text"
                 name="coefficient"
@@ -767,12 +785,12 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
                 placeholder="Ex: 350"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
-              <p className="text-xs text-gray-500 mt-1">Niveau dans la grille de la convention collective</p>
+              <p className="text-xs text-gray-500 mt-1">{t.components.addEmployee.fields.coefficientHint}</p>
             </div>
 
             {/* Salaire brut mensuel */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Salaire brut mensuel</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.grossSalary}</label>
               <div className="flex">
                 <input
                   type="number"
@@ -804,7 +822,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* Part variable */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Part variable</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.variablePay}</label>
               <input
                 type="number"
                 name="part_variable"
@@ -815,46 +833,46 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
                 min="0"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
-              <p className="text-xs text-gray-500 mt-1">Prime ou commission variable mensuelle</p>
+              <p className="text-xs text-gray-500 mt-1">{t.components.addEmployee.fields.variablePayHint}</p>
             </div>
 
             {/* === INFO FAMILIALE === */}
             <div className="col-span-2 mt-4 mb-1">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">Informations Familiales</h3>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">{t.components.addEmployee.sections.familyInfo}</h3>
             </div>
 
             {/* Situation matrimoniale */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Situation matrimoniale</label>
-              <CustomSelect
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.maritalStatus}</label>
+              <select
+                name="marital_status"
                 value={formData.marital_status}
-                onChange={(v) => setFormData(prev => ({ ...prev, marital_status: v }))}
-                placeholder="Non renseigné"
-                options={[
-                  { value: '', label: 'Non renseigné' },
-                  { value: 'celibataire', label: 'Célibataire' },
-                  { value: 'marie', label: 'Marié(e)' },
-                  { value: 'concubinage', label: 'Concubinage' },
-                  { value: 'divorce', label: 'Divorcé(e)' },
-                  { value: 'veuvage', label: 'Veuvage' },
-                  { value: 'autre', label: 'Autre' },
-                ]}
-              />
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              >
+                <option value="">{t.components.addEmployee.sections.notSpecified}</option>
+                <option value="celibataire">{t.components.addEmployee.sections.single}</option>
+                <option value="marie">{t.components.addEmployee.sections.married}</option>
+                <option value="concubinage">{t.components.addEmployee.sections.cohabitation}</option>
+                <option value="divorce">{t.components.addEmployee.sections.divorced}</option>
+                <option value="veuvage">{t.components.addEmployee.sections.widowed}</option>
+                <option value="autre">{t.components.addEmployee.fields.other}</option>
+              </select>
             </div>
 
             {/* Âge (calculé depuis date de naissance) */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Âge</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.age}</label>
               <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 text-sm">
                 {formData.date_of_birth
-                  ? `${Math.floor((new Date().getTime() - new Date(formData.date_of_birth).getTime()) / (365.25 * 24 * 3600 * 1000))} ans`
-                  : 'Renseigner la date de naissance'}
+                  ? `${Math.floor((new Date().getTime() - new Date(formData.date_of_birth).getTime()) / (365.25 * 24 * 3600 * 1000))} ${t.components.addEmployee.sections.yearsOld}`
+                  : t.components.addEmployee.sections.enterDob}
               </div>
             </div>
 
             {/* Nombre d'enfants */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre d&apos;enfants à charge</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.childrenCount}</label>
               <input
                 type="number"
                 name="nb_enfants"
@@ -864,23 +882,23 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
                 max={20}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
-              <p className="text-xs text-gray-500 mt-1">Utilisé pour le calcul des parts fiscales (paie)</p>
+              <p className="text-xs text-gray-500 mt-1">{t.components.addEmployee.sections.childrenHint}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Conjoint(e) — Nom & Prénom</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.spouseName}</label>
               <input
                 type="text"
                 name="spouse_name"
                 value={formData.spouse_name}
                 onChange={handleChange}
-                placeholder="Nom et prénom du conjoint"
+                placeholder={t.components.addEmployee.sections.spouseNamePlaceholder}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
             </div>
 
             {/* Conjoint(e) - Date de naissance */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Conjoint(e) — Date de naissance</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.spouseDob}</label>
               <input
                 type="date"
                 name="spouse_birth_date"
@@ -892,12 +910,12 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* === ADRESSE PROFESSIONNELLE === */}
             <div className="col-span-2 mt-4 mb-1">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">Adresse Professionnelle</h3>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">{t.components.addEmployee.sections.workAddress}</h3>
             </div>
 
             {/* Email professionnel */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email professionnel</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.workEmail}</label>
               <input
                 type="email"
                 name="work_email"
@@ -910,7 +928,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* Téléphone professionnel */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone professionnel</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.workPhone}</label>
               <input
                 type="tel"
                 name="work_phone"
@@ -923,7 +941,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* === INFORMATION MÉDICALE === */}
             <div className="col-span-2 mt-4 mb-1">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">Information Médicale</h3>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">{t.components.addEmployee.sections.medicalInfo}</h3>
             </div>
 
             {/* Handicap */}
@@ -936,20 +954,20 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
                   onChange={handleChange}
                   className="w-4 h-4 text-primary-500 border-gray-300 rounded focus:ring-primary-500"
                 />
-                <span className="ml-2 text-sm text-gray-700">Situation de handicap</span>
+                <span className="ml-2 text-sm text-gray-700">{t.components.addEmployee.sections.disability}</span>
               </label>
             </div>
 
             {/* Nature du handicap (conditionnel) */}
             {formData.has_disability && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nature du handicap</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.disabilityNature}</label>
                 <input
                   type="text"
                   name="disability_description"
                   value={formData.disability_description}
                   onChange={handleChange}
-                  placeholder="Décrire la nature du handicap"
+                  placeholder={t.components.addEmployee.sections.disabilityPlaceholder}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 />
               </div>
@@ -957,20 +975,20 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* Contact urgence - Nom & Prénom */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Personne à contacter — Nom & Prénom</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.emergencyName}</label>
               <input
                 type="text"
                 name="emergency_contact_name"
                 value={formData.emergency_contact_name}
                 onChange={handleChange}
-                placeholder="Nom et prénom"
+                placeholder={t.components.addEmployee.sections.emergencyName}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
             </div>
 
             {/* Contact urgence - Téléphone */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Personne à contacter — Téléphone</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.emergencyPhone}</label>
               <input
                 type="tel"
                 name="emergency_contact_phone"
@@ -983,12 +1001,12 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* === ORGANISATION === */}
             <div className="col-span-2 mt-4 mb-1">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">Organisation</h3>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">{t.components.addEmployee.sections.organization}</h3>
             </div>
 
             {/* Membre COMEX */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Membre COMEX</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.comexMember}</label>
               <input
                 type="text"
                 name="comex_member"
@@ -1001,7 +1019,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* HRBP */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">HRBP</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.hrbp}</label>
               <input
                 type="text"
                 name="hrbp"
@@ -1014,7 +1032,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* Catégorie salariale */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie salariale</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.salaryCategory}</label>
               <input
                 type="text"
                 name="salary_category"
@@ -1027,17 +1045,17 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* === ADRESSE PERSONNELLE === */}
             <div className="col-span-2 mt-4 mb-1">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">Adresse Personnelle</h3>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">{t.components.addEmployee.sections.personalAddress}</h3>
             </div>
 
             {/* Adresse */}
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.address}</label>
               <textarea
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
-                placeholder="Adresse complète"
+                placeholder={t.components.addEmployee.sections.addressPlaceholder}
                 rows={2}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
               />
@@ -1045,10 +1063,10 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
 
             {/* Photo de profil */}
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Photo de profil</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t.components.addEmployee.sections.profilePhoto}</label>
               <div className="flex items-center gap-4">
                 {photoPreview ? (
-                  <img src={photoPreview} alt="Prévisualisation" className="w-16 h-16 rounded-full object-cover border border-gray-200 flex-shrink-0" />
+                  <img src={photoPreview} alt={t.components.addEmployee.sections.preview} className="w-16 h-16 rounded-full object-cover border border-gray-200 flex-shrink-0" />
                 ) : (
                   <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-300 flex-shrink-0">
                     <Camera className="w-6 h-6" />
@@ -1061,7 +1079,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
                     onChange={handlePhotoChange}
                     className="block w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 cursor-pointer"
                   />
-                  <p className="text-xs text-gray-400 mt-1">PNG, JPEG, WebP — max 5 Mo</p>
+                  <p className="text-xs text-gray-400 mt-1">{t.components.addEmployee.sections.photoHint}</p>
                 </div>
               </div>
             </div>
@@ -1077,10 +1095,10 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
                 <div className="ml-3">
                   <span className="text-sm font-medium text-gray-900 flex items-center">
                     <Key className="w-4 h-4 mr-1" />
-                    Créer un compte d&apos;accès
+                    {t.components.addEmployee.sections.createAccess}
                   </span>
                   <p className="text-xs text-gray-500 mt-1">
-                    Un compte sera créé avec un mot de passe temporaire que vous devrez communiquer à l&apos;employé.
+                    {t.components.addEmployee.sections.createAccessHint}
                   </p>
                 </div>
               </label>
@@ -1095,7 +1113,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
             onClick={onClose}
             className="px-4 py-2 text-sm text-gray-600 font-medium hover:bg-gray-200 rounded-lg"
           >
-            Annuler
+            {t.common.cancel}
           </button>
           <button
             onClick={handleSubmit}
@@ -1103,7 +1121,7 @@ export default function AddEmployeeModal({ onClose, onSuccess }: AddEmployeeModa
             className="px-4 py-2 text-sm text-white font-medium bg-primary-500 rounded-lg hover:bg-primary-600 disabled:opacity-50 flex items-center"
           >
             {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {formData.create_access ? 'Créer avec compte' : 'Créer l\'employé'}
+            {formData.create_access ? t.components.addEmployee.createWithAccess : t.components.addEmployee.createEmployee}
           </button>
         </div>
       </div>

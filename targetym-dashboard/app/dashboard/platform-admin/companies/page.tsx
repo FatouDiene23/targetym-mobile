@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -44,7 +44,7 @@ function StatusBadge({ tenant }: { tenant: TenantListItem }) {
   }
   if (status === 'subscribed') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary-100 text-primary-700 border border-primary-200">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
         <Shield size={11} /> Abonné
       </span>
     );
@@ -65,7 +65,7 @@ export default function CompaniesPage() {
   const [loading, setLoading] = useState(true);
   const [tenants, setTenants] = useState<TenantListItem[]>([]);
   const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState<StatusTab>('pending');
+  const [activeTab, setActiveTab] = useState<StatusTab>('all');
 
   // Modale activation
   const [activatingTenant, setActivatingTenant] = useState<TenantListItem | null>(null);
@@ -81,6 +81,12 @@ export default function CompaniesPage() {
   // Modale détail
   const [detailTenant, setDetailTenant] = useState<TenantDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  // Pagination
+  const PAGE_SIZE = 20;
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const openDetail = async (id: number) => {
     setDetailLoading(true);
@@ -108,15 +114,17 @@ export default function CompaniesPage() {
   }, [router]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Chargement ──────────────────────────────────────────────────────────────
-  const loadTenants = useCallback(async (tab: StatusTab, q?: string) => {
+  const loadTenants = useCallback(async (tab: StatusTab, q?: string, p: number = 1) => {
     setLoading(true);
     try {
       const data = await getAllTenants({
         status: tab === 'active' ? 'active' : tab === 'expired' ? 'expired' : tab === 'pending' ? 'pending' : 'all',
         search: q,
-        limit: 200,
+        page: p,
+        page_size: PAGE_SIZE,
       });
-      setTenants(data);
+      setTenants(data.items);
+      setTotal(data.total);
     } catch {
       toast.error('Erreur de chargement des entreprises');
     } finally {
@@ -126,12 +134,19 @@ export default function CompaniesPage() {
 
   const handleTabChange = (tab: StatusTab) => {
     setActiveTab(tab);
-    loadTenants(tab, search);
+    setPage(1);
+    loadTenants(tab, search, 1);
   };
 
   const handleSearch = (val: string) => {
     setSearch(val);
-    loadTenants(activeTab, val);
+    setPage(1);
+    loadTenants(activeTab, val, 1);
+  };
+
+  const handlePageChange = (p: number) => {
+    setPage(p);
+    loadTenants(activeTab, search, p);
   };
 
   // ── Activation ──────────────────────────────────────────────────────────────
@@ -146,7 +161,7 @@ export default function CompaniesPage() {
     setActivating(true);
     try {
       await activateTenant(activatingTenant.id, { activation_note: activateNote || undefined });
-      toast.success(`✅ ${activatingTenant.name} activé — trial 30 jours`);
+      toast.success(`✅ ${activatingTenant.name} activé — trial 90 jours`);
       setActivatingTenant(null);
       loadTenants(activeTab, search);
     } catch (e: any) {
@@ -196,7 +211,7 @@ export default function CompaniesPage() {
           <ChevronLeft size={20} />
         </Link>
         <div className="flex items-center gap-3">
-          <div className="bg-primary-600 p-2 rounded-xl">
+          <div className="bg-indigo-600 p-2 rounded-xl">
             <Building2 size={22} className="text-white" />
           </div>
           <div>
@@ -222,7 +237,7 @@ export default function CompaniesPage() {
               onClick={() => handleTabChange(tab.id)}
               className={`px-6 py-3.5 text-sm font-medium transition-colors border-b-2 ${
                 activeTab === tab.id
-                  ? 'border-primary-600 text-primary-700 bg-primary-50/40'
+                  ? 'border-indigo-600 text-indigo-700 bg-indigo-50/40'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
@@ -238,7 +253,7 @@ export default function CompaniesPage() {
                 value={search}
                 onChange={(e) => handleSearch(e.target.value)}
                 placeholder="Rechercher..."
-                className="pl-8 pr-4 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 w-48"
+                className="pl-8 pr-4 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 w-48"
               />
             </div>
           </div>
@@ -247,7 +262,7 @@ export default function CompaniesPage() {
         {/* Table */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent" />
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent" />
           </div>
         ) : tenants.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
@@ -322,6 +337,49 @@ export default function CompaniesPage() {
             </table>
           </div>
         )}
+        {/* Pagination */}
+        {!loading && total > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
+            <p className="text-sm text-gray-500">
+              {total} résultat{total > 1 ? 's' : ''}{totalPages > 1 ? ` — page ${page} / ${totalPages}` : ''}
+            </p>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page <= 1}
+                  className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                >
+                  ←
+                </button>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const pageNum = page <= 3 ? i + 1 : page - 2 + i;
+                  if (pageNum < 1 || pageNum > totalPages) return null;
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`px-3 py-1.5 text-sm rounded-lg border ${
+                        pageNum === page
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                      } transition-colors`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page >= totalPages}
+                  className="px-3 py-1.5 text-sm rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                >
+                  →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Modale Activation ──────────────────────────────────────────────── */}
@@ -351,7 +409,7 @@ export default function CompaniesPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Durée du trial</span>
-                <span className="font-medium text-green-700">30 jours</span>
+                <span className="font-medium text-green-700">90 jours</span>
               </div>
             </div>
 
@@ -378,7 +436,7 @@ export default function CompaniesPage() {
                 onChange={(e) => setActivateNote(e.target.value)}
                 placeholder="Ex: Formés le 12/03/2026, paiement reçu par virement..."
                 rows={2}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
               />
             </div>
 
@@ -463,15 +521,15 @@ export default function CompaniesPage() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             {detailLoading ? (
               <div className="flex items-center justify-center py-20">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent" />
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent" />
               </div>
             ) : detailTenant ? (
               <>
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                   <div className="flex items-center gap-3">
-                    <div className="bg-primary-100 p-2 rounded-xl">
-                      <Building2 size={20} className="text-primary-600" />
+                    <div className="bg-indigo-100 p-2 rounded-xl">
+                      <Building2 size={20} className="text-indigo-600" />
                     </div>
                     <div>
                       <h2 className="font-bold text-gray-900 text-base">{detailTenant.name}</h2>
@@ -493,7 +551,7 @@ export default function CompaniesPage() {
                   </div>
 
                   {/* Infos principales */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="bg-gray-50 rounded-xl p-3">
                       <p className="text-xs text-gray-400 mb-0.5">Email admin</p>
                       <p className="font-medium text-gray-800 truncate">{detailTenant.email || '—'}</p>

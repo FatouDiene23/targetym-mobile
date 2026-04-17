@@ -2241,14 +2241,14 @@ function ActionsTab({ actions, canManage, currency, onAddAction, onEditAction, o
                         <button
                           onClick={() => onEditAction(action)}
                           className="p-1.5 hover:bg-primary-50 rounded-lg text-gray-400 hover:text-primary-600 transition-colors"
-                          title="Modifier"
+                          title={t.common.edit}
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => onDeleteAction(action.id)}
                           className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-600 transition-colors"
-                          title="Supprimer"
+                          title={t.common.delete}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -2474,7 +2474,7 @@ function ObjectivesTab({ objectives, canManage, onAddObjective, onDeleteObjectiv
                     <button
                       onClick={() => onDeleteObjective(obj.id)}
                       className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-600 transition-colors"
-                      title="Supprimer"
+                      title={t.common.delete}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -2490,9 +2490,10 @@ function ObjectivesTab({ objectives, canManage, onAddObjective, onDeleteObjectiv
 }
 
 function TargetsTab({ targets, canManage, onAddTarget, onDeleteTarget }: { targets: PlanTarget[]; canManage: boolean; onAddTarget: () => void; onDeleteTarget: (id: number) => void }) {
+  const { t: tr } = useI18n();
   const TARGET_TYPE_LABELS: Record<string, string> = {
-    department: 'Département',
-    profile: 'Profil',
+    department: tr.common.department,
+    profile: tr.common.position,
     level: 'Niveau',
   };
 
@@ -2540,7 +2541,7 @@ function TargetsTab({ targets, canManage, onAddTarget, onDeleteTarget }: { targe
                       <button
                         onClick={() => onDeleteTarget(t.id)}
                         className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-600 transition-colors"
-                        title="Supprimer"
+                        title={tr.common.delete}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import AddOrganizationalUnitModal from '@/components/AddOrganizationalUnitModal';
 import AddEmployeeModal from '@/components/AddEmployeeModal';
+import { useI18n } from '@/lib/i18n/I18nContext';
+import type { Translations } from '@/lib/i18n';
 
 // ============================================
 // TYPES
@@ -38,7 +40,7 @@ interface PageConfig {
 // API CONFIG
 // ============================================
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 function getAuthHeaders(): HeadersInit {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
@@ -46,67 +48,71 @@ function getAuthHeaders(): HeadersInit {
 }
 
 // ============================================
-// CONFIGURATION PAR PAGE
+// CONFIGURATION PAR PAGE (built with translations)
 // ============================================
 
-const defaultConfig: PageConfig = {
-  title: 'Que souhaitez-vous ajouter ?',
-  options: [
-    { id: 'employee', label: 'Employé', description: 'Ajouter un nouveau collaborateur', icon: User, color: 'bg-primary-100 text-primary-600' },
-    { id: 'department', label: 'Unité Organisationnelle', description: 'DG, Direction, Département, Service...', icon: Building2, color: 'bg-purple-100 text-purple-600' },
-  ]
-};
+function getPageConfigs(t: Translations): { defaultConfig: PageConfig; pageConfigs: Record<string, PageConfig> } {
+  const a = t.components.addModal;
+  const defaultConfig: PageConfig = {
+    title: a.whatToAdd,
+    options: [
+      { id: 'employee', label: a.employee, description: a.addEmployee, icon: User, color: 'bg-primary-100 text-primary-600' },
+      { id: 'department', label: a.orgUnit, description: a.orgUnitDesc, icon: Building2, color: 'bg-purple-100 text-purple-600' },
+    ]
+  };
 
-const pageConfigs: Record<string, PageConfig> = {
-  '/dashboard': defaultConfig,
-  '/dashboard/employees': defaultConfig,
-  '/dashboard/recruitment': {
-    title: 'Que souhaitez-vous ajouter ?',
-    options: [
-      { id: 'candidate', label: 'Candidat', description: 'Ajouter un nouveau candidat', icon: UserPlus, color: 'bg-green-100 text-green-600' },
-      { id: 'job', label: 'Offre d\'emploi', description: 'Créer une nouvelle offre', icon: Briefcase, color: 'bg-purple-100 text-purple-600' },
-    ]
-  },
-  '/dashboard/training': {
-    title: 'Que souhaitez-vous ajouter ?',
-    options: [
-      { id: 'training', label: 'Formation', description: 'Créer une nouvelle formation', icon: GraduationCap, color: 'bg-orange-100 text-orange-600' },
-      { id: 'dev-plan', label: 'Plan de développement', description: 'Créer un plan pour un employé', icon: ClipboardList, color: 'bg-primary-100 text-primary-600' },
-    ]
-  },
-  '/dashboard/okr': {
-    title: 'Que souhaitez-vous ajouter ?',
-    options: [
-      { id: 'objective', label: 'Objectif', description: 'Créer un nouvel objectif', icon: Target, color: 'bg-yellow-100 text-yellow-600' },
-      { id: 'key-result', label: 'Key Result', description: 'Ajouter un résultat clé', icon: TrendingUp, color: 'bg-green-100 text-green-600' },
-    ]
-  },
-  '/dashboard/conges': {
-    title: 'Nouvelle demande',
-    options: [
-      { id: 'leave', label: 'Demande de congé', description: 'Créer une nouvelle demande de congé', icon: Calendar, color: 'bg-primary-100 text-primary-600' },
-    ]
-  },
-  '/dashboard/performance': {
-    title: 'Que souhaitez-vous ajouter ?',
-    options: [
-      { id: 'evaluation', label: 'Évaluation', description: 'Créer une nouvelle évaluation', icon: TrendingUp, color: 'bg-purple-100 text-purple-600' },
-      { id: 'feedback', label: 'Feedback', description: 'Donner un feedback', icon: MessageSquare, color: 'bg-green-100 text-green-600' },
-    ]
-  },
-  '/dashboard/certificates': {
-    title: 'Certificats',
-    options: [
-      { id: 'certificate', label: 'Certificat de travail', description: 'Générer un certificat pour un employé', icon: FileText, color: 'bg-primary-100 text-primary-600' },
-    ]
-  },
-  '/dashboard/missions': {
-    title: 'Que souhaitez-vous ajouter ?',
-    options: [
-      { id: 'mission', label: 'Demande de mission', description: 'Créer une nouvelle demande', icon: Plane, color: 'bg-primary-100 text-primary-600' },
-    ]
-  },
-};
+  const pageConfigs: Record<string, PageConfig> = {
+    '/dashboard': defaultConfig,
+    '/dashboard/employees': defaultConfig,
+    '/dashboard/recruitment': {
+      title: a.whatToAdd,
+      options: [
+        { id: 'candidate', label: a.candidate, description: a.addCandidate, icon: UserPlus, color: 'bg-green-100 text-green-600' },
+        { id: 'job', label: a.jobPosting, description: a.createJobPosting, icon: Briefcase, color: 'bg-purple-100 text-purple-600' },
+      ]
+    },
+    '/dashboard/training': {
+      title: a.whatToAdd,
+      options: [
+        { id: 'training', label: a.training, description: a.createTraining, icon: GraduationCap, color: 'bg-orange-100 text-orange-600' },
+        { id: 'dev-plan', label: a.devPlan, description: a.createDevPlan, icon: ClipboardList, color: 'bg-primary-100 text-primary-600' },
+      ]
+    },
+    '/dashboard/okr': {
+      title: a.whatToAdd,
+      options: [
+        { id: 'objective', label: a.objective, description: a.createObjective, icon: Target, color: 'bg-yellow-100 text-yellow-600' },
+        { id: 'key-result', label: a.keyResult, description: a.addKeyResult, icon: TrendingUp, color: 'bg-green-100 text-green-600' },
+      ]
+    },
+    '/dashboard/conges': {
+      title: a.newRequest,
+      options: [
+        { id: 'leave', label: a.leaveRequest, description: a.createLeave, icon: Calendar, color: 'bg-primary-100 text-primary-600' },
+      ]
+    },
+    '/dashboard/performance': {
+      title: a.whatToAdd,
+      options: [
+        { id: 'evaluation', label: a.evaluation, description: a.createEvaluation, icon: TrendingUp, color: 'bg-purple-100 text-purple-600' },
+        { id: 'feedback', label: a.feedback, description: a.giveFeedback, icon: MessageSquare, color: 'bg-green-100 text-green-600' },
+      ]
+    },
+    '/dashboard/certificates': {
+      title: a.certificates,
+      options: [
+        { id: 'certificate', label: a.workCertificate, description: a.generateCertificate, icon: FileText, color: 'bg-primary-100 text-primary-600' },
+      ]
+    },
+    '/dashboard/missions': {
+      title: a.whatToAdd,
+      options: [
+        { id: 'mission', label: a.missionRequest, description: a.createMission, icon: Plane, color: 'bg-primary-100 text-primary-600' },
+      ]
+    },
+  };
+  return { defaultConfig, pageConfigs };
+}
 
 // ============================================
 // INTERFACES POUR LES FORMULAIRES
@@ -123,19 +129,16 @@ interface Job { id: number; title: string; status: string; }
 export default function AddModal({ onClose, onSuccess }: AddModalProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useI18n();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
 
-  // Obtenir la config pour la page actuelle (normalisation + préfixe)
-  const normalizedPath = pathname.replace(/\/$/, '');
-  const config = pageConfigs[normalizedPath] ??
-    Object.entries(pageConfigs)
-      .filter(([key]) => key !== '/dashboard' && normalizedPath.startsWith(key))
-      .sort((a, b) => b[0].length - a[0].length)[0]?.[1] ??
-    defaultConfig;
+  // Obtenir la config pour la page actuelle
+  const { defaultConfig, pageConfigs } = getPageConfigs(t);
+  const config = pageConfigs[pathname] || defaultConfig;
 
   // Charger les données nécessaires
   useEffect(() => {
@@ -189,15 +192,6 @@ export default function AddModal({ onClose, onSuccess }: AddModalProps) {
   }, [onClose]);
 
   // ========================================
-  // Si "objective" ou "key-result" → dispatcher l'événement OKR
-  // ========================================
-  if (selectedOption === 'objective' || selectedOption === 'key-result') {
-    onClose();
-    window.dispatchEvent(new Event('okr-add'));
-    return null;
-  }
-
-  // ========================================
   // Si "department" est sélectionné, ouvrir directement
   // le modal AddOrganizationalUnitModal (le bon modal)
   // ========================================
@@ -229,7 +223,7 @@ export default function AddModal({ onClose, onSuccess }: AddModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <h2 className="text-lg font-semibold text-gray-900">
-            {selectedOption ? 'Retour' : config.title}
+            {selectedOption ? t.components.addModal.back : config.title}
           </h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
             <X className="w-5 h-5 text-gray-500" />
@@ -264,7 +258,7 @@ export default function AddModal({ onClose, onSuccess }: AddModalProps) {
                 onClick={handleBack}
                 className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
               >
-                ← Retour aux options
+                {t.components.addModal.backToOptions}
               </button>
               
               {selectedOption === 'candidate' && (
@@ -296,7 +290,7 @@ export default function AddModal({ onClose, onSuccess }: AddModalProps) {
               onClick={onClose}
               className="w-full py-2 text-sm text-gray-500 hover:text-gray-700"
             >
-              Annuler
+              {t.components.addModal.cancel}
             </button>
           </div>
         )}
@@ -310,6 +304,8 @@ export default function AddModal({ onClose, onSuccess }: AddModalProps) {
 // ============================================
 
 function CandidateForm({ jobs, onSuccess, onCancel }: { jobs: Job[]; onSuccess: () => void; onCancel: () => void }) {
+  const { t } = useI18n();
+  const a = t.components.addModal;
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     first_name: '', last_name: '', email: '', phone: '', location: '', linkedin_url: '',
@@ -337,8 +333,8 @@ function CandidateForm({ jobs, onSuccess, onCancel }: { jobs: Job[]; onSuccess: 
         })
       });
       if (res.ok) onSuccess();
-      else toast.error('Erreur lors de la création');
-    } catch { toast.error('Erreur de connexion'); }
+      else toast.error(a.creationError);
+    } catch { toast.error(a.connectionError); }
     finally { setSaving(false); }
   };
 
@@ -346,59 +342,59 @@ function CandidateForm({ jobs, onSuccess, onCancel }: { jobs: Job[]; onSuccess: 
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{a.firstName} *</label>
           <input type="text" required value={formData.first_name} onChange={(e) => setFormData({...formData, first_name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{a.lastName} *</label>
           <input type="text" required value={formData.last_name} onChange={(e) => setFormData({...formData, last_name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">{a.email} *</label>
         <input type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{a.phone}</label>
           <input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Localisation</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{a.location}</label>
           <input type="text" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Dakar" />
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Poste visé</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">{a.targetPosition}</label>
         <select value={formData.job_posting_id} onChange={(e) => setFormData({...formData, job_posting_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-          <option value="">Sélectionner un poste...</option>
+          <option value="">{a.selectPosition}</option>
           {jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Compétences</label>
-        <input type="text" value={formData.skills} onChange={(e) => setFormData({...formData, skills: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="React, Node.js, Python (séparés par virgule)" />
+        <label className="block text-sm font-medium text-gray-700 mb-1">{a.skills}</label>
+        <input type="text" value={formData.skills} onChange={(e) => setFormData({...formData, skills: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder={a.skillsPlaceholder} />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Expérience (années)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{a.experienceYears}</label>
           <input type="number" min="0" value={formData.experience_years} onChange={(e) => setFormData({...formData, experience_years: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{a.source}</label>
           <select value={formData.source} onChange={(e) => setFormData({...formData, source: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
             <option value="LinkedIn">LinkedIn</option>
             <option value="Indeed">Indeed</option>
-            <option value="Site Carrière">Site Carrière</option>
-            <option value="Référence interne">Référence interne</option>
-            <option value="Autre">Autre</option>
+            <option value="Site Carrière">{a.careerSite}</option>
+            <option value="Référence interne">{a.internalRef}</option>
+            <option value="Autre">{a.other}</option>
           </select>
         </div>
       </div>
       <div className="flex gap-3 pt-4">
-        <button type="button" onClick={onCancel} className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+        <button type="button" onClick={onCancel} className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">{a.cancel}</button>
         <button type="submit" disabled={saving} className="flex-1 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
-          {saving ? 'Création...' : 'Créer'}
+          {saving ? a.creating : a.create}
         </button>
       </div>
     </form>
@@ -410,6 +406,8 @@ function CandidateForm({ jobs, onSuccess, onCancel }: { jobs: Job[]; onSuccess: 
 // ============================================
 
 function JobForm({ departments, employees, onSuccess, onCancel }: { departments: Department[]; employees: Employee[]; onSuccess: () => void; onCancel: () => void }) {
+  const { t } = useI18n();
+  const a = t.components.addModal;
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     title: '', department_id: '', location: '', contract_type: 'CDI', remote_policy: 'onsite',
@@ -434,33 +432,33 @@ function JobForm({ departments, employees, onSuccess, onCancel }: { departments:
         })
       });
       if (res.ok) onSuccess();
-      else toast.error('Erreur lors de la création');
-    } catch { toast.error('Erreur de connexion'); }
+      else toast.error(a.creationError);
+    } catch { toast.error(a.connectionError); }
     finally { setSaving(false); }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Titre du poste *</label>
-        <input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: Développeur Full Stack" />
+        <label className="block text-sm font-medium text-gray-700 mb-1">{a.jobTitle} *</label>
+        <input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder={a.jobTitlePlaceholder} />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Département</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{a.department}</label>
           <select value={formData.department_id} onChange={(e) => setFormData({...formData, department_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-            <option value="">Sélectionner...</option>
+            <option value="">{a.select}</option>
             {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Localisation *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{a.locationRequired} *</label>
           <input type="text" required value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Dakar" />
         </div>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Contrat</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{a.contract}</label>
           <select value={formData.contract_type} onChange={(e) => setFormData({...formData, contract_type: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
             <option value="CDI">CDI</option>
             <option value="CDD">CDD</option>
@@ -469,30 +467,30 @@ function JobForm({ departments, employees, onSuccess, onCancel }: { departments:
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Remote</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{a.remote}</label>
           <select value={formData.remote_policy} onChange={(e) => setFormData({...formData, remote_policy: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-            <option value="onsite">Sur site</option>
-            <option value="hybrid">Hybride</option>
-            <option value="remote">Full Remote</option>
+            <option value="onsite">{a.onsite}</option>
+            <option value="hybrid">{a.hybrid}</option>
+            <option value="remote">{a.fullRemote}</option>
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Urgence</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{a.urgency}</label>
           <select value={formData.urgency} onChange={(e) => setFormData({...formData, urgency: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-            <option value="low">Normal</option>
-            <option value="medium">Modéré</option>
-            <option value="high">Urgent</option>
+            <option value="low">{a.normalUrgency}</option>
+            <option value="medium">{a.moderateUrgency}</option>
+            <option value="high">{a.urgentUrgency}</option>
           </select>
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-        <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Description du poste..." />
+        <label className="block text-sm font-medium text-gray-700 mb-1">{a.description}</label>
+        <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder={a.descriptionPlaceholder} />
       </div>
       <div className="flex gap-3 pt-4">
-        <button type="button" onClick={onCancel} className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+        <button type="button" onClick={onCancel} className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">{a.cancel}</button>
         <button type="submit" disabled={saving} className="flex-1 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
-          {saving ? 'Création...' : 'Créer'}
+          {saving ? a.creating : a.create}
         </button>
       </div>
     </form>
@@ -504,6 +502,8 @@ function JobForm({ departments, employees, onSuccess, onCancel }: { departments:
 // ============================================
 
 function TrainingForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
+  const { t } = useI18n();
+  const a = t.components.addModal;
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({ title: '', category: 'technical', duration_hours: '8', description: '' });
 
@@ -522,41 +522,41 @@ function TrainingForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel
         })
       });
       if (res.ok) onSuccess();
-      else toast.error('Erreur lors de la création');
-    } catch { toast.error('Erreur de connexion'); }
+      else toast.error(a.creationError);
+    } catch { toast.error(a.connectionError); }
     finally { setSaving(false); }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">{a.title} *</label>
         <input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{a.category}</label>
           <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-            <option value="technical">Technique</option>
-            <option value="soft_skills">Soft Skills</option>
-            <option value="management">Management</option>
-            <option value="compliance">Compliance</option>
-            <option value="other">Autre</option>
+            <option value="technical">{a.technical}</option>
+            <option value="soft_skills">{a.softSkills}</option>
+            <option value="management">{a.management}</option>
+            <option value="compliance">{a.compliance}</option>
+            <option value="other">{a.other}</option>
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Durée (heures)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{a.durationHours}</label>
           <input type="number" min="1" value={formData.duration_hours} onChange={(e) => setFormData({...formData, duration_hours: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">{a.description}</label>
         <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
       </div>
       <div className="flex gap-3 pt-4">
-        <button type="button" onClick={onCancel} className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+        <button type="button" onClick={onCancel} className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">{a.cancel}</button>
         <button type="submit" disabled={saving} className="flex-1 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
-          {saving ? 'Création...' : 'Créer'}
+          {saving ? a.creating : a.create}
         </button>
       </div>
     </form>
@@ -568,6 +568,8 @@ function TrainingForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel
 // ============================================
 
 function ObjectiveForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
+  const { t } = useI18n();
+  const a = t.components.addModal;
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({ title: '', description: '', period: 'Q1 2025' });
 
@@ -585,35 +587,35 @@ function ObjectiveForm({ onSuccess, onCancel }: { onSuccess: () => void; onCance
         })
       });
       if (res.ok) onSuccess();
-      else toast.error('Erreur lors de la création');
-    } catch { toast.error('Erreur de connexion'); }
+      else toast.error(a.creationError);
+    } catch { toast.error(a.connectionError); }
     finally { setSaving(false); }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
-        <input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: Améliorer la satisfaction client" />
+        <label className="block text-sm font-medium text-gray-700 mb-1">{a.title} *</label>
+        <input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder={a.objectivePlaceholder} />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Période</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">{a.period}</label>
         <select value={formData.period} onChange={(e) => setFormData({...formData, period: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
           <option value="Q1 2025">Q1 2025</option>
           <option value="Q2 2025">Q2 2025</option>
           <option value="Q3 2025">Q3 2025</option>
           <option value="Q4 2025">Q4 2025</option>
-          <option value="2025">Année 2025</option>
+          <option value="2025">{a.year} 2025</option>
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">{a.description}</label>
         <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
       </div>
       <div className="flex gap-3 pt-4">
-        <button type="button" onClick={onCancel} className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+        <button type="button" onClick={onCancel} className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">{a.cancel}</button>
         <button type="submit" disabled={saving} className="flex-1 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
-          {saving ? 'Création...' : 'Créer'}
+          {saving ? a.creating : a.create}
         </button>
       </div>
     </form>
@@ -625,6 +627,8 @@ function ObjectiveForm({ onSuccess, onCancel }: { onSuccess: () => void; onCance
 // ============================================
 
 function LeaveForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
+  const { t } = useI18n();
+  const a = t.components.addModal;
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({ leave_type: 'annual', start_date: '', end_date: '', reason: '' });
 
@@ -643,42 +647,42 @@ function LeaveForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: (
         })
       });
       if (res.ok) onSuccess();
-      else toast.error('Erreur lors de la création');
-    } catch { toast.error('Erreur de connexion'); }
+      else toast.error(a.creationError);
+    } catch { toast.error(a.connectionError); }
     finally { setSaving(false); }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Type de congé *</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">{a.leaveType} *</label>
         <select value={formData.leave_type} onChange={(e) => setFormData({...formData, leave_type: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-          <option value="annual">Congé annuel</option>
-          <option value="sick">Maladie</option>
-          <option value="maternity">Maternité</option>
-          <option value="paternity">Paternité</option>
-          <option value="unpaid">Sans solde</option>
-          <option value="other">Autre</option>
+          <option value="annual">{a.annualLeave}</option>
+          <option value="sick">{a.sick}</option>
+          <option value="maternity">{a.maternity}</option>
+          <option value="paternity">{a.paternity}</option>
+          <option value="unpaid">{a.unpaid}</option>
+          <option value="other">{a.other}</option>
         </select>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Date début *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{a.startDate} *</label>
           <input type="date" required value={formData.start_date} onChange={(e) => setFormData({...formData, start_date: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Date fin *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{a.endDate} *</label>
           <input type="date" required value={formData.end_date} onChange={(e) => setFormData({...formData, end_date: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Motif</label>
-        <textarea value={formData.reason} onChange={(e) => setFormData({...formData, reason: e.target.value})} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Optionnel..." />
+        <label className="block text-sm font-medium text-gray-700 mb-1">{a.reason}</label>
+        <textarea value={formData.reason} onChange={(e) => setFormData({...formData, reason: e.target.value})} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder={a.optionalPlaceholder} />
       </div>
       <div className="flex gap-3 pt-4">
-        <button type="button" onClick={onCancel} className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
+        <button type="button" onClick={onCancel} className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">{a.cancel}</button>
         <button type="submit" disabled={saving} className="flex-1 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50">
-          {saving ? 'Envoi...' : 'Soumettre'}
+          {saving ? a.sending : a.submit}
         </button>
       </div>
     </form>
@@ -690,6 +694,8 @@ function LeaveForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: (
 // ============================================
 
 function CertificateRedirect({ onClose }: { onClose: () => void }) {
+  const { t } = useI18n();
+  const a = t.components.addModal;
   const router = useRouter();
   
   useEffect(() => {
@@ -700,7 +706,7 @@ function CertificateRedirect({ onClose }: { onClose: () => void }) {
   return (
     <div className="text-center py-8">
       <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto mb-3" />
-      <p className="text-gray-500">Redirection vers les certificats...</p>
+      <p className="text-gray-500">{a.redirecting}</p>
     </div>
   );
 }

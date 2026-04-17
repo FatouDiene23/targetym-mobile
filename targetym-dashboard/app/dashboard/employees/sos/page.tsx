@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/Header';
 import { useGroupContext } from '@/hooks/useGroupContext';
+import { useI18n } from '@/lib/i18n/I18nContext';
 import {
   AlertTriangle, CheckCircle, Clock, RefreshCw, Eye, Shield,
   Loader2, XCircle, X, BarChart2, ChevronDown, ChevronUp,
@@ -58,12 +59,20 @@ async function apiFetch(url: string, options?: RequestInit) {
   return res.json();
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  new:          { label: 'Nouveau',          color: 'bg-red-100 text-red-700 border-red-200',      icon: AlertTriangle },
-  acknowledged: { label: 'Pris en compte',   color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: Eye },
-  in_progress:  { label: 'En traitement',    color: 'bg-blue-100 text-blue-700 border-blue-200',   icon: Clock },
-  resolved:     { label: 'Résolu',           color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle },
-  closed:       { label: 'Fermé',            color: 'bg-gray-100 text-gray-600 border-gray-200',   icon: XCircle },
+const STATUS_STYLE: Record<string, { color: string; icon: React.ElementType }> = {
+  new:          { color: 'bg-red-100 text-red-700 border-red-200',      icon: AlertTriangle },
+  acknowledged: { color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: Eye },
+  in_progress:  { color: 'bg-blue-100 text-blue-700 border-blue-200',   icon: Clock },
+  resolved:     { color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle },
+  closed:       { color: 'bg-gray-100 text-gray-600 border-gray-200',   icon: XCircle },
+};
+
+const STATUS_KEYS: Record<string, string> = {
+  new: 'new',
+  acknowledged: 'acknowledged',
+  in_progress: 'inProgress',
+  resolved: 'resolved',
+  closed: 'closed',
 };
 
 const CATEGORY_EMOJI: Record<string, string> = {
@@ -83,7 +92,9 @@ function formatDateShort(d: string) {
 // ============================================
 
 function Heatmap({ data }: { data: { date: string; count: number }[] }) {
-  if (!data.length) return <p className="text-sm text-gray-400 text-center py-4">Aucune donnée disponible.</p>;
+  const { t } = useI18n();
+  const sos = t.employees.sosAlerts;
+  if (!data.length) return <p className="text-sm text-gray-400 text-center py-4">{sos.noDataAvailable}</p>;
   const max = Math.max(...data.map(d => d.count), 1);
   return (
     <div className="flex flex-wrap gap-1">
@@ -95,7 +106,7 @@ function Heatmap({ data }: { data: { date: string; count: number }[] }) {
           : intensity < 0.9 ? 'bg-red-600'
           : 'bg-red-800';
         return (
-          <div key={d.date} title={`${formatDateShort(d.date)} : ${d.count} alerte(s)`}
+          <div key={d.date} title={`${formatDateShort(d.date)} : ${sos.alertCount.replace('{count}', String(d.count))}`}
             className={`w-7 h-7 rounded ${bg} cursor-default flex items-end justify-center pb-0.5`}>
             {d.count > 0 && <span className="text-[9px] text-white font-bold">{d.count}</span>}
           </div>
@@ -110,6 +121,15 @@ function Heatmap({ data }: { data: { date: string; count: number }[] }) {
 // ============================================
 
 function StatusDropdown({ alert, onUpdated }: { alert: SOSAlert; onUpdated: (updated: SOSAlert) => void }) {
+  const { t } = useI18n();
+  const sos = t.employees.sosAlerts;
+  const statusLabels: Record<string, string> = {
+    new: sos.statuses.new,
+    acknowledged: sos.statuses.acknowledged,
+    in_progress: sos.statuses.inProgress,
+    resolved: sos.statuses.resolved,
+    closed: sos.statuses.closed,
+  };
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState('');
@@ -125,35 +145,36 @@ function StatusDropdown({ alert, onUpdated }: { alert: SOSAlert; onUpdated: (upd
       onUpdated(data);
       setOpen(false);
       setNote('');
-      toast.success('Statut mis à jour');
+      toast.success(sos.statusUpdated);
     } catch {
-      toast.error('Erreur lors de la mise à jour');
+      toast.error(sos.statusUpdateError);
     } finally {
       setSaving(false);
     }
   }
 
-  const cfg = STATUS_CONFIG[alert.status] || STATUS_CONFIG.new;
+  const cfg = STATUS_STYLE[alert.status] || STATUS_STYLE.new;
   const Icon = cfg.icon;
+  const currentLabel = statusLabels[alert.status] || statusLabels.new;
 
   return (
     <div className="relative">
       <button onClick={() => setOpen(!open)}
         className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${cfg.color}`}>
         <Icon className="w-3 h-3" />
-        {cfg.label}
+        {currentLabel}
         <ChevronDown className="w-3 h-3" />
       </button>
       {open && (
         <div className="absolute right-0 top-8 w-64 bg-white rounded-xl shadow-lg border border-gray-200 z-50 p-3 space-y-2">
-          <p className="text-xs font-semibold text-gray-500 uppercase">Changer le statut</p>
-          {Object.entries(STATUS_CONFIG).filter(([k]) => k !== alert.status).map(([k, v]) => {
+          <p className="text-xs font-semibold text-gray-500 uppercase">{sos.changeStatus}</p>
+          {Object.entries(STATUS_STYLE).filter(([k]) => k !== alert.status).map(([k, v]) => {
             const Ic = v.icon;
             return (
               <button key={k} onClick={() => { setNextStatus(k); }}
                 className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm hover:bg-gray-50 ${nextStatus === k ? 'ring-2 ring-primary-400 bg-gray-50' : ''}`}>
                 <Ic className="w-4 h-4" />
-                {v.label}
+                {statusLabels[k] || k}
               </button>
             );
           })}
@@ -161,12 +182,12 @@ function StatusDropdown({ alert, onUpdated }: { alert: SOSAlert; onUpdated: (upd
             <>
               <input type="text" value={note} onChange={e => setNote(e.target.value)}
                 className="w-full text-xs px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-1 focus:ring-primary-400"
-                placeholder="Note de résolution (optionnel)…" />
+                placeholder={sos.resolutionNotePlaceholder} />
               <div className="flex gap-2">
-                <button onClick={() => { setOpen(false); setNextStatus(''); }} className="flex-1 text-xs px-3 py-1.5 bg-gray-100 rounded-lg">Annuler</button>
+                <button onClick={() => { setOpen(false); setNextStatus(''); }} className="flex-1 text-xs px-3 py-1.5 bg-gray-100 rounded-lg">{t.common.cancel}</button>
                 <button onClick={() => handleUpdate(nextStatus)} disabled={saving}
                   className="flex-1 text-xs px-3 py-1.5 bg-primary-500 text-white rounded-lg disabled:opacity-50 flex items-center justify-center gap-1">
-                  {saving && <Loader2 className="w-3 h-3 animate-spin" />}Confirmer
+                  {saving && <Loader2 className="w-3 h-3 animate-spin" />}{sos.confirmAction}
                 </button>
               </div>
             </>
@@ -182,6 +203,15 @@ function StatusDropdown({ alert, onUpdated }: { alert: SOSAlert; onUpdated: (upd
 // ============================================
 
 export default function SOSAdminPage() {
+  const { t } = useI18n();
+  const sos = t.employees.sosAlerts;
+  const statusLabels: Record<string, string> = {
+    new: sos.statuses.new,
+    acknowledged: sos.statuses.acknowledged,
+    in_progress: sos.statuses.inProgress,
+    resolved: sos.statuses.resolved,
+    closed: sos.statuses.closed,
+  };
   const { selectedTenantId } = useGroupContext();
   const [alerts, setAlerts] = useState<SOSAlert[]>([]);
   const [stats, setStats] = useState<SOSStats | null>(null);
@@ -206,7 +236,7 @@ export default function SOSAdminPage() {
       setAlerts(listData.items || []);
       setStats(statsData);
     } catch {
-      toast.error('Impossible de charger les alertes SOS');
+      toast.error(sos.loadError);
     } finally {
       setIsLoading(false);
     }
@@ -220,18 +250,18 @@ export default function SOSAdminPage() {
 
   return (
     <div className="flex-1 flex flex-col min-h-screen bg-gray-50">
-      <Header title="Alertes SOS" subtitle="Gestion des signaux de détresse des collaborateurs" />
+      <Header title={sos.title} subtitle={sos.subtitle} />
 
       <main className="flex-1 p-6 space-y-6 max-w-7xl mx-auto w-full">
 
         {/* STAT CARDS */}
         {stats && (
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-            <StatCard label="Nouvelles alertes" value={stats.new_alerts} color="text-red-600" bg="bg-red-50" icon={<AlertTriangle className="w-5 h-5 text-red-500" />} />
-            <StatCard label="En traitement" value={stats.in_progress} color="text-blue-600" bg="bg-blue-50" icon={<Clock className="w-5 h-5 text-blue-500" />} />
-            <StatCard label="Résolues" value={stats.resolved} color="text-green-600" bg="bg-green-50" icon={<CheckCircle className="w-5 h-5 text-green-500" />} />
-            <StatCard label="Fermées" value={stats.closed ?? 0} color="text-gray-600" bg="bg-gray-100" icon={<XCircle className="w-5 h-5 text-gray-500" />} />
-            <StatCard label="7 derniers jours" value={stats.last_7_days} color="text-orange-600" bg="bg-orange-50" icon={<BarChart2 className="w-5 h-5 text-orange-500" />} />
+            <StatCard label={sos.newAlerts} value={stats.new_alerts} color="text-red-600" bg="bg-red-50" icon={<AlertTriangle className="w-5 h-5 text-red-500" />} />
+            <StatCard label={sos.inProgress} value={stats.in_progress} color="text-blue-600" bg="bg-blue-50" icon={<Clock className="w-5 h-5 text-blue-500" />} />
+            <StatCard label={sos.resolved} value={stats.resolved} color="text-green-600" bg="bg-green-50" icon={<CheckCircle className="w-5 h-5 text-green-500" />} />
+            <StatCard label={sos.closed} value={stats.closed ?? 0} color="text-gray-600" bg="bg-gray-100" icon={<XCircle className="w-5 h-5 text-gray-500" />} />
+            <StatCard label={sos.last7Days} value={stats.last_7_days} color="text-orange-600" bg="bg-orange-50" icon={<BarChart2 className="w-5 h-5 text-orange-500" />} />
           </div>
         )}
 
@@ -241,7 +271,7 @@ export default function SOSAdminPage() {
             className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
             <div className="flex items-center gap-2">
               <BarChart2 className="w-5 h-5 text-primary-500" />
-              <span className="font-semibold text-gray-800">Heatmap des 30 derniers jours</span>
+              <span className="font-semibold text-gray-800">{sos.heatmapTitle}</span>
             </div>
             {showHeatmap ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
           </button>
@@ -250,7 +280,7 @@ export default function SOSAdminPage() {
               <Heatmap data={stats.heatmap} />
               {stats.by_category.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Répartition par type</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase mb-2">{sos.distributionByType}</p>
                   <div className="flex flex-wrap gap-2">
                     {stats.by_category.map(c => (
                       <span key={c.category} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-full text-sm">
@@ -272,19 +302,19 @@ export default function SOSAdminPage() {
           <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-gray-100">
             <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
               className="text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-primary-400">
-              <option value="">Tous les statuts</option>
-              {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-                <option key={k} value={k}>{v.label}</option>
+              <option value="">{sos.allStatuses}</option>
+              {Object.entries(STATUS_STYLE).map(([k]) => (
+                <option key={k} value={k}>{statusLabels[k] || k}</option>
               ))}
             </select>
             <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
               className="text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-primary-400">
-              <option value="">Toutes catégories</option>
+              <option value="">{sos.allCategories}</option>
               {Object.entries(CATEGORY_EMOJI).map(([k, e]) => (
                 <option key={k} value={k}>{e} {stats?.by_category.find(c => c.category === k)?.label || k}</option>
               ))}
             </select>
-            <button onClick={fetchData} className="ml-auto p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title="Actualiser">
+            <button onClick={fetchData} className="ml-auto p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title={sos.refresh}>
               <RefreshCw className="w-4 h-4" />
             </button>
           </div>
@@ -297,15 +327,16 @@ export default function SOSAdminPage() {
           ) : alerts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-gray-400">
               <Shield className="w-12 h-12 mb-3 text-gray-200" />
-              <p className="font-medium">Aucune alerte SOS</p>
-              <p className="text-sm mt-1">Tout semble calme côté collaborateurs.</p>
+              <p className="font-medium">{sos.noAlert}</p>
+              <p className="text-sm mt-1">{sos.allCalm}</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
               {alerts.map(a => {
                 const expanded = expandedId === a.id;
-                const st = STATUS_CONFIG[a.status] || STATUS_CONFIG.new;
-                const StIcon = st.icon;
+                const stStyle = STATUS_STYLE[a.status] || STATUS_STYLE.new;
+                const StIcon = stStyle.icon;
+                const stLabel = statusLabels[a.status] || statusLabels.new;
                 return (
                   <div key={a.id}>
                     <div className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors">
@@ -315,11 +346,11 @@ export default function SOSAdminPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-semibold text-gray-900">
-                            {a.is_anonymous ? '👤 Anonyme' : (a.sender_name || a.sender_email || 'Inconnu')}
+                            {a.is_anonymous ? `👤 ${sos.anonymous}` : (a.sender_name || a.sender_email || sos.unknown)}
                           </span>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${st.color} flex items-center gap-1`}>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${stStyle.color} flex items-center gap-1`}>
                             <StIcon className="w-3 h-3" />
-                            {st.label}
+                            {stLabel}
                           </span>
                         </div>
                         <p className="text-xs text-gray-500 mt-0.5">{formatDate(a.created_at)}</p>
@@ -340,25 +371,25 @@ export default function SOSAdminPage() {
                       <div className="px-5 pb-4 bg-red-50/50 border-t border-red-100 space-y-2">
                         {a.message && (
                           <div>
-                            <p className="text-xs font-semibold text-gray-500 uppercase">Message</p>
+                            <p className="text-xs font-semibold text-gray-500 uppercase">{sos.message}</p>
                             <p className="text-sm text-gray-700 mt-0.5">{a.message}</p>
                           </div>
                         )}
                         {a.location_hint && (
                           <div>
-                            <p className="text-xs font-semibold text-gray-500 uppercase">Localisation</p>
+                            <p className="text-xs font-semibold text-gray-500 uppercase">{sos.location}</p>
                             <p className="text-sm text-gray-700 mt-0.5">{a.location_hint}</p>
                           </div>
                         )}
                         {a.handled_by && (
                           <div>
-                            <p className="text-xs font-semibold text-gray-500 uppercase">Pris en charge par</p>
+                            <p className="text-xs font-semibold text-gray-500 uppercase">{sos.handledBy}</p>
                             <p className="text-sm text-gray-700 mt-0.5">{a.handled_by}{a.handled_at && ` — ${formatDate(a.handled_at)}`}</p>
                           </div>
                         )}
                         {a.resolution_note && (
                           <div>
-                            <p className="text-xs font-semibold text-gray-500 uppercase">Note de résolution</p>
+                            <p className="text-xs font-semibold text-gray-500 uppercase">{sos.resolutionNote}</p>
                             <p className="text-sm text-gray-700 mt-0.5">{a.resolution_note}</p>
                           </div>
                         )}

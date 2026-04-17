@@ -909,14 +909,8 @@ export default function MyProfilePage() {
       
       // Télécharger le PDF
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `certificat_travail_${employee?.last_name || 'employe'}_${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      const { downloadFile } = await import('@/lib/capacitor-plugins');
+      await downloadFile(blob, `certificat_travail_${employee?.last_name || 'employe'}_${new Date().toISOString().split('T')[0]}.pdf`);
       
     } catch (error) {
       console.error('Error generating certificate:', error);

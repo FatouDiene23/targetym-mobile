@@ -1,4 +1,4 @@
-﻿// ============================================
+// ============================================
 // app/dashboard/talents/shared.ts
 // Types, helpers, constants partagés
 // ============================================
@@ -232,16 +232,93 @@ export interface DashboardData {
 
 export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
+// Couleurs + actions (non traduites — gardées côté code)
+const QUADRANT_COLORS: Record<number, string> = {
+  9: 'bg-green-500', 8: 'bg-green-400', 7: 'bg-blue-400',
+  6: 'bg-blue-500', 5: 'bg-yellow-500', 4: 'bg-yellow-400',
+  3: 'bg-orange-400', 2: 'bg-orange-500', 1: 'bg-red-500',
+};
+
+const QUADRANT_ACTIONS: Record<number, string> = {
+  9: 'Promouvoir / Responsabiliser',
+  8: 'Développer rapidement',
+  7: 'Coaching intensif',
+  6: 'Valoriser expertise',
+  5: 'Fidéliser / Développer',
+  4: 'Plan de développement',
+  3: 'Maintenir motivation',
+  2: 'Plan amélioration',
+  1: 'Action urgente',
+};
+
+// Mapping quadrant (1-9) ← clé i18n (low/medium/high × performance/potential)
+// getQuadrant : potBucket (1-3) × 3 + pBucket (1-3)
+//   q=1 → pot low, perf low   → lowLow
+//   q=2 → pot low, perf med   → mediumLow
+//   q=3 → pot low, perf high  → highLow
+//   q=4 → pot med, perf low   → lowMedium
+//   q=5 → pot med, perf med   → mediumMedium
+//   q=6 → pot med, perf high  → highMedium
+//   q=7 → pot high, perf low  → lowHigh
+//   q=8 → pot high, perf med  → mediumHigh
+//   q=9 → pot high, perf high → highHigh
+const QUADRANT_TO_I18N_KEY: Record<number, keyof I18nQuadrants> = {
+  1: 'lowLow', 2: 'mediumLow', 3: 'highLow',
+  4: 'lowMedium', 5: 'mediumMedium', 6: 'highMedium',
+  7: 'lowHigh', 8: 'mediumHigh', 9: 'highHigh',
+};
+
+type I18nQuadrants = {
+  lowLow: string; lowMedium: string; lowHigh: string;
+  mediumLow: string; mediumMedium: string; mediumHigh: string;
+  highLow: string; highMedium: string; highHigh: string;
+};
+
+type I18nLike = {
+  talents: {
+    nineBox: {
+      low: string; medium: string; high: string;
+      quadrants: I18nQuadrants;
+    };
+  };
+};
+
+export function getQuadrantLabels(t: I18nLike): Record<number, { title: string; action: string; color: string }> {
+  const q = t.talents.nineBox.quadrants;
+  const labels: Record<number, { title: string; action: string; color: string }> = {};
+  for (let i = 1; i <= 9; i++) {
+    labels[i] = {
+      title: q[QUADRANT_TO_I18N_KEY[i]],
+      action: QUADRANT_ACTIONS[i],
+      color: QUADRANT_COLORS[i],
+    };
+  }
+  return labels;
+}
+
+// Mapping 5 niveaux → 3 (low/medium/high)
+//   1-2 → low, 3 → medium, 4-5 → high
+export function getPerformanceLabels(t: I18nLike): string[] {
+  const { low, medium, high } = t.talents.nineBox;
+  return ['', low, low, medium, high, high];
+}
+
+export function getPotentialLabels(t: I18nLike): string[] {
+  const { low, medium, high } = t.talents.nineBox;
+  return ['', low, low, medium, high, high];
+}
+
+// ⚠️  Legacy exports — conservés pour compatibilité (fallback français sans i18n)
 export const QUADRANT_LABELS: Record<number, { title: string; action: string; color: string }> = {
-  9: { title: 'Stars', action: 'Promouvoir / Responsabiliser', color: 'bg-green-500' },
-  8: { title: 'Hauts Potentiels', action: 'Développer rapidement', color: 'bg-green-400' },
-  7: { title: 'Diamants Bruts', action: 'Coaching intensif', color: 'bg-blue-400' },
-  6: { title: 'Experts Fiables', action: 'Valoriser expertise', color: 'bg-primary-500' },
-  5: { title: 'Performants Clés', action: 'Fidéliser / Développer', color: 'bg-yellow-500' },
-  4: { title: 'Potentiel Émergent', action: 'Plan de développement', color: 'bg-yellow-400' },
-  3: { title: 'Contributeurs Solides', action: 'Maintenir motivation', color: 'bg-orange-400' },
-  2: { title: 'Sous-performants', action: 'Plan amélioration', color: 'bg-orange-500' },
-  1: { title: 'En difficulté', action: 'Action urgente', color: 'bg-red-500' },
+  9: { title: 'Stars', action: QUADRANT_ACTIONS[9], color: QUADRANT_COLORS[9] },
+  8: { title: 'Hauts Potentiels', action: QUADRANT_ACTIONS[8], color: QUADRANT_COLORS[8] },
+  7: { title: 'Diamants Bruts', action: QUADRANT_ACTIONS[7], color: QUADRANT_COLORS[7] },
+  6: { title: 'Experts Fiables', action: QUADRANT_ACTIONS[6], color: QUADRANT_COLORS[6] },
+  5: { title: 'Performants Clés', action: QUADRANT_ACTIONS[5], color: QUADRANT_COLORS[5] },
+  4: { title: 'Potentiel Émergent', action: QUADRANT_ACTIONS[4], color: QUADRANT_COLORS[4] },
+  3: { title: 'Contributeurs Solides', action: QUADRANT_ACTIONS[3], color: QUADRANT_COLORS[3] },
+  2: { title: 'Sous-performants', action: QUADRANT_ACTIONS[2], color: QUADRANT_COLORS[2] },
+  1: { title: 'En difficulté', action: QUADRANT_ACTIONS[1], color: QUADRANT_COLORS[1] },
 };
 
 export const PERFORMANCE_LABELS = ['', 'Insuffisant', 'À développer', 'Conforme', 'Supérieur', 'Exceptionnel'];
@@ -249,7 +326,7 @@ export const POTENTIAL_LABELS = ['', 'Limité', 'Stable', 'Prometteur', 'Élevé
 
 export const ELIGIBILITY_LABELS: Record<string, { label: string; color: string }> = {
   'not_eligible': { label: 'Non éligible', color: 'text-gray-600 bg-gray-100' },
-  'in_progress': { label: 'En progression', color: 'text-primary-600 bg-primary-100' },
+  'in_progress': { label: 'En progression', color: 'text-blue-600 bg-blue-100' },
   'eligible': { label: 'Éligible', color: 'text-green-600 bg-green-100' },
   'promoted': { label: 'Promu', color: 'text-purple-600 bg-purple-100' },
 };
@@ -268,7 +345,7 @@ export const RISK_LABELS: Record<string, { label: string; color: string }> = {
 
 export const READINESS_LABELS: Record<string, { label: string; color: string }> = {
   'ready': { label: 'Prêt maintenant', color: 'text-green-600 bg-green-100' },
-  '1-2 years': { label: 'Dans 1-2 ans', color: 'text-primary-600 bg-primary-100' },
+  '1-2 years': { label: 'Dans 1-2 ans', color: 'text-blue-600 bg-blue-100' },
   '3+ years': { label: 'Dans 3+ ans', color: 'text-gray-600 bg-gray-100' },
 };
 

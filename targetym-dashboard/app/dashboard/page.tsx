@@ -10,6 +10,7 @@ import {
   Briefcase, UserCheck, Activity, Sparkles, GraduationCap, BookOpen, Building2
 } from 'lucide-react';
 import Link from 'next/link';
+import Header from '@/components/Header';
 import {
   BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
@@ -1224,6 +1225,8 @@ export default function DashboardPage() {
   // ============================================
   return (
     <div className="py-6 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+      <Header hideAddButton transparent />
+
       {/* Page Tour Tips - Suggestions contextuelles */}
       {showTips && (
         <PageTourTips

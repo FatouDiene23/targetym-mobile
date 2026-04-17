@@ -5,7 +5,7 @@ import { pt } from './translations/pt';
 export type Locale = 'fr' | 'en' | 'pt';
 export type Translations = typeof fr;
 
-const translations: Record<Locale, Translations> = { fr, en, pt };
+const translations: Record<Locale, Translations> = { fr, en: en as unknown as Translations, pt: pt as unknown as Translations };
 
 export function getTranslation(locale: Locale): Translations {
   return translations[locale] || translations.fr;

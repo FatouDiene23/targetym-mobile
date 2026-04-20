@@ -1780,7 +1780,7 @@ export const pt = {
     specialties: "Especialidades",
     specialtiesPlaceholder: "Ex: Gestão, Liderança, Técnicas comerciais...",
     providerActive: "Fornecedor ativo",
-    myLearning: "Minha Aprendizagem",
+    myLearning: "Minhas Formações",
     myLearningSubtitle: "Minhas formações atribuídas e progresso",
     myTeam: "Minha Equipe",
     myTeamSubtitle: "Formações da sua equipe",

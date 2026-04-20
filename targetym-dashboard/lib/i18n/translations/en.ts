@@ -1780,7 +1780,7 @@ export const en = {
     specialties: "Specialties",
     specialtiesPlaceholder: "E.g.: Management, Leadership, Sales techniques...",
     providerActive: "Active provider",
-    myLearning: "My Learning",
+    myLearning: "My Training",
     myLearningSubtitle: "My assigned trainings and progress",
     myTeam: "My Team",
     myTeamSubtitle: "Your team's trainings",

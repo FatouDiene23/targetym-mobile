@@ -1800,7 +1800,7 @@ export const fr = {
     specialties: "Spécialités",
     specialtiesPlaceholder: "Ex: Management, Leadership, Techniques commerciales...",
     providerActive: "Fournisseur actif",
-    myLearning: "Mon Apprentissage",
+    myLearning: "Mes Formations",
     myLearningSubtitle: "Mes formations assignées et leur avancement",
     myTeam: "Mon Équipe",
     myTeamSubtitle: "Formations de votre équipe",

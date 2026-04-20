@@ -159,11 +159,11 @@ const navigation: NavItem[] = [
     roles: ['rh', 'admin', 'dg'],
     dataTour: 'sidebar-employees'
   },
-  { 
-    name: 'Gestion des Congés', 
-    href: '/dashboard/leaves', 
+  {
+    name: 'Gestion des Congés',
+    href: '/dashboard/leaves',
     icon: Calendar,
-    roles: ['rh', 'admin', 'dg'],
+    roles: ['rh', 'admin', 'dg', 'manager'],
     dataTour: 'sidebar-leaves'
   },
   {
@@ -189,7 +189,7 @@ const navigation: NavItem[] = [
     name: 'Enquêtes',
     href: '/dashboard/surveys',
     icon: ClipboardList,
-    roles: ['rh', 'admin', 'dg', 'manager'],
+    roles: ['rh', 'admin', 'dg'],
   },
   {
     name: 'Notes de Service',

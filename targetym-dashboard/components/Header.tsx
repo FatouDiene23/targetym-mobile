@@ -503,30 +503,30 @@ export default function Header({ title, subtitle, hideAddButton, transparent }: 
 
   return (
     <>
-      <header className={`${transparent ? 'bg-transparent' : 'bg-white border-b border-gray-200'} px-6 py-4`}>
-        <div className="flex items-center justify-between">
+      <header className={`${transparent ? 'bg-transparent' : 'bg-white border-b border-gray-200'} px-3 sm:px-6 py-3 sm:py-4 overflow-x-hidden`}>
+        <div className="flex items-center justify-between gap-2">
           {/* Titre */}
           {title ? (
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-              {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+            <div className="min-w-0 flex-1">
+              <h1 className="text-base sm:text-2xl font-bold text-gray-900 truncate">{title}</h1>
+              {subtitle && <p className="text-xs sm:text-sm text-gray-500 mt-1 truncate">{subtitle}</p>}
             </div>
           ) : <div />}
 
           {/* Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 sm:gap-3 shrink-0">
             {/* Recherche globale */}
             <div className="relative">
               <button
                 onClick={() => setShowSearch(!showSearch)}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                 title={`${i18n.common.search} (Ctrl+K)`}
               >
                 <Search className="w-5 h-5" />
               </button>
 
               {showSearch && (
-                <div className="absolute right-0 top-12 w-96 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
+                <div className="fixed lg:absolute top-14 lg:top-12 left-2 right-2 lg:left-auto lg:right-0 lg:w-96 bg-white rounded-xl shadow-lg border border-gray-200 z-[60] overflow-hidden">
                   <div className="p-3 border-b border-gray-100">
                     <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
                       <Search className="w-4 h-4 text-gray-400" />

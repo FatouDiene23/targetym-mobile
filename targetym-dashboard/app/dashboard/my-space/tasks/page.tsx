@@ -20,6 +20,8 @@ import {
   type DailyValidation, type ObjectiveForLinking
 } from '@/lib/api';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/CustomDatePicker';
 import Header from '@/components/Header';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
@@ -551,16 +553,13 @@ function CreateTaskModal({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{t.mySpace.tasks.dueDate}</label>
-                  <input
-                    type="date"
+                  <CustomDatePicker
                     value={formData.due_date}
-                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                    onChange={(v) => setFormData({ ...formData, due_date: v })}
                     min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    required
                   />
                 </div>
                 <div>
@@ -1502,29 +1501,27 @@ function TeamTasksTab({
             <span className="text-sm font-medium text-gray-700">{t.mySpace.tasks.filters}</span>
           </div>
 
-          <select
+          <CustomSelect
             value={selectedEmployee}
-            onChange={(e) => { setSelectedEmployee(e.target.value); setCurrentPage(1); }}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-          >
-            <option value="all">{t.mySpace.tasks.allEmployees} ({teamMembers.length})</option>
-            {teamMembers.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.name}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => { setSelectedEmployee(v); setCurrentPage(1); }}
+            className="min-w-[180px]"
+            options={[
+              { value: 'all', label: `${t.mySpace.tasks.allEmployees} (${teamMembers.length})` },
+              ...teamMembers.map(m => ({ value: String(m.id), label: m.name })),
+            ]}
+          />
 
-          <select
+          <CustomSelect
             value={selectedStatus}
-            onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-          >
-            <option value="all">{t.mySpace.tasks.allStatuses}</option>
-            <option value="pending">{t.mySpace.tasks.toDo}</option>
-            <option value="in_progress">{t.mySpace.tasks.inProgress}</option>
-            <option value="completed">{t.mySpace.tasks.completed}</option>
-          </select>
+            onChange={(v) => { setSelectedStatus(v); setCurrentPage(1); }}
+            className="min-w-[150px]"
+            options={[
+              { value: 'all', label: t.mySpace.tasks.allStatuses },
+              { value: 'pending', label: t.mySpace.tasks.toDo },
+              { value: 'in_progress', label: t.mySpace.tasks.inProgress },
+              { value: 'completed', label: t.mySpace.tasks.completed },
+            ]}
+          />
 
           <button
             onClick={loadTeamTasks}
@@ -1751,32 +1748,34 @@ function HistoryTab() {
             <span className="text-sm font-medium text-gray-700">{t.mySpace.tasks.period}</span>
           </div>
 
-          <select
+          <CustomSelect
             value={periodFilter}
-            onChange={(e) => setPeriodFilter(e.target.value)}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-          >
-            <option value="0">{t.mySpace.tasks.todayLabel}</option>
-            <option value="1">{t.mySpace.tasks.yesterday}</option>
-            <option value="7">{t.mySpace.tasks.last7Days}</option>
-            <option value="30">{t.mySpace.tasks.last30Days}</option>
-            <option value="90">{t.mySpace.tasks.last3Months}</option>
-            <option value="all">{t.mySpace.tasks.allTime}</option>
-          </select>
+            onChange={setPeriodFilter}
+            className="min-w-[160px]"
+            options={[
+              { value: '0', label: t.mySpace.tasks.todayLabel },
+              { value: '1', label: t.mySpace.tasks.yesterday },
+              { value: '7', label: t.mySpace.tasks.last7Days },
+              { value: '30', label: t.mySpace.tasks.last30Days },
+              { value: '90', label: t.mySpace.tasks.last3Months },
+              { value: 'all', label: t.mySpace.tasks.allTime },
+            ]}
+          />
 
           {subTab === 'validations' && (
             <>
               <span className="text-sm font-medium text-gray-700">{t.mySpace.tasks.statusLabel}</span>
-              <select
+              <CustomSelect
                 value={validationStatusFilter}
-                onChange={(e) => setValidationStatusFilter(e.target.value)}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-              >
-                <option value="all">{t.common.all}</option>
-                <option value="approved">{t.mySpace.tasks.validated}</option>
-                <option value="rejected">{t.mySpace.tasks.rejected}</option>
-                <option value="pending">{t.mySpace.tasks.pending}</option>
-              </select>
+                onChange={setValidationStatusFilter}
+                className="min-w-[140px]"
+                options={[
+                  { value: 'all', label: t.common.all },
+                  { value: 'approved', label: t.mySpace.tasks.validated },
+                  { value: 'rejected', label: t.mySpace.tasks.rejected },
+                  { value: 'pending', label: t.mySpace.tasks.pending },
+                ]}
+              />
             </>
           )}
         </div>
@@ -2050,15 +2049,16 @@ function StatsTab({
         <div className="flex items-center gap-4">
           <Filter className="w-4 h-4 text-gray-400" />
           <span className="text-sm font-medium text-gray-700">{t.mySpace.tasks.period}</span>
-          <select
+          <CustomSelect
             value={periodFilter}
-            onChange={(e) => setPeriodFilter(e.target.value)}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-          >
-            <option value="7">{t.mySpace.tasks.periodThisWeek}</option>
-            <option value="30">{t.mySpace.tasks.periodThisMonth}</option>
-            <option value="90">{t.mySpace.tasks.periodThisQuarter}</option>
-          </select>
+            onChange={setPeriodFilter}
+            className="min-w-[160px]"
+            options={[
+              { value: '7', label: t.mySpace.tasks.periodThisWeek },
+              { value: '30', label: t.mySpace.tasks.periodThisMonth },
+              { value: '90', label: t.mySpace.tasks.periodThisQuarter },
+            ]}
+          />
         </div>
       </div>
 

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CustomDatePicker from '@/components/CustomDatePicker';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
 // ============================================
@@ -358,13 +359,13 @@ export default function ResignationPage() {
                     <label className="text-sm font-medium text-gray-700">
                       {ts.departureDate} <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="date"
-                      value={formDate}
-                      onChange={e => setFormDate(e.target.value)}
-                      min={new Date().toISOString().split('T')[0]}
-                      className="w-full mt-1 border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500"
-                    />
+                    <div className="mt-1">
+                      <CustomDatePicker
+                        value={formDate}
+                        onChange={setFormDate}
+                        min={new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700">{ts.departureReason}</label>

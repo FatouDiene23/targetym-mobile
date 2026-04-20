@@ -905,8 +905,8 @@ export default function SurveysPage() {
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-0">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -927,7 +927,7 @@ export default function SurveysPage() {
               { value: 'annuelle', label: t.surveys.annualSurvey },
               { value: 'feedback_managerial', label: t.surveys.managerialFeedback },
             ]}
-            className="min-w-[160px]"
+            className="w-full sm:min-w-[160px] sm:w-auto"
           />
           <CustomSelect
             value={filterStatus}
@@ -939,7 +939,7 @@ export default function SurveysPage() {
               { value: 'cloturee', label: t.surveys.closed },
               { value: 'archivee', label: t.surveys.archivedSurvey },
             ]}
-            className="min-w-[140px]"
+            className="w-full sm:min-w-[140px] sm:w-auto"
           />
         </div>
       </div>

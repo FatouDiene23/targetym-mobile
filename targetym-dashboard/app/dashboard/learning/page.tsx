@@ -61,14 +61,14 @@ export default function CatalogPage() {
           </div>
         </div>
       </div>
-      <div data-tour="learning-filters" className="flex flex-wrap gap-4 mb-6">
-        <div className="relative flex-1 min-w-64">
+      <div data-tour="learning-filters" className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 mb-6">
+        <div className="relative flex-1 min-w-0 sm:min-w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input type="text" placeholder={t.training.searchTraining} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm" />
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0 sm:flex-wrap pb-1">
           {categories.map((cat) => (
-            <button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${selectedCategory === cat ? 'bg-primary-500 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>{cat}</button>
+            <button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 ${selectedCategory === cat ? 'bg-primary-500 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>{cat}</button>
           ))}
         </div>
         {hasPermission(userRole, 'create_course') && (

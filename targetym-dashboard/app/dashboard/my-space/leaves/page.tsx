@@ -8,6 +8,8 @@ import {
   Calendar, Plus, X, AlertCircle, Clock, CheckCircle, XCircle, Info, ChevronDown, ChevronUp, Heart, FileText
 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/CustomDatePicker';
 import Header from '@/components/Header';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
@@ -496,32 +498,23 @@ function NewLeaveRequestModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t.mySpace.leaveTypeLabel} <span className="text-red-500">*</span>
               </label>
-              <select
+              <CustomSelect
                 value={formData.leave_type_id}
-                onChange={(e) => setFormData({ ...formData, leave_type_id: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                required
-              >
-                <option value="">{t.mySpace.selectType}</option>
-                {leaveTypes.map((type) => {
-                  const bal = balances?.balances.find((b) => b.leave_type_id === type.id);
-                  let suffix = '';
-                  if (bal) {
-                    suffix = ` \u2014 ${bal.available} j disponibles`;
-                  } else if (type.is_annual) {
-                    suffix = type.accrual_rate ? ` \u2014 ${type.accrual_rate} j/mois` : '';
-                  } else if (type.default_days > 0) {
-                    suffix = ` \u2014 quota : ${type.default_days} j/an`;
-                  } else {
-                    suffix = ' \u2014 sans quota fixe';
-                  }
-                  return (
-                    <option key={type.id} value={type.id}>
-                      {type.name} ({type.code}){suffix}
-                    </option>
-                  );
-                })}
-              </select>
+                onChange={(v) => setFormData({ ...formData, leave_type_id: v })}
+                placeholder={t.mySpace.selectType}
+                options={[
+                  { value: '', label: t.mySpace.selectType },
+                  ...leaveTypes.map((type) => {
+                    const bal = balances?.balances.find((b) => b.leave_type_id === type.id);
+                    let suffix = '';
+                    if (bal) suffix = ` — ${bal.available} j disponibles`;
+                    else if (type.is_annual) suffix = type.accrual_rate ? ` — ${type.accrual_rate} j/mois` : '';
+                    else if (type.default_days > 0) suffix = ` — quota : ${type.default_days} j/an`;
+                    else suffix = ' — sans quota fixe';
+                    return { value: String(type.id), label: `${type.name} (${type.code})${suffix}` };
+                  }),
+                ]}
+              />
             </div>
 
             {formData.leave_type_id && (() => {
@@ -561,33 +554,26 @@ function NewLeaveRequestModal({
               return null;
             })()}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t.mySpace.startDate} <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="date"
+                <CustomDatePicker
                   value={formData.start_date}
-                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  required
+                  onChange={(v) => setFormData({ ...formData, start_date: v })}
                 />
-
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t.mySpace.endDate} <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="date"
+                <CustomDatePicker
                   value={formData.end_date}
-                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  required
+                  onChange={(v) => setFormData({ ...formData, end_date: v })}
+                  min={formData.start_date || undefined}
                 />
-
               </div>
             </div>
 

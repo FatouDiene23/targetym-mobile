@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Check } from 'lucide-react';
 
 export interface SelectOption {
@@ -29,12 +30,42 @@ export default function CustomSelect({
   disabled = false,
 }: CustomSelectProps) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open || !triggerRef.current) return;
+    const updatePosition = () => {
+      if (!triggerRef.current) return;
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      });
+    };
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
     const handleClick = (e: MouseEvent | TouchEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (triggerRef.current?.contains(target)) return;
+      if (dropdownRef.current?.contains(target)) return;
+      setOpen(false);
     };
     document.addEventListener('mousedown', handleClick);
     document.addEventListener('touchstart', handleClick);
@@ -53,9 +84,40 @@ export default function CustomSelect({
 
   const selectedOption = options.find(o => o.value === value);
 
+  const dropdown = open && mounted ? createPortal(
+    <div
+      ref={dropdownRef}
+      style={{
+        position: 'fixed',
+        top: `${position.top}px`,
+        left: `${position.left}px`,
+        width: `${position.width}px`,
+        zIndex: 99999,
+      }}
+      className="bg-white border border-gray-300 rounded-lg shadow-2xl max-h-60 overflow-y-auto"
+    >
+      {options.map(opt => (
+        <button
+          key={opt.value}
+          type="button"
+          disabled={opt.disabled}
+          onClick={() => { if (!opt.disabled) { onChange(opt.value); setOpen(false); } }}
+          className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors border-b border-gray-50 last:border-0
+            ${opt.disabled ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-gray-50 active:bg-gray-100'}
+            ${opt.value === value ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-800'}`}
+        >
+          <span>{opt.label}</span>
+          {opt.value === value && <Check className="w-4 h-4 text-primary-600 flex-shrink-0 ml-2" />}
+        </button>
+      ))}
+    </div>,
+    document.body
+  ) : null;
+
   return (
-    <div ref={ref} className={`relative ${className}`}>
+    <div className={`relative ${className}`}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => { if (!disabled) setOpen(!open); }}
         className={`w-full flex items-center justify-between px-3 py-2 border rounded-lg text-sm text-left transition-colors
@@ -67,25 +129,7 @@ export default function CustomSelect({
         </span>
         <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 ml-2 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
-
-      {open && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-[9999] max-h-60 overflow-y-auto">
-          {options.map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              disabled={opt.disabled}
-              onClick={() => { if (!opt.disabled) { onChange(opt.value); setOpen(false); } }}
-              className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors border-b border-gray-50 last:border-0
-                ${opt.disabled ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-gray-50 active:bg-gray-100'}
-                ${opt.value === value ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-800'}`}
-            >
-              <span>{opt.label}</span>
-              {opt.value === value && <Check className="w-4 h-4 text-primary-600 flex-shrink-0 ml-2" />}
-            </button>
-          ))}
-        </div>
-      )}
+      {dropdown}
     </div>
   );
 }

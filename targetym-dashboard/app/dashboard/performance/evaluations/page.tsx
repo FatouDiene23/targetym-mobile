@@ -711,7 +711,8 @@ export default function EvaluationsPage() {
           </div>
           <CustomSelect
             value={filterStatus}
-            onChange={v => { setFilterStatus(v); setPage(1); }}
+            onChange={(v) => { setFilterStatus(v); setPage(1); }}
+            className="min-w-[160px]"
             options={[
               { value: 'all', label: perf.allStatuses },
               { value: 'pending', label: perf.pendingStatus },
@@ -720,7 +721,6 @@ export default function EvaluationsPage() {
               { value: 'validated', label: perf.validated },
               ...(showCancelled ? [{ value: 'cancelled', label: perf.cancelled }] : []),
             ]}
-            className="min-w-[140px]"
           />
           
           {/* ✅ CHECKBOX AFFICHER LES ANNULÉES */}

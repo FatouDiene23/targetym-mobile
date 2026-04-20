@@ -299,10 +299,10 @@ function WelcomeCard({ userName, role }: { userName: string; role: UserRole }) {
             <span className="text-primary-200 text-sm">{new Date().toLocaleDateString(t.dashboard.dateLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
           </div>
         </div>
-        <div className="hidden md:flex items-center gap-4">
-          <div className="text-center px-4 py-2 bg-white/10 rounded-xl backdrop-blur-sm">
-            <Activity className="w-5 h-5 mx-auto mb-1 text-green-300" />
-            <p className="text-xs text-primary-200">{t.employees.active}</p>
+        <div className="flex items-center gap-4 shrink-0">
+          <div className="text-center px-3 md:px-4 py-1.5 md:py-2 bg-white/10 rounded-xl backdrop-blur-sm">
+            <Activity className="w-4 md:w-5 h-4 md:h-5 mx-auto mb-0.5 md:mb-1 text-green-300" />
+            <p className="text-[10px] md:text-xs text-primary-200">{t.employees.active}</p>
           </div>
         </div>
       </div>
@@ -365,13 +365,13 @@ function MyLeaveBalanceWidget({ balances }: { balances: LeaveBalanceSummary | nu
       {balances && balances.balances.length > 0 ? (
         <div className="space-y-3 mb-4">
           {balances.balances.slice(0, 3).map((balance, i) => (
-            <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-              <span className="text-sm text-gray-600">{balance.leave_type_name}</span>
-              <div className="flex items-center gap-2">
-                <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div key={i} className="flex items-center justify-between gap-2 p-2 bg-gray-50 rounded-lg">
+              <span className="text-xs sm:text-sm text-gray-600 truncate flex-1 min-w-0">{balance.leave_type_name}</span>
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="w-12 sm:w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
                   <div className="h-full bg-gradient-to-r from-primary-400 to-primary-600 rounded-full" style={{ width: `${balance.allocated > 0 ? (balance.available / balance.allocated) * 100 : 0}%` }} />
                 </div>
-                <span className="text-sm font-semibold text-gray-900">{balance.available}/{balance.allocated}</span>
+                <span className="text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">{balance.available}/{balance.allocated}</span>
               </div>
             </div>
           ))}
@@ -550,10 +550,10 @@ function TeamOverviewWidget({ teamMembers, pendingRequests }: { teamMembers: Tea
         </div>
         <Link href="/dashboard/my-space/team" className="text-primary-600 text-xs hover:underline flex items-center gap-1">{t.dashboard.view} <ChevronRight className="w-3 h-3" /></Link>
       </div>
-      <div className="grid grid-cols-3 gap-3 mb-4">
-        <div className="text-center p-3 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl"><p className="text-2xl font-bold text-gray-900">{teamMembers.length}</p><p className="text-xs text-gray-500">{t.dashboard.teamTotal}</p></div>
-        <div className="text-center p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl"><p className="text-2xl font-bold text-green-600">{activeCount}</p><p className="text-xs text-green-700">{t.dashboard.teamActive}</p></div>
-        <div className="text-center p-3 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl"><p className="text-2xl font-bold text-orange-600">{onLeaveCount}</p><p className="text-xs text-orange-700">{t.dashboard.teamOnLeave}</p></div>
+      <div className="grid grid-cols-3 keep-cols gap-2 sm:gap-3 mb-4">
+        <div className="text-center p-2 sm:p-3 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl"><p className="text-lg sm:text-2xl font-bold text-gray-900">{teamMembers.length}</p><p className="text-[10px] sm:text-xs text-gray-500">{t.dashboard.teamTotal}</p></div>
+        <div className="text-center p-2 sm:p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl"><p className="text-lg sm:text-2xl font-bold text-green-600">{activeCount}</p><p className="text-[10px] sm:text-xs text-green-700">{t.dashboard.teamActive}</p></div>
+        <div className="text-center p-2 sm:p-3 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl"><p className="text-lg sm:text-2xl font-bold text-orange-600">{onLeaveCount}</p><p className="text-[10px] sm:text-xs text-orange-700">{t.dashboard.teamOnLeave}</p></div>
       </div>
       {pendingRequests.length > 0 && (
         <Link href="/dashboard/leaves" className="flex items-center gap-3 p-3 bg-gradient-to-r from-yellow-50 to-amber-50 text-yellow-800 rounded-xl hover:from-yellow-100 hover:to-amber-100 transition-colors">

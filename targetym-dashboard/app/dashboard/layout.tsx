@@ -352,6 +352,7 @@ function DashboardContent({
             </svg>
           </button>
           <div className="flex items-center space-x-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/picto-targetym.png" alt="Targetym AI" className="w-8 h-8 object-contain" />
             <span className="font-bold text-gray-900 text-sm">targetym <span className="text-primary-500">AI</span></span>
           </div>

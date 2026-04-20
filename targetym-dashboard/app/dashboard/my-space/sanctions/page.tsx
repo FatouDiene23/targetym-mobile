@@ -112,20 +112,20 @@ function PolicyBanner({ policyInfo, onDownload, isDownloading }: {
   const ts = t.mySpace.sanctions;
   if (!policyInfo?.exists) return null;
   return (
-    <div className="mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-      <div className="flex items-center gap-3 min-w-0 flex-1">
+    <div className="mb-4 p-3 sm:p-4 bg-indigo-50 border border-indigo-200 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <FileCheck className="w-5 h-5 text-indigo-600 flex-shrink-0" />
         <div className="min-w-0">
-          <p className="text-sm font-medium text-indigo-900">{ts.sanctionsPolicy}</p>
-          <p className="text-xs text-indigo-600 mt-0.5 truncate">{policyInfo.file_name}</p>
+          <p className="text-xs sm:text-sm font-medium text-indigo-900">{ts.sanctionsPolicy}</p>
+          <p className="text-[10px] sm:text-xs text-indigo-600 mt-0.5 truncate">{policyInfo.file_name}</p>
         </div>
       </div>
       <button
         onClick={onDownload}
         disabled={isDownloading}
-        className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+        className="flex items-center justify-center gap-1.5 px-3 py-1.5 sm:py-2 bg-indigo-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 self-start sm:self-auto shrink-0 whitespace-nowrap"
       >
-        {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+        {isDownloading ? <Loader2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 animate-spin" /> : <Download className="w-3.5 sm:w-4 h-3.5 sm:h-4" />}
         {ts.download}
       </button>
     </div>

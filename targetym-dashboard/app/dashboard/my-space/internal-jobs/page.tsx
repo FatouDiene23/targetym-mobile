@@ -854,17 +854,18 @@ export default function CareersPage() {
                     <button
                       onClick={handleApply}
                       disabled={applying}
-                      className="px-6 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:opacity-50 flex items-center"
+                      className="px-3 sm:px-4 py-2 bg-primary-500 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-primary-600 disabled:opacity-50 flex items-center gap-1.5 whitespace-nowrap"
                     >
                       {applying ? (
                         <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          <Loader2 className="w-4 h-4 animate-spin" />
                           Envoi...
                         </>
                       ) : (
                         <>
-                          <Send className="w-4 h-4 mr-2" />
-                          Envoyer ma candidature
+                          <Send className="w-4 h-4" />
+                          <span className="hidden sm:inline">Envoyer ma candidature</span>
+                          <span className="sm:hidden">Envoyer</span>
                         </>
                       )}
                     </button>

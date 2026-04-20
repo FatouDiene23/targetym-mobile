@@ -105,6 +105,11 @@ const myOrgCSS = `
   justify-content: center;
   padding: 20px 20px 40px;
 }
+@media (max-width: 640px) {
+  .my-org-tree {
+    padding: 10px 4px 20px;
+  }
+}
 .my-org-tree ul {
   display: flex;
   justify-content: center;
@@ -420,7 +425,10 @@ export default function MyProfilePage() {
   const [orgTree, setOrgTree] = useState<OrgNode | null>(null);
   const [orgLoading, setOrgLoading] = useState(false);
   const [orgExpanded, setOrgExpanded] = useState<Set<number>>(new Set());
-  const [orgZoom, setOrgZoom] = useState(90);
+  const [orgZoom, setOrgZoom] = useState(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 640) return 60;
+    return 90;
+  });
 
   // Changement de mot de passe
   const [passwordForm, setPasswordForm] = useState({ current: '', newPwd: '', confirm: '' });

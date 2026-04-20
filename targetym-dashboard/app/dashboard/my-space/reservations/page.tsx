@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
+import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/CustomDatePicker';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import { fetchWithAuth, API_URL } from '@/lib/api';
 
@@ -340,24 +342,25 @@ export default function MyReservationsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.rooms.roomLabel}</label>
-                  <select
-                    value={selectedRoomId ?? ''}
-                    onChange={e => setSelectedRoomId(Number(e.target.value) || null)}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  >
-                    <option value="">{i18n.rooms.selectRoom}</option>
-                    {rooms.map(rm => (
-                      <option key={rm.id} value={rm.id}>{rm.name} ({rm.capacity} {i18n.rooms.places})</option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    value={selectedRoomId !== null ? String(selectedRoomId) : ''}
+                    onChange={(v) => setSelectedRoomId(v ? Number(v) : null)}
+                    placeholder={i18n.rooms.selectRoom}
+                    options={[
+                      { value: '', label: i18n.rooms.selectRoom },
+                      ...rooms.map(rm => ({
+                        value: String(rm.id),
+                        label: `${rm.name} (${rm.capacity} ${i18n.rooms.places})`,
+                      })),
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.rooms.dateLabel}</label>
-                  <input
-                    type="date"
+                  <CustomDatePicker
                     value={selectedDate}
-                    onChange={e => setSelectedDate(e.target.value)}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    onChange={setSelectedDate}
+                    placeholder={i18n.rooms.dateLabel}
                   />
                 </div>
               </div>

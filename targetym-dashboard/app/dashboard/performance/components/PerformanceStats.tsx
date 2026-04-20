@@ -46,29 +46,29 @@ export default function PerformanceStats() {
   if (!stats) return null;
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-        <p className="text-sm text-gray-500">Score Moyen</p>
-        <p className="text-2xl font-bold text-gray-900">{stats.avg_score > 0 ? `${stats.avg_score}/5` : '-'}</p>
+    <div className="flex md:grid md:grid-cols-5 gap-3 md:gap-4 mb-6 overflow-x-auto scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 pb-1">
+      <div className="bg-white rounded-xl p-3 md:p-4 border border-gray-200 shadow-sm min-w-[130px] md:min-w-0 shrink-0 md:shrink">
+        <p className="text-xs md:text-sm text-gray-500">Score Moyen</p>
+        <p className="text-xl md:text-2xl font-bold text-gray-900">{stats.avg_score > 0 ? `${stats.avg_score}/5` : '-'}</p>
       </div>
-      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-        <p className="text-sm text-gray-500">Évaluations</p>
-        <p className="text-2xl font-bold text-green-600">{stats.evaluations_completed}/{stats.evaluations_total}</p>
-        <p className="text-xs text-gray-400">{stats.evaluations_total > 0 ? `${Math.round(stats.completion_rate)}%` : ''}</p>
+      <div className="bg-white rounded-xl p-3 md:p-4 border border-gray-200 shadow-sm min-w-[130px] md:min-w-0 shrink-0 md:shrink">
+        <p className="text-xs md:text-sm text-gray-500">Évaluations</p>
+        <p className="text-xl md:text-2xl font-bold text-green-600">{stats.evaluations_completed}/{stats.evaluations_total}</p>
+        <p className="text-[10px] md:text-xs text-gray-400">{stats.evaluations_total > 0 ? `${Math.round(stats.completion_rate)}%` : ''}</p>
       </div>
-      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-        <p className="text-sm text-gray-500">Feedbacks Reçus</p>
-        <p className="text-2xl font-bold text-purple-600">{stats.feedbacks_received}</p>
-        <p className="text-xs text-gray-400">{stats.feedbacks_given} donnés</p>
+      <div className="bg-white rounded-xl p-3 md:p-4 border border-gray-200 shadow-sm min-w-[130px] md:min-w-0 shrink-0 md:shrink">
+        <p className="text-xs md:text-sm text-gray-500">Feedbacks Reçus</p>
+        <p className="text-xl md:text-2xl font-bold text-purple-600">{stats.feedbacks_received}</p>
+        <p className="text-[10px] md:text-xs text-gray-400">{stats.feedbacks_given} donnés</p>
       </div>
-      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-        <p className="text-sm text-gray-500">OKRs</p>
-        <p className="text-2xl font-bold text-orange-600">{stats.okr_achievement}%</p>
+      <div className="bg-white rounded-xl p-3 md:p-4 border border-gray-200 shadow-sm min-w-[130px] md:min-w-0 shrink-0 md:shrink">
+        <p className="text-xs md:text-sm text-gray-500">OKRs</p>
+        <p className="text-xl md:text-2xl font-bold text-orange-600">{stats.okr_achievement}%</p>
       </div>
-      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-        <p className="text-sm text-gray-500">1-on-1</p>
-        <p className="text-2xl font-bold text-primary-600">{stats.one_on_ones_scheduled}</p>
-        <p className="text-xs text-gray-400">{stats.one_on_ones_completed} complétés</p>
+      <div className="bg-white rounded-xl p-3 md:p-4 border border-gray-200 shadow-sm min-w-[130px] md:min-w-0 shrink-0 md:shrink">
+        <p className="text-xs md:text-sm text-gray-500">1-on-1</p>
+        <p className="text-xl md:text-2xl font-bold text-primary-600">{stats.one_on_ones_scheduled}</p>
+        <p className="text-[10px] md:text-xs text-gray-400">{stats.one_on_ones_completed} complétés</p>
       </div>
     </div>
   );

@@ -262,7 +262,7 @@ export default function ResignationPage() {
             {/* Details */}
             <div className="bg-white rounded-xl border p-6 space-y-4">
               <h3 className="text-sm font-semibold text-gray-900">{ts.detailsTitle}</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-xs text-gray-500">{ts.requestedDepartureDate}</p>
                   <p className="text-sm font-medium text-gray-900 mt-1">{formatDate(resignation.requested_departure_date)}</p>
@@ -335,14 +335,14 @@ export default function ResignationPage() {
                 </button>
               </div>
             ) : (
-              <div className="bg-white rounded-xl border p-6 space-y-5">
-                <div className="flex items-center gap-3 pb-4 border-b">
-                  <div className="p-2 bg-red-50 rounded-lg">
+              <div className="bg-white rounded-xl border p-3 sm:p-6 space-y-4 sm:space-y-5">
+                <div className="flex items-center gap-3 pb-3 sm:pb-4 border-b">
+                  <div className="p-2 bg-red-50 rounded-lg shrink-0">
                     <UserMinus className="w-5 h-5 text-red-600" />
                   </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">{ts.submitFormTitle}</h2>
-                    <p className="text-sm text-gray-500">{ts.submitFormSubtitle}</p>
+                  <div className="min-w-0">
+                    <h2 className="text-base sm:text-lg font-semibold text-gray-900">{ts.submitFormTitle}</h2>
+                    <p className="text-xs sm:text-sm text-gray-500">{ts.submitFormSubtitle}</p>
                   </div>
                 </div>
 

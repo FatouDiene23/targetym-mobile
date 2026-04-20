@@ -538,18 +538,17 @@ function CreateTaskModal({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.mySpace.tasks.assignTo}</label>
-                <select
-                  value={formData.assigned_to_id}
-                  onChange={(e) => setFormData({ ...formData, assigned_to_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  <option value={currentEmployeeId}>{t.mySpace.tasks.myself}</option>
-                  {teamMembers.map((member) => (
-                    <option key={member.id} value={member.id}>
-                      {member.name} {member.job_title ? `(${member.job_title})` : ''}
-                    </option>
-                  ))}
-                </select>
+                <CustomSelect
+                  value={String(formData.assigned_to_id || '')}
+                  onChange={(v) => setFormData({ ...formData, assigned_to_id: v })}
+                  options={[
+                    { value: String(currentEmployeeId || ''), label: t.mySpace.tasks.myself },
+                    ...teamMembers.map((member) => ({
+                      value: String(member.id),
+                      label: `${member.name}${member.job_title ? ` (${member.job_title})` : ''}`,
+                    })),
+                  ]}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -566,16 +565,16 @@ function CreateTaskModal({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{t.mySpace.tasks.priority}</label>
-                  <select
+                  <CustomSelect
                     value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value as TaskPriority })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  >
-                    <option value="low">{t.mySpace.tasks.priorityLow}</option>
-                    <option value="medium">{t.mySpace.tasks.priorityMedium}</option>
-                    <option value="high">{t.mySpace.tasks.priorityHigh}</option>
-                    <option value="urgent">{t.mySpace.tasks.priorityUrgent}</option>
-                  </select>
+                    onChange={(v) => setFormData({ ...formData, priority: v as TaskPriority })}
+                    options={[
+                      { value: 'low', label: t.mySpace.tasks.priorityLow },
+                      { value: 'medium', label: t.mySpace.tasks.priorityMedium },
+                      { value: 'high', label: t.mySpace.tasks.priorityHigh },
+                      { value: 'urgent', label: t.mySpace.tasks.priorityUrgent },
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -629,44 +628,37 @@ function CreateTaskModal({
                       <>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">{t.mySpace.tasks.objectiveRequired}</label>
-                          <select
-                            value={formData.objective_id}
-                            onChange={(e) => setFormData({ ...formData, objective_id: e.target.value })}
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm ${
-                              !formData.objective_id && !formData.is_administrative 
-                                ? 'border-red-300 bg-red-50' 
-                                : 'border-gray-300'
-                            }`}
-                            required={!formData.is_administrative}
-                          >
-                            <option value="">{t.mySpace.tasks.selectObjectivePlaceholder}</option>
-                            {Object.entries(groupedObjectives).map(([level, objs]) => (
-                              <optgroup key={level} label={getOkrLevelLabels(t)[level] || level}>
-                                {objs.map((obj) => (
-                                  <option key={obj.id} value={obj.id}>
-                                    {obj.title} ({obj.progress.toFixed(0)}%)
-                                  </option>
-                                ))}
-                              </optgroup>
-                            ))}
-                          </select>
+                          <CustomSelect
+                            value={String(formData.objective_id || '')}
+                            onChange={(v) => setFormData({ ...formData, objective_id: v })}
+                            placeholder={t.mySpace.tasks.selectObjectivePlaceholder}
+                            options={[
+                              { value: '', label: t.mySpace.tasks.selectObjectivePlaceholder },
+                              ...Object.entries(groupedObjectives).flatMap(([level, objs]) =>
+                                objs.map((obj) => ({
+                                  value: String(obj.id),
+                                  label: `[${getOkrLevelLabels(t)[level] || level}] ${obj.title} (${obj.progress.toFixed(0)}%)`,
+                                }))
+                              ),
+                            ]}
+                          />
                         </div>
 
                         {formData.objective_id && availableKeyResults.length > 0 && (
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">{t.mySpace.tasks.keyResultOptional}</label>
-                            <select
-                              value={formData.key_result_id}
-                              onChange={(e) => setFormData({ ...formData, key_result_id: e.target.value })}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                            >
-                              <option value="">{t.mySpace.tasks.allKRs}</option>
-                              {availableKeyResults.map((kr) => (
-                                <option key={kr.id} value={kr.id}>
-                                  {kr.title} ({kr.current}/{kr.target} {kr.unit || ''})
-                                </option>
-                              ))}
-                            </select>
+                            <CustomSelect
+                              value={String(formData.key_result_id || '')}
+                              onChange={(v) => setFormData({ ...formData, key_result_id: v })}
+                              placeholder={t.mySpace.tasks.allKRs}
+                              options={[
+                                { value: '', label: t.mySpace.tasks.allKRs },
+                                ...availableKeyResults.map((kr) => ({
+                                  value: String(kr.id),
+                                  label: `${kr.title} (${kr.current}/${kr.target} ${kr.unit || ''})`,
+                                })),
+                              ]}
+                            />
                           </div>
                         )}
 
@@ -1727,27 +1719,27 @@ function HistoryTab() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-xl border border-gray-200 p-1 inline-flex">
+      <div className="bg-white rounded-xl border border-gray-200 p-1 flex overflow-x-auto scrollbar-hide">
         <button
           onClick={() => setSubTab('tasks')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+          className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
             subTab === 'tasks'
-              ? 'bg-primary-100 text-primary-700'
+              ? 'bg-primary-500 text-white'
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
-          <CheckCircle2 className="w-4 h-4 inline mr-2" />
+          <CheckCircle2 className="w-4 h-4 inline mr-1 sm:mr-2" />
           {t.mySpace.tasks.completedTasks} ({taskHistory.length})
         </button>
         <button
           onClick={() => setSubTab('validations')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+          className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
             subTab === 'validations'
-              ? 'bg-primary-100 text-primary-700'
+              ? 'bg-primary-500 text-white'
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
-          <Calendar className="w-4 h-4 inline mr-2" />
+          <Calendar className="w-4 h-4 inline mr-1 sm:mr-2" />
           {t.mySpace.tasks.submittedDays} ({validationHistory.length})
         </button>
       </div>

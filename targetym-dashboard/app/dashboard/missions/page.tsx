@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
 import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/CustomDatePicker';
 import {
   Plane, MapPin, Calendar, Clock, Users, FileText, Plus, Search,
   Filter, ChevronDown, ChevronRight, Eye, Edit, Trash2, Download,
@@ -730,14 +731,14 @@ export default function MissionsPage() {
     }
 
     return (
-      <div className={`grid gap-4 mb-6 ${cards.length <= 4 ? 'grid-cols-2 md:grid-cols-4' : cards.length === 5 ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6'}`}>
+      <div className="flex md:grid md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4 mb-6 overflow-x-auto scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 pb-1">
         {cards.map((card) => (
-          <div key={card.label} className={`${card.bg} rounded-xl p-4 border`}>
-            <div className="flex items-center justify-between mb-2">
-              <card.icon className={`w-5 h-5 ${card.color}`} />
+          <div key={card.label} className={`${card.bg} rounded-xl p-3 md:p-4 border min-w-[120px] md:min-w-0 shrink-0 md:shrink`}>
+            <div className="flex items-center justify-between mb-1 md:mb-2">
+              <card.icon className={`w-4 md:w-5 h-4 md:h-5 ${card.color}`} />
             </div>
-            <p className={`text-lg font-bold ${card.color}`}>{card.value}</p>
-            <p className="text-xs text-gray-500 mt-1">{card.label}</p>
+            <p className={`text-base md:text-lg font-bold ${card.color}`}>{card.value}</p>
+            <p className="text-[10px] md:text-xs text-gray-500 mt-1">{card.label}</p>
           </div>
         ))}
       </div>
@@ -1065,10 +1066,11 @@ export default function MissionsPage() {
           <button
             data-tour="create-mission"
             onClick={() => setShowCreateModal(true)}
-            className="hidden lg:flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-primary-600 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-primary-700 transition-colors whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
-            Nouvelle mission
+            <span className="hidden xs:inline sm:inline">Nouvelle mission</span>
+            <span className="xs:hidden sm:hidden">Nouvelle</span>
           </button>
         </div>
 
@@ -1394,20 +1396,17 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Date de départ *</label>
-              <input
-                type="date"
+              <CustomDatePicker
                 value={formData.start_date}
-                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                className="w-full px-3 py-2 border rounded-xl text-sm"
+                onChange={(v) => setFormData({ ...formData, start_date: v })}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Date de retour *</label>
-              <input
-                type="date"
+              <CustomDatePicker
                 value={formData.end_date}
-                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                className="w-full px-3 py-2 border rounded-xl text-sm"
+                onChange={(v) => setFormData({ ...formData, end_date: v })}
+                min={formData.start_date || undefined}
               />
             </div>
           </div>
@@ -1459,23 +1458,23 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 p-6 border-t sticky bottom-0 bg-white rounded-b-2xl">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">
+        <div className="flex items-center justify-end gap-2 p-3 sm:p-6 border-t sticky bottom-0 bg-white rounded-b-2xl">
+          <button onClick={onClose} className="px-2 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:bg-gray-100 rounded-xl whitespace-nowrap">
             Annuler
           </button>
           <button
             onClick={() => { formData.as_draft = true; handleSubmit(); }}
-            className="px-4 py-2 text-sm border rounded-xl hover:bg-gray-50"
+            className="px-2 sm:px-4 py-2 text-xs sm:text-sm border rounded-xl hover:bg-gray-50 whitespace-nowrap"
             disabled={submitting}
           >
-            Enregistrer brouillon
+            Brouillon
           </button>
           <button
             onClick={() => { formData.as_draft = false; handleSubmit(); }}
-            className="px-4 py-2 text-sm bg-primary-600 text-white rounded-xl hover:bg-primary-700 flex items-center gap-2"
+            className="px-2 sm:px-4 py-2 text-xs sm:text-sm bg-primary-600 text-white rounded-xl hover:bg-primary-700 flex items-center gap-1 sm:gap-2 whitespace-nowrap"
             disabled={submitting}
           >
-            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+            {submitting && <Loader2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 animate-spin" />}
             Soumettre
           </button>
         </div>

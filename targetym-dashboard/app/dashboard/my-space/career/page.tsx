@@ -658,28 +658,28 @@ export default function MyCareerPage() {
 
         {/* Header - Profile Summary */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-6">
-          <div className="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-8">
-            <div className="flex items-center gap-5">
-              <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-white text-2xl font-bold border-2 border-white/30">
+          <div className="bg-gradient-to-r from-primary-500 to-primary-600 px-4 sm:px-6 py-5 sm:py-8">
+            <div className="flex items-start sm:items-center gap-3 sm:gap-5">
+              <div className="w-14 sm:w-20 h-14 sm:h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-white text-lg sm:text-2xl font-bold border-2 border-white/30 shrink-0">
                 {employee.first_name?.[0]}{employee.last_name?.[0]}
               </div>
-              <div className="text-white">
-                <h1 className="text-2xl font-bold">{employee.first_name} {employee.last_name}</h1>
-                <p className="text-primary-100 text-lg">{employee.job_title || '—'}</p>
-                <div className="flex items-center gap-4 mt-2 text-primary-200 text-sm">
+              <div className="text-white min-w-0 flex-1">
+                <h1 className="text-lg sm:text-2xl font-bold">{employee.first_name} {employee.last_name}</h1>
+                <p className="text-primary-100 text-sm sm:text-lg">{employee.job_title || '—'}</p>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 gap-1 mt-2 text-primary-200 text-xs sm:text-sm">
                   {employee.department_name && (
                     <span className="flex items-center gap-1">
-                      <Building2 className="w-4 h-4" />{employee.department_name}
+                      <Building2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 shrink-0" />{employee.department_name}
                     </span>
                   )}
                   {employee.manager_name && (
                     <span className="flex items-center gap-1">
-                      <UserCheck className="w-4 h-4" />N+1: {employee.manager_name}
+                      <UserCheck className="w-3.5 sm:w-4 h-3.5 sm:h-4 shrink-0" />N+1: {employee.manager_name}
                     </span>
                   )}
                   {employee.location && (
                     <span className="flex items-center gap-1">
-                      <MapPin className="w-4 h-4" />{employee.location}
+                      <MapPin className="w-3.5 sm:w-4 h-3.5 sm:h-4 shrink-0" />{employee.location}
                     </span>
                   )}
                 </div>

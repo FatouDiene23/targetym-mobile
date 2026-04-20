@@ -11,7 +11,7 @@ import Header from '@/components/Header';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import {
-  Search, RefreshCw, ChevronRight, CheckCircle2, Circle,
+  Search, RefreshCw, ChevronLeft, ChevronRight, CheckCircle2, Circle,
   TrendingUp, BookOpen, Heart, ArrowUpRight, Users, AlertCircle
 } from 'lucide-react';
 import { useTalents } from '../TalentsContext';
@@ -129,7 +129,7 @@ export default function TeamCareerPage() {
       <main className="flex-1 flex overflow-hidden bg-gray-50" style={{ height: 'calc(100vh - 64px)' }}>
 
         {/* ─── Panneau gauche : liste ─── */}
-        <div className="w-80 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
+        <div className={`${selected ? 'hidden lg:flex' : 'flex'} w-full lg:w-80 flex-shrink-0 bg-white border-r border-gray-200 flex-col`}>
 
           {/* Filtres */}
           <div className="p-4 border-b border-gray-100 space-y-2">
@@ -210,7 +210,14 @@ export default function TeamCareerPage() {
         </div>
 
         {/* ─── Panneau droit : détail ─── */}
-        <div className="flex-1 overflow-y-auto">
+        <div className={`${selected ? 'flex' : 'hidden lg:flex'} flex-1 flex-col overflow-y-auto`}>
+          {selected && (
+            <div className="lg:hidden flex items-center gap-2 p-3 border-b border-gray-200 bg-white">
+              <button onClick={() => setSelected(null)} className="flex items-center gap-1 text-sm text-primary-600 font-medium">
+                <ChevronLeft className="w-4 h-4" /> {tp.backToList ?? 'Retour'}
+              </button>
+            </div>
+          )}
           {!selected ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-3">
               <Users className="w-12 h-12 text-gray-200" />

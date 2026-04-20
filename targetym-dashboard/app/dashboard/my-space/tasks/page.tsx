@@ -1265,16 +1265,17 @@ function MyTasksTab({
             
             <div className="flex items-center gap-3">
               {subTab === 'today' && (
-                <select
+                <CustomSelect
                   value={statusFilter}
-                  onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-                >
-                  <option value="all">{t.mySpace.tasks.allStatuses}</option>
-                  <option value="todo">{t.mySpace.tasks.toDo}</option>
-                  <option value="in_progress">{t.mySpace.tasks.inProgress}</option>
-                  <option value="completed">{t.mySpace.tasks.completed}</option>
-                </select>
+                  onChange={v => { setStatusFilter(v); setCurrentPage(1); }}
+                  options={[
+                    { value: 'all', label: t.mySpace.tasks.allStatuses },
+                    { value: 'todo', label: t.mySpace.tasks.toDo },
+                    { value: 'in_progress', label: t.mySpace.tasks.inProgress },
+                    { value: 'completed', label: t.mySpace.tasks.completed },
+                  ]}
+                  className="min-w-[130px]"
+                />
               )}
 
               {/* Bouton soumettre */}

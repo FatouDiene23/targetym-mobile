@@ -74,15 +74,19 @@ const superAdminMoreTabs: BottomNavItem[] = [
 // Items dans le menu "Plus" pour les rôles normaux
 const moreTabs: BottomNavItem[] = [
   { name: 'OKR & Objectifs', href: '/dashboard/okr', icon: Target, roles: ['manager', 'rh', 'admin', 'dg'] },
-  { name: 'Talents', href: '/dashboard/talents', icon: Sparkles, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
-  { name: 'Congés', href: '/dashboard/leaves', icon: Calendar, roles: ['rh', 'admin', 'dg'] },
-  { name: 'Personnel', href: '/dashboard/employees', icon: Users, roles: ['rh', 'admin', 'dg'] },
   { name: 'Recrutement', href: '/dashboard/recruitment', icon: UserPlus, roles: ['rh', 'admin', 'dg'] },
   { name: 'Onboarding', href: '/dashboard/onboarding', icon: Handshake, roles: ['rh', 'admin', 'dg'] },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, roles: ['rh', 'admin', 'dg'] },
-  { name: 'Missions', href: '/dashboard/missions', icon: Briefcase, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
-  { name: 'Paie', href: '/dashboard/paie', icon: Wallet, roles: ['rh', 'admin', 'dg'] },
-  { name: 'Vue Groupe', href: '/dashboard/groups/view', icon: Network, roles: ['rh', 'admin', 'dg'] },
+  { name: 'Talents & Carrière', href: '/dashboard/talents', icon: Sparkles, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+  { name: 'People Analytics', href: '/dashboard/analytics', icon: BarChart3, roles: ['rh', 'admin', 'dg'] },
+  { name: 'Gestion du Personnel', href: '/dashboard/employees', icon: Users, roles: ['rh', 'admin', 'dg'] },
+  { name: 'Gestion des Congés', href: '/dashboard/leaves', icon: Calendar, roles: ['rh', 'admin', 'dg'] },
+  { name: 'Gestion des Missions', href: '/dashboard/missions', icon: Briefcase, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+  { name: 'Gestion des Contentieux', href: '/dashboard/contentieux', icon: Shield, roles: ['rh', 'admin', 'dg'] },
+  { name: 'Enquêtes', href: '/dashboard/surveys', icon: HelpCircle, roles: ['rh', 'admin', 'dg', 'manager'] },
+  { name: 'Notes de Service', href: '/dashboard/notes-de-service', icon: PenLine, roles: ['rh', 'admin', 'dg'] },
+  { name: 'Réservation de Salles', href: '/dashboard/reservations', icon: Calendar, roles: ['rh', 'admin', 'dg'] },
+  { name: 'Budget RH', href: '/dashboard/budget-rh', icon: Wallet, roles: ['admin', 'dg', 'rh'] },
+  { name: 'Certificats', href: '/dashboard/certificates', icon: Receipt, roles: ['admin', 'dg', 'rh'] },
   { name: 'Paramètres', href: '/dashboard/settings', icon: Settings, roles: ['admin', 'dg', 'rh'] },
 ];
 

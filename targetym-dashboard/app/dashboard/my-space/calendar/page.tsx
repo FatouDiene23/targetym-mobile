@@ -577,6 +577,7 @@ function MonthView({ year, month, events, onEventClick }: {
 }) {
   const { t } = useI18n();
   const DAY_NAMES = getDayNames(t);
+  const EVENT_CONFIGS = getEventConfigs(t);
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
   const today = formatDate(new Date());
@@ -634,22 +635,37 @@ function MonthView({ year, month, events, onEventClick }: {
           const isWeekend = idx % 7 >= 5;
           
           return (
-            <div 
+            <div
               key={idx}
-              className={`min-h-[100px] border-b border-r border-gray-100 p-1.5 transition-colors ${
+              className={`min-h-[60px] sm:min-h-[100px] border-b border-r border-gray-100 p-0.5 sm:p-1.5 transition-colors ${
                 !cell.currentMonth ? 'bg-gray-50/50' : isWeekend ? 'bg-gray-50/30' : 'bg-white'
               } ${isToday ? 'ring-2 ring-inset ring-primary-500/30' : ''}`}
             >
-              <div className={`text-right mb-1 ${!cell.currentMonth ? 'text-gray-300' : ''}`}>
-                <span className={`inline-flex items-center justify-center w-7 h-7 text-sm ${
-                  isToday 
-                    ? 'bg-primary-500 text-white rounded-full font-bold' 
+              <div className={`text-center sm:text-right mb-0.5 sm:mb-1 ${!cell.currentMonth ? 'text-gray-300' : ''}`}>
+                <span className={`inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 text-xs sm:text-sm ${
+                  isToday
+                    ? 'bg-primary-500 text-white rounded-full font-bold'
                     : cell.currentMonth ? 'text-gray-700 font-medium' : 'text-gray-300'
                 }`}>
                   {cell.day}
                 </span>
               </div>
-              <div className="space-y-0.5">
+              {/* Mobile : points colorés */}
+              <div className="sm:hidden flex flex-wrap gap-0.5 justify-center">
+                {dayEvents.slice(0, 4).map(event => {
+                  const cfg = EVENT_CONFIGS[event.type];
+                  return (
+                    <button
+                      key={event.id}
+                      onClick={() => onEventClick(event)}
+                      className={`w-1.5 h-1.5 rounded-full ${cfg.dotColor}`}
+                      title={event.title}
+                    />
+                  );
+                })}
+              </div>
+              {/* Desktop : pilules avec texte */}
+              <div className="hidden sm:block space-y-0.5">
                 {dayEvents.slice(0, 3).map(event => (
                   <EventPill key={event.id} event={event} compact onClick={() => onEventClick(event)} />
                 ))}

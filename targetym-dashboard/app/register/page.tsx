@@ -60,7 +60,7 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-primary-100 px-4">
         <div className="w-full max-w-md text-center">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
@@ -70,7 +70,7 @@ export default function RegisterPage() {
             </p>
             <a
               href="/login/index.html"
-              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all"
+              className="inline-flex items-center px-6 py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-all"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Retour à la connexion
@@ -82,13 +82,11 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-primary-100 px-4 py-8">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Building2 className="w-8 h-8 text-white" />
-          </div>
+          <img src="/picto-targetym.png" alt="Targetym AI" className="w-20 h-20 object-contain mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900">Essai gratuit</h1>
           <p className="text-gray-500 mt-1">30 jours d'essai, jusqu'à 50 employés</p>
         </div>
@@ -114,7 +112,7 @@ export default function RegisterPage() {
                   onChange={(e) => handleChange('company_name', e.target.value)}
                   placeholder="Ma Startup"
                   required
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-900"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-gray-900"
                 />
               </div>
             </div>
@@ -131,7 +129,7 @@ export default function RegisterPage() {
                     onChange={(e) => handleChange('first_name', e.target.value)}
                     placeholder="Jean"
                     required
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-900"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-gray-900"
                   />
                 </div>
               </div>
@@ -143,7 +141,7 @@ export default function RegisterPage() {
                   onChange={(e) => handleChange('last_name', e.target.value)}
                   placeholder="Dupont"
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-900"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-gray-900"
                 />
               </div>
             </div>
@@ -159,7 +157,7 @@ export default function RegisterPage() {
                   onChange={(e) => handleChange('email', e.target.value)}
                   placeholder="admin@entreprise.com"
                   required
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-900"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-gray-900"
                 />
               </div>
             </div>
@@ -176,7 +174,7 @@ export default function RegisterPage() {
                   placeholder="Min. 8 caractères"
                   required
                   minLength={8}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-900"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-gray-900"
                 />
                 <button
                   type="button"
@@ -199,7 +197,7 @@ export default function RegisterPage() {
                     value={formData.phone}
                     onChange={(e) => handleChange('phone', e.target.value)}
                     placeholder="+221 77..."
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-900"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-gray-900"
                   />
                 </div>
               </div>
@@ -212,7 +210,7 @@ export default function RegisterPage() {
                     value={formData.job_title}
                     onChange={(e) => handleChange('job_title', e.target.value)}
                     placeholder="DG, RH..."
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-900"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-gray-900"
                   />
                 </div>
               </div>
@@ -222,7 +220,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="w-full py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 focus:ring-4 focus:ring-primary-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {loading ? (
                 <div className="flex items-center justify-center gap-2">
@@ -238,7 +236,7 @@ export default function RegisterPage() {
           <div className="mt-6 text-center">
             <a
               href="/login/index.html"
-              className="inline-flex items-center text-sm text-blue-600 font-medium hover:text-blue-700"
+              className="inline-flex items-center text-sm text-primary-600 font-medium hover:text-primary-700"
             >
               <ArrowLeft className="w-4 h-4 mr-1" />
               Déjà un compte ? Se connecter

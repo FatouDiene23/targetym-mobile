@@ -253,8 +253,8 @@ const mySpaceNavigation: NavItem[] = [
   { name: 'Mes Documents', href: '/dashboard/my-space/documents', icon: FileText, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-documents' },
   { name: 'Mes Notes de Service', href: '/dashboard/my-space/notes-de-service', icon: FileText, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Mes Réservations', href: '/dashboard/my-space/reservations', icon: CalendarDays, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
-  { name: 'Mes Sanctions', href: '/dashboard/my-space/sanctions', icon: Shield, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Mes Enquêtes', href: '/dashboard/my-space/surveys', icon: MessageSquare, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+  { name: 'Mes Sanctions', href: '/dashboard/my-space/sanctions', icon: Shield, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Processus de Départ', href: '/dashboard/my-space/resignation', icon: UserMinus, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
 ];
 
@@ -948,16 +948,12 @@ function SidebarInner() {
         <div className="h-14 lg:h-16 flex items-center justify-between px-4 border-b border-gray-700 flex-shrink-0">
           {!collapsed && (
             <Link href="/dashboard/platform-admin" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">T</span>
-              </div>
-              <span className="font-bold text-white">Targetym AI</span>
+              <img src="/picto-targetym.png" alt="Targetym AI" className="w-8 h-8 object-contain" />
+              <span className="font-bold text-white">targetym <span className="text-primary-400">AI</span></span>
             </Link>
           )}
           {collapsed && (
-            <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center mx-auto">
-              <span className="text-white font-bold text-sm">T</span>
-            </div>
+            <img src="/picto-targetym.png" alt="Targetym AI" className="w-8 h-8 object-contain mx-auto" />
           )}
           <button 
             onClick={() => setCollapsed(!collapsed)} 
@@ -1151,16 +1147,12 @@ function SidebarInner() {
       <div className="h-14 lg:h-16 flex items-center justify-between px-4 border-b border-gray-700 flex-shrink-0">
         {!collapsed && (
           <Link href="/dashboard" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">T</span>
-            </div>
-            <span className="font-bold text-white">Targetym AI</span>
+            <img src="/picto-targetym.png" alt="Targetym AI" className="w-8 h-8 object-contain" />
+            <span className="font-bold text-white">targetym <span className="text-primary-400">AI</span></span>
           </Link>
         )}
         {collapsed && (
-          <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center mx-auto">
-            <span className="text-white font-bold text-sm">T</span>
-          </div>
+          <img src="/picto-targetym.png" alt="Targetym AI" className="w-8 h-8 object-contain mx-auto" />
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}

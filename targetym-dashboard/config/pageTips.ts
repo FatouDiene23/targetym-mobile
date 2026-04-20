@@ -748,3 +748,14 @@ export function getPageTips(pageId: string, locale: string = 'fr'): PageTip[] {
     };
   });
 }
+
+// ============================================
+// RÉTRO-COMPATIBILITÉ (pages non-synchronisées)
+// ============================================
+export const employeesTips = getPageTips('employees');
+export const leavesTips = getPageTips('leaves');
+export const missionsTips = getPageTips('missions');
+export const documentsTips = getPageTips('documents');
+export const internalJobsTips = getPageTips('internalJobs');
+export const mySpaceTips = getPageTips('mySpace');
+export const recruitmentTips = getPageTips('recruitment');

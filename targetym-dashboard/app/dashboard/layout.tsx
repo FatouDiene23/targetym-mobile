@@ -264,6 +264,12 @@ export default function DashboardLayout({
   useEffect(() => {
     if (isAuthenticated) {
       check2FA();
+      // Push notifications: désactivé temporairement jusqu'à configuration Firebase
+      // import('@/lib/capacitor-plugins')
+      //   .then(({ registerPushNotifications, isNative }) => {
+      //     if (isNative()) return registerPushNotifications();
+      //   })
+      //   .catch((err) => console.warn('Push notifications non disponibles:', err));
     }
   }, [isAuthenticated, check2FA]);
 
@@ -346,10 +352,8 @@ function DashboardContent({
             </svg>
           </button>
           <div className="flex items-center space-x-2">
-            <div className="w-7 h-7 bg-primary-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xs">T</span>
-            </div>
-            <span className="font-bold text-gray-900 text-sm">Targetym AI</span>
+            <img src="/picto-targetym.png" alt="Targetym AI" className="w-8 h-8 object-contain" />
+            <span className="font-bold text-gray-900 text-sm">targetym <span className="text-primary-500">AI</span></span>
           </div>
           <div className="w-10" />
         </div>

@@ -100,9 +100,27 @@ export async function registerPushNotifications() {
   await PushNotifications.register();
 
   // Écouter le token FCM (Firebase) / APNs
-  PushNotifications.addListener('registration', (token) => {
+  PushNotifications.addListener('registration', async (token) => {
     console.log('Push token:', token.value);
-    // TODO: Envoyer ce token à l'API Targetym pour les notifications ciblées
+    // Envoyer le token au backend pour les notifications ciblées
+    try {
+      const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
+      const authToken = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+      if (!authToken) return;
+      await fetch(`${API_URL}/api/push-tokens/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          token: token.value,
+          platform: getPlatform(),
+        }),
+      });
+    } catch (e) {
+      console.error('Erreur enregistrement push token:', e);
+    }
   });
 
   // Écouter les notifications reçues en foreground

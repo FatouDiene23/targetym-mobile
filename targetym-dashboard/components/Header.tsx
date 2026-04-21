@@ -509,7 +509,7 @@ export default function Header({ title, subtitle, hideAddButton, transparent }: 
           {title ? (
             <div className="min-w-0 flex-1">
               <h1 className="text-base sm:text-2xl font-bold text-gray-900 truncate">{title}</h1>
-              {subtitle && <p className="text-xs sm:text-sm text-gray-500 mt-1 truncate">{subtitle}</p>}
+              {subtitle && <p className="text-xs sm:text-sm text-gray-500 mt-1 line-clamp-2">{subtitle}</p>}
             </div>
           ) : <div />}
 
@@ -526,7 +526,7 @@ export default function Header({ title, subtitle, hideAddButton, transparent }: 
               </button>
 
               {showSearch && (
-                <div className="fixed lg:absolute top-14 lg:top-12 left-2 right-2 lg:left-auto lg:right-0 lg:w-96 bg-white rounded-xl shadow-lg border border-gray-200 z-[60] overflow-hidden">
+                <div className="fixed lg:absolute top-14 lg:top-12 left-0 right-0 lg:left-auto lg:right-0 lg:w-96 bg-white lg:rounded-xl shadow-lg border-t border-gray-200 lg:border lg:border-gray-200 z-[60] overflow-hidden">
                   <div className="p-3 border-b border-gray-100">
                     <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
                       <Search className="w-4 h-4 text-gray-400" />
@@ -564,7 +564,7 @@ export default function Header({ title, subtitle, hideAddButton, transparent }: 
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-gray-900 truncate">{r.title}</p>
-                              <p className="text-xs text-gray-400 truncate">{r.subtitle}</p>
+                              <p className="text-xs text-gray-400 line-clamp-2">{r.subtitle}</p>
                             </div>
                           </button>
                         ))}
@@ -596,7 +596,7 @@ export default function Header({ title, subtitle, hideAddButton, transparent }: 
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-gray-900 truncate">{result.title}</p>
                                     {result.subtitle && (
-                                      <p className="text-xs text-gray-500 truncate">{result.subtitle}</p>
+                                      <p className="text-xs text-gray-500 line-clamp-2">{result.subtitle}</p>
                                     )}
                                   </div>
                                 </button>

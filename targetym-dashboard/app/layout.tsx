@@ -1,5 +1,6 @@
 import './globals.css'
 import ToastProvider from '@/components/ToastProvider'
+import CapgoUpdater from '@/components/CapgoUpdater'
 
 export const metadata = {
   title: 'Targetym AI - Dashboard',
@@ -68,6 +69,7 @@ export default function RootLayout({
       <body>
         {children}
         <ToastProvider />
+        <CapgoUpdater />
       </body>
     </html>
   )

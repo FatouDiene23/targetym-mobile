@@ -32,6 +32,14 @@ const config: CapacitorConfig = {
       style: 'Default',
       backgroundColor: '#ffffff',
     },
+    CapacitorUpdater: {
+      // Applique automatiquement la mise à jour au prochain démarrage
+      autoUpdate: true,
+      // Délai avant le rollback auto si notifyAppReady() n'est pas appelé (ms)
+      appReadyTimeout: 10000,
+      // Canal par défaut (correspond au canal créé dans Capgo)
+      defaultChannel: 'production',
+    },
   },
 
   android: {

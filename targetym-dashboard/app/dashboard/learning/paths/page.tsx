@@ -7,6 +7,7 @@ import { hasPermission, API_URL, getAuthHeaders, categories } from '../shared';
 import { Target, Plus, Clock, Users, BookOpen, ChevronRight, X, Edit2, Archive, UserPlus, Check, Loader2, Search, ArrowLeft } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomDatePicker from '@/components/CustomDatePicker';
 
 interface PathDetail {
   id: number;
@@ -359,12 +360,7 @@ export default function PathsPage() {
                     <div className="p-6 space-y-4">
                       <div>
                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">{t.training.learningPaths.deadlineOptional}</label>
-                        <input
-                          type="date"
-                          value={assignDeadline}
-                          onChange={e => setAssignDeadline(e.target.value)}
-                          className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                        />
+                        <CustomDatePicker value={assignDeadline} onChange={setAssignDeadline} className="w-full" />
                       </div>
 
                       <div>

@@ -8,6 +8,8 @@ import {
   CheckCircle2, TrendingUp, Award, BookOpen, ListTodo, User,
 } from 'lucide-react';
 import Header from '@/components/Header';
+import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/CustomDatePicker';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
 // =============================================
@@ -495,22 +497,22 @@ function EvaluationReportModal({ session, onClose, onSuccess }: {
                       className="w-full px-2.5 py-1.5 border rounded text-sm bg-white focus:outline-none focus:ring-1 focus:ring-indigo-300"
                     />
                     <div className="grid grid-cols-2 gap-2">
-                      <input
-                        type="date"
+                      <CustomDatePicker
                         value={task.due_date}
-                        onChange={e => updateTask(task.id, 'due_date', e.target.value)}
-                        className="px-2.5 py-1.5 border rounded text-xs bg-white"
+                        onChange={v => updateTask(task.id, 'due_date', v)}
+                        className="w-full"
                       />
-                      <select
+                      <CustomSelect
                         value={task.priority}
-                        onChange={e => updateTask(task.id, 'priority', e.target.value)}
-                        className="px-2.5 py-1.5 border rounded text-xs bg-white"
-                      >
-                        <option value="low">{t.performance.priorityLow}</option>
-                        <option value="medium">{t.performance.priorityMedium}</option>
-                        <option value="high">{t.performance.priorityHigh}</option>
-                        <option value="urgent">{t.performance.priorityUrgent}</option>
-                      </select>
+                        onChange={v => updateTask(task.id, 'priority', v)}
+                        options={[
+                          { value: 'low', label: t.performance.priorityLow },
+                          { value: 'medium', label: t.performance.priorityMedium },
+                          { value: 'high', label: t.performance.priorityHigh },
+                          { value: 'urgent', label: t.performance.priorityUrgent },
+                        ]}
+                        className="w-full"
+                      />
                     </div>
                   </div>
                   <button

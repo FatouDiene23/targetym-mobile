@@ -18,6 +18,7 @@ import {
   Plus, Edit, Archive, Ban, Target, TrendingUp, Eye, Link, Zap, Settings, Send
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomDatePicker from '@/components/CustomDatePicker';
 
 export function LearningModals() {
   const ctx = useLearning();
@@ -280,7 +281,7 @@ export function LearningModals() {
             <div className="p-6 space-y-4">
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Employé *</label><select value={assignData.employee_id} onChange={(e) => setAssignData({ ...assignData, employee_id: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="">Sélectionner...</option>{employees.map((emp) => (<option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name} - {emp.job_title}</option>))}</select></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Formation *</label><select value={assignData.course_id} onChange={(e) => setAssignData({ ...assignData, course_id: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="">Sélectionner...</option>{courses.map((course) => (<option key={course.id} value={course.id}>{course.title}</option>))}</select></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Date limite (optionnel)</label><input type="date" value={assignData.deadline} onChange={(e) => setAssignData({ ...assignData, deadline: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Date limite (optionnel)</label><CustomDatePicker value={assignData.deadline} onChange={v => setAssignData({ ...assignData, deadline: v })} className="w-full" /></div>
             </div>
             <div className="p-6 border-t border-gray-200 flex gap-3">
               <button onClick={() => setShowAssignModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
@@ -375,7 +376,7 @@ export function LearningModals() {
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Poste actuel</label><input type="text" value={newPlan.current_role} onChange={(e) => setNewPlan({ ...newPlan, current_role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Poste cible</label><input type="text" value={newPlan.target_role} onChange={(e) => setNewPlan({ ...newPlan, target_role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
               </div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Date cible</label><input type="date" value={newPlan.target_date} onChange={(e) => setNewPlan({ ...newPlan, target_date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Date cible</label><CustomDatePicker value={newPlan.target_date} onChange={v => setNewPlan({ ...newPlan, target_date: v })} className="w-full" /></div>
               <div>
                 <div className="flex items-center justify-between mb-2"><label className="block text-sm font-medium text-gray-700">Compétences</label><button onClick={() => setShowCreateSkill(true)} className="text-xs text-primary-600 hover:text-primary-700 flex items-center"><Plus className="w-3 h-3 mr-1" />Ajouter</button></div>
                 {skills.length === 0 ? (<div className="text-center py-4 bg-gray-50 rounded-lg"><p className="text-sm text-gray-500">Aucune compétence</p></div>) : (
@@ -420,7 +421,7 @@ export function LearningModals() {
             <div className="p-6 space-y-4">
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"><div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold">{selectedPlan.initials}</div><div><p className="font-medium text-gray-900">{selectedPlan.employee}</p><p className="text-sm text-gray-500">{selectedPlan.role}</p></div></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Poste cible</label><input type="text" value={editPlanData.target_role} onChange={(e) => setEditPlanData({ ...editPlanData, target_role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Date cible</label><input type="date" value={editPlanData.target_date} onChange={(e) => setEditPlanData({ ...editPlanData, target_date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Date cible</label><CustomDatePicker value={editPlanData.target_date} onChange={v => setEditPlanData({ ...editPlanData, target_date: v })} className="w-full" /></div>
               <div>
                 <div className="flex items-center justify-between mb-2"><label className="block text-sm font-medium text-gray-700">Compétences</label><div className="flex items-center gap-2"><span className="text-xs text-gray-500">{editPlanData.skill_ids.length} sélectionnée(s)</span><button onClick={() => setShowCreateSkill(true)} className="text-xs text-primary-600 hover:text-primary-700 flex items-center"><Plus className="w-3 h-3 mr-1" />Ajouter</button></div></div>
                 {skills.length === 0 ? (<div className="text-center py-4 bg-gray-50 rounded-lg"><p className="text-sm text-gray-500">Aucune compétence</p><button onClick={() => setShowCreateSkill(true)} className="text-xs text-primary-600 hover:text-primary-700 mt-1">Créer une compétence</button></div>) : (<div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2">{skills.map((skill) => (<label key={skill.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"><input type="checkbox" checked={editPlanData.skill_ids.includes(skill.id)} onChange={(e) => { if (e.target.checked) { setEditPlanData({ ...editPlanData, skill_ids: [...editPlanData.skill_ids, skill.id] }); } else { setEditPlanData({ ...editPlanData, skill_ids: editPlanData.skill_ids.filter((id: number) => id !== skill.id) }); } }} className="rounded text-primary-600" /><span className="text-sm text-gray-700">{skill.name}</span><span className="text-xs text-gray-400 ml-auto">({skill.category})</span></label>))}</div>)}

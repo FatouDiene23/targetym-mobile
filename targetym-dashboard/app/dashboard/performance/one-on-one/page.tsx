@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/CustomDatePicker';
 import toast from 'react-hot-toast';
 import {
   Calendar, Clock, MapPin, X, Loader2, AlertCircle, Search,
@@ -277,7 +278,7 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.dateLabel} *</label>
-              <input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
+              <CustomDatePicker value={scheduledDate} onChange={setScheduledDate} className="w-full" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.timeLabel}</label>
@@ -508,10 +509,10 @@ function EvaluateModal({ meeting, onClose, onSuccess }: {
                         className="w-full"
                       />
                       <div className="flex gap-2">
-                        <input
-                          type="date" value={task.due_date}
-                          onChange={e => updateTask(task.id, 'due_date', e.target.value)}
-                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-400"
+                        <CustomDatePicker
+                          value={task.due_date}
+                          onChange={v => updateTask(task.id, 'due_date', v)}
+                          className="flex-1"
                         />
                         <CustomSelect
                           value={task.priority}

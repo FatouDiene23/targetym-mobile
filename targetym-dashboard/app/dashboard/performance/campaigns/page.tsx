@@ -10,6 +10,7 @@ import PerformanceStats from '../components/PerformanceStats';
 import Header from '@/components/Header';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/CustomDatePicker';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
 // =============================================
@@ -498,11 +499,11 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.startDate} *</label>
-                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
+                  <CustomDatePicker value={startDate} onChange={setStartDate} className="w-full" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.endDate} *</label>
-                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
+                  <CustomDatePicker value={endDate} onChange={setEndDate} min={startDate} className="w-full" />
                 </div>
               </div>
 

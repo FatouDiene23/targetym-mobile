@@ -1732,11 +1732,11 @@ function EditMissionModal({ mission, onClose, onSuccess }: {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Date de départ *</label>
-              <input type="date" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm" />
+              <CustomDatePicker value={formData.start_date} onChange={v => setFormData({ ...formData, start_date: v })} className="w-full" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Date de retour *</label>
-              <input type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm" />
+              <CustomDatePicker value={formData.end_date} onChange={v => setFormData({ ...formData, end_date: v })} min={formData.start_date} className="w-full" />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import Header from '@/components/Header';
 import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/CustomDatePicker';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import Pagination from '@/components/Pagination';
@@ -731,13 +732,7 @@ function NewRecallModal({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.leaves.recallDate} <span className="text-red-500">*</span></label>
-                <input
-                  type="date"
-                  value={form.recall_date}
-                  onChange={(e) => setForm({ ...form, recall_date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  required
-                />
+                <CustomDatePicker value={form.recall_date} onChange={v => setForm({ ...form, recall_date: v })} className="w-full" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.leaves.nbDaysRecalled} <span className="text-red-500">*</span></label>
@@ -827,12 +822,7 @@ function NewRecallModal({
                 {form.compensation_type === 'prolongation' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">{t.leaves.extendedEndDate}</label>
-                    <input
-                      type="date"
-                      value={form.compensation_end_date}
-                      onChange={(e) => setForm({ ...form, compensation_end_date: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    />
+                    <CustomDatePicker value={form.compensation_end_date} onChange={v => setForm({ ...form, compensation_end_date: v })} className="w-full" />
                   </div>
                 )}
               </div>
@@ -1929,24 +1919,13 @@ function NewLeaveRequestModal({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t.leaves.startLabel} <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                />
+                <CustomDatePicker value={startDate} onChange={setStartDate} className="w-full" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t.leaves.endLabel} <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="date"
-                  value={endDate}
-                  min={startDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                />
+                <CustomDatePicker value={endDate} onChange={setEndDate} min={startDate} className="w-full" />
               </div>
             </div>
 
@@ -2782,8 +2761,7 @@ function NewSickDeclarationModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t.leaves.sickStartDate} <span className="text-red-500">*</span>
               </label>
-              <input type="date" value={sickStartDate} onChange={(e) => setSickStartDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" required />
+              <CustomDatePicker value={sickStartDate} onChange={setSickStartDate} className="w-full" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">

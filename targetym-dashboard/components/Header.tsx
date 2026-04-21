@@ -640,7 +640,7 @@ export default function Header({ title, subtitle, hideAddButton, transparent }: 
                 <Globe className="w-5 h-5" />
               </button>
               {showLangMenu && (
-                <div className="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
+                <div className="absolute right-0 mt-2 w-40 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-lg border border-gray-200 z-50">
                   <button
                     onClick={() => { setLocale('fr'); setShowLangMenu(false); }}
                     className={`w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 rounded-t-xl flex items-center gap-2 ${locale === 'fr' ? 'text-primary-600 font-semibold bg-primary-50' : ''}`}

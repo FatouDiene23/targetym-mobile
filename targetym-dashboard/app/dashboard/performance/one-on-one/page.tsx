@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import CustomSelect from '@/components/CustomSelect';
 import toast from 'react-hot-toast';
 import {
   Calendar, Clock, MapPin, X, Loader2, AlertCircle, Search,
@@ -263,10 +264,15 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
           {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.collaboratorLabel} *</label>
-            <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm">
-              <option value="">{t.performance.selectCollaborator}</option>
-              {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}
-            </select>
+            <CustomSelect
+              value={employeeId}
+              onChange={v => setEmployeeId(v)}
+              options={[
+                { value: '', label: t.performance.selectCollaborator },
+                ...employees.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` })),
+              ]}
+              className="w-full"
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -281,13 +287,18 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.durationLabel}</label>
-              <select value={duration} onChange={(e) => setDuration(parseInt(e.target.value))} className="w-full px-3 py-2.5 border rounded-lg text-sm">
-                <option value={15}>15 min</option>
-                <option value={30}>30 min</option>
-                <option value={45}>45 min</option>
-                <option value={60}>{t.performance.duration1h}</option>
-                <option value={90}>{t.performance.duration1h30}</option>
-              </select>
+              <CustomSelect
+                value={String(duration)}
+                onChange={v => setDuration(parseInt(v))}
+                options={[
+                  { value: '15', label: '15 min' },
+                  { value: '30', label: '30 min' },
+                  { value: '45', label: '45 min' },
+                  { value: '60', label: t.performance.duration1h },
+                  { value: '90', label: t.performance.duration1h30 },
+                ]}
+                className="w-full"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.locationLabel}</label>
@@ -487,30 +498,32 @@ function EvaluateModal({ meeting, onClose, onSuccess }: {
                         value={task.title} onChange={e => updateTask(task.id, 'title', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-400 sm:col-span-2"
                       />
-                      <select
-                        value={task.assigned_to_id}
-                        onChange={e => updateTask(task.id, 'assigned_to_id', parseInt(e.target.value))}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-400"
-                      >
-                        <option value={meeting.employee_id}>→ {meeting.employee_name} ({t.performance.collaboratorAssign})</option>
-                        <option value={meeting.manager_id}>→ {meeting.manager_name} ({t.performance.meAssign})</option>
-                      </select>
+                      <CustomSelect
+                        value={String(task.assigned_to_id)}
+                        onChange={v => updateTask(task.id, 'assigned_to_id', parseInt(v))}
+                        options={[
+                          { value: String(meeting.employee_id), label: `→ ${meeting.employee_name} (${t.performance.collaboratorAssign})` },
+                          { value: String(meeting.manager_id), label: `→ ${meeting.manager_name} (${t.performance.meAssign})` },
+                        ]}
+                        className="w-full"
+                      />
                       <div className="flex gap-2">
                         <input
                           type="date" value={task.due_date}
                           onChange={e => updateTask(task.id, 'due_date', e.target.value)}
                           className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-400"
                         />
-                        <select
+                        <CustomSelect
                           value={task.priority}
-                          onChange={e => updateTask(task.id, 'priority', e.target.value)}
-                          className="w-28 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-400"
-                        >
-                          <option value="low">{t.performance.priorityLowFem}</option>
-                          <option value="medium">{t.performance.priorityMediumFem}</option>
-                          <option value="high">{t.performance.priorityHighFem}</option>
-                          <option value="urgent">{t.performance.priorityUrgentFem}</option>
-                        </select>
+                          onChange={v => updateTask(task.id, 'priority', v)}
+                          options={[
+                            { value: 'low', label: t.performance.priorityLowFem },
+                            { value: 'medium', label: t.performance.priorityMediumFem },
+                            { value: 'high', label: t.performance.priorityHighFem },
+                            { value: 'urgent', label: t.performance.priorityUrgentFem },
+                          ]}
+                          className="w-28"
+                        />
                       </div>
                     </div>
                     <button type="button" onClick={() => removeTask(task.id)}

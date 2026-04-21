@@ -6,6 +6,7 @@
 'use client';
 
 import Header from '@/components/Header';
+import CustomSelect from '@/components/CustomSelect';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { ArrowUpRight, Check, X, Clock, Filter, RefreshCw, AlertTriangle } from 'lucide-react';
@@ -118,16 +119,17 @@ export default function PromotionsPage() {
         {activeTab === 'requests' && (
           <>
             <div className="flex justify-between items-center gap-4 mb-4" data-tour="eligibility-filters">
-              <select
+              <CustomSelect
                 value={filterStatus}
-                onChange={e => handleFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
-              >
-                <option value="">{tp.allStatuses}</option>
-                <option value="pending">{tp.pending}</option>
-                <option value="approved">{tp.approved}</option>
-                <option value="rejected">{tp.rejected}</option>
-              </select>
+                onChange={v => handleFilter(v)}
+                options={[
+                  { value: '', label: tp.allStatuses },
+                  { value: 'pending', label: tp.pending },
+                  { value: 'approved', label: tp.approved },
+                  { value: 'rejected', label: tp.rejected },
+                ]}
+                className="min-w-[160px]"
+              />
             </div>
 
             <div className="space-y-3" data-tour="promotions-list">

@@ -2,7 +2,8 @@
 
 import { useLearning } from '../LearningContext';
 import { useI18n } from '@/lib/i18n/I18nContext';
-import { TrendingUp, Clock, CheckCircle, BookOpen, Target, Users, Wallet, AlertCircle, ChevronDown } from 'lucide-react';
+import { TrendingUp, Clock, CheckCircle, BookOpen, Target, Users, Wallet, AlertCircle } from 'lucide-react';
+import CustomSelect from '@/components/CustomSelect';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
 import { useState, useEffect, useCallback } from 'react';
 import { getAuthHeaders, API_URL } from '../shared';
@@ -219,18 +220,12 @@ export default function AnalyticsPage() {
           {/* Sélecteur d'année */}
           <div className="flex items-center gap-3">
             <label className="text-sm font-medium text-gray-700">{ta.fiscalYear} :</label>
-            <div className="relative">
-              <select
-                value={planYear}
-                onChange={(e) => setPlanYear(Number(e.target.value))}
-                className="pl-3 pr-8 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none"
-              >
-                {[planYear - 1, planYear, planYear + 1].map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            </div>
+            <CustomSelect
+              value={String(planYear)}
+              onChange={v => setPlanYear(Number(v))}
+              options={[planYear - 1, planYear, planYear + 1].map(y => ({ value: String(y), label: String(y) }))}
+              className="min-w-[100px]"
+            />
           </div>
 
           {planLoading && (

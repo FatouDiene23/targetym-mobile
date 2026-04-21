@@ -6,6 +6,7 @@
 'use client';
 
 import Header from '@/components/Header';
+import CustomSelect from '@/components/CustomSelect';
 import { useEffect, useState } from 'react';
 import { Target, User, Filter, Eye, Edit, ArrowRight, ArrowUpRight, Award, RefreshCw, Zap } from 'lucide-react';
 import { useTalents } from '../TalentsContext';
@@ -129,27 +130,25 @@ export default function NineBoxPage() {
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
         {/* Filters */}
         <div data-tour="ninebox-filters" className="flex flex-wrap gap-3 mb-6">
-          <select
+          <CustomSelect
             value={selectedPeriod}
-            onChange={e => handleFilterChange(e.target.value, undefined)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
-          >
-            <option value="">{tp.lastPeriod}</option>
-            {data?.available_periods?.map(p => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
+            onChange={v => handleFilterChange(v, undefined)}
+            options={[
+              { value: '', label: tp.lastPeriod },
+              ...(data?.available_periods?.map(p => ({ value: p, label: p })) ?? []),
+            ]}
+            className="min-w-[160px]"
+          />
           {isRHUser ? (
-            <select
+            <CustomSelect
               value={selectedDept}
-              onChange={e => handleFilterChange(undefined, e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
-            >
-              <option value="">{tp.allDepartments}</option>
-              {data?.available_departments?.map(d => (
-                <option key={d} value={d}>{d}</option>
-              ))}
-            </select>
+              onChange={v => handleFilterChange(undefined, v)}
+              options={[
+                { value: '', label: tp.allDepartments },
+                ...(data?.available_departments?.map(d => ({ value: d, label: d })) ?? []),
+              ]}
+              className="min-w-[160px]"
+            />
           ) : (
             <div className="px-4 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-600 flex items-center gap-2">
               <span className="w-2 h-2 bg-primary-500 rounded-full" />

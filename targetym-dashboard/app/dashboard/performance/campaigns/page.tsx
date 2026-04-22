@@ -474,26 +474,36 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.evaluationType}</label>
-                  <select value={campaignType} onChange={(e) => setCampaignType(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm">
-                    <option value="annual">{t.performance.annualEvaluation}</option>
-                    <option value="mid_year">{t.performance.midYearEvaluation}</option>
-                    <option value="360">{t.performance.evaluation360}</option>
-                    <option value="probation">{t.performance.endOfProbation}</option>
-                    <option value="entretien_1on1">{t.performance.interview1on1Eval}</option>
-                    <option value="coaching_1on1">{t.performance.coaching1on1Session}</option>
-                    <option value="revue_hebdo">{t.performance.weeklyPerfReview}</option>
-                    <option value="feedback_360">{t.performance.feedback360Eval}</option>
-                    <option value="prise_de_fonction">{t.performance.onboardingEvaluation}</option>
-                    <option value="prise_dessai">{t.performance.trialEvaluation}</option>
-                  </select>
+                  <CustomSelect
+                    value={campaignType}
+                    onChange={v => setCampaignType(v)}
+                    options={[
+                      { value: 'annual', label: t.performance.annualEvaluation },
+                      { value: 'mid_year', label: t.performance.midYearEvaluation },
+                      { value: '360', label: t.performance.evaluation360 },
+                      { value: 'probation', label: t.performance.endOfProbation },
+                      { value: 'entretien_1on1', label: t.performance.interview1on1Eval },
+                      { value: 'coaching_1on1', label: t.performance.coaching1on1Session },
+                      { value: 'revue_hebdo', label: t.performance.weeklyPerfReview },
+                      { value: 'feedback_360', label: t.performance.feedback360Eval },
+                      { value: 'prise_de_fonction', label: t.performance.onboardingEvaluation },
+                      { value: 'prise_dessai', label: t.performance.trialEvaluation },
+                    ]}
+                    className="w-full"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.periodicity}</label>
-                  <select value={period} onChange={(e) => setPeriod(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm">
-                    <option value="annual">{t.performance.annual}</option>
-                    <option value="semester">{t.performance.semester}</option>
-                    <option value="quarterly">{t.performance.quarterly}</option>
-                  </select>
+                  <CustomSelect
+                    value={period}
+                    onChange={v => setPeriod(v)}
+                    options={[
+                      { value: 'annual', label: t.performance.annual },
+                      { value: 'semester', label: t.performance.semester },
+                      { value: 'quarterly', label: t.performance.quarterly },
+                    ]}
+                    className="w-full"
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">

@@ -435,13 +435,12 @@ export default function PathsPage() {
                       </div>
                       <div>
                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">{t.training.learningPaths.editCategory}</label>
-                        <select
+                        <CustomSelect
                           value={editData.category}
-                          onChange={e => setEditData(p => ({ ...p, category: e.target.value }))}
-                          className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                        >
-                          {categories.filter(c => c !== 'Tous').map(c => <option key={c}>{c}</option>)}
-                        </select>
+                          onChange={v => setEditData(p => ({ ...p, category: v }))}
+                          options={categories.filter(c => c !== 'Tous').map(c => ({ value: c, label: c }))}
+                          className="w-full"
+                        />
                       </div>
                       <div>
                         <div className="flex items-center justify-between mb-1.5">

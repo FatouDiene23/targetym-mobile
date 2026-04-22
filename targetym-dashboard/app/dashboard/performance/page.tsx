@@ -20,6 +20,7 @@ function AttitudeIcon({ name, className = 'w-4 h-4' }: { name: string; className
   return <Icon className={className} />;
 }
 import Header from '@/components/Header';
+import CustomSelect from '@/components/CustomSelect';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
@@ -678,10 +679,15 @@ function CreateFeedbackModal({ isOpen, onClose, employees, attitudes, onSuccess 
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.recipient} *</label>
-            <select value={toEmployee} onChange={(e) => setToEmployee(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm">
-              <option value="">{t.performance.selectColleague}</option>
-              {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}
-            </select>
+            <CustomSelect
+              value={toEmployee}
+              onChange={v => setToEmployee(v)}
+              options={[
+                { value: '', label: t.performance.selectColleague },
+                ...employees.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` })),
+              ]}
+              className="w-full"
+            />
           </div>
           
           <div>

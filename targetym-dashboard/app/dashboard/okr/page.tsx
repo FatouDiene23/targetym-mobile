@@ -459,51 +459,52 @@ function ObjectiveModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.level} *</label>
-              <select
+              <CustomSelect
                 value={formData.level}
-                onChange={(e) => setFormData({ ...formData, level: e.target.value as 'enterprise' | 'department' | 'individual' })}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                {canCreateEnterprise && <option value="enterprise">{t.okr.enterprise}</option>}
-                <option value="department">{t.okr.department}</option>
-                <option value="individual">{t.okr.individual}</option>
-              </select>
+                onChange={v => setFormData({ ...formData, level: v as 'enterprise' | 'department' | 'individual' })}
+                options={[
+                  ...(canCreateEnterprise ? [{ value: 'enterprise', label: t.okr.enterprise }] : []),
+                  { value: 'department', label: t.okr.department },
+                  { value: 'individual', label: t.okr.individual },
+                ]}
+                className="w-full"
+              />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.period} *</label>
-              <select
+              <CustomSelect
                 value={formData.period}
-                onChange={(e) => setFormData({ ...formData, period: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="2026">2026</option>
-                <option value="Q1 2026">Q1 2026</option>
-                <option value="Q2 2026">Q2 2026</option>
-                <option value="Q3 2026">Q3 2026</option>
-                <option value="Q4 2026">Q4 2026</option>
-                <option value="2025">2025</option>
-                <option value="Q1 2025">Q1 2025</option>
-                <option value="Q2 2025">Q2 2025</option>
-                <option value="Q3 2025">Q3 2025</option>
-                <option value="Q4 2025">Q4 2025</option>
-              </select>
+                onChange={v => setFormData({ ...formData, period: v })}
+                options={[
+                  { value: '2026', label: '2026' },
+                  { value: 'Q1 2026', label: 'Q1 2026' },
+                  { value: 'Q2 2026', label: 'Q2 2026' },
+                  { value: 'Q3 2026', label: 'Q3 2026' },
+                  { value: 'Q4 2026', label: 'Q4 2026' },
+                  { value: '2025', label: '2025' },
+                  { value: 'Q1 2025', label: 'Q1 2025' },
+                  { value: 'Q2 2025', label: 'Q2 2025' },
+                  { value: 'Q3 2025', label: 'Q3 2025' },
+                  { value: 'Q4 2025', label: 'Q4 2025' },
+                ]}
+                className="w-full"
+              />
             </div>
           </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.departmentLabel}</label>
-              <select
-                value={formData.department_id || ''}
-                onChange={(e) => setFormData({ ...formData, department_id: e.target.value ? parseInt(e.target.value) : undefined })}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">{t.okr.none}</option>
-                {departments.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={String(formData.department_id || '')}
+                onChange={v => setFormData({ ...formData, department_id: v ? parseInt(v) : undefined })}
+                options={[
+                  { value: '', label: t.okr.none },
+                  ...departments.map(d => ({ value: String(d.id), label: d.name })),
+                ]}
+                className="w-full"
+              />
               {!canSeeAll && departments.length === 1 && (
                 <p className="text-xs text-gray-500 mt-1">
                   {t.okr.departmentPreselected}
@@ -513,16 +514,15 @@ function ObjectiveModal({
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.owner}</label>
-              <select
-                value={formData.owner_id || ''}
-                onChange={(e) => setFormData({ ...formData, owner_id: e.target.value ? parseInt(e.target.value) : undefined })}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">{t.okr.none}</option>
-                {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={String(formData.owner_id || '')}
+                onChange={v => setFormData({ ...formData, owner_id: v ? parseInt(v) : undefined })}
+                options={[
+                  { value: '', label: t.okr.none },
+                  ...employees.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` })),
+                ]}
+                className="w-full"
+              />
               {!canSeeAll && employees.length > 0 && (
                 <p className="text-xs text-gray-500 mt-1">
                   {t.okr.directReportsHint}
@@ -533,33 +533,33 @@ function ObjectiveModal({
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.parentObjective}</label>
-            <select
-              value={formData.parent_id || ''}
-              onChange={(e) => setFormData({ ...formData, parent_id: e.target.value ? parseInt(e.target.value) : undefined })}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="">{t.okr.none}</option>
-              {parentObjectives.filter(o => o.id !== objective?.id).map((o) => (
-                <option key={o.id} value={o.id}>[{getLevelLabel(o.level, t)}] {o.title}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={String(formData.parent_id || '')}
+              onChange={v => setFormData({ ...formData, parent_id: v ? parseInt(v) : undefined })}
+              options={[
+                { value: '', label: t.okr.none },
+                ...parentObjectives.filter(o => o.id !== objective?.id).map(o => ({ value: String(o.id), label: `[${getLevelLabel(o.level, t)}] ${o.title}` })),
+              ]}
+              className="w-full"
+            />
           </div>
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.statusLabel}</label>
-            <select
+            <CustomSelect
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="draft">{t.okr.draft}</option>
-              <option value="active">{t.okr.active}</option>
-              <option value="on_track">{t.okr.onTrack}</option>
-              <option value="at_risk">{t.okr.atRisk}</option>
-              <option value="behind">{t.okr.behind}</option>
-              <option value="completed">{t.okr.completed}</option>
-              <option value="exceeded">{t.okr.exceeded}</option>
-            </select>
+              onChange={v => setFormData({ ...formData, status: v })}
+              options={[
+                { value: 'draft', label: t.okr.draft },
+                { value: 'active', label: t.okr.active },
+                { value: 'on_track', label: t.okr.onTrack },
+                { value: 'at_risk', label: t.okr.atRisk },
+                { value: 'behind', label: t.okr.behind },
+                { value: 'completed', label: t.okr.completed },
+                { value: 'exceeded', label: t.okr.exceeded },
+              ]}
+              className="w-full"
+            />
           </div>
           
           <div className="flex justify-end gap-3 pt-4 border-t">
@@ -710,24 +710,23 @@ function KeyResultModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.unit}</label>
-              <select
+              <CustomSelect
                 value={isCustomUnit ? '__autre__' : (formData.unit || '')}
-                onChange={(e) => {
-                  if (e.target.value === '__autre__') {
+                onChange={v => {
+                  if (v === '__autre__') {
                     setIsCustomUnit(true);
                     setFormData({ ...formData, unit: '' });
                   } else {
                     setIsCustomUnit(false);
-                    setFormData({ ...formData, unit: e.target.value });
+                    setFormData({ ...formData, unit: v });
                   }
                 }}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="">{t.okr.chooseUnit}</option>
-                {UNIT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
+                options={[
+                  { value: '', label: t.okr.chooseUnit },
+                  ...UNIT_OPTIONS,
+                ]}
+                className="w-full"
+              />
               {isCustomUnit && (
                 <input
                   type="text"

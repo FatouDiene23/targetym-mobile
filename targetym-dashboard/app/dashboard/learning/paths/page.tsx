@@ -8,6 +8,7 @@ import { Target, Plus, Clock, Users, BookOpen, ChevronRight, X, Edit2, Archive, 
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 interface PathDetail {
   id: number;
@@ -437,7 +438,7 @@ export default function PathsPage() {
                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">{t.training.learningPaths.editCategory}</label>
                         <CustomSelect
                           value={editData.category}
-                          onChange={v => setEditData(p => ({ ...p, category: v }))}
+                          onChange={(v) => setEditData(p => ({ ...p, category: v }))}
                           options={categories.filter(c => c !== 'Tous').map(c => ({ value: c, label: c }))}
                           className="w-full"
                         />

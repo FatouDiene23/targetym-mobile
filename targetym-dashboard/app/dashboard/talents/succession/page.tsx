@@ -409,21 +409,23 @@ function CreatePlanModal({ onClose, onCreate }: { onClose: () => void; onCreate:
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Criticité</label>
-              <select value={form.criticality} onChange={e => setForm({ ...form, criticality: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
-                <option value="critical">Critique</option>
-                <option value="high">Élevé</option>
-                <option value="medium">Moyen</option>
-              </select>
+              <CustomSelect value={form.criticality} onChange={(v) => setForm({ ...form, criticality: v })}
+                options={[
+                  { value: 'critical', label: 'Critique' },
+                  { value: 'high', label: 'Élevé' },
+                  { value: 'medium', label: 'Moyen' },
+                ]}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Risque Vacance</label>
-              <select value={form.vacancy_risk} onChange={e => setForm({ ...form, vacancy_risk: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
-                <option value="low">Faible</option>
-                <option value="medium">Moyen</option>
-                <option value="high">Élevé</option>
-              </select>
+              <CustomSelect value={form.vacancy_risk} onChange={(v) => setForm({ ...form, vacancy_risk: v })}
+                options={[
+                  { value: 'low', label: 'Faible' },
+                  { value: 'medium', label: 'Moyen' },
+                  { value: 'high', label: 'Élevé' },
+                ]}
+              />
             </div>
           </div>
           <div>
@@ -530,12 +532,13 @@ function AddCandidateModal({ planId, onClose, onAdd }: {
             {/* Readiness */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Disponibilité</label>
-              <select value={form.readiness} onChange={e => setForm({ ...form, readiness: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
-                <option value="ready">Prêt maintenant</option>
-                <option value="1-2 years">Dans 1-2 ans</option>
-                <option value="3+ years">Dans 3+ ans</option>
-              </select>
+              <CustomSelect value={form.readiness} onChange={(v) => setForm({ ...form, readiness: v })}
+                options={[
+                  { value: 'ready', label: 'Prêt maintenant' },
+                  { value: '1-2 years', label: 'Dans 1-2 ans' },
+                  { value: '3+ years', label: 'Dans 3+ ans' },
+                ]}
+              />
             </div>
             {/* Rang */}
             <div>

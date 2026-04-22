@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
+import CustomSelect from '@/components/CustomSelect';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import { fetchWithAuth, API_URL } from '@/lib/api';
 
@@ -482,16 +483,13 @@ export default function ReservationsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.rooms.roomLabel}</label>
-                  <select
-                    value={selectedRoomId ?? ''}
-                    onChange={e => setSelectedRoomId(Number(e.target.value) || null)}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  >
-                    <option value="">{i18n.rooms.selectRoom}</option>
-                    {rooms.map(rm => (
-                      <option key={rm.id} value={rm.id}>{rm.name} ({rm.capacity} {i18n.rooms.places})</option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    value={selectedRoomId ? String(selectedRoomId) : ''}
+                    onChange={(v) => setSelectedRoomId(v ? Number(v) : null)}
+                    placeholder={i18n.rooms.selectRoom}
+                    options={rooms.map(rm => ({ value: String(rm.id), label: `${rm.name} (${rm.capacity} ${i18n.rooms.places})` }))}
+                    className="w-full"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.rooms.dateLabel}</label>
@@ -646,16 +644,16 @@ export default function ReservationsPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">{i18n.rooms.roomLabel}</label>
-              <select
-                value={filterRoomId ?? ''}
-                onChange={e => setFilterRoomId(Number(e.target.value) || undefined)}
-                className="border rounded-lg px-3 py-1.5 text-sm"
-              >
-                <option value="">{i18n.rooms.allRooms}</option>
-                {rooms.map(rm => (
-                  <option key={rm.id} value={rm.id}>{rm.name}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={filterRoomId ? String(filterRoomId) : ''}
+                onChange={(v) => setFilterRoomId(v ? Number(v) : undefined)}
+                placeholder={i18n.rooms.allRooms}
+                options={[
+                  { value: '', label: i18n.rooms.allRooms },
+                  ...rooms.map(rm => ({ value: String(rm.id), label: rm.name })),
+                ]}
+                className="min-w-[160px]"
+              />
             </div>
           </div>
 

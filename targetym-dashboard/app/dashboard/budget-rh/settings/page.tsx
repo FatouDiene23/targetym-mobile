@@ -10,6 +10,7 @@ import {
 import { fetchWithAuth, API_URL } from "@/lib/api";
 import { useI18n } from "@/lib/i18n/I18nContext";
 import { useBudgetYear } from "@/hooks/useBudgetYear";
+import CustomSelect from "@/components/CustomSelect";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -275,12 +276,13 @@ function CategoryModal({
             </div>
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Niveau</label>
-              <select value={form.level} onChange={(e) => setForm({ ...form, level: +e.target.value })}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-400">
-                <option value={1}>1 — Section</option>
-                <option value={2}>2 — Groupe</option>
-                <option value={3}>3 — Rubrique</option>
-              </select>
+              <CustomSelect value={String(form.level)} onChange={(v) => setForm({ ...form, level: +v })}
+                options={[
+                  { value: '1', label: '1 — Section' },
+                  { value: '2', label: '2 — Groupe' },
+                  { value: '3', label: '3 — Rubrique' },
+                ]}
+              />
             </div>
           </div>
           <div>
@@ -290,13 +292,12 @@ function CategoryModal({
           </div>
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">Catégorie parente</label>
-            <select value={form.parent_code} onChange={(e) => setForm({ ...form, parent_code: e.target.value })}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-400">
-              <option value="">— Aucune (niveau racine) —</option>
-              {categories.filter((c) => c.id !== existing?.id && c.level < form.level).map((c) => (
-                <option key={c.code} value={c.code}>{c.code} — {c.label}</option>
-              ))}
-            </select>
+            <CustomSelect value={form.parent_code} onChange={(v) => setForm({ ...form, parent_code: v })}
+              options={[
+                { value: '', label: '— Aucune (niveau racine) —' },
+                ...categories.filter((c) => c.id !== existing?.id && c.level < form.level).map((c) => ({ value: c.code, label: `${c.code} — ${c.label}` })),
+              ]}
+            />
           </div>
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">Ordre d&apos;affichage</label>
@@ -645,12 +646,9 @@ export default function BudgetRHSettingsPage() {
         </div>
         <div className="ml-auto flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 bg-white shadow-sm">
           <Calendar className="w-4 h-4 text-gray-400" />
-          <select value={year} onChange={(e) => setYear(+e.target.value)}
-            className="text-sm font-medium text-gray-700 bg-transparent outline-none">
-            {[currentYear - 1, currentYear, currentYear + 1, currentYear + 2].map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
+          <CustomSelect value={String(year)} onChange={(v) => setYear(+v)}
+            options={[currentYear - 1, currentYear, currentYear + 1, currentYear + 2].map((y) => ({ value: String(y), label: String(y) }))}
+          />
         </div>
       </div>
 
@@ -877,13 +875,11 @@ export default function BudgetRHSettingsPage() {
 
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Devise</label>
-              <select
+              <CustomSelect
                 value={config?.currency ?? "XOF"}
-                onChange={(e) => updateCurrency(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-primary-400"
-              >
-                {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
+                onChange={(v) => updateCurrency(v)}
+                options={CURRENCIES.map((c) => ({ value: c, label: c }))}
+              />
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-xl border transition-colors"

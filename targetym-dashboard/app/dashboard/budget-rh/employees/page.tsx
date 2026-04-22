@@ -10,6 +10,7 @@ import {
   ArrowLeft, Calendar, Building2, Briefcase, DollarSign, Eye,
 } from "lucide-react";
 import { fetchWithAuth, API_URL } from "@/lib/api";
+import CustomSelect from "@/components/CustomSelect";
 import { useI18n } from "@/lib/i18n/I18nContext";
 import { useBudgetYear } from "@/hooks/useBudgetYear";
 
@@ -274,43 +275,42 @@ export default function BudgetRHEmployeesPage() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
         <div className="flex flex-wrap items-center gap-3">
           {/* Year */}
-          <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2">
+          <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-gray-400" />
-            <select
-              value={year}
-              onChange={(e) => setYear(+e.target.value)}
-              className="text-sm font-medium text-gray-700 bg-transparent outline-none"
-            >
-              {[currentYear - 1, currentYear, currentYear + 1].map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={String(year)}
+              onChange={(v) => setYear(Number(v))}
+              options={[currentYear - 1, currentYear, currentYear + 1].map((y) => ({ value: String(y), label: String(y) }))}
+              className="min-w-[100px]"
+            />
           </div>
           {/* Month */}
-          <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2">
+          <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-gray-400" />
-            <select
-              value={month ?? ""}
-              onChange={(e) => setMonth(e.target.value ? +e.target.value : null)}
-              className="text-sm text-gray-700 bg-transparent outline-none"
-            >
-              <option value="">Tous les mois</option>
-              {MONTHS_SHORT.map((m, i) => (
-                <option key={i} value={i + 1}>{m}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={month != null ? String(month) : ''}
+              onChange={(v) => setMonth(v ? Number(v) : null)}
+              placeholder="Tous les mois"
+              options={[
+                { value: '', label: 'Tous les mois' },
+                ...MONTHS_SHORT.map((m, i) => ({ value: String(i + 1), label: m })),
+              ]}
+              className="min-w-[140px]"
+            />
           </div>
           {/* Department */}
-          <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2">
+          <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-gray-400" />
-            <select
+            <CustomSelect
               value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="text-sm text-gray-700 bg-transparent outline-none"
-            >
-              <option value="">Tous départements</option>
-              {departments.map((d) => <option key={d} value={d}>{d}</option>)}
-            </select>
+              onChange={(v) => setDepartmentFilter(v)}
+              placeholder="Tous départements"
+              options={[
+                { value: '', label: 'Tous départements' },
+                ...departments.map((d) => ({ value: d, label: d })),
+              ]}
+              className="min-w-[160px]"
+            />
           </div>
           {/* Search */}
           <div className="flex-1 min-w-[200px] flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2">

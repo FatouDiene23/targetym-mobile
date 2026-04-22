@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
+import CustomSelect from '@/components/CustomSelect';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import {
   getComponents, createComponent, updateComponent, deactivateComponent, seedLegalComponents,
@@ -54,15 +55,15 @@ function CalcParamsFields({
   const baseSelect = (
     <div>
       <label className="block text-xs font-medium text-gray-500 mb-1">{t.payroll.components.calcBase}</label>
-      <select
-        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+      <CustomSelect
         value={str('base', 'brut')}
-        onChange={e => set('base', e.target.value)}
-      >
-        <option value="brut">{t.payroll.components.grossSalary}</option>
-        <option value="taxable">{t.payroll.components.taxableIncome}</option>
-        <option value="base_salary">{t.payroll.components.baseSalary}</option>
-      </select>
+        onChange={(v) => set('base', v)}
+        options={[
+          { value: 'brut', label: t.payroll.components.grossSalary },
+          { value: 'taxable', label: t.payroll.components.taxableIncome },
+          { value: 'base_salary', label: t.payroll.components.baseSalary },
+        ]}
+      />
     </div>
   );
 
@@ -307,30 +308,24 @@ function ComponentModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.components.type}</label>
-              <select
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              <CustomSelect
                 value={form.component_type}
-                onChange={e => set('component_type', e.target.value as PayComponent['component_type'])}
-              >
-                {[
+                onChange={(v) => set('component_type', v as PayComponent['component_type'])}
+                options={[
                   { value: 'earning', label: t.payroll.components.componentTypes.earning },
                   { value: 'deduction_employee', label: t.payroll.components.componentTypes.deductionEmployee },
                   { value: 'deduction_employer', label: t.payroll.components.componentTypes.deductionEmployer },
                   { value: 'employer_contribution', label: t.payroll.components.componentTypes.employerContribution },
                   { value: 'net_adjustment', label: t.payroll.components.componentTypes.netAdjustment },
-                ].map(ct => (
-                  <option key={ct.value} value={ct.value}>{ct.label}</option>
-                ))}
-              </select>
+                ]}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.components.calcMode}</label>
-              <select
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              <CustomSelect
                 value={form.calc_type}
-                onChange={e => handleCalcTypeChange(e.target.value)}
-              >
-                {[
+                onChange={(v) => handleCalcTypeChange(v)}
+                options={[
                   { value: 'fixed_amount', label: t.payroll.components.calcTypes.fixedAmount },
                   { value: 'rate_with_cap', label: t.payroll.components.calcTypes.rateWithCap },
                   { value: 'rate_with_floor_and_cap', label: t.payroll.components.calcTypes.rateWithFloorAndCap },
@@ -338,10 +333,8 @@ function ComponentModal({
                   { value: 'progressive', label: t.payroll.components.calcTypes.progressive },
                   { value: 'formula', label: t.payroll.components.calcTypes.formula },
                   { value: 'manual_variable', label: t.payroll.components.calcTypes.manualVariable },
-                ].map(ct => (
-                  <option key={ct.value} value={ct.value}>{ct.label}</option>
-                ))}
-              </select>
+                ]}
+              />
             </div>
           </div>
 

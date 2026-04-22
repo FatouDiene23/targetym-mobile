@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Header from '@/components/Header';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CustomSelect from '@/components/CustomSelect';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import {
   PenLine, FileText, Plus, X, Loader2, CheckCircle2,
@@ -518,15 +519,11 @@ export default function SignaturesPage() {
               {/* Type */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{sig.createModal.docType}</label>
-                <select
+                <CustomSelect
                   value={createForm.document_type}
-                  onChange={e => setCreateForm(f => ({ ...f, document_type: e.target.value as DocType }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
-                >
-                  {Object.entries(DOC_TYPE_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>{v}</option>
-                  ))}
-                </select>
+                  onChange={(v) => setCreateForm(f => ({ ...f, document_type: v as DocType }))}
+                  options={Object.entries(DOC_TYPE_LABELS).map(([k, v]) => ({ value: k, label: v }))}
+                />
               </div>
 
               {/* PDF Upload */}

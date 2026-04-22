@@ -17,6 +17,7 @@ import {
 import { fetchWithAuth, API_URL } from "@/lib/api";
 import { useI18n } from "@/lib/i18n/I18nContext";
 import PageTourTips from "@/components/PageTourTips";
+import CustomSelect from "@/components/CustomSelect";
 import { usePageTour } from "@/hooks/usePageTour";
 import { useBudgetYear } from "@/hooks/useBudgetYear";
 
@@ -399,15 +400,11 @@ export default function BudgetRHPage() {
           {/* Year selector */}
           <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
             <Calendar className="w-4 h-4 text-gray-400" />
-            <select
-              value={year}
-              onChange={(e) => setYear(+e.target.value)}
-              className="text-sm font-medium text-gray-700 bg-transparent outline-none"
-            >
-              {[currentYear - 1, currentYear, currentYear + 1, currentYear + 2].map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={String(year)}
+              onChange={(v) => setYear(+v)}
+              options={[currentYear - 1, currentYear, currentYear + 1, currentYear + 2].map((y) => ({ value: String(y), label: String(y) }))}
+            />
           </div>
           <button
             onClick={() => router.push("/dashboard/budget-rh/settings")}

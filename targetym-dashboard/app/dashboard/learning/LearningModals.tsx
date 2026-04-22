@@ -18,8 +18,8 @@ import {
   Plus, Edit, Archive, Ban, Target, TrendingUp, Eye, Link, Zap, Settings, Send
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/I18nContext';
-import CustomDatePicker from '@/components/CustomDatePicker';
 import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/CustomDatePicker';
 
 export function LearningModals() {
   const ctx = useLearning();
@@ -171,8 +171,33 @@ export function LearningModals() {
               <div><label className="block text-sm font-medium text-gray-700 mb-1">{t.training.titleField} *</label><input type="text" value={newCourse.title} onChange={(e) => setNewCourse({ ...newCourse, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: Leadership & Management" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">{t.training.description}</label><textarea value={newCourse.description} onChange={(e) => setNewCourse({ ...newCourse, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={3} /></div>
               <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">{t.training.category}</label><CustomSelect value={newCourse.category} onChange={v => setNewCourse({ ...newCourse, category: v })} options={[{value:'Soft Skills',label:'Soft Skills'},{value:'Technique',label:'Technique'},{value:'Management',label:'Management'},{value:'Commercial',label:'Commercial'},{value:'Innovation',label:'Innovation'},{value:'Juridique',label:'Juridique'}]} className="w-full" /></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">{t.training.level}</label><CustomSelect value={newCourse.level} onChange={v => setNewCourse({ ...newCourse, level: v })} options={[{value:'beginner',label:t.training.beginner},{value:'intermediate',label:t.training.intermediate},{value:'advanced',label:t.training.advanced}]} className="w-full" /></div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.training.category}</label>
+                  <CustomSelect
+                    value={newCourse.category}
+                    onChange={(v) => setNewCourse({ ...newCourse, category: v })}
+                    options={[
+                      { value: 'Soft Skills', label: 'Soft Skills' },
+                      { value: 'Technique', label: 'Technique' },
+                      { value: 'Management', label: 'Management' },
+                      { value: 'Commercial', label: 'Commercial' },
+                      { value: 'Innovation', label: 'Innovation' },
+                      { value: 'Juridique', label: 'Juridique' },
+                    ]}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.training.level}</label>
+                  <CustomSelect
+                    value={newCourse.level}
+                    onChange={(v) => setNewCourse({ ...newCourse, level: v })}
+                    options={[
+                      { value: 'beginner', label: t.training.beginner },
+                      { value: 'intermediate', label: t.training.intermediate },
+                      { value: 'advanced', label: t.training.advanced },
+                    ]}
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">{t.training.durationHours}</label><input type="number" value={newCourse.duration_hours} onChange={(e) => setNewCourse({ ...newCourse, duration_hours: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="8" /></div>
@@ -180,7 +205,18 @@ export function LearningModals() {
               </div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">{t.training.provider}</label>
                 {providers.length > 0 ? (
-                  <CustomSelect value={String(newCourse.provider_id || '')} onChange={v => { const p = providers.find(p => p.id === Number(v)); setNewCourse({ ...newCourse, provider_id: v ? Number(v) : null, provider: p ? p.name : '' }); }} options={[{value:'',label:'-- Aucun fournisseur --'},...providers.filter(p=>p.is_active).map(p=>({value:String(p.id),label:`${p.name} (${p.type})`}))]} className="w-full" />
+                  <CustomSelect
+                    value={newCourse.provider_id ? String(newCourse.provider_id) : ''}
+                    onChange={(v) => {
+                      const p = providers.find(p => p.id === Number(v));
+                      setNewCourse({ ...newCourse, provider_id: v ? Number(v) : null, provider: p ? p.name : '' });
+                    }}
+                    placeholder="-- Aucun fournisseur --"
+                    options={[
+                      { value: '', label: '-- Aucun fournisseur --' },
+                      ...providers.filter(p => p.is_active).map(p => ({ value: String(p.id), label: `${p.name} (${p.type})` })),
+                    ]}
+                  />
                 ) : (
                   <input type="text" value={newCourse.provider} onChange={(e) => setNewCourse({ ...newCourse, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Coursera, Udemy..." />
                 )}
@@ -224,8 +260,33 @@ export function LearningModals() {
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label><input type="text" value={editCourseData.title} onChange={(e) => setEditCourseData({ ...editCourseData, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea value={editCourseData.description} onChange={(e) => setEditCourseData({ ...editCourseData, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={3} /></div>
               <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label><CustomSelect value={editCourseData.category} onChange={v => setEditCourseData({ ...editCourseData, category: v })} options={[{value:'Soft Skills',label:'Soft Skills'},{value:'Technique',label:'Technique'},{value:'Management',label:'Management'},{value:'Commercial',label:'Commercial'},{value:'Innovation',label:'Innovation'},{value:'Juridique',label:'Juridique'}]} className="w-full" /></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Niveau</label><CustomSelect value={editCourseData.level} onChange={v => setEditCourseData({ ...editCourseData, level: v })} options={[{value:'beginner',label:'Débutant'},{value:'intermediate',label:'Intermédiaire'},{value:'advanced',label:'Avancé'}]} className="w-full" /></div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+                  <CustomSelect
+                    value={editCourseData.category}
+                    onChange={(v) => setEditCourseData({ ...editCourseData, category: v })}
+                    options={[
+                      { value: 'Soft Skills', label: 'Soft Skills' },
+                      { value: 'Technique', label: 'Technique' },
+                      { value: 'Management', label: 'Management' },
+                      { value: 'Commercial', label: 'Commercial' },
+                      { value: 'Innovation', label: 'Innovation' },
+                      { value: 'Juridique', label: 'Juridique' },
+                    ]}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Niveau</label>
+                  <CustomSelect
+                    value={editCourseData.level}
+                    onChange={(v) => setEditCourseData({ ...editCourseData, level: v })}
+                    options={[
+                      { value: 'beginner', label: 'Débutant' },
+                      { value: 'intermediate', label: 'Intermédiaire' },
+                      { value: 'advanced', label: 'Avancé' },
+                    ]}
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Durée (heures)</label><input type="number" value={editCourseData.duration_hours} onChange={(e) => setEditCourseData({ ...editCourseData, duration_hours: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
@@ -233,7 +294,18 @@ export function LearningModals() {
               </div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label>
                 {providers.length > 0 ? (
-                  <CustomSelect value={String(editCourseData.provider_id || '')} onChange={v => { const p = providers.find(p => p.id === Number(v)); setEditCourseData({ ...editCourseData, provider_id: v ? Number(v) : null, provider: p ? p.name : editCourseData.provider }); }} options={[{value:'',label:'-- Aucun fournisseur --'},...providers.filter(p=>p.is_active).map(p=>({value:String(p.id),label:`${p.name} (${p.type})`}))]} className="w-full" />
+                  <CustomSelect
+                    value={editCourseData.provider_id ? String(editCourseData.provider_id) : ''}
+                    onChange={(v) => {
+                      const p = providers.find(p => p.id === Number(v));
+                      setEditCourseData({ ...editCourseData, provider_id: v ? Number(v) : null, provider: p ? p.name : editCourseData.provider });
+                    }}
+                    placeholder="-- Aucun fournisseur --"
+                    options={[
+                      { value: '', label: '-- Aucun fournisseur --' },
+                      ...providers.filter(p => p.is_active).map(p => ({ value: String(p.id), label: `${p.name} (${p.type})` })),
+                    ]}
+                  />
                 ) : (
                   <input type="text" value={editCourseData.provider} onChange={(e) => setEditCourseData({ ...editCourseData, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
                 )}
@@ -274,8 +346,30 @@ export function LearningModals() {
           <div className="bg-white rounded-2xl w-full max-w-md">
             <div className="p-6 border-b border-gray-200"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-gray-900">Assigner une Formation</h2><button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div></div>
             <div className="p-6 space-y-4">
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Employé *</label><CustomSelect value={assignData.employee_id} onChange={v => setAssignData({ ...assignData, employee_id: v })} options={[{value:'',label:'Sélectionner...'},...employees.map(emp=>({value:String(emp.id),label:`${emp.first_name} ${emp.last_name} - ${emp.job_title}`}))]} className="w-full" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Formation *</label><CustomSelect value={assignData.course_id} onChange={v => setAssignData({ ...assignData, course_id: v })} options={[{value:'',label:'Sélectionner...'},...courses.map(c=>({value:String(c.id),label:c.title}))]} className="w-full" /></div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Employé *</label>
+                <CustomSelect
+                  value={assignData.employee_id}
+                  onChange={(v) => setAssignData({ ...assignData, employee_id: v })}
+                  placeholder="Sélectionner..."
+                  options={[
+                    { value: '', label: 'Sélectionner...' },
+                    ...employees.map((emp) => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name} - ${emp.job_title}` })),
+                  ]}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Formation *</label>
+                <CustomSelect
+                  value={assignData.course_id}
+                  onChange={(v) => setAssignData({ ...assignData, course_id: v })}
+                  placeholder="Sélectionner..."
+                  options={[
+                    { value: '', label: 'Sélectionner...' },
+                    ...courses.map((course) => ({ value: String(course.id), label: course.title })),
+                  ]}
+                />
+              </div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Date limite (optionnel)</label><CustomDatePicker value={assignData.deadline} onChange={v => setAssignData({ ...assignData, deadline: v })} className="w-full" /></div>
             </div>
             <div className="p-6 border-t border-gray-200 flex gap-3">
@@ -319,7 +413,18 @@ export function LearningModals() {
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label><input type="text" value={newCertification.name} onChange={(e) => setNewCertification({ ...newCertification, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="AWS Solutions Architect" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label>
                 {providers.length > 0 ? (
-                  <CustomSelect value={String(newCertification.provider_id || '')} onChange={v => { const p = providers.find(p => p.id === Number(v)); setNewCertification({ ...newCertification, provider_id: v ? Number(v) : null, provider: p ? p.name : '' }); }} options={[{value:'',label:'Sélectionner un fournisseur'},...providers.filter(p=>p.is_active).map(p=>({value:String(p.id),label:`${p.name} (${p.type})`}))]} className="w-full" />
+                  <CustomSelect
+                    value={newCertification.provider_id ? String(newCertification.provider_id) : ''}
+                    onChange={(v) => {
+                      const p = providers.find(p => p.id === Number(v));
+                      setNewCertification({ ...newCertification, provider_id: v ? Number(v) : null, provider: p ? p.name : '' });
+                    }}
+                    placeholder="Sélectionner un fournisseur"
+                    options={[
+                      { value: '', label: 'Sélectionner un fournisseur' },
+                      ...providers.filter(p => p.is_active).map(p => ({ value: String(p.id), label: `${p.name} (${p.type})` })),
+                    ]}
+                  />
                 ) : (
                   <input type="text" value={newCertification.provider} onChange={(e) => setNewCertification({ ...newCertification, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Amazon" />
                 )}
@@ -363,7 +468,18 @@ export function LearningModals() {
           <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-gray-900">Nouveau Plan de Développement</h2><button onClick={() => setShowCreatePlan(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div></div>
             <div className="p-6 space-y-4">
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Employé *</label><CustomSelect value={newPlan.employee_id} onChange={v => setNewPlan({ ...newPlan, employee_id: v })} options={[{value:'',label:'Sélectionner...'},...employees.map(emp=>({value:String(emp.id),label:`${emp.first_name} ${emp.last_name}`}))]} className="w-full" /></div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Employé *</label>
+                <CustomSelect
+                  value={newPlan.employee_id}
+                  onChange={(v) => setNewPlan({ ...newPlan, employee_id: v })}
+                  placeholder="Sélectionner..."
+                  options={[
+                    { value: '', label: 'Sélectionner...' },
+                    ...employees.map((emp) => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` })),
+                  ]}
+                />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Poste actuel</label><input type="text" value={newPlan.current_role} onChange={(e) => setNewPlan({ ...newPlan, current_role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Poste cible</label><input type="text" value={newPlan.target_role} onChange={(e) => setNewPlan({ ...newPlan, target_role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
@@ -474,7 +590,19 @@ export function LearningModals() {
             <div className="p-6 space-y-4">
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label><input type="text" value={newPath.title} onChange={(e) => setNewPath({ ...newPath, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Onboarding Développeur" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea value={newPath.description} onChange={(e) => setNewPath({ ...newPath, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label><CustomSelect value={newPath.category} onChange={v => setNewPath({ ...newPath, category: v })} options={[{value:'Technique',label:'Technique'},{value:'Management',label:'Management'},{value:'Onboarding',label:'Onboarding'},{value:'Commercial',label:'Commercial'}]} className="w-full" /></div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+                <CustomSelect
+                  value={newPath.category}
+                  onChange={(v) => setNewPath({ ...newPath, category: v })}
+                  options={[
+                    { value: 'Technique', label: 'Technique' },
+                    { value: 'Management', label: 'Management' },
+                    { value: 'Onboarding', label: 'Onboarding' },
+                    { value: 'Commercial', label: 'Commercial' },
+                  ]}
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Formations</label>
                 <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2">{courses.map((course) => (<label key={course.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded"><input type="checkbox" checked={newPath.course_ids.includes(course.id)} onChange={(e) => { if (e.target.checked) { setNewPath({ ...newPath, course_ids: [...newPath.course_ids, course.id] }); } else { setNewPath({ ...newPath, course_ids: newPath.course_ids.filter((id: number) => id !== course.id) }); } }} className="rounded" /><span className="text-sm text-gray-700">{course.image_emoji} {course.title}</span><span className="text-xs text-gray-400 ml-auto">{course.duration_hours}h</span></label>))}</div>
@@ -500,7 +628,20 @@ export function LearningModals() {
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Pourquoi ? *</label><textarea value={newRequest.reason} onChange={(e) => setNewRequest({ ...newRequest, reason: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} placeholder="En quoi serait-elle utile..." /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Lien (optionnel)</label><input type="url" value={newRequest.external_url} onChange={(e) => setNewRequest({ ...newRequest, external_url: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="https://..." /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label><input type="text" value={newRequest.provider} onChange={(e) => setNewRequest({ ...newRequest, provider: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Coursera, LinkedIn..." /></div>
-              {hasPermission(userRole, 'assign_course') && (<div><label className="block text-sm font-medium text-gray-700 mb-1">Pour qui ?</label><CustomSelect value={newRequest.for_employee_id} onChange={v => setNewRequest({ ...newRequest, for_employee_id: v })} options={[{value:'',label:'Moi-même'},...employees.map(emp=>({value:String(emp.id),label:`${emp.first_name} ${emp.last_name}`}))]} className="w-full" /></div>)}
+              {hasPermission(userRole, 'assign_course') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Pour qui ?</label>
+                  <CustomSelect
+                    value={newRequest.for_employee_id}
+                    onChange={(v) => setNewRequest({ ...newRequest, for_employee_id: v })}
+                    placeholder="Moi-même"
+                    options={[
+                      { value: '', label: 'Moi-même' },
+                      ...employees.map((emp) => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` })),
+                    ]}
+                  />
+                </div>
+              )}
             </div>
             <div className="p-6 border-t border-gray-200 flex gap-3">
               <button onClick={() => setShowRequestCourse(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
@@ -517,7 +658,14 @@ export function LearningModals() {
             <div className="p-6 border-b border-gray-200"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-gray-900">Nouvelle Compétence</h2><button onClick={() => setShowCreateSkill(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div></div>
             <div className="p-6 space-y-4">
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label><input type="text" value={newSkill.name} onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Leadership, Python..." /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label><CustomSelect value={newSkill.category} onChange={v => setNewSkill({ ...newSkill, category: v })} options={skillCategories.map(cat=>({value:cat,label:cat}))} className="w-full" /></div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+                <CustomSelect
+                  value={newSkill.category}
+                  onChange={(v) => setNewSkill({ ...newSkill, category: v })}
+                  options={skillCategories.map((cat) => ({ value: cat, label: cat }))}
+                />
+              </div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea value={newSkill.description} onChange={(e) => setNewSkill({ ...newSkill, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} /></div>
             </div>
             <div className="p-6 border-t border-gray-200 flex gap-3">
@@ -627,7 +775,21 @@ export function LearningModals() {
             <div className="p-6 border-b border-gray-200"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-gray-900">Assigner un évaluateur</h2><button onClick={() => setShowAssignEvaluator(null)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div></div>
             <div className="p-6 space-y-4">
               <div className="flex items-center gap-3 p-3 bg-primary-50 rounded-lg"><span className="text-2xl">{showAssignEvaluator.course_emoji}</span><div><p className="font-medium text-gray-900">{showAssignEvaluator.course_title}</p><p className="text-sm text-gray-500">Pour: {showAssignEvaluator.employee_name}</p></div></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Évaluateur *</label><CustomSelect value={selectedEvaluatorId} onChange={(v) => setSelectedEvaluatorId(v)} options={[{value:'', label:'Sélectionner...'}, ...employees.filter(e => e.id !== showAssignEvaluator.employee_id).map((emp) => ({value: String(emp.id), label: `${emp.first_name} ${emp.last_name} - ${emp.job_title}`}))]} className="w-full" /></div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Évaluateur *</label>
+                <CustomSelect
+                  value={selectedEvaluatorId}
+                  onChange={(v) => setSelectedEvaluatorId(v)}
+                  placeholder="Sélectionner..."
+                  options={[
+                    { value: '', label: 'Sélectionner...' },
+                    ...employees.filter(e => e.id !== showAssignEvaluator.employee_id).map((emp) => ({
+                      value: String(emp.id),
+                      label: `${emp.first_name} ${emp.last_name} - ${emp.job_title}`,
+                    })),
+                  ]}
+                />
+              </div>
             </div>
             <div className="p-6 border-t border-gray-200 flex gap-3">
               <button onClick={() => setShowAssignEvaluator(null)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
@@ -643,8 +805,30 @@ export function LearningModals() {
           <div className="bg-white rounded-2xl w-full max-w-md">
             <div className="p-6 border-b border-gray-200"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-gray-900">Paramètres Éval. Post-Formation</h2><button onClick={() => setShowEpfSettings(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div></div>
             <div className="p-6 space-y-4">
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Délai de déclenchement</label><CustomSelect value={String(epfSettings.trigger_delay_days)} onChange={(v) => setEpfSettings({...epfSettings, trigger_delay_days: parseInt(v)})} options={[{value:'0', label:'Immédiat (dès validation)'},{value:'3', label:'J+3 (3 jours après)'},{value:'7', label:'J+7 (7 jours après)'},{value:'14', label:'J+14 (14 jours après)'}]} className="w-full" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Évaluateur par défaut</label><CustomSelect value={epfSettings.default_evaluator_type} onChange={(v) => setEpfSettings({...epfSettings, default_evaluator_type: v})} options={[{value:'internal', label:'Évaluateur interne (manager)'},{value:'trainer', label:'Formateur'}]} className="w-full" /></div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Délai de déclenchement</label>
+                <CustomSelect
+                  value={String(epfSettings.trigger_delay_days)}
+                  onChange={(v) => setEpfSettings({ ...epfSettings, trigger_delay_days: parseInt(v) })}
+                  options={[
+                    { value: '0', label: 'Immédiat (dès validation)' },
+                    { value: '3', label: 'J+3 (3 jours après)' },
+                    { value: '7', label: 'J+7 (7 jours après)' },
+                    { value: '14', label: 'J+14 (14 jours après)' },
+                  ]}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Évaluateur par défaut</label>
+                <CustomSelect
+                  value={epfSettings.default_evaluator_type}
+                  onChange={(v) => setEpfSettings({ ...epfSettings, default_evaluator_type: v })}
+                  options={[
+                    { value: 'internal', label: 'Évaluateur interne (manager)' },
+                    { value: 'trainer', label: 'Formateur' },
+                  ]}
+                />
+              </div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Seuil de validation (/100)</label><input type="number" min="0" max="100" value={epfSettings.passing_threshold} onChange={(e) => setEpfSettings({...epfSettings, passing_threshold: parseInt(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /><p className="text-xs text-gray-400 mt-1">Score minimum pour valider la compétence théorique</p></div>
               <div className="flex items-center gap-2"><input type="checkbox" id="auto_retrain" checked={epfSettings.auto_retrain} onChange={(e) => setEpfSettings({...epfSettings, auto_retrain: e.target.checked})} className="rounded" /><label htmlFor="auto_retrain" className="text-sm text-gray-700">Re-formation automatique si score insuffisant</label></div>
             </div>
@@ -665,7 +849,17 @@ export function LearningModals() {
             <div className="p-6 border-b border-gray-200"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-gray-900">Nouveau Fournisseur</h2><button onClick={() => setShowCreateProvider(false)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div></div>
             <div className="p-6 space-y-4">
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label><input type="text" value={newProvider.name} onChange={(e) => setNewProvider({ ...newProvider, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: CEGOS, Coursera..." /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Type</label><CustomSelect value={newProvider.type} onChange={(v) => setNewProvider({ ...newProvider, type: v })} options={[{value:'externe', label:'Externe'},{value:'interne', label:'Interne'}]} className="w-full" /></div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <CustomSelect
+                  value={newProvider.type}
+                  onChange={(v) => setNewProvider({ ...newProvider, type: v })}
+                  options={[
+                    { value: 'externe', label: 'Externe' },
+                    { value: 'interne', label: 'Interne' },
+                  ]}
+                />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Contact</label><input type="text" value={newProvider.contact_name} onChange={(e) => setNewProvider({ ...newProvider, contact_name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Nom du contact" /></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label><input type="text" value={newProvider.phone} onChange={(e) => setNewProvider({ ...newProvider, phone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="+225 07 00 00 00" /></div>
@@ -689,7 +883,17 @@ export function LearningModals() {
             <div className="p-6 border-b border-gray-200"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-gray-900">Modifier le fournisseur</h2><button onClick={() => setShowEditProvider(null)} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button></div></div>
             <div className="p-6 space-y-4">
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label><input type="text" value={showEditProvider.name} onChange={(e) => setShowEditProvider({ ...showEditProvider, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Type</label><CustomSelect value={showEditProvider.type} onChange={(v) => setShowEditProvider({ ...showEditProvider, type: v as 'interne' | 'externe' })} options={[{value:'externe', label:'Externe'},{value:'interne', label:'Interne'}]} className="w-full" /></div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <CustomSelect
+                  value={showEditProvider.type}
+                  onChange={(v) => setShowEditProvider({ ...showEditProvider, type: v as 'interne' | 'externe' })}
+                  options={[
+                    { value: 'externe', label: 'Externe' },
+                    { value: 'interne', label: 'Interne' },
+                  ]}
+                />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Contact</label><input type="text" value={showEditProvider.contact_name || ''} onChange={(e) => setShowEditProvider({ ...showEditProvider, contact_name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label><input type="text" value={showEditProvider.phone || ''} onChange={(e) => setShowEditProvider({ ...showEditProvider, phone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>

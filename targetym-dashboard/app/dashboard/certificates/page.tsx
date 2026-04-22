@@ -8,6 +8,7 @@ import {
   Building2, RefreshCw, LogOut, FileCheck, X
 } from 'lucide-react';
 import Header from '@/components/Header';
+import CustomSelect from '@/components/CustomSelect';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { useI18n } from '@/lib/i18n/I18nContext';
@@ -408,17 +409,17 @@ export default function CertificatesPage() {
                         className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                       />
                     </div>
-                    <select
+                    <CustomSelect
                       value={statusFilter}
-                      onChange={(e) => { setStatusFilter(e.target.value); setEmployeePage(1); }}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                    >
-                      <option value="">{t.documents.allStatusesFilter}</option>
-                      <option value="active">{t.documents.activeFilter}</option>
-                      <option value="terminated">{t.documents.terminatedFilter}</option>
-                      <option value="inactive">{t.documents.inactiveFilter}</option>
-                      <option value="on_leave">{t.documents.onLeaveFilter}</option>
-                    </select>
+                      onChange={(v) => { setStatusFilter(v); setEmployeePage(1); }}
+                      options={[
+                        { value: '', label: t.documents.allStatusesFilter },
+                        { value: 'active', label: t.documents.activeFilter },
+                        { value: 'terminated', label: t.documents.terminatedFilter },
+                        { value: 'inactive', label: t.documents.inactiveFilter },
+                        { value: 'on_leave', label: t.documents.onLeaveFilter },
+                      ]}
+                    />
                   </div>
 
                   {/* Liste */}

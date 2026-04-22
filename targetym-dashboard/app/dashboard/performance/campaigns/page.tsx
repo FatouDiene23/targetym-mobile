@@ -476,7 +476,7 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.evaluationType}</label>
                   <CustomSelect
                     value={campaignType}
-                    onChange={v => setCampaignType(v)}
+                    onChange={(v) => setCampaignType(v)}
                     options={[
                       { value: 'annual', label: t.performance.annualEvaluation },
                       { value: 'mid_year', label: t.performance.midYearEvaluation },
@@ -496,7 +496,7 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.periodicity}</label>
                   <CustomSelect
                     value={period}
-                    onChange={v => setPeriod(v)}
+                    onChange={(v) => setPeriod(v)}
                     options={[
                       { value: 'annual', label: t.performance.annual },
                       { value: 'semester', label: t.performance.semester },

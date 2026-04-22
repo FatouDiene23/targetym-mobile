@@ -21,6 +21,7 @@ import {
   type AuditLogItem, type SearchResult, type TenantUpdateData, type SubsidiaryItem,
   type ConversionRequestItem, type TenantCreateData,
 } from '@/lib/api';
+import CustomSelect from '@/components/CustomSelect';
 
 type Tab = 'overview' | 'tenants' | 'users' | 'audit' | 'conversions';
 
@@ -651,21 +652,28 @@ export default function PlatformAdminDashboard() {
                   onChange={e => setTenantSearch(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
               </div>
-              <select value={filterPlan} onChange={e => setFilterPlan(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
-                <option value="">Tous les plans</option>
-                <option value="trial">Trial</option>
-                <option value="basique">Basique</option>
-                <option value="professional">Professionnel</option>
-                <option value="enterprise">Entreprise</option>
-              </select>
-              <select value={filterActive === undefined ? '' : filterActive.toString()}
-                onChange={e => setFilterActive(e.target.value === '' ? undefined : e.target.value === 'true')}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
-                <option value="">Tous les statuts</option>
-                <option value="true">Actifs</option>
-                <option value="false">Inactifs</option>
-              </select>
+              <CustomSelect
+                value={filterPlan}
+                onChange={(v) => setFilterPlan(v)}
+                placeholder="Tous les plans"
+                options={[
+                  { value: '', label: 'Tous les plans' },
+                  { value: 'trial', label: 'Trial' },
+                  { value: 'basique', label: 'Basique' },
+                  { value: 'professional', label: 'Professionnel' },
+                  { value: 'enterprise', label: 'Entreprise' },
+                ]}
+              />
+              <CustomSelect
+                value={filterActive === undefined ? '' : filterActive.toString()}
+                onChange={(v) => setFilterActive(v === '' ? undefined : v === 'true')}
+                placeholder="Tous les statuts"
+                options={[
+                  { value: '', label: 'Tous les statuts' },
+                  { value: 'true', label: 'Actifs' },
+                  { value: 'false', label: 'Inactifs' },
+                ]}
+              />
               <span className="text-sm text-gray-500">{filteredTenants.length} résultat(s)</span>
               <button onClick={() => setShowCreateTenant(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors ml-auto">
@@ -766,13 +774,15 @@ export default function PlatformAdminDashboard() {
           <div className="p-5 border-b border-gray-200 flex flex-wrap gap-3 items-center justify-between">
             <h2 className="font-semibold text-gray-800">Historique des actions support</h2>
             <div className="flex gap-2 items-center">
-              <select value={auditFilter} onChange={e => setAuditFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
-                <option value="">Toutes les actions</option>
-                {['VIEW', 'IMPERSONATE', 'EDIT', 'RESET', 'DELETE', 'CREATE_USER', 'VIEW_SEARCH'].map(a => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={auditFilter}
+                onChange={(v) => setAuditFilter(v)}
+                placeholder="Toutes les actions"
+                options={[
+                  { value: '', label: 'Toutes les actions' },
+                  ...['VIEW', 'IMPERSONATE', 'EDIT', 'RESET', 'DELETE', 'CREATE_USER', 'VIEW_SEARCH'].map(a => ({ value: a, label: a })),
+                ]}
+              />
               <button onClick={() => loadAuditLogs(auditFilter || undefined)} disabled={auditLoading}
                 className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 text-sm flex items-center gap-1">
                 <RotateCcw className="w-4 h-4" /> {auditLoading ? '...' : 'Rafraîchir'}
@@ -1064,17 +1074,19 @@ export default function PlatformAdminDashboard() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
-                  <select value={createTenantForm.plan}
-                    onChange={e => {
-                      const p = e.target.value as 'basique' | 'professional' | 'enterprise';
+                  <CustomSelect
+                    value={createTenantForm.plan}
+                    onChange={(v) => {
+                      const p = v as 'basique' | 'professional' | 'enterprise';
                       const limits: Record<string, number> = { basique: 25, professional: 50, enterprise: 100 };
                       setCreateTenantForm(f => ({ ...f, plan: p, max_employees: limits[p] }));
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
-                    <option value="basique">Basique — 25 employés</option>
-                    <option value="professional">Professionnel — 50 employés</option>
-                    <option value="enterprise">Entreprise — 100 employés</option>
-                  </select>
+                    options={[
+                      { value: 'basique', label: 'Basique — 25 employés' },
+                      { value: 'professional', label: 'Professionnel — 50 employés' },
+                      { value: 'enterprise', label: 'Entreprise — 100 employés' },
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Max employés</label>
@@ -1480,10 +1492,11 @@ function TenantField({ label, value, editing, editType, options, editValue, onCh
     <div>
       <p className="text-xs text-gray-500 mb-0.5">{label}</p>
       {editType === 'select' ? (
-        <select value={editValue ?? value} onChange={e => onChange?.(e.target.value)}
-          className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
-          {options?.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
+        <CustomSelect
+          value={editValue ?? value}
+          onChange={(v) => onChange?.(v)}
+          options={(options ?? []).map(o => ({ value: o, label: o }))}
+        />
       ) : (
         <input type={editType || 'text'} value={editValue ?? value} onChange={e => onChange?.(e.target.value)}
           className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />

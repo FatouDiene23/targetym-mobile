@@ -7,9 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "mobile:build": "cross-env BUILD_TARGET=mobile next build && npx cap sync",
-    "mobile:android": "cross-env BUILD_TARGET=mobile next build && npx cap sync && npx cap open android",
-    "mobile:ios": "cross-env BUILD_TARGET=mobile next build && npx cap sync && npx cap open ios",
+    "mobile:build": "cross-env NODE_OPTIONS=--max-old-space-size=8192 BUILD_TARGET=mobile next build && npx cap sync",
+    "mobile:android": "cross-env NODE_OPTIONS=--max-old-space-size=8192 BUILD_TARGET=mobile next build && npx cap sync && npx cap open android",
+    "mobile:ios": "cross-env NODE_OPTIONS=--max-old-space-size=8192 BUILD_TARGET=mobile next build && npx cap sync && npx cap open ios",
     "cap:sync": "npx cap sync",
     "cap:update": "npx cap update"
   },

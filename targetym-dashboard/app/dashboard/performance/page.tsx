@@ -681,11 +681,9 @@ function CreateFeedbackModal({ isOpen, onClose, employees, attitudes, onSuccess 
             <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.recipient} *</label>
             <CustomSelect
               value={toEmployee}
-              onChange={v => setToEmployee(v)}
-              options={[
-                { value: '', label: t.performance.selectColleague },
-                ...employees.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` })),
-              ]}
+              onChange={(v) => setToEmployee(v)}
+              placeholder={t.performance.selectColleague}
+              options={employees.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` }))}
               className="w-full"
             />
           </div>

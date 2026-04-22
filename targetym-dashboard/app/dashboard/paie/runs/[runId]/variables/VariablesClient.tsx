@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CustomSelect from '@/components/CustomSelect';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import { getEmployees, type Employee } from '@/lib/api';
@@ -86,19 +87,13 @@ function VariableModal({
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Employé *</label>
-                <select
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  value={employeeId}
-                  onChange={e => setEmployeeId(parseInt(e.target.value))}
-                  required
-                >
-                  <option value={0}>— Sélectionner —</option>
-                  {employees.map(emp => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.first_name} {emp.last_name}
-                    </option>
-                  ))}
-                </select>
+                <CustomSelect
+                  value={employeeId ? String(employeeId) : ''}
+                  onChange={(v) => setEmployeeId(v ? parseInt(v) : 0)}
+                  placeholder="— Sélectionner —"
+                  options={employees.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` }))}
+                  className="w-full"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Rubrique *</label>
@@ -108,17 +103,13 @@ function VariableModal({
                     Aucune rubrique à variable manuelle active
                   </p>
                 ) : (
-                  <select
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    value={componentId}
-                    onChange={e => setComponentId(parseInt(e.target.value))}
-                    required
-                  >
-                    <option value={0}>— Sélectionner —</option>
-                    {manualComponents.map(c => (
-                      <option key={c.id} value={c.id}>{c.code} — {c.name}</option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    value={componentId ? String(componentId) : ''}
+                    onChange={(v) => setComponentId(v ? parseInt(v) : 0)}
+                    placeholder="— Sélectionner —"
+                    options={manualComponents.map(c => ({ value: String(c.id), label: `${c.code} — ${c.name}` }))}
+                    className="w-full"
+                  />
                 )}
               </div>
             </>

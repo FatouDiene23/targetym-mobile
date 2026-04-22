@@ -11,6 +11,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { usePageTour } from '@/hooks/usePageTour';
 import PageTourTips from '@/components/PageTourTips';
+import CustomSelect from '@/components/CustomSelect';
 import {
   getAllUsers,
   getAllTenants,
@@ -356,41 +357,40 @@ export default function PlatformUsersManagement() {
             </div>
           </div>
           
-          <select
+          <CustomSelect
             value={filterRole}
-            onChange={(e) => handleRoleChange(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-          >
-            <option value="">Tous les rôles</option>
-            <option value="SUPER_ADMIN">SUPER_ADMIN</option>
-            <option value="super_admin">super_admin</option>
-            <option value="admin">Admin</option>
-            <option value="rh">RH</option>
-            <option value="manager">Manager</option>
-            <option value="employee">Employee</option>
-          </select>
+            onChange={(v) => handleRoleChange(v)}
+            options={[
+              { value: '', label: 'Tous les rôles' },
+              { value: 'SUPER_ADMIN', label: 'SUPER_ADMIN' },
+              { value: 'super_admin', label: 'super_admin' },
+              { value: 'admin', label: 'Admin' },
+              { value: 'rh', label: 'RH' },
+              { value: 'manager', label: 'Manager' },
+              { value: 'employee', label: 'Employee' },
+            ]}
+          />
           
-          <select
-            value={filterTenant}
-            onChange={(e) => handleTenantChange(e.target.value === '' ? '' : Number.parseInt(e.target.value, 10))}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 max-w-xs"
-          >
-            <option value="">Toutes les entreprises</option>
-            <option value="0">Sans entreprise</option>
-            {tenants.map(tenant => (
-              <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
-            ))}
-          </select>
+          <CustomSelect
+            value={filterTenant === '' ? '' : String(filterTenant)}
+            onChange={(v) => handleTenantChange(v === '' ? '' : Number.parseInt(v, 10))}
+            className="max-w-xs"
+            options={[
+              { value: '', label: 'Toutes les entreprises' },
+              { value: '0', label: 'Sans entreprise' },
+              ...tenants.map(tenant => ({ value: String(tenant.id), label: tenant.name })),
+            ]}
+          />
           
-          <select
+          <CustomSelect
             value={filterActive === undefined ? '' : filterActive.toString()}
-            onChange={(e) => handleActiveChange(e.target.value === '' ? undefined : e.target.value === 'true')}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-          >
-            <option value="">Tous les statuts</option>
-            <option value="true">Actifs</option>
-            <option value="false">Inactifs</option>
-          </select>
+            onChange={(v) => handleActiveChange(v === '' ? undefined : v === 'true')}
+            options={[
+              { value: '', label: 'Tous les statuts' },
+              { value: 'true', label: 'Actifs' },
+              { value: 'false', label: 'Inactifs' },
+            ]}
+          />
         </div>
       </div>
       
@@ -647,19 +647,17 @@ export default function PlatformUsersManagement() {
                 <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
                   Rôle *
                 </label>
-                <select
-                  id="role"
-                  required
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="employee">Employee</option>
-                  <option value="manager">Manager</option>
-                  <option value="rh">RH</option>
-                  <option value="admin">Admin</option>
-                  <option value="SUPER_ADMIN">SUPER_ADMIN</option>
-                </select>
+                <CustomSelect
+                  value={formData.role || ''}
+                  onChange={(v) => setFormData({ ...formData, role: v })}
+                  options={[
+                    { value: 'employee', label: 'Employee' },
+                    { value: 'manager', label: 'Manager' },
+                    { value: 'rh', label: 'RH' },
+                    { value: 'admin', label: 'Admin' },
+                    { value: 'SUPER_ADMIN', label: 'SUPER_ADMIN' },
+                  ]}
+                />
               </div>
               
               {/* Tenant */}
@@ -667,17 +665,14 @@ export default function PlatformUsersManagement() {
                 <label htmlFor="tenant_id" className="block text-sm font-medium text-gray-700 mb-1">
                   Entreprise
                 </label>
-                <select
-                  id="tenant_id"
-                  value={formData.tenant_id || ''}
-                  onChange={(e) => setFormData({ ...formData, tenant_id: e.target.value ? Number.parseInt(e.target.value, 10) : undefined })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="">Aucune (cross-tenant)</option>
-                  {tenants.map(tenant => (
-                    <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
-                  ))}
-                </select>
+                <CustomSelect
+                  value={formData.tenant_id ? String(formData.tenant_id) : ''}
+                  onChange={(v) => setFormData({ ...formData, tenant_id: v ? Number.parseInt(v, 10) : undefined })}
+                  options={[
+                    { value: '', label: 'Aucune (cross-tenant)' },
+                    ...tenants.map(tenant => ({ value: String(tenant.id), label: tenant.name })),
+                  ]}
+                />
               </div>
               
               {/* Actif */}

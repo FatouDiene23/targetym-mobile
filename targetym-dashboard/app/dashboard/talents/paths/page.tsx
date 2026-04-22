@@ -16,6 +16,7 @@ import {
 import { useTalents } from '../TalentsContext';
 import { CareerPath, CareerLevel, PromotionFactor, isRH, getInitials, apiFetch, getAuthHeaders, ELIGIBILITY_LABELS } from '../shared';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CustomSelect from '@/components/CustomSelect';
 import toast from 'react-hot-toast';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
@@ -848,17 +849,15 @@ function AssignEmployeeModal({ path, onClose, onAssign }: {
           {/* Level selector */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t.talents.careerPathsPage.entryLevelLabel}</label>
-            <select
-              value={selectedLevelId}
-              onChange={e => setSelectedLevelId(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
-            >
-              {levels.map((lv: CareerLevel) => (
-                <option key={lv.id} value={lv.id}>
-                  {lv.level_order}. {lv.title}{lv.is_entry_level ? ' (entrée)' : ''}
-                </option>
-              ))}
-            </select>
+            <CustomSelect
+              value={selectedLevelId ? String(selectedLevelId) : ''}
+              onChange={(v) => setSelectedLevelId(v ? Number(v) : 0)}
+              options={levels.map((lv: CareerLevel) => ({
+                value: String(lv.id),
+                label: `${lv.level_order}. ${lv.title}${lv.is_entry_level ? ' (entrée)' : ''}`,
+              }))}
+              className="w-full"
+            />
           </div>
         </div>
 

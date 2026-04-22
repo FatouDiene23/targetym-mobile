@@ -30,15 +30,33 @@ function toISODate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+async function detectNativePlatform(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  try {
+    const { Capacitor } = await import('@capacitor/core');
+    if (Capacitor.isNativePlatform()) return true;
+  } catch {
+    // Capacitor pas disponible → fallback
+  }
+  const proto = window.location.protocol;
+  if (proto === 'capacitor:' || proto === 'file:') return true;
+  const ua = navigator.userAgent;
+  return /Android|iPhone|iPad/i.test(ua) && window.location.hostname === 'localhost';
+}
+
 export default function CustomDatePicker({ value, onChange, placeholder = 'Sélectionner...', className = '', min, max, disabled = false }: CustomDatePickerProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isNative, setIsNative] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const [viewDate, setViewDate] = useState(() => value ? new Date(value + 'T00:00:00') : new Date());
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+    detectNativePlatform().then(setIsNative);
+  }, []);
 
   useEffect(() => {
     if (!open || !triggerRef.current) return;
@@ -95,6 +113,84 @@ export default function CustomDatePicker({ value, onChange, placeholder = 'Séle
     if (maxDate && date > maxDate) return;
     onChange(iso);
     setOpen(false);
+  }
+
+  // Sur mobile natif (Capacitor), calendrier INLINE qui pousse le contenu
+  // au lieu de l'overlay natif Android qui recouvre le formulaire
+  if (isNative) {
+    return (
+      <div ref={dropdownRef} className={`relative ${className}`}>
+        <button
+          ref={triggerRef}
+          type="button"
+          disabled={disabled}
+          onClick={() => {
+            if (disabled) return;
+            const willOpen = !open;
+            setOpen(willOpen);
+            if (willOpen && triggerRef.current) {
+              setTimeout(() => triggerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+            }
+          }}
+          className={`w-full flex items-center justify-between px-3 py-2 border rounded-lg text-sm text-left transition-colors
+            ${open ? 'border-primary-500 ring-2 ring-primary-500/20' : 'border-gray-300'}
+            ${disabled ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-white cursor-pointer'}`}
+        >
+          <span className={value ? 'text-gray-900' : 'text-gray-400'}>
+            {value ? formatDisplay(value) : placeholder}
+          </span>
+          <Calendar className="w-4 h-4 text-gray-400 shrink-0 ml-2" />
+        </button>
+        {open && (
+          <div className="mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-md p-3">
+            <div className="flex items-center justify-between mb-3">
+              <button type="button" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setViewDate(new Date(year, month - 1, 1)); }} className="p-1 rounded hover:bg-gray-100 active:bg-gray-200">
+                <ChevronLeft className="w-4 h-4 text-gray-600" />
+              </button>
+              <div className="text-sm font-semibold text-gray-900">{MONTHS[month]} {year}</div>
+              <button type="button" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setViewDate(new Date(year, month + 1, 1)); }} className="p-1 rounded hover:bg-gray-100 active:bg-gray-200">
+                <ChevronRight className="w-4 h-4 text-gray-600" />
+              </button>
+            </div>
+            <div className="grid grid-cols-7 gap-1 mb-1">
+              {DAYS.map((d, i) => (
+                <div key={i} className="text-[10px] font-semibold text-gray-500 text-center py-1">{d}</div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {cells.map((d, i) => {
+                if (d === null) return <div key={i} />;
+                const cellDate = new Date(year, month, d);
+                const iso = toISODate(cellDate);
+                const isSelected = iso === selected;
+                const isToday = iso === today;
+                const isDisabled = (minDate && cellDate < minDate) || (maxDate && cellDate > maxDate);
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    disabled={!!isDisabled}
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!isDisabled) pickDay(d);
+                    }}
+                    className={`text-sm rounded w-9 h-9 flex items-center justify-center transition-colors ${
+                      isDisabled ? 'text-gray-300' :
+                      isSelected ? 'bg-primary-500 text-white font-bold' :
+                      isToday ? 'bg-primary-50 text-primary-700 font-semibold' :
+                      'text-gray-700 active:bg-gray-100'
+                    }`}
+                  >
+                    {d}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   }
 
   const dropdown = open && mounted ? createPortal(

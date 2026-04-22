@@ -788,16 +788,14 @@ export default function ContentieuxPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.sanctions.newStage} *</label>
-                <select
+                <CustomSelect
                   value={stageForm.stage}
-                  onChange={e => setStageForm(f => ({ ...f, stage: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-                >
-                  <option value="">{t.sanctions.selectStage}</option>
-                  {STAGES.map(s => (
-                    <option key={s.key} value={s.key}>{(t.sanctions.stages as Record<string, string>)[s.key] || s.key}</option>
-                  ))}
-                </select>
+                  onChange={(v) => setStageForm(f => ({ ...f, stage: v }))}
+                  options={[
+                    { value: '', label: t.sanctions.selectStage },
+                    ...STAGES.map(s => ({ value: s.key, label: (t.sanctions.stages as Record<string, string>)[s.key] || s.key })),
+                  ]}
+                />
               </div>
               {stageForm.stage === 'conciliation' && (
                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
@@ -856,15 +854,11 @@ export default function ContentieuxPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.sanctions.audienceType} *</label>
-                <select
+                <CustomSelect
                   value={audienceForm.audience_type}
-                  onChange={e => setAudienceForm(f => ({ ...f, audience_type: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-                >
-                  {Object.keys(t.sanctions.audienceTypes).map(k => (
-                    <option key={k} value={k}>{(t.sanctions.audienceTypes as Record<string, string>)[k]}</option>
-                  ))}
-                </select>
+                  onChange={(v) => setAudienceForm(f => ({ ...f, audience_type: v }))}
+                  options={Object.keys(t.sanctions.audienceTypes).map(k => ({ value: k, label: (t.sanctions.audienceTypes as Record<string, string>)[k] }))}
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.sanctions.locationLabel}</label>
@@ -935,16 +929,14 @@ export default function ContentieuxPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.sanctions.assignedLawyer}</label>
-                <select
-                  value={editForm.assigned_to_id || ''}
-                  onChange={e => setEditForm(f => ({ ...f, assigned_to_id: Number(e.target.value) }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-                >
-                  <option value="">{t.sanctions.notAssigned}</option>
-                  {juristes.map(j => (
-                    <option key={j.id} value={j.id}>{j.first_name} {j.last_name}</option>
-                  ))}
-                </select>
+                <CustomSelect
+                  value={editForm.assigned_to_id ? String(editForm.assigned_to_id) : ''}
+                  onChange={(v) => setEditForm(f => ({ ...f, assigned_to_id: v ? Number(v) : undefined }))}
+                  options={[
+                    { value: '', label: t.sanctions.notAssigned },
+                    ...juristes.map(j => ({ value: String(j.id), label: `${j.first_name} ${j.last_name}` })),
+                  ]}
+                />
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-3">
@@ -1191,18 +1183,16 @@ export default function ContentieuxPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.sanctions.employeeLabel} *</label>
-              <select
-                value={createForm.employee_id || ''}
-                onChange={e => setCreateForm(f => ({ ...f, employee_id: Number(e.target.value) }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-              >
-                <option value="">{t.sanctions.selectEmployee}</option>
-                {employees.map(e => (
-                  <option key={e.id} value={e.id}>
-                    {e.first_name} {e.last_name}{e.department_name ? ` - ${e.department_name}` : ''}
-                  </option>
-                ))}
-              </select>
+              <CustomSelect
+                value={createForm.employee_id ? String(createForm.employee_id) : ''}
+                onChange={(v) => setCreateForm(f => ({ ...f, employee_id: v ? Number(v) : 0 }))}
+                placeholder={t.sanctions.selectEmployee}
+                options={employees.map(e => ({
+                  value: String(e.id),
+                  label: `${e.first_name} ${e.last_name}${e.department_name ? ` - ${e.department_name}` : ''}`,
+                }))}
+                className="w-full"
+              />
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.sanctions.disputeSubjectLabel} *</label>
@@ -1235,16 +1225,13 @@ export default function ContentieuxPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.sanctions.assignedLawyerLabel}</label>
-              <select
-                value={createForm.assigned_to_id || ''}
-                onChange={e => setCreateForm(f => ({ ...f, assigned_to_id: Number(e.target.value) }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-              >
-                <option value="">{t.sanctions.selectLawyerOption}</option>
-                {juristes.map(j => (
-                  <option key={j.id} value={j.id}>{j.first_name} {j.last_name}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={createForm.assigned_to_id ? String(createForm.assigned_to_id) : ''}
+                onChange={(v) => setCreateForm(f => ({ ...f, assigned_to_id: v ? Number(v) : 0 }))}
+                placeholder={t.sanctions.selectLawyerOption}
+                options={juristes.map(j => ({ value: String(j.id), label: `${j.first_name} ${j.last_name}` }))}
+                className="w-full"
+              />
             </div>
           </div>
           <div className="mt-6 flex justify-end gap-3">

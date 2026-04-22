@@ -716,13 +716,16 @@ function NewRecallModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.leaves.collaboratorOnLeave} <span className="text-red-500">*</span></label>
               <CustomSelect
-                value={String(form.leave_id)}
-                onChange={v => setForm(withCompensationDefaults({ ...form, leave_id: v }))}
+                value={form.leave_id}
+                onChange={(v) => setForm(withCompensationDefaults({ ...form, leave_id: v }))}
+                placeholder={t.leaves.select}
                 options={[
                   { value: '', label: t.leaves.select },
-                  ...onLeaveList.map(l => ({ value: String(l.id), label: `${l.employee_name} — ${new Date(l.start_date).toLocaleDateString('fr-FR')} → ${new Date(l.end_date).toLocaleDateString('fr-FR')}` })),
+                  ...onLeaveList.map((l) => ({
+                    value: String(l.id),
+                    label: `${l.employee_name} — ${new Date(l.start_date).toLocaleDateString('fr-FR')} → ${new Date(l.end_date).toLocaleDateString('fr-FR')}`,
+                  })),
                 ]}
-                className="w-full"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -1462,9 +1465,8 @@ function InitializeBalancesModal({
             </label>
             <CustomSelect
               value={String(year)}
-              onChange={v => setYear(parseInt(v))}
+              onChange={(v) => setYear(parseInt(v))}
               options={[2024, 2025, 2026].map(y => ({ value: String(y), label: String(y) }))}
-              className="w-full"
             />
             <p className="mt-2 text-sm text-gray-500">
               {t.leaves.initializeBalancesDescription.replace('{year}', String(year))}
@@ -1875,12 +1877,15 @@ function NewLeaveRequestModal({
               ) : (
                 <CustomSelect
                   value={employeeId}
-                  onChange={v => setEmployeeId(v)}
+                  onChange={(v) => setEmployeeId(v)}
+                  placeholder={t.leaves.selectEmployee}
                   options={[
                     { value: '', label: t.leaves.selectEmployee },
-                    ...employeesList.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}${emp.id === storedUser.employeeId ? ` ${t.leaves.me}` : ''}` })),
+                    ...employeesList.map(emp => ({
+                      value: String(emp.id),
+                      label: `${emp.first_name} ${emp.last_name}${emp.id === storedUser.employeeId ? ` ${t.leaves.me}` : ''}`,
+                    })),
                   ]}
-                  className="w-full"
                 />
               )}
             </div>
@@ -1892,12 +1897,12 @@ function NewLeaveRequestModal({
               </label>
               <CustomSelect
                 value={leaveTypeId}
-                onChange={v => setLeaveTypeId(v)}
+                onChange={(v) => setLeaveTypeId(v)}
+                placeholder={t.leaves.selectLeaveType}
                 options={[
                   { value: '', label: t.leaves.selectLeaveType },
-                  ...leaveTypes.filter(lt => lt.is_active).map(lt => ({ value: String(lt.id), label: lt.name })),
+                  ...leaveTypes.filter(t => t.is_active).map(t => ({ value: String(t.id), label: t.name })),
                 ]}
-                className="w-full"
               />
             </div>
 
@@ -2263,13 +2268,16 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
               <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
             ) : (
               <CustomSelect
-                value={String(selectedEmployeeId)}
-                onChange={v => setSelectedEmployeeId(v ? parseInt(v) : '')}
+                value={selectedEmployeeId ? String(selectedEmployeeId) : ''}
+                onChange={(v) => setSelectedEmployeeId(v ? parseInt(v) : '')}
+                placeholder="Sélectionner un employé..."
                 options={[
                   { value: '', label: 'Sélectionner un employé...' },
-                  ...employees.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}${emp.department_name ? ` — ${emp.department_name}` : ''}` })),
+                  ...employees.map((emp) => ({
+                    value: String(emp.id),
+                    label: `${emp.first_name} ${emp.last_name}${emp.department_name ? ` — ${emp.department_name}` : ''}`,
+                  })),
                 ]}
-                className="w-full"
               />
             )}
           </div>
@@ -2277,9 +2285,8 @@ function EmployeeBalancesTab({ leaveTypes }: { leaveTypes: LeaveType[] }) {
             <label className="block text-sm font-medium text-gray-700 mb-1">Année</label>
             <CustomSelect
               value={String(selectedYear)}
-              onChange={v => setSelectedYear(parseInt(v))}
-              options={years.map(y => ({ value: String(y), label: String(y) }))}
-              className="min-w-[100px]"
+              onChange={(v) => setSelectedYear(parseInt(v))}
+              options={years.map((y) => ({ value: String(y), label: String(y) }))}
             />
           </div>
           {selectedEmployeeId && (
@@ -2729,12 +2736,15 @@ function NewSickDeclarationModal({
               </label>
               <CustomSelect
                 value={leaveId}
-                onChange={v => setLeaveId(v)}
+                onChange={(v) => setLeaveId(v)}
+                placeholder={t.leaves.select}
                 options={[
                   { value: '', label: t.leaves.select },
-                  ...onLeaveList.map(l => ({ value: String(l.id), label: `${l.employee_name} — ${new Date(l.start_date).toLocaleDateString('fr-FR')} → ${new Date(l.end_date).toLocaleDateString('fr-FR')}` })),
+                  ...onLeaveList.map((l) => ({
+                    value: String(l.id),
+                    label: `${l.employee_name} — ${new Date(l.start_date).toLocaleDateString('fr-FR')} → ${new Date(l.end_date).toLocaleDateString('fr-FR')}`,
+                  })),
                 ]}
-                className="w-full"
               />
             </div>
             <div>

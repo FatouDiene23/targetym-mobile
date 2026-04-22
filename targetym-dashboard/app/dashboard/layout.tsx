@@ -264,12 +264,11 @@ export default function DashboardLayout({
   useEffect(() => {
     if (isAuthenticated) {
       check2FA();
-      // Push notifications: désactivé temporairement jusqu'à configuration Firebase
-      // import('@/lib/capacitor-plugins')
-      //   .then(({ registerPushNotifications, isNative }) => {
-      //     if (isNative()) return registerPushNotifications();
-      //   })
-      //   .catch((err) => console.warn('Push notifications non disponibles:', err));
+      import('@/lib/capacitor-plugins')
+        .then(({ registerPushNotifications, isNative }) => {
+          if (isNative()) return registerPushNotifications();
+        })
+        .catch((err) => console.warn('Push notifications non disponibles:', err));
     }
   }, [isAuthenticated, check2FA]);
 

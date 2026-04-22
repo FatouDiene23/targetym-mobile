@@ -8,6 +8,7 @@ import {
   ExternalLink, ChevronDown, ChevronUp, Settings, Upload, Link,
 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // CONFIG
@@ -346,29 +347,30 @@ function ResourceFormModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-              <select
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-200"
+              <CustomSelect
                 value={form.resource_type}
-                onChange={e => setForm(f => ({ ...f, resource_type: e.target.value as 'video' | 'pdf' | 'link' | 'article' }))}
-              >
-                <option value="video">🎬 Vidéo</option>
-                <option value="pdf">📄 PDF</option>
-                <option value="link">🔗 Lien</option>
-                <option value="article">📖 Article</option>
-              </select>
+                onChange={(v) => setForm(f => ({ ...f, resource_type: v as 'video' | 'pdf' | 'link' | 'article' }))}
+                options={[
+                  { value: 'video', label: '🎬 Vidéo' },
+                  { value: 'pdf', label: '📄 PDF' },
+                  { value: 'link', label: '🔗 Lien' },
+                  { value: 'article', label: '📖 Article' },
+                ]}
+                className="w-full"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
-              <select
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-200"
+              <CustomSelect
                 value={form.category_id}
-                onChange={e => setForm(f => ({ ...f, category_id: e.target.value }))}
-              >
-                <option value="">Sans catégorie</option>
-                {categories.filter(c => c.is_published).map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+                onChange={(v) => setForm(f => ({ ...f, category_id: v }))}
+                placeholder="Sans catégorie"
+                options={[
+                  { value: '', label: 'Sans catégorie' },
+                  ...categories.filter(c => c.is_published).map(c => ({ value: String(c.id), label: c.name })),
+                ]}
+                className="w-full"
+              />
             </div>
           </div>
           <div>

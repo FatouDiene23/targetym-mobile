@@ -1148,10 +1148,10 @@ export default function SurveysPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
                     <CustomSelect
                       value={formData.survey_type}
-                      onChange={v => {
-                        const freqConfig = FREQUENCY_BY_TYPE[v] || FREQUENCY_BY_TYPE.pulse;
-                        setFormData({ ...formData, survey_type: v, frequency: freqConfig.default });
-                        if (v === 'moments_cles') loadTemplates();
+                      onChange={(newType) => {
+                        const freqConfig = FREQUENCY_BY_TYPE[newType] || FREQUENCY_BY_TYPE.pulse;
+                        setFormData({ ...formData, survey_type: newType, frequency: freqConfig.default });
+                        if (newType === 'moments_cles') loadTemplates();
                       }}
                       options={[
                         { value: 'pulse', label: 'Enquête Flash' },
@@ -1160,7 +1160,6 @@ export default function SurveysPage() {
                         { value: 'annuelle', label: 'Enquête Annuelle' },
                         { value: 'feedback_managerial', label: 'Feedback Managérial' },
                       ]}
-                      className="w-full"
                     />
                     {formData.survey_type === 'moments_cles' && (
                       <p className="mt-1 text-xs text-orange-600">Templates préconfigurés disponibles</p>
@@ -1214,10 +1213,9 @@ export default function SurveysPage() {
                       return (
                         <CustomSelect
                           value={formData.frequency}
-                          onChange={v => setFormData({ ...formData, frequency: v })}
+                          onChange={(v) => setFormData({ ...formData, frequency: v })}
                           disabled={freqConfig.locked}
                           options={freqConfig.options.map(k => ({ value: k, label: FREQUENCY_LABELS[k] || k }))}
-                          className="w-full"
                         />
                       );
                     })()}
@@ -1262,7 +1260,7 @@ export default function SurveysPage() {
                         <div className="flex items-center gap-4">
                           <CustomSelect
                             value={q.question_type}
-                            onChange={v => updateQuestion(idx, 'question_type', v)}
+                            onChange={(v) => updateQuestion(idx, 'question_type', v)}
                             options={Object.entries(QUESTION_TYPE_LABELS).map(([k, v]) => ({ value: k, label: v }))}
                             className="min-w-[160px]"
                           />
@@ -1508,7 +1506,7 @@ export default function SurveysPage() {
                         <div className="flex items-center gap-4">
                           <CustomSelect
                             value={q.question_type}
-                            onChange={v => updateConfigQuestion(idx, 'question_type', v)}
+                            onChange={(v) => updateConfigQuestion(idx, 'question_type', v)}
                             options={Object.entries(QUESTION_TYPE_LABELS).map(([k, v]) => ({ value: k, label: v }))}
                             className="min-w-[160px]"
                           />

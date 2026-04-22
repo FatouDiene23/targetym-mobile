@@ -15,6 +15,7 @@ import {
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CustomSelect from '@/components/CustomSelect';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
 // ============================================
@@ -1150,14 +1151,17 @@ export default function OnboardingPage() {
 
                       {/* Status dropdown */}
                       {tk.status !== 'completed' && (
-                        <select value={tk.status} onChange={e => updateTaskStatus(tk.id, e.target.value)}
-                          className="text-xs border rounded px-2 py-1 bg-white">
-                          <option value="pending">{t.onboarding.taskPending}</option>
-                          <option value="in_progress">{t.onboarding.taskInProgress}</option>
-                          <option value="completed">{t.onboarding.taskCompleted}</option>
-                          <option value="skipped">{t.onboarding.taskSkipped}</option>
-                          <option value="blocked">{t.onboarding.taskBlocked}</option>
-                        </select>
+                        <CustomSelect
+                          value={tk.status}
+                          onChange={(v) => updateTaskStatus(tk.id, v)}
+                          options={[
+                            { value: 'pending', label: t.onboarding.taskPending },
+                            { value: 'in_progress', label: t.onboarding.taskInProgress },
+                            { value: 'completed', label: t.onboarding.taskCompleted },
+                            { value: 'skipped', label: t.onboarding.taskSkipped },
+                            { value: 'blocked', label: t.onboarding.taskBlocked },
+                          ]}
+                        />
                       )}
                     </div>
                   );
@@ -1335,10 +1339,15 @@ export default function OnboardingPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.common.department}</label>
-                <select value={deptId} onChange={e => setDeptId(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
-                  <option value="">{t.onboarding.allDepartments}</option>
-                  {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                </select>
+                <CustomSelect
+                  value={deptId}
+                  onChange={(v) => setDeptId(v)}
+                  placeholder={t.onboarding.allDepartments}
+                  options={[
+                    { value: '', label: t.onboarding.allDepartments },
+                    ...departments.map(d => ({ value: String(d.id), label: d.name })),
+                  ]}
+                />
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.durationDays}</label>
@@ -1426,15 +1435,19 @@ export default function OnboardingPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.category}</label>
-                <select value={category} onChange={e => setCategory(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
-                  {Object.entries(CATEGORY_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                </select>
+                <CustomSelect
+                  value={category}
+                  onChange={(v) => setCategory(v)}
+                  options={Object.entries(CATEGORY_CONFIG).map(([k, v]) => ({ value: k, label: v.label }))}
+                />
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.assignedTo}</label>
-                <select value={assignedRole} onChange={e => setAssignedRole(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
-                  {Object.entries(ROLE_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                </select>
+                <CustomSelect
+                  value={assignedRole}
+                  onChange={(v) => setAssignedRole(v)}
+                  options={Object.entries(ROLE_CONFIG).map(([k, v]) => ({ value: k, label: v.label }))}
+                />
               </div>
             </div>
             <div>
@@ -1453,17 +1466,22 @@ export default function OnboardingPage() {
             {requiresDoc && (
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.documentType}</label>
-                <select value={docType} onChange={e => setDocType(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
-                  <option value="">{t.onboarding.selectDocType}</option>
-                  <option value="contrat_travail">{t.onboarding.contractDoc}</option>
-                  <option value="cni">{t.onboarding.cniDoc}</option>
-                  <option value="passeport">{t.onboarding.passportDoc}</option>
-                  <option value="diplome">{t.onboarding.diplomaDoc}</option>
-                  <option value="cv">{t.onboarding.cvDoc}</option>
-                  <option value="rib">{t.onboarding.ribDoc}</option>
-                  <option value="photo_identite">{t.onboarding.idPhotoDoc}</option>
-                  <option value="autre">{t.onboarding.otherDoc}</option>
-                </select>
+                <CustomSelect
+                  value={docType}
+                  onChange={(v) => setDocType(v)}
+                  placeholder={t.onboarding.selectDocType}
+                  options={[
+                    { value: '', label: t.onboarding.selectDocType },
+                    { value: 'contrat_travail', label: t.onboarding.contractDoc },
+                    { value: 'cni', label: t.onboarding.cniDoc },
+                    { value: 'passeport', label: t.onboarding.passportDoc },
+                    { value: 'diplome', label: t.onboarding.diplomaDoc },
+                    { value: 'cv', label: t.onboarding.cvDoc },
+                    { value: 'rib', label: t.onboarding.ribDoc },
+                    { value: 'photo_identite', label: t.onboarding.idPhotoDoc },
+                    { value: 'autre', label: t.onboarding.otherDoc },
+                  ]}
+                />
               </div>
             )}
           </div>
@@ -1661,10 +1679,18 @@ export default function OnboardingPage() {
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.linkedOnboarding}</label>
-              <select value={assignId} onChange={e => setAssignId(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
-                <option value="">{t.onboarding.none}</option>
-                {assignments.filter(a => a.status === 'in_progress' || a.status === 'not_started').map(a => <option key={a.id} value={a.id}>{a.employee_name} - {a.program_name}</option>)}
-              </select>
+              <CustomSelect
+                value={assignId}
+                onChange={(v) => setAssignId(v)}
+                placeholder={t.onboarding.none}
+                options={[
+                  { value: '', label: t.onboarding.none },
+                  ...assignments.filter(a => a.status === 'in_progress' || a.status === 'not_started').map(a => ({
+                    value: String(a.id),
+                    label: `${a.employee_name} - ${a.program_name}`,
+                  })),
+                ]}
+              />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>

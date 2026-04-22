@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/Header';
+import CustomSelect from '@/components/CustomSelect';
 import { useGroupContext } from '@/hooks/useGroupContext';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import {
@@ -300,20 +301,18 @@ export default function SOSAdminPage() {
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
           {/* Toolbar */}
           <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-gray-100">
-            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-              className="text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-primary-400">
-              <option value="">{sos.allStatuses}</option>
-              {Object.entries(STATUS_STYLE).map(([k]) => (
-                <option key={k} value={k}>{statusLabels[k] || k}</option>
-              ))}
-            </select>
-            <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
-              className="text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-primary-400">
-              <option value="">{sos.allCategories}</option>
-              {Object.entries(CATEGORY_EMOJI).map(([k, e]) => (
-                <option key={k} value={k}>{e} {stats?.by_category.find(c => c.category === k)?.label || k}</option>
-              ))}
-            </select>
+            <CustomSelect value={filterStatus} onChange={(v) => setFilterStatus(v)}
+              options={[
+                { value: '', label: sos.allStatuses },
+                ...Object.entries(STATUS_STYLE).map(([k]) => ({ value: k, label: statusLabels[k] || k })),
+              ]}
+            />
+            <CustomSelect value={filterCategory} onChange={(v) => setFilterCategory(v)}
+              options={[
+                { value: '', label: sos.allCategories },
+                ...Object.entries(CATEGORY_EMOJI).map(([k, e]) => ({ value: k, label: `${e} ${stats?.by_category.find(c => c.category === k)?.label || k}` })),
+              ]}
+            />
             <button onClick={fetchData} className="ml-auto p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title={sos.refresh}>
               <RefreshCw className="w-4 h-4" />
             </button>

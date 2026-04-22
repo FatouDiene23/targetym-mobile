@@ -14,6 +14,7 @@ import {
   adminCancelInvoice, adminChangePlan,
   type TenantListItem, type InvoiceItem,
 } from '@/lib/api';
+import CustomSelect from '@/components/CustomSelect';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = (d?: string) => d ? new Date(d).toLocaleDateString('fr-FR') : '—';
@@ -477,15 +478,16 @@ export default function BillingAdminPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Devise</label>
-                <select
+                <CustomSelect
                   value={createForm.currency}
-                  onChange={e => setCreateForm(f => ({ ...f, currency: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="XOF">XOF</option>
-                  <option value="EUR">EUR</option>
-                  <option value="USD">USD</option>
-                </select>
+                  onChange={(v) => setCreateForm(f => ({ ...f, currency: v }))}
+                  options={[
+                    { value: 'XOF', label: 'XOF' },
+                    { value: 'EUR', label: 'EUR' },
+                    { value: 'USD', label: 'USD' },
+                  ]}
+                  className="w-full"
+                />
               </div>
             </div>
 
@@ -626,16 +628,15 @@ export default function BillingAdminPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Plan <span className="text-red-500">*</span></label>
-                <select
+                <CustomSelect
                   value={planForm.plan}
-                  onChange={e => {
-                    const selected = PLANS.find(p => p.value === e.target.value);
-                    setPlanForm(f => ({ ...f, plan: e.target.value, max_employees: selected ? String(selected.employees) : f.max_employees }));
+                  onChange={(v) => {
+                    const selected = PLANS.find(p => p.value === v);
+                    setPlanForm(f => ({ ...f, plan: v, max_employees: selected ? String(selected.employees) : f.max_employees }));
                   }}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  {PLANS.map(p => <option key={p.value} value={p.value}>{p.label} — {p.employees} employés</option>)}
-                </select>
+                  options={PLANS.map(p => ({ value: p.value, label: `${p.label} — ${p.employees} employés` }))}
+                  className="w-full"
+                />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Nb max employés</label>

@@ -44,6 +44,7 @@ import { getIntegrations, connectIntegration, disconnectIntegration, syncIntegra
   requestGroupConversion, getMyConversionRequestStatus, getMyGroupContext, createMySubsidiary,
   type ConversionRequestItem, type SubsidiaryItem } from '@/lib/api';
 import LicensesTab from '@/components/LicensesTab';
+import CustomSelect from '@/components/CustomSelect';
 import { useLicenseStatus } from '@/hooks/useLicenseStatus';
 import { KeyRound } from 'lucide-react';
 
@@ -1238,17 +1239,14 @@ export default function SettingsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.defaultCurrency}</label>
-                    <select
+                    <CustomSelect
                       value={tenantForm.currency}
-                      onChange={(e) => setTenantForm(prev => ({ ...prev, currency: e.target.value }))}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-white"
-                    >
-                      {currencies.length > 0 ? currencies.map(c => (
-                        <option key={c.code} value={c.code}>{c.code} — {c.label}</option>
-                      )) : (
-                        <option value={tenantForm.currency}>{tenantForm.currency}</option>
-                      )}
-                    </select>
+                      onChange={(v) => setTenantForm(prev => ({ ...prev, currency: v }))}
+                      options={currencies.length > 0
+                        ? currencies.map(c => ({ value: c.code, label: `${c.code} — ${c.label}` }))
+                        : [{ value: tenantForm.currency, label: tenantForm.currency }]}
+                      className="w-full"
+                    />
                     <p className="mt-1.5 text-xs text-gray-400">
                       {t.settings.currencyHint}
                     </p>
@@ -1256,15 +1254,16 @@ export default function SettingsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">{t.settings.defaultLanguage}</label>
-                    <select
+                    <CustomSelect
                       value={tenantForm.default_language}
-                      onChange={(e) => setTenantForm(prev => ({ ...prev, default_language: e.target.value }))}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-white"
-                    >
-                      <option value="fr">🇫🇷 Français</option>
-                      <option value="en">🇬🇧 English</option>
-                      <option value="pt">🇧🇷 Português</option>
-                    </select>
+                      onChange={(v) => setTenantForm(prev => ({ ...prev, default_language: v }))}
+                      options={[
+                        { value: 'fr', label: '🇫🇷 Français' },
+                        { value: 'en', label: '🇬🇧 English' },
+                        { value: 'pt', label: '🇧🇷 Português' },
+                      ]}
+                      className="w-full"
+                    />
                     <p className="mt-1.5 text-xs text-gray-400">
                       {t.settings.languageHint}
                     </p>

@@ -5,6 +5,7 @@ import { User, Pencil, Plus, Loader2, X, CheckCircle2, AlertCircle, Trash2 } fro
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CustomSelect from '@/components/CustomSelect';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import { getEmployees, type Employee } from '@/lib/api';
 import {
@@ -123,15 +124,12 @@ function ProfileModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.profiles.contractType}</label>
-              <select
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              <CustomSelect
                 value={form.contract_type ?? ''}
-                onChange={e => set('contract_type', e.target.value as 'cdi' | 'cdd' | 'stage' | 'consultant')}
-              >
-                {CONTRACT_TYPES.map(c => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
-                ))}
-              </select>
+                onChange={(v) => set('contract_type', v as 'cdi' | 'cdd' | 'stage' | 'consultant')}
+                options={CONTRACT_TYPES.map(c => ({ value: c.value, label: c.label }))}
+                className="w-full"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.profiles.classification}</label>

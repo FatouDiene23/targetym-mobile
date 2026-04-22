@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import * as XLSX from 'xlsx';
 import PageTourTips from '@/components/PageTourTips';
+import CustomSelect from '@/components/CustomSelect';
 import { usePageTour } from '@/hooks/usePageTour';
 import { useGroupContext } from '@/hooks/useGroupContext';
 import { fetchWithAuth } from '@/lib/api';
@@ -2316,16 +2317,15 @@ export default function PeopleAnalyticsPage() {
           {/* Filtre département */}
           <div className="relative">
             <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <select
+            <CustomSelect
               value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-              className="pl-8 pr-4 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none"
-            >
-              <option value="">{t.analytics.allDepartments}</option>
-              {departments.map((d) => (
-                <option key={d} value={d}>{d}</option>
-              ))}
-            </select>
+              onChange={(v) => setDepartment(v)}
+              className="pl-8 pr-4"
+              options={[
+                { value: '', label: t.analytics.allDepartments },
+                ...departments.map((d) => ({ value: d, label: d })),
+              ]}
+            />
           </div>
 
           {/* Filtre période */}

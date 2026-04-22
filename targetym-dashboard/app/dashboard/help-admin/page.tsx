@@ -8,6 +8,7 @@ import CategoryFormModal from '@/components/CategoryFormModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { usePageTour } from '@/hooks/usePageTour';
 import PageTourTips from '@/components/PageTourTips';
+import CustomSelect from '@/components/CustomSelect';
 
 interface Category {
   id: number;
@@ -313,16 +314,14 @@ export default function HelpAdminPage() {
                   />
                 </div>
               </div>
-              <select
-                value={selectedCategory || ''}
-                onChange={(e) => setSelectedCategory(e.target.value ? Number(e.target.value) : null)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              >
-                <option value="">Toutes les catégories</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={selectedCategory ? String(selectedCategory) : ''}
+                onChange={(v) => setSelectedCategory(v ? Number(v) : null)}
+                options={[
+                  { value: '', label: 'Toutes les catégories' },
+                  ...categories.map(cat => ({ value: String(cat.id), label: cat.name })),
+                ]}
+              />
             </div>
           </div>
 

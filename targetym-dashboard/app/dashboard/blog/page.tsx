@@ -8,6 +8,7 @@ import {
   Upload, Link,
 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // CONFIG
@@ -523,25 +524,25 @@ export default function BlogPage() {
           />
         </div>
         {categories.length > 0 && (
-          <select
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-primary-200 outline-none"
+          <CustomSelect
             value={filterCategory}
-            onChange={e => setFilterCategory(e.target.value)}
-          >
-            <option value="">Toutes les catégories</option>
-            {categories.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+            onChange={(v) => setFilterCategory(v)}
+            options={[
+              { value: '', label: 'Toutes les catégories' },
+              ...categories.map(c => ({ value: c, label: c })),
+            ]}
+          />
         )}
         {isEditor && (
-          <select
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-primary-200 outline-none"
+          <CustomSelect
             value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-          >
-            <option value="">Tous les statuts</option>
-            <option value="published">Publiés</option>
-            <option value="draft">Brouillons</option>
-          </select>
+            onChange={(v) => setFilterStatus(v)}
+            options={[
+              { value: '', label: 'Tous les statuts' },
+              { value: 'published', label: 'Publiés' },
+              { value: 'draft', label: 'Brouillons' },
+            ]}
+          />
         )}
       </div>
 

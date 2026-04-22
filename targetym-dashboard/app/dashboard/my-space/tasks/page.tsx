@@ -23,7 +23,6 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import CustomSelect from '@/components/CustomSelect';
 import CustomDatePicker from '@/components/CustomDatePicker';
 import Header from '@/components/Header';
-import CustomSelect from '@/components/CustomSelect';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
 // Couleurs par priorité (styling only - labels are translated in components)

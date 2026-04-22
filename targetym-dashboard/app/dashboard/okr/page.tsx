@@ -461,13 +461,12 @@ function ObjectiveModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.level} *</label>
               <CustomSelect
                 value={formData.level}
-                onChange={v => setFormData({ ...formData, level: v as 'enterprise' | 'department' | 'individual' })}
+                onChange={(v) => setFormData({ ...formData, level: v as 'enterprise' | 'department' | 'individual' })}
                 options={[
                   ...(canCreateEnterprise ? [{ value: 'enterprise', label: t.okr.enterprise }] : []),
                   { value: 'department', label: t.okr.department },
                   { value: 'individual', label: t.okr.individual },
                 ]}
-                className="w-full"
               />
             </div>
 
@@ -475,7 +474,7 @@ function ObjectiveModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.period} *</label>
               <CustomSelect
                 value={formData.period}
-                onChange={v => setFormData({ ...formData, period: v })}
+                onChange={(v) => setFormData({ ...formData, period: v })}
                 options={[
                   { value: '2026', label: '2026' },
                   { value: 'Q1 2026', label: 'Q1 2026' },
@@ -488,7 +487,6 @@ function ObjectiveModal({
                   { value: 'Q3 2025', label: 'Q3 2025' },
                   { value: 'Q4 2025', label: 'Q4 2025' },
                 ]}
-                className="w-full"
               />
             </div>
           </div>
@@ -497,13 +495,13 @@ function ObjectiveModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.departmentLabel}</label>
               <CustomSelect
-                value={String(formData.department_id || '')}
-                onChange={v => setFormData({ ...formData, department_id: v ? parseInt(v) : undefined })}
+                value={formData.department_id ? String(formData.department_id) : ''}
+                onChange={(v) => setFormData({ ...formData, department_id: v ? parseInt(v) : undefined })}
+                placeholder={t.okr.none}
                 options={[
                   { value: '', label: t.okr.none },
-                  ...departments.map(d => ({ value: String(d.id), label: d.name })),
+                  ...departments.map((d) => ({ value: String(d.id), label: d.name })),
                 ]}
-                className="w-full"
               />
               {!canSeeAll && departments.length === 1 && (
                 <p className="text-xs text-gray-500 mt-1">
@@ -511,17 +509,17 @@ function ObjectiveModal({
                 </p>
               )}
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.owner}</label>
               <CustomSelect
-                value={String(formData.owner_id || '')}
-                onChange={v => setFormData({ ...formData, owner_id: v ? parseInt(v) : undefined })}
+                value={formData.owner_id ? String(formData.owner_id) : ''}
+                onChange={(v) => setFormData({ ...formData, owner_id: v ? parseInt(v) : undefined })}
+                placeholder={t.okr.none}
                 options={[
                   { value: '', label: t.okr.none },
-                  ...employees.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` })),
+                  ...employees.map((emp) => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` })),
                 ]}
-                className="w-full"
               />
               {!canSeeAll && employees.length > 0 && (
                 <p className="text-xs text-gray-500 mt-1">
@@ -530,25 +528,28 @@ function ObjectiveModal({
               )}
             </div>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.parentObjective}</label>
             <CustomSelect
-              value={String(formData.parent_id || '')}
-              onChange={v => setFormData({ ...formData, parent_id: v ? parseInt(v) : undefined })}
+              value={formData.parent_id ? String(formData.parent_id) : ''}
+              onChange={(v) => setFormData({ ...formData, parent_id: v ? parseInt(v) : undefined })}
+              placeholder={t.okr.none}
               options={[
                 { value: '', label: t.okr.none },
-                ...parentObjectives.filter(o => o.id !== objective?.id).map(o => ({ value: String(o.id), label: `[${getLevelLabel(o.level, t)}] ${o.title}` })),
+                ...parentObjectives.filter(o => o.id !== objective?.id).map((o) => ({
+                  value: String(o.id),
+                  label: `[${getLevelLabel(o.level, t)}] ${o.title}`,
+                })),
               ]}
-              className="w-full"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.statusLabel}</label>
             <CustomSelect
               value={formData.status}
-              onChange={v => setFormData({ ...formData, status: v })}
+              onChange={(v) => setFormData({ ...formData, status: v })}
               options={[
                 { value: 'draft', label: t.okr.draft },
                 { value: 'active', label: t.okr.active },
@@ -558,7 +559,6 @@ function ObjectiveModal({
                 { value: 'completed', label: t.okr.completed },
                 { value: 'exceeded', label: t.okr.exceeded },
               ]}
-              className="w-full"
             />
           </div>
           
@@ -712,7 +712,7 @@ function KeyResultModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.unit}</label>
               <CustomSelect
                 value={isCustomUnit ? '__autre__' : (formData.unit || '')}
-                onChange={v => {
+                onChange={(v) => {
                   if (v === '__autre__') {
                     setIsCustomUnit(true);
                     setFormData({ ...formData, unit: '' });
@@ -721,11 +721,11 @@ function KeyResultModal({
                     setFormData({ ...formData, unit: v });
                   }
                 }}
+                placeholder={t.okr.chooseUnit}
                 options={[
                   { value: '', label: t.okr.chooseUnit },
-                  ...UNIT_OPTIONS,
+                  ...UNIT_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
                 ]}
-                className="w-full"
               />
               {isCustomUnit && (
                 <input
@@ -932,13 +932,15 @@ export default function OKRPage() {
     return false;
   };
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (isInitial = false) => {
     // Attendre que les données utilisateur soient chargées
     if (!userLoaded) {
       return;
     }
-    
-    setLoading(true);
+
+    // Ne mettre loading=true que sur le chargement initial — pour les changements
+    // de filtre, on garde les anciens résultats visibles (stale-while-revalidate)
+    if (isInitial) setLoading(true);
     try {
       const [objData, statsData, deptData, empData] = await Promise.all([
         fetchObjectives({ level: filterLevel !== 'all' ? filterLevel : undefined, period: filterPeriod !== 'all' ? filterPeriod : undefined }),
@@ -1038,9 +1040,18 @@ export default function OKRPage() {
     }
   }, [filterLevel, filterPeriod, canSeeAll, userDepartmentId, userEmployeeId, userLoaded]);
 
+  // Chargement initial — loader plein écran
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    loadData(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLoaded]);
+
+  // Changements de filtre — refetch silencieux (pas de loader plein écran)
+  useEffect(() => {
+    if (!userLoaded) return;
+    loadData(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterLevel, filterPeriod]);
 
   const toggleExpand = (id: number) => {
     setObjectives(objectives.map(obj => obj.id === id ? { ...obj, expanded: !obj.expanded } : obj));

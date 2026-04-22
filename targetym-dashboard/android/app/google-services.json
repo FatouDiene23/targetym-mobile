@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "664326492929",
+    "project_id": "targetym-mobile",
+    "storage_bucket": "targetym-mobile.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:664326492929:android:acd191005cb4e15aa64100",
+        "android_client_info": {
+          "package_name": "com.targetym.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCic64UHnQ58wUSQfkPfUoXOMwEZIG-2X8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

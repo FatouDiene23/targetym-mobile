@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/CustomDatePicker';
 import {
   FileText, Download, Eye, Search, Filter, Loader2, Calendar,
   Clock, AlertTriangle, ChevronLeft, ChevronRight, File,
@@ -432,11 +433,9 @@ export default function MyDocumentsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label className="text-xs font-medium text-gray-600 mb-1 block">Date d&apos;expiration</label>
-                <input
-                  type="date"
+                <CustomDatePicker
                   value={uploadExpiry}
-                  onChange={e => setUploadExpiry(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  onChange={setUploadExpiry}
                 />
               </div>
               <div>

@@ -138,7 +138,7 @@ export default function MesNotesDeServicePage() {
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-semibold text-gray-900">{i18n.serviceNotes.receivedNotes}</h2>
             {unreadCount > 0 && (
-              <span className="bg-blue-600 text-white rounded-full px-2.5 py-0.5 text-xs font-medium">
+              <span className="bg-primary-600 text-white rounded-full px-2.5 py-0.5 text-xs font-medium">
                 {unreadCount} {i18n.serviceNotes.unread}
               </span>
             )}
@@ -151,7 +151,7 @@ export default function MesNotesDeServicePage() {
                 onClick={() => setFilter(f.key)}
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${
                   filter === f.key
-                    ? 'bg-white text-blue-600 shadow-sm'
+                    ? 'bg-white text-primary-600 shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
@@ -164,7 +164,7 @@ export default function MesNotesDeServicePage() {
         {/* Content */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+            <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
           </div>
         ) : filteredNotes.length === 0 ? (
           <div className="text-center py-20 text-gray-400">
@@ -184,14 +184,14 @@ export default function MesNotesDeServicePage() {
                 className={`w-full text-left rounded-xl border p-4 transition hover:shadow-md ${
                   note.is_read
                     ? 'border-l-4 border-l-gray-200 border-gray-200 bg-gray-50'
-                    : 'border-l-4 border-l-blue-500 border-gray-200 bg-white'
+                    : 'border-l-4 border-l-primary-500 border-gray-200 bg-white'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       {!note.is_read && (
-                        <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                        <span className="w-2 h-2 rounded-full bg-primary-500 flex-shrink-0" />
                       )}
                       <h3 className={`text-sm font-semibold truncate ${note.is_read ? 'text-gray-600' : 'text-gray-900'}`}>
                         {note.titre}
@@ -211,7 +211,7 @@ export default function MesNotesDeServicePage() {
                     {!note.is_read && (
                       <span
                         onClick={(e) => { e.stopPropagation(); handleMarkAsRead(note); }}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition cursor-pointer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg transition cursor-pointer"
                       >
                         <CheckCircle className="w-3.5 h-3.5" />
                         {i18n.serviceNotes.markAsRead}
@@ -245,7 +245,7 @@ export default function MesNotesDeServicePage() {
                     <CheckCircle className="w-3 h-3" /> {i18n.serviceNotes.read}
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700">
                     {i18n.serviceNotes.newBadge}
                   </span>
                 )}
@@ -287,7 +287,7 @@ export default function MesNotesDeServicePage() {
               {!selectedNote.is_read ? (
                 <button
                   onClick={() => handleMarkAsRead(selectedNote)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
                 >
                   <CheckCircle className="w-4 h-4" />
                   {i18n.serviceNotes.markAsRead}

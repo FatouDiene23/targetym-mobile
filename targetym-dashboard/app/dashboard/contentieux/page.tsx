@@ -790,11 +790,9 @@ export default function ContentieuxPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.sanctions.newStage} *</label>
                 <CustomSelect
                   value={stageForm.stage}
-                  onChange={(v) => setStageForm(f => ({ ...f, stage: v }))}
-                  options={[
-                    { value: '', label: t.sanctions.selectStage },
-                    ...STAGES.map(s => ({ value: s.key, label: (t.sanctions.stages as Record<string, string>)[s.key] || s.key })),
-                  ]}
+                  onChange={v => setStageForm(f => ({ ...f, stage: v }))}
+                  options={[{value:'', label: t.sanctions.selectStage}, ...STAGES.map(s => ({value: s.key, label: (t.sanctions.stages as Record<string, string>)[s.key] || s.key}))]}
+                  className="w-full"
                 />
               </div>
               {stageForm.stage === 'conciliation' && (
@@ -856,8 +854,9 @@ export default function ContentieuxPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.sanctions.audienceType} *</label>
                 <CustomSelect
                   value={audienceForm.audience_type}
-                  onChange={(v) => setAudienceForm(f => ({ ...f, audience_type: v }))}
-                  options={Object.keys(t.sanctions.audienceTypes).map(k => ({ value: k, label: (t.sanctions.audienceTypes as Record<string, string>)[k] }))}
+                  onChange={v => setAudienceForm(f => ({ ...f, audience_type: v }))}
+                  options={Object.keys(t.sanctions.audienceTypes).map(k => ({value: k, label: (t.sanctions.audienceTypes as Record<string, string>)[k]}))}
+                  className="w-full"
                 />
               </div>
               <div>
@@ -931,11 +930,9 @@ export default function ContentieuxPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.sanctions.assignedLawyer}</label>
                 <CustomSelect
                   value={editForm.assigned_to_id ? String(editForm.assigned_to_id) : ''}
-                  onChange={(v) => setEditForm(f => ({ ...f, assigned_to_id: v ? Number(v) : undefined }))}
-                  options={[
-                    { value: '', label: t.sanctions.notAssigned },
-                    ...juristes.map(j => ({ value: String(j.id), label: `${j.first_name} ${j.last_name}` })),
-                  ]}
+                  onChange={v => setEditForm(f => ({ ...f, assigned_to_id: Number(v) }))}
+                  options={[{value:'', label: t.sanctions.notAssigned}, ...juristes.map(j => ({value: String(j.id), label: `${j.first_name} ${j.last_name}`}))]}
+                  className="w-full"
                 />
               </div>
             </div>
@@ -1185,12 +1182,8 @@ export default function ContentieuxPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.sanctions.employeeLabel} *</label>
               <CustomSelect
                 value={createForm.employee_id ? String(createForm.employee_id) : ''}
-                onChange={(v) => setCreateForm(f => ({ ...f, employee_id: v ? Number(v) : 0 }))}
-                placeholder={t.sanctions.selectEmployee}
-                options={employees.map(e => ({
-                  value: String(e.id),
-                  label: `${e.first_name} ${e.last_name}${e.department_name ? ` - ${e.department_name}` : ''}`,
-                }))}
+                onChange={v => setCreateForm(f => ({ ...f, employee_id: Number(v) }))}
+                options={[{value:'', label: t.sanctions.selectEmployee}, ...employees.map(e => ({value: String(e.id), label: `${e.first_name} ${e.last_name}${e.department_name ? ` - ${e.department_name}` : ''}`}))]}
                 className="w-full"
               />
             </div>
@@ -1227,9 +1220,8 @@ export default function ContentieuxPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.sanctions.assignedLawyerLabel}</label>
               <CustomSelect
                 value={createForm.assigned_to_id ? String(createForm.assigned_to_id) : ''}
-                onChange={(v) => setCreateForm(f => ({ ...f, assigned_to_id: v ? Number(v) : 0 }))}
-                placeholder={t.sanctions.selectLawyerOption}
-                options={juristes.map(j => ({ value: String(j.id), label: `${j.first_name} ${j.last_name}` }))}
+                onChange={v => setCreateForm(f => ({ ...f, assigned_to_id: Number(v) }))}
+                options={[{value:'', label: t.sanctions.selectLawyerOption}, ...juristes.map(j => ({value: String(j.id), label: `${j.first_name} ${j.last_name}`}))]}
                 className="w-full"
               />
             </div>

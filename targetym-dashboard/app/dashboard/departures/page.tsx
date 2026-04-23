@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Header from '@/components/Header';
 import CustomSelect from '@/components/CustomSelect';
+import Header from '@/components/Header';
 import {
   UserMinus, Search, Plus, X, ChevronLeft, ChevronRight, Clock, CheckCircle,
   XCircle, AlertTriangle, Filter, Download, Eye, MoreHorizontal, Calendar,
@@ -717,24 +717,16 @@ export default function DeparturesPage() {
                   </div>
                   <CustomSelect
                     value={filterType}
-                    onChange={(v) => { setFilterType(v); setPage(1); }}
-                    options={[
-                      { value: '', label: t.departures.allTypes },
-                      ...Object.keys(DEPARTURE_TYPE_COLORS).map(k => ({ value: k, label: (t.departures.types as Record<string, string>)[k] || k })),
-                    ]}
+                    onChange={v => { setFilterType(v); setPage(1); }}
+                    options={[{value:'', label: t.departures.allTypes}, ...Object.keys(DEPARTURE_TYPE_COLORS).map(k => ({value: k, label: (t.departures.types as Record<string, string>)[k] || k}))]}
+                    className="border rounded-lg px-3 py-2 text-sm"
                   />
                   {activeTab === 'en_cours' && (
                     <CustomSelect
                       value={filterStatus}
-                      onChange={(v) => { setFilterStatus(v); setPage(1); }}
-                      options={[
-                        { value: '', label: t.departures.allStatuses },
-                        { value: 'pending_manager', label: t.departures.statusFilterOptions.pending_manager },
-                        { value: 'pending_rh', label: t.departures.statusFilterOptions.pending_rh },
-                        { value: 'pending_direction', label: t.departures.statusFilterOptions.pending_direction },
-                        { value: 'validated', label: t.departures.statusFilterOptions.validated },
-                        { value: 'in_progress', label: t.departures.statusFilterOptions.in_progress },
-                      ]}
+                      onChange={v => { setFilterStatus(v); setPage(1); }}
+                      options={[{value:'', label: t.departures.allStatuses},{value:'pending_manager', label: t.departures.statusFilterOptions.pending_manager},{value:'pending_rh', label: t.departures.statusFilterOptions.pending_rh},{value:'pending_direction', label: t.departures.statusFilterOptions.pending_direction},{value:'validated', label: t.departures.statusFilterOptions.validated},{value:'in_progress', label: t.departures.statusFilterOptions.in_progress}]}
+                      className="border rounded-lg px-3 py-2 text-sm"
                     />
                   )}
                 </div>
@@ -1250,12 +1242,9 @@ export default function DeparturesPage() {
               <label className="text-xs text-gray-500">{t.departures.primaryDepartureReason}</label>
               <CustomSelect
                 value={(interviewForm.primary_departure_reason ?? interview.primary_departure_reason) || ''}
-                onChange={(v) => setInterviewForm(prev => ({ ...prev, primary_departure_reason: v }))}
-                className="mt-1"
-                options={[
-                  { value: '', label: t.departures.selectOption },
-                  ...Object.keys(t.departures.departureReasons).map(k => ({ value: k, label: (t.departures.departureReasons as Record<string, string>)[k] })),
-                ]}
+                onChange={v => setInterviewForm(prev => ({ ...prev, primary_departure_reason: v }))}
+                options={[{value:'', label: t.departures.selectOption}, ...Object.keys(t.departures.departureReasons).map(k => ({value: k, label: (t.departures.departureReasons as Record<string, string>)[k]}))]}
+                className="w-full mt-1"
               />
             </div>
 
@@ -1537,10 +1526,7 @@ export default function DeparturesPage() {
                 <h3 className="font-medium text-gray-900">{t.departures.typeAndReason}</h3>
                 <div>
                   <label className="text-sm text-gray-600">{t.departures.departureType}</label>
-                  <CustomSelect value={formType} onChange={(v) => setFormType(v)}
-                    className="mt-1"
-                    options={Object.keys(DEPARTURE_TYPE_COLORS).map(k => ({ value: k, label: (t.departures.types as Record<string, string>)[k] || k }))}
-                  />
+                  <CustomSelect value={formType} onChange={v => setFormType(v)} options={Object.keys(DEPARTURE_TYPE_COLORS).map(k => ({value: k, label: (t.departures.types as Record<string, string>)[k] || k}))} className="w-full mt-1" />
                 </div>
                 {formType === 'termination' && (
                   <div>
@@ -1559,13 +1545,10 @@ export default function DeparturesPage() {
                       </p>
                     ) : (
                       <CustomSelect
-                        value={formTargetTenantId ? String(formTargetTenantId) : ''}
-                        onChange={(v) => setFormTargetTenantId(v ? Number(v) : null)}
-                        className="mt-1"
-                        options={[
-                          { value: '', label: t.departures.selectSubsidiary },
-                          ...subsidiaries.map(s => ({ value: String(s.id), label: s.name })),
-                        ]}
+                        value={formTargetTenantId != null ? String(formTargetTenantId) : ''}
+                        onChange={v => setFormTargetTenantId(Number(v) || null)}
+                        options={[{value:'', label: t.departures.selectSubsidiary}, ...subsidiaries.map(s => ({value: String(s.id), label: s.name}))]}
+                        className="w-full mt-1"
                       />
                     )}
                   </div>

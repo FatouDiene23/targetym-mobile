@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
+import CustomSelect from '@/components/CustomSelect';
 import toast from 'react-hot-toast';
 import {
   Users, Search, Plus, Edit2, Trash2, Eye, EyeOff,
@@ -11,7 +12,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { usePageTour } from '@/hooks/usePageTour';
 import PageTourTips from '@/components/PageTourTips';
-import CustomSelect from '@/components/CustomSelect';
 import {
   getAllUsers,
   getAllTenants,
@@ -26,14 +26,6 @@ import {
 } from '@/lib/api';
 
 export default function PlatformUsersManagement() {
-  return (
-    <Suspense fallback={<div className="p-6"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" /></div>}>
-      <PlatformUsersContent />
-    </Suspense>
-  );
-}
-
-function PlatformUsersContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showTips, dismissTips } = usePageTour('platformAdminUsers');
@@ -368,36 +360,22 @@ function PlatformUsersContent() {
           <CustomSelect
             value={filterRole}
             onChange={(v) => handleRoleChange(v)}
-            options={[
-              { value: '', label: 'Tous les rôles' },
-              { value: 'SUPER_ADMIN', label: 'SUPER_ADMIN' },
-              { value: 'super_admin', label: 'super_admin' },
-              { value: 'admin', label: 'Admin' },
-              { value: 'rh', label: 'RH' },
-              { value: 'manager', label: 'Manager' },
-              { value: 'employee', label: 'Employee' },
-            ]}
+            options={[{value:'', label:'Tous les rôles'},{value:'SUPER_ADMIN', label:'SUPER_ADMIN'},{value:'super_admin', label:'super_admin'},{value:'admin', label:'Admin'},{value:'rh', label:'RH'},{value:'manager', label:'Manager'},{value:'employee', label:'Employee'}]}
+            className="px-4 py-2 border border-gray-300 rounded-lg"
           />
-          
+
           <CustomSelect
             value={filterTenant === '' ? '' : String(filterTenant)}
             onChange={(v) => handleTenantChange(v === '' ? '' : Number.parseInt(v, 10))}
-            className="max-w-xs"
-            options={[
-              { value: '', label: 'Toutes les entreprises' },
-              { value: '0', label: 'Sans entreprise' },
-              ...tenants.map(tenant => ({ value: String(tenant.id), label: tenant.name })),
-            ]}
+            options={[{value:'', label:'Toutes les entreprises'},{value:'0', label:'Sans entreprise'}, ...tenants.map(tenant => ({value: String(tenant.id), label: tenant.name}))]}
+            className="px-4 py-2 border border-gray-300 rounded-lg max-w-xs"
           />
-          
+
           <CustomSelect
             value={filterActive === undefined ? '' : filterActive.toString()}
             onChange={(v) => handleActiveChange(v === '' ? undefined : v === 'true')}
-            options={[
-              { value: '', label: 'Tous les statuts' },
-              { value: 'true', label: 'Actifs' },
-              { value: 'false', label: 'Inactifs' },
-            ]}
+            options={[{value:'', label:'Tous les statuts'},{value:'true', label:'Actifs'},{value:'false', label:'Inactifs'}]}
+            className="px-4 py-2 border border-gray-300 rounded-lg"
           />
         </div>
       </div>
@@ -656,15 +634,10 @@ function PlatformUsersContent() {
                   Rôle *
                 </label>
                 <CustomSelect
-                  value={formData.role || ''}
+                  value={formData.role}
                   onChange={(v) => setFormData({ ...formData, role: v })}
-                  options={[
-                    { value: 'employee', label: 'Employee' },
-                    { value: 'manager', label: 'Manager' },
-                    { value: 'rh', label: 'RH' },
-                    { value: 'admin', label: 'Admin' },
-                    { value: 'SUPER_ADMIN', label: 'SUPER_ADMIN' },
-                  ]}
+                  options={[{value:'employee', label:'Employee'},{value:'manager', label:'Manager'},{value:'rh', label:'RH'},{value:'admin', label:'Admin'},{value:'SUPER_ADMIN', label:'SUPER_ADMIN'}]}
+                  className="w-full"
                 />
               </div>
               
@@ -676,10 +649,8 @@ function PlatformUsersContent() {
                 <CustomSelect
                   value={formData.tenant_id ? String(formData.tenant_id) : ''}
                   onChange={(v) => setFormData({ ...formData, tenant_id: v ? Number.parseInt(v, 10) : undefined })}
-                  options={[
-                    { value: '', label: 'Aucune (cross-tenant)' },
-                    ...tenants.map(tenant => ({ value: String(tenant.id), label: tenant.name })),
-                  ]}
+                  options={[{value:'', label:'Aucune (cross-tenant)'}, ...tenants.map(tenant => ({value: String(tenant.id), label: tenant.name}))]}
+                  className="w-full"
                 />
               </div>
               

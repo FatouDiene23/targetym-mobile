@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import CustomSelect from '@/components/CustomSelect';
 import {
   Settings2, Plus, Loader2, X, Pencil, Trash2, ChevronUp, ChevronDown,
   ToggleLeft, ToggleRight, Receipt,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
-import CustomSelect from '@/components/CustomSelect';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import {
   getComponents, createComponent, updateComponent, deactivateComponent, seedLegalComponents,
@@ -57,12 +57,9 @@ function CalcParamsFields({
       <label className="block text-xs font-medium text-gray-500 mb-1">{t.payroll.components.calcBase}</label>
       <CustomSelect
         value={str('base', 'brut')}
-        onChange={(v) => set('base', v)}
-        options={[
-          { value: 'brut', label: t.payroll.components.grossSalary },
-          { value: 'taxable', label: t.payroll.components.taxableIncome },
-          { value: 'base_salary', label: t.payroll.components.baseSalary },
-        ]}
+        onChange={v => set('base', v)}
+        options={[{value:'brut', label: t.payroll.components.grossSalary},{value:'taxable', label: t.payroll.components.taxableIncome},{value:'base_salary', label: t.payroll.components.baseSalary}]}
+        className="w-full"
       />
     </div>
   );
@@ -310,7 +307,7 @@ function ComponentModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.components.type}</label>
               <CustomSelect
                 value={form.component_type}
-                onChange={(v) => set('component_type', v as PayComponent['component_type'])}
+                onChange={v => set('component_type', v as PayComponent['component_type'])}
                 options={[
                   { value: 'earning', label: t.payroll.components.componentTypes.earning },
                   { value: 'deduction_employee', label: t.payroll.components.componentTypes.deductionEmployee },
@@ -318,13 +315,14 @@ function ComponentModal({
                   { value: 'employer_contribution', label: t.payroll.components.componentTypes.employerContribution },
                   { value: 'net_adjustment', label: t.payroll.components.componentTypes.netAdjustment },
                 ]}
+                className="w-full"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.components.calcMode}</label>
               <CustomSelect
                 value={form.calc_type}
-                onChange={(v) => handleCalcTypeChange(v)}
+                onChange={v => handleCalcTypeChange(v)}
                 options={[
                   { value: 'fixed_amount', label: t.payroll.components.calcTypes.fixedAmount },
                   { value: 'rate_with_cap', label: t.payroll.components.calcTypes.rateWithCap },
@@ -334,6 +332,7 @@ function ComponentModal({
                   { value: 'formula', label: t.payroll.components.calcTypes.formula },
                   { value: 'manual_variable', label: t.payroll.components.calcTypes.manualVariable },
                 ]}
+                className="w-full"
               />
             </div>
           </div>

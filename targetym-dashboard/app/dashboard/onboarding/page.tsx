@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import CustomSelect from '@/components/CustomSelect';
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
 import {
@@ -15,7 +16,6 @@ import {
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import CustomSelect from '@/components/CustomSelect';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
 // ============================================
@@ -1151,17 +1151,7 @@ export default function OnboardingPage() {
 
                       {/* Status dropdown */}
                       {tk.status !== 'completed' && (
-                        <CustomSelect
-                          value={tk.status}
-                          onChange={(v) => updateTaskStatus(tk.id, v)}
-                          options={[
-                            { value: 'pending', label: t.onboarding.taskPending },
-                            { value: 'in_progress', label: t.onboarding.taskInProgress },
-                            { value: 'completed', label: t.onboarding.taskCompleted },
-                            { value: 'skipped', label: t.onboarding.taskSkipped },
-                            { value: 'blocked', label: t.onboarding.taskBlocked },
-                          ]}
-                        />
+                        <CustomSelect value={tk.status} onChange={v => updateTaskStatus(tk.id, v)} options={[{value:'pending', label: t.onboarding.taskPending},{value:'in_progress', label: t.onboarding.taskInProgress},{value:'completed', label: t.onboarding.taskCompleted},{value:'skipped', label: t.onboarding.taskSkipped},{value:'blocked', label: t.onboarding.taskBlocked}]} className="text-xs" />
                       )}
                     </div>
                   );
@@ -1339,15 +1329,7 @@ export default function OnboardingPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.common.department}</label>
-                <CustomSelect
-                  value={deptId}
-                  onChange={(v) => setDeptId(v)}
-                  placeholder={t.onboarding.allDepartments}
-                  options={[
-                    { value: '', label: t.onboarding.allDepartments },
-                    ...departments.map(d => ({ value: String(d.id), label: d.name })),
-                  ]}
-                />
+                <CustomSelect value={deptId} onChange={v => setDeptId(v)} options={[{value:'', label: t.onboarding.allDepartments}, ...departments.map(d => ({value: String(d.id), label: d.name}))]} className="w-full" />
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.durationDays}</label>
@@ -1435,19 +1417,11 @@ export default function OnboardingPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.category}</label>
-                <CustomSelect
-                  value={category}
-                  onChange={(v) => setCategory(v)}
-                  options={Object.entries(CATEGORY_CONFIG).map(([k, v]) => ({ value: k, label: v.label }))}
-                />
+                <CustomSelect value={category} onChange={v => setCategory(v)} options={Object.entries(CATEGORY_CONFIG).map(([k, v]) => ({value: k, label: v.label}))} className="w-full" />
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.assignedTo}</label>
-                <CustomSelect
-                  value={assignedRole}
-                  onChange={(v) => setAssignedRole(v)}
-                  options={Object.entries(ROLE_CONFIG).map(([k, v]) => ({ value: k, label: v.label }))}
-                />
+                <CustomSelect value={assignedRole} onChange={v => setAssignedRole(v)} options={Object.entries(ROLE_CONFIG).map(([k, v]) => ({value: k, label: v.label}))} className="w-full" />
               </div>
             </div>
             <div>
@@ -1466,22 +1440,7 @@ export default function OnboardingPage() {
             {requiresDoc && (
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.documentType}</label>
-                <CustomSelect
-                  value={docType}
-                  onChange={(v) => setDocType(v)}
-                  placeholder={t.onboarding.selectDocType}
-                  options={[
-                    { value: '', label: t.onboarding.selectDocType },
-                    { value: 'contrat_travail', label: t.onboarding.contractDoc },
-                    { value: 'cni', label: t.onboarding.cniDoc },
-                    { value: 'passeport', label: t.onboarding.passportDoc },
-                    { value: 'diplome', label: t.onboarding.diplomaDoc },
-                    { value: 'cv', label: t.onboarding.cvDoc },
-                    { value: 'rib', label: t.onboarding.ribDoc },
-                    { value: 'photo_identite', label: t.onboarding.idPhotoDoc },
-                    { value: 'autre', label: t.onboarding.otherDoc },
-                  ]}
-                />
+                <CustomSelect value={docType} onChange={v => setDocType(v)} options={[{value:'', label: t.onboarding.selectDocType},{value:'contrat_travail', label: t.onboarding.contractDoc},{value:'cni', label: t.onboarding.cniDoc},{value:'passeport', label: t.onboarding.passportDoc},{value:'diplome', label: t.onboarding.diplomaDoc},{value:'cv', label: t.onboarding.cvDoc},{value:'rib', label: t.onboarding.ribDoc},{value:'photo_identite', label: t.onboarding.idPhotoDoc},{value:'autre', label: t.onboarding.otherDoc}]} className="w-full" />
               </div>
             )}
           </div>
@@ -1679,18 +1638,7 @@ export default function OnboardingPage() {
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.linkedOnboarding}</label>
-              <CustomSelect
-                value={assignId}
-                onChange={(v) => setAssignId(v)}
-                placeholder={t.onboarding.none}
-                options={[
-                  { value: '', label: t.onboarding.none },
-                  ...assignments.filter(a => a.status === 'in_progress' || a.status === 'not_started').map(a => ({
-                    value: String(a.id),
-                    label: `${a.employee_name} - ${a.program_name}`,
-                  })),
-                ]}
-              />
+              <CustomSelect value={assignId} onChange={v => setAssignId(v)} options={[{value:'', label: t.onboarding.none}, ...assignments.filter(a => a.status === 'in_progress' || a.status === 'not_started').map(a => ({value: String(a.id), label: `${a.employee_name} - ${a.program_name}`}))]} className="w-full" />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>

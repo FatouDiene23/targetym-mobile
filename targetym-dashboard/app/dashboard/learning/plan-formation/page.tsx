@@ -7,7 +7,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import CustomSelect from '@/components/CustomSelect';
 import { useRouter } from 'next/navigation';
 import {
   Plus, Search, Eye, Edit, Copy, X, ChevronLeft, Trash2,
@@ -19,6 +18,7 @@ import { useLearning } from '../LearningContext';
 import { API_URL, getAuthHeaders, hasPermission } from '../shared';
 import toast from 'react-hot-toast';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES
@@ -1137,24 +1137,18 @@ export default function PlanFormationPage() {
 
           {/* Year filter */}
           <CustomSelect
-            value={filterYear ? String(filterYear) : ''}
-            onChange={(v) => setFilterYear(v ? parseInt(v) : '')}
-            placeholder={tp.allYears}
-            options={[
-              { value: '', label: tp.allYears },
-              ...yearOptions.map(y => ({ value: String(y), label: String(y) })),
-            ]}
+            value={String(filterYear)}
+            onChange={v => setFilterYear(v ? parseInt(v) : '')}
+            options={[{value:'', label: tp.allYears}, ...yearOptions.map(y => ({value: String(y), label: String(y)}))]}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
           />
 
           {/* Status filter */}
           <CustomSelect
             value={filterStatus}
-            onChange={(v) => setFilterStatus(v)}
-            placeholder={tp.allStatuses}
-            options={[
-              { value: '', label: tp.allStatuses },
-              ...Object.entries(PLAN_STATUS_CONFIG).map(([k, v]) => ({ value: k, label: v.label })),
-            ]}
+            onChange={v => setFilterStatus(v)}
+            options={[{value:'', label: tp.allStatuses}, ...Object.entries(PLAN_STATUS_CONFIG).map(([k, v]) => ({value: k, label: v.label}))]}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
           />
         </div>
 
@@ -1294,8 +1288,9 @@ export default function PlanFormationPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.yearRequired}</label>
                   <CustomSelect
                     value={String(newPlan.year)}
-                    onChange={(v) => setNewPlan(p => ({ ...p, year: parseInt(v) }))}
-                    options={yearOptions.map(y => ({ value: String(y), label: String(y) }))}
+                    onChange={v => setNewPlan(p => ({ ...p, year: parseInt(v) }))}
+                    options={yearOptions.map(y => ({value: String(y), label: String(y)}))}
+                    className="w-full"
                   />
                 </div>
                 {/* Niveau — adapté selon le type de tenant */}
@@ -1304,15 +1299,13 @@ export default function PlanFormationPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">{tp.level}</label>
                     <CustomSelect
                       value={newPlan.plan_level}
-                      onChange={(v) => { setNewPlan(p => ({ ...p, plan_level: v })); setExcludedSubIds(new Set()); }}
+                      onChange={v => { setNewPlan(p => ({ ...p, plan_level: v })); setExcludedSubIds(new Set()); }}
                       options={[
-                        { value: 'local', label: tp.levelLocal },
-                        ...(tenantInfo?.parent_tenant_id != null ? [{ value: 'subsidiary', label: tp.levelSubsidiary }] : []),
-                        ...(tenantInfo?.is_group && !tenantInfo?.parent_tenant_id ? [
-                          { value: 'subsidiary', label: tp.levelSubsidiary },
-                          { value: 'group', label: tp.levelGroup },
-                        ] : []),
+                        {value:'local', label: tp.levelLocal},
+                        ...(tenantInfo?.parent_tenant_id != null ? [{value:'subsidiary', label: tp.levelSubsidiary}] : []),
+                        ...(tenantInfo?.is_group && !tenantInfo?.parent_tenant_id ? [{value:'subsidiary', label: tp.levelSubsidiary},{value:'group', label: tp.levelGroup}] : []),
                       ]}
+                      className="w-full"
                     />
                   </div>
                 )}
@@ -1387,12 +1380,9 @@ export default function PlanFormationPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.currency}</label>
                   <CustomSelect
                     value={newPlan.currency}
-                    onChange={(v) => setNewPlan(p => ({ ...p, currency: v }))}
-                    options={[
-                      { value: 'XOF', label: 'XOF (FCFA)' },
-                      { value: 'EUR', label: 'EUR' },
-                      { value: 'USD', label: 'USD' },
-                    ]}
+                    onChange={v => setNewPlan(p => ({ ...p, currency: v }))}
+                    options={[{value:'XOF', label:'XOF (FCFA)'},{value:'EUR', label:'EUR'},{value:'USD', label:'USD'}]}
+                    className="w-full"
                   />
                 </div>
               </div>
@@ -1452,16 +1442,18 @@ export default function PlanFormationPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.thYear}</label>
                   <CustomSelect
                     value={String(editPlan.year)}
-                    onChange={(v) => setEditPlan(p => p ? { ...p, year: parseInt(v) } : p)}
-                    options={yearOptions.map(y => ({ value: String(y), label: String(y) }))}
+                    onChange={v => setEditPlan(p => p ? { ...p, year: parseInt(v) } : p)}
+                    options={yearOptions.map(y => ({value: String(y), label: String(y)}))}
+                    className="w-full"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{t.common.status}</label>
                   <CustomSelect
                     value={editPlan.status}
-                    onChange={(v) => setEditPlan(p => p ? { ...p, status: v } : p)}
-                    options={Object.entries(PLAN_STATUS_CONFIG).map(([k, v]) => ({ value: k, label: v.label }))}
+                    onChange={v => setEditPlan(p => p ? { ...p, status: v } : p)}
+                    options={Object.entries(PLAN_STATUS_CONFIG).map(([k, v]) => ({value: k, label: v.label}))}
+                    className="w-full"
                   />
                 </div>
               </div>
@@ -1470,12 +1462,9 @@ export default function PlanFormationPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.level}</label>
                   <CustomSelect
                     value={editPlan.plan_level}
-                    onChange={(v) => setEditPlan(p => p ? { ...p, plan_level: v } : p)}
-                    options={[
-                      { value: 'local', label: tp.levelLocal },
-                      { value: 'subsidiary', label: tp.levelSubsidiary },
-                      { value: 'group', label: tp.levelGroup },
-                    ]}
+                    onChange={v => setEditPlan(p => p ? { ...p, plan_level: v } : p)}
+                    options={[{value:'local', label: tp.levelLocal},{value:'subsidiary', label: tp.levelSubsidiary},{value:'group', label: tp.levelGroup}]}
+                    className="w-full"
                   />
                 </div>
                 <div>
@@ -1569,12 +1558,9 @@ export default function PlanFormationPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">{tp.catalogCourse}</label>
                 <CustomSelect
                   value={newAction.course_id}
-                  onChange={(v) => setNewAction(p => ({ ...p, course_id: v }))}
-                  placeholder={tp.noCourse}
-                  options={[
-                    { value: '', label: tp.noCourse },
-                    ...coursesList.map(c => ({ value: String(c.id), label: c.title })),
-                  ]}
+                  onChange={v => setNewAction(p => ({ ...p, course_id: v }))}
+                  options={[{value:'', label: tp.noCourse}, ...coursesList.map(c => ({value: String(c.id), label: c.title}))]}
+                  className="w-full"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -1582,26 +1568,18 @@ export default function PlanFormationPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.modality}</label>
                   <CustomSelect
                     value={newAction.modality}
-                    onChange={(v) => setNewAction(p => ({ ...p, modality: v }))}
-                    options={[
-                      { value: 'presentiel', label: tp.modalityPresential },
-                      { value: 'distanciel', label: tp.modalityRemote },
-                      { value: 'blended', label: tp.modalityBlended },
-                      { value: 'elearning', label: tp.modalityElearning },
-                    ]}
+                    onChange={v => setNewAction(p => ({ ...p, modality: v }))}
+                    options={[{value:'presentiel', label: tp.modalityPresential},{value:'distanciel', label: tp.modalityRemote},{value:'blended', label: tp.modalityBlended},{value:'elearning', label: tp.modalityElearning}]}
+                    className="w-full"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.targetType}</label>
                   <CustomSelect
                     value={newAction.target_type}
-                    onChange={(v) => setNewAction(p => ({ ...p, target_type: v }))}
-                    options={[
-                      { value: 'individual', label: tp.actionTargetIndividual },
-                      { value: 'job', label: tp.actionTargetJob },
-                      { value: 'department', label: tp.actionTargetDepartment },
-                      { value: 'group', label: tp.actionTargetGroup },
-                    ]}
+                    onChange={v => setNewAction(p => ({ ...p, target_type: v }))}
+                    options={[{value:'individual', label: tp.actionTargetIndividual},{value:'job', label: tp.actionTargetJob},{value:'department', label: tp.actionTargetDepartment},{value:'group', label: tp.actionTargetGroup}]}
+                    className="w-full"
                   />
                 </div>
               </div>
@@ -1609,12 +1587,9 @@ export default function PlanFormationPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">{tp.provider}</label>
                 <CustomSelect
                   value={newAction.provider_id}
-                  onChange={(v) => setNewAction(p => ({ ...p, provider_id: v }))}
-                  placeholder={tp.noProviderOption}
-                  options={[
-                    { value: '', label: tp.noProviderOption },
-                    ...providersList.map(p => ({ value: String(p.id), label: p.name })),
-                  ]}
+                  onChange={v => setNewAction(p => ({ ...p, provider_id: v }))}
+                  options={[{value:'', label: tp.noProviderOption}, ...providersList.map(p => ({value: String(p.id), label: p.name}))]}
+                  className="w-full"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -1632,14 +1607,9 @@ export default function PlanFormationPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.billingMode}</label>
                   <CustomSelect
                     value={newAction.billing_mode}
-                    onChange={(v) => setNewAction(p => ({ ...p, billing_mode: v }))}
-                    placeholder={tp.billingNotDefined}
-                    options={[
-                      { value: '', label: tp.billingNotDefined },
-                      { value: 'per_participant', label: tp.billingPerParticipant },
-                      { value: 'per_session', label: tp.billingPerSession },
-                      { value: 'forfait', label: tp.billingForfait },
-                    ]}
+                    onChange={v => setNewAction(p => ({ ...p, billing_mode: v }))}
+                    options={[{value:'', label: tp.billingNotDefined},{value:'per_participant', label: tp.billingPerParticipant},{value:'per_session', label: tp.billingPerSession},{value:'forfait', label: tp.billingForfait}]}
+                    className="w-full"
                   />
                 </div>
               </div>
@@ -1648,12 +1618,9 @@ export default function PlanFormationPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.linkedObjective}</label>
                   <CustomSelect
                     value={newAction.objective_id}
-                    onChange={(v) => setNewAction(p => ({ ...p, objective_id: v }))}
-                    placeholder={tp.noObjectiveOption}
-                    options={[
-                      { value: '', label: tp.noObjectiveOption },
-                      ...objectives.map(o => ({ value: String(o.id), label: o.title })),
-                    ]}
+                    onChange={v => setNewAction(p => ({ ...p, objective_id: v }))}
+                    options={[{value:'', label: tp.noObjectiveOption}, ...objectives.map(o => ({value: String(o.id), label: o.title}))]}
+                    className="w-full"
                   />
                 </div>
               )}
@@ -1704,12 +1671,9 @@ export default function PlanFormationPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">{tp.employeeRequired}</label>
                 <CustomSelect
                   value={newNeed.employee_id}
-                  onChange={(v) => setNewNeed(p => ({ ...p, employee_id: v }))}
-                  placeholder={tp.selectOption}
-                  options={[
-                    { value: '', label: tp.selectOption },
-                    ...employeesList.map(e => ({ value: String(e.id), label: e.name })),
-                  ]}
+                  onChange={v => setNewNeed(p => ({ ...p, employee_id: v }))}
+                  options={[{value:'', label: tp.selectOption}, ...employeesList.map(e => ({value: String(e.id), label: e.name}))]}
+                  className="w-full"
                 />
               </div>
               <div>
@@ -1735,12 +1699,9 @@ export default function PlanFormationPage() {
                   <>
                     <CustomSelect
                       value={newNeed.skill_target}
-                      onChange={(v) => setNewNeed(p => ({ ...p, skill_target: v }))}
-                      placeholder="— Sélectionner une compétence —"
-                      options={[
-                        { value: '', label: '— Sélectionner une compétence —' },
-                        ...skillsList.map(s => ({ value: s.name, label: s.name })),
-                      ]}
+                      onChange={v => setNewNeed(p => ({ ...p, skill_target: v }))}
+                      options={[{value:'', label:'— Sélectionner une compétence —'}, ...skillsList.map(s => ({value: s.name, label: s.name}))]}
+                      className="w-full"
                     />
                     <button
                       type="button"
@@ -1785,12 +1746,9 @@ export default function PlanFormationPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Priorité</label>
                 <CustomSelect
                   value={newNeed.priority}
-                  onChange={(v) => setNewNeed(p => ({ ...p, priority: v }))}
-                  options={[
-                    { value: 'high', label: 'Haute' },
-                    { value: 'medium', label: 'Moyenne' },
-                    { value: 'low', label: 'Faible' },
-                  ]}
+                  onChange={v => setNewNeed(p => ({ ...p, priority: v }))}
+                  options={[{value:'high', label:'Haute'},{value:'medium', label:'Moyenne'},{value:'low', label:'Faible'}]}
+                  className="w-full"
                 />
               </div>
             </div>
@@ -1844,15 +1802,9 @@ export default function PlanFormationPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Trimestre</label>
                   <CustomSelect
                     value={newSchedule.quarter}
-                    onChange={(v) => setNewSchedule(p => ({ ...p, quarter: v }))}
-                    placeholder="Auto-calculé"
-                    options={[
-                      { value: '', label: 'Auto-calculé' },
-                      { value: 'T1', label: 'T1 (Jan-Mar)' },
-                      { value: 'T2', label: 'T2 (Avr-Jun)' },
-                      { value: 'T3', label: 'T3 (Jul-Sep)' },
-                      { value: 'T4', label: 'T4 (Oct-Déc)' },
-                    ]}
+                    onChange={v => setNewSchedule(p => ({ ...p, quarter: v }))}
+                    options={[{value:'', label:'Auto-calculé'},{value:'T1', label:'T1 (Jan-Mar)'},{value:'T2', label:'T2 (Avr-Jun)'},{value:'T3', label:'T3 (Jul-Sep)'},{value:'T4', label:'T4 (Oct-Déc)'}]}
+                    className="w-full"
                   />
                 </div>
                 <div>
@@ -1870,12 +1822,9 @@ export default function PlanFormationPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Formateur interne</label>
                 <CustomSelect
                   value={newSchedule.trainer_id}
-                  onChange={(v) => setNewSchedule(p => ({ ...p, trainer_id: v }))}
-                  placeholder="— Aucun —"
-                  options={[
-                    { value: '', label: '— Aucun —' },
-                    ...employeesList.map(e => ({ value: String(e.id), label: e.name })),
-                  ]}
+                  onChange={v => setNewSchedule(p => ({ ...p, trainer_id: v }))}
+                  options={[{value:'', label:'— Aucun —'}, ...employeesList.map(e => ({value: String(e.id), label: e.name}))]}
+                  className="w-full"
                 />
               </div>
               <div>
@@ -1901,12 +1850,9 @@ export default function PlanFormationPage() {
                   <>
                     <CustomSelect
                       value={newSchedule.external_trainer}
-                      onChange={(v) => setNewSchedule(p => ({ ...p, external_trainer: v }))}
-                      placeholder="— Sélectionner un fournisseur —"
-                      options={[
-                        { value: '', label: '— Sélectionner un fournisseur —' },
-                        ...providersList.map(p => ({ value: p.name, label: p.name })),
-                      ]}
+                      onChange={v => setNewSchedule(p => ({ ...p, external_trainer: v }))}
+                      options={[{value:'', label:'— Sélectionner un fournisseur —'}, ...providersList.map(p => ({value: p.name, label: p.name}))]}
+                      className="w-full"
                     />
                     <button
                       type="button"
@@ -1952,21 +1898,15 @@ export default function PlanFormationPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Type d&apos;objectif</label>
                 <CustomSelect
                   value={newObjective.objective_type}
-                  onChange={(type) => {
+                  onChange={v => {
                     setNewObjective(p => ({
                       ...p,
-                      objective_type: type,
-                      okr_id: type !== 'okr' ? '' : p.okr_id,
+                      objective_type: v,
+                      okr_id: v !== 'okr' ? '' : p.okr_id,
                     }));
                   }}
-                  options={[
-                    { value: 'okr', label: 'OKR' },
-                    { value: 'excellence_operationnelle', label: 'Excellence opérationnelle' },
-                    { value: 'developpement_competences', label: 'Développement compétences' },
-                    { value: 'conformite_reglementaire', label: 'Conformité réglementaire' },
-                    { value: 'managerial', label: 'Managérial' },
-                    { value: 'autre', label: 'Autre' },
-                  ]}
+                  options={[{value:'okr', label:'OKR'},{value:'excellence_operationnelle', label:'Excellence opérationnelle'},{value:'developpement_competences', label:'Développement compétences'},{value:'conformite_reglementaire', label:'Conformité réglementaire'},{value:'managerial', label:'Managérial'},{value:'autre', label:'Autre'}]}
+                  className="w-full"
                 />
               </div>
               <div>
@@ -1986,22 +1926,16 @@ export default function PlanFormationPage() {
                     <>
                       <CustomSelect
                         value={newObjective.okr_id}
-                        onChange={(okrId) => {
-                          const okr = okrList.find(o => String(o.id) === okrId);
+                        onChange={v => {
+                          const okr = okrList.find(o => String(o.id) === v);
                           setNewObjective(p => ({
                             ...p,
-                            okr_id: okrId,
+                            okr_id: v,
                             title: okr ? okr.title : p.title,
                           }));
                         }}
-                        placeholder="— Sélectionner un OKR —"
-                        options={[
-                          { value: '', label: '— Sélectionner un OKR —' },
-                          ...okrList.map(o => ({
-                            value: String(o.id),
-                            label: `${o.title} — ${o.period} (${Math.round(o.progress)}%)`,
-                          })),
-                        ]}
+                        options={[{value:'', label:'— Sélectionner un OKR —'}, ...okrList.map(o => ({value: String(o.id), label:`${o.title} — ${o.period} (${Math.round(o.progress)}%)`}))]}
+                        className="w-full"
                       />
                       {newObjective.okr_id && (() => {
                         const selected = okrList.find(o => String(o.id) === newObjective.okr_id);
@@ -2062,12 +1996,9 @@ export default function PlanFormationPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Type de cible</label>
                 <CustomSelect
                   value={newTarget.target_type}
-                  onChange={(v) => setNewTarget(p => ({ ...p, target_type: v, target_id: '', target_label: '' }))}
-                  options={[
-                    { value: 'department', label: 'Département' },
-                    { value: 'profile', label: 'Profil' },
-                    { value: 'level', label: 'Niveau' },
-                  ]}
+                  onChange={v => setNewTarget(p => ({ ...p, target_type: v, target_id: '', target_label: '' }))}
+                  options={[{value:'department', label:'Département'},{value:'profile', label:'Profil'},{value:'level', label:'Niveau'}]}
+                  className="w-full"
                 />
               </div>
               {newTarget.target_type === 'department' && (
@@ -2076,15 +2007,12 @@ export default function PlanFormationPage() {
                   {departmentsList.length > 0 ? (
                     <CustomSelect
                       value={newTarget.target_id}
-                      onChange={(deptId) => {
-                        const dept = departmentsList.find(d => String(d.id) === deptId);
-                        setNewTarget(p => ({ ...p, target_id: deptId, target_label: dept?.name || '' }));
+                      onChange={v => {
+                        const dept = departmentsList.find(d => String(d.id) === v);
+                        setNewTarget(p => ({ ...p, target_id: v, target_label: dept?.name || '' }));
                       }}
-                      placeholder="— Sélectionner —"
-                      options={[
-                        { value: '', label: '— Sélectionner —' },
-                        ...departmentsList.map(d => ({ value: String(d.id), label: d.name })),
-                      ]}
+                      options={[{value:'', label:'— Sélectionner —'}, ...departmentsList.map(d => ({value: String(d.id), label: d.name}))]}
+                      className="w-full"
                     />
                   ) : (
                     <p className="text-sm text-gray-400 italic">Aucun département disponible</p>
@@ -2096,25 +2024,14 @@ export default function PlanFormationPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Profil concerné *</label>
                   <CustomSelect
                     value={newTarget.target_label}
-                    onChange={(v) => setNewTarget(p => ({ ...p, target_label: v }))}
-                    placeholder="— Sélectionner un profil —"
+                    onChange={v => setNewTarget(p => ({ ...p, target_label: v }))}
                     options={[
-                      { value: '', label: '— Sélectionner un profil —' },
-                      { value: 'Commercial', label: '[Front Office] Commercial' },
-                      { value: 'Support Clients', label: '[Front Office] Support Clients' },
-                      { value: 'Formateur', label: '[Front Office] Formateur' },
-                      { value: 'Coach', label: '[Front Office] Coach' },
-                      { value: 'Communication', label: '[Middle Office] Communication' },
-                      { value: 'Marketing', label: '[Middle Office] Marketing' },
-                      { value: 'Opérations', label: '[Middle Office] Opérations' },
-                      { value: 'Projets', label: '[Middle Office] Projets' },
-                      { value: 'RH', label: '[Back Office] RH' },
-                      { value: 'IT', label: '[Back Office] IT' },
-                      { value: 'Finance', label: '[Back Office] Finance' },
-                      { value: 'Juridique', label: '[Back Office] Juridique' },
-                      { value: 'Conformité', label: '[Back Office] Conformité' },
-                      { value: 'Services Généraux', label: '[Back Office] Services Généraux' },
+                      {value:'', label:'— Sélectionner un profil —'},
+                      {value:'Commercial', label:'Commercial'},{value:'Support Clients', label:'Support Clients'},{value:'Formateur', label:'Formateur'},{value:'Coach', label:'Coach'},
+                      {value:'Communication', label:'Communication'},{value:'Marketing', label:'Marketing'},{value:'Opérations', label:'Opérations'},{value:'Projets', label:'Projets'},
+                      {value:'RH', label:'RH'},{value:'IT', label:'IT'},{value:'Finance', label:'Finance'},{value:'Juridique', label:'Juridique'},{value:'Conformité', label:'Conformité'},{value:'Services Généraux', label:'Services Généraux'},
                     ]}
+                    className="w-full"
                   />
                 </div>
               )}
@@ -2123,15 +2040,9 @@ export default function PlanFormationPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Niveau *</label>
                   <CustomSelect
                     value={newTarget.target_label}
-                    onChange={(v) => setNewTarget(p => ({ ...p, target_label: v }))}
-                    placeholder="— Sélectionner —"
-                    options={[
-                      { value: '', label: '— Sélectionner —' },
-                      { value: 'Débutant', label: 'Débutant' },
-                      { value: 'Intermédiaire', label: 'Intermédiaire' },
-                      { value: 'Confirmé', label: 'Confirmé' },
-                      { value: 'Senior', label: 'Senior' },
-                    ]}
+                    onChange={v => setNewTarget(p => ({ ...p, target_label: v }))}
+                    options={[{value:'', label:'— Sélectionner —'},{value:'Débutant', label:'Débutant'},{value:'Intermédiaire', label:'Intermédiaire'},{value:'Confirmé', label:'Confirmé'},{value:'Senior', label:'Senior'}]}
+                    className="w-full"
                   />
                 </div>
               )}

@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import CustomSelect from '@/components/CustomSelect';
 import toast from 'react-hot-toast';
 import {
   PlayCircle, Plus, Search, Pencil, Trash2, Loader2, X,
@@ -8,7 +9,6 @@ import {
   ExternalLink, ChevronDown, ChevronUp, Settings, Upload, Link,
 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // CONFIG
@@ -347,30 +347,11 @@ function ResourceFormModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-              <CustomSelect
-                value={form.resource_type}
-                onChange={(v) => setForm(f => ({ ...f, resource_type: v as 'video' | 'pdf' | 'link' | 'article' }))}
-                options={[
-                  { value: 'video', label: '🎬 Vidéo' },
-                  { value: 'pdf', label: '📄 PDF' },
-                  { value: 'link', label: '🔗 Lien' },
-                  { value: 'article', label: '📖 Article' },
-                ]}
-                className="w-full"
-              />
+              <CustomSelect value={form.resource_type} onChange={v => setForm(f => ({ ...f, resource_type: v as 'video' | 'pdf' | 'link' | 'article' }))} options={[{value:'video', label:'🎬 Vidéo'},{value:'pdf', label:'📄 PDF'},{value:'link', label:'🔗 Lien'},{value:'article', label:'📖 Article'}]} className="w-full" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
-              <CustomSelect
-                value={form.category_id}
-                onChange={(v) => setForm(f => ({ ...f, category_id: v }))}
-                placeholder="Sans catégorie"
-                options={[
-                  { value: '', label: 'Sans catégorie' },
-                  ...categories.filter(c => c.is_published).map(c => ({ value: String(c.id), label: c.name })),
-                ]}
-                className="w-full"
-              />
+              <CustomSelect value={form.category_id} onChange={v => setForm(f => ({ ...f, category_id: v }))} options={[{value:'', label:'Sans catégorie'}, ...categories.filter(c => c.is_published).map(c => ({value: String(c.id), label: c.name}))]} className="w-full" />
             </div>
           </div>
           <div>

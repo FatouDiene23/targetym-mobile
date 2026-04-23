@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import CustomSelect from '@/components/CustomSelect';
 import {
   CheckSquare, Square, Plus, Trash2, Edit2, Loader2,
   Target, ChevronDown, ChevronUp, X, Check, Users, ListChecks,
@@ -15,7 +16,6 @@ import {
   type DayOfWeek, type ObjectiveForLinking,
 } from '@/lib/api';
 import Header from '@/components/Header';
-import CustomSelect from '@/components/CustomSelect';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
 // ============================================
@@ -223,13 +223,8 @@ function ItemFormModal({ employeeId, item, objectives, onSave, onClose }: ItemFo
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.mySpace.dailyChecklist.priorityLabel}</label>
               <CustomSelect
                 value={priority}
-                onChange={(v) => setPriority(v as TaskPriority)}
-                options={[
-                  { value: 'low', label: t.mySpace.dailyChecklist.priorityLow },
-                  { value: 'medium', label: t.mySpace.dailyChecklist.priorityMedium },
-                  { value: 'high', label: t.mySpace.dailyChecklist.priorityHigh },
-                  { value: 'urgent', label: t.mySpace.dailyChecklist.priorityUrgent },
-                ]}
+                onChange={v => setPriority(v as TaskPriority)}
+                options={[{value:'low', label: t.mySpace.dailyChecklist.priorityLow},{value:'medium', label: t.mySpace.dailyChecklist.priorityMedium},{value:'high', label: t.mySpace.dailyChecklist.priorityHigh},{value:'urgent', label: t.mySpace.dailyChecklist.priorityUrgent}]}
                 className="w-full"
               />
             </div>
@@ -247,13 +242,9 @@ function ItemFormModal({ employeeId, item, objectives, onSave, onClose }: ItemFo
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t.mySpace.dailyChecklist.linkedObjective}</label>
             <CustomSelect
-              value={objectiveId ? String(objectiveId) : ''}
-              onChange={(v) => { setObjectiveId(v ? Number(v) : ''); setKeyResultId(''); }}
-              placeholder={t.mySpace.dailyChecklist.none}
-              options={[
-                { value: '', label: t.mySpace.dailyChecklist.none },
-                ...objectives.map(o => ({ value: String(o.id), label: o.title })),
-              ]}
+              value={objectiveId !== '' ? String(objectiveId) : ''}
+              onChange={v => { setObjectiveId(v ? Number(v) : ''); setKeyResultId(''); }}
+              options={[{value:'', label: t.mySpace.dailyChecklist.none}, ...objectives.map(o => ({value: String(o.id), label: o.title}))]}
               className="w-full"
             />
           </div>
@@ -263,13 +254,9 @@ function ItemFormModal({ employeeId, item, objectives, onSave, onClose }: ItemFo
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.mySpace.dailyChecklist.keyResult}</label>
                 <CustomSelect
-                  value={keyResultId ? String(keyResultId) : ''}
-                  onChange={(v) => setKeyResultId(v ? Number(v) : '')}
-                  placeholder={t.mySpace.dailyChecklist.none}
-                  options={[
-                    { value: '', label: t.mySpace.dailyChecklist.none },
-                    ...selectedObjective.key_results.map(kr => ({ value: String(kr.id), label: kr.title })),
-                  ]}
+                  value={keyResultId !== '' ? String(keyResultId) : ''}
+                  onChange={v => setKeyResultId(v ? Number(v) : '')}
+                  options={[{value:'', label: t.mySpace.dailyChecklist.none}, ...selectedObjective.key_results.map(kr => ({value: String(kr.id), label: kr.title}))]}
                   className="w-full"
                 />
               </div>

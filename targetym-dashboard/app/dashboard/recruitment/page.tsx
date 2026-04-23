@@ -1244,15 +1244,7 @@ export default function RecruitmentPage() {
                 {/* Offre de référence */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Offre d’emploi de référence <span className="text-red-500">*</span></label>
-                  <CustomSelect
-                    value={batchSelectedJob ? String(batchSelectedJob) : ''}
-                    onChange={(v) => setBatchSelectedJob(v ? parseInt(v) : null)}
-                    placeholder="-- Sélectionner une offre --"
-                    options={[
-                      { value: '', label: '-- Sélectionner une offre --' },
-                      ...jobs.map(j => ({ value: String(j.id), label: j.title })),
-                    ]}
-                  />
+                  <CustomSelect value={String(batchSelectedJob || '')} onChange={v => setBatchSelectedJob(v ? parseInt(v) : null)} options={[{value:'', label:'-- Sélectionner une offre --'}, ...jobs.map(j => ({value: String(j.id), label: j.title}))]} className="w-full" />
                 </div>
 
                 {/* Critères personnalisés */}
@@ -1455,71 +1447,14 @@ function JobModal({ job, departments, employees, onClose, onSave }: { job: Job |
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Titre du poste *</label><input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: Développeur Full Stack Senior" /></div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Département</label>
-              <CustomSelect
-                value={formData.department_id}
-                onChange={(v) => setFormData({ ...formData, department_id: v })}
-                placeholder="Sélectionner..."
-                options={[
-                  { value: '', label: 'Sélectionner...' },
-                  ...departments.map(d => ({ value: String(d.id), label: d.name })),
-                ]}
-              />
-            </div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Département</label><CustomSelect value={formData.department_id} onChange={(v) => setFormData({...formData, department_id: v})} options={[{value:'', label:'Sélectionner...'}, ...departments.map(d => ({value: String(d.id), label: d.name}))]} className="w-full" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Adresse *</label><input type="text" required value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: 12 rue Carnot, Dakar" /></div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Type de contrat</label>
-              <CustomSelect
-                value={formData.contract_type}
-                onChange={(v) => setFormData({ ...formData, contract_type: v })}
-                options={[
-                  { value: 'CDI', label: 'CDI' },
-                  { value: 'CDD', label: 'CDD' },
-                  { value: 'Stage', label: 'Stage' },
-                  { value: 'Alternance', label: 'Alternance' },
-                  { value: 'Freelance', label: 'Freelance' },
-                ]}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Politique Remote</label>
-              <CustomSelect
-                value={formData.remote_policy}
-                onChange={(v) => setFormData({ ...formData, remote_policy: v })}
-                options={[
-                  { value: 'onsite', label: 'Sur site' },
-                  { value: 'hybrid', label: 'Hybride' },
-                  { value: 'remote', label: 'Full Remote' },
-                ]}
-              />
-            </div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Type de contrat</label><CustomSelect value={formData.contract_type} onChange={(v) => setFormData({...formData, contract_type: v})} options={[{value:'CDI', label:'CDI'},{value:'CDD', label:'CDD'},{value:'Stage', label:'Stage'},{value:'Alternance', label:'Alternance'},{value:'Freelance', label:'Freelance'}]} className="w-full" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Politique Remote</label><CustomSelect value={formData.remote_policy} onChange={(v) => setFormData({...formData, remote_policy: v})} options={[{value:'onsite', label:'Sur site'},{value:'hybrid', label:'Hybride'},{value:'remote', label:'Full Remote'}]} className="w-full" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Salaire Min (XOF)</label><input type="number" value={formData.salary_min} onChange={(e) => setFormData({...formData, salary_min: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: 1500000" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Salaire Max (XOF)</label><input type="number" value={formData.salary_max} onChange={(e) => setFormData({...formData, salary_max: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: 2000000" /></div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Urgence</label>
-              <CustomSelect
-                value={formData.urgency}
-                onChange={(v) => setFormData({ ...formData, urgency: v })}
-                options={[
-                  { value: 'low', label: 'Normal' },
-                  { value: 'medium', label: 'Modéré' },
-                  { value: 'high', label: 'Urgent' },
-                ]}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Hiring Manager</label>
-              <CustomSelect
-                value={formData.hiring_manager_id}
-                onChange={(v) => setFormData({ ...formData, hiring_manager_id: v })}
-                placeholder="Sélectionner..."
-                options={[
-                  { value: '', label: 'Sélectionner...' },
-                  ...employees.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` })),
-                ]}
-              />
-            </div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Urgence</label><CustomSelect value={formData.urgency} onChange={(v) => setFormData({...formData, urgency: v})} options={[{value:'low', label:'Normal'},{value:'medium', label:'Modéré'},{value:'high', label:'Urgent'}]} className="w-full" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Hiring Manager</label><CustomSelect value={formData.hiring_manager_id} onChange={(v) => setFormData({...formData, hiring_manager_id: v})} options={[{value:'', label:'Sélectionner...'}, ...employees.map(emp => ({value: String(emp.id), label: `${emp.first_name} ${emp.last_name}`}))]} className="w-full" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Date limite</label><input type="date" value={formData.deadline} onChange={(e) => setFormData({...formData, deadline: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
             <div className="flex items-center"><input type="checkbox" id="show_salary" checked={formData.show_salary} onChange={(e) => setFormData({...formData, show_salary: e.target.checked})} className="mr-2" /><label htmlFor="show_salary" className="text-sm text-gray-700">Afficher le salaire</label></div>
             <div className="col-span-2">
@@ -1592,47 +1527,12 @@ function AddCandidateModal({ jobs, onClose, onSave }: { jobs: Job[]; onClose: ()
               <label className="block text-sm font-medium text-gray-700 mb-1">Salaire attendu</label>
               <div className="flex gap-2">
                 <input type="number" value={formData.expected_salary} onChange={(e) => setFormData({...formData, expected_salary: e.target.value})} className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="1500000" />
-                <CustomSelect
-                  value={formData.salary_currency}
-                  onChange={(v) => setFormData({ ...formData, salary_currency: v })}
-                  className="w-24"
-                  options={currencyOptions.length > 0
-                    ? currencyOptions.map(c => ({ value: c.code, label: c.code }))
-                    : [{ value: 'XOF', label: 'XOF' }]
-                  }
-                />
+                <CustomSelect value={formData.salary_currency} onChange={(v) => setFormData({...formData, salary_currency: v})} options={currencyOptions.length > 0 ? currencyOptions.map(c => ({value: c.code, label: c.code})) : [{value:'XOF', label:'XOF'}]} className="w-24" />
               </div>
             </div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Préavis</label><input type="text" value={formData.notice_period} onChange={(e) => setFormData({...formData, notice_period: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="1 mois" /></div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
-              <CustomSelect
-                value={formData.source}
-                onChange={(v) => setFormData({ ...formData, source: v })}
-                options={[
-                  { value: 'LinkedIn', label: 'LinkedIn' },
-                  { value: 'Indeed', label: 'Indeed' },
-                  { value: 'Site Carrière', label: 'Site Carrière' },
-                  { value: 'Référence interne', label: 'Référence interne' },
-                  { value: 'Référence externe', label: 'Référence externe' },
-                  { value: 'Chasseur de tête', label: 'Chasseur de tête' },
-                  { value: 'Cabinet', label: 'Cabinet' },
-                  { value: 'Autre', label: 'Autre' },
-                ]}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Poste visé</label>
-              <CustomSelect
-                value={formData.job_posting_id}
-                onChange={(v) => setFormData({ ...formData, job_posting_id: v })}
-                placeholder="Sélectionner un poste..."
-                options={[
-                  { value: '', label: 'Sélectionner un poste...' },
-                  ...jobs.map(j => ({ value: String(j.id), label: j.title })),
-                ]}
-              />
-            </div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Source</label><CustomSelect value={formData.source} onChange={(v) => setFormData({...formData, source: v})} options={[{value:'LinkedIn', label:'LinkedIn'},{value:'Indeed', label:'Indeed'},{value:'Site Carrière', label:'Site Carrière'},{value:'Référence interne', label:'Référence interne'},{value:'Référence externe', label:'Référence externe'},{value:'Chasseur de tête', label:'Chasseur de tête'},{value:'Cabinet', label:'Cabinet'},{value:'Autre', label:'Autre'}]} className="w-full" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Poste visé</label><CustomSelect value={formData.job_posting_id} onChange={(v) => setFormData({...formData, job_posting_id: v})} options={[{value:'', label:'Sélectionner un poste...'}, ...jobs.map(j => ({value: String(j.id), label: j.title}))]} className="w-full" /></div>
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">CV (PDF, DOC, DOCX)</label>
               <div className="flex items-center gap-3">
@@ -1865,15 +1765,7 @@ function InterviewModal({ application, employees, onClose, onSave }: { applicati
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Type d&apos;entretien</label>
-            <CustomSelect
-              value={formData.interview_type}
-              onChange={(v) => setFormData({ ...formData, interview_type: v })}
-              options={[
-                { value: 'phone', label: 'Téléphonique' },
-                { value: 'video', label: 'Vidéoconférence' },
-                { value: 'onsite', label: 'Sur site' },
-              ]}
-            />
+            <CustomSelect value={formData.interview_type} onChange={(v) => setFormData({...formData, interview_type: v})} options={[{value:'phone', label:'Téléphonique'},{value:'video', label:'Vidéoconférence'},{value:'onsite', label:'Sur site'}]} className="w-full" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Date *</label><input type="date" required value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
@@ -1881,17 +1773,7 @@ function InterviewModal({ application, employees, onClose, onSave }: { applicati
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Durée</label>
-            <CustomSelect
-              value={String(formData.duration_minutes)}
-              onChange={(v) => setFormData({ ...formData, duration_minutes: v })}
-              options={[
-                { value: '30', label: '30 minutes' },
-                { value: '45', label: '45 minutes' },
-                { value: '60', label: '1 heure' },
-                { value: '90', label: '1h30' },
-                { value: '120', label: '2 heures' },
-              ]}
-            />
+            <CustomSelect value={formData.duration_minutes} onChange={(v) => setFormData({...formData, duration_minutes: v})} options={[{value:'30', label:'30 minutes'},{value:'45', label:'45 minutes'},{value:'60', label:'1 heure'},{value:'90', label:'1h30'},{value:'120', label:'2 heures'}]} className="w-full" />
           </div>
           {formData.interview_type === 'video' && (<div><label className="block text-sm font-medium text-gray-700 mb-1">Lien de la réunion</label><input type="url" value={formData.meeting_link} onChange={(e) => setFormData({...formData, meeting_link: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="https://meet.google.com/..." /></div>)}
           {formData.interview_type === 'onsite' && (<div><label className="block text-sm font-medium text-gray-700 mb-1">Lieu</label><input type="text" value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Salle de réunion A, 3ème étage" /></div>)}

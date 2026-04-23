@@ -1,7 +1,8 @@
 'use client';
 
 import Header from '@/components/Header';
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import CustomSelect from '@/components/CustomSelect';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
@@ -44,7 +45,6 @@ import { getIntegrations, connectIntegration, disconnectIntegration, syncIntegra
   requestGroupConversion, getMyConversionRequestStatus, getMyGroupContext, createMySubsidiary,
   type ConversionRequestItem, type SubsidiaryItem } from '@/lib/api';
 import LicensesTab from '@/components/LicensesTab';
-import CustomSelect from '@/components/CustomSelect';
 import { useLicenseStatus } from '@/hooks/useLicenseStatus';
 import { KeyRound } from 'lucide-react';
 
@@ -376,14 +376,6 @@ interface CertificateSettings {
 }
 
 export default function SettingsPage() {
-  return (
-    <Suspense fallback={<div className="p-6"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" /></div>}>
-      <SettingsContent />
-    </Suspense>
-  );
-}
-
-function SettingsContent() {
   const { t, setLocale } = useI18n();
   const [activeTab, setActiveTab] = useState('general');
   const [saved, setSaved] = useState(false);
@@ -1250,9 +1242,7 @@ function SettingsContent() {
                     <CustomSelect
                       value={tenantForm.currency}
                       onChange={(v) => setTenantForm(prev => ({ ...prev, currency: v }))}
-                      options={currencies.length > 0
-                        ? currencies.map(c => ({ value: c.code, label: `${c.code} — ${c.label}` }))
-                        : [{ value: tenantForm.currency, label: tenantForm.currency }]}
+                      options={currencies.length > 0 ? currencies.map(c => ({value: c.code, label: `${c.code} — ${c.label}`})) : [{value: tenantForm.currency, label: tenantForm.currency}]}
                       className="w-full"
                     />
                     <p className="mt-1.5 text-xs text-gray-400">
@@ -1265,11 +1255,7 @@ function SettingsContent() {
                     <CustomSelect
                       value={tenantForm.default_language}
                       onChange={(v) => setTenantForm(prev => ({ ...prev, default_language: v }))}
-                      options={[
-                        { value: 'fr', label: '🇫🇷 Français' },
-                        { value: 'en', label: '🇬🇧 English' },
-                        { value: 'pt', label: '🇧🇷 Português' },
-                      ]}
+                      options={[{value:'fr', label:'🇫🇷 Français'},{value:'en', label:'🇬🇧 English'},{value:'pt', label:'🇧🇷 Português'}]}
                       className="w-full"
                     />
                     <p className="mt-1.5 text-xs text-gray-400">

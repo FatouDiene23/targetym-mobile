@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import CustomSelect from '@/components/CustomSelect';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import CustomSelect from '@/components/CustomSelect';
 import { 
   Star, Users, ChevronRight, ChevronLeft, Plus, MessageSquare, Target, CheckCircle,
   Send, ThumbsUp, Eye, Edit, X, Loader2, AlertCircle, RotateCcw, Search, Calendar,
@@ -604,15 +604,7 @@ function CreateFeedbackModal({ isOpen, onClose, employees, onSuccess }: {
           {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Destinataire *</label>
-            <CustomSelect
-              value={toEmployee}
-              onChange={(v) => setToEmployee(v)}
-              placeholder="Sélectionner un collègue"
-              options={[
-                { value: '', label: 'Sélectionner un collègue' },
-                ...employees.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` })),
-              ]}
-            />
+            <CustomSelect value={toEmployee} onChange={(v) => setToEmployee(v)} options={[{value:'', label:'Sélectionner un collègue'}, ...employees.map(emp => ({value: String(emp.id), label: `${emp.first_name} ${emp.last_name}`}))]} className="w-full" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Type de feedback</label>
@@ -691,16 +683,7 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
-            <CustomSelect
-              value={campaignType}
-              onChange={(v) => setCampaignType(v)}
-              options={[
-                { value: 'annual', label: 'Évaluation Annuelle' },
-                { value: 'mid_year', label: 'Évaluation Mi-Année' },
-                { value: '360', label: 'Feedback 360°' },
-                { value: 'probation', label: "Fin de Période d'Essai" },
-              ]}
-            />
+            <CustomSelect value={campaignType} onChange={(v) => setCampaignType(v)} options={[{value:'annual', label:"Évaluation Annuelle"},{value:'mid_year', label:"Évaluation Mi-Année"},{value:'360', label:"Feedback 360°"},{value:'probation', label:"Fin de Période d'Essai"}]} className="w-full" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -857,24 +840,8 @@ function CompleteOneOnOneModal({ meeting, onClose, onSuccess, currentEmployeeId 
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTask(); } }}
                 placeholder="Titre de la tâche ou formation..." className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-200 outline-none" />
               <div className="flex gap-2">
-                <CustomSelect
-                  value={newTaskType}
-                  onChange={(v) => setNewTaskType(v as 'task' | 'training')}
-                  className="flex-1"
-                  options={[
-                    { value: 'task', label: '📋 Tâche' },
-                    { value: 'training', label: '🎓 Formation' },
-                  ]}
-                />
-                <CustomSelect
-                  value={newTaskAssignee}
-                  onChange={(v) => setNewTaskAssignee(v as 'employee' | 'manager')}
-                  className="flex-1"
-                  options={[
-                    { value: 'employee', label: '👤 Collaborateur' },
-                    { value: 'manager', label: '👔 Manager' },
-                  ]}
-                />
+                <CustomSelect value={newTaskType} onChange={v => setNewTaskType(v as 'task' | 'training')} options={[{value:'task', label:'📋 Tâche'},{value:'training', label:'🎓 Formation'}]} className="flex-1" />
+                <CustomSelect value={newTaskAssignee} onChange={v => setNewTaskAssignee(v as 'employee' | 'manager')} options={[{value:'employee', label:'👤 Collaborateur'},{value:'manager', label:'👔 Manager'}]} className="flex-1" />
                 <input type="date" value={newTaskDue} onChange={e => setNewTaskDue(e.target.value)} className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm" />
               </div>
               <button onClick={addTask} disabled={!newTaskTitle.trim()} className="flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-700 disabled:opacity-40 font-medium">
@@ -938,15 +905,7 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
           {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Collaborateur *</label>
-            <CustomSelect
-              value={employeeId}
-              onChange={(v) => setEmployeeId(v)}
-              placeholder="Sélectionner un collaborateur"
-              options={[
-                { value: '', label: 'Sélectionner un collaborateur' },
-                ...employees.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` })),
-              ]}
-            />
+            <CustomSelect value={employeeId} onChange={(v) => setEmployeeId(v)} options={[{value:'', label:'Sélectionner un collaborateur'}, ...employees.map(emp => ({value: String(emp.id), label: `${emp.first_name} ${emp.last_name}`}))]} className="w-full" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -961,17 +920,7 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Durée</label>
-              <CustomSelect
-                value={String(duration)}
-                onChange={(v) => setDuration(parseInt(v))}
-                options={[
-                  { value: '15', label: '15 min' },
-                  { value: '30', label: '30 min' },
-                  { value: '45', label: '45 min' },
-                  { value: '60', label: '1 heure' },
-                  { value: '90', label: '1h30' },
-                ]}
-              />
+              <CustomSelect value={String(duration)} onChange={(v) => setDuration(parseInt(v))} options={[{value:'15', label:'15 min'},{value:'30', label:'30 min'},{value:'45', label:'45 min'},{value:'60', label:'1 heure'},{value:'90', label:'1h30'}]} className="w-full" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Lieu</label>
@@ -1503,17 +1452,7 @@ export default function PerformancePage() {
                   <div className="flex-1">
                     <SearchBar value={searchCampaign} onChange={(v) => { setSearchCampaign(v); setPageCampaign(1); }} placeholder="Rechercher une campagne..." />
                   </div>
-                  <CustomSelect
-                    value={filterCampaignStatus}
-                    onChange={(v) => { setFilterCampaignStatus(v); setPageCampaign(1); }}
-                    className="min-w-[160px]"
-                    options={[
-                      { value: 'all', label: 'Tous les statuts' },
-                      { value: 'draft', label: 'Brouillon' },
-                      { value: 'active', label: 'Actif' },
-                      { value: 'completed', label: 'Terminé' },
-                    ]}
-                  />
+                  <CustomSelect value={filterCampaignStatus} onChange={(v) => { setFilterCampaignStatus(v); setPageCampaign(1); }} options={[{value:'all', label:'Tous les statuts'},{value:'draft', label:'Brouillon'},{value:'active', label:'Actif'},{value:'completed', label:'Terminé'}]} className="px-3 py-2 border rounded-lg text-sm" />
                 </div>
                 <div className="space-y-4">
                   {paginatedCampaigns.length > 0 ? paginatedCampaigns.map(campaign => (
@@ -1554,18 +1493,7 @@ export default function PerformancePage() {
                   <div className="flex-1">
                     <SearchBar value={searchEvaluation} onChange={(v) => { setSearchEvaluation(v); setPageEvaluation(1); }} placeholder="Rechercher une évaluation..." />
                   </div>
-                  <CustomSelect
-                    value={filterEvalStatus}
-                    onChange={(v) => { setFilterEvalStatus(v); setPageEvaluation(1); }}
-                    className="min-w-[160px]"
-                    options={[
-                      { value: 'all', label: 'Tous les statuts' },
-                      { value: 'pending', label: 'En attente' },
-                      { value: 'in_progress', label: 'En cours' },
-                      { value: 'submitted', label: 'Soumis' },
-                      { value: 'validated', label: 'Validé' },
-                    ]}
-                  />
+                  <CustomSelect value={filterEvalStatus} onChange={(v) => { setFilterEvalStatus(v); setPageEvaluation(1); }} options={[{value:'all', label:'Tous les statuts'},{value:'pending', label:'En attente'},{value:'in_progress', label:'En cours'},{value:'submitted', label:'Soumis'},{value:'validated', label:'Validé'}]} className="px-3 py-2 border rounded-lg text-sm" />
                 </div>
                 <div className="space-y-3">
                   {paginatedEvaluations.length > 0 ? paginatedEvaluations.map(evaluation => {

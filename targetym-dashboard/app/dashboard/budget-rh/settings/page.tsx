@@ -1,6 +1,7 @@
  "use client";
 
-import React, { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import CustomSelect from '@/components/CustomSelect';
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Settings, Upload, Download, Plus, Pencil, Trash2, Save,
@@ -10,7 +11,6 @@ import {
 import { fetchWithAuth, API_URL } from "@/lib/api";
 import { useI18n } from "@/lib/i18n/I18nContext";
 import { useBudgetYear } from "@/hooks/useBudgetYear";
-import CustomSelect from "@/components/CustomSelect";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -276,13 +276,7 @@ function CategoryModal({
             </div>
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Niveau</label>
-              <CustomSelect value={String(form.level)} onChange={(v) => setForm({ ...form, level: +v })}
-                options={[
-                  { value: '1', label: '1 — Section' },
-                  { value: '2', label: '2 — Groupe' },
-                  { value: '3', label: '3 — Rubrique' },
-                ]}
-              />
+              <CustomSelect value={String(form.level)} onChange={(v) => setForm({ ...form, level: +v })} options={[{value:'1', label:'1 — Section'},{value:'2', label:'2 — Groupe'},{value:'3', label:'3 — Rubrique'}]} className="w-full" />
             </div>
           </div>
           <div>
@@ -292,12 +286,7 @@ function CategoryModal({
           </div>
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">Catégorie parente</label>
-            <CustomSelect value={form.parent_code} onChange={(v) => setForm({ ...form, parent_code: v })}
-              options={[
-                { value: '', label: '— Aucune (niveau racine) —' },
-                ...categories.filter((c) => c.id !== existing?.id && c.level < form.level).map((c) => ({ value: c.code, label: `${c.code} — ${c.label}` })),
-              ]}
-            />
+            <CustomSelect value={form.parent_code} onChange={(v) => setForm({ ...form, parent_code: v })} options={[{value:'', label:'— Aucune (niveau racine) —'}, ...categories.filter((c) => c.id !== existing?.id && c.level < form.level).map((c) => ({value: c.code, label: `${c.code} — ${c.label}`}))]} className="w-full" />
           </div>
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">Ordre d&apos;affichage</label>
@@ -544,14 +533,6 @@ function BudgetEntryGrid({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function BudgetRHSettingsPage() {
-  return (
-    <Suspense fallback={<div className="p-6"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" /></div>}>
-      <BudgetRHSettingsContent />
-    </Suspense>
-  );
-}
-
-function BudgetRHSettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useI18n();
@@ -654,9 +635,7 @@ function BudgetRHSettingsContent() {
         </div>
         <div className="ml-auto flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 bg-white shadow-sm">
           <Calendar className="w-4 h-4 text-gray-400" />
-          <CustomSelect value={String(year)} onChange={(v) => setYear(+v)}
-            options={[currentYear - 1, currentYear, currentYear + 1, currentYear + 2].map((y) => ({ value: String(y), label: String(y) }))}
-          />
+          <CustomSelect value={String(year)} onChange={(v) => setYear(+v)} options={[currentYear - 1, currentYear, currentYear + 1, currentYear + 2].map((y) => ({value: String(y), label: String(y)}))} className="text-sm font-medium text-gray-700 bg-transparent" />
         </div>
       </div>
 
@@ -883,11 +862,7 @@ function BudgetRHSettingsContent() {
 
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Devise</label>
-              <CustomSelect
-                value={config?.currency ?? "XOF"}
-                onChange={(v) => updateCurrency(v)}
-                options={CURRENCIES.map((c) => ({ value: c, label: c }))}
-              />
+              <CustomSelect value={config?.currency ?? "XOF"} onChange={(v) => updateCurrency(v)} options={CURRENCIES.map((c) => ({value: c, label: c}))} className="w-full" />
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-xl border transition-colors"

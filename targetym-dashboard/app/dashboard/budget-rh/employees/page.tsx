@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo, Suspense } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import CustomSelect from '@/components/CustomSelect';
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
@@ -10,7 +11,6 @@ import {
   ArrowLeft, Calendar, Building2, Briefcase, DollarSign, Eye,
 } from "lucide-react";
 import { fetchWithAuth, API_URL } from "@/lib/api";
-import CustomSelect from "@/components/CustomSelect";
 import { useI18n } from "@/lib/i18n/I18nContext";
 import { useBudgetYear } from "@/hooks/useBudgetYear";
 
@@ -183,14 +183,6 @@ function BreakdownModal({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function BudgetRHEmployeesPage() {
-  return (
-    <Suspense fallback={<div className="p-6"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" /></div>}>
-      <BudgetRHEmployeesContent />
-    </Suspense>
-  );
-}
-
-function BudgetRHEmployeesContent() {
   const router = useRouter();
   const { t } = useI18n();
   const params = useSearchParams();
@@ -283,42 +275,19 @@ function BudgetRHEmployeesContent() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
         <div className="flex flex-wrap items-center gap-3">
           {/* Year */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2">
             <Calendar className="w-4 h-4 text-gray-400" />
-            <CustomSelect
-              value={String(year)}
-              onChange={(v) => setYear(Number(v))}
-              options={[currentYear - 1, currentYear, currentYear + 1].map((y) => ({ value: String(y), label: String(y) }))}
-              className="min-w-[100px]"
-            />
+            <CustomSelect value={String(year)} onChange={(v) => setYear(+v)} options={[currentYear - 1, currentYear, currentYear + 1].map((y) => ({value: String(y), label: String(y)}))} className="text-sm font-medium text-gray-700 bg-transparent" />
           </div>
           {/* Month */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2">
             <Filter className="w-4 h-4 text-gray-400" />
-            <CustomSelect
-              value={month != null ? String(month) : ''}
-              onChange={(v) => setMonth(v ? Number(v) : null)}
-              placeholder="Tous les mois"
-              options={[
-                { value: '', label: 'Tous les mois' },
-                ...MONTHS_SHORT.map((m, i) => ({ value: String(i + 1), label: m })),
-              ]}
-              className="min-w-[140px]"
-            />
+            <CustomSelect value={month != null ? String(month) : ""} onChange={(v) => setMonth(v ? +v : null)} options={[{value:'', label:'Tous les mois'}, ...MONTHS_SHORT.map((m, i) => ({value: String(i + 1), label: m}))]} className="text-sm text-gray-700 bg-transparent" />
           </div>
           {/* Department */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2">
             <Building2 className="w-4 h-4 text-gray-400" />
-            <CustomSelect
-              value={departmentFilter}
-              onChange={(v) => setDepartmentFilter(v)}
-              placeholder="Tous départements"
-              options={[
-                { value: '', label: 'Tous départements' },
-                ...departments.map((d) => ({ value: d, label: d })),
-              ]}
-              className="min-w-[160px]"
-            />
+            <CustomSelect value={departmentFilter} onChange={(v) => setDepartmentFilter(v)} options={[{value:'', label:'Tous départements'}, ...departments.map((d) => ({value: d, label: d}))]} className="text-sm text-gray-700 bg-transparent" />
           </div>
           {/* Search */}
           <div className="flex-1 min-w-[200px] flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2">

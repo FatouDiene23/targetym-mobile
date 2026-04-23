@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/Header';
-import ConfirmDialog from '@/components/ConfirmDialog';
 import CustomSelect from '@/components/CustomSelect';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import {
   DollarSign, Scale, Shield, TrendingUp, Calculator, FileText, Building2,
   Plus, RefreshCw, ChevronRight, AlertTriangle, CheckCircle, XCircle,
@@ -1324,25 +1324,10 @@ export default function CompensationPage() {
                 <CustomSelect
                   value={searchEval}
                   onChange={(v) => { setSearchEval(v); setEvalPage(1); }}
-                  placeholder={t.compensation.allPositions}
+                  options={[{value:'', label: t.compensation.allPositions}, ...departments.map(d => ({value: d.name, label: d.name}))]}
                   className="flex-1 min-w-[200px]"
-                  options={[
-                    { value: '', label: t.compensation.allPositions },
-                    ...departments.map(d => ({ value: d.name, label: d.name })),
-                  ]}
                 />
-                <CustomSelect
-                  value={evalConformity}
-                  onChange={(v) => { setEvalConformity(v); setEvalPage(1); }}
-                  placeholder={t.compensation.allConformity}
-                  options={[
-                    { value: '', label: t.compensation.allConformity },
-                    { value: 'conforme', label: t.compensation.conformant },
-                    { value: 'a_reviser', label: t.compensation.toRevise },
-                    { value: 'bloquant', label: t.compensation.blocking },
-                    { value: 'non_evalue', label: t.compensation.notEvaluated },
-                  ]}
-                />
+                <CustomSelect value={evalConformity} onChange={(v) => { setEvalConformity(v); setEvalPage(1); }} options={[{value:'', label: t.compensation.allConformity},{value:'conforme', label: t.compensation.conformant},{value:'a_reviser', label: t.compensation.toRevise},{value:'bloquant', label: t.compensation.blocking},{value:'non_evalue', label: t.compensation.notEvaluated}]} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
                 <label className="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer select-none">
                   <input
                     type="checkbox"
@@ -1659,17 +1644,7 @@ export default function CompensationPage() {
           {activeTab === 'grids' && (
             <div>
               <div className="flex flex-wrap items-center gap-3 mb-5">
-                <CustomSelect
-                  value={gridConformity}
-                  onChange={(v) => { setGridConformity(v); setGridPage(1); }}
-                  placeholder="Toute conformité"
-                  options={[
-                    { value: '', label: 'Toute conformité' },
-                    { value: 'conforme', label: 'Conforme' },
-                    { value: 'a_reviser', label: 'A réviser' },
-                    { value: 'bloquant', label: 'Bloquant' },
-                  ]}
-                />
+                <CustomSelect value={gridConformity} onChange={(v) => { setGridConformity(v); setGridPage(1); }} options={[{value:'', label:'Toute conformité'},{value:'conforme', label:'Conforme'},{value:'a_reviser', label:'A réviser'},{value:'bloquant', label:'Bloquant'}]} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
                 <div className="flex-1" />
                 <button onClick={exportGridsCSV}
                   className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white hover:bg-gray-50 flex items-center gap-1.5 text-gray-700">
@@ -2098,11 +2073,8 @@ export default function CompensationPage() {
                     <CustomSelect
                       value={evalForm.job_title}
                       onChange={(v) => setEvalForm(f => ({ ...f, job_title: v }))}
-                      placeholder={t.compensation.selectPosition}
-                      options={[
-                        { value: '', label: t.compensation.selectPosition },
-                        ...departments.map(d => ({ value: d.name, label: d.name })),
-                      ]}
+                      options={[{value:'', label: t.compensation.selectPosition}, ...departments.map(d => ({value: d.name, label: d.name}))]}
+                      className="w-full"
                     />
                   )}
                 </div>
@@ -2323,14 +2295,7 @@ export default function CompensationPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Type de budget</label>
-                    <CustomSelect
-                      value={simForm.budget_type}
-                      onChange={(v) => setSimForm(f => ({ ...f, budget_type: v }))}
-                      options={[
-                        { value: 'percentage', label: 'Pourcentage (%)' },
-                        { value: 'amount', label: 'Montant fixe' },
-                      ]}
-                    />
+                    <CustomSelect value={simForm.budget_type} onChange={(v) => setSimForm(f => ({ ...f, budget_type: v }))} options={[{value:'percentage', label:'Pourcentage (%)'},{value:'amount', label:'Montant fixe'}]} className="w-full" />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Valeur du budget *</label>
@@ -2341,23 +2306,14 @@ export default function CompensationPage() {
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Politique d&apos;augmentation</label>
-                  <CustomSelect
-                    value={simForm.policy}
-                    onChange={(v) => {
-                      setSimForm(f => ({ ...f, policy: v }));
-                      if (v === 'merit') {
-                        setSimMeritGrid(meritConfig.merit_grid);
-                        setSimMeritSeniority(meritConfig.min_seniority_months);
-                        setSimMeritProrata(meritConfig.apply_prorata);
-                      }
-                    }}
-                    options={[
-                      { value: 'uniforme', label: 'Uniforme (meme % pour tous)' },
-                      { value: 'anciennete', label: 'Par ancienneté' },
-                      { value: 'categorie', label: 'Par catégorie' },
-                      { value: 'merit', label: 'Mérite (Performance)' },
-                    ]}
-                  />
+                  <CustomSelect value={simForm.policy} onChange={(v) => {
+                    setSimForm(f => ({ ...f, policy: v }));
+                    if (v === 'merit') {
+                      setSimMeritGrid(meritConfig.merit_grid);
+                      setSimMeritSeniority(meritConfig.min_seniority_months);
+                      setSimMeritProrata(meritConfig.apply_prorata);
+                    }
+                  }} options={[{value:'uniforme', label:'Uniforme (meme % pour tous)'},{value:'anciennete', label:'Par ancienneté'},{value:'categorie', label:'Par catégorie'},{value:'merit', label:'Mérite (Performance)'}]} className="w-full" />
                 </div>
                 {simForm.policy === 'merit' && (
                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
@@ -2403,27 +2359,12 @@ export default function CompensationPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Périmètre</label>
-                    <CustomSelect
-                      value={simForm.scope_type}
-                      onChange={(v) => setSimForm(f => ({ ...f, scope_type: v, scope_id: null }))}
-                      options={[
-                        { value: 'all', label: 'Tous les employés' },
-                        { value: 'department', label: 'Par département' },
-                      ]}
-                    />
+                    <CustomSelect value={simForm.scope_type} onChange={(v) => setSimForm(f => ({ ...f, scope_type: v, scope_id: null }))} options={[{value:'all', label:'Tous les employés'},{value:'department', label:'Par département'}]} className="w-full" />
                   </div>
                   {simForm.scope_type === 'department' && (
                     <div>
                       <label className="block text-xs text-gray-500 mb-1">Département</label>
-                      <CustomSelect
-                        value={simForm.scope_id ? String(simForm.scope_id) : ''}
-                        onChange={(v) => setSimForm(f => ({ ...f, scope_id: parseInt(v) || null }))}
-                        placeholder="Sélectionner"
-                        options={[
-                          { value: '', label: 'Sélectionner' },
-                          ...departments.map(d => ({ value: String(d.id), label: d.name })),
-                        ]}
-                      />
+                      <CustomSelect value={String(simForm.scope_id || '')} onChange={(v) => setSimForm(f => ({ ...f, scope_id: parseInt(v) || null }))} options={[{value:'', label:'Sélectionner'}, ...departments.map(d => ({value: String(d.id), label: d.name}))]} className="w-full" />
                     </div>
                   )}
                 </div>

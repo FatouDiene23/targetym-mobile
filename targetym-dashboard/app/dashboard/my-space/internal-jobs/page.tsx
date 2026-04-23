@@ -60,6 +60,11 @@ interface Employee {
   position: string | null;
 }
 
+interface Department {
+  id: number;
+  name: string;
+}
+
 // ============================================
 // API CONFIG
 // ============================================
@@ -117,6 +122,15 @@ async function fetchCurrentEmployee(): Promise<Employee | null> {
     if (!res.ok) return null;
     return res.json();
   } catch { return null; }
+}
+
+async function fetchDepartments(): Promise<Department[]> {
+  try {
+    const res = await fetch(`${API_URL}/api/departments/`, { headers: getAuthHeaders() });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : (data.items || []);
+  } catch { return []; }
 }
 
 async function applyToJob(jobId: number, coverLetter?: string): Promise<{ success: boolean; message: string }> {
@@ -178,6 +192,7 @@ export default function CareersPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [myApplications, setMyApplications] = useState<MyApplication[]>([]);
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
+  const [allDepartments, setAllDepartments] = useState<Department[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState<string>('');
   const [contractFilter, setContractFilter] = useState<string>('');
@@ -197,22 +212,23 @@ export default function CareersPage() {
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [jobsData, applicationsData, employeeData] = await Promise.all([
+    const [jobsData, applicationsData, employeeData, departmentsData] = await Promise.all([
       fetchOpenJobs(),
       fetchMyApplications(),
-      fetchCurrentEmployee()
+      fetchCurrentEmployee(),
+      fetchDepartments()
     ]);
     setJobs(jobsData);
     setMyApplications(applicationsData);
     setCurrentEmployee(employeeData);
+    setAllDepartments(departmentsData);
     setLoading(false);
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // Get unique departments for filter
-  const departments = Array.from(new Set(jobs.map(j => j.department_name).filter(Boolean))) as string[];
-  const contractTypes = Array.from(new Set(jobs.map(j => j.contract_type).filter(Boolean)));
+  // Contract types (static list)
+  const contractTypes = ['CDI', 'CDD', 'Stage', 'Alternance', 'Freelance'];
 
   // Filter jobs
   const filteredJobs = jobs.filter(job => {
@@ -224,7 +240,7 @@ export default function CareersPage() {
         return false;
       }
     }
-    if (departmentFilter && job.department_name !== departmentFilter) return false;
+    if (departmentFilter && String(job.department_id) !== departmentFilter) return false;
     if (contractFilter && job.contract_type !== contractFilter) return false;
     if (remoteFilter && job.remote_policy !== remoteFilter) return false;
     return true;
@@ -346,7 +362,7 @@ export default function CareersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500">Départements</p>
-                <p className="text-2xl font-bold text-green-600">{departments.length}</p>
+                <p className="text-2xl font-bold text-green-600">{allDepartments.length}</p>
               </div>
               <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                 <Building2 className="w-5 h-5 text-green-600" />
@@ -399,8 +415,8 @@ export default function CareersPage() {
                     placeholder="Départements"
                     className="min-w-[140px] shrink-0"
                     options={[
-                      { value: '', label: 'Départements' },
-                      ...departments.map(d => ({ value: d, label: d })),
+                      { value: '', label: 'Tous les dépts' },
+                      ...allDepartments.map(d => ({ value: String(d.id), label: d.name })),
                     ]}
                   />
                   <CustomSelect
@@ -409,7 +425,7 @@ export default function CareersPage() {
                     placeholder="Contrats"
                     className="min-w-[120px] shrink-0"
                     options={[
-                      { value: '', label: 'Contrats' },
+                      { value: '', label: 'Tous contrats' },
                       ...contractTypes.map(c => ({ value: c, label: c })),
                     ]}
                   />

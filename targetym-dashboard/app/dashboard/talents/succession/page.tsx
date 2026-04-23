@@ -7,6 +7,7 @@
 
 import Header from '@/components/Header';
 import CustomSelect from '@/components/CustomSelect';
+import CustomSelect from '@/components/CustomSelect';
 import { useEffect, useState } from 'react';
 import { Crown, Plus, Eye, Edit, Trash2, UserPlus, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { useTalents } from '../TalentsContext';
@@ -409,23 +410,11 @@ function CreatePlanModal({ onClose, onCreate }: { onClose: () => void; onCreate:
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Criticité</label>
-              <CustomSelect value={form.criticality} onChange={(v) => setForm({ ...form, criticality: v })}
-                options={[
-                  { value: 'critical', label: 'Critique' },
-                  { value: 'high', label: 'Élevé' },
-                  { value: 'medium', label: 'Moyen' },
-                ]}
-              />
+              <CustomSelect value={form.criticality} onChange={v => setForm({ ...form, criticality: v })} options={[{value:'critical', label:'Critique'},{value:'high', label:'Élevé'},{value:'medium', label:'Moyen'}]} className="w-full" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Risque Vacance</label>
-              <CustomSelect value={form.vacancy_risk} onChange={(v) => setForm({ ...form, vacancy_risk: v })}
-                options={[
-                  { value: 'low', label: 'Faible' },
-                  { value: 'medium', label: 'Moyen' },
-                  { value: 'high', label: 'Élevé' },
-                ]}
-              />
+              <CustomSelect value={form.vacancy_risk} onChange={v => setForm({ ...form, vacancy_risk: v })} options={[{value:'low', label:'Faible'},{value:'medium', label:'Moyen'},{value:'high', label:'Élevé'}]} className="w-full" />
             </div>
           </div>
           <div>
@@ -532,13 +521,7 @@ function AddCandidateModal({ planId, onClose, onAdd }: {
             {/* Readiness */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Disponibilité</label>
-              <CustomSelect value={form.readiness} onChange={(v) => setForm({ ...form, readiness: v })}
-                options={[
-                  { value: 'ready', label: 'Prêt maintenant' },
-                  { value: '1-2 years', label: 'Dans 1-2 ans' },
-                  { value: '3+ years', label: 'Dans 3+ ans' },
-                ]}
-              />
+              <CustomSelect value={form.readiness} onChange={v => setForm({ ...form, readiness: v })} options={[{value:'ready', label:'Prêt maintenant'},{value:'1-2 years', label:'Dans 1-2 ans'},{value:'3+ years', label:'Dans 3+ ans'}]} className="w-full" />
             </div>
             {/* Rang */}
             <div>

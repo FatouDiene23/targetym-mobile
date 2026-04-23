@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import CustomSelect from '@/components/CustomSelect';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -14,7 +15,6 @@ import {
   adminCancelInvoice, adminChangePlan,
   type TenantListItem, type InvoiceItem,
 } from '@/lib/api';
-import CustomSelect from '@/components/CustomSelect';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = (d?: string) => d ? new Date(d).toLocaleDateString('fr-FR') : '—';
@@ -478,16 +478,7 @@ export default function BillingAdminPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Devise</label>
-                <CustomSelect
-                  value={createForm.currency}
-                  onChange={(v) => setCreateForm(f => ({ ...f, currency: v }))}
-                  options={[
-                    { value: 'XOF', label: 'XOF' },
-                    { value: 'EUR', label: 'EUR' },
-                    { value: 'USD', label: 'USD' },
-                  ]}
-                  className="w-full"
-                />
+                <CustomSelect value={createForm.currency} onChange={v => setCreateForm(f => ({ ...f, currency: v }))} options={[{value:'XOF', label:'XOF'},{value:'EUR', label:'EUR'},{value:'USD', label:'USD'}]} className="w-full" />
               </div>
             </div>
 
@@ -628,15 +619,10 @@ export default function BillingAdminPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Plan <span className="text-red-500">*</span></label>
-                <CustomSelect
-                  value={planForm.plan}
-                  onChange={(v) => {
+                <CustomSelect value={planForm.plan} onChange={v => {
                     const selected = PLANS.find(p => p.value === v);
                     setPlanForm(f => ({ ...f, plan: v, max_employees: selected ? String(selected.employees) : f.max_employees }));
-                  }}
-                  options={PLANS.map(p => ({ value: p.value, label: `${p.label} — ${p.employees} employés` }))}
-                  className="w-full"
-                />
+                  }} options={PLANS.map(p => ({value: p.value, label: `${p.label} — ${p.employees} employés`}))} className="w-full" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Nb max employés</label>

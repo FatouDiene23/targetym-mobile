@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import CustomSelect from '@/components/CustomSelect';
 import { useParams } from 'next/navigation';
 import {
   Calendar, Plus, Loader2, X, Trash2, Lock, ChevronDown,
@@ -8,7 +9,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import CustomSelect from '@/components/CustomSelect';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import { getEmployees, type Employee } from '@/lib/api';
@@ -88,10 +88,9 @@ function VariableModal({
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Employé *</label>
                 <CustomSelect
-                  value={employeeId ? String(employeeId) : ''}
-                  onChange={(v) => setEmployeeId(v ? parseInt(v) : 0)}
-                  placeholder="— Sélectionner —"
-                  options={employees.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` }))}
+                  value={String(employeeId)}
+                  onChange={v => setEmployeeId(parseInt(v))}
+                  options={[{value:'0', label:'— Sélectionner —'}, ...employees.map(emp => ({value: String(emp.id), label: `${emp.first_name} ${emp.last_name}`}))]}
                   className="w-full"
                 />
               </div>
@@ -104,10 +103,9 @@ function VariableModal({
                   </p>
                 ) : (
                   <CustomSelect
-                    value={componentId ? String(componentId) : ''}
-                    onChange={(v) => setComponentId(v ? parseInt(v) : 0)}
-                    placeholder="— Sélectionner —"
-                    options={manualComponents.map(c => ({ value: String(c.id), label: `${c.code} — ${c.name}` }))}
+                    value={String(componentId)}
+                    onChange={v => setComponentId(parseInt(v))}
+                    options={[{value:'0', label:'— Sélectionner —'}, ...manualComponents.map(c => ({value: String(c.id), label: `${c.code} — ${c.name}`}))]}
                     className="w-full"
                   />
                 )}

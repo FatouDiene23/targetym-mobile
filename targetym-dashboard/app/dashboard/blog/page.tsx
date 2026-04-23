@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import CustomSelect from '@/components/CustomSelect';
 import toast from 'react-hot-toast';
 import {
   PenLine, Plus, Search, Eye, Pencil, Trash2, Loader2,
@@ -8,7 +9,6 @@ import {
   Upload, Link,
 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // CONFIG
@@ -526,22 +526,17 @@ export default function BlogPage() {
         {categories.length > 0 && (
           <CustomSelect
             value={filterCategory}
-            onChange={(v) => setFilterCategory(v)}
-            options={[
-              { value: '', label: 'Toutes les catégories' },
-              ...categories.map(c => ({ value: c, label: c })),
-            ]}
+            onChange={v => setFilterCategory(v)}
+            options={[{value:'', label:'Toutes les catégories'}, ...categories.map(c => ({value: c, label: c}))]}
+            className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white"
           />
         )}
         {isEditor && (
           <CustomSelect
             value={filterStatus}
-            onChange={(v) => setFilterStatus(v)}
-            options={[
-              { value: '', label: 'Tous les statuts' },
-              { value: 'published', label: 'Publiés' },
-              { value: 'draft', label: 'Brouillons' },
-            ]}
+            onChange={v => setFilterStatus(v)}
+            options={[{value:'', label:'Tous les statuts'},{value:'published', label:'Publiés'},{value:'draft', label:'Brouillons'}]}
+            className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white"
           />
         )}
       </div>

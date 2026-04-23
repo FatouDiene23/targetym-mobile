@@ -6,8 +6,8 @@
 // ============================================
 
 import { useState, useCallback, useEffect } from 'react';
-import ConfirmDialog from '@/components/ConfirmDialog';
 import CustomSelect from '@/components/CustomSelect';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { useLearning } from '../LearningContext';
 import { hasPermission } from '../shared';
 import type { Skill } from '../shared';
@@ -213,26 +213,11 @@ export default function ReferentielPage() {
           />
         </div>
 
-        <CustomSelect
-          value={filterType}
-          onChange={(v) => setFilterType(v)}
-          options={SKILL_TYPES.map(t => ({ value: t.value, label: t.label }))}
-          className="min-w-[140px]"
-        />
+        <CustomSelect value={filterType} onChange={v => setFilterType(v)} options={SKILL_TYPES.map(t => ({value: t.value, label: t.label}))} className="border border-gray-300 rounded-lg text-sm px-3 py-2" />
 
-        <CustomSelect
-          value={filterLevel}
-          onChange={(v) => setFilterLevel(v)}
-          options={HIERARCHY_LEVELS.map(h => ({ value: h.value, label: h.label }))}
-          className="min-w-[140px]"
-        />
+        <CustomSelect value={filterLevel} onChange={v => setFilterLevel(v)} options={HIERARCHY_LEVELS.map(h => ({value: h.value, label: h.label}))} className="border border-gray-300 rounded-lg text-sm px-3 py-2" />
 
-        <CustomSelect
-          value={filterDept}
-          onChange={(v) => setFilterDept(v)}
-          options={DEPARTMENTS.map(d => ({ value: d.value, label: d.label }))}
-          className="min-w-[140px]"
-        />
+        <CustomSelect value={filterDept} onChange={v => setFilterDept(v)} options={DEPARTMENTS.map(d => ({value: d.value, label: d.label}))} className="border border-gray-300 rounded-lg text-sm px-3 py-2" />
 
         <button onClick={() => setGrouped(g => !g)}
           className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
@@ -310,15 +295,7 @@ export default function ReferentielPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{rp.typeLabel}</label>
-                  <CustomSelect
-                    value={form.skill_type}
-                    onChange={(v) => setForm(f => ({ ...f, skill_type: v }))}
-                    options={[
-                      { value: 'soft_skill', label: rp.softSkill },
-                      { value: 'technical', label: rp.technical },
-                      { value: 'management', label: rp.management },
-                    ]}
-                  />
+                  <CustomSelect value={form.skill_type} onChange={v => setForm(f => ({ ...f, skill_type: v }))} options={[{value:'soft_skill', label: rp.softSkill},{value:'technical', label: rp.technical},{value:'management', label: rp.management}]} className="w-full" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{rp.categoryLabel}</label>
@@ -330,23 +307,11 @@ export default function ReferentielPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{rp.hierarchyLevel}</label>
-                  <CustomSelect
-                    value={form.hierarchy_level}
-                    onChange={(v) => setForm(f => ({ ...f, hierarchy_level: v }))}
-                    placeholder={rp.allLevels}
-                    options={[
-                      { value: '', label: rp.allLevels },
-                      ...HIERARCHY_LEVELS.filter(h => h.value).map(h => ({ value: h.value, label: h.label })),
-                    ]}
-                  />
+                  <CustomSelect value={form.hierarchy_level} onChange={v => setForm(f => ({ ...f, hierarchy_level: v }))} options={[{value:'', label: rp.allLevels}, ...HIERARCHY_LEVELS.filter(h => h.value).map(h => ({value: h.value, label: h.label}))]} className="w-full" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{rp.departmentLabel}</label>
-                  <CustomSelect
-                    value={form.department}
-                    onChange={(v) => setForm(f => ({ ...f, department: v }))}
-                    options={DEPARTMENTS.filter(d => d.value).map(d => ({ value: d.value, label: d.label }))}
-                  />
+                  <CustomSelect value={form.department} onChange={v => setForm(f => ({ ...f, department: v }))} options={DEPARTMENTS.filter(d => d.value).map(d => ({value: d.value, label: d.label}))} className="w-full" />
                 </div>
               </div>
 

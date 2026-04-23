@@ -63,7 +63,9 @@ export default function CustomDatePicker({ value, onChange, placeholder = 'Séle
     const update = () => {
       if (!triggerRef.current) return;
       const r = triggerRef.current.getBoundingClientRect();
-      setPosition({ top: r.bottom + 4, left: r.left, width: Math.max(r.width, 280) });
+      const minW = 308;
+      const left = Math.min(r.left, window.innerWidth - minW - 8);
+      setPosition({ top: r.bottom + 4, left: Math.max(8, left), width: Math.max(r.width, minW) });
     };
     update();
     window.addEventListener('scroll', update, true);
@@ -152,12 +154,12 @@ export default function CustomDatePicker({ value, onChange, placeholder = 'Séle
                 <ChevronRight className="w-4 h-4 text-gray-600" />
               </button>
             </div>
-            <div className="grid grid-cols-7 gap-1 mb-1">
+            <div className="grid grid-cols-7 mb-1">
               {DAYS.map((d, i) => (
-                <div key={i} className="text-[10px] font-semibold text-gray-500 text-center py-1">{d}</div>
+                <div key={i} className="text-xs font-semibold text-gray-500 text-center py-1">{d}</div>
               ))}
             </div>
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-7">
               {cells.map((d, i) => {
                 if (d === null) return <div key={i} />;
                 const cellDate = new Date(year, month, d);
@@ -175,7 +177,7 @@ export default function CustomDatePicker({ value, onChange, placeholder = 'Séle
                       e.stopPropagation();
                       if (!isDisabled) pickDay(d);
                     }}
-                    className={`text-sm rounded w-9 h-9 flex items-center justify-center transition-colors ${
+                    className={`text-sm rounded aspect-square flex items-center justify-center transition-colors mx-auto w-9 ${
                       isDisabled ? 'text-gray-300' :
                       isSelected ? 'bg-primary-500 text-white font-bold' :
                       isToday ? 'bg-primary-50 text-primary-700 font-semibold' :
@@ -214,12 +216,12 @@ export default function CustomDatePicker({ value, onChange, placeholder = 'Séle
           <ChevronRight className="w-4 h-4 text-gray-600" />
         </button>
       </div>
-      <div className="grid grid-cols-7 gap-1 mb-1">
+      <div className="grid grid-cols-7 mb-1">
         {DAYS.map((d, i) => (
-          <div key={i} className="text-[10px] font-semibold text-gray-500 text-center py-1">{d}</div>
+          <div key={i} className="text-xs font-semibold text-gray-500 text-center py-1">{d}</div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7">
         {cells.map((d, i) => {
           if (d === null) return <div key={i} />;
           const cellDate = new Date(year, month, d);
@@ -233,7 +235,7 @@ export default function CustomDatePicker({ value, onChange, placeholder = 'Séle
               type="button"
               disabled={!!isDisabled}
               onClick={() => pickDay(d)}
-              className={`text-xs rounded w-8 h-8 flex items-center justify-center transition-colors ${
+              className={`text-sm rounded aspect-square flex items-center justify-center transition-colors mx-auto w-9 ${
                 isDisabled ? 'text-gray-300 cursor-not-allowed' :
                 isSelected ? 'bg-primary-500 text-white font-bold' :
                 isToday ? 'bg-primary-50 text-primary-700 font-semibold' :

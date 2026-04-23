@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
@@ -183,6 +183,14 @@ function BreakdownModal({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function BudgetRHEmployeesPage() {
+  return (
+    <Suspense fallback={<div className="p-6"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" /></div>}>
+      <BudgetRHEmployeesContent />
+    </Suspense>
+  );
+}
+
+function BudgetRHEmployeesContent() {
   const router = useRouter();
   const { t } = useI18n();
   const params = useSearchParams();

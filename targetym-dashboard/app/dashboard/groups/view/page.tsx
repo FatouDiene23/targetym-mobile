@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Users, UserPlus, Building2, TrendingUp, Briefcase, ArrowLeftRight,
@@ -387,6 +387,14 @@ function MobilityTab({ data }: { data: GroupMobilityView; onInitiateTransfer: ()
 // MAIN PAGE
 // ============================================
 export default function GroupViewPage() {
+  return (
+    <Suspense fallback={<div className="p-6"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" /></div>}>
+      <GroupViewContent />
+    </Suspense>
+  );
+}
+
+function GroupViewContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { t } = useI18n();

@@ -1,7 +1,7 @@
 'use client';
 
 import Header from '@/components/Header';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
@@ -376,6 +376,14 @@ interface CertificateSettings {
 }
 
 export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div className="p-6"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" /></div>}>
+      <SettingsContent />
+    </Suspense>
+  );
+}
+
+function SettingsContent() {
   const { t, setLocale } = useI18n();
   const [activeTab, setActiveTab] = useState('general');
   const [saved, setSaved] = useState(false);

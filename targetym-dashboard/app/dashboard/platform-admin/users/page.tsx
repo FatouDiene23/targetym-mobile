@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import toast from 'react-hot-toast';
 import {
   Users, Search, Plus, Edit2, Trash2, Eye, EyeOff,
@@ -26,6 +26,14 @@ import {
 } from '@/lib/api';
 
 export default function PlatformUsersManagement() {
+  return (
+    <Suspense fallback={<div className="p-6"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" /></div>}>
+      <PlatformUsersContent />
+    </Suspense>
+  );
+}
+
+function PlatformUsersContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showTips, dismissTips } = usePageTour('platformAdminUsers');

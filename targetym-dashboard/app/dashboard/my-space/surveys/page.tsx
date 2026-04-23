@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Loader2, ChevronRight, CheckCircle, Clock,
@@ -45,6 +45,14 @@ interface MyResponseData {
 // ── Component ───────────────────────────────────────────────────────────────
 
 export default function MySurveysPage() {
+  return (
+    <Suspense fallback={<div className="p-6"><Loader2 className="w-8 h-8 animate-spin text-primary-500" /></div>}>
+      <MySurveysContent />
+    </Suspense>
+  );
+}
+
+function MySurveysContent() {
   const { t } = useI18n();
   const ts = t.mySpace.surveys;
   const searchParams = useSearchParams();

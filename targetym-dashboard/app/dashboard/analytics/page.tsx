@@ -5,7 +5,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -191,6 +191,14 @@ function getSectionHeaders(t: any): Record<string, { title: string; subtitle: st
 }
 
 export default function PeopleAnalyticsPage() {
+  return (
+    <Suspense fallback={<div className="p-6"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" /></div>}>
+      <PeopleAnalyticsContent />
+    </Suspense>
+  );
+}
+
+function PeopleAnalyticsContent() {
   const { t } = useI18n();
   // --- Navigation par query param ?section= ---
   const searchParams = useSearchParams();

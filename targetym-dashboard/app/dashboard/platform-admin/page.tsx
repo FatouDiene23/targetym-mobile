@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Building2, Users, UserCheck, Activity, Shield, AlertCircle, CheckCircle2,
@@ -36,6 +36,14 @@ const ACTION_COLORS: Record<string, string> = {
 };
 
 export default function PlatformAdminDashboard() {
+  return (
+    <Suspense fallback={<div className="p-6"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" /></div>}>
+      <PlatformAdminContent />
+    </Suspense>
+  );
+}
+
+function PlatformAdminContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const deepLinkHandled = useRef(false);
@@ -126,9 +134,13 @@ export default function PlatformAdminDashboard() {
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (!userStr) { router.push('/'); return; }
-    const user = JSON.parse(userStr);
-    if (user.role !== 'SUPER_ADMIN' && user.role !== 'super_admin') { router.push('/dashboard'); return; }
+    let user;
+    try { user = JSON.parse(userStr); } catch { router.push('/'); return; }
+    const roleNormalized = (user.role || '').toLowerCase().replace(/[^a-z_]/g, '');
+    const allowedRoles = ['superadmin', 'super_admin', 'superadmintech', 'platform_admin'];
+    if (!allowedRoles.includes(roleNormalized)) { router.push('/dashboard'); return; }
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   const loadData = async () => {
@@ -136,10 +148,13 @@ export default function PlatformAdminDashboard() {
       setLoading(true);
       const [statsData, tenantsData] = await Promise.all([
         getPlatformStats(),
-        getAllTenants({ limit: 200 }),
+        getAllTenants({ page_size: 200 }),
       ]);
       setStats(statsData);
-      setTenants(tenantsData);
+      const tenantsList = Array.isArray(tenantsData)
+        ? tenantsData
+        : (tenantsData as { items?: TenantListItem[] })?.items ?? [];
+      setTenants(tenantsList);
     } catch (err) {
       console.error(err);
       toast.error('Erreur chargement données');
@@ -179,7 +194,8 @@ export default function PlatformAdminDashboard() {
     try {
       setConvReqLoading(true);
       const data = await listConversionRequests();
-      setConversionRequests(data);
+      const list = Array.isArray(data) ? data : (data as { items?: ConversionRequestItem[] })?.items ?? [];
+      setConversionRequests(list);
     } catch (err) {
       console.error(err);
     } finally {

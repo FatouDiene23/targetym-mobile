@@ -698,9 +698,33 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Employés concernés</label>
             <p className="text-xs text-gray-500 mb-2">Laissez vide pour inclure tous les employés actifs</p>
-            <select multiple value={selectedEmployees.map(String)} onChange={(e) => setSelectedEmployees(Array.from(e.target.selectedOptions, o => parseInt(o.value)))} className="w-full px-3 py-2.5 border rounded-lg text-sm h-32">
-              {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}
-            </select>
+            <div className="w-full border rounded-lg max-h-48 overflow-y-auto bg-white">
+              {employees.map(emp => {
+                const isSelected = selectedEmployees.includes(emp.id);
+                return (
+                  <label
+                    key={emp.id}
+                    className={`flex items-center gap-2 px-3 py-2 text-sm cursor-pointer border-b border-gray-50 last:border-0 transition-colors ${
+                      isSelected ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-800 hover:bg-gray-50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedEmployees([...selectedEmployees, emp.id]);
+                        } else {
+                          setSelectedEmployees(selectedEmployees.filter(id => id !== emp.id));
+                        }
+                      }}
+                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span>{emp.first_name} {emp.last_name}</span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
         </div>
         <div className="p-5 border-t bg-gray-50 flex justify-end gap-3 rounded-b-2xl">

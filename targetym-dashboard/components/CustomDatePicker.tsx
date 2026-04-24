@@ -49,6 +49,7 @@ export default function CustomDatePicker({ value, onChange, placeholder = 'Séle
   const [mounted, setMounted] = useState(false);
   const [isNative, setIsNative] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [nativeOffset, setNativeOffset] = useState(0);
   const [viewDate, setViewDate] = useState(() => value ? new Date(value + 'T00:00:00') : new Date());
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -131,6 +132,17 @@ export default function CustomDatePicker({ value, onChange, placeholder = 'Séle
             const willOpen = !open;
             setOpen(willOpen);
             if (willOpen && triggerRef.current) {
+              // Calcule un offset (en px) pour que le calendrier reste dans
+              // le viewport quelle que soit la position du trigger (gauche/droite)
+              const rect = triggerRef.current.getBoundingClientRect();
+              const calW = Math.min(320, window.innerWidth - 16);
+              const margin = 8;
+              // Position idéale : aligné avec le trigger
+              let idealLeft = rect.left;
+              // Contraindre : pas de débordement à droite ni à gauche
+              idealLeft = Math.min(idealLeft, window.innerWidth - calW - margin);
+              idealLeft = Math.max(margin, idealLeft);
+              setNativeOffset(idealLeft - rect.left);
               setTimeout(() => triggerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
             }
           }}
@@ -144,7 +156,13 @@ export default function CustomDatePicker({ value, onChange, placeholder = 'Séle
           <Calendar className="w-4 h-4 text-gray-400 shrink-0 ml-2" />
         </button>
         {open && (
-          <div className="mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-md p-3">
+          <div
+            className="absolute z-50 mt-1 bg-white border border-gray-300 rounded-lg shadow-md p-3"
+            style={{
+              left: `${nativeOffset}px`,
+              width: 'min(20rem, calc(100vw - 1rem))',
+            }}
+          >
             <div className="flex items-center justify-between mb-3">
               <button type="button" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setViewDate(new Date(year, month - 1, 1)); }} className="p-1 rounded hover:bg-gray-100 active:bg-gray-200">
                 <ChevronLeft className="w-4 h-4 text-gray-600" />
@@ -154,14 +172,14 @@ export default function CustomDatePicker({ value, onChange, placeholder = 'Séle
                 <ChevronRight className="w-4 h-4 text-gray-600" />
               </button>
             </div>
-            <div className="grid grid-cols-7 mb-1">
+            <div className="grid grid-cols-7 gap-0.5 mb-1">
               {DAYS.map((d, i) => (
                 <div key={i} className="text-xs font-semibold text-gray-500 text-center py-1">{d}</div>
               ))}
             </div>
-            <div className="grid grid-cols-7">
+            <div className="grid grid-cols-7 gap-0.5">
               {cells.map((d, i) => {
-                if (d === null) return <div key={i} />;
+                if (d === null) return <div key={i} className="aspect-square" />;
                 const cellDate = new Date(year, month, d);
                 const iso = toISODate(cellDate);
                 const isSelected = iso === selected;
@@ -177,7 +195,7 @@ export default function CustomDatePicker({ value, onChange, placeholder = 'Séle
                       e.stopPropagation();
                       if (!isDisabled) pickDay(d);
                     }}
-                    className={`text-sm rounded aspect-square flex items-center justify-center transition-colors mx-auto w-9 ${
+                    className={`text-sm rounded aspect-square flex items-center justify-center transition-colors w-full ${
                       isDisabled ? 'text-gray-300' :
                       isSelected ? 'bg-primary-500 text-white font-bold' :
                       isToday ? 'bg-primary-50 text-primary-700 font-semibold' :

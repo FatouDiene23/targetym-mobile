@@ -136,10 +136,13 @@ export default function PlatformAdminDashboard() {
       setLoading(true);
       const [statsData, tenantsData] = await Promise.all([
         getPlatformStats(),
-        getAllTenants({ limit: 200 }),
+        getAllTenants({ page_size: 200 }),
       ]);
       setStats(statsData);
-      setTenants(tenantsData);
+      const tenantsList: TenantListItem[] = Array.isArray(tenantsData)
+        ? tenantsData
+        : (tenantsData as unknown as { items?: TenantListItem[] })?.items ?? [];
+      setTenants(tenantsList);
     } catch (err) {
       console.error(err);
       toast.error('Erreur chargement données');

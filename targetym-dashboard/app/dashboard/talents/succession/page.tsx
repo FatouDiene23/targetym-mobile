@@ -7,7 +7,6 @@
 
 import Header from '@/components/Header';
 import CustomSelect from '@/components/CustomSelect';
-import CustomSelect from '@/components/CustomSelect';
 import { useEffect, useState } from 'react';
 import { Crown, Plus, Eye, Edit, Trash2, UserPlus, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { useTalents } from '../TalentsContext';

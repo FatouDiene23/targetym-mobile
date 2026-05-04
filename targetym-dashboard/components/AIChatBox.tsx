@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import toast from 'react-hot-toast';
 import { useState, useEffect, useRef } from 'react';
@@ -16,6 +16,7 @@ import {
 import ChatMessageContent from './ChatMessageContent';
 import ConfirmDialog from './ConfirmDialog';
 import AgentActionPreview from './AgentActionPreview';
+import { useI18n } from '@/lib/i18n/I18nContext';
 
 // Pages avec outils d'action spécifiques (labels d'affichage)
 const AGENT_PAGES_LABELS: Record<string, string> = {
@@ -58,6 +59,8 @@ interface AgentTurn {
 
 export default function AIChatBox() {
   const pathname = usePathname();
+  const { t } = useI18n();
+  const c = t.components.aiChat;
   const agentContext: string = getAgentContext(pathname);
 
   const [isOpen, setIsOpen] = useState(false);
@@ -110,15 +113,15 @@ export default function AIChatBox() {
   // Construire le message WhatsApp selon le rôle
   const getWhatsAppLink = () => {
     const roleLabels: Record<string, string> = {
-      rh: 'Responsable RH',
-      admin: 'Administrateur',
-      dg: 'Direction Générale',
-      manager: 'Manager',
-      employee: 'Employé',
+      rh: c.hrResponsible,
+      admin: c.administrator,
+      dg: c.generalManagement,
+      manager: c.managerRole,
+      employee: c.employeeRole,
     };
-    const roleLabel = roleLabels[userRole] || 'Utilisateur';
+    const roleLabel = roleLabels[userRole] || c.employeeRole;
     const nameText = userName ? ` ${userName}` : '';
-    const msg = `Bonjour, je suis${nameText} (${roleLabel}) sur la plateforme Targetym. J'ai besoin d'assistance.`;
+    const msg = c.whatsappIntro.replace('{name}', nameText).replace('{role}', roleLabel);
     return `https://wa.me/221787100606?text=${encodeURIComponent(msg)}`;
   };
 
@@ -225,12 +228,12 @@ export default function AIChatBox() {
               if (extracted.cv_tmp_path) setCvTmpPath(extracted.cv_tmp_path);
               if (extracted.cv_filename) setCvFilename(extracted.cv_filename);
             } catch {
-              toast(`Impossible d'extraire "${file.name}". Continuez avec les autres fichiers.`, { icon: '⚠️' });
+              toast(c.extractError.replace('{name}', file.name), { icon: '⚠️' });
             }
           }
           resolvedFileText = combinedText.trim();
           if (!resolvedFileText) {
-            toast('PDF(s) attaché(s) mais non lisible(s) (scan ?). Copiez-collez les informations directement.', { icon: '⚠️' });
+            toast(c.pdfNotReadable, { icon: '⚠️' });
           }
         } finally {
           setExtractingPdf(false);
@@ -238,9 +241,9 @@ export default function AIChatBox() {
       }
 
       // Historique pour Claude
-      const history = agentTurns.flatMap((t) => [
-        { role: 'user', content: t.userText },
-        { role: 'assistant', content: t.reply },
+      const history = agentTurns.flatMap((turn) => [
+        { role: 'user', content: turn.userText },
+        { role: 'assistant', content: turn.reply },
       ]);
 
       const result = await sendAgentMessage({
@@ -264,7 +267,7 @@ export default function AIChatBox() {
       const turn: AgentTurn = {
         id: crypto.randomUUID(),
         userText,
-        reply: `❌ Erreur : ${error.message || "Impossible de contacter l'assistant"}`,
+        reply: `❌ ${t.common.error} : ${error.message || c.errorContact}`,
         action_preview: null,
         timestamp: new Date(),
       };
@@ -336,7 +339,7 @@ export default function AIChatBox() {
         await loadConversation(response.conversation_id);
       }
     } catch (error: any) {
-      toast.error(error.message || 'Erreur lors de l\'envoi du message');
+      toast.error(error.message || c.sendError);
     } finally {
       setSending(false);
       inputRef.current?.focus();
@@ -361,8 +364,8 @@ export default function AIChatBox() {
     e.stopPropagation();
     setConfirmDialog({
       isOpen: true,
-      title: 'Supprimer la conversation',
-      message: 'Voulez-vous vraiment supprimer cette conversation ?',
+      title: c.deleteConversation,
+      message: c.deleteConversationConfirm,
       danger: true,
       onConfirm: async () => {
         setConfirmDialog(null);
@@ -371,7 +374,7 @@ export default function AIChatBox() {
           if (activeConversation?.id === conversationId) setActiveConversation(null);
           await loadConversations();
         } catch (error: any) {
-          toast.error(error.message || 'Erreur lors de la suppression');
+          toast.error(error.message || c.deleteError);
         }
       },
     });
@@ -390,7 +393,7 @@ export default function AIChatBox() {
     const allFiles = Array.from(e.target.files || []);
     const validFiles = allFiles.filter(f => ACCEPTED_EXTENSIONS.some(ext => f.name.toLowerCase().endsWith(ext)));
     const rejected = allFiles.filter(f => !ACCEPTED_EXTENSIONS.some(ext => f.name.toLowerCase().endsWith(ext)));
-    if (rejected.length > 0) toast.error('Formats acceptés : PDF, DOCX, DOC, TXT, XLSX, XLS, CSV.');
+    if (rejected.length > 0) toast.error(c.acceptedFormats);
     if (validFiles.length === 0) return;
     setAttachedFiles(prev => [...prev, ...validFiles]);
     setFileText(''); // reset, sera extrait à l'envoi
@@ -405,8 +408,8 @@ export default function AIChatBox() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-24 lg:bottom-6 right-4 lg:right-6 bg-primary-600 text-white p-4 rounded-full shadow-lg hover:bg-primary-700 transition-all hover:scale-110 z-50"
-          aria-label="Ouvrir le chatbot"
+          className="fixed bottom-24 lg:bottom-6 right-4 sm:right-6 bg-primary-600 text-white p-4 rounded-full shadow-lg hover:bg-primary-700 transition-all hover:scale-110 z-50"
+          aria-label={c.openChatbot}
         >
           <MessageCircle size={28} />
         </button>
@@ -414,31 +417,31 @@ export default function AIChatBox() {
 
       {/* Fenêtre du chat */}
       {isOpen && (
-        <div id="ai-chatbox" className="fixed inset-x-2 bottom-16 top-14 lg:inset-auto lg:right-6 lg:bottom-6 lg:w-[420px] lg:h-[620px] rounded-2xl bg-white shadow-2xl flex flex-col z-50 border border-gray-200">
+        <div className="fixed bottom-16 right-0 lg:bottom-6 lg:right-6 w-full lg:w-[420px] h-[calc(100dvh-5rem)] lg:h-[min(620px,calc(100dvh-2rem))] bg-white rounded-t-2xl lg:rounded-2xl shadow-2xl flex flex-col z-50 border border-gray-200 overflow-hidden">
 
           {/* Header */}
-          <div className={`${agentMode ? 'bg-gradient-to-r from-primary-600 to-primary-700' : 'bg-gradient-to-r from-primary-500 to-primary-700'} text-white px-4 py-3 lg:px-5 lg:py-4 rounded-t-2xl flex items-center justify-between`}>
-            <div className="flex items-center gap-2 lg:gap-3 min-w-0">
-              <div className="bg-white/20 p-1.5 lg:p-2 rounded-lg shrink-0">
+          <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-3 py-3 sm:px-5 sm:py-4 rounded-t-2xl flex items-center justify-between flex-shrink-0 gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="bg-white/20 p-2 rounded-lg flex-shrink-0">
                 {agentMode ? <Zap size={20} /> : <MessageCircle size={20} />}
               </div>
               <div className="min-w-0">
-                <h3 className="font-semibold text-sm lg:text-base leading-tight">
+                <h3 className="font-semibold text-sm sm:text-base leading-tight truncate">
                   {agentMode ? 'Targetym AI' : 'Targetym AI'}
                 </h3>
                 {agentMode && (
-                  <p className="text-[10px] lg:text-[11px] text-white/70 truncate">Génération · Prévisualisation · Insertion</p>
+                  <p className="text-[11px] text-white/70">{c.generation}</p>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5 flex-shrink-0">
               {/* Bouton toggle agent : visible uniquement si le rôle permet le mode agent sur cette page */}
               {canUseAgent(userRole) && (
                 <button
                   onClick={() => { setAgentMode(!agentMode); setAgentTurns([]); }}
                   className={`p-2 rounded-lg text-xs transition-colors flex items-center gap-1 ${agentMode ? 'bg-white/20 hover:bg-white/30' : 'hover:bg-white/10'}`}
-                  title={agentMode ? 'Passer en chat classique' : 'Passer en mode agent'}
+                  title={agentMode ? c.switchToClassic : c.switchToAgent}
                 >
                   <Zap size={15} />
                 </button>
@@ -448,7 +451,7 @@ export default function AIChatBox() {
                   <button
                     onClick={() => setShowConversationList(!showConversationList)}
                     className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                    title="Historique"
+                    title={c.history}
                   >
                     <MessageSquare size={17} />
                   </button>
@@ -457,7 +460,7 @@ export default function AIChatBox() {
               <button
                 onClick={handleNewConversation}
                 className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                title="Nouvelle conversation"
+                title={c.newConversation}
               >
                 <Plus size={17} />
               </button>
@@ -475,7 +478,7 @@ export default function AIChatBox() {
                   <Loader2 className="animate-spin text-gray-400" size={24} />
                 </div>
               ) : conversations.length === 0 ? (
-                <div className="text-center py-8 text-gray-400 text-sm">Aucune conversation</div>
+                <div className="text-center py-8 text-gray-400 text-sm">{c.noConversation}</div>
               ) : (
                 <div className="divide-y divide-gray-200">
                   {conversations.map((conv) => (
@@ -488,7 +491,7 @@ export default function AIChatBox() {
                     >
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate text-gray-900">
-                          {conv.title || 'Conversation sans titre'}
+                          {conv.title || c.untitledConversation}
                         </p>
                         <p className="text-xs text-gray-500">
                           {conv.message_count || 0} message{(conv.message_count || 0) > 1 ? 's' : ''}
@@ -508,28 +511,28 @@ export default function AIChatBox() {
           )}
 
           {/* Zone des messages */}
-          <div className="flex-1 overflow-y-auto p-3 lg:p-4 space-y-3 lg:space-y-4 bg-gray-50">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
             {!isEnabled && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-yellow-800 font-medium">⚠️ Chatbot non configuré</p>
-                <p className="text-xs text-yellow-700 mt-1">La clé API Anthropic n'est pas configurée.</p>
+                <p className="text-sm text-yellow-800 font-medium">⚠️ {c.chatbotNotConfigured}</p>
+                <p className="text-xs text-yellow-700 mt-1">{c.apiKeyNotConfigured}</p>
               </div>
             )}
 
             {/* ---- MODE AGENT ---- */}
             {agentMode ? (
               agentTurns.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-center px-4 lg:px-6">
+                <div className="h-full flex items-center justify-center text-center px-6">
                   <div>
-                    <div className="bg-primary-100 w-14 lg:w-16 h-14 lg:h-16 rounded-full flex items-center justify-center mx-auto mb-3 lg:mb-4">
-                      <Zap size={28} className="text-primary-600" />
+                    <div className="bg-primary-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Zap size={32} className="text-primary-600" />
                     </div>
-                    <h4 className="font-semibold text-gray-900 mb-2 text-sm lg:text-base">Mode Agent — {agentContext || 'Général'}</h4>
-                    <p className="text-xs lg:text-sm text-gray-600">
-                      Décrivez ce que vous souhaitez créer. Je générerai le contenu et vous pourrez le valider avant l&apos;insertion.
+                    <h4 className="font-semibold text-gray-900 mb-2">{c.agentMode} — {agentContext || c.generalContext}</h4>
+                    <p className="text-sm text-gray-600">
+                      {c.agentDescription}
                     </p>
-                    <p className="text-[11px] lg:text-xs text-gray-400 mt-2">
-                      💡 Joignez un PDF pour me donner plus de contexte
+                    <p className="text-xs text-gray-400 mt-2">
+                      💡 {c.attachPdfHint}
                     </p>
                   </div>
                 </div>
@@ -540,9 +543,9 @@ export default function AIChatBox() {
                       {/* User - masqué si turn de confirmation système (userText vide) */}
                       {turn.userText && (
                         <div className="flex justify-end">
-                          <div className="max-w-[85%] bg-primary-600 text-white rounded-2xl px-4 py-2.5">
+                          <div className="max-w-[85%] bg-primary-600 text-white rounded-2xl px-4 py-2.5 break-words overflow-hidden">
                             <p className="text-sm">{turn.userText}</p>
-                            <p className="text-[11px] text-indigo-200 mt-1">
+                            <p className="text-[11px] text-primary-200 mt-1">
                               {turn.timestamp.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                             </p>
                           </div>
@@ -550,7 +553,7 @@ export default function AIChatBox() {
                       )}
                       {/* Assistant */}
                       <div className="flex justify-start">
-                        <div className="max-w-[90%] bg-white text-gray-900 border border-gray-200 rounded-2xl px-4 py-2.5 shadow-sm">
+                        <div className="max-w-[90%] bg-white text-gray-900 border border-gray-200 rounded-2xl px-4 py-2.5 shadow-sm break-words overflow-hidden">
                           <ChatMessageContent content={turn.reply} isUser={false} />
                           {/* Prévisualisation de l'action */}
                           {turn.action_preview && (
@@ -571,7 +574,7 @@ export default function AIChatBox() {
                         <div className="flex items-center gap-2 text-gray-500">
                           <Loader2 size={16} className="animate-spin" />
                           <span className="text-sm">
-                            {extractingPdf ? 'Lecture du PDF...' : 'Agent en réflexion...'}
+                            {extractingPdf ? c.readingPdf : c.agentThinking}
                           </span>
                         </div>
                       </div>
@@ -583,15 +586,14 @@ export default function AIChatBox() {
             ) : (
               /* ---- MODE CLASSIQUE ---- */
               !activeConversation ? (
-                <div className="h-full flex items-center justify-center text-center px-4 lg:px-6">
+                <div className="h-full flex items-center justify-center text-center px-6">
                   <div>
-                    <div className="bg-primary-100 w-14 lg:w-16 h-14 lg:h-16 rounded-full flex items-center justify-center mx-auto mb-3 lg:mb-4">
-                      <MessageCircle size={28} className="text-primary-600" />
+                    <div className="bg-primary-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <MessageCircle size={32} className="text-primary-600" />
                     </div>
-                    <h4 className="font-semibold text-gray-900 mb-2 text-sm lg:text-base">Bonjour ! 👋</h4>
-                    <p className="text-xs lg:text-sm text-gray-600">
-                      Je suis votre assistant RH. Posez-moi des questions sur vos congés,
-                      objectifs, tâches, ou formations !
+                    <h4 className="font-semibold text-gray-900 mb-2">{c.hello} 👋</h4>
+                    <p className="text-sm text-gray-600">
+                      {c.hrAssistant}
                     </p>
                   </div>
                 </div>
@@ -599,13 +601,13 @@ export default function AIChatBox() {
                 <>
                   {activeConversation.messages.map((msg) => (
                     <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
+                      <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 break-words overflow-hidden ${
                         msg.role === 'user'
                           ? 'bg-primary-600 text-white'
                           : 'bg-white text-gray-900 border border-gray-200 shadow-sm'
                       }`}>
                         <ChatMessageContent content={msg.content} isUser={msg.role === 'user'} />
-                        <p className={`text-xs mt-1.5 ${msg.role === 'user' ? 'text-blue-100' : 'text-gray-400'}`}>
+                        <p className={`text-xs mt-1.5 ${msg.role === 'user' ? 'text-primary-100' : 'text-gray-400'}`}>
                           {new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
@@ -617,7 +619,7 @@ export default function AIChatBox() {
                       <div className="bg-white border border-gray-200 rounded-2xl px-4 py-2.5 shadow-sm">
                         <div className="flex items-center gap-2 text-gray-500">
                           <Loader2 size={16} className="animate-spin" />
-                          <span className="text-sm">Réflexion en cours...</span>
+                          <span className="text-sm">{c.thinking}</span>
                         </div>
                       </div>
                     </div>
@@ -630,8 +632,8 @@ export default function AIChatBox() {
 
           {/* Boutons de contact (mode classique seulement) */}
           {!agentMode && (
-            <div className="px-4 py-2 bg-gray-100 border-t border-gray-200 flex items-center gap-2 text-xs">
-              <span className="text-gray-600">Besoin d'un agent ?</span>
+            <div className="px-4 py-2 bg-gray-100 border-t border-gray-200 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+              <span className="text-gray-600">{c.needAgent}</span>
               <a href="mailto:support@agiltym.com" className="flex items-center gap-1 text-primary-600 hover:text-primary-700 font-medium">
                 <Mail size={14} />Email
               </a>
@@ -670,7 +672,7 @@ export default function AIChatBox() {
           )}
 
           {/* Zone de saisie */}
-          <div className="p-3 lg:p-4 bg-white border-t border-gray-200 rounded-b-2xl">
+          <div className="p-4 bg-white border-t border-gray-200 rounded-b-2xl">
             <div className="flex items-end gap-2">
               {/* Upload PDF (mode agent seulement) */}
               {agentMode && (
@@ -690,7 +692,7 @@ export default function AIChatBox() {
                         ? 'bg-primary-100 border-primary-300 text-primary-700'
                         : 'border-gray-300 text-gray-500 hover:bg-gray-50'
                     }`}
-                    title="Joindre un fichier (PDF, Excel, CSV, DOCX, TXT)"
+                    title={c.attachFile}
                   >
                     <Paperclip size={18} />
                   </button>
@@ -702,7 +704,7 @@ export default function AIChatBox() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder={agentMode ? 'Décrivez ce que vous souhaitez générer...' : 'Posez votre question...'}
+                placeholder={agentMode ? c.agentPlaceholder : c.chatPlaceholder}
                 className={`flex-1 resize-none border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent ${
                   agentMode
                     ? 'border-primary-300 focus:ring-primary-500'
@@ -719,9 +721,7 @@ export default function AIChatBox() {
               <button
                 onClick={handleSendMessage}
                 disabled={!message.trim() || sending}
-                className={`p-2.5 rounded-xl text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0 ${
-                  agentMode ? 'bg-primary-600 hover:bg-primary-700' : 'bg-primary-600 hover:bg-primary-700'
-                }`}
+                className="p-2.5 rounded-xl text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0 bg-primary-600 hover:bg-primary-700"
               >
                 {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
               </button>

@@ -170,7 +170,7 @@ export function LearningModals() {
             <div className="p-6 space-y-4">
               <div><label className="block text-sm font-medium text-gray-700 mb-1">{t.training.titleField} *</label><input type="text" value={newCourse.title} onChange={(e) => setNewCourse({ ...newCourse, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ex: Leadership & Management" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">{t.training.description}</label><textarea value={newCourse.description} onChange={(e) => setNewCourse({ ...newCourse, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={3} /></div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{t.training.category}</label>
                   <CustomSelect
@@ -199,7 +199,7 @@ export function LearningModals() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">{t.training.durationHours}</label><input type="number" value={newCourse.duration_hours} onChange={(e) => setNewCourse({ ...newCourse, duration_hours: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="8" /></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">{t.training.emoji}</label><input type="text" value={newCourse.image_emoji} onChange={(e) => setNewCourse({ ...newCourse, image_emoji: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="📚" /></div>
               </div>
@@ -259,7 +259,7 @@ export function LearningModals() {
             <div className="p-6 space-y-4">
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label><input type="text" value={editCourseData.title} onChange={(e) => setEditCourseData({ ...editCourseData, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea value={editCourseData.description} onChange={(e) => setEditCourseData({ ...editCourseData, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={3} /></div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
                   <CustomSelect
@@ -288,7 +288,7 @@ export function LearningModals() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Durée (heures)</label><input type="number" value={editCourseData.duration_hours} onChange={(e) => setEditCourseData({ ...editCourseData, duration_hours: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Emoji</label><input type="text" value={editCourseData.image_emoji} onChange={(e) => setEditCourseData({ ...editCourseData, image_emoji: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
               </div>
@@ -480,7 +480,7 @@ export function LearningModals() {
                   ]}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Poste actuel</label><input type="text" value={newPlan.current_role} onChange={(e) => setNewPlan({ ...newPlan, current_role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Poste cible</label><input type="text" value={newPlan.target_role} onChange={(e) => setNewPlan({ ...newPlan, target_role: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
               </div>
@@ -755,7 +755,7 @@ export function LearningModals() {
               {showEpfDetail.comments && (<div><p className="text-xs text-gray-500 mb-1">Commentaire</p><p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">{showEpfDetail.comments}</p></div>)}
               {showEpfDetail.recommendation_details && (<div className={`p-3 rounded-lg border ${showEpfDetail.competency_validated ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}><p className={`text-sm ${showEpfDetail.competency_validated ? 'text-green-700' : 'text-red-700'}`}>{showEpfDetail.recommendation_details}</p></div>)}
               {showEpfDetail.retrain_course_title && (<div className="p-3 bg-amber-50 border border-amber-200 rounded-lg"><p className="text-sm font-medium text-amber-800">🔄 Re-formation assignée</p><p className="text-xs text-amber-600 mt-1">{showEpfDetail.retrain_course_title}</p></div>)}
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <div className="bg-gray-50 p-2 rounded"><p className="text-xs text-gray-500">Évaluateur</p><p className="font-medium">{showEpfDetail.evaluator_name || '—'}</p></div>
                 <div className="bg-gray-50 p-2 rounded"><p className="text-xs text-gray-500">Complétée le</p><p className="font-medium">{showEpfDetail.completed_at ? new Date(showEpfDetail.completed_at).toLocaleDateString('fr-FR') : '—'}</p></div>
               </div>
@@ -860,7 +860,7 @@ export function LearningModals() {
                   ]}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Contact</label><input type="text" value={newProvider.contact_name} onChange={(e) => setNewProvider({ ...newProvider, contact_name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Nom du contact" /></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label><input type="text" value={newProvider.phone} onChange={(e) => setNewProvider({ ...newProvider, phone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="+225 07 00 00 00" /></div>
               </div>
@@ -894,7 +894,7 @@ export function LearningModals() {
                   ]}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Contact</label><input type="text" value={showEditProvider.contact_name || ''} onChange={(e) => setShowEditProvider({ ...showEditProvider, contact_name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label><input type="text" value={showEditProvider.phone || ''} onChange={(e) => setShowEditProvider({ ...showEditProvider, phone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
               </div>

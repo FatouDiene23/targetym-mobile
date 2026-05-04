@@ -1075,8 +1075,8 @@ export default function MissionsPage() {
         </div>
 
         {activeTab !== 'a_valider' && (
-          <div className="flex items-center gap-3 mb-4" data-tour="missions-filters">
-            <div className="relative flex-1 max-w-md">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4" data-tour="missions-filters">
+            <div className="relative w-full sm:flex-1 sm:max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
@@ -1090,7 +1090,7 @@ export default function MissionsPage() {
               value={statusFilter}
               onChange={setStatusFilter}
               placeholder="Tous les statuts"
-              className="min-w-[160px]"
+              className="w-full sm:w-auto sm:min-w-[160px]"
               options={[
                 { value: '', label: 'Tous les statuts' },
                 ...Object.entries(STATUS_CONFIG).map(([key, val]) => ({ value: key, label: val.label })),
@@ -1347,7 +1347,7 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Lieu de départ *</label>
               <input
@@ -1393,7 +1393,7 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Date de départ *</label>
               <CustomDatePicker
@@ -1411,7 +1411,7 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Moyen de transport *</label>
               <CustomSelect
@@ -1515,7 +1515,7 @@ function MissionDetailModal({ mission, role, onClose }: {
           {/* Info employé */}
           <div className="bg-gray-50 rounded-xl p-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Employé</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               <div><span className="text-gray-500">Nom:</span> <span className="font-medium">{mission.employee_name}</span></div>
               <div><span className="text-gray-500">Matricule:</span> <span className="font-medium">{mission.employee_code || '-'}</span></div>
               <div><span className="text-gray-500">Poste:</span> <span className="font-medium">{mission.employee_job_title || '-'}</span></div>
@@ -1524,7 +1524,7 @@ function MissionDetailModal({ mission, role, onClose }: {
           </div>
 
           {/* Itinéraire + Dates */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-primary-50 rounded-xl p-4">
               <h3 className="text-sm font-semibold text-primary-700 mb-2 flex items-center gap-2">
                 <MapPin className="w-4 h-4" /> Itinéraire
@@ -1543,7 +1543,7 @@ function MissionDetailModal({ mission, role, onClose }: {
           </div>
 
           {/* Transport & Hébergement */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-1">Transport</h3>
               <p className="text-sm">{transport.label}</p>
@@ -1719,7 +1719,7 @@ function EditMissionModal({ mission, onClose, onSuccess }: {
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
             <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm" rows={3} />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Lieu de départ *</label>
               <input type="text" value={formData.departure_location} onChange={(e) => setFormData({ ...formData, departure_location: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm" />
@@ -1729,7 +1729,7 @@ function EditMissionModal({ mission, onClose, onSuccess }: {
               <input type="text" value={formData.destination} onChange={(e) => setFormData({ ...formData, destination: e.target.value })} className="w-full px-3 py-2 border rounded-xl text-sm" />
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Date de départ *</label>
               <CustomDatePicker value={formData.start_date} onChange={v => setFormData({ ...formData, start_date: v })} className="w-full" />
@@ -1739,7 +1739,7 @@ function EditMissionModal({ mission, onClose, onSuccess }: {
               <CustomDatePicker value={formData.end_date} onChange={v => setFormData({ ...formData, end_date: v })} min={formData.start_date} className="w-full" />
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Transport</label>
               <CustomSelect
@@ -1875,7 +1875,7 @@ function ValidateMissionModal({ mission, role, onClose, onSuccess }: {
           </div>
 
           {isRHStep && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Per diem journalier (XOF) *</label>
                 <input

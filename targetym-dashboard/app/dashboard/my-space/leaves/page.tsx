@@ -554,7 +554,7 @@ function NewLeaveRequestModal({
               return null;
             })()}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t.mySpace.startDate} <span className="text-red-500">*</span>
@@ -1100,7 +1100,7 @@ export default function MyLeavesPage() {
           </div>
 
           {balances && balances.balances.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" data-tour="leave-balance">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-tour="leave-balance">
               {balances.balances.map((balance) => (
                 <BalanceCard key={balance.id} balance={balance} />
               ))}

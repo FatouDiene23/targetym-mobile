@@ -627,7 +627,7 @@ function PeopleAnalyticsContent() {
       </div>
 
       {/* Graphiques résumés */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Évolution effectifs */}
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
@@ -712,7 +712,7 @@ function PeopleAnalyticsContent() {
       </div>
 
       {/* Graphiques */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Évolution effectifs */}
         <div className="bg-white rounded-xl border p-6">
           <h3 className="font-semibold text-gray-900 mb-4">{t.analytics.staffEvolution}</h3>
@@ -837,7 +837,7 @@ function PeopleAnalyticsContent() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Score moyen par département */}
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
@@ -1007,7 +1007,7 @@ function PeopleAnalyticsContent() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* 9-Box */}
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
@@ -1135,7 +1135,7 @@ function PeopleAnalyticsContent() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Exécution par catégorie */}
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
@@ -1384,7 +1384,7 @@ function PeopleAnalyticsContent() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Tendance engagement */}
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
@@ -1538,7 +1538,7 @@ function PeopleAnalyticsContent() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Pipeline funnel */}
         <div className="bg-white rounded-xl border p-6">
           <h3 className="font-semibold text-gray-900 mb-4">{t.analytics.recruitmentFunnel}</h3>
@@ -1681,7 +1681,7 @@ function PeopleAnalyticsContent() {
       </div>
 
       {/* Évolution masse salariale + répartition par département */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl border p-6">
           <h3 className="font-semibold text-gray-900 mb-4">{t.analytics.salaryEvolution}</h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -1738,7 +1738,7 @@ function PeopleAnalyticsContent() {
       </div>
 
       {/* Distribution par tranches + par contrat */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl border p-6">
           <h3 className="font-semibold text-gray-900 mb-4">{t.analytics.salaryBrackets}</h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -1934,7 +1934,7 @@ function PeopleAnalyticsContent() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Graphique — Formations par département */}
           <div className="bg-white rounded-xl border p-6">
             <div className="flex items-center justify-between mb-4">
@@ -2321,14 +2321,14 @@ function PeopleAnalyticsContent() {
           <h1 className="text-2xl font-bold text-gray-900">{(SECTION_HEADERS[currentSection] ?? SECTION_HEADERS['overview']).title}</h1>
           <p className="text-gray-500 text-sm mt-1">{(SECTION_HEADERS[currentSection] ?? SECTION_HEADERS['overview']).subtitle}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
           {/* Filtre département */}
-          <div className="relative">
-            <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <div className="relative w-full md:w-auto">
+            <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
             <CustomSelect
               value={department}
               onChange={(v) => setDepartment(v)}
-              className="pl-8 pr-4"
+              className="pl-8 pr-4 w-full"
               options={[
                 { value: '', label: t.analytics.allDepartments },
                 ...departments.map((d) => ({ value: d, label: d })),
@@ -2342,7 +2342,7 @@ function PeopleAnalyticsContent() {
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
-                className={`px-3 py-2 text-sm font-medium transition-colors ${
+                className={`px-2.5 md:px-3 py-2 text-sm font-medium transition-colors ${
                   period === p
                     ? "bg-primary-600 text-white"
                     : "text-gray-600 hover:bg-gray-50"
@@ -2364,11 +2364,11 @@ function PeopleAnalyticsContent() {
 
           {/* Export buttons */}
           <div data-tour="analytics-export" className="flex gap-2">
-            <button onClick={handleExportExcel} className="flex items-center gap-2 px-3 py-2 border rounded-lg text-sm hover:bg-gray-50 transition-colors">
+            <button onClick={handleExportExcel} className="flex items-center gap-1.5 md:gap-2 px-2.5 md:px-3 py-2 border rounded-lg text-sm hover:bg-gray-50 transition-colors">
               <FileSpreadsheet size={14} />
               Excel
             </button>
-            <button onClick={handleExportPDF} className="flex items-center gap-2 px-3 py-2 border rounded-lg text-sm hover:bg-gray-50 transition-colors">
+            <button onClick={handleExportPDF} className="flex items-center gap-1.5 md:gap-2 px-2.5 md:px-3 py-2 border rounded-lg text-sm hover:bg-gray-50 transition-colors">
               <FileText size={14} />
               PDF
             </button>

@@ -100,7 +100,7 @@ export default function SOSButton() {
                 {/* Type */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-800 mb-2">Type de situation</label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {CATEGORIES.map(cat => (
                       <button
                         key={cat.value}

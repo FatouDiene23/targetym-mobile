@@ -120,7 +120,7 @@ export default function ImportEmployeesTab({ onImportDone }: { onImportDone?: ()
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
               {TEMPLATE_COLUMNS.map(({ col, required, desc }) => (
                 <div key={col} className="flex items-start gap-2 text-xs">
                   <span className={`mt-0.5 px-1.5 py-0.5 rounded font-mono font-medium flex-shrink-0 ${required ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>

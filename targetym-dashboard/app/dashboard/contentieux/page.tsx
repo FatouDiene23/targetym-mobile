@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/CustomDatePicker';
 import {
   Scale, Search, Plus, Loader2, X, ChevronLeft, ChevronRight,
   Calendar, User, Filter, Upload, Download, Trash2, FileText,
@@ -871,10 +872,9 @@ export default function ContentieuxPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.sanctions.nextAudienceDate}</label>
-                <input
-                  type="date"
+                <CustomDatePicker
                   value={audienceForm.next_audience_date}
-                  onChange={e => setAudienceForm(f => ({ ...f, next_audience_date: e.target.value }))}
+                  onChange={v => setAudienceForm(f => ({ ...f, next_audience_date: v }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
                 />
               </div>
@@ -989,8 +989,8 @@ export default function ContentieuxPage() {
 
       {/* Filters + Actions */}
       <div className="bg-white rounded-xl shadow-sm border p-4 mb-6 w-full">
-        <div className="flex flex-wrap items-center gap-3 w-full">
-          <div className="relative flex-1 min-w-[250px]">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 w-full">
+          <div className="relative w-full sm:flex-1 sm:min-w-[250px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
@@ -1000,25 +1000,27 @@ export default function ContentieuxPage() {
               className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
             />
           </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-1.5 px-3 py-2 border rounded-lg text-sm transition-colors ${
-              showFilters ? 'border-primary-500 text-primary-600 bg-primary-50' : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            <Filter className="w-4 h-4" /> {t.sanctions.filters}
-          </button>
-          {canCreate && (
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => {
-                setCreateForm({ employee_id: 0, title: '', description: '', opened_date: new Date().toISOString().split('T')[0], assigned_to_id: 0, reference_number: '' });
-                setShowCreateModal(true);
-              }}
-              className="flex items-center gap-1.5 px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-1.5 px-3 py-2 border rounded-lg text-sm transition-colors ${
+                showFilters ? 'border-primary-500 text-primary-600 bg-primary-50' : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+              }`}
             >
-              <Plus className="w-4 h-4" /> {t.sanctions.newCaseBtn}
+              <Filter className="w-4 h-4" /> {t.sanctions.filters}
             </button>
-          )}
+            {canCreate && (
+              <button
+                onClick={() => {
+                  setCreateForm({ employee_id: 0, title: '', description: '', opened_date: new Date().toISOString().split('T')[0], assigned_to_id: 0, reference_number: '' });
+                  setShowCreateModal(true);
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-colors"
+              >
+                <Plus className="w-4 h-4" /> {t.sanctions.newCaseBtn}
+              </button>
+            )}
+          </div>
         </div>
 
         {showFilters && (
@@ -1209,10 +1211,9 @@ export default function ContentieuxPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.sanctions.openingDateLabel}</label>
-              <input
-                type="date"
+              <CustomDatePicker
                 value={createForm.opened_date}
-                onChange={e => setCreateForm(f => ({ ...f, opened_date: e.target.value }))}
+                onChange={v => setCreateForm(f => ({ ...f, opened_date: v }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
               />
             </div>

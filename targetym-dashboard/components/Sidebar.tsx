@@ -55,6 +55,7 @@ import {
   Banknote,
   ArrowLeftRight,
   PieChart,
+  LayoutList,
 } from 'lucide-react';
 import { useState, useEffect, useMemo, Suspense, useCallback } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
@@ -151,6 +152,13 @@ const navigation: NavItem[] = [
     icon: BarChart3,
     roles: ['rh', 'admin', 'dg'],
     dataTour: 'sidebar-analytics'
+  },
+  {
+    name: 'Programmes RH',
+    href: '/dashboard/programmes',
+    icon: LayoutList,
+    roles: ['rh', 'admin', 'dg'],
+    dataTour: 'sidebar-programmes'
   },
   {
     name: 'Gestion du Personnel',
@@ -272,7 +280,6 @@ const performanceNavigation: NavItem[] = [
 const learningNavigation: NavItem[] = [
   { name: 'Catalogue', href: '/dashboard/learning', icon: BookOpen, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Mes Formations', href: '/dashboard/learning/my-learning', icon: User, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
-  { name: 'Mon Équipe', href: '/dashboard/learning/team', icon: UsersRound, roles: ['manager'] },
   { name: 'Parcours Formation', href: '/dashboard/learning/paths', icon: Target, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Certifications', href: '/dashboard/learning/certifications', icon: Award, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Plans Individuels', href: '/dashboard/learning/development', icon: GraduationCap, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
@@ -311,7 +318,6 @@ const personnelNavigation: NavItem[] = [
   { name: 'Import',       href: '/dashboard/employees?tab=import',     icon: ArrowUpRight, roles: ['rh', 'admin', 'dg'] },
   { name: 'Alertes SOS',  href: '/dashboard/employees/sos',            icon: AlertTriangle, roles: ['rh', 'admin', 'dg'] },
   { name: 'Signatures',   href: '/dashboard/employees/signatures',      icon: PenLine,       roles: ['rh', 'admin', 'dg'] },
-  { name: 'Mobilité Interne', href: '/dashboard/employees?tab=mobility', icon: ArrowLeftRight, roles: ['rh', 'admin', 'dg'] },
 ];
 
 // Sous-menu People Analytics

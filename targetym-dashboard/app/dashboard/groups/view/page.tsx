@@ -272,7 +272,7 @@ function PersonnelTab({ data, onSelectEmployee }: { data: GroupPersonnelView; on
             {t.groups.keyEmployees}
             <span className="ml-2 text-xs font-normal text-gray-400">({data.key_employees.length})</span>
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {data.key_employees.map(emp => (
               <button
                 key={emp.id}

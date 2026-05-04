@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { getEmployeeAccessStatus, activateEmployeeAccess, type AccessStatus } from '@/lib/api';
 import EmployeeDocuments from '@/components/EmployeeDocuments';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
@@ -1227,14 +1229,18 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                 <h3 className="font-semibold text-gray-900 flex items-center">
                   <TrendingUp className="w-4 h-4 mr-2 text-primary-500" />Score de Performance
                 </h3>
-                <select value={perfPeriod} onChange={e => setPerfPeriod(e.target.value)}
-                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:ring-1 focus:ring-primary-500 outline-none">
-                  <option value="month">Ce mois</option>
-                  <option value="quarter">Ce trimestre</option>
-                  <option value="year">Cette année</option>
-                  <option value="last_quarter">Trim. précédent</option>
-                  <option value="last_month">Mois précédent</option>
-                </select>
+                <CustomSelect
+                  value={perfPeriod}
+                  onChange={(v) => setPerfPeriod(v)}
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:ring-1 focus:ring-primary-500 outline-none"
+                  options={[
+                    { value: 'month', label: 'Ce mois' },
+                    { value: 'quarter', label: 'Ce trimestre' },
+                    { value: 'year', label: 'Cette année' },
+                    { value: 'last_quarter', label: 'Trim. précédent' },
+                    { value: 'last_month', label: 'Mois précédent' },
+                  ]}
+                />
               </div>
               {isLoadingPerf ? (
                 <div className="flex items-center justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
@@ -1244,7 +1250,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                     <div className={`text-2xl font-bold ${getScoreColor(perfScore.overall_score)}`}>{Math.round(perfScore.overall_score)}%</div>
                     <div className={`text-xs font-medium mt-1 ${getScoreColor(perfScore.overall_score)}`}>{getScoreLabel(perfScore.overall_score)}</div>
                   </div>
-                  <div className="col-span-4 grid grid-cols-4 gap-2">
+                  <div className="col-span-4 grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-2">
                     <ScoreCard label="OKRs" value={perfScore.okr_score} weight="40%" icon={<Target className="w-3.5 h-3.5" />} />
                     <ScoreCard label="Tâches" value={perfScore.task_score} weight="25%" icon={<CheckCircle2 className="w-3.5 h-3.5" />} />
                     <ScoreCard label="Validations" value={perfScore.validation_score} weight="20%" icon={<Clock className="w-3.5 h-3.5" />} />
@@ -1395,34 +1401,42 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                       className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none"
                       placeholder="Ex : Prime de transport, Voiture de fonction…" />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Catégorie</label>
-                      <select value={newBenefit.category} onChange={e => setNewBenefit(p => ({ ...p, category: e.target.value }))}
-                        className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none">
-                        <option value="financier">Financier</option>
-                        <option value="nature">En nature</option>
-                        <option value="sante">Santé</option>
-                        <option value="retraite">Retraite</option>
-                        <option value="transport">Transport</option>
-                        <option value="repas">Repas</option>
-                        <option value="formation">Formation</option>
-                        <option value="autre">Autre</option>
-                      </select>
+                      <CustomSelect
+                        value={newBenefit.category}
+                        onChange={(v) => setNewBenefit(p => ({ ...p, category: v }))}
+                        className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none"
+                        options={[
+                          { value: 'financier', label: 'Financier' },
+                          { value: 'nature', label: 'En nature' },
+                          { value: 'sante', label: 'Santé' },
+                          { value: 'retraite', label: 'Retraite' },
+                          { value: 'transport', label: 'Transport' },
+                          { value: 'repas', label: 'Repas' },
+                          { value: 'formation', label: 'Formation' },
+                          { value: 'autre', label: 'Autre' },
+                        ]}
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Périodicité</label>
-                      <select value={newBenefit.frequency} onChange={e => setNewBenefit(p => ({ ...p, frequency: e.target.value }))}
-                        className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none">
-                        <option value="mensuel">Mensuel</option>
-                        <option value="trimestriel">Trimestriel</option>
-                        <option value="semestriel">Semestriel</option>
-                        <option value="annuel">Annuel</option>
-                        <option value="unique">Versement unique</option>
-                      </select>
+                      <CustomSelect
+                        value={newBenefit.frequency}
+                        onChange={(v) => setNewBenefit(p => ({ ...p, frequency: v }))}
+                        className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none"
+                        options={[
+                          { value: 'mensuel', label: 'Mensuel' },
+                          { value: 'trimestriel', label: 'Trimestriel' },
+                          { value: 'semestriel', label: 'Semestriel' },
+                          { value: 'annuel', label: 'Annuel' },
+                          { value: 'unique', label: 'Versement unique' },
+                        ]}
+                      />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Montant (optionnel)</label>
                       <input type="number" value={newBenefit.amount} onChange={e => setNewBenefit(p => ({ ...p, amount: e.target.value }))}
@@ -1431,19 +1445,23 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Devise</label>
-                      <select value={newBenefit.currency} onChange={e => setNewBenefit(p => ({ ...p, currency: e.target.value }))}
-                        className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none">
-                        <option value="XOF">XOF (FCFA)</option>
-                        <option value="EUR">EUR</option>
-                        <option value="USD">USD</option>
-                        <option value="GNF">GNF</option>
-                        <option value="XAF">XAF</option>
-                      </select>
+                      <CustomSelect
+                        value={newBenefit.currency}
+                        onChange={(v) => setNewBenefit(p => ({ ...p, currency: v }))}
+                        className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none"
+                        options={[
+                          { value: 'XOF', label: 'XOF (FCFA)' },
+                          { value: 'EUR', label: 'EUR' },
+                          { value: 'USD', label: 'USD' },
+                          { value: 'GNF', label: 'GNF' },
+                          { value: 'XAF', label: 'XAF' },
+                        ]}
+                      />
                     </div>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Date de début</label>
-                    <input type="date" value={newBenefit.start_date} onChange={e => setNewBenefit(p => ({ ...p, start_date: e.target.value }))}
+                    <CustomDatePicker value={newBenefit.start_date} onChange={v => setNewBenefit(p => ({ ...p, start_date: v }))}
                       className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none" />
                   </div>
                   <div>
@@ -1534,17 +1552,19 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
 
               {showAddSanction && (
                 <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-xl space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Type *</label>
-                      <select value={newSanction.type} onChange={e => setNewSanction(p => ({ ...p, type: e.target.value }))}
-                        className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none">
-                        {Object.keys(SANCTION_TYPES).map(t => <option key={t} value={t}>{t}</option>)}
-                      </select>
+                      <CustomSelect
+                        value={newSanction.type}
+                        onChange={(v) => setNewSanction(p => ({ ...p, type: v }))}
+                        className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none"
+                        options={Object.keys(SANCTION_TYPES).map(t => ({ value: t, label: t }))}
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Date *</label>
-                      <input type="date" value={newSanction.date} onChange={e => setNewSanction(p => ({ ...p, date: e.target.value }))}
+                      <CustomDatePicker value={newSanction.date} onChange={v => setNewSanction(p => ({ ...p, date: v }))}
                         className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none" />
                     </div>
                   </div>

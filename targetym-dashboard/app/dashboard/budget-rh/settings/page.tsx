@@ -1,7 +1,6 @@
  "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import CustomSelect from '@/components/CustomSelect';
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Settings, Upload, Download, Plus, Pencil, Trash2, Save,
@@ -11,6 +10,7 @@ import {
 import { fetchWithAuth, API_URL } from "@/lib/api";
 import { useI18n } from "@/lib/i18n/I18nContext";
 import { useBudgetYear } from "@/hooks/useBudgetYear";
+import CustomSelect from "@/components/CustomSelect";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -268,7 +268,7 @@ function CategoryModal({
         </div>
         <div className="p-5 space-y-3">
           {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Code NRG *</label>
               <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })}
@@ -276,7 +276,16 @@ function CategoryModal({
             </div>
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Niveau</label>
-              <CustomSelect value={String(form.level)} onChange={(v) => setForm({ ...form, level: +v })} options={[{value:'1', label:'1 — Section'},{value:'2', label:'2 — Groupe'},{value:'3', label:'3 — Rubrique'}]} className="w-full" />
+              <CustomSelect
+                value={String(form.level)}
+                onChange={(v) => setForm({ ...form, level: +v })}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-400"
+                options={[
+                  { value: '1', label: '1 — Section' },
+                  { value: '2', label: '2 — Groupe' },
+                  { value: '3', label: '3 — Rubrique' },
+                ]}
+              />
             </div>
           </div>
           <div>
@@ -286,7 +295,15 @@ function CategoryModal({
           </div>
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">Catégorie parente</label>
-            <CustomSelect value={form.parent_code} onChange={(v) => setForm({ ...form, parent_code: v })} options={[{value:'', label:'— Aucune (niveau racine) —'}, ...categories.filter((c) => c.id !== existing?.id && c.level < form.level).map((c) => ({value: c.code, label: `${c.code} — ${c.label}`}))]} className="w-full" />
+            <CustomSelect
+              value={form.parent_code}
+              onChange={(v) => setForm({ ...form, parent_code: v })}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary-400"
+              options={[
+                { value: '', label: '— Aucune (niveau racine) —' },
+                ...categories.filter((c) => c.id !== existing?.id && c.level < form.level).map((c) => ({ value: c.code, label: `${c.code} — ${c.label}` })),
+              ]}
+            />
           </div>
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">Ordre d&apos;affichage</label>
@@ -635,7 +652,12 @@ export default function BudgetRHSettingsPage() {
         </div>
         <div className="ml-auto flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 bg-white shadow-sm">
           <Calendar className="w-4 h-4 text-gray-400" />
-          <CustomSelect value={String(year)} onChange={(v) => setYear(+v)} options={[currentYear - 1, currentYear, currentYear + 1, currentYear + 2].map((y) => ({value: String(y), label: String(y)}))} className="text-sm font-medium text-gray-700 bg-transparent" />
+          <CustomSelect
+            value={String(year)}
+            onChange={(v) => setYear(+v)}
+            className="text-sm font-medium text-gray-700 bg-transparent outline-none border-0"
+            options={[currentYear - 1, currentYear, currentYear + 1, currentYear + 2].map((y) => ({ value: String(y), label: String(y) }))}
+          />
         </div>
       </div>
 
@@ -862,7 +884,12 @@ export default function BudgetRHSettingsPage() {
 
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Devise</label>
-              <CustomSelect value={config?.currency ?? "XOF"} onChange={(v) => updateCurrency(v)} options={CURRENCIES.map((c) => ({value: c, label: c}))} className="w-full" />
+              <CustomSelect
+                value={config?.currency ?? "XOF"}
+                onChange={(v) => updateCurrency(v)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-primary-400"
+                options={CURRENCIES.map((c) => ({ value: c, label: c }))}
+              />
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-xl border transition-colors"

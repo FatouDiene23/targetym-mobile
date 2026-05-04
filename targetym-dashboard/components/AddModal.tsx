@@ -12,6 +12,8 @@ import {
 import AddOrganizationalUnitModal from '@/components/AddOrganizationalUnitModal';
 import AddEmployeeModal from '@/components/AddEmployeeModal';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 import type { Translations } from '@/lib/i18n';
 
 // ============================================
@@ -340,7 +342,7 @@ function CandidateForm({ jobs, onSuccess, onCancel }: { jobs: Job[]; onSuccess: 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.firstName} *</label>
           <input type="text" required value={formData.first_name} onChange={(e) => setFormData({...formData, first_name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
@@ -354,7 +356,7 @@ function CandidateForm({ jobs, onSuccess, onCancel }: { jobs: Job[]; onSuccess: 
         <label className="block text-sm font-medium text-gray-700 mb-1">{a.email} *</label>
         <input type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.phone}</label>
           <input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
@@ -366,29 +368,26 @@ function CandidateForm({ jobs, onSuccess, onCancel }: { jobs: Job[]; onSuccess: 
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">{a.targetPosition}</label>
-        <select value={formData.job_posting_id} onChange={(e) => setFormData({...formData, job_posting_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-          <option value="">{a.selectPosition}</option>
-          {jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
-        </select>
+        <CustomSelect value={formData.job_posting_id} onChange={(v) => setFormData({...formData, job_posting_id: v})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" options={[{ value: '', label: a.selectPosition }, ...jobs.map(j => ({ value: String(j.id), label: j.title }))]} />
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">{a.skills}</label>
         <input type="text" value={formData.skills} onChange={(e) => setFormData({...formData, skills: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder={a.skillsPlaceholder} />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.experienceYears}</label>
           <input type="number" min="0" value={formData.experience_years} onChange={(e) => setFormData({...formData, experience_years: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.source}</label>
-          <select value={formData.source} onChange={(e) => setFormData({...formData, source: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-            <option value="LinkedIn">LinkedIn</option>
-            <option value="Indeed">Indeed</option>
-            <option value="Site Carrière">{a.careerSite}</option>
-            <option value="Référence interne">{a.internalRef}</option>
-            <option value="Autre">{a.other}</option>
-          </select>
+          <CustomSelect value={formData.source} onChange={(v) => setFormData({...formData, source: v})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" options={[
+            { value: 'LinkedIn', label: 'LinkedIn' },
+            { value: 'Indeed', label: 'Indeed' },
+            { value: 'Site Carrière', label: a.careerSite },
+            { value: 'Référence interne', label: a.internalRef },
+            { value: 'Autre', label: a.other },
+          ]} />
         </div>
       </div>
       <div className="flex gap-3 pt-4">
@@ -443,44 +442,41 @@ function JobForm({ departments, employees, onSuccess, onCancel }: { departments:
         <label className="block text-sm font-medium text-gray-700 mb-1">{a.jobTitle} *</label>
         <input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder={a.jobTitlePlaceholder} />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.department}</label>
-          <select value={formData.department_id} onChange={(e) => setFormData({...formData, department_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-            <option value="">{a.select}</option>
-            {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
+          <CustomSelect value={formData.department_id} onChange={(v) => setFormData({...formData, department_id: v})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" options={[{ value: '', label: a.select }, ...departments.map(d => ({ value: String(d.id), label: d.name }))]} />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.locationRequired} *</label>
           <input type="text" required value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Dakar" />
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.contract}</label>
-          <select value={formData.contract_type} onChange={(e) => setFormData({...formData, contract_type: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-            <option value="CDI">CDI</option>
-            <option value="CDD">CDD</option>
-            <option value="Stage">Stage</option>
-            <option value="Freelance">Freelance</option>
-          </select>
+          <CustomSelect value={formData.contract_type} onChange={(v) => setFormData({...formData, contract_type: v})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" options={[
+            { value: 'CDI', label: 'CDI' },
+            { value: 'CDD', label: 'CDD' },
+            { value: 'Stage', label: 'Stage' },
+            { value: 'Freelance', label: 'Freelance' },
+          ]} />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.remote}</label>
-          <select value={formData.remote_policy} onChange={(e) => setFormData({...formData, remote_policy: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-            <option value="onsite">{a.onsite}</option>
-            <option value="hybrid">{a.hybrid}</option>
-            <option value="remote">{a.fullRemote}</option>
-          </select>
+          <CustomSelect value={formData.remote_policy} onChange={(v) => setFormData({...formData, remote_policy: v})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" options={[
+            { value: 'onsite', label: a.onsite },
+            { value: 'hybrid', label: a.hybrid },
+            { value: 'remote', label: a.fullRemote },
+          ]} />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.urgency}</label>
-          <select value={formData.urgency} onChange={(e) => setFormData({...formData, urgency: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-            <option value="low">{a.normalUrgency}</option>
-            <option value="medium">{a.moderateUrgency}</option>
-            <option value="high">{a.urgentUrgency}</option>
-          </select>
+          <CustomSelect value={formData.urgency} onChange={(v) => setFormData({...formData, urgency: v})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" options={[
+            { value: 'low', label: a.normalUrgency },
+            { value: 'medium', label: a.moderateUrgency },
+            { value: 'high', label: a.urgentUrgency },
+          ]} />
         </div>
       </div>
       <div>
@@ -533,16 +529,16 @@ function TrainingForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel
         <label className="block text-sm font-medium text-gray-700 mb-1">{a.title} *</label>
         <input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.category}</label>
-          <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-            <option value="technical">{a.technical}</option>
-            <option value="soft_skills">{a.softSkills}</option>
-            <option value="management">{a.management}</option>
-            <option value="compliance">{a.compliance}</option>
-            <option value="other">{a.other}</option>
-          </select>
+          <CustomSelect value={formData.category} onChange={(v) => setFormData({...formData, category: v})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" options={[
+            { value: 'technical', label: a.technical },
+            { value: 'soft_skills', label: a.softSkills },
+            { value: 'management', label: a.management },
+            { value: 'compliance', label: a.compliance },
+            { value: 'other', label: a.other },
+          ]} />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.durationHours}</label>
@@ -600,13 +596,13 @@ function ObjectiveForm({ onSuccess, onCancel }: { onSuccess: () => void; onCance
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">{a.period}</label>
-        <select value={formData.period} onChange={(e) => setFormData({...formData, period: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-          <option value="Q1 2025">Q1 2025</option>
-          <option value="Q2 2025">Q2 2025</option>
-          <option value="Q3 2025">Q3 2025</option>
-          <option value="Q4 2025">Q4 2025</option>
-          <option value="2025">{a.year} 2025</option>
-        </select>
+        <CustomSelect value={formData.period} onChange={(v) => setFormData({...formData, period: v})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" options={[
+          { value: 'Q1 2025', label: 'Q1 2025' },
+          { value: 'Q2 2025', label: 'Q2 2025' },
+          { value: 'Q3 2025', label: 'Q3 2025' },
+          { value: 'Q4 2025', label: 'Q4 2025' },
+          { value: '2025', label: `${a.year} 2025` },
+        ]} />
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">{a.description}</label>
@@ -656,23 +652,23 @@ function LeaveForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">{a.leaveType} *</label>
-        <select value={formData.leave_type} onChange={(e) => setFormData({...formData, leave_type: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
-          <option value="annual">{a.annualLeave}</option>
-          <option value="sick">{a.sick}</option>
-          <option value="maternity">{a.maternity}</option>
-          <option value="paternity">{a.paternity}</option>
-          <option value="unpaid">{a.unpaid}</option>
-          <option value="other">{a.other}</option>
-        </select>
+        <CustomSelect value={formData.leave_type} onChange={(v) => setFormData({...formData, leave_type: v})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" options={[
+          { value: 'annual', label: a.annualLeave },
+          { value: 'sick', label: a.sick },
+          { value: 'maternity', label: a.maternity },
+          { value: 'paternity', label: a.paternity },
+          { value: 'unpaid', label: a.unpaid },
+          { value: 'other', label: a.other },
+        ]} />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.startDate} *</label>
-          <input type="date" required value={formData.start_date} onChange={(e) => setFormData({...formData, start_date: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
+          <CustomDatePicker value={formData.start_date} onChange={(v) => setFormData({...formData, start_date: v})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.endDate} *</label>
-          <input type="date" required value={formData.end_date} onChange={(e) => setFormData({...formData, end_date: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
+          <CustomDatePicker value={formData.end_date} onChange={(v) => setFormData({...formData, end_date: v})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
         </div>
       </div>
       <div>

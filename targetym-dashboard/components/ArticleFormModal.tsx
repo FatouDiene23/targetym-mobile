@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
+import CustomSelect from '@/components/CustomSelect';
 
 interface Category {
   id: number;
@@ -173,17 +174,12 @@ export default function ArticleFormModal({ article, categories, onClose, onSave 
                   <label htmlFor="article-category" className="block text-sm font-medium text-gray-700 mb-2">
                     Catégorie *
                   </label>
-                  <select
-                    id="article-category"
-                    value={formData.category_id}
-                    onChange={(e) => setFormData({ ...formData, category_id: Number(e.target.value) })}
+                  <CustomSelect
+                    value={String(formData.category_id || '')}
+                    onChange={(v) => setFormData({ ...formData, category_id: Number(v) })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    required
-                  >
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
+                    options={categories.map(cat => ({ value: String(cat.id), label: cat.name }))}
+                  />
                 </div>
 
                 {/* Titre */}

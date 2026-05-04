@@ -4,6 +4,56 @@
  */
 import { fetchWithAuth, API_URL } from './api';
 
+// ── Types Addon Gate ─────────────────────────────────────────────────────────
+
+export type AddonModuleStatus =
+  | 'not_requested'
+  | 'pending'
+  | 'active'
+  | 'rejected'
+  | 'suspended';
+
+export interface PayrollModulePricing {
+  price_per_employee_per_month: number;
+  currency: string;
+  billing_cycle: string;
+  contact: string;
+}
+
+export interface PayrollModuleInfo {
+  pricing: PayrollModulePricing;
+  module_status: AddonModuleStatus;
+  request_id: number | null;
+  estimated_monthly_cost: number | null;
+}
+
+export async function getPayrollModuleInfo(): Promise<PayrollModuleInfo> {
+  const r = await fetchWithAuth(`${API_URL}/api/billing/payroll-module-info`);
+  if (!r.ok) throw new Error(`${r.status}`);
+  return r.json();
+}
+
+export async function requestPayrollModule(params?: {
+  message?: string;
+  country_code?: string;
+  currency_code?: string;
+}): Promise<{ message: string }> {
+  const r = await fetchWithAuth(`${API_URL}/api/billing/payroll-module-request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message: params?.message ?? null,
+      country_code: params?.country_code ?? 'SN',
+      currency_code: params?.currency_code ?? 'XOF',
+    }),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail ?? `${r.status}`);
+  }
+  return r.json();
+}
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface PayrollConfig {

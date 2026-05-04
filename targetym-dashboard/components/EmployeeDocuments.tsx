@@ -6,6 +6,8 @@ import {
   AlertTriangle, Clock, X, Eye, File, Image as ImageIcon, FileSpreadsheet, Shield
 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
+import CustomDatePicker from './CustomDatePicker';
+import CustomSelect from './CustomSelect';
 
 // ============================================
 // CONFIG
@@ -268,18 +270,15 @@ export default function EmployeeDocuments({ employeeId, employeeName, readOnly =
 
           {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-1 rounded">{error}</p>}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Type *</label>
-              <select
+              <CustomSelect
                 value={uploadType}
-                onChange={e => setUploadType(e.target.value)}
+                onChange={(v) => setUploadType(v)}
                 className="w-full border rounded-lg px-3 py-2 text-sm"
-              >
-                {DOC_TYPES.map(t => (
-                  <option key={t.value} value={t.value}>{t.icon} {t.label}</option>
-                ))}
-              </select>
+                options={DOC_TYPES.map(t => ({ value: t.value, label: `${t.icon} ${t.label}` }))}
+              />
             </div>
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Titre *</label>
@@ -304,14 +303,14 @@ export default function EmployeeDocuments({ employeeId, employeeName, readOnly =
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Date du document</label>
-              <input type="date" value={uploadDocDate} onChange={e => setUploadDocDate(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" />
+              <CustomDatePicker value={uploadDocDate} onChange={setUploadDocDate} className="w-full border rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Date d&apos;expiration</label>
-              <input type="date" value={uploadExpiry} onChange={e => setUploadExpiry(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" />
+              <CustomDatePicker value={uploadExpiry} onChange={setUploadExpiry} className="w-full border rounded-lg px-3 py-2 text-sm" />
             </div>
           </div>
 

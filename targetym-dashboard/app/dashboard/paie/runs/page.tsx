@@ -69,7 +69,7 @@ function NewRunModal({
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.runsPage.year} *</label>
               <input
@@ -186,7 +186,7 @@ function ConfigModal({
             {t.payroll.runsPage.configInfoNote}
           </p>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.runsPage.ninea}</label>
               <input
@@ -209,7 +209,7 @@ function ConfigModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.runsPage.cssEmployerNumber}</label>
               <input
@@ -419,7 +419,7 @@ export default function RunsPage() {
                 </div>
 
                 {/* Chiffres */}
-                <div className="flex-1 grid grid-cols-3 gap-4 text-sm">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div>
                     <div className="text-gray-400 text-xs mb-0.5">{t.payroll.runsPage.grossTotal}</div>
                     <div className="font-semibold text-gray-800">{formatXOF(run.total_brut)}</div>

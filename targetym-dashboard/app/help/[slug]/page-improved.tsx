@@ -405,7 +405,7 @@ export default function ArticleDetailPage() {
               {/* Navigation suivant/précédent */}
               {(prevArticle || nextArticle) && (
                 <div className="border-t border-gray-200 px-8 py-6 bg-white">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {prevArticle ? (
                       <Link
                         href={`/help/${prevArticle.slug}`}

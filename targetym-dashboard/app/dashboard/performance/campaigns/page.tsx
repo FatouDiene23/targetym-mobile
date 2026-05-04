@@ -471,7 +471,7 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.common.details}</label>
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder={t.performance.descriptionOptional} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.evaluationType}</label>
                   <CustomSelect
@@ -506,7 +506,7 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.startDate} *</label>
                   <CustomDatePicker value={startDate} onChange={setStartDate} className="w-full" />
@@ -520,7 +520,7 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
               {/* Types d'évaluateurs */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.evaluatorTypes}</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {[
                     { label: t.performance.selfEvaluation, desc: t.performance.selfEvalDesc, checked: includeSelf, set: setIncludeSelf },
                     { label: t.performance.managerEval, desc: t.performance.managerEvalDesc, checked: includeManager, set: setIncludeManager },
@@ -547,7 +547,7 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
                       {t.performance.weightTotal} : {totalWeight}% {totalWeight !== 100 ? `(${t.performance.weightMustBe100})` : '✓'}
                     </span>
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {includeSelf && (
                       <div><label className="text-xs text-gray-500 mb-1 block">{t.performance.selfEvaluation}</label>
                         <div className="flex items-center gap-2"><input type="range" min={0} max={100} value={weightSelf} onChange={(e) => setWeightSelf(parseInt(e.target.value))} className="flex-1 min-w-0" /><span className="w-10 text-sm font-medium text-right shrink-0">{weightSelf}%</span></div>
@@ -866,15 +866,15 @@ export default function CampaignsPage() {
       {/* Content */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         {/* Filters */}
-        <div className="flex gap-4 mb-6 flex-wrap">
-          <div className="flex-1 min-w-[200px] relative">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
+          <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input 
-              type="text" 
-              value={search} 
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }} 
-              placeholder="Rechercher une campagne..." 
-              className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" 
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Rechercher une campagne..."
+              className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             />
           </div>
           <CustomSelect
@@ -888,7 +888,7 @@ export default function CampaignsPage() {
               { value: 'cancelled', label: 'Annulé' },
               ...(showArchived ? [{ value: 'archived', label: 'Archivé' }] : []),
             ]}
-            className="min-w-[150px]"
+            className="w-full sm:min-w-[150px] sm:w-auto"
           />
           <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
             <input 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import CustomSelect from '@/components/CustomSelect';
 import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomTimePicker from '@/components/CustomTimePicker';
 import toast from 'react-hot-toast';
 import {
   Calendar, Clock, MapPin, X, Loader2, AlertCircle, Search,
@@ -275,17 +276,17 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
               className="w-full"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.dateLabel} *</label>
               <CustomDatePicker value={scheduledDate} onChange={setScheduledDate} className="w-full" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.timeLabel}</label>
-              <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
+              <CustomTimePicker value={scheduledTime} onChange={setScheduledTime} className="w-full" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.durationLabel}</label>
               <CustomSelect
@@ -493,7 +494,7 @@ function EvaluateModal({ meeting, onClose, onSuccess }: {
                 {tasks.map((task, i) => (
                   <div key={task.id} className="flex gap-2 items-start bg-gray-50 rounded-xl p-3 border border-gray-100">
                     <span className="w-5 h-5 rounded-full bg-primary-100 text-primary-600 text-xs flex items-center justify-center font-bold mt-2 shrink-0">{i + 1}</span>
-                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2">
                       <input
                         type="text" placeholder={t.performance.taskTitleRequired}
                         value={task.title} onChange={e => updateTask(task.id, 'title', e.target.value)}

@@ -1,6 +1,7 @@
 'use client';
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import { Locale, Translations, getTranslation } from './index';
+import { getToken } from '@/lib/api';
 
 interface I18nContextType {
   locale: Locale;
@@ -28,7 +29,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
       // 2. Sinon, récupérer la langue par défaut du tenant
       try {
-        const token = localStorage.getItem('access_token');
+        // Lire le token depuis le contexte Auth (via lib/api.ts)
+        const token = getToken();
         if (token) {
           const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
           const res = await fetch(`${apiUrl}/api/auth/tenant-settings`, {
@@ -51,17 +53,19 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     init();
   }, []);
 
-  const setLocale = (newLocale: Locale) => {
+  const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
     localStorage.setItem('targetym_locale', newLocale);
-  };
+  }, []);
+
+  const value = useMemo(() => ({
+    locale,
+    setLocale,
+    t: getTranslation(locale),
+  }), [locale, setLocale]);
 
   return (
-    <I18nContext.Provider value={{
-      locale,
-      setLocale,
-      t: getTranslation(locale)
-    }}>
+    <I18nContext.Provider value={value}>
       {children}
     </I18nContext.Provider>
   );

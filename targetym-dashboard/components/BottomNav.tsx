@@ -28,6 +28,7 @@ import {
   Handshake,
   Wallet,
   Network,
+  LayoutList,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -78,6 +79,7 @@ const moreTabs: BottomNavItem[] = [
   { name: 'Onboarding', href: '/dashboard/onboarding', icon: Handshake, roles: ['rh', 'admin', 'dg'] },
   { name: 'Talents & Carrière', href: '/dashboard/talents', icon: Sparkles, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'People Analytics', href: '/dashboard/analytics', icon: BarChart3, roles: ['rh', 'admin', 'dg'] },
+  { name: 'Programmes RH', href: '/dashboard/programmes', icon: LayoutList, roles: ['rh', 'admin', 'dg'] },
   { name: 'Gestion du Personnel', href: '/dashboard/employees', icon: Users, roles: ['rh', 'admin', 'dg'] },
   { name: 'Gestion des Congés', href: '/dashboard/leaves', icon: Calendar, roles: ['rh', 'admin', 'dg', 'manager'] },
   { name: 'Gestion des Missions', href: '/dashboard/missions', icon: Briefcase, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
@@ -167,7 +169,7 @@ export default function BottomNav() {
                 <X className="w-4 h-4 text-gray-500" />
               </button>
             </div>
-            <div className="grid grid-cols-4 gap-1">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-1">
               {visibleMoreTabs.map(tab => {
                 const active = isActive(tab.href);
                 return (

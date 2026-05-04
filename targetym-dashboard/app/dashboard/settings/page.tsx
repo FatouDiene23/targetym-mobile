@@ -1,8 +1,10 @@
 'use client';
+import { getToken } from '@/lib/api';
+import PageLoading from '@/components/PageLoading';
 
 import Header from '@/components/Header';
 import CustomSelect from '@/components/CustomSelect';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, ChangeEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
@@ -33,7 +35,15 @@ import {
   Eye,
   EyeOff,
   ShieldOff,
+  Download,
+  ToggleLeft,
+  ToggleRight,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  RotateCcw,
 } from 'lucide-react';
+import { downloadBackup, getBackupStatus, toggleAutoBackup, importBackup, type BackupStatus, type RestoreResult } from '@/lib/api';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -63,7 +73,7 @@ type GroupQuotaState = {
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 function getAuthHeaders(): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  const token = getToken();
   return {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -103,7 +113,7 @@ function IntoWorkIntegrationSection() {
 
   // Récupérer le tenant_id via l'API (plus fiable que le décodage JWT)
   useEffect(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const token = getToken();
     if (!token) return;
     fetch(`${API_URL}/api/auth/tenant-settings`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -204,7 +214,7 @@ function IntoWorkIntegrationSection() {
     setConfirmUnlink(true);
   };
 
-  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 text-primary-500 animate-spin" /></div>;
+  if (loading) return <PageLoading />;
 
   return (
     <div className="rounded-xl border-2 border-primary-100 overflow-hidden">
@@ -293,7 +303,7 @@ function IntoWorkIntegrationSection() {
                 <p className="text-sm font-medium text-gray-800">{t.settings.enterIntoworkInfo}</p>
               </div>
               <p className="text-xs text-gray-500 ml-7">{t.settings.enterIntoworkInfoDesc}</p>
-              <div className="ml-7 grid grid-cols-2 gap-3">
+              <div className="ml-7 grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">{t.settings.intoworkCompanyId}</label>
                   <input type="number" value={companyId} onChange={(e) => setCompanyId(e.target.value)} placeholder="ex: 12" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
@@ -373,6 +383,408 @@ interface CertificateSettings {
   certificate_company_city: string | null;
   certificate_signatory_name: string | null;
   certificate_signatory_title: string | null;
+}
+
+// ── Composant onglet Sauvegarde ───────────────────────────────────────────────
+interface BackupPreview {
+  backup_version: string;
+  exported_at: string;
+  exported_by: string;
+  tenant_id: number;
+  counts: Record<string, number>;
+}
+
+function BackupTab() {
+  const [downloading, setDownloading] = useState(false);
+  const [toggling, setToggling] = useState(false);
+  const [status, setStatus] = useState<BackupStatus | null>(null);
+  const [statusLoading, setStatusLoading] = useState(true);
+  // Restauration
+  const [restoreFile, setRestoreFile] = useState<File | null>(null);
+  const [restorePreview, setRestorePreview] = useState<BackupPreview | null>(null);
+  const [restoreConfirm, setRestoreConfirm] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreResult, setRestoreResult] = useState<RestoreResult | null>(null);
+
+  // Charge le statut initial et le poll toutes les 30s pour afficher les données en direct
+  useEffect(() => {
+    let mounted = true;
+    async function fetchStatus() {
+      try {
+        const s = await getBackupStatus();
+        if (mounted) setStatus(s);
+      } catch { /* non-bloquant */ } finally {
+        if (mounted) setStatusLoading(false);
+      }
+    }
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 30000);
+    return () => { mounted = false; clearInterval(interval); };
+  }, []);
+
+  async function handleExport() {
+    setDownloading(true);
+    try {
+      await downloadBackup();
+      toast.success('Sauvegarde téléchargée avec succès !');
+      // Rafraîchir le statut (last_exported_at vient d'être mis à jour)
+      const s = await getBackupStatus();
+      setStatus(s);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erreur lors de la sauvegarde');
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  async function handleToggle() {
+    setToggling(true);
+    try {
+      const result = await toggleAutoBackup();
+      setStatus(prev => prev ? { ...prev, auto_backup_enabled: result.auto_backup_enabled } : prev);
+      toast.success(result.auto_backup_enabled
+        ? 'Sauvegarde automatique activée'
+        : 'Sauvegarde automatique désactivée');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erreur');
+    } finally {
+      setToggling(false);
+    }
+  }
+
+  function handleFileSelect(e: ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setRestoreFile(f);
+    setRestoreResult(null);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target?.result as string);
+        if (!parsed.backup_version || !parsed.data) {
+          toast.error('Fichier de sauvegarde non reconnu');
+          return;
+        }
+        setRestorePreview({
+          backup_version: parsed.backup_version,
+          exported_at: parsed.exported_at || new Date().toISOString(),
+          exported_by: parsed.exported_by || 'inconnu',
+          tenant_id: parsed.tenant_id,
+          counts: parsed.counts || {},
+        });
+      } catch {
+        toast.error('Fichier JSON invalide');
+        setRestoreFile(null);
+      }
+    };
+    reader.readAsText(f);
+    // Reset input so same file can be re-selected
+    e.target.value = '';
+  }
+
+  async function handleRestore() {
+    if (!restoreFile) return;
+    setRestoring(true);
+    try {
+      const result = await importBackup(restoreFile);
+      setRestoreResult(result);
+      toast.success(`Restauration terminée — ${result.totals.restored} enregistrement(s) restauré(s)`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erreur lors de la restauration');
+    } finally {
+      setRestoring(false);
+    }
+  }
+
+  function handleClearRestore() {
+    setRestoreFile(null);
+    setRestorePreview(null);
+    setRestoreResult(null);
+    setRestoreConfirm(false);
+  }
+
+  function formatRelativeTime(isoDate: string | null): string {
+    if (!isoDate) return 'Jamais exportée';
+    const diff = Math.floor((Date.now() - new Date(isoDate).getTime()) / 1000);
+    if (diff < 60) return 'Il y a moins d\'une minute';
+    if (diff < 3600) return `Il y a ${Math.floor(diff / 60)} min`;
+    if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)} h`;
+    return `Il y a ${Math.floor(diff / 86400)} j`;
+  }
+
+  return (
+    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 space-y-5">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+          <Download className="w-5 h-5 text-blue-600" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">Sauvegarde des données</h3>
+          <p className="text-sm text-gray-500">Exportez toutes vos données RH en fichier JSON sécurisé</p>
+        </div>
+      </div>
+
+      {/* Toggle sauvegarde automatique */}
+      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
+        <div className="flex items-center gap-3">
+          {status?.auto_backup_enabled
+            ? <ToggleRight className="w-6 h-6 text-green-500" />
+            : <ToggleLeft className="w-6 h-6 text-gray-400" />}
+          <div>
+            <p className="text-sm font-medium text-gray-800">Sauvegarde automatique</p>
+            <p className="text-xs text-gray-500">
+              {status?.auto_backup_enabled
+                ? 'Activée — vous serez notifié lors des changements importants'
+                : 'Désactivée — activez pour suivre les mises à jour en temps réel'}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={handleToggle}
+          disabled={toggling || statusLoading}
+          className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+            status?.auto_backup_enabled
+              ? 'bg-green-100 text-green-700 hover:bg-green-200'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          {toggling ? <Loader2 className="w-4 h-4 animate-spin inline" /> : (status?.auto_backup_enabled ? 'Désactiver' : 'Activer')}
+        </button>
+      </div>
+
+      {/* Données en direct */}
+      <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-semibold text-blue-800 flex items-center gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Données en direct
+          </p>
+          {status && (
+            <span className="text-xs text-blue-600 flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              Actualisé il y a quelques secondes
+            </span>
+          )}
+        </div>
+        {statusLoading ? (
+          <div className="flex items-center gap-2 text-sm text-blue-600">
+            <Loader2 className="w-4 h-4 animate-spin" /> Chargement...
+          </div>
+        ) : status ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {[
+              { label: 'Employés', value: status.live_counts.employees },
+              { label: 'Départements', value: status.live_counts.departments },
+              { label: 'Demandes congés', value: status.live_counts.leave_requests },
+              { label: 'Absences', value: status.live_counts.absences },
+              { label: 'Enquêtes', value: status.live_counts.surveys },
+              { label: 'Pointages', value: status.live_counts.attendance_records },
+              { label: 'Historique salaires', value: status.live_counts.salary_history },
+              { label: 'Utilisateurs', value: status.live_counts.users },
+            ].map(item => (
+              <div key={item.label} className="bg-white rounded-lg p-3 border border-blue-100 text-center">
+                <p className="text-xl font-bold text-blue-700">{item.value}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{item.label}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-blue-600">Impossible de charger le statut</p>
+        )}
+      </div>
+
+      {/* Dernier export */}
+      {status && (
+        <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 rounded-lg px-4 py-2.5 border border-gray-200">
+          {status.last_exported_at
+            ? <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+            : <Clock className="w-4 h-4 text-gray-400 shrink-0" />}
+          <span>
+            Dernier export : <strong>{formatRelativeTime(status.last_exported_at)}</strong>
+            {status.last_exported_at && (
+              <span className="text-gray-400 ml-1">
+                ({new Date(status.last_exported_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })})
+              </span>
+            )}
+          </span>
+        </div>
+      )}
+
+      {/* Avertissement */}
+      <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-800">
+        <strong>Note :</strong> Les fichiers uploadés (CVs, photos) ne sont pas inclus.
+        Conservez ce fichier en lieu sûr — il contient des données RH confidentielles.
+      </div>
+
+      {/* Bouton téléchargement */}
+      <button
+        onClick={handleExport}
+        disabled={downloading}
+        className="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors"
+      >
+        {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+        {downloading ? 'Préparation de la sauvegarde...' : 'Télécharger la sauvegarde complète'}
+      </button>
+
+      {/* ─────── RESTAURATION ─────── */}
+      <div className="border-t border-gray-200 pt-5 space-y-4">
+        {/* Header section restauration */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
+            <RotateCcw className="w-5 h-5 text-orange-600" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-gray-900">Restaurer une sauvegarde</h3>
+            <p className="text-sm text-gray-500">Importez un fichier JSON exporté pour récupérer vos données</p>
+          </div>
+        </div>
+
+        {/* Avertissement */}
+        <div className="flex gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+          <AlertTriangle className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" />
+          <div>
+            <p className="font-semibold mb-0.5">Opération sensible</p>
+            <p>Les enregistrements existants sont mis à jour, les absents sont créés. Les données supplémentaires ne sont pas supprimées. Les mots de passe ne sont jamais modifiés.</p>
+          </div>
+        </div>
+
+        {/* Sélecteur de fichier ou aperçu */}
+        {!restorePreview ? (
+          <label className="flex items-center gap-3 p-4 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-orange-400 hover:bg-orange-50/30 transition-colors">
+            <input type="file" accept=".json" className="hidden" onChange={handleFileSelect} />
+            <Upload className="w-6 h-6 text-gray-400" />
+            <div>
+              <p className="text-sm font-medium text-gray-700">Sélectionner un fichier de sauvegarde</p>
+              <p className="text-xs text-gray-400">Format .json exporté depuis Targetym</p>
+            </div>
+          </label>
+        ) : (
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
+            {/* En-tête aperçu */}
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-gray-800">Aperçu de la sauvegarde</p>
+              <button onClick={handleClearRestore} className="text-gray-400 hover:text-gray-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Métadonnées */}
+            <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+              <span className="text-gray-500">Version</span>
+              <span className="font-medium text-gray-800">{restorePreview.backup_version}</span>
+              <span className="text-gray-500">Date</span>
+              <span className="font-medium text-gray-800">
+                {new Date(restorePreview.exported_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </span>
+              <span className="text-gray-500">Exporté par</span>
+              <span className="font-medium text-gray-800 truncate">{restorePreview.exported_by}</span>
+            </div>
+
+            {/* Compteurs */}
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              {[
+                ['Employés',    restorePreview.counts.employees    ?? 0],
+                ['Départements', restorePreview.counts.departments  ?? 0],
+                ['Congés',      restorePreview.counts.leave_requests ?? 0],
+                ['Absences',    restorePreview.counts.absences     ?? 0],
+                ['Enquêtes',    restorePreview.counts.surveys      ?? 0],
+                ['Pointages',   restorePreview.counts.attendance_records ?? 0],
+                ['Salaires',    restorePreview.counts.salary_history ?? 0],
+                ['Utilisateurs',restorePreview.counts.users        ?? 0],
+              ].map(([label, count]) => (
+                <div key={label as string} className="bg-white rounded-lg p-2 border border-gray-100 text-center">
+                  <p className="text-lg font-bold text-gray-700">{count}</p>
+                  <p className="text-xs text-gray-400">{label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Résultats ou bouton */}
+            {restoreResult ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  <p className="text-sm font-semibold text-gray-800">Restauration terminée</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <div className="bg-green-50 border border-green-100 rounded-lg p-2 text-center">
+                    <p className="text-lg font-bold text-green-700">{restoreResult.totals.restored}</p>
+                    <p className="text-xs text-green-600">Restaurés</p>
+                  </div>
+                  <div className="bg-gray-50 border border-gray-100 rounded-lg p-2 text-center">
+                    <p className="text-lg font-bold text-gray-600">{restoreResult.totals.skipped}</p>
+                    <p className="text-xs text-gray-500">Ignorés</p>
+                  </div>
+                  <div className={`border rounded-lg p-2 text-center ${
+                    restoreResult.totals.errors > 0 ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'
+                  }`}>
+                    <p className={`text-lg font-bold ${
+                      restoreResult.totals.errors > 0 ? 'text-red-700' : 'text-gray-400'
+                    }`}>{restoreResult.totals.errors}</p>
+                    <p className={`text-xs ${
+                      restoreResult.totals.errors > 0 ? 'text-red-600' : 'text-gray-400'
+                    }`}>Erreurs</p>
+                  </div>
+                </div>
+                {/* Détail par section */}
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-blue-600 font-medium select-none">
+                    Détail par section
+                  </summary>
+                  <div className="mt-2 space-y-1">
+                    {Object.entries(restoreResult.results)
+                      .filter(([, r]) => r.restored + r.skipped + r.errors > 0)
+                      .map(([section, r]) => (
+                        <div key={section} className="flex items-center justify-between py-1 px-2 bg-gray-50 rounded">
+                          <span className="text-gray-600 capitalize">{section.replace(/_/g, ' ')}</span>
+                          <span>
+                            <span className="text-green-600 font-medium">{r.restored} ✓</span>
+                            {r.skipped > 0 && <span className="ml-1 text-gray-400">{r.skipped} —</span>}
+                            {r.errors > 0 && <span className="ml-1 text-red-500">{r.errors} ✗</span>}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                </details>
+                <button
+                  onClick={handleClearRestore}
+                  className="w-full text-sm text-gray-500 hover:text-gray-700 underline underline-offset-2"
+                >
+                  Effectuer une autre restauration
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setRestoreConfirm(true)}
+                disabled={restoring}
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-orange-600 text-white font-medium rounded-xl hover:bg-orange-700 disabled:opacity-50 transition-colors"
+              >
+                {restoring
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <RotateCcw className="w-4 h-4" />}
+                {restoring ? 'Restauration en cours...' : 'Lancer la restauration'}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Boîte de confirmation */}
+        <ConfirmDialog
+          isOpen={restoreConfirm}
+          onClose={() => setRestoreConfirm(false)}
+          onConfirm={handleRestore}
+          title="Confirmer la restauration"
+          message={`Vous allez restaurer les données depuis la sauvegarde du ${
+            restorePreview ? new Date(restorePreview.exported_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : ''
+          } (exportée par ${restorePreview?.exported_by ?? ''}). Les enregistrements existants seront mis à jour, les absents seront créés. Cette action est irréversible.`}
+          confirmText="Restaurer"
+          cancelText="Annuler"
+          danger={true}
+        />
+      </div>
+    </div>
+  );
 }
 
 export default function SettingsPage() {
@@ -632,26 +1044,34 @@ export default function SettingsPage() {
     }
   }, []);
 
-  const handleReset2FA = async (userId: number) => {
-    if (!confirm(t.employees?.reset2FAConfirm || "Réinitialiser la 2FA de cet employé ? Il devra la reconfigurer à sa prochaine connexion.")) return;
-    setResetting2FA(userId);
-    try {
-      const res = await fetch(`${API_URL}/api/auth/2fa/reset/${userId}`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        toast.error(err.detail || "Erreur");
-        return;
-      }
-      toast.success(t.employees?.reset2FASuccess || "2FA réinitialisée avec succès");
-      setEmployees2FA(prev => prev.filter(e => e.user_id !== userId && e.id !== userId));
-    } catch {
-      toast.error(t.common?.error || "Erreur");
-    } finally {
-      setResetting2FA(null);
-    }
+  const handleReset2FA = (userId: number) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Réinitialiser la 2FA",
+      message: t.employees?.reset2FAConfirm || "Réinitialiser la 2FA de cet employé ? Il devra la reconfigurer à sa prochaine connexion.",
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setResetting2FA(userId);
+        try {
+          const res = await fetch(`${API_URL}/api/auth/2fa/reset/${userId}`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            toast.error(err.detail || "Erreur");
+            return;
+          }
+          toast.success(t.employees?.reset2FASuccess || "2FA réinitialisée avec succès");
+          setEmployees2FA(prev => prev.filter(e => e.user_id !== userId && e.id !== userId));
+        } catch {
+          toast.error(t.common?.error || "Erreur");
+        } finally {
+          setResetting2FA(null);
+        }
+      },
+    });
   };
 
   const handleChangePassword = async () => {
@@ -669,7 +1089,7 @@ export default function SettingsPage() {
     }
     setChangingPassword(true);
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getToken();
       const res = await fetch(`${API_URL}/api/auth/change-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -905,7 +1325,7 @@ export default function SettingsPage() {
       const formData = new FormData();
       formData.append('file', file);
       
-      const token = localStorage.getItem('access_token');
+      const token = getToken();
       const response = await fetch(`${API_URL}/api/settings/certificate/upload/${fileType}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
@@ -941,7 +1361,7 @@ export default function SettingsPage() {
       onConfirm: async () => {
         setConfirmDialog(null);
         try {
-          const token = localStorage.getItem('access_token');
+          const token = getToken();
           const response = await fetch(`${API_URL}/api/settings/certificate/upload/${fileType}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` },
@@ -1012,7 +1432,7 @@ export default function SettingsPage() {
             {isUploading ? (
               <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Upload...</span>
             ) : (
-              <span className="flex items-center gap-2"><Upload className="w-4 h-4" /> {currentUrl ? 'Changer' : 'Uploader'}</span>
+              <span className="flex items-center gap-2"><Upload className="w-4 h-4" /> {currentUrl ? t.settings.change : t.settings.upload}</span>
             )}
             <input type="file" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" className="hidden" disabled={isUploading}
               onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFileUpload(fileType, file); }}
@@ -1138,6 +1558,29 @@ export default function SettingsPage() {
   const isLicenseAdmin = ['admin', 'dg'].includes(tenantRole?.toLowerCase());
   const { data: licenseData, refresh: refreshLicenses } = useLicenseStatus();
 
+  // Frontend translation maps for API-provided strings (backend returns hardcoded French)
+  const NOTIF_TRANSLATIONS: Record<string, { label: string; description: string }> = {
+    leave_requests: { label: t.settings.notifKeyLeaveRequests, description: t.settings.notifKeyLeaveRequestsDesc },
+    documents: { label: t.settings.notifKeyDocuments, description: t.settings.notifKeyDocumentsDesc },
+    onboarding: { label: t.settings.notifKeyOnboarding, description: t.settings.notifKeyOnboardingDesc },
+    departures: { label: t.settings.notifKeyDepartures, description: t.settings.notifKeyDeparturesDesc },
+    evaluations: { label: t.settings.notifKeyEvaluations, description: t.settings.notifKeyEvaluationsDesc },
+    objectives: { label: t.settings.notifKeyObjectives, description: t.settings.notifKeyObjectivesDesc },
+    missions: { label: t.settings.notifKeyMissions, description: t.settings.notifKeyMissionsDesc },
+    weekly_report: { label: t.settings.notifKeyWeeklyReport, description: t.settings.notifKeyWeeklyReportDesc },
+  };
+
+  const INTEGRATION_TRANSLATIONS: Record<string, { description: string; features: string[] }> = {
+    teams: {
+      description: t.settings.integrationTeamsDesc,
+      features: [t.settings.integrationTeamsFeature1, t.settings.integrationTeamsFeature2, t.settings.integrationTeamsFeature3],
+    },
+    asana: {
+      description: t.settings.integrationAsanaDesc,
+      features: [t.settings.integrationAsanaFeature1, t.settings.integrationAsanaFeature2, t.settings.integrationAsanaFeature3],
+    },
+  };
+
   const tabs = [
     { id: 'general', name: t.settings.tabGeneral, icon: Building2 },
     { id: 'billing', name: t.settings.tabBilling, icon: CreditCard },
@@ -1146,6 +1589,9 @@ export default function SettingsPage() {
     { id: 'notifications', name: t.settings.tabNotifications, icon: Bell },
     { id: 'security', name: t.settings.tabSecurity, icon: Shield },
     { id: 'integrations', name: t.settings.tabIntegrations, icon: Link2 },
+    ...(tenantRole?.toLowerCase() === 'admin'
+      ? [{ id: 'backup', name: 'Sauvegarde', icon: Download }]
+      : []),
   ];
 
   if (loading) {
@@ -1242,8 +1688,8 @@ export default function SettingsPage() {
                     <CustomSelect
                       value={tenantForm.currency}
                       onChange={(v) => setTenantForm(prev => ({ ...prev, currency: v }))}
-                      options={currencies.length > 0 ? currencies.map(c => ({value: c.code, label: `${c.code} — ${c.label}`})) : [{value: tenantForm.currency, label: tenantForm.currency}]}
-                      className="w-full"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-white"
+                      options={currencies.length > 0 ? currencies.map(c => ({ value: c.code, label: `${c.code} — ${c.label}` })) : [{ value: tenantForm.currency, label: tenantForm.currency }]}
                     />
                     <p className="mt-1.5 text-xs text-gray-400">
                       {t.settings.currencyHint}
@@ -1255,8 +1701,12 @@ export default function SettingsPage() {
                     <CustomSelect
                       value={tenantForm.default_language}
                       onChange={(v) => setTenantForm(prev => ({ ...prev, default_language: v }))}
-                      options={[{value:'fr', label:'🇫🇷 Français'},{value:'en', label:'🇬🇧 English'},{value:'pt', label:'🇧🇷 Português'}]}
-                      className="w-full"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-white"
+                      options={[
+                        { value: 'fr', label: '🇫🇷 Français' },
+                        { value: 'en', label: '🇬🇧 English' },
+                        { value: 'pt', label: '🇧🇷 Português' },
+                      ]}
                     />
                     <p className="mt-1.5 text-xs text-gray-400">
                       {t.settings.languageHint}
@@ -1267,23 +1717,23 @@ export default function SettingsPage() {
                   {tenantData && (
                     <div className="p-4 bg-gray-50 rounded-lg space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Identifiant (slug)</span>
+                        <span className="text-gray-500">{t.settings.slug}</span>
                         <span className="font-medium text-gray-900">{tenantData.slug}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Plan</span>
+                        <span className="text-gray-500">{t.settings.plan}</span>
                         <span className="font-medium text-gray-900 capitalize">{tenantData.plan}</span>
                       </div>
                       {tenantData.is_trial && tenantData.trial_ends_at && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Fin de l&apos;essai</span>
+                          <span className="text-gray-500">{t.settings.trialEnd}</span>
                           <span className="font-medium text-amber-600">
                             {new Date(tenantData.trial_ends_at).toLocaleDateString('fr-FR')}
                           </span>
                         </div>
                       )}
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Employés max</span>
+                        <span className="text-gray-500">{t.settings.maxEmployees}</span>
                         <span className="font-medium text-gray-900">{tenantData.max_employees}</span>
                       </div>
                     </div>
@@ -1297,11 +1747,11 @@ export default function SettingsPage() {
                     className="flex items-center px-6 py-2.5 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50"
                   >
                     {savingTenant ? (
-                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enregistrement...</>
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t.settings.saving}</>
                     ) : savedTenant ? (
-                      <><Check className="w-4 h-4 mr-2" /> Enregistré !</>
+                      <><Check className="w-4 h-4 mr-2" /> {t.settings.saved}</>
                     ) : (
-                      <><Save className="w-4 h-4 mr-2" /> Enregistrer</>
+                      <><Save className="w-4 h-4 mr-2" /> {t.settings.save}</>
                     )}
                   </button>
                 </div>
@@ -1315,9 +1765,9 @@ export default function SettingsPage() {
                       <Layers className="w-5 h-5 text-purple-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-gray-900 mb-1">Organisation Groupe</h4>
+                      <h4 className="font-semibold text-gray-900 mb-1">{t.settings.groupOrganization}</h4>
                       <p className="text-sm text-gray-500 mb-4">
-                        Transformez votre entreprise en groupe pour gérer plusieurs filiales depuis un seul tableau de bord.
+                        {t.settings.groupDesc}
                       </p>
 
                       {loadingConvReq ? (
@@ -1330,10 +1780,10 @@ export default function SettingsPage() {
                               conversionRequest.status === 'approved' ? 'bg-green-50 text-green-800 border border-green-200' :
                               'bg-red-50 text-red-800 border border-red-200'
                             }`}>
-                              {conversionRequest.status === 'pending' && '⏳ Demande en attente de validation'}
-                              {conversionRequest.status === 'approved' && isGroupTenant && '✅ Demande approuvée — quota filiales mis à jour'}
-                              {conversionRequest.status === 'approved' && !isGroupTenant && '✅ Demande approuvée — activation du groupe en cours'}
-                              {conversionRequest.status === 'rejected' && `❌ Demande refusée${conversionRequest.review_note ? ` : ${conversionRequest.review_note}` : ''}`}
+                              {conversionRequest.status === 'pending' && `⏳ ${t.settings.pendingRequest}`}
+                              {conversionRequest.status === 'approved' && isGroupTenant && `✅ ${t.settings.approvedQuota}`}
+                              {conversionRequest.status === 'approved' && !isGroupTenant && `✅ ${t.settings.approvedActivating}`}
+                              {conversionRequest.status === 'rejected' && `❌ ${t.settings.rejectedRequest}${conversionRequest.review_note ? ` : ${conversionRequest.review_note}` : ''}`}
                             </div>
                           )}
 
@@ -1381,11 +1831,11 @@ export default function SettingsPage() {
                             <p className="text-xl font-bold text-purple-900">{formatXOF(calcGroupPrice(convNbSubsidiaries, !isGroupTenant))}</p>
                             {isGroupTenant ? (
                               <p className="text-xs text-purple-600 mt-1">
-                                Extension : {convNbSubsidiaries} filiale{convNbSubsidiaries > 1 ? 's' : ''} × 30 000 XOF/mois
+                                {t.settings.extensionPricingPrefix} {convNbSubsidiaries} {convNbSubsidiaries > 1 ? t.settings.subsidiaries : t.settings.subsidiary} {t.settings.pricingPerMonth}
                               </p>
                             ) : (
                               <p className="text-xs text-purple-600 mt-1">
-                                Forfait groupe 100 000 XOF + {convNbSubsidiaries} filiale{convNbSubsidiaries > 1 ? 's' : ''} × 30 000 XOF/mois
+                                {t.settings.groupPricingPrefix} {convNbSubsidiaries} {convNbSubsidiaries > 1 ? t.settings.subsidiaries : t.settings.subsidiary} {t.settings.pricingPerMonth}
                               </p>
                             )}
                             <p className="text-xs text-purple-500 mt-1 italic">{t.settings.superAdminContact}</p>
@@ -1397,13 +1847,13 @@ export default function SettingsPage() {
                               className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
                             >
                               {submittingConvReq ? <Loader2 className="w-4 h-4 animate-spin" /> : <Layers className="w-4 h-4" />}
-                              {isGroupTenant ? 'Envoyer la demande d\'extension' : 'Envoyer la demande'}
+                              {isGroupTenant ? t.settings.sendExtensionRequest : t.settings.sendRequest}
                             </button>
                             <button
                               onClick={() => setShowConvForm(false)}
                               className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg transition-colors"
                             >
-                              Annuler
+                              {t.settings.cancel}
                             </button>
                           </div>
                         </div>
@@ -1413,7 +1863,7 @@ export default function SettingsPage() {
                               className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
                             >
                               <Layers className="w-4 h-4" />
-                              {isGroupTenant ? 'Demander l\'ajout de filiales' : 'Demander à devenir un groupe'}
+                              {isGroupTenant ? t.settings.requestAddSubsidiaries : t.settings.requestBecomeGroup}
                             </button>
                           )}
                         </>
@@ -1432,11 +1882,11 @@ export default function SettingsPage() {
                         <Layers className="w-5 h-5 text-indigo-600" />
                       </div>
                       <div>
-                        <h4 className="font-semibold text-gray-900">Mes filiales</h4>
-                        <p className="text-xs text-gray-500">Gérez les entités de votre groupe</p>
+                        <h4 className="font-semibold text-gray-900">{t.settings.mySubsidiaries}</h4>
+                        <p className="text-xs text-gray-500">{t.settings.manageEntities}</p>
                         {groupQuota && (
                           <p className="text-xs text-indigo-600 mt-1">
-                            Quota utilisé : {groupQuota.used}/{groupQuota.allowed} · Restant : {groupQuota.remaining}
+                            {t.settings.quotaUsed} : {groupQuota.used}/{groupQuota.allowed} · {t.settings.remaining} : {groupQuota.remaining}
                           </p>
                         )}
                       </div>
@@ -1457,19 +1907,19 @@ export default function SettingsPage() {
                       }`}
                     >
                       <span className="text-lg leading-none">{isQuotaReached ? '↗' : '+'}</span>
-                      {isQuotaReached ? 'Demander une extension' : 'Ajouter une filiale'}
+                      {isQuotaReached ? t.settings.requestExtension : t.settings.addSubsidiary}
                     </button>
                   </div>
 
                   {isQuotaReached && (
                     <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-                      <p className="text-sm text-amber-800 font-medium">Quota de filiales atteint</p>
-                      <p className="text-xs text-amber-700 mt-1">Vous devez envoyer une nouvelle demande pour ajouter des filiales.</p>
+                      <p className="text-sm text-amber-800 font-medium">{t.settings.quotaReached}</p>
+                      <p className="text-xs text-amber-700 mt-1">{t.settings.quotaReachedDesc}</p>
                       <button
                         onClick={() => setShowConvForm(true)}
                         className="mt-2 text-xs font-medium text-purple-700 hover:text-purple-900 underline"
                       >
-                        Faire une demande d&apos;extension
+                        {t.settings.makeExtensionRequest}
                       </button>
                     </div>
                   )}
@@ -1491,9 +1941,9 @@ export default function SettingsPage() {
                       }}
                     >
                       <Layers className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                      <p className="text-sm">Aucune filiale pour l&apos;instant.</p>
+                      <p className="text-sm">{t.settings.noSubsidiary}</p>
                       <p className="text-xs mt-1">
-                        {isQuotaReached ? 'Quota atteint : faites une demande d\'extension' : 'Cliquez pour créer votre première filiale'}
+                        {isQuotaReached ? t.settings.quotaReachedShort : t.settings.clickToCreate}
                       </p>
                     </div>
                   ) : (
@@ -1521,7 +1971,7 @@ export default function SettingsPage() {
                           <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                             sub.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
                           }`}>
-                            {sub.is_active ? 'Actif' : 'Inactif'}
+                            {sub.is_active ? t.settings.activeBadge : t.settings.inactiveBadge}
                           </span>
                         </div>
                       ))}
@@ -1534,7 +1984,7 @@ export default function SettingsPage() {
                       onClick={fetchGroupSubsidiaries}
                       className="mt-3 text-xs text-indigo-500 hover:text-indigo-700 underline"
                     >
-                      Charger mes filiales
+                      {t.settings.loadSubsidiaries}
                     </button>
                   )}
                 </div>
@@ -1545,7 +1995,7 @@ export default function SettingsPage() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                   <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
                     <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                      <h3 className="text-lg font-semibold text-gray-900">Créer une filiale</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">{t.settings.createSubsidiary}</h3>
                       <button onClick={() => setShowSubsidiaryModal(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                         <X className="w-5 h-5 text-gray-400" />
                       </button>
@@ -1631,7 +2081,7 @@ export default function SettingsPage() {
                         className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
                       >
                         {creatingSubsidiary ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                        Créer la filiale
+                        {t.settings.createSubsidiaryBtn}
                       </button>
                     </div>
                   </div>
@@ -1657,39 +2107,39 @@ export default function SettingsPage() {
                     </span>
                   </div>
 
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {/* Plan name */}
                     <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Plan</p>
-                      <p className="text-lg font-bold text-gray-900">{isTrial ? `Essai (${planLabel})` : planLabel}</p>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{t.settings.plan}</p>
+                      <p className="text-lg font-bold text-gray-900">{isTrial ? `${t.settings.trialLabel} (${planLabel})` : planLabel}</p>
                       <p className="text-sm text-gray-500 mt-1">
-                        {isTrial ? 'Essai gratuit 90 jours (accès Entreprise)' : (PLAN_PRICING[plan]?.label || '—')}
+                        {isTrial ? t.settings.trialFree30 : (PLAN_PRICING[plan]?.label || '—')}
                       </p>
                     </div>
 
                     {/* Status */}
                     <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Statut</p>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{t.settings.status}</p>
                       {isTrial && trialEndsAt ? (
                         <>
                           <p className="text-lg font-bold text-amber-600">
-                            {Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} jours restants
+                            {Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} {t.settings.daysRemaining}
                           </p>
                           <p className="text-sm text-gray-500 mt-1">
-                            Expire le {new Date(trialEndsAt).toLocaleDateString('fr-FR')}
+                            {t.settings.expiresOn} {new Date(trialEndsAt).toLocaleDateString('fr-FR')}
                           </p>
                         </>
                       ) : (
-                        <p className="text-lg font-bold text-green-600">Actif</p>
+                        <p className="text-lg font-bold text-green-600">{t.settings.activeStatus}</p>
                       )}
                     </div>
 
                     {/* Employee limit */}
                     <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Employés inclus</p>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{t.settings.includedEmployees}</p>
                       <p className="text-lg font-bold text-gray-900">{employeeLimit}</p>
                       <p className="text-sm text-gray-500 mt-1">
-                        {isTrial ? 'Pendant la période d\'essai' : 'Dans votre plan'}
+                        {isTrial ? t.settings.duringTrial : t.settings.inYourPlan}
                       </p>
                     </div>
                   </div>
@@ -1719,13 +2169,13 @@ export default function SettingsPage() {
                       </div>
                       {employeeCount >= employeeLimit && (
                         <p className="text-xs text-red-500 mt-1">
-                          Limite atteinte — passez au plan supérieur pour ajouter des employés.
+                          {t.settings.limitReached}
                         </p>
                       )}
                     </div>
                   </div>
                   <p className="text-xs text-gray-400 mt-4">
-                    Employé supplémentaire : +12 500 FCFA/mois (Basique &amp; Premium) — +5 000 FCFA/mois (Entreprise).
+                    {t.settings.extraEmployee}
                   </p>
                 </div>
 
@@ -1736,10 +2186,10 @@ export default function SettingsPage() {
                     <div className="text-center py-8">
                       <Calendar className="w-10 h-10 text-gray-300 mx-auto mb-3" />
                       <p className="text-sm text-gray-500">
-                        Aucune facture pour le moment.
+                        {t.settings.noInvoice}
                       </p>
                       <p className="text-xs text-gray-400 mt-1">
-                        Les factures apparaîtront ici après l&apos;activation de votre abonnement.
+                        {t.settings.invoiceAfterActivation}
                       </p>
                     </div>
                   ) : (
@@ -1747,18 +2197,18 @@ export default function SettingsPage() {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-gray-100">
-                            <th className="text-left py-3 px-2 text-xs font-medium text-gray-500 uppercase">Date</th>
-                            <th className="text-left py-3 px-2 text-xs font-medium text-gray-500 uppercase">Description</th>
-                            <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase">Montant</th>
-                            <th className="text-center py-3 px-2 text-xs font-medium text-gray-500 uppercase">Statut</th>
-                            <th className="text-center py-3 px-2 text-xs font-medium text-gray-500 uppercase">Action</th>
+                            <th className="text-left py-3 px-2 text-xs font-medium text-gray-500 uppercase">{t.settings.dateCol}</th>
+                            <th className="text-left py-3 px-2 text-xs font-medium text-gray-500 uppercase">{t.settings.descriptionCol}</th>
+                            <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase">{t.settings.amountCol}</th>
+                            <th className="text-center py-3 px-2 text-xs font-medium text-gray-500 uppercase">{t.settings.statusCol}</th>
+                            <th className="text-center py-3 px-2 text-xs font-medium text-gray-500 uppercase">{t.settings.actionCol}</th>
                           </tr>
                         </thead>
                         <tbody>
                           <tr className="border-b border-gray-50">
                             <td className="py-3 px-2 text-gray-600" colSpan={5}>
                               <div className="text-center text-gray-400 py-4">
-                                Aucune facture disponible.
+                                {t.settings.noInvoiceAvailable}
                               </div>
                             </td>
                           </tr>
@@ -1772,16 +2222,16 @@ export default function SettingsPage() {
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.settings.changePlan}</h3>
                   <p className="text-sm text-gray-500 mb-6">
-                    Soumettez une demande de changement de plan. Notre équipe vous contactera sous 24h.
+                    {t.settings.changePlanDesc}
                   </p>
 
                   {planRequestSent ? (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
                       <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-green-800">Demande envoyée avec succès</p>
+                        <p className="text-sm font-medium text-green-800">{t.settings.requestSentSuccess}</p>
                         <p className="text-xs text-green-600 mt-0.5">
-                          Notre équipe commerciale vous contactera sous 24h pour finaliser le changement.
+                          {t.settings.requestSentDesc}
                         </p>
                       </div>
                     </div>
@@ -1913,7 +2363,7 @@ export default function SettingsPage() {
                     <div className="grid md:grid-cols-3 gap-4">
                       <div>
                         <FileUploadBox fileType="logo" label={t.settings.companyLogo} icon={ImageIcon} currentUrl={certificateSettings.certificate_logo} />
-                        <p className="text-xs text-gray-400 mt-1">Format recommandé : PNG ou WebP avec fond transparent — 151 × 76 px — Max 2 Mo</p>
+                        <p className="text-xs text-gray-400 mt-1">{t.settings.logoFormatHint}</p>
                       </div>
 
                       {/* Signature du signataire — système de signature électronique */}
@@ -1969,12 +2419,12 @@ export default function SettingsPage() {
                             </div>
                           )}
                         </div>
-                        <p className="text-xs text-gray-400 mt-1">Format recommandé : PNG avec fond transparent — 151 × 76 px — Max 2 Mo</p>
+                        <p className="text-xs text-gray-400 mt-1">{t.settings.signatureFormatHint}</p>
                       </div>
 
                       <div>
                         <FileUploadBox fileType="stamp" label={t.settings.companyStamp} icon={Stamp} currentUrl={certificateSettings.certificate_stamp} />
-                        <p className="text-xs text-gray-400 mt-1">Format recommandé : PNG avec fond transparent — 113 × 113 px — Max 2 Mo</p>
+                        <p className="text-xs text-gray-400 mt-1">{t.settings.stampFormatHint}</p>
                       </div>
                     </div>
                   )}
@@ -2034,11 +2484,11 @@ export default function SettingsPage() {
                     <button onClick={saveCertificateSettings} disabled={savingCertSettings}
                       className="flex items-center px-6 py-2.5 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50">
                       {savingCertSettings ? (
-                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enregistrement...</>
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t.settings.saving}</>
                       ) : saved ? (
-                        <><Check className="w-4 h-4 mr-2" /> Enregistré !</>
+                        <><Check className="w-4 h-4 mr-2" /> {t.settings.saved}</>
                       ) : (
-                        <><Save className="w-4 h-4 mr-2" /> Enregistrer</>
+                        <><Save className="w-4 h-4 mr-2" /> {t.settings.save}</>
                       )}
                     </button>
                   </div>
@@ -2046,8 +2496,7 @@ export default function SettingsPage() {
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-sm text-blue-800">
-                    <strong>Conseil :</strong> Pour un rendu optimal, utilisez un logo avec fond transparent (PNG) 
-                    et une signature scannée sur fond blanc. Le cachet doit être au format carré ou rond.
+                    <strong>{t.settings.tipLabel}</strong> {t.settings.certificateTip}
                   </p>
                 </div>
               </div>
@@ -2061,18 +2510,13 @@ export default function SettingsPage() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.settings.notifPreferences}</h3>
                 <p className="text-sm text-gray-500 mb-6">{t.settings.notifPreferencesDesc}</p>
 
-                {loadingNotifPrefs ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
-                  </div>
-                ) : (
-                  <>
+                <>
                     <div className="space-y-1">
                       {notifPrefs.map((pref) => (
                         <div key={pref.key} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
                           <div>
-                            <p className="font-medium text-gray-900">{pref.label}</p>
-                            <p className="text-sm text-gray-500">{pref.description}</p>
+                            <p className="font-medium text-gray-900">{NOTIF_TRANSLATIONS[pref.key]?.label ?? pref.label}</p>
+                            <p className="text-sm text-gray-500">{NOTIF_TRANSLATIONS[pref.key]?.description ?? pref.description}</p>
                           </div>
                           <label className="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" checked={pref.enabled} onChange={() => toggleNotifPref(pref.key)} className="sr-only peer" />
@@ -2089,14 +2533,13 @@ export default function SettingsPage() {
                         className="flex items-center px-6 py-2.5 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50"
                       >
                         {savingNotifPrefs ? (
-                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enregistrement...</>
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t.settings.saving}</>
                         ) : (
-                          <><Save className="w-4 h-4 mr-2" /> Enregistrer</>
+                          <><Save className="w-4 h-4 mr-2" /> {t.settings.save}</>
                         )}
                       </button>
                     </div>
                   </>
-                )}
               </div>
             )}
 
@@ -2108,22 +2551,15 @@ export default function SettingsPage() {
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.settings.twoFactorAuth}</h3>
                   <p className="text-sm text-gray-500 mb-6">
-                    Renforcez la sécurité de votre entreprise en exigeant une vérification via une application d&apos;authentification
-                    (Google Authenticator, Authy, Microsoft Authenticator, etc.).
+                    {t.settings.twoFactorDesc}
                   </p>
 
-                  {loadingSecurity ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
-                    </div>
-                  ) : (
-                    <>
+                  <>
                       <div className="flex items-center justify-between p-5 bg-gray-50 rounded-xl border border-gray-200">
                         <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900">Exiger la 2FA pour tous les collaborateurs</h4>
+                          <h4 className="font-semibold text-gray-900">{t.settings.require2fa}</h4>
                           <p className="text-sm text-gray-500 mt-1">
-                            Lorsque cette option est activée, chaque utilisateur devra scanner un QR code
-                            avec son application d&apos;authentification lors de sa prochaine connexion.
+                            {t.settings.require2faDesc}
                           </p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer ml-6">
@@ -2139,7 +2575,7 @@ export default function SettingsPage() {
 
                       {securitySettings.require_2fa && securitySettings.total_users > 0 && (
                         <div className="mt-6 p-5 bg-blue-50 border border-blue-200 rounded-xl">
-                          <h4 className="font-semibold text-blue-900 mb-3">Adoption 2FA</h4>
+                          <h4 className="font-semibold text-blue-900 mb-3">{t.settings.twoFaAdoption}</h4>
                           <div className="flex items-center gap-4">
                             <div className="flex-1">
                               <div className="w-full h-3 bg-blue-200 rounded-full overflow-hidden">
@@ -2150,13 +2586,13 @@ export default function SettingsPage() {
                               </div>
                             </div>
                             <span className="text-sm font-semibold text-blue-900 whitespace-nowrap">
-                              {securitySettings.users_with_2fa}/{securitySettings.total_users} utilisateurs
+                              {securitySettings.users_with_2fa}/{securitySettings.total_users} {t.settings.users}
                             </span>
                           </div>
                           <p className="text-xs text-blue-700 mt-2">
                             {securitySettings.users_with_2fa === securitySettings.total_users
-                              ? 'Tous les utilisateurs ont configuré leur 2FA.'
-                              : `${securitySettings.total_users - securitySettings.users_with_2fa} utilisateur(s) devront configurer leur 2FA à la prochaine connexion.`
+                              ? t.settings.allUsersConfigured
+                              : `${securitySettings.total_users - securitySettings.users_with_2fa} ${t.settings.usersNeedSetup}`
                             }
                           </p>
                         </div>
@@ -2169,20 +2605,18 @@ export default function SettingsPage() {
                           className="flex items-center px-6 py-2.5 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50"
                         >
                           {savingSecurity ? (
-                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enregistrement...</>
+                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t.settings.saving}</>
                           ) : (
-                            <><Save className="w-4 h-4 mr-2" /> Enregistrer</>
+                            <><Save className="w-4 h-4 mr-2" /> {t.settings.save}</>
                           )}
                         </button>
                       </div>
-                    </>
-                  )}
+                  </>
                 </div>
 
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                   <p className="text-sm text-amber-800">
-                    <strong>Important :</strong> Les utilisateurs qui n&apos;ont pas encore configuré leur 2FA seront invités
-                    à scanner un QR code lors de leur prochaine connexion. Assurez-vous de les prévenir au préalable.
+                    <strong>{t.settings.warningLabel}</strong> {t.settings.twoFaImportant}
                   </p>
                 </div>
 
@@ -2195,11 +2629,7 @@ export default function SettingsPage() {
                     </h3>
                     <p className="text-sm text-gray-500 mb-6">{t.settings.employee2FADesc}</p>
 
-                    {loading2FAEmployees ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="w-6 h-6 text-primary-500 animate-spin" />
-                      </div>
-                    ) : employees2FA.length === 0 ? (
+                    {employees2FA.length === 0 ? (
                       <p className="text-sm text-gray-400 text-center py-6">{t.settings.no2FAEmployees}</p>
                     ) : (
                       <div className="overflow-x-auto">
@@ -2245,9 +2675,9 @@ export default function SettingsPage() {
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                         <Lock className="w-5 h-5 text-primary-600" />
-                        Mon mot de passe
+                        {t.settings.myPassword}
                       </h3>
-                      <p className="text-sm text-gray-500 mt-1">Modifiez votre mot de passe de connexion.</p>
+                      <p className="text-sm text-gray-500 mt-1">{t.settings.changePasswordDesc}</p>
                     </div>
                     {!showPasswordSection && (
                       <button
@@ -2312,13 +2742,13 @@ export default function SettingsPage() {
                           disabled={changingPassword}
                           className="flex items-center gap-2 px-5 py-2.5 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 disabled:opacity-50 transition-colors"
                         >
-                          {changingPassword ? <><Loader2 className="w-4 h-4 animate-spin" />{t.settings.saving}</> : <><Lock className="w-4 h-4" />{t.settings.save}</>}
+                          {changingPassword ? <><Loader2 className="w-4 h-4 animate-spin" /> {t.settings.saving}</> : <><Lock className="w-4 h-4" /> {t.settings.save}</>}
                         </button>
                         <button
                           onClick={() => { setShowPasswordSection(false); setPasswordForm({ current: '', newPwd: '', confirm: '' }); }}
                           className="px-4 py-2.5 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg transition-colors"
                         >
-                          Annuler
+                          {t.settings.cancel}
                         </button>
                       </div>
                     </div>
@@ -2343,12 +2773,7 @@ export default function SettingsPage() {
                 {/* ── Autres intégrations (Teams, Asana, Google...) ── */}
                 <div className="mt-8 pt-6 border-t border-gray-100">
                   <p className="text-sm font-medium text-gray-700 mb-4">{t.settings.otherIntegrations}</p>
-                  {loadingIntegrations ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                    </div>
-                  ) : (
-                    <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid md:grid-cols-2 gap-4">
                       {integrationsList.map((integration) => (
                         <div key={integration.id} className="border border-gray-200 rounded-xl p-5">
                           <div className="flex items-center gap-3 mb-3">
@@ -2357,11 +2782,11 @@ export default function SettingsPage() {
                             </div>
                             <div className="flex-1">
                               <h4 className="font-semibold text-gray-900">{integration.name}</h4>
-                              <p className="text-sm text-gray-500">{integration.description}</p>
+                              <p className="text-sm text-gray-500">{INTEGRATION_TRANSLATIONS[integration.id]?.description ?? integration.description}</p>
                             </div>
                             {integration.connected && (
                               <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                                <Check className="w-3 h-3" /> Connecté
+                                <Check className="w-3 h-3" /> {t.settings.connected}
                               </span>
                             )}
                           </div>
@@ -2402,7 +2827,6 @@ export default function SettingsPage() {
                         </div>
                       ))}
                     </div>
-                  )}
                 </div>
               </div>
             )}
@@ -2410,6 +2834,13 @@ export default function SettingsPage() {
             {/* ============================== */}
             {/* ONGLET: ÉQUIPE                 */}
             {/* ============================== */}
+
+            {/* ============================== */}
+            {/* ONGLET: SAUVEGARDE             */}
+            {/* ============================== */}
+            {activeTab === 'backup' && (
+              <BackupTab />
+            )}
           </div>
         </div>
       </main>

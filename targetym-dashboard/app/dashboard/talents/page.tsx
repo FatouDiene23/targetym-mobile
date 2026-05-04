@@ -113,7 +113,7 @@ export default function TalentsDashboard() {
               )}
             </div>
             {d?.ninebox_distribution && Object.keys(d.ninebox_distribution).length > 0 ? (
-              <div className="grid grid-cols-3 gap-1">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
                 {[7, 8, 9, 4, 5, 6, 1, 2, 3].map(q => {
                   const info = QUADRANT_LABELS[q];
                   const count = d.ninebox_distribution?.[q] || 0;
@@ -131,7 +131,7 @@ export default function TalentsDashboard() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 gap-6">
           {/* Top Talents */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-center gap-2 mb-4">

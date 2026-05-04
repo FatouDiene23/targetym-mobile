@@ -1011,7 +1011,7 @@ export default function PlatformAdminDashboard() {
               </button>
             </div>
             <form onSubmit={handleCreateTenant} className="p-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nom de l&apos;entreprise *</label>
                   <input required type="text" value={createTenantForm.company_name}
@@ -1120,7 +1120,7 @@ export default function PlatformAdminDashboard() {
 
             <div className="p-5 space-y-5">
               {/* Stats bar */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div className="bg-primary-50 rounded-lg p-3 text-center">
                   <p className="text-2xl font-bold text-primary-700">{selectedTenant.users_count}</p>
                   <p className="text-xs text-primary-600">Utilisateurs</p>
@@ -1136,7 +1136,7 @@ export default function PlatformAdminDashboard() {
               </div>
 
               {/* Fields */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <TenantField label="Plan" value={selectedTenant.plan}
                   editing={editingTenant}
                   editType="select" options={['trial', 'professional', 'enterprise']}

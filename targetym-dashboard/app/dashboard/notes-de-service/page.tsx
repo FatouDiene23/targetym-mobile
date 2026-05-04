@@ -317,14 +317,14 @@ export default function NotesDeServicePage() {
               placeholder={i18n.serviceNotes.searchNote}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
 
           {isRH && (
             <button
               onClick={() => { setEditingNote(null); setShowCreateModal(true); }}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-sm font-medium"
             >
               <Plus className="w-4 h-4" />
               {i18n.serviceNotes.newNote}
@@ -341,7 +341,7 @@ export default function NotesDeServicePage() {
                 onClick={() => setActiveTab(tab.key)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition ${
                   activeTab === tab.key
-                    ? 'bg-white text-blue-600 shadow-sm'
+                    ? 'bg-white text-primary-600 shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
@@ -355,7 +355,7 @@ export default function NotesDeServicePage() {
         {/* Content */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+            <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
           </div>
         ) : filteredNotes.length === 0 ? (
           <div className="text-center py-20 text-gray-400">
@@ -513,7 +513,7 @@ function NoteCard({
             <>
               <button
                 onClick={onEdit}
-                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition"
                 title={i18n.common.edit}
               >
                 <Edit3 className="w-4 h-4" />
@@ -538,7 +538,7 @@ function NoteCard({
             <>
               <button
                 onClick={onView}
-                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition"
                 title={i18n.common.details}
               >
                 <Eye className="w-4 h-4" />
@@ -557,7 +557,7 @@ function NoteCard({
           {note.statut === 'archivee' && (
             <button
               onClick={onView}
-              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+              className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition"
               title={i18n.common.details}
             >
               <Eye className="w-4 h-4" />
@@ -687,7 +687,7 @@ function CreateEditModal({
               value={titre}
               onChange={(e) => setTitre(e.target.value)}
               placeholder={i18n.serviceNotes.titlePlaceholder}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
 
@@ -699,7 +699,7 @@ function CreateEditModal({
               onChange={(e) => setContenu(e.target.value)}
               rows={6}
               placeholder={i18n.serviceNotes.contentPlaceholder}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-y"
             />
           </div>
 
@@ -720,7 +720,7 @@ function CreateEditModal({
                     name="scope"
                     checked={scope === s}
                     onChange={() => { setScope(s); setDeptSearch(''); setEmpSearch(''); }}
-                    className="text-blue-600 focus:ring-blue-500"
+                    className="text-primary-600 focus:ring-primary-500"
                   />
                   <span className="text-sm text-gray-600">{scopeLabels[s]}</span>
                 </label>
@@ -739,7 +739,7 @@ function CreateEditModal({
                       placeholder={i18n.serviceNotes.searchDepartment}
                       value={deptSearch}
                       onChange={(e) => setDeptSearch(e.target.value)}
-                      className="w-full px-2 py-1 text-sm border border-gray-200 rounded outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full px-2 py-1 text-sm border border-gray-200 rounded outline-none focus:ring-1 focus:ring-primary-500"
                     />
                   </div>
                   <div className="max-h-40 overflow-y-auto p-2 space-y-1">
@@ -755,7 +755,7 @@ function CreateEditModal({
                                 : [...prev, dept.id]
                             )
                           }
-                          className="text-blue-600 rounded focus:ring-blue-500"
+                          className="text-primary-600 rounded focus:ring-primary-500"
                         />
                         <span className="text-sm text-gray-700">{dept.name}</span>
                       </label>
@@ -779,7 +779,7 @@ function CreateEditModal({
                       placeholder={i18n.serviceNotes.searchEmployee}
                       value={empSearch}
                       onChange={(e) => setEmpSearch(e.target.value)}
-                      className="w-full px-2 py-1 text-sm border border-gray-200 rounded outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full px-2 py-1 text-sm border border-gray-200 rounded outline-none focus:ring-1 focus:ring-primary-500"
                     />
                   </div>
                   <div className="max-h-48 overflow-y-auto p-2 space-y-1">
@@ -795,7 +795,7 @@ function CreateEditModal({
                                 : [...prev, emp.id]
                             )
                           }
-                          className="text-blue-600 rounded focus:ring-blue-500"
+                          className="text-primary-600 rounded focus:ring-primary-500"
                         />
                         <span className="text-sm text-gray-700">
                           {emp.first_name} {emp.last_name}
@@ -829,9 +829,9 @@ function CreateEditModal({
                 </button>
               </div>
             ) : (
-              <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition">
+              <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary-400 hover:bg-primary-50/30 transition">
                 {uploading ? (
-                  <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                  <Loader2 className="w-5 h-5 animate-spin text-primary-500" />
                 ) : (
                   <>
                     <Paperclip className="w-5 h-5 text-gray-400" />
@@ -991,7 +991,7 @@ function DetailModal({
                     onClick={() => onFilterChange(f)}
                     className={`px-3 py-1 rounded-md text-xs font-medium transition ${
                       readersFilter === f
-                        ? 'bg-white text-blue-600 shadow-sm'
+                        ? 'bg-white text-primary-600 shadow-sm'
                         : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >

@@ -905,7 +905,7 @@ export default function SurveysPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 relative z-20">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-wrap">
           <div className="relative flex-1 min-w-0">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -1220,7 +1220,7 @@ export default function SurveysPage() {
                       );
                     })()}
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Date début</label>
                       <CustomDatePicker value={formData.start_date} onChange={v => setFormData({ ...formData, start_date: v })} className="w-full" />

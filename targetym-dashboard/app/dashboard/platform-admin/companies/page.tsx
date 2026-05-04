@@ -551,7 +551,7 @@ export default function CompaniesPage() {
                   </div>
 
                   {/* Infos principales */}
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                     <div className="bg-gray-50 rounded-xl p-3">
                       <p className="text-xs text-gray-400 mb-0.5">Email admin</p>
                       <p className="font-medium text-gray-800 truncate">{detailTenant.email || '—'}</p>

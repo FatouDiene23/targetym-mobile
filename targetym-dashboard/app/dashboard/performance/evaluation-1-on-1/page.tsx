@@ -447,7 +447,7 @@ function EvaluationReportModal({ session, onClose, onSuccess }: {
               <TrendingUp className="w-4 h-4 text-purple-500" />
               {t.performance.recommendation} <span className="text-red-500">*</span>
             </h3>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {getRecommendations(t).map(r => (
                 <button
                   key={r.value}
@@ -496,7 +496,7 @@ function EvaluationReportModal({ session, onClose, onSuccess }: {
                       placeholder={t.performance.taskTitlePlaceholder}
                       className="w-full px-2.5 py-1.5 border rounded text-sm bg-white focus:outline-none focus:ring-1 focus:ring-indigo-300"
                     />
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       <CustomDatePicker
                         value={task.due_date}
                         onChange={v => updateTask(task.id, 'due_date', v)}
@@ -626,7 +626,7 @@ export default function Evaluation1on1Page() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-primary-50 text-primary-700 rounded-xl p-4 flex items-center gap-3">
             <CheckCircle2 className="w-6 h-6 shrink-0" />
             <div>
@@ -651,8 +651,8 @@ export default function Evaluation1on1Page() {
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-3 mb-5">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
+          <div className="relative w-full sm:max-w-sm sm:flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"

@@ -501,7 +501,7 @@ export default function RecapClient() {
 
             {/* Stats */}
             {(status === 'simulation' || status === 'validated') && (
-              <div className="grid grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <StatCard
                   label="Masse salariale brute"
                   value={formatXOF(run.total_brut)}

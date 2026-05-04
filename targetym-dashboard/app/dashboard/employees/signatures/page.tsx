@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Header from '@/components/Header';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/CustomDatePicker';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import {
   PenLine, FileText, Plus, X, Loader2, CheckCircle2,
@@ -565,10 +566,9 @@ export default function SignaturesPage() {
               {/* Expiry */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{sig.createModal.expiryDate}</label>
-                <input
-                  type="date"
+                <CustomDatePicker
                   value={createForm.expires_at}
-                  onChange={e => setCreateForm(f => ({ ...f, expires_at: e.target.value }))}
+                  onChange={v => setCreateForm(f => ({ ...f, expires_at: v }))}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                 />
               </div>

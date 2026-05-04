@@ -304,7 +304,7 @@ const getLevelColor = (l: string) => {
 };
 
 // Export OKRs to CSV
-function exportOKRsToCSV(objectives: Objective[]): void {
+async function exportOKRsToCSV(objectives: Objective[]): Promise<void> {
   const headers = [
     'Niveau', 'Titre', 'Département', 'Propriétaire', 'Période', 
     'Progression', 'Statut', 'Key Results'
@@ -326,17 +326,9 @@ function exportOKRsToCSV(objectives: Objective[]): void {
     ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
   ].join('\n');
 
-  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  
-  link.setAttribute('href', url);
-  link.setAttribute('download', `okr_export_${new Date().toISOString().split('T')[0]}.csv`);
-  link.style.visibility = 'hidden';
-  
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const filename = `okr_export_${new Date().toISOString().split('T')[0]}.csv`;
+  const { downloadFile } = await import('@/lib/capacitor-plugins');
+  await downloadFile('\ufeff' + csvContent, filename, 'text/csv;charset=utf-8;');
 }
 
 // ============================================
@@ -456,7 +448,7 @@ function ObjectiveModal({
             />
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.level} *</label>
               <CustomSelect
@@ -491,7 +483,7 @@ function ObjectiveModal({
             </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.departmentLabel}</label>
               <CustomSelect
@@ -1534,7 +1526,7 @@ export default function OKRPage() {
 
         {/* Tab Content: Dashboard */}
         {activeTab === 'dashboard' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h3 className="font-semibold text-gray-900 mb-4">{t.okr.statusDistribution}</h3>
               {statusDistribution.length > 0 ? (

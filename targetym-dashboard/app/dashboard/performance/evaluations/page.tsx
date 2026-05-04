@@ -285,7 +285,7 @@ function EvaluationViewModal({ isOpen, onClose, evaluation }: {
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-6">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-500">{perf.typeLabel}</p>
               <p className="font-medium text-gray-900">{getTypeLabelT(evaluation.type, perf)}</p>

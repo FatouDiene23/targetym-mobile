@@ -753,7 +753,7 @@ export default function MyCareerPage() {
         </div>
 
         {/* Salary Chart + Current Position side by side */}
-        <div className="grid lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
           {/* Current Position */}
           <div className="bg-white rounded-xl border border-gray-200 p-5" data-tour="career-path">
             <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">

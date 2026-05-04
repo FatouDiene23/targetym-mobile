@@ -172,7 +172,7 @@ export default function AnalyticsPage() {
           </div>
         </div>
       </div>
-          <div className="grid lg:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-6">
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <h3 className="font-semibold text-gray-900 mb-4">{ta.completedByMonth}</h3>
               <div className="h-64">
@@ -309,7 +309,7 @@ export default function AnalyticsPage() {
               </div>
 
               {/* Graphiques */}
-              <div className="grid lg:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-2 gap-6">
                 {/* Réalisation par trimestre */}
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                   <h3 className="font-semibold text-gray-900 mb-4">{ta.quarterlyCompletion}</h3>

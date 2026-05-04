@@ -398,8 +398,8 @@ export default function CertificatesPage() {
                   </div>
 
                   {/* Filtres */}
-                  <div className="flex gap-3 mb-5 flex-wrap" data-tour="certificates-search">
-                    <div className="flex-1 min-w-[220px] relative">
+                  <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 mb-5" data-tour="certificates-search">
+                    <div className="w-full sm:flex-1 sm:min-w-[220px] relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="text"
@@ -412,6 +412,7 @@ export default function CertificatesPage() {
                     <CustomSelect
                       value={statusFilter}
                       onChange={(v) => { setStatusFilter(v); setEmployeePage(1); }}
+                      className="w-full sm:w-auto sm:min-w-[160px]"
                       options={[
                         { value: '', label: t.documents.allStatusesFilter },
                         { value: 'active', label: t.documents.activeFilter },

@@ -121,7 +121,7 @@ function ProfileModal({
           )}
 
           {/* Contrat et classification */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.profiles.contractType}</label>
               <CustomSelect
@@ -162,7 +162,7 @@ function ProfileModal({
                   onChange={e => set('base_salary', e.target.value ? parseFloat(e.target.value) : undefined)}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.profiles.transportAllowance}</label>
                   <input
@@ -207,7 +207,7 @@ function ProfileModal({
           {/* Cotisations sociales */}
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-3 border-b pb-1">{t.payroll.profiles.socialContributions}</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {[
                 { key: 'ipres_enrolled', label: t.payroll.profiles.ipres },
                 { key: 'ipm_enrolled', label: t.payroll.profiles.ipm },
@@ -230,7 +230,7 @@ function ProfileModal({
           {/* Banque */}
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-3 border-b pb-1">{t.payroll.profiles.bankDetails} <span className="font-normal text-gray-400">({t.payroll.profiles.optional})</span></h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.profiles.bankName}</label>
                 <input
@@ -349,7 +349,7 @@ export default function ProfilsPayePage() {
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
 
         {/* Résumé */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white rounded-xl border p-4">
             <p className="text-xs text-gray-500 mb-1">{t.payroll.profiles.activeEmployees}</p>
             <p className="text-2xl font-bold text-gray-800">{employees.length}</p>

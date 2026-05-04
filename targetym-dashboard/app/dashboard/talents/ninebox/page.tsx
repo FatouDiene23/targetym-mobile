@@ -244,7 +244,7 @@ export default function NineBoxPage() {
             </div>
 
             {/* Legend */}
-            <div data-tour="ninebox-legend" className="mt-6 grid grid-cols-3 gap-4 text-xs">
+            <div data-tour="ninebox-legend" className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
               <div className="flex items-center gap-2"><div className="w-4 h-4 bg-green-500 rounded"></div><span>{tp.legendStars}</span></div>
               <div className="flex items-center gap-2"><div className="w-4 h-4 bg-blue-500 rounded"></div><span>{tp.legendPerformers}</span></div>
               <div className="flex items-center gap-2"><div className="w-4 h-4 bg-yellow-500 rounded"></div><span>{tp.legendDevelop}</span></div>
@@ -330,7 +330,7 @@ function EmployeePanel({ employee }: { employee: NineBoxEmployee }) {
         <p className="text-sm text-gray-500">{employee.job_title}</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="text-center p-3 bg-gray-50 rounded-lg">
           <p className="text-2xl font-bold text-primary-600">{employee.performance}/5</p>
           <p className="text-xs text-gray-500">{tp.performanceLabel}</p>

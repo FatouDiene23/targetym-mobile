@@ -396,7 +396,7 @@ export default function MyReservationsPage() {
                 {i18n.rooms.roomLabel} : <strong>{rooms.find(r => r.id === selectedRoomId)?.name}</strong> — {new Date(selectedDate + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.rooms.startTime}</label>
                   <input

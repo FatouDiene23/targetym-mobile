@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import CustomSelect from '@/components/CustomSelect';
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
@@ -12,6 +11,7 @@ import {
 } from "lucide-react";
 import { fetchWithAuth, API_URL } from "@/lib/api";
 import { useI18n } from "@/lib/i18n/I18nContext";
+import CustomSelect from "@/components/CustomSelect";
 import { useBudgetYear } from "@/hooks/useBudgetYear";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -277,17 +277,38 @@ export default function BudgetRHEmployeesPage() {
           {/* Year */}
           <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2">
             <Calendar className="w-4 h-4 text-gray-400" />
-            <CustomSelect value={String(year)} onChange={(v) => setYear(+v)} options={[currentYear - 1, currentYear, currentYear + 1].map((y) => ({value: String(y), label: String(y)}))} className="text-sm font-medium text-gray-700 bg-transparent" />
+            <CustomSelect
+              value={String(year)}
+              onChange={(v) => setYear(+v)}
+              className="text-sm font-medium text-gray-700 bg-transparent outline-none border-0"
+              options={[currentYear - 1, currentYear, currentYear + 1].map((y) => ({ value: String(y), label: String(y) }))}
+            />
           </div>
           {/* Month */}
-          <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2">
-            <Filter className="w-4 h-4 text-gray-400" />
-            <CustomSelect value={month != null ? String(month) : ""} onChange={(v) => setMonth(v ? +v : null)} options={[{value:'', label:'Tous les mois'}, ...MONTHS_SHORT.map((m, i) => ({value: String(i + 1), label: m}))]} className="text-sm text-gray-700 bg-transparent" />
+          <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 min-w-0 flex-1 sm:flex-none">
+            <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <CustomSelect
+              value={month != null ? String(month) : ""}
+              onChange={(v) => setMonth(v ? +v : null)}
+              className="text-sm text-gray-700 bg-transparent outline-none border-0 flex-1"
+              options={[
+                { value: '', label: 'Tous les mois' },
+                ...MONTHS_SHORT.map((m, i) => ({ value: String(i + 1), label: m })),
+              ]}
+            />
           </div>
           {/* Department */}
-          <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2">
-            <Building2 className="w-4 h-4 text-gray-400" />
-            <CustomSelect value={departmentFilter} onChange={(v) => setDepartmentFilter(v)} options={[{value:'', label:'Tous départements'}, ...departments.map((d) => ({value: d, label: d}))]} className="text-sm text-gray-700 bg-transparent" />
+          <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 min-w-0 flex-1 sm:flex-none">
+            <Building2 className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <CustomSelect
+              value={departmentFilter}
+              onChange={(v) => setDepartmentFilter(v)}
+              className="text-sm text-gray-700 bg-transparent outline-none border-0 flex-1"
+              options={[
+                { value: '', label: 'Tous départements' },
+                ...departments.map((d) => ({ value: d, label: d })),
+              ]}
+            />
           </div>
           {/* Search */}
           <div className="flex-1 min-w-[200px] flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2">
@@ -328,7 +349,7 @@ export default function BudgetRHEmployeesPage() {
       )}
 
       {/* Summary strip */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
           { label: "Employés", value: filtered.length.toString(), icon: Users, color: "text-primary-600 bg-primary-50" },
           { label: "Salaire brut total", value: fmt(totalGross, true), icon: DollarSign, color: "text-emerald-600 bg-emerald-50" },

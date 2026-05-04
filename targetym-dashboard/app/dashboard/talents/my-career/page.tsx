@@ -103,7 +103,7 @@ export default function MyCareerPage() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 text-center">
                 <p className="text-3xl font-bold text-gray-900">{allCareers.length}</p>
                 <p className="text-sm text-gray-500 mt-1">Collaborateurs assignés</p>
@@ -133,7 +133,7 @@ export default function MyCareerPage() {
             )}
 
             {/* Raccourcis */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Link href="/dashboard/talents/employees" className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex items-center gap-4 hover:border-primary-300 hover:shadow-md transition-all group">
                 <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center group-hover:bg-primary-100 transition-colors">
                   <Users className="w-5 h-5 text-primary-600" />
@@ -460,7 +460,7 @@ export default function MyCareerPage() {
                 </span>
               </span>
             </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
               {attitudeScores.scores.filter((s: any) => s.total_feedbacks > 0).map((s: any) => {
                 const pct = s.score_pct;
                 const ok = pct >= 95;
@@ -527,7 +527,7 @@ export default function MyCareerPage() {
                         {comp.effective_status === 'validated' ? tp.validated : tp.inProgressStatus}
                       </span>
                     </div>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div className={`p-3 rounded-lg border ${comp.theoretical_status === 'validated' ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-100'}`}>
                         <div className="flex items-center gap-1.5 mb-1">
                           <BookOpen className={`w-3.5 h-3.5 ${comp.theoretical_status === 'validated' ? 'text-green-500' : 'text-gray-400'}`} />

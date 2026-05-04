@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import CustomSelect from '@/components/CustomSelect';
+import CustomDatePicker from '@/components/CustomDatePicker';
 import {
   Loader2, Plus, Edit, Trash2, Calendar, Clock, X, CheckCircle,
   XCircle, AlertCircle, Users, DoorOpen, ChevronRight, Ban,
@@ -492,12 +493,7 @@ export default function ReservationsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.rooms.dateLabel}</label>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={e => setSelectedDate(e.target.value)}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  />
+                  <CustomDatePicker value={selectedDate} onChange={v => setSelectedDate(v)} className="w-full" />
                 </div>
               </div>
 
@@ -532,7 +528,7 @@ export default function ReservationsPage() {
                 {i18n.rooms.roomLabel} : <strong>{rooms.find(r => r.id === selectedRoomId)?.name}</strong> — {new Date(selectedDate + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.rooms.startTime}</label>
                   <input
@@ -634,10 +630,9 @@ export default function ReservationsPage() {
           <div className="bg-white rounded-lg border px-4 py-3 flex flex-wrap gap-3 items-end">
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">{i18n.rooms.dateLabel}</label>
-              <input
-                type="date"
+              <CustomDatePicker
                 value={filterDate}
-                onChange={e => setFilterDate(e.target.value)}
+                onChange={setFilterDate}
                 className="border rounded-lg px-3 py-1.5 text-sm"
               />
             </div>
@@ -701,7 +696,7 @@ export default function ReservationsPage() {
               <p>{i18n.rooms.noRooms}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {rooms.map(rm => (
                 <div key={rm.id} className="bg-white rounded-lg border p-4">
                   <div className="flex items-start justify-between mb-2">

@@ -690,9 +690,9 @@ function CreateFeedbackModal({ isOpen, onClose, employees, attitudes, onSuccess 
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.feedbackType}</label>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {feedbackTypes.map(type => (
-                <button key={type.value} onClick={() => setFeedbackType(type.value)} className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${feedbackType === type.value ? type.color : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                <button key={type.value} onClick={() => setFeedbackType(type.value)} className={`px-2.5 py-2 rounded-lg text-xs sm:text-sm font-medium border transition-all whitespace-nowrap ${feedbackType === type.value ? type.color : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
                   {type.label}
                 </button>
               ))}

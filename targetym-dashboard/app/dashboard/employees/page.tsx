@@ -16,6 +16,7 @@ import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { employeesTips } from '@/config/pageTips';
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { 
@@ -445,6 +446,10 @@ function EmployeesPageInner() {
   const [isLoadingLeaves, setIsLoadingLeaves] = useState(false);
   const [showLeaveFilter, setShowLeaveFilter] = useState(false);
   const [leaveStatusFilter, setLeaveStatusFilter] = useState<string>('all');
+  const leaveFilterBtnRef = useRef<HTMLButtonElement | null>(null);
+  const [leaveFilterPos, setLeaveFilterPos] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
+  const [portalMounted, setPortalMounted] = useState(false);
+  useEffect(() => { setPortalMounted(true); }, []);
 
   // Invitations
   const [invitations, setInvitations] = useState<InvitationEmployee[]>([]);
@@ -988,7 +993,7 @@ function EmployeesPageInner() {
         )}
 
         {activeTab === 'orgchart' && (
-          <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Users className="w-5 h-5 text-primary-500 mb-2" /><p className="text-2xl font-bold text-gray-900">{dynamicStats.total}</p><p className="text-xs text-gray-500">{t.employees.collaborators}</p></div>
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Building2 className="w-5 h-5 text-purple-500 mb-2" /><p className="text-2xl font-bold text-purple-600">{departments.length}</p><p className="text-xs text-gray-500">{t.employees.units}</p></div>
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Briefcase className="w-5 h-5 text-indigo-500 mb-2" /><p className="text-2xl font-bold text-indigo-600">{dynamicStats.managers}</p><p className="text-xs text-gray-500">{t.employees.managers}</p></div>
@@ -1286,20 +1291,39 @@ function EmployeesPageInner() {
         {activeTab === 'leaves' && (
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-4">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100">
                 <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                   <h3 className="font-semibold text-gray-900">{t.employees.leaveRequests.title}{leaveStatusFilter !== 'all' && <span className="ml-2 text-sm font-normal text-gray-500">({leaveStatusFilter === 'pending' ? t.employees.leaveRequests.pending : leaveStatusFilter === 'approved' ? t.employees.leaveRequests.approved : t.employees.leaveRequests.rejected})</span>}</h3>
                   <div className="flex items-center gap-2">
                     <button onClick={fetchLeaveRequests} className="flex items-center px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"><RefreshCw className={`w-4 h-4 mr-2 ${isLoadingLeaves ? 'animate-spin' : ''}`} />{t.employees.refresh}</button>
-                    <div className="relative">
-                      <button onClick={() => setShowLeaveFilter(!showLeaveFilter)} className={`flex items-center px-3 py-1.5 text-sm rounded-lg ${leaveStatusFilter !== 'all' ? 'bg-primary-100 text-primary-700' : 'text-gray-600 hover:bg-gray-100'}`}><Filter className="w-4 h-4 mr-2" />{t.common.filter}<ChevronDown className="w-4 h-4 ml-1" /></button>
-                      {showLeaveFilter && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
-                          <button onClick={() => { setLeaveStatusFilter('all'); setShowLeaveFilter(false); }} className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'all' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}>{t.employees.leaveRequests.all}</button>
-                          <button onClick={() => { setLeaveStatusFilter('pending'); setShowLeaveFilter(false); }} className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'pending' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}><span className="inline-block w-2 h-2 bg-yellow-400 rounded-full mr-2"></span>{t.employees.leaveRequests.pending} ({leaveStats.pending})</button>
-                          <button onClick={() => { setLeaveStatusFilter('approved'); setShowLeaveFilter(false); }} className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'approved' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}><span className="inline-block w-2 h-2 bg-green-400 rounded-full mr-2"></span>{t.employees.leaveRequests.approved} ({leaveStats.approved})</button>
-                          <button onClick={() => { setLeaveStatusFilter('rejected'); setShowLeaveFilter(false); }} className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'rejected' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}><span className="inline-block w-2 h-2 bg-red-400 rounded-full mr-2"></span>{t.employees.leaveRequests.rejected} ({leaveStats.rejected})</button>
-                        </div>
+                    <div>
+                      <button
+                        ref={leaveFilterBtnRef}
+                        onClick={() => {
+                          if (!showLeaveFilter && leaveFilterBtnRef.current) {
+                            const r = leaveFilterBtnRef.current.getBoundingClientRect();
+                            setLeaveFilterPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
+                          }
+                          setShowLeaveFilter(!showLeaveFilter);
+                        }}
+                        className={`flex items-center px-3 py-1.5 text-sm rounded-lg ${leaveStatusFilter !== 'all' ? 'bg-primary-100 text-primary-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                      >
+                        <Filter className="w-4 h-4 mr-2" />{t.common.filter}<ChevronDown className="w-4 h-4 ml-1" />
+                      </button>
+                      {showLeaveFilter && portalMounted && createPortal(
+                        <>
+                          <div className="fixed inset-0 z-[9998]" onClick={() => setShowLeaveFilter(false)} />
+                          <div
+                            className="fixed w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-[9999]"
+                            style={{ top: `${leaveFilterPos.top}px`, right: `${leaveFilterPos.right}px` }}
+                          >
+                            <button onClick={() => { setLeaveStatusFilter('all'); setShowLeaveFilter(false); }} className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'all' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}>{t.employees.leaveRequests.all}</button>
+                            <button onClick={() => { setLeaveStatusFilter('pending'); setShowLeaveFilter(false); }} className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'pending' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}><span className="inline-block w-2 h-2 bg-yellow-400 rounded-full mr-2"></span>{t.employees.leaveRequests.pending} ({leaveStats.pending})</button>
+                            <button onClick={() => { setLeaveStatusFilter('approved'); setShowLeaveFilter(false); }} className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'approved' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}><span className="inline-block w-2 h-2 bg-green-400 rounded-full mr-2"></span>{t.employees.leaveRequests.approved} ({leaveStats.approved})</button>
+                            <button onClick={() => { setLeaveStatusFilter('rejected'); setShowLeaveFilter(false); }} className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${leaveStatusFilter === 'rejected' ? 'text-primary-600 font-medium' : 'text-gray-700'}`}><span className="inline-block w-2 h-2 bg-red-400 rounded-full mr-2"></span>{t.employees.leaveRequests.rejected} ({leaveStats.rejected})</button>
+                          </div>
+                        </>,
+                        document.body
                       )}
                     </div>
                   </div>
@@ -1473,7 +1497,7 @@ function EmployeesPageInner() {
             ) : (
               <>
                 {/* Stats */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
                     <Users className="w-5 h-5 text-indigo-500 mb-2" />
                     <p className="text-2xl font-bold text-gray-900">{mobilityData.total_transfers}</p>

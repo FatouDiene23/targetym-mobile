@@ -118,7 +118,7 @@ export default function RegisterPage() {
             </div>
 
             {/* Prénom + Nom */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
                 <div className="relative">
@@ -187,7 +187,7 @@ export default function RegisterPage() {
             </div>
 
             {/* Téléphone + Poste */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
                 <div className="relative">

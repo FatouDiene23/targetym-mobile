@@ -2,7 +2,7 @@
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 // Helper pour obtenir le token
-function getToken(): string | null {
+export function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('access_token');
 }
@@ -206,6 +206,8 @@ export interface Employee {
   disability_description?: string;
   emergency_contact_name?: string;
   emergency_contact_phone?: string;
+  // Administratif
+  nir_number?: string;
   // Organisation
   comex_member?: string;
   hrbp?: string;
@@ -256,6 +258,8 @@ export interface EmployeeCreate {
   disability_description?: string;
   emergency_contact_name?: string;
   emergency_contact_phone?: string;
+  // Administratif
+  nir_number?: string;
   // Organisation
   comex_member?: string;
   hrbp?: string;
@@ -2926,4 +2930,653 @@ export async function suspendLicense(employeeId: number): Promise<void> {
     method: 'POST',
   });
   if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+}
+
+export interface HRProgramOwner {
+  id: number;
+  name: string;
+  job_title: string | null;
+}
+
+export interface HRProgramOKR {
+  id: number;
+  title: string;
+  level: string | null;
+  status: string | null;
+  progress: number;
+  period: string;
+}
+
+export interface HRProgramAction {
+  id: number;
+  action_code: string;
+  phase: 'T1' | 'T2' | 'T3' | 'T4';
+  category: string;
+  specific_objective: string;
+  action_label: string;
+  budget_amount: number | null;
+  budget_variable: string | null;
+  budget_currency: string;
+  owner_role: string;
+  owner_employee_id: number | null;
+  owner_name: string | null;
+  kpi_definition: string;
+  due_period: string;
+  due_date: string | null;
+  status: 'todo' | 'in_progress' | 'done' | 'blocked';
+  progress_pct: number;
+  comment: string | null;
+  completed_at: string | null;
+  sort_order: number;
+}
+
+export interface HRProgram {
+  id: number;
+  program_code: string;
+  name: string;
+  global_objective: string;
+  scope: string;
+  duration: string;
+  strategic_kpis: string[];
+  status: string;
+  is_template: boolean;
+  owner_employee_id: number | null;
+  owner: HRProgramOwner | null;
+  linked_objective_id: number | null;
+  linked_objective: HRProgramOKR | null;
+  total_actions: number;
+  done_count: number;
+  in_progress_count: number;
+  progress_pct: number;
+  total_budget: number;
+  budget_allocated: number | null;
+  cover_image_url?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HRProgramDetail extends HRProgram {
+  actions_by_phase: {
+    T1: HRProgramAction[];
+    T2: HRProgramAction[];
+    T3: HRProgramAction[];
+    T4: HRProgramAction[];
+  };
+}
+
+export interface HRProgramsStats {
+  total_programs: number;
+  active_programs: number;
+  total_actions: number;
+  done_actions: number;
+  in_progress_actions: number;
+  blocked_actions: number;
+  global_progress_pct: number;
+  total_budget: number;
+}
+
+export interface HREmployeeItem {
+  id: number;
+  name: string;
+  job_title: string | null;
+  email: string;
+}
+
+export interface HROKRItem {
+  id: number;
+  title: string;
+  level: string | null;
+  status: string | null;
+  progress: number;
+  period: string;
+}
+
+export async function getHRPrograms(isTemplate?: boolean): Promise<HRProgram[]> {
+  const url = new URL(`${API_URL}/api/hr-programs`);
+  if (isTemplate !== undefined) url.searchParams.set('is_template', String(isTemplate));
+  const response = await fetchWithAuth(url.toString());
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export interface HRActionInput {
+  action_label: string;
+  phase?: string;
+  category?: string;
+  budget_amount?: number | null;
+  due_period?: string;
+  specific_objective?: string;
+  kpi_definition?: string;
+  owner_role?: string;
+}
+
+export async function createHRProgram(data: {
+  name: string;
+  program_code?: string;
+  global_objective?: string;
+  scope?: string;
+  duration?: string;
+  strategic_kpis?: string[];
+  status?: string;
+  budget_allocated?: number | null;
+  owner_employee_id?: number | null;
+  linked_objective_id?: number | null;
+  cover_image_url?: string | null;
+  actions?: HRActionInput[];
+}): Promise<HRProgram> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function activateHRTemplate(templateId: number): Promise<HRProgram> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/${templateId}/activate`, {
+    method: 'POST',
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getHRProgram(id: number): Promise<HRProgramDetail> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/${id}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function updateHRProgram(id: number, data: Partial<{
+  name: string; status: string; global_objective: string; scope: string; duration: string;
+  owner_employee_id: number | null; linked_objective_id: number | null;
+  budget_allocated: number | null; cover_image_url: string | null;
+}>): Promise<HRProgram> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function updateHRAction(actionId: number, data: Partial<{
+  action_label: string; status: string; progress_pct: number; comment: string | null;
+  owner_employee_id: number | null; due_date: string | null;
+  budget_amount: number | null;
+}>): Promise<HRProgramAction> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/actions/${actionId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function addHRAction(programId: number, data: {
+  action_label: string; phase: string; category?: string | null;
+  budget_amount?: number | null; due_period?: string | null;
+  specific_objective?: string | null; kpi_definition?: string | null;
+}): Promise<HRProgramAction> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/${programId}/actions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function deleteHRAction(actionId: number): Promise<void> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/actions/${actionId}`, { method: 'DELETE' });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+}
+
+export async function deleteHRProgram(id: number): Promise<void> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/${id}`, { method: 'DELETE' });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+}
+
+export async function uploadMediaImage(file: File): Promise<{ url: string }> {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await fetch(`${API_URL}/api/media/upload`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+  if (!response.ok) {
+    const err = await parseApiError(response);
+    throw new Error(err);
+  }
+  return response.json();
+}
+
+export async function seedHCTemplates(): Promise<{ created: number; skipped: number; total: number }> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/seed-templates`, { method: 'POST' });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getHRProgramsStats(): Promise<HRProgramsStats> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/stats/overview`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getHREmployeesList(): Promise<HREmployeeItem[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/employees-list`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getHROKRList(): Promise<HROKRItem[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/objectives-list`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+// ── Plan gate ──────────────────────────────────────────────────────────────────
+
+export interface HRProgramsAccess {
+  has_access: boolean;
+  via_plan: boolean;
+  via_addon: boolean;
+  plan: string;
+}
+
+export async function checkHRProgramsAccess(): Promise<HRProgramsAccess> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/check-access`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function requestHRProgramsAddon(): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/request-addon`, { method: 'POST' });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function notifyOverdueActions(): Promise<{ notified: number; checked: number }> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/notify-overdue`, { method: 'POST' });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function exportProgramCSV(programId: number, programCode: string): Promise<void> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/${programId}/export`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `programme_${programCode}_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+export interface AIScoringStatus {
+  has_access: boolean;
+  via_plan: boolean;
+  via_addon: boolean;
+  module_status: 'active' | 'pending' | 'rejected' | 'not_requested';
+  plan: string;
+  plan_label: string;
+  max_cvs_per_batch: number;
+}
+
+export async function getAIScoringStatus(): Promise<AIScoringStatus> {
+  const response = await fetchWithAuth(`${API_URL}/api/ai/scoring-status`);
+  if (!response.ok) {
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
+  }
+  return response.json();
+}
+
+export async function requestAIScoringAddon(message?: string): Promise<{ success: boolean; module_status: string; message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/ai/scoring-request`, {
+    method: 'POST',
+    body: JSON.stringify({ message: message || '' }),
+  });
+  if (!response.ok) {
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
+  }
+  return response.json();
+}
+export async function downloadBackup(): Promise<void> {
+  const response = await fetchWithAuth(`${API_URL}/api/backup/export`);
+  if (!response.ok) {
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
+  }
+  const blob = await response.blob();
+  const contentDisposition = response.headers.get('Content-Disposition') || '';
+  const match = contentDisposition.match(/filename="([^"]+)"/);
+  const filename = match ? match[1] : `targetym_backup_${new Date().toISOString().slice(0, 10)}.json`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export interface BackupStatus {
+  auto_backup_enabled: boolean;
+  last_exported_at: string | null;
+  live_counts: {
+    employees: number;
+    departments: number;
+    leave_requests: number;
+    absences: number;
+    surveys: number;
+    attendance_records: number;
+    salary_history: number;
+    users: number;
+  };
+  checked_at: string;
+}
+
+export async function getBackupStatus(): Promise<BackupStatus> {
+  const response = await fetchWithAuth(`${API_URL}/api/backup/status`);
+  if (!response.ok) {
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
+  }
+  return response.json();
+}
+
+export async function toggleAutoBackup(): Promise<{ auto_backup_enabled: boolean }> {
+  const response = await fetchWithAuth(`${API_URL}/api/backup/toggle`, { method: 'PATCH' });
+  if (!response.ok) {
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
+  }
+  return response.json();
+}
+
+export interface RestoreResult {
+  success: boolean;
+  backup_version: string;
+  backup_date: string | null;
+  results: Record<string, { restored: number; skipped: number; errors: number }>;
+  totals: {
+    restored: number;
+    skipped: number;
+    errors: number;
+  };
+}
+
+export async function importBackup(file: File): Promise<RestoreResult> {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await fetch(`${API_URL}/api/backup/import`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      // Content-Type omis volontairement : le navigateur le positionne avec le boundary multipart
+    },
+    body: formData,
+  });
+  if (!response.ok) {
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
+  }
+  return response.json();
+}
+export interface Webinar {
+  id: number;
+  title: string;
+  description?: string | null;
+  cover_image_url?: string | null;
+  presenter_name?: string | null;
+  webinar_date?: string | null;
+  duration_minutes?: number | null;
+  replay_url?: string | null;
+  registration_url?: string | null;
+  max_attendees?: number | null;
+  status: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export async function getWebinars(status?: string): Promise<{ items: Webinar[]; total: number }> {
+  const params = status ? `?status=${status}` : '';
+  const response = await fetchWithAuth(`${API_URL}/api/webinars${params}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function createWebinar(data: Omit<Webinar, 'id' | 'created_at' | 'updated_at'>): Promise<Webinar> {
+  const response = await fetchWithAuth(`${API_URL}/api/webinars`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function updateWebinar(id: number, data: Partial<Omit<Webinar, 'id' | 'created_at' | 'updated_at'>>): Promise<Webinar> {
+  const response = await fetchWithAuth(`${API_URL}/api/webinars/${id}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function deleteWebinar(id: number): Promise<void> {
+  const response = await fetchWithAuth(`${API_URL}/api/webinars/${id}`, { method: 'DELETE' });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+}
+export interface BatchApplyItem {
+  candidate_name: string;
+  filename: string;
+  cv_text: string;
+  overall_score: number;
+  score_details: Array<{ category: string; score: number; comment: string }>;
+  analysis: string;
+  score_status: 'shortlist' | 'to_review' | 'rejected';
+}
+
+export interface BatchApplyResult {
+  added: number;
+  emails_sent: number;
+  errors: string[];
+  applications: Array<{
+    application_id: number;
+    candidate_id: number;
+    candidate_name: string;
+    stage: string;
+    score_status: string;
+    has_email: boolean;
+  }>;
+}
+
+export async function applyBatchScoringResults(
+  jobPostingId: number,
+  results: BatchApplyItem[],
+): Promise<BatchApplyResult> {
+  const response = await fetchWithAuth(`${API_URL}/api/ai/apply-batch-results`, {
+    method: 'POST',
+    body: JSON.stringify({ job_posting_id: jobPostingId, results }),
+  });
+  if (!response.ok) {
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
+  }
+  return response.json();
+}
+
+export interface Agency {
+  id: number;
+  name: string;
+  email: string;
+  contact_name?: string;
+  phone?: string;
+  website_url?: string;
+  is_active: boolean;
+  active_missions?: number;
+  created_at: string;
+}
+
+export interface AgencyMission {
+  id: number;
+  agency_id: number;
+  agency_name?: string;
+  job_posting_id: number;
+  job_title?: string;
+  status: 'pending' | 'in_progress' | 'candidates_submitted' | 'completed' | 'cancelled';
+  brief?: string;
+  nb_profiles_requested: number;
+  nb_candidates_submitted?: number;
+  nb_submitted?: number;
+  deadline?: string;
+  agency_job_url?: string;
+  created_at: string;
+  job?: {
+    id: number;
+    title: string;
+    location: string;
+    contract_type: string;
+    description?: string;
+    requirements?: string[];
+    remote_policy?: string;
+  };
+}
+
+export interface AgencyCandidate {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email?: string;
+  phone?: string;
+  current_position?: string;
+  experience_years?: number;
+  cv_url?: string;
+  cv_filename?: string;
+  agency_notes?: string;
+  status: 'submitted' | 'ai_scored' | 'shortlisted' | 'interview' | 'accepted' | 'rejected';
+  ai_score?: number;
+  ai_notes?: string;
+  rejection_reason?: string;
+  candidate_application_id?: number;
+  created_at: string;
+}
+
+// --- Entreprise : gestion des cabinets ---
+
+export async function getAgencies(): Promise<Agency[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/agencies`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function createAgency(data: FormData): Promise<Agency & { message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/agencies`, { method: 'POST', body: data });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getAgency(id: number): Promise<Agency & { missions: AgencyMission[] }> {
+  const response = await fetchWithAuth(`${API_URL}/api/agencies/${id}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function updateAgency(id: number, data: FormData): Promise<Agency> {
+  const response = await fetchWithAuth(`${API_URL}/api/agencies/${id}`, { method: 'PATCH', body: data });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function createMission(agencyId: number, data: FormData): Promise<AgencyMission> {
+  const response = await fetchWithAuth(`${API_URL}/api/agencies/${agencyId}/missions`, { method: 'POST', body: data });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getAllMissions(): Promise<AgencyMission[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/agencies/missions/all`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getMissionCandidates(missionId: number): Promise<AgencyCandidate[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/agencies/missions/${missionId}/candidates`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function updateAgencyCandidateStatus(
+  missionId: number,
+  candidateId: number,
+  data: FormData
+): Promise<AgencyCandidate> {
+  const response = await fetchWithAuth(
+    `${API_URL}/api/agencies/missions/${missionId}/candidates/${candidateId}/status`,
+    { method: 'PATCH', body: data }
+  );
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function scoreAgencyCandidate(missionId: number, candidateId: number): Promise<AgencyCandidate> {
+  const response = await fetchWithAuth(
+    `${API_URL}/api/agencies/missions/${missionId}/candidates/${candidateId}/ai-score`,
+    { method: 'POST' }
+  );
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+// --- Cabinet : portail ---
+
+export async function getCabinetMissions(): Promise<AgencyMission[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/cabinet/missions`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getCabinetMission(id: number): Promise<AgencyMission & { candidates: AgencyCandidate[]; pipeline_steps: string[] }> {
+  const response = await fetchWithAuth(`${API_URL}/api/cabinet/missions/${id}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function updateMissionUrl(missionId: number, url: string): Promise<AgencyMission> {
+  const data = new FormData();
+  data.append('agency_job_url', url);
+  const response = await fetchWithAuth(`${API_URL}/api/cabinet/missions/${missionId}/url`, { method: 'PATCH', body: data });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function submitCabinetCandidate(missionId: number, data: FormData): Promise<AgencyCandidate> {
+  const response = await fetchWithAuth(`${API_URL}/api/cabinet/missions/${missionId}/candidates`, { method: 'POST', body: data });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function deleteCabinetCandidate(missionId: number, candidateId: number): Promise<void> {
+  const response = await fetchWithAuth(`${API_URL}/api/cabinet/missions/${missionId}/candidates/${candidateId}`, { method: 'DELETE' });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+}
+
+export async function getCabinetStats(): Promise<{
+  total_missions: number;
+  active_missions: number;
+  total_candidates_submitted: number;
+  shortlisted: number;
+  accepted: number;
+}> {
+  const response = await fetchWithAuth(`${API_URL}/api/cabinet/stats`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
 }

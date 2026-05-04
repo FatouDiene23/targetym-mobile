@@ -640,7 +640,7 @@ export default function Header({ title, subtitle, hideAddButton, transparent }: 
                 <Globe className="w-5 h-5" />
               </button>
               {showLangMenu && (
-                <div className="absolute right-0 mt-2 w-40 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-lg border border-gray-200 z-50">
+                <div className="fixed lg:absolute top-14 lg:top-auto lg:mt-2 left-0 right-0 lg:left-auto lg:right-0 lg:w-40 bg-white lg:rounded-xl shadow-lg border-t border-gray-200 lg:border lg:border-gray-200 z-50">
                   <button
                     onClick={() => { setLocale('fr'); setShowLangMenu(false); }}
                     className={`w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 rounded-t-xl flex items-center gap-2 ${locale === 'fr' ? 'text-primary-600 font-semibold bg-primary-50' : ''}`}
@@ -679,7 +679,7 @@ export default function Header({ title, subtitle, hideAddButton, transparent }: 
               </button>
 
               {showNotifications && (
-                <div className="fixed lg:absolute top-14 lg:top-12 left-2 right-2 lg:left-auto lg:right-0 lg:w-96 bg-white rounded-xl shadow-lg border border-gray-200 z-[60] overflow-hidden">
+                <div className="fixed lg:absolute top-14 lg:top-12 left-0 right-0 lg:left-auto lg:right-0 lg:w-96 bg-white lg:rounded-xl shadow-lg border-t border-gray-200 lg:border lg:border-gray-200 z-[60] overflow-hidden">
                   {/* Header */}
                   <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                     <h3 className="font-semibold text-gray-900 flex items-center gap-2">

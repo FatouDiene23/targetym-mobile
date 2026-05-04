@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Loader2, ChevronLeft, Building2, Users, Briefcase, Layers, Network, GitBranch, Search, X } from 'lucide-react';
 import { createDepartment, getDepartments, getEmployees, type Department, type Employee, type OrganizationalLevel } from '@/lib/api';
+import CustomSelect from '@/components/CustomSelect';
 
 interface AddOrganizationalUnitModalProps {
   onClose: () => void;
@@ -208,7 +209,7 @@ export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOr
             {/* Type/Niveau */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Type d&apos;unité *</label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {ORGANIZATIONAL_LEVELS.map(level => {
                   const Icon = level.icon;
                   const isSelected = formData.level === level.value;
@@ -244,22 +245,19 @@ export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOr
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Rattachement (optionnel)
                 </label>
-                <select
-                  name="parent_id"
+                <CustomSelect
                   value={formData.parent_id}
-                  onChange={handleChange}
+                  onChange={(v) => setFormData(prev => ({ ...prev, parent_id: v }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                   disabled={isLoadingData}
-                >
-                  <option value="">
-                    {isLoadingData ? 'Chargement...' : 'Aucun (niveau racine)'}
-                  </option>
-                  {departments.map(dept => (
-                    <option key={dept.id} value={dept.id}>
-                      {getLevelLabel(dept.level || 'departement')} — {dept.name}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: '', label: isLoadingData ? 'Chargement...' : 'Aucun (niveau racine)' },
+                    ...departments.map(dept => ({
+                      value: String(dept.id),
+                      label: `${getLevelLabel(dept.level || 'departement')} — ${dept.name}`,
+                    })),
+                  ]}
+                />
                 <p className="text-xs text-gray-500 mt-1">
                   Laissez vide pour créer une unité au niveau racine
                 </p>

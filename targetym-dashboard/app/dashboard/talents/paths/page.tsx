@@ -911,7 +911,7 @@ function AddLevelModal({ pathId, existingCount, onClose, onAdd }: {
             <input value={title} onChange={e => setTitle(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Ex: Chef de Service" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.talents.careerPathsPage.order}</label>
               <input type="number" value={order} onChange={e => setOrder(parseInt(e.target.value))}
@@ -1116,7 +1116,7 @@ function AddCompetencyModal({ levelId, onClose, onAdd }: {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" rows={2}
               placeholder="Description de la compétence attendue..." />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Seuil Performance <span className="text-primary-600 font-bold">{perfThreshold}%</span>
@@ -1203,7 +1203,7 @@ function LinkAttitudesModal({ levelId, currentAttitudes, availableAttitudes, onC
         {availableAttitudes.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-4">{t.talents.careerPathsPage.noAttitudeAvailable}</p>
         ) : (
-          <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
             {availableAttitudes.map(att => (
               <label key={att.id} className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors ${
                 selected.includes(att.id) ? 'border-purple-400 bg-purple-50' : 'border-gray-200 hover:border-gray-300'

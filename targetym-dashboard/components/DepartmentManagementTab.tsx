@@ -13,6 +13,7 @@ import {
 } from '@/lib/api';
 import { useGroupContext } from '@/hooks/useGroupContext';
 import AddOrganizationalUnitModal from './AddOrganizationalUnitModal';
+import CustomSelect from './CustomSelect';
 import ConfirmDialog from './ConfirmDialog';
 import Pagination from './Pagination';
 import { useI18n } from '@/lib/i18n/I18nContext';
@@ -450,7 +451,7 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="text-center">
                     <p className="text-xl font-bold text-gray-800">{sub.departments_count}</p>
                     <p className="text-xs text-gray-500">{td.units}</p>
@@ -496,9 +497,9 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
       )}
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3 flex-1">
-          <div className="relative flex-1 max-w-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
+          <div className="relative w-full sm:max-w-xs sm:flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
@@ -535,7 +536,7 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
           <p className="text-xs text-gray-500 mb-1">{td.totalUnits}</p>
           <p className="text-2xl font-bold text-gray-900">{departments.length}</p>
@@ -791,7 +792,7 @@ function EditDepartmentModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Code */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{td.codeLabel}</label>
@@ -807,16 +808,15 @@ function EditDepartmentModal({
             {/* Niveau */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{td.hierarchyLevel}</label>
-              <select
+              <CustomSelect
                 value={form.level}
-                onChange={(e) => setForm(f => ({ ...f, level: e.target.value }))}
+                onChange={(v) => setForm(f => ({ ...f, level: v }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              >
-                <option value="">{td.notDefined}</option>
-                {LEVEL_OPTIONS.map(o => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
+                options={[
+                  { value: '', label: td.notDefined },
+                  ...LEVEL_OPTIONS.map(o => ({ value: o.value, label: o.label })),
+                ]}
+              />
             </div>
           </div>
 
@@ -826,35 +826,35 @@ function EditDepartmentModal({
               <ArrowUpRight className="w-4 h-4 inline mr-1" />
               {td.attachedTo}
             </label>
-            <select
+            <CustomSelect
               value={form.parent_id}
-              onChange={(e) => setForm(f => ({ ...f, parent_id: e.target.value }))}
+              onChange={(v) => setForm(f => ({ ...f, parent_id: v }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-            >
-              <option value="">{td.noneRoot}</option>
-              {availableParents.map(d => (
-                <option key={d.id} value={d.id}>
-                  {d.level ? `[${d.level.toUpperCase()}] ` : ''}{d.name}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: '', label: td.noneRoot },
+                ...availableParents.map(d => ({
+                  value: String(d.id),
+                  label: `${d.level ? `[${d.level.toUpperCase()}] ` : ''}${d.name}`,
+                })),
+              ]}
+            />
           </div>
 
           {/* Responsable */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{td.headLabel}</label>
-            <select
+            <CustomSelect
               value={form.head_id}
-              onChange={(e) => setForm(f => ({ ...f, head_id: e.target.value }))}
+              onChange={(v) => setForm(f => ({ ...f, head_id: v }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-            >
-              <option value="">{td.notAssigned}</option>
-              {employees.map(m => (
-                <option key={m.id} value={m.id}>
-                  {m.first_name} {m.last_name} {m.job_title ? `— ${m.job_title}` : ''}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: '', label: td.notAssigned },
+                ...employees.map(m => ({
+                  value: String(m.id),
+                  label: `${m.first_name} ${m.last_name} ${m.job_title ? `— ${m.job_title}` : ''}`,
+                })),
+              ]}
+            />
           </div>
 
           {/* Description */}

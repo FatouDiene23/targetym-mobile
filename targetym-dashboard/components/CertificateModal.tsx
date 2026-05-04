@@ -6,6 +6,8 @@ import { X, Upload, FileText, Loader2, Download, Building2, User, Calendar, Brie
 import { Employee } from '@/lib/api';
 import jsPDF from 'jspdf';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 interface CertificateModalProps {
   employee: Employee;
@@ -289,11 +291,9 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                 </div>
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">{cm.birthDate}</label>
-                  <input
-                    type="date"
-                    name="birthDate"
+                  <CustomDatePicker
                     value={formData.birthDate}
-                    onChange={handleChange}
+                    onChange={v => setFormData(prev => ({ ...prev, birthDate: v }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
@@ -329,37 +329,28 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">{cm.entryDate}</label>
-                  <input
-                    type="date"
-                    name="startDate"
+                  <CustomDatePicker
                     value={formData.startDate}
-                    onChange={handleChange}
+                    onChange={v => setFormData(prev => ({ ...prev, startDate: v }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">{cm.exitDate} *</label>
-                  <input
-                    type="date"
-                    name="endDate"
+                  <CustomDatePicker
                     value={formData.endDate}
-                    onChange={handleChange}
+                    onChange={v => setFormData(prev => ({ ...prev, endDate: v }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    required
                   />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm text-gray-600 mb-1">{cm.departureReason} *</label>
-                  <select
-                    name="departureReason"
+                  <CustomSelect
                     value={formData.departureReason}
-                    onChange={handleChange}
+                    onChange={(v) => setFormData(prev => ({ ...prev, departureReason: v }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    {departureReasons.map(reason => (
-                      <option key={reason.value} value={reason.value}>{reason.label}</option>
-                    ))}
-                  </select>
+                    options={departureReasons.map(reason => ({ value: reason.value, label: reason.label }))}
+                  />
                 </div>
                 {formData.departureReason === 'other' && (
                   <div className="md:col-span-2">
@@ -462,11 +453,9 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                 </div>
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">{cm.certificateDate}</label>
-                  <input
-                    type="date"
-                    name="certificateDate"
+                  <CustomDatePicker
                     value={formData.certificateDate}
-                    onChange={handleChange}
+                    onChange={v => setFormData(prev => ({ ...prev, certificateDate: v }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>

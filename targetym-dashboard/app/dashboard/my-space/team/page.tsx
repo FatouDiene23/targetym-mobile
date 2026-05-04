@@ -439,7 +439,7 @@ function MemberDetailPanel({ member, onClose }: { member: Employee; onClose: () 
                       </div>
                       <p className="text-sm font-medium text-gray-700">{t.mySpace.overallScore}</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {[
                         { label: 'OKR', value: perfScore.okr_score, icon: Target },
                         { label: 'Tâches', value: perfScore.task_score, icon: ListTodo },
@@ -754,7 +754,7 @@ export default function MyTeamPage() {
           </div>
 
           {/* Team Members + Detail Panel */}
-          <div className={`grid gap-6 mb-6 ${selectedMember ? 'lg:grid-cols-2' : ''}`}>
+          <div className={`grid gap-6 mb-6 ${selectedMember ? 'md:grid-cols-2' : ''}`}>
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <button onClick={() => setShowTeam(!showTeam)} className="w-full flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
@@ -789,7 +789,7 @@ export default function MyTeamPage() {
                 <CalendarClock className="w-5 h-5 text-primary-600" />
                 <h2 className="text-lg font-semibold text-gray-900">{t.mySpace.teamActivities}</h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {teamOneOnOnes.slice(0, 6).map(o => (
                   <div key={o.id} className="bg-primary-50 border border-primary-100 rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">
@@ -814,7 +814,7 @@ export default function MyTeamPage() {
                 <h2 className="text-lg font-semibold text-gray-900">{t.mySpace.upcomingBirthdays}</h2>
                 <span className="text-sm text-gray-400">({t.mySpace.next30Days})</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {anniversaries.map((a, i) => (
                   <div key={i} className={`rounded-lg p-3 border ${a.type === 'birthday' ? 'bg-pink-50 border-pink-100' : 'bg-amber-50 border-amber-100'}`}>
                     <div className="flex items-center gap-2">

@@ -300,9 +300,9 @@ export default function SOSAdminPage() {
         {/* FILTRES + LISTE */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
           {/* Toolbar */}
-          <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-gray-100">
-            <CustomSelect value={filterStatus} onChange={v => setFilterStatus(v)} options={[{value:'', label: sos.allStatuses}, ...Object.entries(STATUS_STYLE).map(([k]) => ({value: k, label: statusLabels[k] || k}))]} className="text-sm border border-gray-300 rounded-lg px-3 py-2" />
-            <CustomSelect value={filterCategory} onChange={v => setFilterCategory(v)} options={[{value:'', label: sos.allCategories}, ...Object.entries(CATEGORY_EMOJI).map(([k, e]) => ({value: k, label: `${e} ${stats?.by_category.find(c => c.category === k)?.label || k}`}))]} className="text-sm border border-gray-300 rounded-lg px-3 py-2" />
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 px-5 py-4 border-b border-gray-100 relative z-20">
+            <CustomSelect value={filterStatus} onChange={v => setFilterStatus(v)} options={[{value:'', label: sos.allStatuses}, ...Object.entries(STATUS_STYLE).map(([k]) => ({value: k, label: statusLabels[k] || k}))]} className="w-full sm:w-auto sm:min-w-[160px] text-sm border border-gray-300 rounded-lg px-3 py-2" />
+            <CustomSelect value={filterCategory} onChange={v => setFilterCategory(v)} options={[{value:'', label: sos.allCategories}, ...Object.entries(CATEGORY_EMOJI).map(([k, e]) => ({value: k, label: `${e} ${stats?.by_category.find(c => c.category === k)?.label || k}`}))]} className="w-full sm:w-auto sm:min-w-[160px] text-sm border border-gray-300 rounded-lg px-3 py-2" />
             <button onClick={fetchData} className="ml-auto p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors" title={sos.refresh}>
               <RefreshCw className="w-4 h-4" />
             </button>

@@ -453,7 +453,7 @@ export default function CareersPage() {
                 <p className="text-sm text-gray-400">Modifiez vos filtres ou revenez plus tard</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4" data-tour="jobs-list">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-tour="jobs-list">
                 {filteredJobs.map((job) => {
                   const applied = hasApplied(job.id);
                   return (

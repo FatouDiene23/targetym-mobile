@@ -405,7 +405,7 @@ export default function MyDocumentsPage() {
 
             {uploadError && <p className="text-xs sm:text-sm text-red-600 bg-red-50 px-3 py-1.5 rounded">{uploadError}</p>}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label className="text-xs font-medium text-gray-600 mb-1 block">Type de document *</label>
                 <CustomSelect
@@ -430,7 +430,7 @@ export default function MyDocumentsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label className="text-xs font-medium text-gray-600 mb-1 block">Date d&apos;expiration</label>
                 <CustomDatePicker

@@ -80,7 +80,7 @@ function CalcParamsFields({
 
   if (calcType === 'rate_with_cap') {
     return (
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">{t.payroll.components.ratePercent}</label>
           <input type="number" min={0} max={100} step={0.001}
@@ -104,7 +104,7 @@ function CalcParamsFields({
 
   if (calcType === 'rate_with_floor_and_cap') {
     return (
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">{t.payroll.components.ratePercent}</label>
           <input type="number" min={0} max={100} step={0.001}
@@ -136,7 +136,7 @@ function CalcParamsFields({
 
   if (calcType === 'lookup_table') {
     return (
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">{t.payroll.components.tableCode}</label>
           <input
@@ -267,7 +267,7 @@ function ComponentModal({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.components.code} *</label>
               <input
@@ -302,7 +302,7 @@ function ComponentModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.payroll.components.type}</label>
               <CustomSelect

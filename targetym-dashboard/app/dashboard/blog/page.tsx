@@ -1,12 +1,12 @@
-﻿'use client';
+'use client';
+import { getToken } from '@/lib/api';
 
 import { useState, useEffect, useCallback } from 'react';
-import CustomSelect from '@/components/CustomSelect';
 import toast from 'react-hot-toast';
 import {
   PenLine, Plus, Search, Eye, Pencil, Trash2, Loader2,
-  Tag, Calendar, Clock, ChevronLeft, X, BookOpen, Globe, FileText,
-  Upload, Link,
+  Tag, Calendar, Clock, ChevronLeft, ChevronUp, ChevronDown,
+  X, BookOpen, Globe, FileText, Upload, Link, Settings2,
 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -14,10 +14,10 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 // CONFIG
 // ============================================
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
 function getAuthHeaders(): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const token = getToken();
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -53,6 +53,15 @@ interface BlogPostForm {
   category: string;
   tags: string;
   status: 'draft' | 'published';
+}
+
+interface BlogCategory {
+  id: number;
+  name: string;
+  color?: string;
+  display_order: number;
+  is_published: boolean;
+  post_count: number;
 }
 
 interface UserInfo {
@@ -93,6 +102,431 @@ function mediaUrl(url?: string): string {
   return url.startsWith('/') ? `${API_URL}${url}` : url;
 }
 
+/** Convertit le markdown en HTML pour la prévisualisation */
+function parseMarkdown(text: string): string {
+  function inline(s: string): string {
+    return s
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/_(.+?)_/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code class="bg-gray-100 px-1 rounded text-xs font-mono">$1</code>')
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-primary-600 underline">$1</a>');
+  }
+  const blocks = text.split(/\n\n+/);
+  return blocks.map(block => {
+    const t = block.trim();
+    if (!t) return '';
+    if (/^---+$/.test(t)) return '<hr class="border-gray-200 my-4" />';
+    if (t.startsWith('#### ')) return `<h4 class="text-sm font-bold text-gray-800 mt-5 mb-1">${inline(t.slice(5))}</h4>`;
+    if (t.startsWith('### '))  return `<h3 class="text-base font-bold text-gray-800 mt-6 mb-1">${inline(t.slice(4))}</h3>`;
+    if (t.startsWith('## '))   return `<h2 class="text-lg font-bold text-gray-900 mt-7 mb-2">${inline(t.slice(3))}</h2>`;
+    if (t.startsWith('# '))    return `<h2 class="text-xl font-bold text-gray-900 mt-7 mb-2">${inline(t.slice(2))}</h2>`;
+    if (t.startsWith('> '))    return `<blockquote class="border-l-4 border-yellow-300 bg-yellow-50 pl-4 pr-3 py-2 italic text-gray-600 rounded-r-lg my-3">${inline(t.slice(2))}</blockquote>`;
+    if (t.split('\n').every(l => /^[-*]\s/.test(l))) {
+      const items = t.split('\n').map(l => `<li>${inline(l.slice(2))}</li>`).join('');
+      return `<ul class="list-disc pl-5 space-y-1 my-3 text-gray-700">${items}</ul>`;
+    }
+    if (t.split('\n').every(l => /^\d+\.\s/.test(l))) {
+      const items = t.split('\n').map(l => `<li>${inline(l.replace(/^\d+\.\s/, ''))}</li>`).join('');
+      return `<ol class="list-decimal pl-5 space-y-1 my-3 text-gray-700">${items}</ol>`;
+    }
+    return `<p class="text-gray-700 leading-relaxed my-3">${t.split('\n').map(inline).join('<br />')}</p>`;
+  }).filter(Boolean).join('\n');
+}
+
+// ============================================
+// ÉDITEUR EN BLOCS
+// ============================================
+
+type BlockType = 'p' | 'h2' | 'h3' | 'h4' | 'ul' | 'ol' | 'blockquote' | 'hr' | 'code';
+
+interface ContentBlock {
+  id: string;
+  type: BlockType;
+  content: string;
+}
+
+const BLOCK_TYPES: { type: BlockType; label: string; prefix: string; color: string }[] = [
+  { type: 'p',          label: 'Paragraphe',     prefix: 'P',    color: 'bg-gray-100 text-gray-600' },
+  { type: 'h2',         label: 'Titre',          prefix: 'H2',   color: 'bg-blue-100 text-blue-700' },
+  { type: 'h3',         label: 'Sous-titre',     prefix: 'H3',   color: 'bg-indigo-100 text-indigo-700' },
+  { type: 'h4',         label: 'Petit titre',    prefix: 'H4',   color: 'bg-purple-100 text-purple-700' },
+  { type: 'ul',         label: 'Liste à puces',  prefix: '•',    color: 'bg-green-100 text-green-700' },
+  { type: 'ol',         label: 'Liste numérotée',prefix: '1.',   color: 'bg-teal-100 text-teal-700' },
+  { type: 'blockquote', label: 'Citation',       prefix: '❝',    color: 'bg-yellow-100 text-yellow-700' },
+  { type: 'hr',         label: 'Séparateur',     prefix: '—',    color: 'bg-gray-100 text-gray-400' },
+  { type: 'code',       label: 'Code',           prefix: '</>',  color: 'bg-orange-100 text-orange-700' },
+];
+
+function uid() { return Math.random().toString(36).slice(2, 10); }
+
+function blocksToMarkdown(blocks: ContentBlock[]): string {
+  return blocks.map(b => {
+    switch (b.type) {
+      case 'h2':         return `## ${b.content}`;
+      case 'h3':         return `### ${b.content}`;
+      case 'h4':         return `#### ${b.content}`;
+      case 'blockquote': return `> ${b.content}`;
+      case 'hr':         return `---`;
+      case 'ul':         return b.content.split('\n').filter(l => l.trim()).map(l => `- ${l.trim()}`).join('\n');
+      case 'ol':         return b.content.split('\n').filter(l => l.trim()).map((l, i) => `${i + 1}. ${l.trim()}`).join('\n');
+      case 'code':       return `\`${b.content}\``;
+      default:           return b.content;
+    }
+  }).filter(Boolean).join('\n\n');
+}
+
+function markdownToBlocks(md: string): ContentBlock[] {
+  if (!md.trim()) return [{ id: uid(), type: 'p', content: '' }];
+  return md.split(/\n\n+/).map(block => {
+    const t = block.trim();
+    if (!t) return null;
+    const id = uid();
+    if (/^---+$/.test(t)) return { id, type: 'hr' as BlockType, content: '' };
+    if (t.startsWith('#### ')) return { id, type: 'h4' as BlockType, content: t.slice(5) };
+    if (t.startsWith('### '))  return { id, type: 'h3' as BlockType, content: t.slice(4) };
+    if (t.startsWith('## '))   return { id, type: 'h2' as BlockType, content: t.slice(3) };
+    if (t.startsWith('# '))    return { id, type: 'h2' as BlockType, content: t.slice(2) };
+    if (t.startsWith('> '))    return { id, type: 'blockquote' as BlockType, content: t.slice(2) };
+    if (t.split('\n').every(l => /^[-*]\s/.test(l)))
+      return { id, type: 'ul' as BlockType, content: t.split('\n').map(l => l.replace(/^[-*]\s/, '')).join('\n') };
+    if (t.split('\n').every(l => /^\d+\.\s/.test(l)))
+      return { id, type: 'ol' as BlockType, content: t.split('\n').map(l => l.replace(/^\d+\.\s/, '')).join('\n') };
+    if (t.startsWith('`') && t.endsWith('`'))
+      return { id, type: 'code' as BlockType, content: t.slice(1, -1) };
+    return { id, type: 'p' as BlockType, content: t };
+  }).filter(Boolean) as ContentBlock[];
+}
+
+function getPlaceholder(type: BlockType): string {
+  switch (type) {
+    case 'h2': return 'Titre de section…';
+    case 'h3': return 'Sous-titre…';
+    case 'h4': return 'Petit titre…';
+    case 'ul': return 'Un élément par ligne\nDeuxième élément\nTroisième élément';
+    case 'ol': return 'Premier élément\nDeuxième élément\nTroisième élément';
+    case 'blockquote': return 'Texte de la citation…';
+    case 'code': return 'Code…';
+    default: return 'Rédigez votre paragraphe…';
+  }
+}
+
+function BlockEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [blocks, setBlocks] = useState<ContentBlock[]>(() => markdownToBlocks(value));
+  const [showAddMenu, setShowAddMenu] = useState(false);
+
+  function update(newBlocks: ContentBlock[]) {
+    setBlocks(newBlocks);
+    onChange(blocksToMarkdown(newBlocks));
+  }
+  function addBlock(type: BlockType) {
+    update([...blocks, { id: uid(), type, content: '' }]);
+    setShowAddMenu(false);
+  }
+  function updateBlock(id: string, changes: Partial<ContentBlock>) {
+    update(blocks.map(b => b.id === id ? { ...b, ...changes } : b));
+  }
+  function removeBlock(id: string) {
+    if (blocks.length === 1) { update([{ id: uid(), type: 'p', content: '' }]); return; }
+    update(blocks.filter(b => b.id !== id));
+  }
+  function moveBlock(id: string, dir: 'up' | 'down') {
+    const idx = blocks.findIndex(b => b.id === id);
+    if (dir === 'up' && idx === 0) return;
+    if (dir === 'down' && idx === blocks.length - 1) return;
+    const nb = [...blocks];
+    const swap = dir === 'up' ? idx - 1 : idx + 1;
+    [nb[idx], nb[swap]] = [nb[swap], nb[idx]];
+    update(nb);
+  }
+
+  return (
+    <div className="space-y-1.5">
+      {blocks.map((block, idx) => (
+        <BlockRow
+          key={block.id}
+          block={block}
+          isFirst={idx === 0}
+          isLast={idx === blocks.length - 1}
+          onChange={c => updateBlock(block.id, c)}
+          onRemove={() => removeBlock(block.id)}
+          onMoveUp={() => moveBlock(block.id, 'up')}
+          onMoveDown={() => moveBlock(block.id, 'down')}
+        />
+      ))}
+
+      <div className="pt-1">
+        {showAddMenu ? (
+          <div className="grid grid-cols-3 gap-1 p-3 bg-gray-50 rounded-xl border border-gray-200">
+            {BLOCK_TYPES.map(bt => (
+              <button key={bt.type} type="button" onClick={() => addBlock(bt.type)}
+                className="flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-white border border-transparent hover:border-gray-200 transition-all text-left">
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${bt.color} min-w-[28px] text-center leading-tight`}>{bt.prefix}</span>
+                <span className="text-xs text-gray-600">{bt.label}</span>
+              </button>
+            ))}
+            <button type="button" onClick={() => setShowAddMenu(false)}
+              className="col-span-3 flex items-center justify-center gap-1 py-1.5 text-xs text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg border border-transparent hover:border-gray-200 transition-all">
+              <X className="w-3 h-3" /> Fermer
+            </button>
+          </div>
+        ) : (
+          <button type="button" onClick={() => setShowAddMenu(true)}
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 border-2 border-dashed border-gray-200 rounded-xl text-xs text-gray-400 hover:text-primary-600 hover:border-primary-300 hover:bg-primary-50/20 transition-all">
+            <Plus className="w-3.5 h-3.5" /> Ajouter un bloc
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BlockRow({
+  block, isFirst, isLast, onChange, onRemove, onMoveUp, onMoveDown,
+}: {
+  block: ContentBlock; isFirst: boolean; isLast: boolean;
+  onChange: (c: Partial<ContentBlock>) => void;
+  onRemove: () => void; onMoveUp: () => void; onMoveDown: () => void;
+}) {
+  const info = BLOCK_TYPES.find(b => b.type === block.type) ?? BLOCK_TYPES[0];
+  return (
+    <div className="flex gap-2 group items-start">
+      <span className={`mt-1 flex-none text-[10px] font-bold px-1.5 py-0.5 rounded ${info.color} min-w-[28px] text-center leading-tight`}>
+        {info.prefix}
+      </span>
+      <div className="flex-1 min-w-0">
+        <select value={block.type}
+          onChange={e => onChange({ type: e.target.value as BlockType })}
+          className="text-[10px] text-gray-400 bg-transparent border-none outline-none cursor-pointer hover:text-gray-600 mb-0.5 py-0">
+          {BLOCK_TYPES.map(bt => <option key={bt.type} value={bt.type}>{bt.label}</option>)}
+        </select>
+        {block.type === 'hr' ? (
+          <div className="w-full border-t-2 border-dashed border-gray-300 my-2" />
+        ) : (
+          <textarea value={block.content}
+            onChange={e => onChange({ content: e.target.value })}
+            placeholder={getPlaceholder(block.type)}
+            rows={block.type === 'p' ? 3 : block.type === 'ul' || block.type === 'ol' ? 3 : 1}
+            className={`w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-y focus:ring-2 focus:ring-primary-300 outline-none
+              ${block.type === 'h2' ? 'text-base font-bold' : ''}
+              ${block.type === 'h3' ? 'text-sm font-semibold' : ''}
+              ${block.type === 'code' ? 'font-mono text-xs bg-gray-50' : ''}
+              ${block.type === 'blockquote' ? 'italic border-l-4 border-yellow-300 bg-yellow-50/30' : ''}
+            `}
+          />
+        )}
+      </div>
+      <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity mt-1 flex-none">
+        <button type="button" onClick={onMoveUp} disabled={isFirst}
+          className="p-0.5 hover:bg-gray-100 rounded disabled:opacity-20 disabled:cursor-not-allowed">
+          <ChevronUp className="w-3 h-3 text-gray-400" />
+        </button>
+        <button type="button" onClick={onMoveDown} disabled={isLast}
+          className="p-0.5 hover:bg-gray-100 rounded disabled:opacity-20 disabled:cursor-not-allowed">
+          <ChevronDown className="w-3 h-3 text-gray-400" />
+        </button>
+        <button type="button" onClick={onRemove}
+          className="p-0.5 hover:bg-red-50 rounded">
+          <Trash2 className="w-3 h-3 text-red-400" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// COMPOSANT MODAL ÉDITEUR DE POST
+// ============================================
+
+// ============================================
+// MODAL GESTION DES CATÉGORIES
+// ============================================
+
+function BlogCategoryManagerModal({
+  categories,
+  isAdmin,
+  onClose,
+  onChanged,
+}: {
+  categories: BlogCategory[];
+  isAdmin: boolean;
+  onClose: () => void;
+  onChanged: () => void;
+}) {
+  const [list, setList] = useState<BlogCategory[]>(categories);
+  const [newName, setNewName] = useState('');
+  const [newColor, setNewColor] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [editName, setEditName] = useState('');
+  const [confirmCat, setConfirmCat] = useState<{ id: number; name: string } | null>(null);
+
+  const handleCreate = async () => {
+    if (!newName.trim()) { toast.error('Nom requis'); return; }
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_URL}/api/blog/blog-categories`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ name: newName.trim(), color: newColor || null }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Erreur');
+      }
+      const cat = await res.json();
+      setList(l => [...l, cat]);
+      setNewName('');
+      setNewColor('');
+      onChanged();
+      toast.success('Catégorie créée');
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erreur');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRename = async (id: number) => {
+    if (!editName.trim()) return;
+    try {
+      const res = await fetch(`${API_URL}/api/blog/blog-categories/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ name: editName.trim() }),
+      });
+      if (!res.ok) throw new Error('Erreur');
+      const updated = await res.json();
+      setList(l => l.map(c => c.id === id ? updated : c));
+      setEditId(null);
+      onChanged();
+      toast.success('Catégorie renommée');
+    } catch {
+      toast.error('Erreur lors du renommage');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      const res = await fetch(`${API_URL}/api/blog/blog-categories/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) throw new Error('Erreur');
+      setList(l => l.filter(c => c.id !== id));
+      setConfirmCat(null);
+      onChanged();
+      toast.success('Catégorie supprimée');
+    } catch {
+      toast.error('Erreur lors de la suppression');
+      setConfirmCat(null);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2">
+            <Tag className="w-4 h-4 text-primary-600" /> Gérer les catégories
+          </h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          {/* Créer une nouvelle catégorie */}
+          <div className="flex gap-2">
+            <input
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-300 outline-none"
+              placeholder="Nom de la catégorie…"
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleCreate()}
+            />
+            <input
+              type="color"
+              title="Couleur (optionnel)"
+              className="w-10 h-10 rounded-lg border border-gray-300 cursor-pointer p-1"
+              value={newColor || '#6366f1'}
+              onChange={e => setNewColor(e.target.value)}
+            />
+            <button
+              onClick={handleCreate}
+              disabled={saving}
+              className="flex items-center gap-1 px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              Ajouter
+            </button>
+          </div>
+
+          {/* Liste des catégories */}
+          <div className="divide-y divide-gray-50 max-h-72 overflow-y-auto">
+            {list.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-4">Aucune catégorie</p>
+            )}
+            {list.map(cat => (
+              <div key={cat.id} className="flex items-center gap-2 py-2">
+                {cat.color && (
+                  <span className="w-3 h-3 rounded-full shrink-0" style={{ background: cat.color }} />
+                )}
+                {editId === cat.id ? (
+                  <input
+                    autoFocus
+                    className="flex-1 border border-primary-300 rounded px-2 py-1 text-sm outline-none"
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleRename(cat.id); if (e.key === 'Escape') setEditId(null); }}
+                  />
+                ) : (
+                  <span className="flex-1 text-sm text-gray-700">{cat.name}</span>
+                )}
+                <span className="text-xs text-gray-400">{cat.post_count} article{cat.post_count !== 1 ? 's' : ''}</span>
+                {editId === cat.id ? (
+                  <>
+                    <button onClick={() => handleRename(cat.id)} className="text-green-600 hover:text-green-700 p-1">
+                      <Eye className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => setEditId(null)} className="text-gray-400 hover:text-gray-600 p-1">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => { setEditId(cat.id); setEditName(cat.name); }} className="text-gray-400 hover:text-primary-600 p-1">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    {isAdmin && (
+                      <button onClick={() => setConfirmCat({ id: cat.id, name: cat.name })} className="text-gray-400 hover:text-red-500 p-1">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {confirmCat && (
+        <ConfirmDialog
+          isOpen={true}
+          title="Supprimer la catégorie"
+          message={`Supprimer la catégorie "${confirmCat.name}" ? Les articles gardent leur catégorie (texte).`}
+          confirmText="Supprimer"
+          danger
+          onConfirm={() => handleDelete(confirmCat.id)}
+          onClose={() => setConfirmCat(null)}
+        />
+      )}
+    </div>
+  );
+}
+
 // ============================================
 // COMPOSANT MODAL ÉDITEUR DE POST
 // ============================================
@@ -104,7 +538,7 @@ function PostEditorModal({
   onSaved,
 }: {
   post: BlogPost | null;
-  categories: string[];
+  categories: BlogCategory[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -128,7 +562,7 @@ function PostEditorModal({
   const handleCoverUpload = async (file: File) => {
     setUploadingCover(true);
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+        const token = getToken();
       const fd = new FormData();
       fd.append('file', file);
       const res = await fetch(`${API_URL}/api/media/upload`, {
@@ -193,7 +627,7 @@ function PostEditorModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
             <input
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 outline-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-300 outline-none"
               placeholder="Titre de l'article"
               value={form.title}
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
@@ -204,7 +638,7 @@ function PostEditorModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Résumé</label>
             <textarea
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:ring-2 focus:ring-blue-300 outline-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:ring-2 focus:ring-primary-300 outline-none"
               placeholder="Un court résumé affiché dans la liste"
               rows={2}
               value={form.excerpt}
@@ -214,13 +648,10 @@ function PostEditorModal({
 
           {/* Contenu */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contenu *</label>
-            <textarea
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 resize-y min-h-[200px] focus:ring-2 focus:ring-blue-300 outline-none font-mono text-sm"
-              placeholder="Rédigez votre article ici..."
-              rows={10}
+            <label className="block text-sm font-medium text-gray-700 mb-2">Contenu *</label>
+            <BlockEditor
               value={form.content}
-              onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+              onChange={v => setForm(f => ({ ...f, content: v }))}
             />
           </div>
 
@@ -248,13 +679,13 @@ function PostEditorModal({
 
             {coverMode === 'url' ? (
               <input
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 outline-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-300 outline-none"
                 placeholder="https://..."
                 value={form.cover_image_url}
                 onChange={e => setForm(f => ({ ...f, cover_image_url: e.target.value }))}
               />
             ) : (
-              <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${uploadingCover ? 'border-primary-300 bg-primary-50' : 'border-gray-300 hover:border-blue-400 hover:bg-primary-50'}`}>
+              <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${uploadingCover ? 'border-primary-300 bg-primary-50' : 'border-gray-300 hover:border-primary-400 hover:bg-primary-50'}`}>
                 {uploadingCover ? (
                   <Loader2 className="w-6 h-6 text-primary-500 animate-spin" />
                 ) : (
@@ -289,24 +720,37 @@ function PostEditorModal({
           </div>
 
           {/* Catégorie + Tags */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
-              <input
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 outline-none"
-                placeholder="ex: RH, Actualités, Bien-être…"
-                list="cat-suggestions"
-                value={form.category}
-                onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-              />
-              <datalist id="cat-suggestions">
-                {categories.map(c => <option key={c} value={c} />)}
-              </datalist>
+              {categories.length > 0 ? (
+                <select
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-300 outline-none bg-white"
+                  value={form.category}
+                  onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                >
+                  <option value="">— Aucune catégorie —</option>
+                  {categories.filter(c => c.is_published).map(c => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
+                  {/* Article existant avec une catégorie libre-text non dans la liste */}
+                  {form.category && !categories.some(c => c.name === form.category) && (
+                    <option value={form.category}>{form.category} (ancienne)</option>
+                  )}
+                </select>
+              ) : (
+                <input
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-300 outline-none"
+                  placeholder="ex: RH, Actualités… (créez des catégories via le bouton «&nbsp;Catégories&nbsp;»)"
+                  value={form.category}
+                  onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tags (séparés par virgule)</label>
               <input
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 outline-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-300 outline-none"
                 placeholder="ex: sécurité, formation, vie au travail"
                 value={form.tags}
                 onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
@@ -380,7 +824,7 @@ function PostReaderModal({ post, onClose }: { post: BlogPost; onClose: () => voi
             />
           )}
           {post.category && (
-            <span className="inline-block px-3 py-1 bg-primary-100 text-primary-700 text-xs font-medium rounded-full mb-3">
+            <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full mb-3">
               {post.category}
             </span>
           )}
@@ -394,9 +838,10 @@ function PostReaderModal({ post, onClose }: { post: BlogPost; onClose: () => voi
           {post.excerpt && (
             <p className="text-gray-600 italic mb-6 border-l-4 border-primary-200 pl-4">{post.excerpt}</p>
           )}
-          <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed">
-            {post.content}
-          </div>
+          <div
+            className="max-w-none"
+            dangerouslySetInnerHTML={{ __html: parseMarkdown(post.content) }}
+          />
           {post.tags && (
             <div className="mt-6 flex flex-wrap gap-2">
               {post.tags.split(',').map(t => t.trim()).filter(Boolean).map(tag => (
@@ -421,8 +866,9 @@ export default function BlogPage() {
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [showCatManager, setShowCatManager] = useState(false);
 
   const [viewPost, setViewPost] = useState<BlogPost | null>(null);
   const [editPost, setEditPost] = useState<BlogPost | null | 'new'>( null);
@@ -433,7 +879,7 @@ export default function BlogPage() {
 
   // Charger le profil utilisateur
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
     if (!token) return;
     fetch(`${API_URL}/api/auth/me`, { headers: getAuthHeaders() })
       .then(r => r.json())
@@ -442,12 +888,14 @@ export default function BlogPage() {
   }, []);
 
   // Charger les catégories
-  useEffect(() => {
-    fetch(`${API_URL}/api/blog/categories`, { headers: getAuthHeaders() })
+  const fetchCategories = useCallback(() => {
+    fetch(`${API_URL}/api/blog/blog-categories`, { headers: getAuthHeaders() })
       .then(r => r.ok ? r.json() : [])
-      .then(data => setCategories(data.map((c: { category: string }) => c.category)))
+      .then(data => setCategories(data))
       .catch(() => {});
   }, []);
+
+  useEffect(() => { fetchCategories(); }, [fetchCategories]);
 
   // Charger les articles
   const fetchPosts = useCallback(async () => {
@@ -496,25 +944,34 @@ export default function BlogPage() {
       {/* En-tête */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-lg lg:text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <BookOpen className="w-7 h-7 text-primary-600" />
             Blog de l'entreprise
           </h1>
           <p className="text-sm text-gray-500 mt-1">{total} article{total !== 1 ? 's' : ''}</p>
         </div>
         {isEditor && (
-          <button
-            onClick={() => setEditPost('new')}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-xl shadow-sm transition-colors"
-          >
-            <Plus className="w-4 h-4" /> Nouvel article
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowCatManager(true)}
+              className="flex items-center gap-2 px-3 py-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 text-sm font-medium rounded-xl transition-colors"
+              title="Gérer les catégories"
+            >
+              <Settings2 className="w-4 h-4" /> Catégories
+            </button>
+            <button
+              onClick={() => setEditPost('new')}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-xl shadow-sm transition-colors"
+            >
+              <Plus className="w-4 h-4" /> Nouvel article
+            </button>
+          </div>
         )}
       </div>
 
       {/* Filtres */}
       <div className="flex flex-wrap gap-3 items-center">
-        <div className="relative flex-1 min-w-0 sm:min-w-[200px] max-w-sm">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-200 outline-none bg-white"
@@ -524,20 +981,25 @@ export default function BlogPage() {
           />
         </div>
         {categories.length > 0 && (
-          <CustomSelect
+          <select
+            className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-primary-200 outline-none"
             value={filterCategory}
-            onChange={v => setFilterCategory(v)}
-            options={[{value:'', label:'Toutes les catégories'}, ...categories.map(c => ({value: c, label: c}))]}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white"
-          />
+            onChange={e => setFilterCategory(e.target.value)}
+          >
+            <option value="">Toutes les catégories</option>
+            {categories.filter(c => c.is_published).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+          </select>
         )}
         {isEditor && (
-          <CustomSelect
+          <select
+            className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-primary-200 outline-none"
             value={filterStatus}
-            onChange={v => setFilterStatus(v)}
-            options={[{value:'', label:'Tous les statuts'},{value:'published', label:'Publiés'},{value:'draft', label:'Brouillons'}]}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white"
-          />
+            onChange={e => setFilterStatus(e.target.value)}
+          >
+            <option value="">Tous les statuts</option>
+            <option value="published">Publiés</option>
+            <option value="draft">Brouillons</option>
+          </select>
         )}
       </div>
 
@@ -575,14 +1037,14 @@ export default function BlogPage() {
                     className="w-full md:w-80 h-48 md:h-auto object-cover flex-shrink-0"
                   />
                 ) : (
-                  <div className="w-full md:w-80 h-48 bg-gradient-to-br from-blue-500 to-indigo-600 flex-shrink-0 flex items-center justify-center">
+                  <div className="w-full md:w-80 h-48 bg-gradient-to-br from-primary-500 to-indigo-600 flex-shrink-0 flex items-center justify-center">
                     <BookOpen className="w-16 h-16 text-white/50" />
                   </div>
                 )}
                 <div className="p-6 flex-1 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="px-2 py-0.5 bg-primary-100 text-primary-700 text-xs font-medium rounded-full">À la une</span>
+                      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">À la une</span>
                       {featuredPost.category && (
                         <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">{featuredPost.category}</span>
                       )}
@@ -638,7 +1100,7 @@ export default function BlogPage() {
 
           {/* Grille d'articles */}
           {otherPosts.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {otherPosts.map(post => (
                 <div
                   key={post.id}
@@ -659,7 +1121,7 @@ export default function BlogPage() {
                   <div className="p-4 flex-1 flex flex-col">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       {post.category && (
-                        <span className="px-2 py-0.5 bg-primary-50 text-primary-600 text-xs rounded-full">{post.category}</span>
+                        <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded-full">{post.category}</span>
                       )}
                       {post.status === 'draft' && (
                         <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">Brouillon</span>
@@ -730,6 +1192,15 @@ export default function BlogPage() {
           danger
           onConfirm={handleDelete}
           onClose={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {showCatManager && (
+        <BlogCategoryManagerModal
+          categories={categories}
+          isAdmin={!!isAdmin}
+          onClose={() => setShowCatManager(false)}
+          onChanged={fetchCategories}
         />
       )}
     </div>

@@ -34,6 +34,7 @@ export const FEATURE_CHATBOT_ADVANCED = 'chatbot_advanced';
 export const FEATURE_CERTIFICATIONS_RH = 'certifications_rh';
 export const FEATURE_DATA_INSIGHTS = 'data_insights';
 export const FEATURE_GROUP_MODE = 'group_mode';
+export const FEATURE_AI_CV_SCORING = 'ai_cv_scoring';  // Scoring IA CVs — Entreprise ou add-on
 
 // Plan level hierarchy
 export const PLAN_LEVEL: Record<string, number> = {
@@ -68,7 +69,7 @@ const ENTREPRISE_FEATURES = new Set([
   ...PREMIUM_FEATURES,
   FEATURE_SUPPORT_H24, FEATURE_ATS, FEATURE_PAYROLL_ADDON,
   FEATURE_CHATBOT_ADVANCED, FEATURE_CERTIFICATIONS_RH,
-  FEATURE_DATA_INSIGHTS, FEATURE_GROUP_MODE,
+  FEATURE_DATA_INSIGHTS, FEATURE_GROUP_MODE, FEATURE_AI_CV_SCORING,
 ]);
 
 const PLAN_FEATURES: Record<string, Set<string>> = {

@@ -1715,6 +1715,9 @@ export interface TenantListItem {
   group_type?: 'standalone' | 'group' | 'subsidiary';
   is_group?: boolean;
   parent_tenant_id?: number;
+  // Add-ons
+  has_hr_programs_addon?: boolean;
+  has_ai_scoring_addon?: boolean;
 }
 
 export interface UserListItem {
@@ -3577,6 +3580,77 @@ export async function getCabinetStats(): Promise<{
   accepted: number;
 }> {
   const response = await fetchWithAuth(`${API_URL}/api/cabinet/stats`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+// ── Add-on Requests (Super Admin) ────────────────────────────────────────────
+
+export interface PayrollModuleRequest {
+  id: number;
+  tenant_id: number;
+  tenant_name: string;
+  requested_by_email: string;
+  requested_at: string;
+  status: 'pending' | 'approved' | 'rejected';
+  message?: string | null;
+  country_code?: string | null;
+  currency_code?: string | null;
+  nb_employees?: number | null;
+  approved_by_email?: string | null;
+  approved_at?: string | null;
+  rejection_reason?: string | null;
+}
+
+export async function adminGetPayrollRequests(status?: string): Promise<PayrollModuleRequest[]> {
+  const params = status ? `?status_filter=${status}` : '';
+  const response = await fetchWithAuth(`${API_URL}/api/billing/admin/payroll-requests${params}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function adminApprovePayrollRequest(requestId: number): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/admin/payroll-requests/${requestId}/approve`, { method: 'POST' });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function adminRejectPayrollRequest(requestId: number, reason: string): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/admin/payroll-requests/${requestId}/reject`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function adminToggleHrProgramsAddon(tenantId: number, enabled: boolean): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/admin/tenants/${tenantId}/addon/hr-programs`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function adminToggleAiScoringAddon(tenantId: number, enabled: boolean): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/admin/tenants/${tenantId}/addon/ai-scoring`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function adminToggleCbModule(tenantId: number, enabled: boolean): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/admin/tenants/${tenantId}/addon/cb-module`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function adminTogglePayrollModule(tenantId: number, enabled: boolean): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/admin/tenants/${tenantId}/addon/payroll`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled }),
+  });
   if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
   return response.json();
 }

@@ -391,6 +391,46 @@ async function deleteInterview(interviewId: number): Promise<boolean> {
 }
 
 // ============================================
+// SCORING SECTIONS — groupement par score_status IA
+// ============================================
+
+const SCORE_SECTIONS = [
+  {
+    key: 'shortlist',
+    label: 'Shortlisté',
+    icon: '✅',
+    bg: 'bg-emerald-50',
+    border: 'border-emerald-200',
+    headerBg: 'bg-emerald-100',
+    headerText: 'text-emerald-800',
+    badge: 'bg-emerald-100 text-emerald-700',
+    dot: 'bg-emerald-500',
+  },
+  {
+    key: 'to_review',
+    label: 'À revoir',
+    icon: '🔍',
+    bg: 'bg-orange-50',
+    border: 'border-orange-200',
+    headerBg: 'bg-orange-100',
+    headerText: 'text-orange-800',
+    badge: 'bg-orange-100 text-orange-700',
+    dot: 'bg-orange-400',
+  },
+  {
+    key: 'rejected',
+    label: 'Rejeté',
+    icon: '❌',
+    bg: 'bg-red-50',
+    border: 'border-red-200',
+    headerBg: 'bg-red-100',
+    headerText: 'text-red-800',
+    badge: 'bg-red-100 text-red-600',
+    dot: 'bg-red-400',
+  },
+] as const;
+
+// ============================================
 // PIPELINE CONFIG
 // ============================================
 
@@ -485,6 +525,8 @@ export default function RecruitmentPage() {
   // Drag-and-drop Kanban
   const [draggedAppId, setDraggedAppId] = useState<number | null>(null);
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(['rejected', 'stage_rejected']));
+  const toggleSection = (key: string) => setCollapsedSections(prev => { const next = new Set(prev); next.has(key) ? next.delete(key) : next.add(key); return next; });
   // --- Single candidate scoring ---
   const [scoringCandidateId, setScoringCandidateId] = useState<number | null>(null);
 
@@ -706,13 +748,21 @@ export default function RecruitmentPage() {
         body: JSON.stringify({ score_status: newStatus }),
       });
       if (!res.ok) throw new Error(await res.text());
-      toast.success(t.recruitment.scoreStatusUpdated);
-      // Optimistic update for the selected application
-      if (selectedApplication && selectedApplication.id === applicationId) {
-        setSelectedApplication({ ...selectedApplication, score_status: newStatus });
+
+      if (newStatus === 'rejected') {
+        await updateApplicationStage(applicationId, 'rejected');
+        toast.success(t.recruitment.scoreStatusUpdated);
+        setApplications(prev => prev.map(a => a.id === applicationId ? { ...a, score_status: newStatus, stage: 'rejected' } : a));
+        if (selectedApplication && selectedApplication.id === applicationId) {
+          setSelectedApplication({ ...selectedApplication, score_status: newStatus, stage: 'rejected' });
+        }
+      } else {
+        toast.success(t.recruitment.scoreStatusUpdated);
+        setApplications(prev => prev.map(a => a.id === applicationId ? { ...a, score_status: newStatus } : a));
+        if (selectedApplication && selectedApplication.id === applicationId) {
+          setSelectedApplication({ ...selectedApplication, score_status: newStatus });
+        }
       }
-      // Update applications list locally
-      setApplications(prev => prev.map(a => a.id === applicationId ? { ...a, score_status: newStatus } : a));
     } catch (e: unknown) {
       toast.error(`${t.common.error} : ${e instanceof Error ? e.message : ''}`);
     }
@@ -1067,28 +1117,141 @@ export default function RecruitmentPage() {
                 )}
                 {expandedJobCandidates === job.id && (() => {
                   const jobApps = applications.filter(a => a.job_posting_id === job.id && !['employee', 'rejected', 'withdrawn'].includes(a.stage));
+                  const rejectedStageApps = applications.filter(a => a.job_posting_id === job.id && a.stage === 'rejected');
+                  const hasScoredApps = jobApps.some(a => a.score_status);
+
+                  const CandidateCard = ({ app }: { app: Application }) => (
+                    <button
+                      key={app.id}
+                      onClick={() => { setSelectedApplication(app); setShowCandidateModal(true); }}
+                      className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-100 hover:border-primary-200 hover:shadow-sm text-left transition-all w-full"
+                    >
+                      <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium text-xs flex-shrink-0">
+                        {app.candidate_name.split(' ').map(n => n[0]).join('')}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-900 truncate">{app.candidate_name}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <span className="text-xs text-gray-500">{stageLabels[app.stage] || app.stage}</span>
+                          {app.candidate_cv_url && <span className="text-xs text-primary-600 flex items-center gap-0.5"><FileText className="w-3 h-3" />CV</span>}
+                          {app.candidate_ai_score != null && (
+                            <span className={`text-xs font-bold ${getScoreColor(app.candidate_ai_score)}`}>
+                              {app.candidate_ai_score}/100
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+
                   return (
                     <div className="mt-4 pt-4 border-t border-primary-100 bg-primary-50/40 rounded-b-xl -mx-5 px-5 pb-4">
-                      <h4 className="text-sm font-semibold text-primary-700 mb-3 flex items-center gap-2"><Users className="w-4 h-4" />{t.recruitment.candidatesForPosition} ({jobApps.length})</h4>
-                      {jobApps.length === 0 ? (
+                      <h4 className="text-sm font-semibold text-primary-700 mb-3 flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        {t.recruitment.candidatesForPosition} ({jobApps.length + rejectedStageApps.length})
+                        {hasScoredApps && (
+                          <span className="ml-1 flex items-center gap-1 text-xs font-medium text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
+                            <Sparkles className="w-3 h-3" /> Scoring IA actif
+                          </span>
+                        )}
+                      </h4>
+
+                      {jobApps.length === 0 && rejectedStageApps.length === 0 ? (
                         <p className="text-sm text-gray-400 py-2">{t.recruitment.noCandidateYet}</p>
-                      ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                          {jobApps.map(app => (
-                            <button key={app.id} onClick={() => { setSelectedApplication(app); setShowCandidateModal(true); }} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-100 hover:border-primary-200 hover:shadow-sm text-left transition-all">
-                              <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-medium text-xs flex-shrink-0">{app.candidate_name.split(' ').map(n => n[0]).join('')}</div>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium text-gray-900 truncate">{app.candidate_name}</p>
-                                <div className="flex items-center gap-1.5 mt-0.5">
-                                  <span className="text-xs text-gray-500">{stageLabels[app.stage] || app.stage}</span>
-                                  {app.candidate_cv_url && <span className="text-xs text-primary-600 flex items-center gap-0.5"><FileText className="w-3 h-3" />CV</span>}
-                                  {app.candidate_ai_score && <span className={`text-xs font-bold ${getScoreColor(app.candidate_ai_score)}`}>{app.candidate_ai_score}</span>}
-                                </div>
+                      ) : hasScoredApps ? (
+                        <div className="space-y-4">
+                          {SCORE_SECTIONS.map(section => {
+                            const sectionApps = jobApps.filter(a => a.score_status === section.key);
+                            if (sectionApps.length === 0) return null;
+                            const isCollapsed = collapsedSections.has(section.key);
+                            return (
+                              <div key={section.key} className={`rounded-xl border ${section.border} overflow-hidden`}>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleSection(section.key)}
+                                  className={`w-full flex items-center gap-2 px-4 py-2 ${section.headerBg} hover:brightness-95 transition-all text-left`}
+                                >
+                                  <span className={`w-2 h-2 rounded-full ${section.dot}`} />
+                                  <span className={`text-sm font-semibold ${section.headerText}`}>{section.label}</span>
+                                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${section.badge}`}>
+                                    {sectionApps.length}
+                                  </span>
+                                  <span className={`ml-auto ${section.headerText}`}>
+                                    {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                                  </span>
+                                </button>
+                                {!isCollapsed && (
+                                  <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-3 ${section.bg}`}>
+                                    {sectionApps
+                                      .sort((a, b) => (b.candidate_ai_score ?? 0) - (a.candidate_ai_score ?? 0))
+                                      .map(app => <CandidateCard key={app.id} app={app} />)
+                                    }
+                                  </div>
+                                )}
                               </div>
-                            </button>
-                          ))}
+                            );
+                          })}
+                          {(() => {
+                            const unscoredApps = jobApps.filter(a => !a.score_status);
+                            if (unscoredApps.length === 0) return null;
+                            const isCollapsed = collapsedSections.has('unscored');
+                            return (
+                              <div className="rounded-xl border border-gray-200 overflow-hidden">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleSection('unscored')}
+                                  className="w-full flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 transition-all text-left"
+                                >
+                                  <span className="w-2 h-2 rounded-full bg-gray-400" />
+                                  <span className="text-sm font-semibold text-gray-600">Non scoré</span>
+                                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-200 text-gray-600">
+                                    {unscoredApps.length}
+                                  </span>
+                                  <span className="ml-auto text-gray-500">
+                                    {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                                  </span>
+                                </button>
+                                {!isCollapsed && (
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-3 bg-gray-50">
+                                    {unscoredApps.map(app => <CandidateCard key={app.id} app={app} />)}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                          {jobApps.map(app => <CandidateCard key={app.id} app={app} />)}
                         </div>
                       )}
+
+                      {rejectedStageApps.length > 0 && (() => {
+                        const isCollapsed = collapsedSections.has('stage_rejected');
+                        return (
+                          <div className="mt-3 rounded-xl border border-red-200 overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => toggleSection('stage_rejected')}
+                              className="w-full flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 transition-all text-left"
+                            >
+                              <XCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                              <span className="text-sm font-semibold text-red-700">Refusés</span>
+                              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-600">
+                                {rejectedStageApps.length}
+                              </span>
+                              <span className="ml-auto text-red-500">
+                                {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                              </span>
+                            </button>
+                            {!isCollapsed && (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-3 bg-red-50/50">
+                                {rejectedStageApps.map(app => <CandidateCard key={app.id} app={app} />)}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })()}

@@ -29,6 +29,7 @@ import {
   Wallet,
   Network,
   LayoutList,
+  ScanLine,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -83,6 +84,7 @@ const moreTabs: BottomNavItem[] = [
   { name: 'Gestion du Personnel', href: '/dashboard/employees', icon: Users, roles: ['rh', 'admin', 'dg'] },
   { name: 'Gestion des Congés', href: '/dashboard/leaves', icon: Calendar, roles: ['rh', 'admin', 'dg', 'manager'] },
   { name: 'Gestion des Missions', href: '/dashboard/missions', icon: Briefcase, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+  { name: 'Présence', href: '/dashboard/presence', icon: ScanLine, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Gestion des Contentieux', href: '/dashboard/contentieux', icon: Shield, roles: ['rh', 'admin', 'dg'] },
   { name: 'Enquêtes', href: '/dashboard/surveys', icon: HelpCircle, roles: ['rh', 'admin', 'dg'] },
   { name: 'Notes de Service', href: '/dashboard/notes-de-service', icon: PenLine, roles: ['rh', 'admin', 'dg'] },

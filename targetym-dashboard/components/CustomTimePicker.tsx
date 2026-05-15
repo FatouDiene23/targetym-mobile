@@ -27,6 +27,16 @@ async function detectNativePlatform(): Promise<boolean> {
   return /Android|iPhone|iPad/i.test(ua) && window.location.hostname === 'localhost';
 }
 
+// Détection synchrone immédiate (avant le useEffect async)
+function detectNativeSync(): boolean {
+  if (typeof window === 'undefined') return false;
+  const proto = window.location.protocol;
+  if (proto === 'capacitor:' || proto === 'file:') return true;
+  // Touch device avec User-Agent mobile = très probablement Capacitor ou mobile web
+  const ua = navigator.userAgent;
+  return /Android|iPhone|iPad/i.test(ua);
+}
+
 function parseTime(v: string): { h: number; m: number } {
   if (!v || !v.includes(':')) return { h: 9, m: 0 };
   const [hh, mm] = v.split(':');
@@ -51,7 +61,7 @@ export default function CustomTimePicker({
   step = 5,
 }: CustomTimePickerProps) {
   const [open, setOpen] = useState(false);
-  const [isNative, setIsNative] = useState(false);
+  const [isNative, setIsNative] = useState(detectNativeSync);
   const [pendingH, setPendingH] = useState(9);
   const [pendingM, setPendingM] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);

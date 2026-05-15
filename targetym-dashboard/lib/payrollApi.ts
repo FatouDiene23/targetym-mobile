@@ -348,13 +348,13 @@ export interface EmployeePayrollProfileCreate {
   housing_allowance?: number;
   family_parts?: number;
   contract_type?: 'cdi' | 'cdd' | 'stage' | 'consultant';
-  classification?: string;
+  classification?: string | null;
   ipres_enrolled: boolean;
   ipm_enrolled: boolean;
   css_enrolled: boolean;
   cfce_enrolled: boolean;
-  bank_name?: string;
-  bank_account_number?: string;
+  bank_name?: string | null;
+  bank_account_number?: string | null;
 }
 
 export async function getBulkPayrollProfiles(employeeIds: number[]): Promise<Record<string, EmployeePayrollProfile>> {

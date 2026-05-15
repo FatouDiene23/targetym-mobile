@@ -74,9 +74,9 @@ function ProfileModal({
     try {
       const payload = {
         ...form,
-        classification: form.classification || undefined,
-        bank_name: form.bank_name || undefined,
-        bank_account_number: form.bank_account_number || undefined,
+        classification: form.classification || null,
+        bank_name: form.bank_name || null,
+        bank_account_number: form.bank_account_number || null,
       };
       let saved: EmployeePayrollProfile;
       if (existing) {

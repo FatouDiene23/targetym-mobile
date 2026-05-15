@@ -312,6 +312,16 @@ export interface DepartmentCreate {
   head_id?: number;
 }
 
+export interface DepartmentUpdate {
+  name?: string;
+  code?: string | null;
+  description?: string | null;
+  color?: string;
+  level?: OrganizationalLevel;
+  parent_id?: number | null;
+  head_id?: number | null;
+}
+
 export interface PaginatedResponse<T> {
   items: T[];
   total: number;
@@ -708,7 +718,7 @@ export async function createDepartment(data: DepartmentCreate): Promise<Departme
   return result;
 }
 
-export async function updateDepartment(id: number, data: Partial<DepartmentCreate>): Promise<Department> {
+export async function updateDepartment(id: number, data: DepartmentUpdate): Promise<Department> {
   const response = await fetchWithAuth(`${API_URL}/api/departments/${id}`, {
     method: 'PUT',
     

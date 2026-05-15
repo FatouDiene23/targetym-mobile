@@ -30,6 +30,15 @@ function toISODate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+// Détection synchrone immédiate (avant le useEffect async)
+function detectNativeSync(): boolean {
+  if (typeof window === 'undefined') return false;
+  const proto = window.location.protocol;
+  if (proto === 'capacitor:' || proto === 'file:') return true;
+  const ua = navigator.userAgent;
+  return /Android|iPhone|iPad/i.test(ua);
+}
+
 async function detectNativePlatform(): Promise<boolean> {
   if (typeof window === 'undefined') return false;
   try {
@@ -47,7 +56,7 @@ async function detectNativePlatform(): Promise<boolean> {
 export default function CustomDatePicker({ value, onChange, placeholder = 'Sélectionner...', className = '', min, max, disabled = false }: CustomDatePickerProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [isNative, setIsNative] = useState(false);
+  const [isNative, setIsNative] = useState(detectNativeSync);
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const [nativeOffset, setNativeOffset] = useState(0);
   const [viewDate, setViewDate] = useState(() => value ? new Date(value + 'T00:00:00') : new Date());

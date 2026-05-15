@@ -843,7 +843,7 @@ export default function RecruitmentPage() {
       onConfirm: async () => {
         setConfirmDialog(null);
         const success = await deleteJob(jobId);
-        if (success) { loadData(); toast.success(t.recruitment.jobDeleted); } else toast.error(t.recruitment.deleteError);
+        if (success) { await loadData(); toast.success(t.recruitment.jobDeleted); } else toast.error(t.recruitment.deleteError);
       },
     });
   };
@@ -857,7 +857,7 @@ export default function RecruitmentPage() {
       onConfirm: async () => {
         setConfirmDialog(null);
         const success = await deleteInterview(interviewId);
-        if (success) loadData(); else toast.error(t.recruitment.deleteInterviewError);
+        if (success) await loadData(); else toast.error(t.recruitment.deleteInterviewError);
       },
     });
   };
@@ -1543,7 +1543,7 @@ export default function RecruitmentPage() {
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => setShowInterviewModal(true)} className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"><Video className="w-4 h-4 mr-2" />{t.recruitment.scheduleInterview}</button>
                   <button onClick={() => handleSendEmail(selectedApplication)} className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"><Mail className="w-4 h-4 mr-2" />{t.recruitment.sendEmail}</button>
-                  <button onClick={() => setConfirmDialog({ isOpen: true, title: t.recruitment.deleteApplicationTitle, message: t.recruitment.deleteApplicationConfirm.replace('{name}', selectedApplication.candidate_name).replace('{job}', selectedApplication.job_title || ''), danger: true, onConfirm: async () => { const ok = await deleteApplication(selectedApplication.id); setConfirmDialog(null); if (ok) { setShowCandidateModal(false); loadData(); toast.success(t.recruitment.applicationDeleted); } else { toast.error(t.recruitment.deleteError); } } })} className="flex items-center px-4 py-2 border border-red-200 text-red-600 text-sm rounded-lg hover:bg-red-50"><Trash2 className="w-4 h-4 mr-2" />{t.recruitment.deleteApplication}</button>
+                  <button onClick={() => setConfirmDialog({ isOpen: true, title: t.recruitment.deleteApplicationTitle, message: t.recruitment.deleteApplicationConfirm.replace('{name}', selectedApplication.candidate_name).replace('{job}', selectedApplication.job_title || ''), danger: true, onConfirm: async () => { const ok = await deleteApplication(selectedApplication.id); setConfirmDialog(null); if (ok) { setShowCandidateModal(false); await loadData(); toast.success(t.recruitment.applicationDeleted); } else { toast.error(t.recruitment.deleteError); } } })} className="flex items-center px-4 py-2 border border-red-200 text-red-600 text-sm rounded-lg hover:bg-red-50"><Trash2 className="w-4 h-4 mr-2" />{t.recruitment.deleteApplication}</button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {!['hired', 'rejected', 'withdrawn'].includes(selectedApplication.stage) && (
@@ -2168,13 +2168,13 @@ function EditCandidateModal({ application, onClose, onSave }: { application: App
     e.preventDefault(); setSaving(true);
     await onSave({
       first_name: formData.first_name, last_name: formData.last_name, email: formData.email,
-      phone: formData.phone || undefined, location: formData.location || undefined,
-      linkedin_url: formData.linkedin_url || undefined, current_company: formData.current_company || undefined,
-      education: formData.education || undefined,
+      phone: formData.phone || null, location: formData.location || null,
+      linkedin_url: formData.linkedin_url || null, current_company: formData.current_company || null,
+      education: formData.education || null,
       skills: formData.skills ? formData.skills.split(',').map(s => s.trim()).filter(s => s) : undefined,
       expected_salary: formData.expected_salary ? parseFloat(formData.expected_salary) : undefined,
       salary_currency: formData.salary_currency || 'XOF',
-      notice_period: formData.notice_period || undefined,
+      notice_period: formData.notice_period || null,
     }, cvFile);
     setSaving(false);
   };

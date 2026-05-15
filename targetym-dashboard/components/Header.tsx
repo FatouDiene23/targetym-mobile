@@ -268,6 +268,7 @@ const HIDDEN_ADD_ROUTES = [
   '/dashboard/performance/evaluation-1-on-1',
   '/dashboard/paie',
   '/dashboard/surveys',
+  '/dashboard/presence',
 ];
 
 // ============================================

@@ -43,6 +43,7 @@ import {
   RotateCcw,
   Lightbulb,
   UserMinus,
+  ScanLine,
   Receipt,
   Package,
   Building2,
@@ -60,7 +61,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect, useMemo, Suspense, useCallback } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
-import { usePlan, FEATURE_OKR, FEATURE_CAREERS, FEATURE_LEARNING, FEATURE_PERFORMANCE, FEATURE_ANALYTICS, FEATURE_DEPARTURES, FEATURE_CERTIFICATES, FEATURE_DOCUMENTS, FEATURE_TASKS, getRequiredPlanLabel } from '@/hooks/usePlan';
+import { usePlan, FEATURE_OKR, FEATURE_CAREERS, FEATURE_LEARNING, FEATURE_PERFORMANCE, FEATURE_ANALYTICS, FEATURE_DEPARTURES, FEATURE_CERTIFICATES, FEATURE_DOCUMENTS, FEATURE_TASKS, FEATURE_PRESENCE, getRequiredPlanLabel } from '@/hooks/usePlan';
 import { PlanBadge } from '@/components/PlanGate';
 
 // ============================================
@@ -187,6 +188,12 @@ const navigation: NavItem[] = [
     icon: UserMinus,
     roles: ['rh', 'admin', 'dg'],
     hideOnMobile: true,
+  },
+  {
+    name: 'Présence',
+    href: '/dashboard/presence',
+    icon: ScanLine,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
   },
   {
     name: 'Gestion des Contentieux',
@@ -367,6 +374,7 @@ const ROUTE_FEATURE_MAP: Record<string, string> = {
   '/dashboard/analytics': FEATURE_ANALYTICS,
   '/dashboard/departures': FEATURE_DEPARTURES,
   '/dashboard/certificates': FEATURE_CERTIFICATES,
+  '/dashboard/presence': FEATURE_PRESENCE,
 };
 
 // Mon Espace route → feature mapping (employee space — silently hidden)

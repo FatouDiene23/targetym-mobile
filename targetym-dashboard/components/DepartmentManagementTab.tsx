@@ -9,7 +9,7 @@ import {
 import {
   getDepartments, updateDepartment, deleteDepartment,
   getEmployees, getGroupViewPersonnel,
-  type Department, type DepartmentCreate, type Employee, type GroupPersonnelSubsidiary
+  type Department, type DepartmentCreate, type DepartmentUpdate, type Employee, type GroupPersonnelSubsidiary
 } from '@/lib/api';
 import { useGroupContext } from '@/hooks/useGroupContext';
 import AddOrganizationalUnitModal from './AddOrganizationalUnitModal';
@@ -150,19 +150,19 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
     try {
       await deleteDepartment(dept.id);
       setShowDeleteConfirm(null);
-      loadData();
+      await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : td.deleteError);
     }
   }
 
-  async function handleSaveEdit(data: DepartmentCreate) {
+  async function handleSaveEdit(data: DepartmentUpdate) {
     if (!editingDept) return;
     try {
       await updateDepartment(editingDept.id, data);
       setShowEditModal(false);
       setEditingDept(null);
-      loadData();
+      await loadData();
     } catch (err) {
       throw err;
     }
@@ -244,7 +244,7 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
             await deleteDepartment(id);
           }
           setSelectedIds(new Set());
-          loadData();
+          await loadData();
         } catch {}
         finally { setBulkLoading(false); }
       },
@@ -702,7 +702,7 @@ function EditDepartmentModal({
   departments: Department[];
   employees: Employee[];
   onClose: () => void;
-  onSave: (data: DepartmentCreate) => Promise<void>;
+  onSave: (data: DepartmentUpdate) => Promise<void>;
 }) {
   const { t } = useI18n();
   const td = t.departments;
@@ -746,12 +746,12 @@ function EditDepartmentModal({
     try {
       await onSave({
         name: form.name.trim(),
-        code: form.code.trim() || undefined,
-        description: form.description.trim() || undefined,
+        code: form.code.trim() || null,
+        description: form.description.trim() || null,
         color: LEVEL_COLOR_MAP[form.level] ?? '#6b7280',
         level: (form.level || undefined) as any,
-        parent_id: form.parent_id ? parseInt(form.parent_id) : undefined,
-        head_id: form.head_id ? parseInt(form.head_id) : undefined,
+        parent_id: form.parent_id ? parseInt(form.parent_id) : null,
+        head_id: form.head_id ? parseInt(form.head_id) : null,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : td.errorGeneric);

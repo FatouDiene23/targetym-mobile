@@ -1,21 +1,10 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  // Identifiant unique de l'application (format: com.entreprise.app)
   appId: 'com.targetym.app',
-
-  // Nom affiché sur l'écran d'accueil du téléphone
   appName: 'Targetym',
-
-  // Dossier de sortie du build Next.js (output: 'export')
   webDir: 'out',
-
-  server: {
-    // En développement, décommenter pour tester avec hot-reload :
-    // url: 'http://192.168.1.5:3000',
-    // cleartext: true,
-  },
-
+  server: {},
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
@@ -23,38 +12,35 @@ const config: CapacitorConfig = {
       showSpinner: false,
       androidSpinnerStyle: 'small',
       iosSpinnerStyle: 'small',
-      spinnerColor: '#4F46E5',
+      spinnerColor: '#4F46E5'
     },
     PushNotifications: {
-      presentationOptions: ['badge', 'sound', 'alert'],
+      presentationOptions: [
+        'badge',
+        'sound',
+        'alert'
+      ]
     },
     StatusBar: {
       style: 'Default',
-      backgroundColor: '#ffffff',
+      backgroundColor: '#ffffff'
     },
     CapacitorUpdater: {
-      // Applique automatiquement la mise à jour au prochain démarrage
       autoUpdate: true,
-      // Délai avant le rollback auto si notifyAppReady() n'est pas appelé (ms)
       appReadyTimeout: 10000,
-      // Canal par défaut (correspond au canal créé dans Capgo)
       defaultChannel: 'production',
-    },
+      appId: 'com.targetym.app',
+      version: '0.0.0',
+      publicKey: '-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEA1Bztpp6QhsYHAR8doZCyhlS/cBMJNilO6nin8mC8PaCi0XV/HG1N\nLV/ujaL/HjLtreMlLG58IEY1CvykEpdcXSpz7S4WsvCSRQayI6CqxHwPYC9Cww5F\noOTy4+EEZrMGc8efBPNG4dVxXD8IrjgDrVRUUUXvBkVtTd0DnUMO5TokxDihySk2\n8scmWOueHvxoJMNwbs8N2CpR/F/JRTGs41nr62HmmCCNCUiAi0RGfRpmc0IeW+EB\nlwVJuWxR45J+0bX1u/mgg4EXkGHuWy5mPGozb5fTE9PsJDiAVWQGu6WCewuZzmF5\nzJMsa8ABcgKvcEmGpUzpMKNXWXFmL6TJiwIDAQAB\n-----END RSA PUBLIC KEY-----\n'
+    }
   },
-
   android: {
-    // Autoriser les requêtes HTTP vers l'API en développement
     allowMixedContent: true,
-    // Activer le build en mode debug
-    buildOptions: {
-      keystorePath: undefined,
-      keystoreAlias: undefined,
-    },
+    buildOptions: {}
   },
-
   ios: {
-    contentInset: 'automatic',
-  },
+    contentInset: 'automatic'
+  }
 };
 
 export default config;

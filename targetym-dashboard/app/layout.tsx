@@ -1,6 +1,9 @@
 import './globals.css'
 import ToastProvider from '@/components/ToastProvider'
 import CapgoUpdater from '@/components/CapgoUpdater'
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
+
+CapacitorUpdater.notifyAppReady();
 
 export const metadata = {
   title: 'Targetym AI - Dashboard',

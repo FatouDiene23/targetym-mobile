@@ -754,7 +754,7 @@ export default function MyTeamPage() {
           </div>
 
           {/* Team Members + Detail Panel */}
-          <div className={`grid gap-6 mb-6 ${selectedMember ? 'lg:grid-cols-2' : ''}`}>
+          <div className={`grid gap-6 mb-6 ${selectedMember ? 'md:grid-cols-2' : ''}`}>
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <button onClick={() => setShowTeam(!showTeam)} className="w-full flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">

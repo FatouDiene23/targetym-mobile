@@ -704,7 +704,7 @@ export default function OnboardingPage() {
           <StatCard label={t.onboarding.overdue} value={stats.overdue_count} icon={AlertCircle} color="bg-red-50 text-red-600" />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Onboardings actifs */}
           <div className="bg-white rounded-xl border border-gray-200">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">

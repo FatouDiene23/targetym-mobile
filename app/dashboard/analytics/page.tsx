@@ -618,7 +618,7 @@ export default function PeopleAnalyticsPage() {
       </div>
 
       {/* Graphiques résumés */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Évolution effectifs */}
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
@@ -703,7 +703,7 @@ export default function PeopleAnalyticsPage() {
       </div>
 
       {/* Graphiques */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Évolution effectifs */}
         <div className="bg-white rounded-xl border p-6">
           <h3 className="font-semibold text-gray-900 mb-4">{t.analytics.staffEvolution}</h3>
@@ -828,7 +828,7 @@ export default function PeopleAnalyticsPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Score moyen par département */}
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
@@ -998,7 +998,7 @@ export default function PeopleAnalyticsPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* 9-Box */}
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
@@ -1126,7 +1126,7 @@ export default function PeopleAnalyticsPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Exécution par catégorie */}
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
@@ -1375,7 +1375,7 @@ export default function PeopleAnalyticsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Tendance engagement */}
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
@@ -1529,7 +1529,7 @@ export default function PeopleAnalyticsPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Pipeline funnel */}
         <div className="bg-white rounded-xl border p-6">
           <h3 className="font-semibold text-gray-900 mb-4">{t.analytics.recruitmentFunnel}</h3>
@@ -1672,7 +1672,7 @@ export default function PeopleAnalyticsPage() {
       </div>
 
       {/* Évolution masse salariale + répartition par département */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl border p-6">
           <h3 className="font-semibold text-gray-900 mb-4">{t.analytics.salaryEvolution}</h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -1729,7 +1729,7 @@ export default function PeopleAnalyticsPage() {
       </div>
 
       {/* Distribution par tranches + par contrat */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl border p-6">
           <h3 className="font-semibold text-gray-900 mb-4">{t.analytics.salaryBrackets}</h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -1925,7 +1925,7 @@ export default function PeopleAnalyticsPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Graphique — Formations par département */}
           <div className="bg-white rounded-xl border p-6">
             <div className="flex items-center justify-between mb-4">

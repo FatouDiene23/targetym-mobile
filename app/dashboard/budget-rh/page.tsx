@@ -543,7 +543,7 @@ export default function BudgetRHPage() {
               SECTION: OVERVIEW
           ═══════════════════════════════════ */}
           {activeSection === "overview" && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Budget vs Réel mensuel — Composed Chart */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                 <h3 className="text-sm font-semibold text-gray-700 mb-4">Budget vs Réalisé par mois</h3>
@@ -674,7 +674,7 @@ export default function BudgetRHPage() {
               SECTION: CATEGORIES
           ═══════════════════════════════════ */}
           {activeSection === "categories" && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Donut Pie */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                 <h3 className="text-sm font-semibold text-gray-700 mb-4">Répartition par type de charge</h3>

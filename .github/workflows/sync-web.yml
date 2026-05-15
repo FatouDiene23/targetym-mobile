@@ -65,77 +65,82 @@ jobs:
           echo "BRANCH=$BRANCH" >> $GITHUB_ENV
           git checkout -b "$BRANCH"
 
-      - name: Sync new/modified files from web
+      - name: Sync NEW files only from web (additive sync — never overwrite)
         if: steps.last_sync.outputs.needs_sync == 'true'
         run: |
           TARGET="targetym-dashboard"
           LAST_SYNC="${{ steps.last_sync.outputs.last_sync }}"
           CURRENT_WEB="${{ steps.last_sync.outputs.current_web }}"
 
-          # Fichiers spécifiques au mobile à ne JAMAIS écraser
-          MOBILE_ONLY_FILES=(
-            "capacitor.config.ts"
-            "CAPACITOR_SETUP.md"
-            "lib/capacitor-plugins.ts"
-            "next.config.mjs"
-            "components/BottomNav.tsx"
-            "components/Sidebar.tsx"
-            "app/globals.css"
-            "app/dashboard/layout.tsx"
-            "app/dashboard/employees/page.tsx"
-            "app/dashboard/leaves/page.tsx"
-            "app/dashboard/missions/page.tsx"
-            "app/dashboard/my-space/page.tsx"
-            "app/dashboard/my-space/documents/page.tsx"
-            "app/dashboard/my-space/internal-jobs/page.tsx"
-            "app/dashboard/platform-admin/page.tsx"
-            "app/dashboard/resources/page.tsx"
-            "app/dashboard/talents/succession/page.tsx"
-            "app/dashboard/recruitment/page.tsx"
-            "components/AIChatBox.tsx"
-          )
+          # ─────────────────────────────────────────────────────────────
+          # MODE ADDITIF UNIQUEMENT
+          # ─────────────────────────────────────────────────────────────
+          # On NE écrase JAMAIS un fichier qui existe déjà côté mobile.
+          # Le workflow ajoute UNIQUEMENT les NOUVEAUX fichiers
+          # (créés sur le repo web, absents du repo mobile).
+          #
+          # Pour récupérer une mise à jour d'un fichier existant,
+          # il faut le faire MANUELLEMENT (cherry-pick / copy).
+          # ─────────────────────────────────────────────────────────────
 
           # Obtenir la liste des fichiers modifiés sur upstream
           if [ -n "$LAST_SYNC" ]; then
-            # Fichiers modifiés depuis le dernier sync
             CHANGED_FILES=$(git diff --name-only "$LAST_SYNC" "$CURRENT_WEB" 2>/dev/null || echo "")
           else
-            # Premier sync : tous les fichiers
             CHANGED_FILES=$(git ls-tree -r --name-only web/main)
           fi
 
           if [ -z "$CHANGED_FILES" ]; then
-            echo "Aucun fichier modifié"
+            echo "Aucun fichier modifié sur le repo web"
             exit 0
           fi
 
           echo "Fichiers modifiés sur upstream :"
           echo "$CHANGED_FILES"
+          echo ""
 
-          # Copier chaque fichier modifié, sauf ceux protégés
-          echo "$CHANGED_FILES" | while read -r file; do
-            # Vérifier si ce fichier est protégé (modifié pour mobile)
-            SKIP=false
-            for protected in "${MOBILE_ONLY_FILES[@]}"; do
-              if [ "$file" = "$protected" ]; then
-                SKIP=true
-                echo "SKIP (mobile-modified): $file"
-                break
-              fi
-            done
+          ADDED_FILES=()
+          SKIPPED_EXISTING=()
 
-            if [ "$SKIP" = "true" ]; then
+          # Copier UNIQUEMENT les fichiers absents côté mobile
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+
+            DEST="$TARGET/$file"
+
+            if [ -e "$DEST" ]; then
+              # Fichier déjà présent → on ne touche pas
+              SKIPPED_EXISTING+=("$file")
               continue
             fi
 
-            # Extraire le fichier depuis upstream
-            DEST="$TARGET/$file"
+            # Nouveau fichier → on l'ajoute
             DEST_DIR=$(dirname "$DEST")
             mkdir -p "$DEST_DIR"
 
-            git show "web/main:$file" > "$DEST" 2>/dev/null || echo "WARN: impossible d'extraire $file"
-            echo "SYNC: $file → $DEST"
-          done
+            if git show "web/main:$file" > "$DEST" 2>/dev/null; then
+              ADDED_FILES+=("$file")
+              echo "ADD: $file"
+            else
+              echo "WARN: impossible d'extraire $file (probablement supprimé sur web)"
+              # Nettoie le fichier vide si la commande a quand même créé un fichier
+              [ -s "$DEST" ] || rm -f "$DEST"
+            fi
+          done <<< "$CHANGED_FILES"
+
+          echo ""
+          echo "──────────────────────────────────────────────"
+          echo "RÉSUMÉ DE LA SYNC"
+          echo "──────────────────────────────────────────────"
+          echo "Nouveaux fichiers ajoutés : ${#ADDED_FILES[@]}"
+          echo "Fichiers existants ignorés (préservés) : ${#SKIPPED_EXISTING[@]}"
+          echo ""
+          if [ ${#SKIPPED_EXISTING[@]} -gt 0 ]; then
+            echo "Fichiers modifiés sur le web mais NON synchronisés (déjà présents en mobile) :"
+            printf '  - %s\n' "${SKIPPED_EXISTING[@]}"
+            echo ""
+            echo "→ Pour les mettre à jour côté mobile, faire un merge manuel."
+          fi
 
           # Gérer le package.json : merger les deps web + garder les deps mobile
           if echo "$CHANGED_FILES" | grep -q "^package.json$"; then

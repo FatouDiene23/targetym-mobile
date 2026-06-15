@@ -417,7 +417,7 @@ export default function AIChatBox() {
 
       {/* Fenêtre du chat */}
       {isOpen && (
-        <div className="fixed bottom-16 right-0 lg:bottom-6 lg:right-6 w-full lg:w-[420px] h-[calc(100dvh-5rem)] lg:h-[min(620px,calc(100dvh-2rem))] bg-white rounded-t-2xl lg:rounded-2xl shadow-2xl flex flex-col z-50 border border-gray-200 overflow-hidden">
+        <div className="fixed bottom-16 right-0 lg:bottom-6 lg:right-6 w-full lg:w-[420px] h-[calc(100dvh-9rem)] lg:h-[min(620px,calc(100dvh-2rem))] bg-white rounded-t-2xl lg:rounded-2xl shadow-2xl flex flex-col z-50 border border-gray-200 overflow-hidden">
 
           {/* Header */}
           <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-3 py-3 sm:px-5 sm:py-4 rounded-t-2xl flex items-center justify-between flex-shrink-0 gap-2">

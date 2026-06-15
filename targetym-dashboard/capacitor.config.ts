@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.targetym.app',
-  appName: 'Targetym',
+  appName: 'Targetym AI',
   webDir: 'out',
   server: {},
   plugins: {

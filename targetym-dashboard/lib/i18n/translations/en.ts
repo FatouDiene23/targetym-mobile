@@ -40,6 +40,9 @@ export const en = {
     error: "Error",
     warning: "Warning",
     info: "Information",
+    apiErrors: {
+      emailAlreadyExists: "An account already exists with this email. Please use another email address or contact an administrator to verify whether the existing account should be linked or transferred.",
+    },
   },
   auth: {
     login: "Login",
@@ -4323,6 +4326,7 @@ export const en = {
     recoveryRecorded: "Recovery recorded",
     statusPending: "Pending",
     statusApproved: "Approved",
+    statusPendingRh: "Pending HR",
     statusRejected: "Rejected",
     statusCancelled: "Cancelled",
     statusSuspendedSick: "Suspended - Illness",

@@ -1,4 +1,6 @@
 'use client';
+import { getToken } from '@/lib/api';
+import PageLoading from '@/components/PageLoading';
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -11,6 +13,7 @@ import {
   ListTodo, CalendarClock
 } from 'lucide-react';
 import Header from '@/components/Header';
+import Pagination from '@/components/Pagination';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
 // ============================================
@@ -100,15 +103,16 @@ interface Anniversary {
 // ============================================
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
+const TECHNICAL_ERROR_MESSAGE = "Une erreur technique empêche de charger les données. Veuillez réessayer dans quelques instants.";
 
 function getAuthHeaders(): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const token = getToken();
   return { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) };
 }
 
 async function apiFetch(path: string) {
   const res = await fetch(`${API_URL}${path}`, { headers: getAuthHeaders() });
-  if (!res.ok) throw new Error('Erreur API');
+  if (!res.ok) throw new Error(TECHNICAL_ERROR_MESSAGE);
   return res.json();
 }
 
@@ -145,7 +149,7 @@ async function getMemberPerformance(id: number): Promise<PerfScore | null> {
 
 async function getMemberOKRs(id: number): Promise<OKRObjective[]> {
   try {
-    const data = await apiFetch(`/api/okr/objectives?owner_id=${id}&level=individual&page_size=10`);
+    const data = await apiFetch(`/api/okr/objectives?owner_id=${id}&page_size=10`);
     return data.items || data.objectives || [];
   } catch { return []; }
 }
@@ -522,9 +526,10 @@ function MemberDetailPanel({ member, onClose }: { member: Employee; onClose: () 
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                             r.status === 'approved' ? 'bg-green-100 text-green-700' :
                             r.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                            r.status === 'manager_approved' ? 'bg-blue-100 text-blue-700' :
                             r.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
                           }`}>
-                            {r.status === 'approved' ? t.mySpace.statusApproved : r.status === 'pending' ? t.mySpace.statusPending : r.status === 'rejected' ? t.mySpace.statusRejected : r.status}
+                            {r.status === 'approved' ? t.mySpace.statusApproved : r.status === 'pending' ? t.mySpace.statusPending : r.status === 'manager_approved' ? t.mySpace.statusPendingRh : r.status === 'rejected' ? t.mySpace.statusRejected : r.status}
                           </span>
                         </div>
                       ))}
@@ -625,6 +630,8 @@ export default function MyTeamPage() {
   const { t } = useI18n();
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [teamMembers, setTeamMembers] = useState<Employee[]>([]);
+  const [currentTeamPage, setCurrentTeamPage] = useState(1);
+  const TEAM_PAGE_SIZE = 10;
   const [pendingRequests, setPendingRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -685,13 +692,7 @@ export default function MyTeamPage() {
   // Suppress unused var warning
   void employee;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (loading) return <PageLoading />;
 
   if (error) {
     return (
@@ -765,7 +766,7 @@ export default function MyTeamPage() {
               </button>
               {showTeam && (
                 <div className="grid grid-cols-1 gap-3" data-tour="team-list">
-                  {teamMembers.map(member => (
+                  {teamMembers.slice((currentTeamPage - 1) * TEAM_PAGE_SIZE, currentTeamPage * TEAM_PAGE_SIZE).map(member => (
                     <TeamMemberCard
                       key={member.id}
                       member={member}
@@ -773,6 +774,12 @@ export default function MyTeamPage() {
                       onClick={() => setSelectedMember(selectedMember?.id === member.id ? null : member)}
                     />
                   ))}
+                  <Pagination
+                    page={currentTeamPage}
+                    total={teamMembers.length}
+                    pageSize={TEAM_PAGE_SIZE}
+                    onPageChange={setCurrentTeamPage}
+                  />
                 </div>
               )}
             </div>
@@ -822,7 +829,7 @@ export default function MyTeamPage() {
                       <span className="text-sm font-medium text-gray-900">{a.employee.first_name} {a.employee.last_name}</span>
                     </div>
                     <p className={`text-xs mt-1 ${a.type === 'birthday' ? 'text-pink-600' : 'text-amber-600'}`}>
-                      {a.type === 'birthday' ? t.mySpace.birthday : `${a.years} an${(a.years || 0) > 1 ? 's' : ''} {t.mySpace.yearsInCompany}`}
+                      {a.type === 'birthday' ? t.mySpace.birthday : `${a.years} an${(a.years || 0) > 1 ? 's' : ''} ${t.mySpace.yearsInCompany}`}
                       {' — '}
                       {a.date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
                     </p>

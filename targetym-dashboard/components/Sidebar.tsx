@@ -192,6 +192,13 @@ const navigation: NavItem[] = [
     roles: ['rh', 'admin', 'dg'],
   },
   {
+    name: 'Programmes RH',
+    href: '/dashboard/programmes',
+    icon: Layers,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
+    dataTour: 'sidebar-programmes',
+  },
+  {
     name: 'Notes de Service',
     href: '/dashboard/notes-de-service',
     icon: FileText,
@@ -248,7 +255,8 @@ const mySpaceNavigation: NavItem[] = [
   { name: 'Mes Objectifs', href: '/dashboard/my-space/objectives', icon: Target, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-my-objectives' },
   { name: 'Mon Équipe', href: '/dashboard/my-space/team', icon: UsersRound, roles: ['manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-team' },
   { name: 'Mes Tâches', href: '/dashboard/my-space/tasks', icon: ClipboardList, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-tasks' },
-  { name: 'Daily Checklist', href: '/dashboard/my-space/daily-checklist', icon: CheckSquare, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+  { name: 'Programmes & Initiatives', href: '/dashboard/my-space/programmes-initiatives', icon: Layers, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-my-programmes-initiatives' },
+  { name: 'Rituels et check-lists', href: '/dashboard/my-space/daily-checklist', icon: CalendarDays, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-managerial-rituals' },
   { name: 'Offres Internes', href: '/dashboard/my-space/internal-jobs', icon: Briefcase, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Mes Documents', href: '/dashboard/my-space/documents', icon: FileText, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-documents' },
   { name: 'Mes Notes de Service', href: '/dashboard/my-space/notes-de-service', icon: FileText, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },

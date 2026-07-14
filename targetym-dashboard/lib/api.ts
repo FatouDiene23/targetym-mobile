@@ -1,16 +1,48 @@
 // Configuration API
+import { normalizeApiErrorMessage, normalizeApiErrorPayload } from '@/lib/apiErrorMessages';
+
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
-// Helper pour obtenir le token
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('access_token');
+// ─────────────────────────────────────────────────────────────────────────────
+// Gestion sécurisée des tokens (Option C hybride)
+//
+//  - access_token  → stocké dans AuthContext (mémoire React) UNIQUEMENT
+//                    Accessible via _getAccessTokenFn() injecté par AuthProvider
+//  - refresh_token → cookie httpOnly posé par le backend (invisible pour JS)
+//  - user          → localStorage (infos d'affichage non sensibles)
+//
+// AUCUN accès à localStorage pour les tokens JWT.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Référence vers la fonction getAccessToken() du AuthContext.
+ * Injectée par le layout au montage via injectAuthAccessor().
+ * Fallback sur localStorage uniquement pendant la période de transition.
+ */
+let _getAccessTokenFn: (() => string | null) | null = null;
+let _clearAuthFn: (() => void) | null = null;
+let _setTokenFn: ((token: string) => void) | null = null;
+
+/** Appelé par DashboardLayout au montage pour brancher le contexte Auth. */
+export function injectAuthAccessor(
+  getToken: () => string | null,
+  clearAuth: () => void,
+  setToken?: (token: string) => void,
+) {
+  _getAccessTokenFn = getToken;
+  _clearAuthFn = clearAuth;
+  if (setToken) _setTokenFn = setToken;
 }
 
-// Helper pour obtenir le refresh token
-function getRefreshToken(): string | null {
+/** Lit l'access_token depuis le contexte Auth (ou sessionStorage en fallback). */
+export function getToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('refresh_token');
+  if (_getAccessTokenFn) {
+    const token = _getAccessTokenFn();
+    if (token) return token;
+  }
+  // Fallback : sessionStorage si le contexte n'est pas encore injecté ou retourne null
+  try { return sessionStorage.getItem('access_token'); } catch { return null; }
 }
 
 // Helper pour les headers authentifiés
@@ -22,7 +54,7 @@ function getAuthHeaders(): HeadersInit {
   };
 }
 
-// Rafraîchir le token d'accès
+// Rafraîchir le token d'accès — utilise le cookie httpOnly automatiquement
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
 
@@ -35,33 +67,31 @@ async function refreshAccessToken(): Promise<boolean> {
   isRefreshing = true;
   refreshPromise = (async () => {
     try {
-      const refreshToken = getRefreshToken();
-      if (!refreshToken) {
-        console.log('No refresh token available');
-        return false;
-      }
-
-      const response = await fetchWithAuth(`${API_URL}/api/auth/refresh`, {
+      // credentials: 'include' → le navigateur envoie automatiquement le cookie httpOnly
+      // Pas de body JSON nécessaire (le refresh_token est dans le cookie)
+      const response = await fetch(`${API_URL}/api/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: refreshToken }),
+        credentials: 'include',  // ← envoi automatique du cookie httpOnly
       });
 
       if (!response.ok) {
         console.log('Refresh token failed:', response.status);
-        // Token refresh échoué, rediriger vers login
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
+        // Cookie expiré ou invalide → déconnexion
+        if (_clearAuthFn) _clearAuthFn();
         window.location.href = 'https://www.targetym.ai/login';
         return false;
       }
 
       const data = await response.json();
-      localStorage.setItem('access_token', data.access_token);
-      localStorage.setItem('refresh_token', data.refresh_token);
-      if (data.user) {
-        localStorage.setItem('user', JSON.stringify(data.user));
+      // Mettre à jour l'access_token dans AuthContext (mémoire) via le setter injecté
+      if (data.access_token) {
+        if (_setTokenFn) {
+          _setTokenFn(data.access_token);
+        } else {
+          // Fallback transitoire si setToken pas encore injecté
+          localStorage.setItem('access_token', data.access_token);
+        }
       }
       console.log('Token refreshed successfully');
       return true;
@@ -79,10 +109,18 @@ async function refreshAccessToken(): Promise<boolean> {
 
 // Wrapper pour fetch avec gestion automatique du refresh token
 export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+  // Ne pas forcer Content-Type: application/json quand on envoie du FormData
+  // (le navigateur doit le poser lui-même avec le boundary multipart correct)
+  const baseHeaders = getAuthHeaders() as Record<string, string>;
+  if (options.body instanceof FormData) {
+    delete baseHeaders['Content-Type'];
+  }
+
   let response = await fetch(url, {
     ...options,
+    credentials: 'include',  // ← envoie le cookie httpOnly sur tous les appels API
     headers: {
-      ...getAuthHeaders(),
+      ...baseHeaders,
       ...options.headers,
     },
   });
@@ -95,17 +133,39 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
     const refreshed = await refreshAccessToken();
     if (refreshed) {
       // Réessayer la requête avec le nouveau token
+      const retryHeaders = getAuthHeaders() as Record<string, string>;
+      if (options.body instanceof FormData) {
+        delete retryHeaders['Content-Type'];
+      }
       response = await fetch(url, {
         ...options,
+        credentials: 'include',
         headers: {
-          ...getAuthHeaders(),
+          ...retryHeaders,
           ...options.headers,
         },
       });
     }
   }
 
+  if (!response.ok) {
+    response = await sanitizeErrorResponse(response);
+  }
+
   return response;
+}
+
+async function sanitizeErrorResponse(response: Response): Promise<Response> {
+  try {
+    const payload = await response.clone().json();
+    return new Response(JSON.stringify(normalizeApiErrorPayload(payload)), {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    });
+  } catch {
+    return response;
+  }
 }
 
 // Helper pour parser les erreurs API
@@ -119,30 +179,31 @@ async function parseApiError(response: Response): Promise<string> {
     }
     if (error.detail) {
       if (Array.isArray(error.detail)) {
-        return error.detail.map((e: { msg?: string; message?: string; loc?: string[] }) => {
+        const message = error.detail.map((e: { msg?: string; message?: string; loc?: string[] }) => {
           const field = e.loc ? e.loc[e.loc.length - 1] : '';
           const msg = e.msg || e.message || 'Erreur de validation';
           return field ? `${field}: ${msg}` : msg;
         }).join(', ');
+        return normalizeApiErrorMessage(message);
       }
       if (typeof error.detail === 'string') {
-        return error.detail;
+        return normalizeApiErrorMessage(error.detail);
       }
-      return JSON.stringify(error.detail);
+      return normalizeApiErrorMessage(JSON.stringify(error.detail));
     }
     if (error.message) {
-      return error.message;
+      return normalizeApiErrorMessage(error.message);
     }
-    return `Erreur ${response.status}: ${response.statusText}`;
+    return normalizeApiErrorMessage(`Erreur ${response.status}: ${response.statusText}`);
   } catch {
-    return `Erreur ${response.status}: ${response.statusText}`;
+    return normalizeApiErrorMessage(`Erreur ${response.status}: ${response.statusText}`);
   }
 }
 
 // Types - Valeurs acceptées par l'API (en minuscule)
 export type GenderType = 'male' | 'female' | 'other';
-export type ContractType = 'cdi' | 'cdd' | 'stage' | 'alternance' | 'consultant' | 'interim';
-export type StatusType = 'active' | 'on_leave' | 'suspended' | 'terminated' | 'probation';
+export type ContractType = 'cdi' | 'cdd' | 'stage' | 'alternance' | 'consultant' | 'interim' | 'mandataire';
+export type StatusType = 'active' | 'on_leave' | 'suspended' | 'terminated' | 'probation' | 'inactive' | 'transferred';
 
 // Types pour les rôles
 export type EmployeeRole = 'employee' | 'manager' | 'rh' | 'admin' | 'dg';
@@ -166,6 +227,7 @@ export interface Employee {
   job_title?: string;
   department_id?: number;
   department_name?: string;
+  department_level?: string;
   manager_id?: number;
   manager_name?: string;
   hire_date?: string;
@@ -198,6 +260,7 @@ export interface Employee {
   spouse_name?: string;
   spouse_birth_date?: string;
   nb_enfants?: number;
+  children?: { first_name: string; last_name: string; birth_date?: string }[];
   // Adresse pro
   work_email?: string;
   work_phone?: string;
@@ -206,12 +269,19 @@ export interface Employee {
   disability_description?: string;
   emergency_contact_name?: string;
   emergency_contact_phone?: string;
+  // Administratif
+  nir_number?: string;
   // Organisation
   comex_member?: string;
   hrbp?: string;
   salary_category?: string;
   // Juridique
   is_juriste?: boolean;
+  is_it?: boolean;
+  // Départ / Transfert
+  end_date?: string;
+  departure_type?: 'dismissal' | 'resignation' | 'end_of_contract' | 'retirement' | 'trial_period' | 'mutual_agreement' | 'other';
+  transferred_to_tenant_name?: string;
 }
 
 export interface EmployeeCreate {
@@ -248,6 +318,7 @@ export interface EmployeeCreate {
   spouse_name?: string;
   spouse_birth_date?: string;
   nb_enfants?: number;
+  children?: { first_name: string; last_name: string; birth_date?: string }[];
   // Adresse pro
   work_email?: string;
   work_phone?: string;
@@ -256,12 +327,15 @@ export interface EmployeeCreate {
   disability_description?: string;
   emergency_contact_name?: string;
   emergency_contact_phone?: string;
+  // Administratif
+  nir_number?: string;
   // Organisation
   comex_member?: string;
   hrbp?: string;
   salary_category?: string;
   // Juridique
   is_juriste?: boolean;
+  is_it?: boolean;
 }
 
 export interface EmployeeStats {
@@ -308,6 +382,16 @@ export interface DepartmentCreate {
   head_id?: number;
 }
 
+export interface DepartmentUpdate {
+  name?: string;
+  code?: string | null;
+  description?: string | null;
+  color?: string;
+  level?: OrganizationalLevel;
+  parent_id?: number | null;
+  head_id?: number | null;
+}
+
 export interface PaginatedResponse<T> {
   items: T[];
   total: number;
@@ -345,6 +429,7 @@ export interface Task {
   objective_title?: string;
   key_result_id?: number;
   key_result_title?: string;
+  kr_contribution?: number;
   // Tâche administrative
   is_administrative?: boolean;
   // Timestamps
@@ -361,6 +446,7 @@ export interface TaskCreate {
   // Lien OKR (obligatoire sauf si is_administrative=true)
   objective_id?: number;
   key_result_id?: number;
+  kr_contribution?: number;
   // Tâche administrative (pas de lien OKR requis)
   is_administrative?: boolean;
 }
@@ -453,6 +539,8 @@ export async function getEmployees(params?: {
   status?: string;
   subsidiary_tenant_id?: number;
   all_subsidiaries?: boolean;
+  include_terminated?: boolean;
+  include_transferred?: boolean;
 }): Promise<PaginatedResponse<Employee>> {
   const queryParams = new URLSearchParams();
   if (params?.page) queryParams.set('page', params.page.toString());
@@ -462,6 +550,8 @@ export async function getEmployees(params?: {
   if (params?.status) queryParams.set('status', params.status);
   if (params?.subsidiary_tenant_id) queryParams.set('subsidiary_tenant_id', params.subsidiary_tenant_id.toString());
   if (params?.all_subsidiaries) queryParams.set('all_subsidiaries', 'true');
+  if (params?.include_terminated) queryParams.set('include_terminated', 'true');
+  if (params?.include_transferred) queryParams.set('include_transferred', 'true');
 
   const response = await fetchWithAuth(`${API_URL}/api/employees/?${queryParams}`, {
     
@@ -550,8 +640,164 @@ export async function deleteEmployee(id: number): Promise<void> {
   }
 }
 
+// ── Backup self-service ──────────────────────────────────────────────────────
+export async function downloadBackup(): Promise<void> {
+  const response = await fetchWithAuth(`${API_URL}/api/backup/export`);
+  if (!response.ok) {
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
+  }
+  const blob = await response.blob();
+  const contentDisposition = response.headers.get('Content-Disposition') || '';
+  const match = contentDisposition.match(/filename="([^"]+)"/);
+  const filename = match ? match[1] : `targetym_backup_${new Date().toISOString().slice(0, 10)}.json`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export interface BackupStatus {
+  auto_backup_enabled: boolean;
+  last_exported_at: string | null;
+  live_counts: {
+    employees: number;
+    departments: number;
+    leave_requests: number;
+    absences: number;
+    surveys: number;
+    attendance_records: number;
+    salary_history: number;
+    users: number;
+  };
+  checked_at: string;
+}
+
+export async function getBackupStatus(): Promise<BackupStatus> {
+  const response = await fetchWithAuth(`${API_URL}/api/backup/status`);
+  if (!response.ok) {
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
+  }
+  return response.json();
+}
+
+export async function toggleAutoBackup(): Promise<{ auto_backup_enabled: boolean }> {
+  const response = await fetchWithAuth(`${API_URL}/api/backup/toggle`, { method: 'PATCH' });
+  if (!response.ok) {
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
+  }
+  return response.json();
+}
+
+export interface RestoreResult {
+  success: boolean;
+  backup_version: string;
+  backup_date: string | null;
+  results: Record<string, { restored: number; skipped: number; errors: number }>;
+  totals: {
+    restored: number;
+    skipped: number;
+    errors: number;
+  };
+}
+
+export async function importBackup(file: File): Promise<RestoreResult> {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await fetch(`${API_URL}/api/backup/import`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      // Content-Type omis volontairement : le navigateur le positionne avec le boundary multipart
+    },
+    body: formData,
+  });
+  if (!response.ok) {
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
+  }
+  return response.json();
+}
+
+// ── Scoring IA des CVs ───────────────────────────────────────────────────────
+
+export interface AIScoringStatus {
+  has_access: boolean;
+  via_plan: boolean;
+  via_addon: boolean;
+  module_status: 'active' | 'pending' | 'rejected' | 'not_requested';
+  plan: string;
+  plan_label: string;
+  max_cvs_per_batch: number;
+}
+
+export async function getAIScoringStatus(): Promise<AIScoringStatus> {
+  const response = await fetchWithAuth(`${API_URL}/api/ai/scoring-status`);
+  if (!response.ok) {
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
+  }
+  return response.json();
+}
+
+export async function requestAIScoringAddon(message?: string): Promise<{ success: boolean; module_status: string; message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/ai/scoring-request`, {
+    method: 'POST',
+    body: JSON.stringify({ message: message || '' }),
+  });
+  if (!response.ok) {
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
+  }
+  return response.json();
+}
+
+export interface BatchApplyItem {
+  candidate_name: string;
+  filename: string;
+  cv_text: string;
+  overall_score: number;
+  score_details: Array<{ category: string; score: number; comment: string }>;
+  analysis: string;
+  score_status: 'shortlist' | 'to_review' | 'rejected';
+}
+
+export interface BatchApplyResult {
+  added: number;
+  emails_sent: number;
+  errors: string[];
+  applications: Array<{
+    application_id: number;
+    candidate_id: number;
+    candidate_name: string;
+    stage: string;
+    score_status: string;
+    has_email: boolean;
+  }>;
+}
+
+export async function applyBatchScoringResults(
+  jobPostingId: number,
+  results: BatchApplyItem[],
+): Promise<BatchApplyResult> {
+  const response = await fetchWithAuth(`${API_URL}/api/ai/apply-batch-results`, {
+    method: 'POST',
+    body: JSON.stringify({ job_posting_id: jobPostingId, results }),
+  });
+  if (!response.ok) {
+    const errorMsg = await parseApiError(response);
+    throw new Error(errorMsg);
+  }
+  return response.json();
+}
+
 export async function uploadEmployeePhoto(id: number, file: File): Promise<{ photo_url: string }> {
-  const token = localStorage.getItem('access_token');
+  const token = getToken();
   const formData = new FormData();
   formData.append('file', file);
 
@@ -704,7 +950,7 @@ export async function createDepartment(data: DepartmentCreate): Promise<Departme
   return result;
 }
 
-export async function updateDepartment(id: number, data: Partial<DepartmentCreate>): Promise<Department> {
+export async function updateDepartment(id: number, data: DepartmentUpdate): Promise<Department> {
   const response = await fetchWithAuth(`${API_URL}/api/departments/${id}`, {
     method: 'PUT',
     
@@ -735,6 +981,7 @@ export async function deleteDepartment(id: number): Promise<void> {
 // EXPORT CSV
 // ============================================
 
+// [MOBILE] Version Capacitor : telecharge via le plugin natif au lieu du DOM navigateur
 export async function exportEmployeesToCSV(employees: Employee[]): Promise<void> {
   const { downloadFile } = await import('@/lib/capacitor-plugins');
   const headers = [
@@ -762,7 +1009,7 @@ export async function exportEmployeesToCSV(employees: Employee[]): Promise<void>
     ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
   ].join('\n');
 
-  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8;' });
   await downloadFile(blob, `employees_${new Date().toISOString().split('T')[0]}.csv`);
 }
 
@@ -778,7 +1025,7 @@ export interface ImportEmployeesResult {
 }
 
 export async function importEmployeesFromFile(file: File): Promise<ImportEmployeesResult> {
-  const token = localStorage.getItem('access_token');
+  const token = getToken();
   const formData = new FormData();
   formData.append('file', file);
 
@@ -888,7 +1135,7 @@ export async function getLeaveTypes(activeOnly: boolean = true): Promise<LeaveTy
   });
 
   if (!response.ok) {
-    throw new Error('Failed to fetch leave types');
+    throw new Error(await parseApiError(response));
   }
 
   return response.json();
@@ -919,7 +1166,7 @@ export async function getLeaveRequests(params?: {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to fetch leave requests');
+    throw new Error(await parseApiError(response));
   }
 
   return response.json();
@@ -931,7 +1178,7 @@ export async function getPendingLeaveRequests(): Promise<LeaveRequest[]> {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to fetch pending requests');
+    throw new Error(await parseApiError(response));
   }
 
   return response.json();
@@ -945,8 +1192,7 @@ export async function approveLeaveRequest(id: number): Promise<LeaveRequest> {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to approve request');
+    throw new Error(await parseApiError(response));
   }
 
   return response.json();
@@ -960,8 +1206,7 @@ export async function rejectLeaveRequest(id: number, reason: string): Promise<Le
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to reject request');
+    throw new Error(await parseApiError(response));
   }
 
   return response.json();
@@ -974,7 +1219,7 @@ export async function getLeaveStats(year?: number): Promise<LeaveStats> {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to fetch leave stats');
+    throw new Error(await parseApiError(response));
   }
 
   return response.json();
@@ -1007,7 +1252,7 @@ export async function getEmployeeAccessStatus(employeeId: number): Promise<Acces
   });
 
   if (!response.ok) {
-    throw new Error('Failed to fetch access status');
+    throw new Error(await parseApiError(response));
   }
 
   return response.json();
@@ -1026,8 +1271,7 @@ export async function activateEmployeeAccess(
   );
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to activate access');
+    throw new Error(await parseApiError(response));
   }
 
   return response.json();
@@ -1040,8 +1284,7 @@ export async function deactivateEmployeeAccess(employeeId: number): Promise<void
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to deactivate access');
+    throw new Error(await parseApiError(response));
   }
 }
 
@@ -1348,7 +1591,10 @@ export interface ChecklistItem {
   title: string;
   description?: string;
   priority: TaskPriority;
+  frequency: 'daily' | 'monthly' | 'quarterly';
   days_of_week: DayOfWeek[];
+  day_of_month?: number;
+  start_month?: number;
   objective_id?: number;
   objective_title?: string;
   key_result_id?: number;
@@ -1366,6 +1612,9 @@ export interface ChecklistTodayItem {
   title: string;
   description?: string;
   priority: TaskPriority;
+  frequency: 'daily' | 'monthly' | 'quarterly';
+  day_of_month?: number;
+  start_month?: number;
   objective_id?: number;
   key_result_id?: number;
   kr_contribution?: number;
@@ -1386,7 +1635,10 @@ export interface ChecklistItemCreate {
   title: string;
   description?: string;
   priority?: TaskPriority;
+  frequency?: 'daily' | 'monthly' | 'quarterly';
   days_of_week?: DayOfWeek[];
+  day_of_month?: number;
+  start_month?: number;
   objective_id?: number;
   key_result_id?: number;
   kr_contribution?: number;
@@ -1711,6 +1963,11 @@ export interface TenantListItem {
   group_type?: 'standalone' | 'group' | 'subsidiary';
   is_group?: boolean;
   parent_tenant_id?: number;
+  // Add-ons
+  has_hr_programs_addon?: boolean;
+  has_ai_scoring_addon?: boolean;
+  has_cb_module?: boolean;
+  has_payroll_module?: boolean;
 }
 
 export interface UserListItem {
@@ -1961,6 +2218,19 @@ export async function updatePlatformUser(userId: number, data: UserUpdateData): 
  */
 export async function deletePlatformUser(userId: number): Promise<{ message: string }> {
   const response = await fetchWithAuth(`${API_URL}/api/platform/users/${userId}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    const error = await parseApiError(response);
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+export async function deletePlatformTenant(tenantId: number): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/platform/tenants/${tenantId}`, {
     method: 'DELETE',
   });
 
@@ -2685,7 +2955,7 @@ export async function extractPdfText(file: File): Promise<{ text: string; pages:
   formData.append('file', file);
 
   // fetchWithAuth sans Content-Type (FormData le gère automatiquement)
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+  const token = getToken();
   const response = await fetch(`${API_URL}/api/ai-chat/extract-pdf`, {
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -2926,4 +3196,1333 @@ export async function suspendLicense(employeeId: number): Promise<void> {
     method: 'POST',
   });
   if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+}
+
+// ─────────────────────────── HR PROGRAMS ───────────────────────────
+
+export interface HRProgramOwner {
+  id: number;
+  name: string;
+  job_title: string | null;
+}
+
+export interface HRProgramOKR {
+  id: number;
+  title: string;
+  level: string | null;
+  status: string | null;
+  progress: number;
+  period: string;
+}
+
+export interface HRProgramAction {
+  id: number;
+  action_code: string;
+  phase: 'T1' | 'T2' | 'T3' | 'T4';
+  category: string;
+  specific_objective: string;
+  action_label: string;
+  budget_amount: number | null;
+  budget_variable: string | null;
+  budget_currency: string;
+  owner_role: string;
+  owner_employee_id: number | null;
+  owner_name: string | null;
+  kpi_definition: string;
+  due_period: string;
+  due_date: string | null;
+  status: 'todo' | 'in_progress' | 'done' | 'blocked';
+  progress_pct: number;
+  comment: string | null;
+  completed_at: string | null;
+  sort_order: number;
+}
+
+export interface HRProgram {
+  id: number;
+  program_code: string;
+  name: string;
+  global_objective: string;
+  scope: string;
+  duration: string;
+  strategic_kpis: string[];
+  status: string;
+  is_template: boolean;
+  owner_employee_id: number | null;
+  owner: HRProgramOwner | null;
+  linked_objective_id: number | null;
+  linked_objective: HRProgramOKR | null;
+  total_actions: number;
+  done_count: number;
+  in_progress_count: number;
+  progress_pct: number;
+  total_budget: number;
+  budget_allocated: number | null;
+  cover_image_url?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HRProgramDetail extends HRProgram {
+  actions_by_phase: {
+    T1: HRProgramAction[];
+    T2: HRProgramAction[];
+    T3: HRProgramAction[];
+    T4: HRProgramAction[];
+  };
+}
+
+export interface HRProgramsStats {
+  total_programs: number;
+  active_programs: number;
+  total_actions: number;
+  done_actions: number;
+  in_progress_actions: number;
+  blocked_actions: number;
+  global_progress_pct: number;
+  total_budget: number;
+}
+
+export interface HREmployeeItem {
+  id: number;
+  name: string;
+  job_title: string | null;
+  email: string;
+}
+
+export interface HROKRItem {
+  id: number;
+  title: string;
+  level: string | null;
+  status: string | null;
+  progress: number;
+  period: string;
+}
+
+export type HRProgramFrequency = 'once' | 'daily' | 'weekly' | 'monthly' | 'quarterly';
+
+export interface HRProgramAssignmentItem {
+  id: number;
+  program_action_id: number | null;
+  frequency: HRProgramFrequency;
+  title: string;
+  description: string | null;
+  priority: string;
+  objective_id: number | null;
+  key_result_id: number | null;
+  kr_contribution: number | null;
+  due_date: string | null;
+  repeat_until: string | null;
+  is_enabled: boolean;
+  sort_order: number;
+}
+
+export interface HRProgramAssignment {
+  id: number;
+  program_id: number | null;
+  program_code: string | null;
+  program_name: string;
+  name: string;
+  status: string;
+  employee_id: number;
+  employee: HREmployeeItem | null;
+  manager_id: number | null;
+  manager: HREmployeeItem | null;
+  objective_id: number | null;
+  objective_title: string | null;
+  key_result_id: number | null;
+  key_result_title: string | null;
+  starts_on: string | null;
+  ends_on: string | null;
+  items_count: number;
+  tasks_count: number;
+  completed_tasks_count: number;
+  progress_pct: number;
+  created_at: string | null;
+  updated_at: string | null;
+  items?: HRProgramAssignmentItem[];
+  created_tasks?: number;
+}
+
+export async function getHRPrograms(isTemplate?: boolean): Promise<HRProgram[]> {
+  const url = new URL(`${API_URL}/api/hr-programs`);
+  if (isTemplate !== undefined) url.searchParams.set('is_template', String(isTemplate));
+  const response = await fetchWithAuth(url.toString());
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export interface HRActionInput {
+  action_label: string;
+  phase?: string;
+  category?: string;
+  budget_amount?: number | null;
+  due_period?: string;
+  specific_objective?: string;
+  kpi_definition?: string;
+  owner_role?: string;
+}
+
+export async function createHRProgram(data: {
+  name: string;
+  program_code?: string;
+  global_objective?: string;
+  scope?: string;
+  duration?: string;
+  strategic_kpis?: string[];
+  status?: string;
+  budget_allocated?: number | null;
+  owner_employee_id?: number | null;
+  linked_objective_id?: number | null;
+  cover_image_url?: string | null;
+  actions?: HRActionInput[];
+}): Promise<HRProgram> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function activateHRTemplate(templateId: number): Promise<HRProgram> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/${templateId}/activate`, {
+    method: 'POST',
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function assignHRProgram(
+  programId: number,
+  data: {
+    employee_id: number;
+    name?: string;
+    selected_action_ids?: number[];
+    frequency?: HRProgramFrequency;
+    objective_id?: number | null;
+    key_result_id?: number | null;
+    kr_contribution?: number | null;
+    starts_on?: string | null;
+    ends_on?: string | null;
+    item_links?: Array<{
+      action_id: number;
+      frequency?: HRProgramFrequency;
+      objective_id?: number | null;
+      key_result_id?: number | null;
+      kr_contribution?: number | null;
+      due_date?: string | null;
+      repeat_until?: string | null;
+      priority?: string;
+    }>;
+  }
+): Promise<HRProgramAssignment> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/${programId}/assign`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getHRProgramAssignments(): Promise<HRProgramAssignment[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/assignments`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getMyHRProgramAssignments(): Promise<HRProgramAssignment[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/my-assignments`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getHRProgram(id: number): Promise<HRProgramDetail> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/${id}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function updateHRProgram(id: number, data: Partial<{
+  name: string; status: string; global_objective: string; scope: string; duration: string;
+  owner_employee_id: number | null; linked_objective_id: number | null;
+  budget_allocated: number | null; cover_image_url: string | null;
+}>): Promise<HRProgram> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function updateHRAction(actionId: number, data: Partial<{
+  action_label: string; status: string; progress_pct: number; comment: string | null;
+  owner_employee_id: number | null; due_date: string | null;
+  budget_amount: number | null;
+}>): Promise<HRProgramAction> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/actions/${actionId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function addHRAction(programId: number, data: {
+  action_label: string; phase: string; category?: string | null;
+  budget_amount?: number | null; due_period?: string | null;
+  specific_objective?: string | null; kpi_definition?: string | null;
+}): Promise<HRProgramAction> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/${programId}/actions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function deleteHRAction(actionId: number): Promise<void> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/actions/${actionId}`, { method: 'DELETE' });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+}
+
+export async function deleteHRProgram(id: number): Promise<void> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/${id}`, { method: 'DELETE' });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+}
+
+export async function uploadMediaImage(file: File): Promise<{ url: string }> {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await fetch(`${API_URL}/api/media/upload`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+  if (!response.ok) {
+    const err = await parseApiError(response);
+    throw new Error(err);
+  }
+  return response.json();
+}
+
+export async function seedHCTemplates(): Promise<{ created: number; skipped: number; total: number }> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/seed-templates`, { method: 'POST' });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getHRProgramsStats(): Promise<HRProgramsStats> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/stats/overview`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getHREmployeesList(): Promise<HREmployeeItem[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/employees-list`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getHROKRList(): Promise<HROKRItem[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/objectives-list`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+// ── Plan gate ──────────────────────────────────────────────────────────────────
+
+export interface HRProgramsAccess {
+  has_access: boolean;
+  via_plan: boolean;
+  via_addon: boolean;
+  plan: string;
+}
+
+export async function checkHRProgramsAccess(): Promise<HRProgramsAccess> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/check-access`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function requestHRProgramsAddon(): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/request-addon`, { method: 'POST' });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function notifyOverdueActions(): Promise<{ notified: number; checked: number }> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/notify-overdue`, { method: 'POST' });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function exportProgramCSV(programId: number, programCode: string): Promise<void> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/${programId}/export`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `programme_${programCode}_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+export async function getProgramsByObjective(objectiveId: number): Promise<HRProgram[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/by-objective/${objectiveId}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+// ───────────────────── PROGRAMMES & INITIATIVES ─────────────────────
+
+export type ProgramInitiativeFrequency = 'once' | 'daily' | 'weekly' | 'monthly' | 'quarterly';
+
+export interface ProgramInitiativeItem {
+  id: number;
+  title: string;
+  description: string | null;
+  frequency: ProgramInitiativeFrequency;
+  priority: string;
+  sort_order: number;
+}
+
+export interface ProgramInitiative {
+  id: number;
+  code: string;
+  name: string;
+  description: string | null;
+  objective: string | null;
+  category: string | null;
+  status: string;
+  is_template: boolean;
+  is_visible_to_managers: boolean;
+  items_count: number;
+  items?: ProgramInitiativeItem[];
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface ProgramInitiativeAssignmentItem {
+  id: number;
+  source_item_id: number | null;
+  title: string;
+  description: string | null;
+  frequency: ProgramInitiativeFrequency;
+  priority: string;
+  objective_id: number | null;
+  key_result_id: number | null;
+  kr_contribution: number | null;
+  due_date: string | null;
+  repeat_until: string | null;
+  is_enabled: boolean;
+  sort_order: number;
+}
+
+export interface ProgramInitiativeAssignment {
+  id: number;
+  program_id: number | null;
+  program_code: string | null;
+  program_name: string;
+  name: string;
+  status: string;
+  employee_id: number;
+  employee: HREmployeeItem | null;
+  manager_id: number | null;
+  manager: HREmployeeItem | null;
+  objective_id: number | null;
+  objective_title: string | null;
+  key_result_id: number | null;
+  key_result_title: string | null;
+  starts_on: string | null;
+  ends_on: string | null;
+  items_count: number;
+  tasks_count: number;
+  completed_tasks_count: number;
+  progress_pct: number;
+  items?: ProgramInitiativeAssignmentItem[];
+  created_tasks?: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export async function getProgramInitiatives(): Promise<ProgramInitiative[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/program-initiatives`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getProgramInitiative(id: number): Promise<ProgramInitiative> {
+  const response = await fetchWithAuth(`${API_URL}/api/program-initiatives/detail/${id}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function createProgramInitiative(data: {
+  name: string;
+  code?: string;
+  description?: string;
+  objective?: string;
+  category?: string;
+  is_visible_to_managers?: boolean;
+  items?: Array<{ title: string; description?: string; frequency?: ProgramInitiativeFrequency; priority?: string }>;
+}): Promise<ProgramInitiative> {
+  const response = await fetchWithAuth(`${API_URL}/api/program-initiatives`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getProgramInitiativeEmployees(): Promise<HREmployeeItem[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/program-initiatives/assignable/employees`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function assignProgramInitiative(
+  id: number,
+  data: {
+    employee_id: number;
+    selected_item_ids?: number[];
+    frequency?: ProgramInitiativeFrequency;
+    objective_id?: number | null;
+    key_result_id?: number | null;
+    starts_on?: string | null;
+    ends_on?: string | null;
+  }
+): Promise<ProgramInitiativeAssignment> {
+  const response = await fetchWithAuth(`${API_URL}/api/program-initiatives/${id}/assign`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getMyProgramInitiativeAssignments(): Promise<ProgramInitiativeAssignment[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/program-initiatives/assignments/my`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getManagedProgramInitiativeAssignments(): Promise<ProgramInitiativeAssignment[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/program-initiatives/assignments/managed`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+// ───────────────────── MANAGERIAL RITUALS ─────────────────────
+
+export type ManagerialRitualLevel = 'director' | 'department_head' | 'employee';
+export type ManagerialRitualFrequency = 'quarterly' | 'monthly' | 'weekly' | 'daily';
+export type ManagerialRitualTemplateKind = 'ritual' | 'checklist';
+
+export interface ManagerialRitualTemplateItem {
+  id: number;
+  item_code: string;
+  frequency: ManagerialRitualFrequency;
+  section_title: string | null;
+  title: string;
+  objective: string | null;
+  participants: string[];
+  agenda_items: string[];
+  questions: string[];
+  notes: string | null;
+  default_priority: string;
+  sort_order: number;
+}
+
+export interface ManagerialRitualTemplate {
+  id: number;
+  template_code: string;
+  name: string;
+  template_kind: ManagerialRitualTemplateKind;
+  target_role: string;
+  level: ManagerialRitualLevel;
+  sector: string | null;
+  department_name: string | null;
+  description: string | null;
+  authority_line: string | null;
+  source_filename: string | null;
+  status: string;
+  is_template: boolean;
+  is_visible_to_managers: boolean;
+  total_items: number;
+  quarterly_count: number;
+  monthly_count: number;
+  weekly_count: number;
+  daily_count: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface ManagerialRitualTemplateDetail extends ManagerialRitualTemplate {
+  items: ManagerialRitualTemplateItem[];
+}
+
+export interface ManagerialRitualEmployee {
+  id: number;
+  name: string;
+  job_title: string | null;
+  department_id: number | null;
+  is_manager: boolean;
+}
+
+export interface ManagerialRitualAssignmentItem {
+  id: number;
+  template_item_id: number | null;
+  frequency: ManagerialRitualFrequency;
+  section_title: string | null;
+  title: string;
+  objective: string | null;
+  participants: string[];
+  agenda_items: string[];
+  questions: string[];
+  notes: string | null;
+  priority: string;
+  objective_id: number | null;
+  key_result_id: number | null;
+  kr_contribution: number | null;
+  is_enabled: boolean;
+  sort_order: number;
+}
+
+export interface ManagerialRitualAssignment {
+  id: number;
+  template_id: number | null;
+  name: string;
+  level: ManagerialRitualLevel;
+  sector: string | null;
+  status: string;
+  employee_id: number;
+  employee: ManagerialRitualEmployee | null;
+  manager_id: number | null;
+  manager: ManagerialRitualEmployee | null;
+  template_code: string | null;
+  template_name: string | null;
+  template_kind: ManagerialRitualTemplateKind;
+  items_count: number;
+  items?: ManagerialRitualAssignmentItem[];
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export async function getManagerialRitualTemplates(filters?: {
+  level?: ManagerialRitualLevel | 'all';
+  frequency?: ManagerialRitualFrequency | 'all';
+  template_kind?: ManagerialRitualTemplateKind | 'all';
+}): Promise<ManagerialRitualTemplate[]> {
+  const url = new URL(`${API_URL}/api/managerial-rituals/templates`);
+  if (filters?.level && filters.level !== 'all') url.searchParams.set('level', filters.level);
+  if (filters?.frequency && filters.frequency !== 'all') url.searchParams.set('frequency', filters.frequency);
+  if (filters?.template_kind && filters.template_kind !== 'all') url.searchParams.set('template_kind', filters.template_kind);
+  const response = await fetchWithAuth(url.toString());
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getManagerialRitualTemplate(id: number): Promise<ManagerialRitualTemplateDetail> {
+  const response = await fetchWithAuth(`${API_URL}/api/managerial-rituals/templates/${id}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function seedManagerialRitualTemplates(): Promise<{ created: number; skipped: number; total: number }> {
+  const response = await fetchWithAuth(`${API_URL}/api/managerial-rituals/seed-templates`, { method: 'POST' });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function updateManagerialRitualTemplateVisibility(
+  templateId: number,
+  visible: boolean
+): Promise<ManagerialRitualTemplate> {
+  const response = await fetchWithAuth(`${API_URL}/api/managerial-rituals/templates/${templateId}/visibility`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ visible }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function updateManagerialRitualSectorVisibility(
+  sector: string,
+  visible: boolean
+): Promise<{ sector: string; visible: boolean; updated: number }> {
+  const response = await fetchWithAuth(`${API_URL}/api/managerial-rituals/templates/visibility-by-sector`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sector, visible }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getManagerialRitualAssignableEmployees(templateKind?: ManagerialRitualTemplateKind): Promise<ManagerialRitualEmployee[]> {
+  const url = new URL(`${API_URL}/api/managerial-rituals/assignable-employees`);
+  if (templateKind) url.searchParams.set('template_kind', templateKind);
+  const response = await fetchWithAuth(url.toString());
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getManagerialRitualAssignments(): Promise<ManagerialRitualAssignment[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/managerial-rituals/assignments`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getManagerialRitualAssignment(id: number): Promise<ManagerialRitualAssignment> {
+  const response = await fetchWithAuth(`${API_URL}/api/managerial-rituals/assignments/${id}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function updateManagerialRitualAssignmentItem(
+  itemId: number,
+  data: Partial<Pick<ManagerialRitualAssignmentItem, 'title' | 'objective' | 'notes' | 'priority' | 'is_enabled' | 'objective_id' | 'key_result_id' | 'kr_contribution'>>
+): Promise<ManagerialRitualAssignmentItem> {
+  const response = await fetchWithAuth(`${API_URL}/api/managerial-rituals/assignment-items/${itemId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function activateManagerialRitualTemplate(
+  templateId: number,
+  data: {
+    employee_id: number;
+    name?: string;
+    selected_item_ids?: number[];
+    objective_id?: number | null;
+    key_result_id?: number | null;
+    kr_contribution?: number | null;
+    item_links?: Array<{
+      template_item_id: number;
+      objective_id?: number | null;
+      key_result_id?: number | null;
+      kr_contribution?: number | null;
+      due_date?: string | null;
+      repeat_until?: string | null;
+    }>;
+  }
+): Promise<ManagerialRitualAssignment> {
+  const response = await fetchWithAuth(`${API_URL}/api/managerial-rituals/templates/${templateId}/activate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+// ── Webinaires ──────────────────────────────────────────────────────────────────
+
+export interface Webinar {
+  id: number;
+  title: string;
+  description?: string | null;
+  cover_image_url?: string | null;
+  presenter_name?: string | null;
+  webinar_date?: string | null;
+  duration_minutes?: number | null;
+  replay_url?: string | null;
+  registration_url?: string | null;
+  max_attendees?: number | null;
+  status: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export async function getWebinars(status?: string): Promise<{ items: Webinar[]; total: number }> {
+  const params = status ? `?status=${status}` : '';
+  const response = await fetchWithAuth(`${API_URL}/api/webinars${params}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function createWebinar(data: Omit<Webinar, 'id' | 'created_at' | 'updated_at'>): Promise<Webinar> {
+  const response = await fetchWithAuth(`${API_URL}/api/webinars`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function updateWebinar(id: number, data: Partial<Omit<Webinar, 'id' | 'created_at' | 'updated_at'>>): Promise<Webinar> {
+  const response = await fetchWithAuth(`${API_URL}/api/webinars/${id}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function deleteWebinar(id: number): Promise<void> {
+  const response = await fetchWithAuth(`${API_URL}/api/webinars/${id}`, { method: 'DELETE' });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+}
+
+// ── Add-on Requests (Super Admin) ────────────────────────────────────────────
+
+export interface PayrollModuleRequest {
+  id: number;
+  tenant_id: number;
+  tenant_name: string;
+  requested_by_email: string;
+  requested_at: string;
+  status: 'pending' | 'approved' | 'rejected';
+  message?: string | null;
+  country_code?: string | null;
+  currency_code?: string | null;
+  nb_employees?: number | null;
+  approved_by_email?: string | null;
+  approved_at?: string | null;
+  rejection_reason?: string | null;
+}
+
+export async function adminGetPayrollRequests(status?: string): Promise<PayrollModuleRequest[]> {
+  const params = status ? `?status_filter=${status}` : '';
+  const response = await fetchWithAuth(`${API_URL}/api/billing/admin/payroll-requests${params}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function adminApprovePayrollRequest(requestId: number): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/admin/payroll-requests/${requestId}/approve`, { method: 'POST' });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function adminRejectPayrollRequest(requestId: number, reason: string): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/admin/payroll-requests/${requestId}/reject`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function adminToggleHrProgramsAddon(tenantId: number, enabled: boolean): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/admin/tenants/${tenantId}/addon/hr-programs`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function adminToggleAiScoringAddon(tenantId: number, enabled: boolean): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/admin/tenants/${tenantId}/addon/ai-scoring`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function adminToggleCbModule(tenantId: number, enabled: boolean): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/admin/tenants/${tenantId}/addon/cb-module`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function adminTogglePayrollModule(tenantId: number, enabled: boolean): Promise<{ message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/billing/admin/tenants/${tenantId}/addon/payroll`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+// ============================================================
+// CABINETS DE RECRUTEMENT
+// ============================================================
+
+export interface Agency {
+  id: number;
+  name: string;
+  email: string;
+  contact_name?: string;
+  phone?: string;
+  website_url?: string;
+  is_active: boolean;
+  active_missions?: number;
+  created_at: string;
+}
+
+export interface AgencyMission {
+  id: number;
+  agency_id: number;
+  agency_name?: string;
+  job_posting_id: number;
+  job_title?: string;
+  status: 'pending' | 'in_progress' | 'candidates_submitted' | 'completed' | 'cancelled';
+  brief?: string;
+  nb_profiles_requested: number;
+  nb_candidates_submitted?: number;
+  nb_submitted?: number;
+  deadline?: string;
+  agency_job_url?: string;
+  created_at: string;
+  job?: {
+    id: number;
+    title: string;
+    location: string;
+    contract_type: string;
+    description?: string;
+    requirements?: string[];
+    remote_policy?: string;
+  };
+}
+
+export interface AgencyCandidate {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email?: string;
+  phone?: string;
+  current_position?: string;
+  experience_years?: number;
+  cv_url?: string;
+  cv_filename?: string;
+  agency_notes?: string;
+  status: 'submitted' | 'ai_scored' | 'shortlisted' | 'interview' | 'accepted' | 'rejected';
+  ai_score?: number;
+  ai_notes?: string;
+  rejection_reason?: string;
+  candidate_application_id?: number;
+  created_at: string;
+}
+
+// --- Entreprise : gestion des cabinets ---
+
+export async function getAgencies(): Promise<Agency[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/agencies`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function createAgency(data: FormData): Promise<Agency & { message: string }> {
+  const response = await fetchWithAuth(`${API_URL}/api/agencies`, { method: 'POST', body: data });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getAgency(id: number): Promise<Agency & { missions: AgencyMission[] }> {
+  const response = await fetchWithAuth(`${API_URL}/api/agencies/${id}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function updateAgency(id: number, data: FormData): Promise<Agency> {
+  const response = await fetchWithAuth(`${API_URL}/api/agencies/${id}`, { method: 'PATCH', body: data });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function createMission(agencyId: number, data: FormData): Promise<AgencyMission> {
+  const response = await fetchWithAuth(`${API_URL}/api/agencies/${agencyId}/missions`, { method: 'POST', body: data });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getAllMissions(): Promise<AgencyMission[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/agencies/missions/all`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getMissionCandidates(missionId: number): Promise<AgencyCandidate[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/agencies/missions/${missionId}/candidates`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function updateAgencyCandidateStatus(
+  missionId: number,
+  candidateId: number,
+  data: FormData
+): Promise<AgencyCandidate> {
+  const response = await fetchWithAuth(
+    `${API_URL}/api/agencies/missions/${missionId}/candidates/${candidateId}/status`,
+    { method: 'PATCH', body: data }
+  );
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function scoreAgencyCandidate(missionId: number, candidateId: number): Promise<AgencyCandidate> {
+  const response = await fetchWithAuth(
+    `${API_URL}/api/agencies/missions/${missionId}/candidates/${candidateId}/ai-score`,
+    { method: 'POST' }
+  );
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+// --- Cabinet : portail ---
+
+export async function getCabinetMissions(): Promise<AgencyMission[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/cabinet/missions`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function getCabinetMission(id: number): Promise<AgencyMission & { candidates: AgencyCandidate[]; pipeline_steps: string[] }> {
+  const response = await fetchWithAuth(`${API_URL}/api/cabinet/missions/${id}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function updateMissionUrl(missionId: number, url: string): Promise<AgencyMission> {
+  const data = new FormData();
+  data.append('agency_job_url', url);
+  const response = await fetchWithAuth(`${API_URL}/api/cabinet/missions/${missionId}/url`, { method: 'PATCH', body: data });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function submitCabinetCandidate(missionId: number, data: FormData): Promise<AgencyCandidate> {
+  const response = await fetchWithAuth(`${API_URL}/api/cabinet/missions/${missionId}/candidates`, { method: 'POST', body: data });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function deleteCabinetCandidate(missionId: number, candidateId: number): Promise<void> {
+  const response = await fetchWithAuth(`${API_URL}/api/cabinet/missions/${missionId}/candidates/${candidateId}`, { method: 'DELETE' });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+}
+
+export async function getCabinetStats(): Promise<{
+  total_missions: number;
+  active_missions: number;
+  total_candidates_submitted: number;
+  shortlisted: number;
+  accepted: number;
+}> {
+  const response = await fetchWithAuth(`${API_URL}/api/cabinet/stats`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+// --- Learning : compétences (référentiel + employee skills) ---
+
+export interface Skill {
+  id: number;
+  name: string;
+  category?: string;
+  description?: string;
+  skill_type: string;
+  hierarchy_level?: string | null;
+  department?: string | null;
+  is_global?: boolean;
+}
+
+export interface EmployeeSkillItem {
+  id: number;
+  skill_id: number;
+  skill_name?: string;
+  skill_category?: string;
+  current_level: number;
+  target_level?: number;
+}
+
+export async function getSkillsReferential(): Promise<Skill[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/learning/skills/?page_size=500`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  const data = await response.json();
+  return Array.isArray(data) ? data : data.items || [];
+}
+
+export async function addEmployeeSkill(
+  employeeId: number,
+  skillId: number,
+  currentLevel: number,
+): Promise<EmployeeSkillItem> {
+  const response = await fetchWithAuth(`${API_URL}/api/learning/employee-skills/`, {
+    method: 'POST',
+    body: JSON.stringify({ employee_id: employeeId, skill_id: skillId, current_level: currentLevel }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function updateEmployeeSkill(
+  skillEntryId: number,
+  currentLevel: number,
+): Promise<EmployeeSkillItem> {
+  const response = await fetchWithAuth(`${API_URL}/api/learning/employee-skills/${skillEntryId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ current_level: currentLevel }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function deleteEmployeeSkill(skillEntryId: number): Promise<void> {
+  const response = await fetchWithAuth(`${API_URL}/api/learning/employee-skills/${skillEntryId}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+}
+
+// ============================================
+// Module Documents — checklist config / checklists / compliance
+// ============================================
+
+export interface DocumentTypeConfig {
+  id: number | null;
+  code: string;
+  label: string;
+  icon?: string | null;
+  is_required: boolean;
+  applies_to_roles: string[];
+  applies_to_all: boolean;
+  employee_uploadable: boolean;
+  alert_days_before_expiry: number;
+  is_active: boolean;
+  is_default?: boolean;
+}
+
+export interface DocumentChecklist {
+  id: number;
+  name: string;
+  description?: string | null;
+  applies_to_roles: string[];
+  applies_to_departments: number[];
+  required_document_codes: string[];
+  is_active: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface ComplianceRequiredItem {
+  code: string;
+  label: string;
+  present: boolean;
+  document_id?: number | null;
+  expiry_date?: string | null;
+}
+
+export interface ComplianceEmployee {
+  employee_id: number;
+  employee_name: string;
+  job_title?: string | null;
+  department_id?: number | null;
+  department?: string | null;
+  role: string;
+  applicable_checklist_ids: number[];
+  required: ComplianceRequiredItem[];
+  total_required: number;
+  present_count: number;
+  compliance_rate: number;
+}
+
+export async function getDocumentTypeConfigs(subsidiaryTenantId?: number): Promise<DocumentTypeConfig[]> {
+  const params = subsidiaryTenantId ? `?subsidiary_tenant_id=${subsidiaryTenantId}` : '';
+  const response = await fetchWithAuth(`${API_URL}/api/documents/checklist-config${params}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  const data = await response.json();
+  return (data.items || []) as DocumentTypeConfig[];
+}
+
+export async function upsertDocumentTypeConfig(
+  data: Partial<DocumentTypeConfig> & { code: string; label: string },
+  subsidiaryTenantId?: number,
+): Promise<{ success: boolean; id: number; code: string }> {
+  const params = subsidiaryTenantId ? `?subsidiary_tenant_id=${subsidiaryTenantId}` : '';
+  const response = await fetchWithAuth(`${API_URL}/api/documents/checklist-config${params}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      code: data.code,
+      label: data.label,
+      icon: data.icon ?? null,
+      is_required: data.is_required ?? false,
+      applies_to_roles: data.applies_to_roles ?? [],
+      applies_to_all: data.applies_to_all ?? true,
+      employee_uploadable: data.employee_uploadable ?? false,
+      alert_days_before_expiry: data.alert_days_before_expiry ?? 30,
+    }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function deleteDocumentTypeConfig(code: string, subsidiaryTenantId?: number): Promise<void> {
+  const params = subsidiaryTenantId ? `?subsidiary_tenant_id=${subsidiaryTenantId}` : '';
+  const response = await fetchWithAuth(`${API_URL}/api/documents/checklist-config/${encodeURIComponent(code)}${params}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+}
+
+export async function getDocumentChecklists(
+  opts?: { includeInactive?: boolean; subsidiaryTenantId?: number },
+): Promise<DocumentChecklist[]> {
+  const sp = new URLSearchParams();
+  if (opts?.includeInactive) sp.append('include_inactive', 'true');
+  if (opts?.subsidiaryTenantId) sp.append('subsidiary_tenant_id', String(opts.subsidiaryTenantId));
+  const qs = sp.toString();
+  const response = await fetchWithAuth(`${API_URL}/api/documents/checklists${qs ? `?${qs}` : ''}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  const data = await response.json();
+  return (data.items || []) as DocumentChecklist[];
+}
+
+export async function createDocumentChecklist(
+  data: Omit<Partial<DocumentChecklist>, 'id'> & { name: string },
+  subsidiaryTenantId?: number,
+): Promise<{ success: boolean; id: number }> {
+  const params = subsidiaryTenantId ? `?subsidiary_tenant_id=${subsidiaryTenantId}` : '';
+  const response = await fetchWithAuth(`${API_URL}/api/documents/checklists${params}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: data.name,
+      description: data.description ?? null,
+      applies_to_roles: data.applies_to_roles ?? [],
+      applies_to_departments: data.applies_to_departments ?? [],
+      required_document_codes: data.required_document_codes ?? [],
+    }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function updateDocumentChecklist(
+  id: number,
+  data: Partial<DocumentChecklist> & { name: string },
+  subsidiaryTenantId?: number,
+): Promise<{ success: boolean; id: number }> {
+  const params = subsidiaryTenantId ? `?subsidiary_tenant_id=${subsidiaryTenantId}` : '';
+  const response = await fetchWithAuth(`${API_URL}/api/documents/checklists/${id}${params}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: data.name,
+      description: data.description ?? null,
+      applies_to_roles: data.applies_to_roles ?? [],
+      applies_to_departments: data.applies_to_departments ?? [],
+      required_document_codes: data.required_document_codes ?? [],
+    }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function deleteDocumentChecklist(id: number, subsidiaryTenantId?: number): Promise<void> {
+  const params = subsidiaryTenantId ? `?subsidiary_tenant_id=${subsidiaryTenantId}` : '';
+  const response = await fetchWithAuth(`${API_URL}/api/documents/checklists/${id}${params}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+}
+
+export async function getDocumentCompliance(filters?: {
+  department_id?: number;
+  role?: string;
+  checklist_id?: number;
+  subsidiary_tenant_id?: number;
+}): Promise<{ items: ComplianceEmployee[]; avg_compliance_rate: number; total: number }> {
+  const sp = new URLSearchParams();
+  if (filters?.department_id) sp.append('department_id', String(filters.department_id));
+  if (filters?.role) sp.append('role', filters.role);
+  if (filters?.checklist_id) sp.append('checklist_id', String(filters.checklist_id));
+  if (filters?.subsidiary_tenant_id) sp.append('subsidiary_tenant_id', String(filters.subsidiary_tenant_id));
+  const qs = sp.toString();
+  const response = await fetchWithAuth(`${API_URL}/api/documents/compliance${qs ? `?${qs}` : ''}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+// ============================================
+// TENANT USERS — gestion des utilisateurs
+// ============================================
+
+export interface TenantUser {
+  id: number;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  role: string;
+  is_active: boolean;
+  employee_id?: number;
+  employee_name?: string;
+}
+
+export async function getTenantUsers(filters?: { search?: string; role?: string }): Promise<TenantUser[]> {
+  const sp = new URLSearchParams();
+  if (filters?.search) sp.set('search', filters.search);
+  if (filters?.role) sp.set('role', filters.role);
+  const qs = sp.toString();
+  const response = await fetchWithAuth(`${API_URL}/api/users/tenant${qs ? `?${qs}` : ''}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function linkEmployeeToUser(userId: number, employeeId: number): Promise<TenantUser> {
+  const response = await fetchWithAuth(`${API_URL}/api/users/${userId}/link-employee`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ employee_id: employeeId }),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function unlinkEmployeeFromUser(userId: number): Promise<TenantUser> {
+  const response = await fetchWithAuth(`${API_URL}/api/users/${userId}/link-employee`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+// ============================================
+// MON PROFIL — self-update (whitelist stricte côté backend)
+// ============================================
+
+export interface EmployeeSelfUpdate {
+  phone?: string;
+  work_phone?: string;
+  address?: string;
+  photo_url?: string;
+  date_of_birth?: string;
+  nationality?: string;
+  marital_status?: string;
+  spouse_name?: string;
+  nb_enfants?: number;
+  children?: { first_name: string; last_name: string; birth_date?: string }[];
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  has_disability?: boolean;
+  disability_description?: string;
+}
+
+export async function updateMyProfile(data: Partial<EmployeeSelfUpdate>): Promise<Employee> {
+  const response = await fetchWithAuth(`${API_URL}/api/employees/me`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
 }

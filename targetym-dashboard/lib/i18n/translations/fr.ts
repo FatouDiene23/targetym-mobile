@@ -40,6 +40,9 @@ export const fr = {
     error: "Erreur",
     warning: "Attention",
     info: "Information",
+    apiErrors: {
+      emailAlreadyExists: "Un compte existe déjà avec ce mail. Veuillez utiliser une autre adresse email ou contacter l'administrateur pour vérifier le rattachement ou le transfert du compte existant.",
+    },
   },
   auth: {
     login: "Connexion",
@@ -4366,6 +4369,7 @@ export const fr = {
     // Status labels
     statusPending: "En attente",
     statusApproved: "Approuvé",
+    statusPendingRh: "En attente RH",
     statusRejected: "Refusé",
     statusCancelled: "Annulé",
     statusSuspendedSick: "Suspendu - Maladie",

@@ -40,6 +40,9 @@ export const pt = {
     error: "Erro",
     warning: "Atenção",
     info: "Informação",
+    apiErrors: {
+      emailAlreadyExists: "Já existe uma conta com este email. Use outro endereço de email ou contacte o administrador para verificar a vinculação ou transferência da conta existente.",
+    },
   },
   auth: {
     login: "Entrar",
@@ -4323,6 +4326,7 @@ export const pt = {
     recoveryRecorded: "Recuperação registrada",
     statusPending: "Pendente",
     statusApproved: "Aprovado",
+    statusPendingRh: "Pendente RH",
     statusRejected: "Recusado",
     statusCancelled: "Cancelado",
     statusSuspendedSick: "Suspenso - Doença",

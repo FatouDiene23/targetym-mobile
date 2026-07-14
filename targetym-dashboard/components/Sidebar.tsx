@@ -60,6 +60,8 @@ import {
   LayoutList,
   Heart,
   FileSignature,
+  Folder,
+  Clock,
 } from 'lucide-react';
 import { useState, useEffect, useMemo, Suspense, useCallback } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
@@ -259,21 +261,45 @@ const navigation: NavItem[] = [
 
 // Sous-menu Mon Espace
 const mySpaceNavigation: NavItem[] = [
-  { name: 'Mon Profil', href: '/dashboard/my-space', icon: UserCircle, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
-  { name: 'Mon Calendrier', href: '/dashboard/my-space/calendar', icon: CalendarDays, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+  {
+    name: 'Profil & documents',
+    href: '#profil-documents',
+    icon: Folder,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
+    children: [
+      { name: 'Mon Profil', href: '/dashboard/my-space', icon: UserCircle, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+      { name: 'Mes Documents', href: '/dashboard/my-space/documents', icon: FileText, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-documents' },
+      { name: 'Mes Notes de Service', href: '/dashboard/my-space/notes-de-service', icon: FileText, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+      { name: 'Mes Sanctions', href: '/dashboard/my-space/sanctions', icon: Shield, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+    ],
+  },
+  {
+    name: 'Temps & présence',
+    href: '#temps-presence',
+    icon: Clock,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
+    children: [
+      { name: 'Mon Calendrier', href: '/dashboard/my-space/calendar', icon: CalendarDays, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+      { name: 'Mes Congés', href: '/dashboard/my-space/leaves', icon: Calendar, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-my-leaves' },
+      { name: 'Mes maladies', href: '/dashboard/my-space/sick-declarations', icon: Heart, roles: ['employee'] },
+      { name: 'Mes Réservations', href: '/dashboard/my-space/reservations', icon: CalendarDays, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+    ],
+  },
   { name: 'Mon Parcours', href: '/dashboard/my-space/career', icon: TrendingUp, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
-  { name: 'Mes Congés', href: '/dashboard/my-space/leaves', icon: Calendar, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-my-leaves' },
-  { name: 'Mes maladies', href: '/dashboard/my-space/sick-declarations', icon: Heart, roles: ['employee'] },
   { name: 'Mes Objectifs', href: '/dashboard/my-space/objectives', icon: Target, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-my-objectives' },
   { name: 'Mon Équipe', href: '/dashboard/my-space/team', icon: UsersRound, roles: ['manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-team' },
-  { name: 'Mes Tâches', href: '/dashboard/my-space/tasks', icon: ClipboardList, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-tasks' },
-  { name: 'Daily Checklist', href: '/dashboard/my-space/daily-checklist', icon: CheckSquare, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+  {
+    name: 'Travail & équipe',
+    href: '#travail-equipe',
+    icon: ClipboardList,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
+    children: [
+      { name: 'Mes Tâches', href: '/dashboard/my-space/tasks', icon: ClipboardList, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-tasks' },
+      { name: 'Rituels et check-lists', href: '/dashboard/my-space/daily-checklist', icon: CheckSquare, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-managerial-rituals' },
+    ],
+  },
   { name: 'Offres Internes', href: '/dashboard/my-space/internal-jobs', icon: Briefcase, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
-  { name: 'Mes Documents', href: '/dashboard/my-space/documents', icon: FileText, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-documents' },
-  { name: 'Mes Notes de Service', href: '/dashboard/my-space/notes-de-service', icon: FileText, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
-  { name: 'Mes Réservations', href: '/dashboard/my-space/reservations', icon: CalendarDays, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Mes Enquêtes', href: '/dashboard/my-space/surveys', icon: MessageSquare, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
-  { name: 'Mes Sanctions', href: '/dashboard/my-space/sanctions', icon: Shield, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Processus de Départ', href: '/dashboard/my-space/resignation', icon: UserMinus, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
 ];
 
@@ -407,6 +433,7 @@ function SidebarInner() {
   const [user, setUser] = useState<UserData | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [inMySpace, setInMySpace] = useState(false);
+  const [expandedMySpaceGroups, setExpandedMySpaceGroups] = useState<Record<string, boolean>>({ 'Profil & documents': true });
   const [inOkr, setInOkr] = useState(false);
   const [inPerformance, setInPerformance] = useState(false);
   const [inLearning, setInLearning] = useState(false);
@@ -550,7 +577,18 @@ function SidebarInner() {
     .filter(item => {
       const feature = MY_SPACE_FEATURE_MAP[item.href];
       return !feature || hasFeature(feature);
-    });
+    })
+    .map(item => {
+      if (!item.children) return item;
+      const children = item.children
+        .filter(child => hasAccess(child, userRole, isManager))
+        .filter(child => {
+          const feature = MY_SPACE_FEATURE_MAP[child.href];
+          return !feature || hasFeature(feature);
+        });
+      return { ...item, children };
+    })
+    .filter(item => !item.children || item.children.length > 0);
   const filteredOkrNav = okrNavigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredPerformanceNav = performanceNavigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredLearningNav = learningNavigation.filter(item => hasAccess(item, userRole, isManager));
@@ -606,7 +644,7 @@ function SidebarInner() {
   // ============================================
   // ICON SIDEBAR (shared by sub-menu modes)
   // ============================================
-  const IconSidebar = ({ activeModule }: { activeModule: 'my-space' | 'performance' | 'learning' | 'talents' | 'personnel' | 'analytics' }) => (
+  const IconSidebar = ({ activeModule }: { activeModule: 'my-space' | 'okr' | 'performance' | 'learning' | 'talents' | 'personnel' | 'analytics' }) => (
     <aside className="w-20 bg-dark h-screen flex flex-col border-r border-gray-700 overflow-hidden">
       <div className="h-16 flex items-center justify-center border-b border-gray-700 flex-shrink-0">
         <Link href="/dashboard">
@@ -631,7 +669,7 @@ function SidebarInner() {
             );
           }
           // Determine active module href path
-          const modulePath = activeModule === 'my-space' ? '/dashboard/my-space' : activeModule === 'performance' ? '/dashboard/performance' : activeModule === 'talents' ? '/dashboard/talents' : activeModule === 'personnel' ? '/dashboard/employees' : activeModule === 'analytics' ? '/dashboard/analytics' : '/dashboard/learning';
+          const modulePath = activeModule === 'my-space' ? '/dashboard/my-space' : activeModule === 'okr' ? '/dashboard/okr' : activeModule === 'performance' ? '/dashboard/performance' : activeModule === 'talents' ? '/dashboard/talents' : activeModule === 'personnel' ? '/dashboard/employees' : activeModule === 'analytics' ? '/dashboard/analytics' : '/dashboard/learning';
           const isModuleItem = item.href === modulePath;
           const isActive = isModuleItem 
             ? true 
@@ -703,10 +741,53 @@ function SidebarInner() {
           </div>
           <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
             {filteredMySpaceNav.map((item) => {
+              if (item.children) {
+                const isGroupExpanded = expandedMySpaceGroups[item.name] ?? true;
+                const isChildActive = item.children.some(child => pathname === child.href);
+                return (
+                  <div key={item.name}>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedMySpaceGroups(prev => ({ ...prev, [item.name]: !isGroupExpanded }))}
+                      className={`w-full flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+                        isChildActive
+                          ? 'text-white font-semibold'
+                          : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                      }`}
+                    >
+                      <item.icon className="w-5 h-5 mr-3" />
+                      <span className="text-sm font-medium flex-1 text-left">{item.name}</span>
+                      {isGroupExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    </button>
+                    {isGroupExpanded && (
+                      <div className="mt-1 space-y-1 pl-4">
+                        {item.children.map((child) => {
+                          const isActive = pathname === child.href;
+                          return (
+                            <Link
+                              key={child.name}
+                              href={child.href}
+                              {...(child.dataTour ? { 'data-tour': child.dataTour } : {})}
+                              className={`flex items-center px-3 py-2 rounded-lg transition-colors ${
+                                isActive
+                                  ? 'bg-primary-500 text-white font-semibold'
+                                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                              }`}
+                            >
+                              <child.icon className="w-4 h-4 mr-3" />
+                              <span className="text-sm font-medium">{child.name}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
               const isActive = pathname === item.href;
               return (
-                <Link 
-                  key={item.name} 
+                <Link
+                  key={item.name}
                   href={item.href}
                   {...(item.dataTour ? { 'data-tour': item.dataTour } : {})}
                   className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
@@ -742,6 +823,7 @@ function SidebarInner() {
     const currentTab = searchParams.get('tab') ?? 'list';
     return (
       <div className="flex h-screen sticky top-0">
+        <IconSidebar activeModule="okr" />
         <aside className="w-56 bg-gray-900 h-screen flex flex-col overflow-hidden">
           <div className="h-16 flex items-center px-4 border-b border-gray-700 flex-shrink-0">
             <Target className="w-5 h-5 text-primary-400 mr-3 flex-shrink-0" />

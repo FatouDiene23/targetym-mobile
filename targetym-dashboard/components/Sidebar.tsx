@@ -59,6 +59,7 @@ import {
   PieChart,
   LayoutList,
   Heart,
+  FileSignature,
 } from 'lucide-react';
 import { useState, useEffect, useMemo, Suspense, useCallback } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
@@ -107,9 +108,9 @@ const navigation: NavItem[] = [
     roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
     dataTour: 'sidebar-dashboard'
   },
-  { 
-    name: 'OKR & Objectifs', 
-    href: '/dashboard/okr', 
+  {
+    name: 'OKR & Objectifs',
+    href: '/dashboard/okr',
     icon: Target,
     roles: ['manager', 'rh', 'admin', 'dg'],
     dataTour: 'sidebar-okr'
@@ -276,6 +277,14 @@ const mySpaceNavigation: NavItem[] = [
   { name: 'Processus de Départ', href: '/dashboard/my-space/resignation', icon: UserMinus, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
 ];
 
+// Sous-menu OKR & Objectifs
+const okrNavigation: NavItem[] = [
+  { name: 'Liste des OKR', href: '/dashboard/okr?tab=list', icon: Layers, roles: ['manager', 'rh', 'admin', 'dg'] },
+  { name: 'Cascade', href: '/dashboard/okr?tab=cascade', icon: GitBranch, roles: ['manager', 'rh', 'admin', 'dg'] },
+  { name: 'Tableau de bord', href: '/dashboard/okr?tab=dashboard', icon: BarChart3, roles: ['manager', 'rh', 'admin', 'dg'] },
+  { name: "Contrats d'objectifs", href: '/dashboard/okr?tab=contracts', icon: FileSignature, roles: ['manager', 'rh', 'admin', 'dg'] },
+];
+
 // Sous-menu Performance
 const performanceNavigation: NavItem[] = [
   { name: 'Feedback Continu', href: '/dashboard/performance', icon: MessageSquare, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
@@ -398,6 +407,7 @@ function SidebarInner() {
   const [user, setUser] = useState<UserData | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [inMySpace, setInMySpace] = useState(false);
+  const [inOkr, setInOkr] = useState(false);
   const [inPerformance, setInPerformance] = useState(false);
   const [inLearning, setInLearning] = useState(false);
   const [inTalents, setInTalents] = useState(false);
@@ -434,6 +444,7 @@ function SidebarInner() {
 
   useEffect(() => {
     setInMySpace(pathname.startsWith('/dashboard/my-space'));
+    setInOkr(pathname.startsWith('/dashboard/okr'));
     setInPerformance(pathname.startsWith('/dashboard/performance'));
     setInLearning(pathname.startsWith('/dashboard/learning'));
     setInTalents(pathname.startsWith('/dashboard/talents'));
@@ -540,6 +551,7 @@ function SidebarInner() {
       const feature = MY_SPACE_FEATURE_MAP[item.href];
       return !feature || hasFeature(feature);
     });
+  const filteredOkrNav = okrNavigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredPerformanceNav = performanceNavigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredLearningNav = learningNavigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredTalentsNav = talentsNavigation.filter(item => hasAccess(item, userRole, isManager)).filter(mobileFilter);
@@ -710,8 +722,54 @@ function SidebarInner() {
             })}
           </nav>
           <div className="p-4 border-t border-gray-700 flex-shrink-0">
-            <Link 
-              href="/dashboard" 
+            <Link
+              href="/dashboard"
+              className="flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Retour au menu
+            </Link>
+          </div>
+        </aside>
+      </div>
+    );
+  }
+
+  // ============================================
+  // MODE OKR & OBJECTIFS
+  // ============================================
+  if (inOkr) {
+    const currentTab = searchParams.get('tab') ?? 'list';
+    return (
+      <div className="flex h-screen sticky top-0">
+        <aside className="w-56 bg-gray-900 h-screen flex flex-col overflow-hidden">
+          <div className="h-16 flex items-center px-4 border-b border-gray-700 flex-shrink-0">
+            <Target className="w-5 h-5 text-primary-400 mr-3 flex-shrink-0" />
+            <span className="font-semibold text-white text-sm truncate">OKR & Objectifs</span>
+          </div>
+          <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
+            {filteredOkrNav.map((item) => {
+              const itemTab = item.href.split('?tab=')[1] ?? 'list';
+              const isActive = currentTab === itemTab;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-primary-500 text-white font-semibold'
+                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5 mr-3" />
+                  <span className="text-sm font-medium">{item.name}</span>
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="p-4 border-t border-gray-700 flex-shrink-0">
+            <Link
+              href="/dashboard"
               className="flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
             >
               <ChevronLeft className="w-4 h-4 mr-2" />

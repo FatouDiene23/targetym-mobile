@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
   Plus, ChevronDown, ChevronRight, Trash2, Edit, X,
@@ -800,9 +801,17 @@ export default function OKRPage() {
   const [isManager, setIsManager] = useState(false);
   const [userLoaded, setUserLoaded] = useState(false);
   
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'list' | 'cascade' | 'dashboard'>('list');
   const [filterLevel, setFilterLevel] = useState('all');
   const [filterPeriod, setFilterPeriod] = useState('all');
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'list' || tab === 'cascade' || tab === 'dashboard') {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
   
   // Section collapse state (pour replier par niveau)
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({

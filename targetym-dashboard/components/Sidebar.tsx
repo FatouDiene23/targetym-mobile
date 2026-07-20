@@ -285,8 +285,19 @@ const mySpaceNavigation: NavItem[] = [
       { name: 'Mes Réservations', href: '/dashboard/my-space/reservations', icon: CalendarDays, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
     ],
   },
-  { name: 'Mon Parcours', href: '/dashboard/my-space/career', icon: TrendingUp, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
-  { name: 'Mes Objectifs', href: '/dashboard/my-space/objectives', icon: Target, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-my-objectives' },
+  {
+    name: 'Carrière & performance',
+    href: '#carriere-performance',
+    icon: Award,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
+    children: [
+      { name: 'Mon Parcours', href: '/dashboard/my-space/career', icon: TrendingUp, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+      { name: 'Mes Objectifs', href: '/dashboard/my-space/objectives', icon: Target, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-my-objectives' },
+      { name: 'Programmes & Initiatives', href: '/dashboard/my-space/programmes-initiatives', icon: Layers, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-my-programmes-initiatives' },
+      { name: 'Offres Internes', href: '/dashboard/my-space/internal-jobs', icon: Briefcase, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+      { name: 'Mes Enquêtes', href: '/dashboard/my-space/surveys', icon: MessageSquare, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+    ],
+  },
   { name: 'Mon Équipe', href: '/dashboard/my-space/team', icon: UsersRound, roles: ['manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-team' },
   {
     name: 'Travail & équipe',
@@ -298,9 +309,24 @@ const mySpaceNavigation: NavItem[] = [
       { name: 'Rituels et check-lists', href: '/dashboard/my-space/daily-checklist', icon: CheckSquare, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-managerial-rituals' },
     ],
   },
-  { name: 'Offres Internes', href: '/dashboard/my-space/internal-jobs', icon: Briefcase, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
-  { name: 'Mes Enquêtes', href: '/dashboard/my-space/surveys', icon: MessageSquare, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
-  { name: 'Processus de Départ', href: '/dashboard/my-space/resignation', icon: UserMinus, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+  {
+    name: 'Rémunération',
+    href: '#remuneration',
+    icon: Banknote,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
+    children: [
+      { name: 'Mes avances & prêts', href: '/dashboard/my-space/employee-finance', icon: Receipt, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+    ],
+  },
+  {
+    name: 'Départ',
+    href: '#depart',
+    icon: UserMinus,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
+    children: [
+      { name: 'Processus de Départ', href: '/dashboard/my-space/resignation', icon: UserMinus, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+    ],
+  },
 ];
 
 // Sous-menu OKR & Objectifs

@@ -237,7 +237,7 @@ export default function PresencePage() {
         </div>
 
         {/* Contenu */}
-        {tab === 'pointage' && <TabPointage />}
+        {tab === 'pointage' && <TabPointage onViewHistory={() => setTab('historique')} />}
         {tab === 'journee' && isRH && <TabJournee />}
         {tab === 'historique' && <TabHistorique />}
         {tab === 'mensuel' && isRH && <TabMensuel />}
@@ -254,23 +254,28 @@ export default function PresencePage() {
 // ─────────────────────────────────────────────
 // TAB : Mon Pointage
 // ─────────────────────────────────────────────
-function TabPointage() {
+function TabPointage({ onViewHistory }: { onViewHistory: () => void }) {
   const [record, setRecord] = useState<TodayRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [settings, setSettings] = useState<AttendanceSettings | null>(null);
+  const [history, setHistory] = useState<HistoryRecord[]>([]);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [r, s] = await Promise.all([
+      const firstDayOfMonth = new Date();
+      firstDayOfMonth.setDate(1);
+      const [r, s, h] = await Promise.all([
         apiFetch('/api/attendance/today'),
         apiFetch('/api/attendance/settings').catch(() => null),
+        apiFetch(`/api/attendance/my-history?start_date=${firstDayOfMonth.toISOString().slice(0, 10)}&end_date=${new Date().toISOString().slice(0, 10)}`).catch(() => []),
       ]);
       // Ne remplacer le record que si la réponse contient bien des données
       if (r && (r.id || r.check_in)) setRecord(r);
       else if (!silent) setRecord(r); // page init : accepter {} aussi
       setSettings(s);
+      setHistory(Array.isArray(h) ? h : []);
     } catch (e: any) {
       if (!silent) toast.error(e.message);
     } finally { if (!silent) setLoading(false); }
@@ -324,6 +329,14 @@ function TabPointage() {
   const breakActive = checkedIn && record?.break_start && !record?.break_end;
   const breakDone = !!record?.break_end;
   const isDetailedBreak = settings?.break_mode === 'detailed';
+  const presentDays = history.filter(r => r.status === 'present' || r.status === 'on_mission').length;
+  const lateDays = history.filter(r => r.status === 'late').length;
+  const absentDays = history.filter(r => r.status === 'absent').length;
+  const overtimeThreshold = Number(settings?.overtime_threshold_day ?? 8);
+  const overtimeTotal = history.reduce((sum, r) => {
+    return sum + ((r.hours_worked || 0) > overtimeThreshold ? (r.overtime_hours || 0) : 0);
+  }, 0);
+  const recentHistory = history.slice(0, 5);
 
   if (loading) return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary-500" /></div>;
 
@@ -439,6 +452,97 @@ function TabPointage() {
             <span className="flex items-center gap-1"><Coffee className="w-3.5 h-3.5" /> Pause : {settings.break_mode === 'detailed' ? 'détaillée' : `${settings.break_duration_minutes} min fixe`}</span>
           </div>
         )}
+      </div>
+
+      {/* Aujourd'hui / Historique récent / Ce mois-ci */}
+      <div className="grid gap-4 xl:grid-cols-3">
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <h3 className="text-base font-semibold text-gray-900">Aujourd'hui</h3>
+          <div className="mt-6 grid grid-cols-4 items-start gap-2 text-center">
+            {[
+              { label: 'Arrivée', value: fmt(record?.check_in), icon: Clock, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+              { label: 'Pause', value: record?.break_start ? fmt(record.break_start) : '--:--', icon: Coffee, color: 'text-orange-600', bg: 'bg-orange-50' },
+              { label: 'Reprise', value: record?.break_end ? fmt(record.break_end) : '--:--', icon: Timer, color: 'text-amber-600', bg: 'bg-amber-50' },
+              { label: 'Départ', value: fmt(record?.check_out), icon: LogOut, color: 'text-blue-600', bg: 'bg-blue-50' },
+            ].map((step, index) => (
+              <div key={step.label} className="relative">
+                {index < 3 && <div className="absolute left-1/2 right-[-50%] top-5 hidden border-t border-dashed border-blue-300 sm:block" />}
+                <div className={`relative mx-auto flex h-10 w-10 items-center justify-center rounded-full ${step.bg}`}>
+                  <step.icon className={`h-5 w-5 ${step.color}`} />
+                </div>
+                <p className="mt-3 text-xs sm:text-sm font-medium text-gray-700">{step.label}</p>
+                <p className="mt-1 text-xs sm:text-sm text-gray-500 tabular-nums">{step.value}</p>
+              </div>
+            ))}
+          </div>
+          {!record?.check_in && (
+            <div className="mt-6 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+              Vous n'avez pas encore pointé votre arrivée. Cliquez sur <strong>Pointer l'arrivée</strong> pour commencer votre journée.
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold text-gray-900">Historique récent</h3>
+            <button type="button" onClick={onViewHistory} className="text-xs font-semibold text-primary-600 hover:text-primary-700">
+              Voir tout
+            </button>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[420px] text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-500">
+                  <th className="py-2">Date</th>
+                  <th className="py-2">Arrivée</th>
+                  <th className="py-2">Départ</th>
+                  <th className="py-2">Heures</th>
+                  <th className="py-2">Statut</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {recentHistory.map(r => (
+                  <tr key={r.id}>
+                    <td className="py-2 text-gray-700">{fmtDate(r.date)}</td>
+                    <td className="py-2 text-gray-600">{fmt(r.check_in)}</td>
+                    <td className="py-2 text-gray-600">{fmt(r.check_out)}</td>
+                    <td className="py-2 text-gray-600">{fmtH(r.hours_worked)}</td>
+                    <td className="py-2"><StatusBadge status={r.status} /></td>
+                  </tr>
+                ))}
+                {recentHistory.length === 0 && (
+                  <tr><td colSpan={5} className="py-8 text-center text-sm text-gray-400">Aucun historique récent</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <h3 className="text-base font-semibold text-gray-900">Ce mois-ci</h3>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-gray-200 p-4">
+              <CheckCircle className="h-6 w-6 text-emerald-600" />
+              <p className="mt-3 text-xs font-medium text-gray-500">Présences</p>
+              <p className="text-2xl font-bold text-emerald-700">{presentDays}<span className="ml-1 text-sm font-medium text-gray-500">jours</span></p>
+            </div>
+            <div className="rounded-xl border border-gray-200 p-4">
+              <AlertCircle className="h-6 w-6 text-orange-600" />
+              <p className="mt-3 text-xs font-medium text-gray-500">Retards</p>
+              <p className="text-2xl font-bold text-orange-700">{lateDays}<span className="ml-1 text-sm font-medium text-gray-500">jours</span></p>
+            </div>
+            <div className="rounded-xl border border-gray-200 p-4">
+              <XCircle className="h-6 w-6 text-red-600" />
+              <p className="mt-3 text-xs font-medium text-gray-500">Absences</p>
+              <p className="text-2xl font-bold text-red-700">{absentDays}<span className="ml-1 text-sm font-medium text-gray-500">jours</span></p>
+            </div>
+            <div className="rounded-xl border border-gray-200 p-4">
+              <TrendingUp className="h-6 w-6 text-violet-600" />
+              <p className="mt-3 text-xs font-medium text-gray-500">Heures sup.</p>
+              <p className="text-2xl font-bold text-violet-700">{fmtH(overtimeTotal)}</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

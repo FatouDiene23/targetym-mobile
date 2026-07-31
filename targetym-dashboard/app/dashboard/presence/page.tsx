@@ -61,6 +61,8 @@ interface TodayRecord {
   overtime_hours?: number;
   is_mission_day?: boolean;
   is_auto_closed?: boolean;
+  site_id?: number;
+  site_name?: string;
 }
 
 interface DailySummaryRow {
@@ -260,22 +262,32 @@ function TabPointage({ onViewHistory }: { onViewHistory: () => void }) {
   const [actionLoading, setActionLoading] = useState(false);
   const [settings, setSettings] = useState<AttendanceSettings | null>(null);
   const [history, setHistory] = useState<HistoryRecord[]>([]);
+  const [sites, setSites] = useState<AttendanceSite[]>([]);
+  const [selectedSiteId, setSelectedSiteId] = useState<string>('');
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
       const firstDayOfMonth = new Date();
       firstDayOfMonth.setDate(1);
-      const [r, s, h] = await Promise.all([
+      const [r, s, h, siteList] = await Promise.all([
         apiFetch('/api/attendance/today'),
         apiFetch('/api/attendance/settings').catch(() => null),
         apiFetch(`/api/attendance/my-history?start_date=${firstDayOfMonth.toISOString().slice(0, 10)}&end_date=${new Date().toISOString().slice(0, 10)}`).catch(() => []),
+        apiFetch('/api/attendance/sites').catch(() => []),
       ]);
+      const activeSites = (Array.isArray(siteList) ? siteList : []).filter((site: AttendanceSite) => site.is_active);
       // Ne remplacer le record que si la réponse contient bien des données
       if (r && (r.id || r.check_in)) setRecord(r);
       else if (!silent) setRecord(r); // page init : accepter {} aussi
       setSettings(s);
       setHistory(Array.isArray(h) ? h : []);
+      setSites(activeSites);
+      setSelectedSiteId(current => {
+        if (r?.site_id) return String(r.site_id);
+        if (current && activeSites.some((site: AttendanceSite) => String(site.id) === current)) return current;
+        return activeSites.length === 1 ? String(activeSites[0].id) : '';
+      });
     } catch (e: any) {
       if (!silent) toast.error(e.message);
     } finally { if (!silent) setLoading(false); }
@@ -310,13 +322,16 @@ function TabPointage({ onViewHistory }: { onViewHistory: () => void }) {
   };
 
   const handleCheckIn = async () => {
+    if (!selectedSiteId) return toast.error('Choisissez votre site de pointage.');
     const pos = await getPosition();
-    await doAction('/api/attendance/check-in', { latitude: pos?.lat, longitude: pos?.lng, source: 'web' });
+    await doAction('/api/attendance/check-in', { site_id: Number(selectedSiteId), latitude: pos?.lat, longitude: pos?.lng, source: 'mobile' });
   };
 
   const handleCheckOut = async () => {
+    const siteId = record?.site_id || (selectedSiteId ? Number(selectedSiteId) : undefined);
+    if (!siteId) return toast.error('Site de pointage introuvable pour cette journée.');
     const pos = await getPosition();
-    await doAction('/api/attendance/check-out', { latitude: pos?.lat, longitude: pos?.lng });
+    await doAction('/api/attendance/check-out', { site_id: siteId, latitude: pos?.lat, longitude: pos?.lng });
   };
 
   const handleBreakStart = () => doAction('/api/attendance/break-start');
@@ -337,6 +352,8 @@ function TabPointage({ onViewHistory }: { onViewHistory: () => void }) {
     return sum + ((r.hours_worked || 0) > overtimeThreshold ? (r.overtime_hours || 0) : 0);
   }, 0);
   const recentHistory = history.slice(0, 5);
+  const selectedSite = sites.find(site => String(site.id) === selectedSiteId);
+  const attendanceSiteName = record?.site_name || selectedSite?.name || 'Aucun site sélectionné';
 
   if (loading) return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary-500" /></div>;
 
@@ -398,50 +415,67 @@ function TabPointage({ onViewHistory }: { onViewHistory: () => void }) {
 
       {/* Boutons pointage */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h2 className="text-sm font-semibold text-gray-700 mb-4">Actions</h2>
-        <div className="flex flex-wrap gap-3">
+        <h2 className="text-sm font-semibold text-gray-700 mb-4">Actions de pointage</h2>
+
+        <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+          <div>
+            <span className="mb-1 block text-xs font-medium text-gray-600">Site de pointage</span>
+            <CustomSelect
+              value={selectedSiteId}
+              onChange={setSelectedSiteId}
+              disabled={(!!record?.check_in && !!record?.site_id) || actionLoading}
+              placeholder="Choisir un site"
+              options={sites.map(site => ({ value: String(site.id), label: `${site.name} · rayon ${site.radius_meters} m` }))}
+            />
+          </div>
+          <div className="flex h-11 items-center gap-2 rounded-lg border border-primary-100 bg-primary-50 px-3 text-sm font-semibold text-primary-800">
+            <MapPin className="h-4 w-4" />
+            <span className="truncate">{attendanceSiteName}</span>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
 
           {/* Check-in */}
-          {notCheckedIn && (
-            <button onClick={handleCheckIn} disabled={actionLoading}
-              className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm disabled:opacity-50">
-              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
-              Pointer l'arrivée
-            </button>
-          )}
-
-          {/* Break */}
-          {checkedIn && isDetailedBreak && !breakActive && !breakDone && (
-            <button onClick={handleBreakStart} disabled={actionLoading}
-              className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium text-sm disabled:opacity-50">
-              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Coffee className="w-4 h-4" />}
-              Début de pause
-            </button>
-          )}
-          {breakActive && (
-            <button onClick={handleBreakEnd} disabled={actionLoading}
-              className="flex items-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium text-sm disabled:opacity-50">
-              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Coffee className="w-4 h-4" />}
-              Fin de pause
-            </button>
-          )}
+          <button onClick={handleCheckIn} disabled={actionLoading || !notCheckedIn || !selectedSiteId}
+            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+            {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
+            Pointer l'arrivée
+          </button>
 
           {/* Check-out */}
-          {checkedIn && (
-            <button onClick={handleCheckOut} disabled={actionLoading}
-              className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium text-sm disabled:opacity-50">
-              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
-              Pointer le départ
-            </button>
-          )}
+          <button onClick={handleCheckOut} disabled={actionLoading || !checkedIn}
+            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+            {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
+            Pointer le départ
+          </button>
 
-          {checkedOut && (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <CheckCircle className="w-4 h-4 text-green-500" />
-              Journée terminée
-            </div>
-          )}
+          {/* Break */}
+          <button
+            onClick={breakActive ? handleBreakEnd : handleBreakStart}
+            disabled={actionLoading || !checkedIn || !isDetailedBreak || breakDone}
+            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+            {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Coffee className="w-4 h-4" />}
+            {breakActive ? 'Fin de pause' : 'Début de pause'}
+          </button>
 
+        </div>
+
+        {checkedOut && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
+            <CheckCircle className="w-4 h-4 text-green-500" />
+            Journée terminée
+          </div>
+        )}
+
+        <div className="mt-4 flex items-start gap-3 border-t border-gray-100 pt-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-50">
+            <AlertCircle className="h-5 w-5 text-primary-600" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Pensez à pointer vos entrées et sorties</p>
+            <p className="mt-1 text-xs leading-5 text-gray-500">Vos pointages aident à suivre votre temps et à établir des relevés fiables.</p>
+          </div>
         </div>
 
         {/* Horaires du tenant */}

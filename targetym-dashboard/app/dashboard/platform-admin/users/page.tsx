@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import CustomSelect from '@/components/CustomSelect';
 import toast from 'react-hot-toast';
 import {
@@ -25,7 +25,7 @@ import {
   type UserUpdateData
 } from '@/lib/api';
 
-export default function PlatformUsersManagement() {
+function PlatformUsersManagement() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showTips, dismissTips } = usePageTour('platformAdminUsers');
@@ -708,5 +708,13 @@ export default function PlatformUsersManagement() {
         />
       )}
     </div>
+  );
+}
+
+export default function PlatformUsersPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center"><span className="h-5 w-5 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" /></div>}>
+      <PlatformUsersManagement />
+    </Suspense>
   );
 }

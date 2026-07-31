@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -665,10 +665,10 @@ function CreateEditModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
+    <div className="fixed inset-0 z-50 bg-black/40">
+      <div className="absolute inset-x-4 top-10 bottom-16 max-w-2xl mx-auto bg-white rounded-2xl shadow-xl flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="flex items-center justify-between p-6 border-b flex-shrink-0">
           <h2 className="text-lg font-semibold text-gray-900">
             {isEdit ? i18n.serviceNotes.editNote : i18n.serviceNotes.newNoteTitle}
           </h2>
@@ -678,7 +678,7 @@ function CreateEditModal({
         </div>
 
         {/* Body */}
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-5 overflow-y-auto flex-1 min-h-0">
           {/* Titre */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.serviceNotes.titleLabel} *</label>
@@ -851,28 +851,30 @@ function CreateEditModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50 rounded-b-2xl">
+        <div className="p-4 border-t bg-gray-50 rounded-b-2xl flex-shrink-0 space-y-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleSave(false)}
+              disabled={saving}
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin flex-shrink-0" /> : <Edit3 className="w-3.5 h-3.5 flex-shrink-0" />}
+              <span>{i18n.serviceNotes.saveDraft}</span>
+            </button>
+            <button
+              onClick={() => handleSave(true)}
+              disabled={saving}
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin flex-shrink-0" /> : <Send className="w-3.5 h-3.5 flex-shrink-0" />}
+              <span>{i18n.serviceNotes.publishDirectly}</span>
+            </button>
+          </div>
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition"
+            className="w-full py-1.5 text-sm text-gray-500 hover:bg-gray-100 rounded-lg transition"
           >
             {i18n.common.cancel}
-          </button>
-          <button
-            onClick={() => handleSave(false)}
-            disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
-          >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Edit3 className="w-4 h-4" />}
-            {i18n.serviceNotes.saveDraft}
-          </button>
-          <button
-            onClick={() => handleSave(true)}
-            disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
-          >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            {i18n.serviceNotes.publishDirectly}
           </button>
         </div>
       </div>
@@ -1051,3 +1053,4 @@ function DetailModal({
     </div>
   );
 }
+

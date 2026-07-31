@@ -224,6 +224,12 @@ const navigation: NavItem[] = [
     roles: ['rh', 'admin', 'dg'],
   },
   {
+    name: 'Avances & Prêts',
+    href: '/dashboard/employee-finance',
+    icon: Receipt,
+    roles: ['rh', 'admin', 'dg'],
+  },
+  {
     name: 'Compensation & Benefits',
     href: '/dashboard/compensation',
     icon: DollarSign,
@@ -281,7 +287,8 @@ const mySpaceNavigation: NavItem[] = [
     children: [
       { name: 'Mon Calendrier', href: '/dashboard/my-space/calendar', icon: CalendarDays, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
       { name: 'Mes Congés', href: '/dashboard/my-space/leaves', icon: Calendar, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-my-leaves' },
-      { name: 'Mes maladies', href: '/dashboard/my-space/sick-declarations', icon: Heart, roles: ['employee'] },
+      { name: 'Mes maladies', href: '/dashboard/my-space/sick-declarations', icon: Heart, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+      { name: "Mes constats d'absence", href: '/dashboard/my-space/absences', icon: UserMinus, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
       { name: 'Mes Réservations', href: '/dashboard/my-space/reservations', icon: CalendarDays, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
     ],
   },
@@ -307,6 +314,7 @@ const mySpaceNavigation: NavItem[] = [
     children: [
       { name: 'Mes Tâches', href: '/dashboard/my-space/tasks', icon: ClipboardList, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-tasks' },
       { name: 'Rituels et check-lists', href: '/dashboard/my-space/daily-checklist', icon: CheckSquare, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-managerial-rituals' },
+      { name: 'Absences & retards', href: '/dashboard/my-space/team/absences', icon: UserMinus, roles: ['manager'] },
     ],
   },
   {
@@ -335,6 +343,7 @@ const okrNavigation: NavItem[] = [
   { name: 'Cascade', href: '/dashboard/okr?tab=cascade', icon: GitBranch, roles: ['manager', 'rh', 'admin', 'dg'] },
   { name: 'Tableau de bord', href: '/dashboard/okr?tab=dashboard', icon: BarChart3, roles: ['manager', 'rh', 'admin', 'dg'] },
   { name: "Contrats d'objectifs", href: '/dashboard/okr?tab=contracts', icon: FileSignature, roles: ['manager', 'rh', 'admin', 'dg'] },
+  { name: 'Job description', href: '/dashboard/okr?tab=jobDescription', icon: FileText, roles: ['rh', 'admin', 'dg'] },
 ];
 
 // Sous-menu Performance
@@ -351,6 +360,7 @@ const performanceNavigation: NavItem[] = [
 const learningNavigation: NavItem[] = [
   { name: 'Catalogue', href: '/dashboard/learning', icon: BookOpen, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Mes Formations', href: '/dashboard/learning/my-learning', icon: User, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+  { name: 'Mon Équipe', href: '/dashboard/learning/team', icon: UsersRound, roles: ['manager'] },
   { name: 'Parcours Formation', href: '/dashboard/learning/paths', icon: Target, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Certifications', href: '/dashboard/learning/certifications', icon: Award, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Plans Individuels', href: '/dashboard/learning/development', icon: GraduationCap, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
@@ -387,8 +397,22 @@ const personnelNavigation: NavItem[] = [
   { name: 'Sanctions',    href: '/dashboard/employees?tab=sanctions',  icon: Shield,    roles: ['rh', 'admin', 'dg'] },
   { name: 'Invitations',  href: '/dashboard/employees?tab=invitations', icon: UserPlus,  roles: ['rh', 'admin', 'dg'] },
   { name: 'Import',       href: '/dashboard/employees?tab=import',     icon: ArrowUpRight, roles: ['rh', 'admin', 'dg'] },
-  { name: 'Alertes SOS',  href: '/dashboard/employees/sos',            icon: AlertTriangle, roles: ['rh', 'admin', 'dg'] },
-  { name: 'Signatures',   href: '/dashboard/employees/signatures',      icon: PenLine,       roles: ['rh', 'admin', 'dg'] },
+  { name: 'Alertes SOS',  href: '/dashboard/employees/sos',            icon: AlertTriangle,  roles: ['rh', 'admin', 'dg'] },
+  { name: 'Signatures',   href: '/dashboard/employees/signatures',      icon: PenLine,        roles: ['rh', 'admin', 'dg'] },
+  { name: 'Mobilité Interne', href: '/dashboard/employees?tab=mobility', icon: ArrowLeftRight, roles: ['rh', 'admin', 'dg'] },
+  { name: 'Déclarations maladie', href: '/dashboard/sick-declarations',  icon: Heart,          roles: ['rh', 'admin', 'dg'] },
+];
+
+// Sous-menu Avances & Prêts (RH admin)
+const employeeFinanceNavigation: NavItem[] = [
+  { name: 'Tableau de bord',  href: '/dashboard/employee-finance?tab=dashboard', icon: BarChart3,      roles: ['rh', 'admin', 'dg'] },
+  { name: 'Demandes',         href: '/dashboard/employee-finance?tab=requests',  icon: ClipboardCheck, roles: ['rh', 'admin', 'dg'] },
+  { name: 'Avances',          href: '/dashboard/employee-finance?tab=advances',  icon: Receipt,        roles: ['rh', 'admin', 'dg'] },
+  { name: 'Prêts',            href: '/dashboard/employee-finance?tab=loans',     icon: Banknote,       roles: ['rh', 'admin', 'dg'] },
+  { name: 'Prêts bancaires',  href: '/dashboard/employee-finance?tab=bank-loans', icon: Building2,    roles: ['rh', 'admin', 'dg'] },
+  { name: 'Décaissements',    href: '/dashboard/employee-finance?tab=payouts',   icon: DollarSign,     roles: ['rh', 'admin', 'dg'] },
+  { name: 'Remboursements',   href: '/dashboard/employee-finance?tab=repayments', icon: RotateCcw,    roles: ['rh', 'admin', 'dg'] },
+  { name: 'Paramètres',       href: '/dashboard/employee-finance?tab=settings',  icon: Settings,      roles: ['rh', 'admin', 'dg'] },
 ];
 
 // Sous-menu People Analytics
@@ -466,6 +490,7 @@ function SidebarInner() {
   const [inTalents, setInTalents] = useState(false);
   const [inPersonnel, setInPersonnel] = useState(false);
   const [inAnalytics, setInAnalytics] = useState(false);
+  const [inEmployeeFinance, setInEmployeeFinance] = useState(false);
   const [isManager, setIsManager] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -503,6 +528,7 @@ function SidebarInner() {
     setInTalents(pathname.startsWith('/dashboard/talents'));
     setInPersonnel(pathname.startsWith('/dashboard/employees'));
     setInAnalytics(pathname.startsWith('/dashboard/analytics'));
+    setInEmployeeFinance(pathname.startsWith('/dashboard/employee-finance'));
   }, [pathname]);
 
   useEffect(() => {
@@ -621,6 +647,7 @@ function SidebarInner() {
   const filteredTalentsNav = talentsNavigation.filter(item => hasAccess(item, userRole, isManager)).filter(mobileFilter);
   const filteredPersonnelNav = personnelNavigation.filter(item => hasAccess(item, userRole, isManager));
   const filteredAnalyticsNav = analyticsNavigation.filter(item => hasAccess(item, userRole, isManager));
+  const filteredEmployeeFinanceNav = employeeFinanceNavigation.filter(item => hasAccess(item, userRole, isManager));
 
   const NavItemComponent = ({ item, isCollapsed, showTooltip = false }: { item: NavItem; isCollapsed: boolean; showTooltip?: boolean }) => {
     const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
@@ -1041,6 +1068,54 @@ function SidebarInner() {
           <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
             {filteredTalentsNav.map((item) => {
               const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-primary-500/20 text-primary-400 border-l-2 border-primary-500'
+                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5 mr-3" />
+                  <span className="text-sm font-medium">{item.name}</span>
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="p-4 border-t border-gray-700 flex-shrink-0">
+            <Link
+              href="/dashboard"
+              className="flex items-center justify-center px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Retour au menu
+            </Link>
+          </div>
+        </aside>
+      </div>
+    );
+  }
+
+  // ============================================
+  // MODE FINANCE EMPLOYÉS
+  // ============================================
+  if (inEmployeeFinance) {
+    const currentTab = searchParams.get('tab') ?? 'dashboard';
+    return (
+      <div className="flex h-screen sticky top-0">
+        <IconSidebar activeModule="analytics" />
+        <aside className="w-56 bg-gray-900 h-screen flex flex-col overflow-hidden">
+          <div className="h-16 flex items-center px-4 border-b border-gray-700 flex-shrink-0">
+            <Receipt className="w-5 h-5 text-primary-400 mr-3 flex-shrink-0" />
+            <span className="font-semibold text-white text-sm truncate">Avances & Prêts</span>
+          </div>
+          <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden sidebar-scroll">
+            {filteredEmployeeFinanceNav.map((item) => {
+              const isActive = item.href.includes('?tab=')
+                ? currentTab === item.href.split('?tab=')[1]
+                : pathname === item.href;
               return (
                 <Link
                   key={item.name}

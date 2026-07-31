@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
@@ -182,7 +182,7 @@ function BreakdownModal({
 // MAIN PAGE
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function BudgetRHEmployeesPage() {
+function BudgetRHEmployeesPage() {
   const router = useRouter();
   const { t } = useI18n();
   const params = useSearchParams();
@@ -471,5 +471,13 @@ export default function BudgetRHEmployeesPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function BudgetRHEmployeesPageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center"><span className="h-5 w-5 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" /></div>}>
+      <BudgetRHEmployeesPage />
+    </Suspense>
   );
 }

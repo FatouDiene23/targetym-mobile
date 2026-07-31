@@ -2009,40 +2009,39 @@ function PeopleAnalyticsContent() {
         {/* Tableau — Top formations par impact */}
         <div className="bg-white rounded-xl border p-6">
           <h3 className="font-semibold text-gray-900 mb-4">{t.analytics.topTrainingsByImpact}</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+
+          <div className="overflow-x-auto -mx-2 px-2">
+            <table className="w-full text-sm min-w-[480px]">
               <thead>
                 <tr className="border-b text-left text-gray-500">
-                  <th className="pb-3 font-medium">{t.analytics.trainingLabel}</th>
-                  <th className="pb-3 font-medium text-center">{t.analytics.participants}</th>
-                  <th className="pb-3 font-medium text-center">{t.analytics.satisfactionLabel}</th>
-                  <th className="pb-3 font-medium text-center">{t.analytics.okrImpactLabel}</th>
-                  <th className="pb-3 font-medium text-center">{t.analytics.skillsDelta}</th>
+                  <th className="pb-3 pr-4 font-medium">{t.analytics.trainingLabel}</th>
+                  <th className="pb-3 px-4 font-medium text-center whitespace-nowrap">{t.analytics.participants}</th>
+                  <th className="pb-3 px-4 font-medium text-center whitespace-nowrap">{t.analytics.satisfactionLabel}</th>
+                  <th className="pb-3 px-4 font-medium text-center whitespace-nowrap">{t.analytics.okrImpactLabel}</th>
+                  <th className="pb-3 pl-4 font-medium text-center whitespace-nowrap">{t.analytics.skillsDelta}</th>
                 </tr>
               </thead>
               <tbody>
-                {topFormations.length > 0 ? topFormations.map((f: any, i: number) => (
+                {topFormations.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-gray-400">{t.analytics.noTrainingAvailable}</td>
+                  </tr>
+                ) : topFormations.map((f: any, i: number) => (
                   <tr key={i} className="border-b last:border-0 hover:bg-gray-50">
-                    <td className="py-3 font-medium text-gray-900">{f.name}</td>
-                    <td className="py-3 text-center">{f.participants}</td>
-                    <td className="py-3 text-center">
+                    <td className="py-3 pr-4 font-medium text-gray-900">{f.name}</td>
+                    <td className="py-3 px-4 text-center">{f.participants}</td>
+                    <td className="py-3 px-4 text-center">
                       {f.satisfaction > 0 ? (
                         <span className="inline-flex items-center gap-1">
                           <Star size={12} className="text-amber-500" />
                           {f.satisfaction}
                         </span>
-                      ) : "—"}
+                      ) : '—'}
                     </td>
-                    <td className="py-3 text-center">{f.okr_impact}</td>
-                    <td className="py-3 text-center">{f.delta_competences}</td>
+                    <td className="py-3 px-4 text-center">{f.okr_impact}</td>
+                    <td className="py-3 pl-4 text-center">{f.delta_competences}</td>
                   </tr>
-                )) : (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-gray-400">
-                      {t.analytics.noTrainingAvailable}
-                    </td>
-                  </tr>
-                )}
+                ))}
               </tbody>
             </table>
           </div>

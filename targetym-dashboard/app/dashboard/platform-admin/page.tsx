@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import CustomSelect from '@/components/CustomSelect';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -35,7 +35,7 @@ const ACTION_COLORS: Record<string, string> = {
   VIEW_SEARCH: 'bg-gray-100 text-gray-600',
 };
 
-export default function PlatformAdminDashboard() {
+function PlatformAdminDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const deepLinkHandled = useRef(false);
@@ -1418,7 +1418,7 @@ function StatCard({ label, value, icon, badge, sub }: {
         {icon}
         {badge && <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{badge}</span>}
       </div>
-      <p className="text-3xl font-bold text-gray-900">{value.toLocaleString()}</p>
+      <p className="text-3xl font-bold text-gray-900">{value != null ? value.toLocaleString() : '0'}</p>
       <p className="text-sm text-gray-600 mt-1">{label}</p>
       {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
     </div>
@@ -1465,5 +1465,13 @@ function TenantField({ label, value, editing, editType, options, editValue, onCh
           className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
       )}
     </div>
+  );
+}
+
+export default function PlatformAdminPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center"><span className="h-5 w-5 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" /></div>}>
+      <PlatformAdminDashboard />
+    </Suspense>
   );
 }

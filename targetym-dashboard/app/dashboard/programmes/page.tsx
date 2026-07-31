@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -1603,7 +1603,7 @@ export default function ProgrammesPage() {
   if (!loading && access && !access.has_access) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header title="Programmes RH" />
+        <Header title="Programmes RH" hideAddButton />
         <div className="max-w-3xl mx-auto p-6">
           <PlanGate access={access} onRequest={async () => { await requestHRProgramsAddon(); }} />
         </div>
@@ -1614,7 +1614,7 @@ export default function ProgrammesPage() {
   if (selectedId !== null) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header title="Programmes RH" />
+        <Header title="Programmes RH" hideAddButton />
         <div className="max-w-5xl mx-auto p-6">
           <ProgramDetail programId={selectedId} isRH={isRH} onBack={() => { setSelectedId(null); loadAll(); }} />
         </div>
@@ -1624,7 +1624,7 @@ export default function ProgrammesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header title="Programmes RH" />
+      <Header title="Programmes RH" hideAddButton />
       <div className="max-w-6xl mx-auto p-6 space-y-6">
 
         {/* Stats */}

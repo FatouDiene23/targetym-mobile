@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import Header from '@/components/Header';
 import CustomSelect from '@/components/CustomSelect';
 import CustomDatePicker from '@/components/CustomDatePicker';
+import SearchableSelect from '@/components/SearchableSelect';
 import {
   Plane, MapPin, Calendar, Clock, Users, FileText, Plus, Search,
   Filter, ChevronDown, ChevronRight, Eye, Edit, Trash2, Download,
@@ -1310,15 +1311,17 @@ function CreateMissionModal({ role, employeeId, onClose, onSuccess }: {
                   {canManageAll(role) ? '(Tous les employés)' : '(Vos collaborateurs directs)'}
                 </span>
               </label>
-              <CustomSelect
+              <SearchableSelect
                 value={String(formData.employee_id)}
                 onChange={(v) => setFormData({ ...formData, employee_id: parseInt(v) })}
                 placeholder="Sélectionner..."
+                searchPlaceholder="Rechercher un employé..."
                 options={[
                   { value: String(employeeId || 0), label: 'Moi-même' },
                   ...employees.map(emp => ({
                     value: String(emp.id),
-                    label: `${emp.first_name} ${emp.last_name}${emp.job_title ? ` — ${emp.job_title}` : ''}${emp.department_name ? ` (${emp.department_name})` : ''}`,
+                    label: `${emp.first_name} ${emp.last_name}`,
+                    subtitle: [emp.job_title, emp.department_name].filter(Boolean).join(' · '),
                   })),
                 ]}
               />

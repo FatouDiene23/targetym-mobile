@@ -57,8 +57,7 @@ export default function CustomDatePicker({ value, onChange, placeholder = 'Séle
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isNative, setIsNative] = useState(detectNativeSync);
-  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
-  const [nativeOffset, setNativeOffset] = useState(0);
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0, openUpward: false });
   const [viewDate, setViewDate] = useState(() => value ? new Date(value + 'T00:00:00') : new Date());
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -74,8 +73,13 @@ export default function CustomDatePicker({ value, onChange, placeholder = 'Séle
       if (!triggerRef.current) return;
       const r = triggerRef.current.getBoundingClientRect();
       const minW = 308;
+      const calH = 320; // hauteur estimée du calendrier
       const left = Math.min(r.left, window.innerWidth - minW - 8);
-      setPosition({ top: r.bottom + 4, left: Math.max(8, left), width: Math.max(r.width, minW) });
+      const spaceBelow = window.innerHeight - r.bottom - 8;
+      const spaceAbove = r.top - 8;
+      const openUpward = spaceBelow < calH && spaceAbove > spaceBelow;
+      const top = openUpward ? r.top - calH - 4 : r.bottom + 4;
+      setPosition({ top, left: Math.max(8, left), width: Math.max(r.width, minW), openUpward });
     };
     update();
     window.addEventListener('scroll', update, true);
@@ -83,21 +87,6 @@ export default function CustomDatePicker({ value, onChange, placeholder = 'Séle
     return () => { window.removeEventListener('scroll', update, true); window.removeEventListener('resize', update); };
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return;
-    const handleClick = (e: MouseEvent | TouchEvent) => {
-      const t = e.target as Node;
-      if (triggerRef.current?.contains(t)) return;
-      if (dropdownRef.current?.contains(t)) return;
-      setOpen(false);
-    };
-    document.addEventListener('mousedown', handleClick);
-    document.addEventListener('touchstart', handleClick);
-    return () => {
-      document.removeEventListener('mousedown', handleClick);
-      document.removeEventListener('touchstart', handleClick);
-    };
-  }, [open]);
 
   useEffect(() => {
     if (value) setViewDate(new Date(value + 'T00:00:00'));
@@ -127,109 +116,20 @@ export default function CustomDatePicker({ value, onChange, placeholder = 'Séle
     setOpen(false);
   }
 
-  // Sur mobile natif (Capacitor), calendrier INLINE qui pousse le contenu
-  // au lieu de l'overlay natif Android qui recouvre le formulaire
-  if (isNative) {
-    return (
-      <div ref={dropdownRef} className={`relative ${className}`}>
-        <button
-          ref={triggerRef}
-          type="button"
-          disabled={disabled}
-          onClick={() => {
-            if (disabled) return;
-            const willOpen = !open;
-            setOpen(willOpen);
-            if (willOpen && triggerRef.current) {
-              // Calcule un offset (en px) pour que le calendrier reste dans
-              // le viewport quelle que soit la position du trigger (gauche/droite)
-              const rect = triggerRef.current.getBoundingClientRect();
-              const calW = Math.min(320, window.innerWidth - 16);
-              const margin = 8;
-              // Position idéale : aligné avec le trigger
-              let idealLeft = rect.left;
-              // Contraindre : pas de débordement à droite ni à gauche
-              idealLeft = Math.min(idealLeft, window.innerWidth - calW - margin);
-              idealLeft = Math.max(margin, idealLeft);
-              setNativeOffset(idealLeft - rect.left);
-              setTimeout(() => triggerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
-            }
-          }}
-          className={`w-full flex items-center justify-between px-3 py-2 border rounded-lg text-sm text-left transition-colors
-            ${open ? 'border-primary-500 ring-2 ring-primary-500/20' : 'border-gray-300'}
-            ${disabled ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-white cursor-pointer'}`}
-        >
-          <span className={value ? 'text-gray-900' : 'text-gray-400'}>
-            {value ? formatDisplay(value) : placeholder}
-          </span>
-          <Calendar className="w-4 h-4 text-gray-400 shrink-0 ml-2" />
-        </button>
-        {open && (
-          <div
-            className="absolute z-50 mt-1 bg-white border border-gray-300 rounded-lg shadow-md p-3"
-            style={{
-              left: `${nativeOffset}px`,
-              width: 'min(20rem, calc(100vw - 1rem))',
-            }}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <button type="button" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setViewDate(new Date(year, month - 1, 1)); }} className="p-1 rounded hover:bg-gray-100 active:bg-gray-200">
-                <ChevronLeft className="w-4 h-4 text-gray-600" />
-              </button>
-              <div className="text-sm font-semibold text-gray-900">{MONTHS[month]} {year}</div>
-              <button type="button" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setViewDate(new Date(year, month + 1, 1)); }} className="p-1 rounded hover:bg-gray-100 active:bg-gray-200">
-                <ChevronRight className="w-4 h-4 text-gray-600" />
-              </button>
-            </div>
-            <div className="grid grid-cols-7 gap-0.5 mb-1">
-              {DAYS.map((d, i) => (
-                <div key={i} className="text-xs font-semibold text-gray-500 text-center py-1">{d}</div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-0.5">
-              {cells.map((d, i) => {
-                if (d === null) return <div key={i} className="aspect-square" />;
-                const cellDate = new Date(year, month, d);
-                const iso = toISODate(cellDate);
-                const isSelected = iso === selected;
-                const isToday = iso === today;
-                const isDisabled = (minDate && cellDate < minDate) || (maxDate && cellDate > maxDate);
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    disabled={!!isDisabled}
-                    onPointerDown={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (!isDisabled) pickDay(d);
-                    }}
-                    className={`text-sm rounded aspect-square flex items-center justify-center transition-colors w-full ${
-                      isDisabled ? 'text-gray-300' :
-                      isSelected ? 'bg-primary-500 text-white font-bold' :
-                      isToday ? 'bg-primary-50 text-primary-700 font-semibold' :
-                      'text-gray-700 active:bg-gray-100'
-                    }`}
-                  >
-                    {d}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
   const dropdown = open && mounted ? createPortal(
+    <>
+      {/* overlay transparent — ferme le calendrier au tap extérieur */}
+      <div
+        style={{ position: 'fixed', inset: 0, zIndex: 99997 }}
+        onClick={() => setOpen(false)}
+      />
     <div
       ref={dropdownRef}
       style={{
         position: 'fixed',
         top: `${position.top}px`,
         left: `${position.left}px`,
-        minWidth: `${position.width}px`,
+        width: `min(${position.width}px, calc(100vw - 16px))`,
         zIndex: 99999,
       }}
       className="bg-white border border-gray-300 rounded-lg shadow-2xl p-3"
@@ -274,7 +174,8 @@ export default function CustomDatePicker({ value, onChange, placeholder = 'Séle
           );
         })}
       </div>
-    </div>,
+    </div>
+    </>,
     document.body
   ) : null;
 
@@ -284,6 +185,7 @@ export default function CustomDatePicker({ value, onChange, placeholder = 'Séle
         ref={triggerRef}
         type="button"
         disabled={disabled}
+        style={open ? { position: 'relative', zIndex: 99998 } : undefined}
         onClick={() => { if (!disabled) setOpen(!open); }}
         className={`w-full flex items-center justify-between px-3 py-2 border rounded-lg text-sm text-left transition-colors
           ${open ? 'border-primary-500 ring-2 ring-primary-500/20' : 'border-gray-300 hover:border-gray-400'}

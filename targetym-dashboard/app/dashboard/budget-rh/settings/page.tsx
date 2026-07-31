@@ -1,6 +1,6 @@
  "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Settings, Upload, Download, Plus, Pencil, Trash2, Save,
@@ -549,7 +549,7 @@ function BudgetEntryGrid({
 // MAIN PAGE
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function BudgetRHSettingsPage() {
+function BudgetRHSettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useI18n();
@@ -952,5 +952,13 @@ export default function BudgetRHSettingsPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function BudgetRHSettingsPageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center"><span className="h-5 w-5 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" /></div>}>
+      <BudgetRHSettingsPage />
+    </Suspense>
   );
 }

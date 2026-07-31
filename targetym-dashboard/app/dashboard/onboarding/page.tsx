@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import CustomSelect from '@/components/CustomSelect';
 import CustomDatePicker from '@/components/CustomDatePicker';
 import CustomTimePicker from '@/components/CustomTimePicker';
@@ -368,28 +369,99 @@ function SearchableSelect({
   if (!placeholder) placeholder = t.common.search + '...';
   if (!emptyLabel) emptyLabel = t.common.noResults;
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState('');
-  const ref = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const filtered = options.filter(o => 
+  useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    if (!open || !triggerRef.current) return;
+    const updatePosition = () => {
+      if (!triggerRef.current) return;
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPosition({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    };
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [open]);
+
+  const filtered = options.filter(o =>
     o.label.toLowerCase().includes(search.toLowerCase()) ||
     (o.subtitle && o.subtitle.toLowerCase().includes(search.toLowerCase()))
   );
 
   const selected = options.find(o => o.value === value);
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
+  const dropdown = open && mounted ? createPortal(
+    <>
+      {/* overlay transparent qui ferme le dropdown au tap extérieur */}
+      <div
+        style={{ position: 'fixed', inset: 0, zIndex: 99997 }}
+        onClick={() => { setOpen(false); setSearch(''); }}
+      />
+      <div
+        ref={dropdownRef}
+        style={{ position: 'fixed', top: `${position.top}px`, left: `${position.left}px`, width: `${position.width}px`, zIndex: 99999 }}
+        className="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden"
+      >
+        <div className="p-2 border-b">
+          <div className="flex items-center gap-2 bg-gray-50 rounded-md px-2 py-1.5">
+            <Search size={14} className="text-gray-400 flex-shrink-0" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={`${t.common.search}...`}
+              className="flex-1 text-sm outline-none bg-transparent"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="p-0.5 hover:bg-gray-200 rounded">
+                <X size={12} className="text-gray-400" />
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="max-h-48 overflow-y-auto">
+          {placeholder && (
+            <button
+              onClick={() => { onChange(''); setOpen(false); setSearch(''); }}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${!value ? 'bg-primary-50 text-primary-700' : 'text-gray-400'}`}
+            >
+              {placeholder}
+            </button>
+          )}
+          {filtered.length > 0 ? filtered.map(o => (
+            <button
+              key={o.value}
+              onClick={() => { onChange(o.value); setOpen(false); setSearch(''); }}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${o.value === value ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}`}
+            >
+              <span>{o.label}</span>
+              {o.subtitle && <span className="text-xs text-gray-400 ml-1">— {o.subtitle}</span>}
+            </button>
+          )) : (
+            <div className="px-3 py-4 text-sm text-gray-400 text-center">{emptyLabel}</div>
+          )}
+        </div>
+      </div>
+    </>,
+    document.body
+  ) : null;
 
   return (
-    <div ref={ref} className={`relative ${className}`}>
+    <div className={`relative ${className}`}>
       <button
+        ref={triggerRef}
         type="button"
+        style={open ? { position: 'relative', zIndex: 99998 } : undefined}
         onClick={() => { setOpen(!open); setSearch(''); }}
         className="w-full border rounded-lg px-3 py-2 text-sm text-left flex items-center justify-between hover:border-gray-400 transition-colors"
       >
@@ -398,51 +470,7 @@ function SearchableSelect({
         </span>
         <ChevronDown size={16} className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
-
-      {open && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
-          <div className="p-2 border-b">
-            <div className="flex items-center gap-2 bg-gray-50 rounded-md px-2 py-1.5">
-              <Search size={14} className="text-gray-400 flex-shrink-0" />
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder={`${t.common.search}...`}
-                className="flex-1 text-sm outline-none bg-transparent"
-                autoFocus
-              />
-              {search && (
-                <button onClick={() => setSearch('')} className="p-0.5 hover:bg-gray-200 rounded">
-                  <X size={12} className="text-gray-400" />
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="max-h-48 overflow-y-auto">
-            {placeholder && (
-              <button
-                onClick={() => { onChange(''); setOpen(false); }}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${!value ? 'bg-primary-50 text-primary-700' : 'text-gray-400'}`}
-              >
-                {placeholder}
-              </button>
-            )}
-            {filtered.length > 0 ? filtered.map(o => (
-              <button
-                key={o.value}
-                onClick={() => { onChange(o.value); setOpen(false); }}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${o.value === value ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}`}
-              >
-                <span>{o.label}</span>
-                {o.subtitle && <span className="text-xs text-gray-400 ml-1">— {o.subtitle}</span>}
-              </button>
-            )) : (
-              <div className="px-3 py-4 text-sm text-gray-400 text-center">{emptyLabel}</div>
-            )}
-          </div>
-        </div>
-      )}
+      {dropdown}
     </div>
   );
 }

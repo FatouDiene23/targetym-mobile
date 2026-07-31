@@ -3052,6 +3052,12 @@ export async function getHRPrograms(isTemplate?: boolean): Promise<HRProgram[]> 
   return response.json();
 }
 
+export async function getProgramsByObjective(objectiveId: number): Promise<HRProgram[]> {
+  const response = await fetchWithAuth(`${API_URL}/api/hr-programs/by-objective/${objectiveId}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
 export interface HRActionInput {
   action_label: string;
   phase?: string;

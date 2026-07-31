@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import CustomSelect from '@/components/CustomSelect';
 import CustomDatePicker from '@/components/CustomDatePicker';
+import SearchableSelect from '@/components/SearchableSelect';
 import {
   Loader2, Plus, Edit, Trash2, Calendar, Clock, X, CheckCircle,
   XCircle, AlertCircle, Users, DoorOpen, ChevronRight, Ban,
@@ -484,10 +485,16 @@ export default function ReservationsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.rooms.roomLabel}</label>
-                  <CustomSelect
+                  <SearchableSelect
                     value={selectedRoomId != null ? String(selectedRoomId) : ''}
                     onChange={v => setSelectedRoomId(Number(v) || null)}
-                    options={[{value:'', label: i18n.rooms.selectRoom}, ...rooms.map(rm => ({value: String(rm.id), label: `${rm.name} (${rm.capacity} ${i18n.rooms.places})`}))]}
+                    placeholder={i18n.rooms.selectRoom}
+                    searchPlaceholder="Rechercher une salle..."
+                    options={rooms.map(rm => ({
+                      value: String(rm.id),
+                      label: rm.name,
+                      subtitle: `${rm.capacity} ${i18n.rooms.places}${rm.requires_validation ? ' · validation requise' : ''}`,
+                    }))}
                     className="w-full"
                   />
                 </div>

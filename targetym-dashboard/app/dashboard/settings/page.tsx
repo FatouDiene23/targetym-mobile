@@ -4,7 +4,7 @@ import PageLoading from '@/components/PageLoading';
 
 import Header from '@/components/Header';
 import CustomSelect from '@/components/CustomSelect';
-import { useState, useEffect, useCallback, ChangeEvent } from 'react';
+import { useState, useEffect, useCallback, ChangeEvent, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
@@ -787,7 +787,7 @@ function BackupTab() {
   );
 }
 
-export default function SettingsPage() {
+function SettingsPage() {
   const { t, setLocale } = useI18n();
   const [activeTab, setActiveTab] = useState('general');
   const [saved, setSaved] = useState(false);
@@ -2856,5 +2856,13 @@ export default function SettingsPage() {
         />
       )}
     </>
+  );
+}
+
+export default function SettingsPageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center"><span className="h-5 w-5 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" /></div>}>
+      <SettingsPage />
+    </Suspense>
   );
 }

@@ -31,24 +31,25 @@ export default function CustomSelect({
 }: CustomSelectProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0, maxHeight: 240 });
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (!open || !triggerRef.current) return;
     const updatePosition = () => {
       if (!triggerRef.current) return;
       const rect = triggerRef.current.getBoundingClientRect();
-      setPosition({
-        top: rect.bottom + 4,
-        left: rect.left,
-        width: rect.width,
-      });
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom - 8;
+      const spaceAbove = rect.top - 8;
+      if (spaceBelow < 120 && spaceAbove > spaceBelow) {
+        const maxH = Math.min(240, spaceAbove);
+        setPosition({ top: rect.top - maxH - 4, left: rect.left, width: rect.width, maxHeight: maxH });
+      } else {
+        setPosition({ top: rect.bottom + 4, left: rect.left, width: rect.width, maxHeight: Math.max(spaceBelow, 120) });
+      }
     };
     updatePosition();
     window.addEventListener('scroll', updatePosition, true);
@@ -56,22 +57,6 @@ export default function CustomSelect({
     return () => {
       window.removeEventListener('scroll', updatePosition, true);
       window.removeEventListener('resize', updatePosition);
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const handleClick = (e: MouseEvent | TouchEvent) => {
-      const target = e.target as Node;
-      if (triggerRef.current?.contains(target)) return;
-      if (dropdownRef.current?.contains(target)) return;
-      setOpen(false);
-    };
-    document.addEventListener('mousedown', handleClick);
-    document.addEventListener('touchstart', handleClick);
-    return () => {
-      document.removeEventListener('mousedown', handleClick);
-      document.removeEventListener('touchstart', handleClick);
     };
   }, [open]);
 
@@ -85,32 +70,39 @@ export default function CustomSelect({
   const selectedOption = options.find(o => o.value === value);
 
   const dropdown = open && mounted ? createPortal(
-    <div
-      ref={dropdownRef}
-      style={{
-        position: 'fixed',
-        top: `${position.top}px`,
-        left: `${position.left}px`,
-        width: `${position.width}px`,
-        zIndex: 99999,
-      }}
-      className="bg-white border border-gray-300 rounded-lg shadow-2xl max-h-60 overflow-y-auto"
-    >
-      {options.map(opt => (
-        <button
-          key={opt.value}
-          type="button"
-          disabled={opt.disabled}
-          onClick={() => { if (!opt.disabled) { onChange(opt.value); setOpen(false); } }}
-          className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors border-b border-gray-50 last:border-0
-            ${opt.disabled ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-gray-50 active:bg-gray-100'}
-            ${opt.value === value ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-800'}`}
-        >
-          <span>{opt.label}</span>
-          {opt.value === value && <Check className="w-4 h-4 text-primary-600 flex-shrink-0 ml-2" />}
-        </button>
-      ))}
-    </div>,
+    <>
+      {/* overlay transparent — ferme le dropdown au tap extérieur */}
+      <div
+        style={{ position: 'fixed', inset: 0, zIndex: 99997 }}
+        onClick={() => setOpen(false)}
+      />
+      <div
+        style={{
+          position: 'fixed',
+          top: `${position.top}px`,
+          left: `${position.left}px`,
+          width: `${position.width}px`,
+          maxHeight: `${position.maxHeight}px`,
+          zIndex: 99999,
+        }}
+        className="bg-white border border-gray-300 rounded-lg shadow-2xl overflow-y-auto"
+      >
+        {options.map(opt => (
+          <button
+            key={opt.value}
+            type="button"
+            disabled={opt.disabled}
+            onClick={() => { if (!opt.disabled) { onChange(opt.value); setOpen(false); } }}
+            className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors border-b border-gray-50 last:border-0
+              ${opt.disabled ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-gray-50 active:bg-gray-100'}
+              ${opt.value === value ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-800'}`}
+          >
+            <span>{opt.label}</span>
+            {opt.value === value && <Check className="w-4 h-4 text-primary-600 flex-shrink-0 ml-2" />}
+          </button>
+        ))}
+      </div>
+    </>,
     document.body
   ) : null;
 
@@ -119,6 +111,7 @@ export default function CustomSelect({
       <button
         ref={triggerRef}
         type="button"
+        style={open ? { position: 'relative', zIndex: 99998 } : undefined}
         onClick={() => { if (!disabled) setOpen(!open); }}
         className={`w-full flex items-center justify-between px-3 py-2 border rounded-lg text-sm text-left transition-colors
           ${open ? 'border-primary-500 ring-2 ring-primary-500/20' : 'border-gray-300 hover:border-gray-400'}

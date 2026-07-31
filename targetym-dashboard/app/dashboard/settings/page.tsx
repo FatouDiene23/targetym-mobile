@@ -1,7 +1,6 @@
 'use client';
 
 import Header from '@/components/Header';
-import CustomSelect from '@/components/CustomSelect';
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -47,6 +46,7 @@ import { getIntegrations, connectIntegration, disconnectIntegration, syncIntegra
 import LicensesTab from '@/components/LicensesTab';
 import { useLicenseStatus } from '@/hooks/useLicenseStatus';
 import { KeyRound } from 'lucide-react';
+import CustomSelect from '@/components/CustomSelect';
 
 const GROUP_BASE_PRICE = 100_000;       // XOF/mois
 const GROUP_PRICE_PER_SUB = 30_000;    // XOF/mois par filiale

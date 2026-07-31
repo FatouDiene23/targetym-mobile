@@ -20,7 +20,12 @@ import { useI18n } from '@/lib/i18n/I18nContext';
 // TYPES
 // ============================================
 
-interface UserProfile { id: number; employee_id?: number; }
+interface UserProfile {
+  id: number;
+  employee_id?: number;
+  has_manager_access?: boolean;
+  managed_employee_count?: number;
+}
 
 interface Employee {
   id: number;
@@ -652,7 +657,9 @@ export default function MyTeamPage() {
       const emp = await getEmployee(user.employee_id);
       setEmployee(emp);
 
-      if (!emp.is_manager) { setError(t.mySpace.noAccess); return; }
+      // Accès manager effectif : has_manager_access couvre le manager de fait
+      // (rôle employee avec des rattachements directs), is_manager reste le repli.
+      if (!user.has_manager_access && !emp.is_manager) { setError(t.mySpace.noAccess); return; }
 
       const team = await getDirectReports(user.employee_id);
       setTeamMembers(team);

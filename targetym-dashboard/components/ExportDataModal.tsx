@@ -14,6 +14,8 @@ import {
 } from '@/lib/api';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import type { Translations } from '@/lib/i18n';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES
@@ -442,32 +444,34 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
             {(dataType === 'employees' || dataType === 'leaves') && (
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">{x.colDepartment}</label>
-                <select
-                  value={filters.department_id || ''}
-                  onChange={(e) => setFilters(f => ({ ...f, department_id: e.target.value ? parseInt(e.target.value) : undefined }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                >
-                  <option value="">{x.allDepartments}</option>
-                  {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                </select>
+                <CustomSelect
+                  value={String(filters.department_id || '')}
+                  onChange={(v) => setFilters(f => ({ ...f, department_id: v ? parseInt(v) : undefined }))}
+                  options={[
+                    { value: '', label: x.allDepartments },
+                    ...departments.map(d => ({ value: String(d.id), label: d.name })),
+                  ]}
+                  className="w-full"
+                />
               </div>
             )}
 
             {dataType === 'employees' && (
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">{x.colStatus}</label>
-                <select
+                <CustomSelect
                   value={filters.status || ''}
-                  onChange={(e) => setFilters(f => ({ ...f, status: e.target.value || undefined }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                >
-                  <option value="">{x.allStatuses}</option>
-                  <option value="active">{x.activeSt}</option>
-                  <option value="probation">{x.probation}</option>
-                  <option value="on_leave">{x.onLeave}</option>
-                  <option value="suspended">{x.suspended}</option>
-                  <option value="terminated">{x.terminated}</option>
-                </select>
+                  onChange={(v) => setFilters(f => ({ ...f, status: v || undefined }))}
+                  options={[
+                    { value: '', label: x.allStatuses },
+                    { value: 'active', label: x.activeSt },
+                    { value: 'probation', label: x.probation },
+                    { value: 'on_leave', label: x.onLeave },
+                    { value: 'suspended', label: x.suspended },
+                    { value: 'terminated', label: x.terminated },
+                  ]}
+                  className="w-full"
+                />
               </div>
             )}
 
@@ -475,26 +479,33 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
               <>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">{x.colStatus}</label>
-                  <select
+                  <CustomSelect
                     value={filters.status || ''}
-                    onChange={(e) => setFilters(f => ({ ...f, status: e.target.value || undefined }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                  >
-                    <option value="">{x.allFilter}</option>
-                    <option value="pending">{x.pendingSt}</option>
-                    <option value="approved">{x.approved}</option>
-                    <option value="rejected">{x.rejected}</option>
-                  </select>
+                    onChange={(v) => setFilters(f => ({ ...f, status: v || undefined }))}
+                    options={[
+                      { value: '', label: x.allFilter },
+                      { value: 'pending', label: x.pendingSt },
+                      { value: 'approved', label: x.approved },
+                      { value: 'rejected', label: x.rejected },
+                    ]}
+                    className="w-full"
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">{x.from}</label>
-                  <input type="date" value={filters.date_from || ''} onChange={(e) => setFilters(f => ({ ...f, date_from: e.target.value || undefined }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
+                  <CustomDatePicker
+                    value={filters.date_from || ''}
+                    onChange={(v) => setFilters(f => ({ ...f, date_from: v || undefined }))}
+                    className="w-full"
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">{x.to}</label>
-                  <input type="date" value={filters.date_to || ''} onChange={(e) => setFilters(f => ({ ...f, date_to: e.target.value || undefined }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
+                  <CustomDatePicker
+                    value={filters.date_to || ''}
+                    onChange={(v) => setFilters(f => ({ ...f, date_to: v || undefined }))}
+                    className="w-full"
+                  />
                 </div>
               </>
             )}
@@ -502,16 +513,17 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
             {dataType === 'tasks' && (
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">{x.colStatus}</label>
-                <select
+                <CustomSelect
                   value={filters.status || ''}
-                  onChange={(e) => setFilters(f => ({ ...f, status: e.target.value || undefined }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                >
-                  <option value="">{x.allFilter}</option>
-                  <option value="pending">{x.pendingSt}</option>
-                  <option value="in_progress">{x.inProgressSt}</option>
-                  <option value="completed">{x.completedSt}</option>
-                </select>
+                  onChange={(v) => setFilters(f => ({ ...f, status: v || undefined }))}
+                  options={[
+                    { value: '', label: x.allFilter },
+                    { value: 'pending', label: x.pendingSt },
+                    { value: 'in_progress', label: x.inProgressSt },
+                    { value: 'completed', label: x.completedSt },
+                  ]}
+                  className="w-full"
+                />
               </div>
             )}
 

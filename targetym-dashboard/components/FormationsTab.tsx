@@ -7,6 +7,8 @@ import {
   Search,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES
@@ -144,36 +146,33 @@ function AssignModal({ employees, courses, onSave, onClose }: AssignModalProps) 
                 className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
               />
             </div>
-            <select
+            <CustomSelect
               value={employeeId}
-              onChange={e => setEmployeeId(e.target.value)}
-              required
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-              size={5}
-            >
-              <option value="">— Sélectionner —</option>
-              {filteredEmps.map(e => (
-                <option key={e.id} value={e.id}>{empName(e)}</option>
-              ))}
-            </select>
+              onChange={v => setEmployeeId(v)}
+              options={[
+                { value: '', label: '— Sélectionner —' },
+                ...filteredEmps.map(e => (
+                ({ value: String(e.id), label: empName(e) })
+              )),
+              ]}
+              className="w-full"
+            />
           </div>
 
           {/* Course select */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Formation <span className="text-red-500">*</span></label>
-            <select
+            <CustomSelect
               value={courseId}
-              onChange={e => setCourseId(e.target.value)}
-              required
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-            >
-              <option value="">— Sélectionner une formation —</option>
-              {courses.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.title}{c.duration_hours ? ` (${c.duration_hours}h)` : ''}{c.category ? ` — ${c.category}` : ''}
-                </option>
-              ))}
-            </select>
+              onChange={v => setCourseId(v)}
+              options={[
+                { value: '', label: '— Sélectionner une formation —' },
+                ...courses.map(c => (
+                ({ value: String(c.id), label: `${c.title}${c.duration_hours ? ` (${c.duration_hours}h)` : ''}${c.category ? ` — ${c.category}` : ''}` })
+              )),
+              ]}
+              className="w-full"
+            />
           </div>
 
           {/* Deadline */}
@@ -181,12 +180,11 @@ function AssignModal({ employees, courses, onSave, onClose }: AssignModalProps) 
             <label className="block text-sm font-medium text-gray-700 mb-1">Date limite <span className="text-gray-400 font-normal">(optionnel)</span></label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="date"
+              <CustomDatePicker
                 value={deadline}
-                onChange={e => setDeadline(e.target.value)}
+                onChange={(v) => setDeadline(v)}
                 min={new Date().toISOString().split('T')[0]}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                className="w-full"
               />
             </div>
           </div>
@@ -354,16 +352,16 @@ export default function FormationsTab({ employeesList = [] }: FormationsTabProps
               />
             </div>
             {/* Status filter */}
-            <select
+            <CustomSelect
               value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-            >
-              <option value="">Tous les statuts</option>
-              {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-                <option key={k} value={k}>{v.label}</option>
-              ))}
-            </select>
+              onChange={v => setFilterStatus(v)}
+              options={[
+                { value: '', label: 'Tous les statuts' },
+                ...Object.entries(STATUS_CONFIG).map(([k, v]) => (
+                ({ value: String(k), label: v.label })
+              )),
+              ]}
+            />
           </div>
           <div className="flex gap-2 shrink-0">
             <button

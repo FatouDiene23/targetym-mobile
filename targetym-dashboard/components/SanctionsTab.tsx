@@ -8,6 +8,8 @@ import {
 import ConfirmDialog from './ConfirmDialog';
 import toast from 'react-hot-toast';
 import { getEmployees, fetchWithAuth, API_URL, type Employee } from '@/lib/api';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // CONFIG
@@ -414,27 +416,28 @@ export default function SanctionsTab() {
         {/* Expanded Filters */}
         {showFilters && (
           <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-3 items-center">
-            <select
+            <CustomSelect
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-            >
-              <option value="">Tous les types</option>
-              {SANCTION_TYPE_OPTIONS.map(t => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
+              onChange={(v) => setFilterType(v)}
+              options={[
+                { value: '', label: 'Tous les types' },
+                ...SANCTION_TYPE_OPTIONS.map(t => (
+                ({ value: String(t), label: t })
+              )),
+              ]}
+            />
 
-            <select
-              value={filterEmployee || ''}
-              onChange={(e) => setFilterEmployee(e.target.value ? Number(e.target.value) : null)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none min-w-[200px]"
-            >
-              <option value="">Tous les employés</option>
-              {employees.map(e => (
-                <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={String(filterEmployee || '')}
+              onChange={(v) => setFilterEmployee(v ? Number(v) : null)}
+              options={[
+                { value: '', label: 'Tous les employés' },
+                ...employees.map(e => (
+                ({ value: String(e.id), label: `${e.first_name} ${e.last_name}` })
+              )),
+              ]}
+              className="min-w-[200px]"
+            />
 
             {hasFilters && (
               <button onClick={clearFilters} className="text-sm text-gray-500 hover:text-gray-700 underline">
@@ -462,40 +465,41 @@ export default function SanctionsTab() {
             {/* Employé */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Employé *</label>
-              <select
-                value={newSanction.employee_id || ''}
-                onChange={(e) => setNewSanction(prev => ({ ...prev, employee_id: Number(e.target.value) }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-              >
-                <option value="">Sélectionner un employé</option>
-                {employees.map(e => (
-                  <option key={e.id} value={e.id}>{e.first_name} {e.last_name}{e.department_name ? ` - ${e.department_name}` : ''}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={String(newSanction.employee_id || '')}
+                onChange={(v) => setNewSanction(prev => ({ ...prev, employee_id: Number(v) }))}
+                options={[
+                  { value: '', label: 'Sélectionner un employé' },
+                  ...employees.map(e => (
+                  ({ value: String(e.id), label: `${e.first_name} ${e.last_name}${e.department_name ? ` - ${e.department_name}` : ''}` })
+                )),
+                ]}
+                className="w-full"
+              />
             </div>
 
             {/* Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Type de sanction *</label>
-              <select
+              <CustomSelect
                 value={newSanction.type}
-                onChange={(e) => setNewSanction(prev => ({ ...prev, type: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-              >
-                {SANCTION_TYPE_OPTIONS.map(t => (
-                  <option key={t} value={t}>{SANCTION_TYPES[t].icon} {t}</option>
-                ))}
-              </select>
+                onChange={(v) => setNewSanction(prev => ({ ...prev, type: v }))}
+                options={[
+                  ...SANCTION_TYPE_OPTIONS.map(t => (
+                  ({ value: String(t), label: `${SANCTION_TYPES[t].icon} ${t}` })
+                )),
+                ]}
+                className="w-full"
+              />
             </div>
 
             {/* Date */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
-              <input
-                type="date"
+              <CustomDatePicker
                 value={newSanction.date}
-                onChange={(e) => setNewSanction(prev => ({ ...prev, date: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                onChange={(v) => setNewSanction(prev => ({ ...prev, date: v }))}
+                className="w-full"
               />
             </div>
 

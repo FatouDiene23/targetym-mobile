@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import CustomSelect from '@/components/CustomSelect';
 import {
   Scale, Search, Plus, Loader2, X, ChevronLeft, ChevronRight,
   Calendar, User, Filter, Upload, Download, Trash2, FileText,
@@ -13,6 +12,8 @@ import toast from 'react-hot-toast';
 import { fetchWithAuth, API_URL, getEmployees, type Employee } from '@/lib/api';
 import Header from '@/components/Header';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -871,11 +872,10 @@ export default function ContentieuxPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.sanctions.nextAudienceDate}</label>
-                <input
-                  type="date"
+                <CustomDatePicker
                   value={audienceForm.next_audience_date}
-                  onChange={e => setAudienceForm(f => ({ ...f, next_audience_date: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                  onChange={(v) => setAudienceForm(f => ({ ...f, next_audience_date: v }))}
+                  className="w-full"
                 />
               </div>
               <div className="md:col-span-2">
@@ -1209,11 +1209,10 @@ export default function ContentieuxPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.sanctions.openingDateLabel}</label>
-              <input
-                type="date"
+              <CustomDatePicker
                 value={createForm.opened_date}
-                onChange={e => setCreateForm(f => ({ ...f, opened_date: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                onChange={(v) => setCreateForm(f => ({ ...f, opened_date: v }))}
+                className="w-full"
               />
             </div>
             <div>

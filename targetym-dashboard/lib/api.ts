@@ -3,6 +3,9 @@ import { normalizeApiErrorMessage, normalizeApiErrorPayload } from '@/lib/apiErr
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
+/** Écran de connexion — page statique embarquée dans le bundle Capacitor. */
+export const LOGIN_URL = process.env.NEXT_PUBLIC_LOGIN_URL || '/login/index.html';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Gestion sécurisée des tokens (Option C hybride)
 //
@@ -34,15 +37,42 @@ export function injectAuthAccessor(
   if (setToken) _setTokenFn = setToken;
 }
 
-/** Lit l'access_token depuis le contexte Auth (ou sessionStorage en fallback). */
+/**
+ * Lit l'access_token depuis le contexte Auth, puis en fallback depuis le stockage.
+ *
+ * MOBILE : il n'y a pas d'AuthProvider ici (injectAuthAccessor n'est jamais appelé)
+ * et le token est écrit dans localStorage par le layout / la page de login.
+ * Le fallback localStorage est donc le chemin nominal sur mobile — sans lui,
+ * tous les appels de ce module partent sans en-tête Authorization.
+ */
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   if (_getAccessTokenFn) {
     const token = _getAccessTokenFn();
     if (token) return token;
   }
-  // Fallback : sessionStorage si le contexte n'est pas encore injecté ou retourne null
-  try { return sessionStorage.getItem('access_token'); } catch { return null; }
+  try {
+    return sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
+  } catch {
+    return null;
+  }
+}
+
+/** Refresh token — sur mobile il est en localStorage (pas de cookie httpOnly). */
+function getRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  try { return localStorage.getItem('refresh_token'); } catch { return null; }
+}
+
+/** Purge la session stockée côté client (mobile : localStorage). */
+function clearStoredSession(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('employee_photo_url');
+  } catch { /* stockage indisponible — rien à purger */ }
 }
 
 // Helper pour les headers authentifiés
@@ -67,32 +97,33 @@ async function refreshAccessToken(): Promise<boolean> {
   isRefreshing = true;
   refreshPromise = (async () => {
     try {
-      // credentials: 'include' → le navigateur envoie automatiquement le cookie httpOnly
-      // Pas de body JSON nécessaire (le refresh_token est dans le cookie)
+      // Web : le cookie httpOnly suffit (credentials: 'include').
+      // Mobile : la WebView Capacitor n'a pas ce cookie → on envoie le refresh_token
+      // stocké en localStorage dans le body, comme avant le portage.
+      const refreshToken = getRefreshToken();
       const response = await fetch(`${API_URL}/api/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',  // ← envoi automatique du cookie httpOnly
+        credentials: 'include',
+        ...(refreshToken ? { body: JSON.stringify({ refresh_token: refreshToken }) } : {}),
       });
 
       if (!response.ok) {
         console.log('Refresh token failed:', response.status);
-        // Cookie expiré ou invalide → déconnexion
+        // Session expirée ou invalide → déconnexion
         if (_clearAuthFn) _clearAuthFn();
-        window.location.href = 'https://www.targetym.ai/login';
+        clearStoredSession();
+        window.location.replace(LOGIN_URL);
         return false;
       }
 
       const data = await response.json();
-      // Mettre à jour l'access_token dans AuthContext (mémoire) via le setter injecté
       if (data.access_token) {
-        if (_setTokenFn) {
-          _setTokenFn(data.access_token);
-        } else {
-          // Fallback transitoire si setToken pas encore injecté
-          localStorage.setItem('access_token', data.access_token);
-        }
+        if (_setTokenFn) _setTokenFn(data.access_token);
+        localStorage.setItem('access_token', data.access_token);
       }
+      if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token);
+      if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
       console.log('Token refreshed successfully');
       return true;
     } catch (error) {
@@ -3620,9 +3651,15 @@ export interface ProgramInitiativeAssignmentItem {
   description: string | null;
   frequency: ProgramInitiativeFrequency;
   priority: string;
+  weight_pct: number | null;
+  effective_weight_pct: number | null;
   objective_id: number | null;
   key_result_id: number | null;
   kr_contribution: number | null;
+  tasks_count: number;
+  completed_tasks_count: number;
+  progress_pct: number;
+  applied_kr_contribution: number;
   due_date: string | null;
   repeat_until: string | null;
   is_enabled: boolean;
@@ -3635,6 +3672,7 @@ export interface ProgramInitiativeAssignment {
   program_code: string | null;
   program_name: string;
   name: string;
+  description: string | null;
   status: string;
   employee_id: number;
   employee: HREmployeeItem | null;
@@ -3644,12 +3682,18 @@ export interface ProgramInitiativeAssignment {
   objective_title: string | null;
   key_result_id: number | null;
   key_result_title: string | null;
+  kr_weight: number | null;
+  auto_apply_to_kr: boolean;
   starts_on: string | null;
   ends_on: string | null;
   items_count: number;
   tasks_count: number;
   completed_tasks_count: number;
   progress_pct: number;
+  weighted_progress_pct: number;
+  estimated_kr_contribution_pct: number;
+  estimated_kr_contribution_value: number;
+  applied_kr_contribution: number;
   items?: ProgramInitiativeAssignmentItem[];
   created_tasks?: number;
   created_at: string | null;
@@ -3721,6 +3765,44 @@ export async function getMyProgramInitiativeAssignments(): Promise<ProgramInitia
 
 export async function getManagedProgramInitiativeAssignments(): Promise<ProgramInitiativeAssignment[]> {
   const response = await fetchWithAuth(`${API_URL}/api/program-initiatives/assignments/managed`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function updateProgramInitiativeAssignment(
+  id: number,
+  data: {
+    name?: string | null;
+    description?: string | null;
+    status?: string | null;
+    objective_id?: number | null;
+    key_result_id?: number | null;
+    kr_contribution?: number | null;
+    kr_weight?: number | null;
+    auto_apply_to_kr?: boolean | null;
+    starts_on?: string | null;
+    ends_on?: string | null;
+    items: Array<{
+      id?: number | null;
+      title: string;
+      description?: string | null;
+      frequency?: ProgramInitiativeFrequency;
+      priority?: string;
+      objective_id?: number | null;
+      key_result_id?: number | null;
+      kr_contribution?: number | null;
+      weight_pct?: number | null;
+      due_date?: string | null;
+      repeat_until?: string | null;
+      is_enabled?: boolean;
+    }>;
+  }
+): Promise<ProgramInitiativeAssignment> {
+  const response = await fetchWithAuth(`${API_URL}/api/program-initiatives/assignments/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
   if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
   return response.json();
 }
@@ -4474,6 +4556,16 @@ export async function getTenantUsers(filters?: { search?: string; role?: string 
   if (filters?.role) sp.set('role', filters.role);
   const qs = sp.toString();
   const response = await fetchWithAuth(`${API_URL}/api/users/tenant${qs ? `?${qs}` : ''}`);
+  if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
+  return response.json();
+}
+
+export async function updateTenantUserRole(userId: number, role: string): Promise<TenantUser> {
+  const response = await fetchWithAuth(`${API_URL}/api/users/${userId}/role`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role }),
+  });
   if (!response.ok) { const error = await parseApiError(response); throw new Error(error); }
   return response.json();
 }

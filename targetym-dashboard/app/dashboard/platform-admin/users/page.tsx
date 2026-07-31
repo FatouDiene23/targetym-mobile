@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import CustomSelect from '@/components/CustomSelect';
 import toast from 'react-hot-toast';
 import {
   Users, Search, Plus, Edit2, Trash2, Eye, EyeOff,
@@ -24,6 +23,7 @@ import {
   type UserCreateData,
   type UserUpdateData
 } from '@/lib/api';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function PlatformUsersManagement() {
   const router = useRouter();

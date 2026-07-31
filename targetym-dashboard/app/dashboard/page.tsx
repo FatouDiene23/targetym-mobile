@@ -32,6 +32,7 @@ import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { useGroupContext } from '@/hooks/useGroupContext';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import { hasManagerSignal } from '@/lib/managerAccess';
 
 // ============================================
 // TYPES
@@ -39,7 +40,16 @@ import { useI18n } from '@/lib/i18n/I18nContext';
 
 type UserRole = 'employee' | 'manager' | 'rh' | 'admin' | 'dg';
 
-interface UserData { id: number; email: string; first_name?: string; last_name?: string; role?: string; employee_id?: number; }
+interface UserData {
+  id: number;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  role?: string;
+  employee_id?: number;
+  has_manager_access?: boolean;
+  managed_employee_count?: number;
+}
 interface LeaveBalance { leave_type_name: string; available: number; taken: number; allocated: number; }
 interface LeaveBalanceSummary { total_available: number; total_taken: number; balances: LeaveBalance[]; }
 interface LeaveRequest { id: number; employee_name?: string; leave_type_name?: string; start_date: string; end_date: string; days_requested: number; status: string; }
@@ -1054,6 +1064,8 @@ export default function DashboardPage() {
               last_name: localUser.last_name,
               role: localUser.role,
               employee_id: localUser.employee_id,
+              has_manager_access: localUser.has_manager_access,
+              managed_employee_count: localUser.managed_employee_count,
             };
           } catch { /* ignore */ }
         }
@@ -1072,7 +1084,7 @@ export default function DashboardPage() {
       }
 
       const role = normalizeRole(user.role);
-      let isManager = role === 'manager';
+      let isManager = role === 'manager' || hasManagerSignal(user);
       const employeeId = user.employee_id || null;
 
       if (employeeId) {

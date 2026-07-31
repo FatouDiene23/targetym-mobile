@@ -1,7 +1,6 @@
 ﻿'use client';
 
 import Header from '@/components/Header';
-import CustomSelect from '@/components/CustomSelect';
 import { useState, useEffect, useCallback } from 'react';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
@@ -12,6 +11,7 @@ import {
   ExternalLink, X, Loader2, CheckCircle,
   AlertCircle, Eye, TrendingUp
 } from 'lucide-react';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES

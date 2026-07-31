@@ -20,6 +20,8 @@ import {
   createHRProgram, activateHRTemplate, uploadMediaImage, addHRAction, deleteHRAction,
   assignHRProgram, getObjectivesForLinking,
 } from '@/lib/api';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
@@ -285,12 +287,14 @@ function ActionRow({ action, onUpdate, onDelete }: { action: HRProgramAction; on
             {/* Statut */}
             <div>
               <p className="text-xs font-semibold text-gray-400 mb-1">Statut</p>
-              <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none bg-white"
+              <CustomSelect
                 value={status}
-                onChange={e => { const s = e.target.value as HRProgramAction['status']; setStatus(s); save({ status: s }); }}>
-                {Object.entries(STATUS_CFG).map(([v, c]) => <option key={v} value={v}>{c.label}</option>)}
-              </select>
+                onChange={v => { const s = v as HRProgramAction['status']; setStatus(s); save({ status: s }); }}
+                options={[
+                  ...Object.entries(STATUS_CFG).map(([v, c]) => ({ value: String(v), label: c.label })),
+                ]}
+                className="w-full"
+              />
             </div>
 
             {/* Commentaire */}
@@ -683,56 +687,64 @@ function AssignPanel({ detail, currentOwner, onSaved }: {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <label className="space-y-1 sm:col-span-2">
             <span className="text-xs font-medium text-gray-600">Collaborateur N-1</span>
-            <select
-              value={selectedEmployeeId}
-              onChange={e => setSelectedEmployeeId(e.target.value ? Number(e.target.value) : '')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-            >
-              <option value="">Sélectionner</option>
-              {employees.map(e => <option key={e.id} value={e.id}>{e.name}{e.job_title ? ` · ${e.job_title}` : ''}</option>)}
-            </select>
+            <CustomSelect
+              value={String(selectedEmployeeId)}
+              onChange={v => setSelectedEmployeeId(v ? Number(v) : '')}
+              options={[
+                { value: '', label: 'Sélectionner' },
+                ...employees.map(e => ({ value: String(e.id), label: `${e.name}${e.job_title ? ` · ${e.job_title}` : ''}` })),
+              ]}
+              className="w-full"
+            />
           </label>
           <label className="space-y-1">
             <span className="text-xs font-medium text-gray-600">Fréquence</span>
-            <select value={frequency} onChange={e => setFrequency(e.target.value as HRProgramFrequency)} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm">
-              <option value="daily">Journalier</option>
-              <option value="weekly">Hebdomadaire</option>
-              <option value="monthly">Mensuel</option>
-              <option value="quarterly">Trimestriel</option>
-              <option value="once">Ponctuel</option>
-            </select>
+            <CustomSelect
+              value={frequency}
+              onChange={v => setFrequency(v as HRProgramFrequency)}
+              options={[
+                { value: 'daily', label: 'Journalier' },
+                { value: 'weekly', label: 'Hebdomadaire' },
+                { value: 'monthly', label: 'Mensuel' },
+                { value: 'quarterly', label: 'Trimestriel' },
+                { value: 'once', label: 'Ponctuel' },
+              ]}
+              className="w-full"
+            />
           </label>
           <label className="space-y-1">
             <span className="text-xs font-medium text-gray-600">Objectif OKR</span>
-            <select
-              value={objectiveId}
-              onChange={e => { setObjectiveId(e.target.value ? Number(e.target.value) : ''); setKeyResultId(''); }}
+            <CustomSelect
+              value={String(objectiveId)}
+              onChange={v => { setObjectiveId(v ? Number(v) : ''); setKeyResultId(''); }}
               disabled={!selectedEmployeeId}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm disabled:bg-gray-100"
-            >
-              <option value="">Aucun</option>
-              {objectives.map(o => <option key={o.id} value={o.id}>{o.title}</option>)}
-            </select>
+              options={[
+                { value: '', label: 'Aucun' },
+                ...objectives.map(o => ({ value: String(o.id), label: o.title })),
+              ]}
+              className="w-full"
+            />
           </label>
           <label className="space-y-1">
             <span className="text-xs font-medium text-gray-600">Début</span>
-            <input type="date" value={startsOn} onChange={e => setStartsOn(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm" />
+            <CustomDatePicker value={startsOn} onChange={(v) => setStartsOn(v)} className="w-full" />
           </label>
           <label className="space-y-1">
             <span className="text-xs font-medium text-gray-600">Jusqu'au</span>
-            <input type="date" value={endsOn} onChange={e => setEndsOn(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm" />
+            <CustomDatePicker value={endsOn} onChange={(v) => setEndsOn(v)} className="w-full" />
           </label>
           <label className="space-y-1 sm:col-span-2">
             <span className="text-xs font-medium text-gray-600">Key Result</span>
-            <select
-              value={keyResultId}
-              onChange={e => setKeyResultId(e.target.value ? Number(e.target.value) : '')}
+            <CustomSelect
+              value={String(keyResultId)}
+              onChange={v => setKeyResultId(v ? Number(v) : '')}
               disabled={!selectedObjective?.key_results.length}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm disabled:bg-gray-100"
-            >
-              <option value="">Aucun</option>
-              {selectedObjective?.key_results.map(kr => <option key={kr.id} value={kr.id}>{kr.title}</option>)}
-            </select>
+              options={[
+                { value: '', label: 'Aucun' },
+                ...(selectedObjective?.key_results ?? []).map(kr => ({ value: String(kr.id), label: kr.title })),
+              ]}
+              className="w-full"
+            />
           </label>
         </div>
         <div className="mt-4">
@@ -850,15 +862,16 @@ function EditProgramModal({ detail, onSaved, onClose }: {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
-            <select
+            <CustomSelect
               value={status}
-              onChange={e => setStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none bg-white"
-            >
-              <option value="active">Actif</option>
-              <option value="draft">Brouillon</option>
-              <option value="archived">Archivé</option>
-            </select>
+              onChange={v => setStatus(v)}
+              options={[
+                { value: 'active', label: 'Actif' },
+                { value: 'draft', label: 'Brouillon' },
+                { value: 'archived', label: 'Archivé' },
+              ]}
+              className="w-full"
+            />
           </div>
 
           <div>
@@ -1569,13 +1582,17 @@ function CreateProgramModal({ onClose, onCreated }: { onClose: () => void; onCre
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Phase</label>
-                        <select value={action.phase || 'T1'} onChange={e => updateAction(i, 'phase', e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/30 bg-white">
-                          <option value="T1">T1 — Diagnostic</option>
-                          <option value="T2">T2 — Déploiement</option>
-                          <option value="T3">T3 — Animation</option>
-                          <option value="T4">T4 — Bilan</option>
-                        </select>
+                        <CustomSelect
+                          value={action.phase || 'T1'}
+                          onChange={v => updateAction(i, 'phase', v)}
+                          options={[
+                            { value: 'T1', label: 'T1 — Diagnostic' },
+                            { value: 'T2', label: 'T2 — Déploiement' },
+                            { value: 'T3', label: 'T3 — Animation' },
+                            { value: 'T4', label: 'T4 — Bilan' },
+                          ]}
+                          className="w-full"
+                        />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Budget (FCFA)</label>

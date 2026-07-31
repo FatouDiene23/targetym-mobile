@@ -3,10 +3,10 @@
 import { useLearning } from '../LearningContext';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import { TrendingUp, Clock, CheckCircle, BookOpen, Target, Users, Wallet, AlertCircle } from 'lucide-react';
-import CustomSelect from '@/components/CustomSelect';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
 import { useState, useEffect, useCallback } from 'react';
 import { getAuthHeaders, API_URL } from '../shared';
+import CustomSelect from '@/components/CustomSelect';
 
 // ---- Types pour le suivi du plan ----
 interface PlanKPIs {

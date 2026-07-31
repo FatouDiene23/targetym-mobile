@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import CustomSelect from '@/components/CustomSelect';
 import {
   Loader2, Plus, Edit, Trash2, Calendar, Clock, X, CheckCircle,
   XCircle, AlertCircle, Users, DoorOpen, ChevronRight, Ban,
@@ -10,6 +9,8 @@ import toast from 'react-hot-toast';
 import Header from '@/components/Header';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import { fetchWithAuth, API_URL } from '@/lib/api';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============ TYPES ============
 
@@ -492,11 +493,10 @@ export default function ReservationsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.rooms.dateLabel}</label>
-                  <input
-                    type="date"
+                  <CustomDatePicker
                     value={selectedDate}
-                    onChange={e => setSelectedDate(e.target.value)}
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    onChange={(v) => setSelectedDate(v)}
+                    className="w-full"
                   />
                 </div>
               </div>
@@ -634,11 +634,10 @@ export default function ReservationsPage() {
           <div className="bg-white rounded-lg border px-4 py-3 flex flex-wrap gap-3 items-end">
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">{i18n.rooms.dateLabel}</label>
-              <input
-                type="date"
+              <CustomDatePicker
                 value={filterDate}
-                onChange={e => setFilterDate(e.target.value)}
-                className="border rounded-lg px-3 py-1.5 text-sm"
+                onChange={(v) => setFilterDate(v)}
+                className="w-full"
               />
             </div>
             <div>

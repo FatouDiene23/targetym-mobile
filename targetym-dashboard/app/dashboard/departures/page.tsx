@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import CustomSelect from '@/components/CustomSelect';
 import Header from '@/components/Header';
 import {
   UserMinus, Search, Plus, X, ChevronLeft, ChevronRight, Clock, CheckCircle,
@@ -11,6 +10,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES
@@ -1157,8 +1158,11 @@ export default function DeparturesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-gray-500">{t.departures.date}</label>
-                  <input type="date" value={interviewDate} onChange={e => setInterviewDate(e.target.value)}
-                    className="w-full border rounded-lg px-3 py-1.5 text-sm mt-1" />
+                  <CustomDatePicker
+                    value={interviewDate}
+                    onChange={(v) => setInterviewDate(v)}
+                    className="w-full mt-1"
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-gray-500">{t.departures.time}</label>
@@ -1565,8 +1569,11 @@ export default function DeparturesPage() {
                 </div>
                 <div>
                   <label className="text-sm text-gray-600">{t.departures.requestedDepartureDate} <span className="text-red-500">*</span></label>
-                  <input type="date" value={formDate} onChange={e => setFormDate(e.target.value)}
-                    className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+                  <CustomDatePicker
+                    value={formDate}
+                    onChange={(v) => setFormDate(v)}
+                    className="w-full mt-1"
+                  />
                 </div>
               </div>
             )}

@@ -44,6 +44,10 @@ import {
   Lightbulb,
   UserMinus,
   Receipt,
+  ScanLine,
+  Archive,
+  Heart,
+  FileSignature,
   Building2,
   GitBranch,
   AlertTriangle,
@@ -60,6 +64,7 @@ import { useState, useEffect, useMemo, Suspense, useCallback } from 'react';
 import { useHelpMenu } from '@/hooks/useHelpMenu';
 import { usePlan, FEATURE_OKR, FEATURE_CAREERS, FEATURE_LEARNING, FEATURE_PERFORMANCE, FEATURE_ANALYTICS, FEATURE_DEPARTURES, FEATURE_CERTIFICATES, FEATURE_DOCUMENTS, FEATURE_TASKS, getRequiredPlanLabel } from '@/hooks/usePlan';
 import { PlanBadge } from '@/components/PlanGate';
+import { hasManagerSignal } from '@/lib/managerAccess';
 
 // ============================================
 // TYPES
@@ -89,6 +94,8 @@ interface UserData {
   employee_id?: number;
   is_manager?: boolean;
   is_juriste?: boolean;
+  has_manager_access?: boolean;
+  managed_employee_count?: number;
 }
 
 // ============================================
@@ -103,12 +110,40 @@ const navigation: NavItem[] = [
     roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
     dataTour: 'sidebar-dashboard'
   },
-  { 
-    name: 'OKR & Objectifs', 
-    href: '/dashboard/okr', 
+  {
+    name: 'OKR & Objectifs',
+    href: '/dashboard/okr',
     icon: Target,
     roles: ['manager', 'rh', 'admin', 'dg'],
     dataTour: 'sidebar-okr'
+  },
+  // La page OKR n'a pas de barre d'onglets : l'onglet actif vient du paramètre
+  // `?tab=`. Le web l'expose via un sous-menu déroulant ; la Sidebar mobile ne
+  // rend pas de sous-menus, ces entrées plates sont donc le seul accès.
+  {
+    name: 'OKR — Cascade',
+    href: '/dashboard/okr?tab=cascade',
+    icon: GitBranch,
+    roles: ['manager', 'rh', 'admin', 'dg'],
+  },
+  {
+    name: 'OKR — Tableau de bord',
+    href: '/dashboard/okr?tab=dashboard',
+    icon: BarChart3,
+    roles: ['manager', 'rh', 'admin', 'dg'],
+  },
+  {
+    name: "OKR — Contrats d'objectifs",
+    href: '/dashboard/okr?tab=contracts',
+    icon: FileSignature,
+    roles: ['manager', 'rh', 'admin', 'dg'],
+  },
+  {
+    name: 'OKR — Job description',
+    href: '/dashboard/okr?tab=jobDescription',
+    icon: FileText,
+    roles: ['rh', 'admin', 'dg'],
+    hideOnMobile: true,
   },
   { 
     name: 'Recrutement', 
@@ -180,6 +215,26 @@ const navigation: NavItem[] = [
     hideOnMobile: true,
   },
   {
+    name: 'Présence',
+    href: '/dashboard/presence',
+    icon: ScanLine,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
+  },
+  {
+    name: 'Archives Présence',
+    href: '/dashboard/presence/archives',
+    icon: Archive,
+    roles: ['rh', 'admin', 'dg'],
+    hideOnMobile: true,
+  },
+  {
+    name: 'Avances & Prêts',
+    href: '/dashboard/employee-finance',
+    icon: Receipt,
+    roles: ['admin', 'dg', 'rh'],
+    hideOnMobile: true,
+  },
+  {
     name: 'Gestion des Contentieux',
     href: '/dashboard/contentieux',
     icon: Scale,
@@ -237,12 +292,21 @@ const navigation: NavItem[] = [
     icon: FileText,
     roles: ['admin', 'dg', 'rh']
   },
-  { 
-    name: 'Paramètres', 
-    href: '/dashboard/settings', 
+  {
+    name: 'Paramètres',
+    href: '/dashboard/settings',
     icon: Settings,
     roles: ['admin', 'dg', 'rh'],
     dataTour: 'sidebar-settings'
+  },
+  {
+    // Le web l'expose via un onglet de la page Paramètres ; la page Paramètres
+    // mobile a divergé, on l'atteint donc directement depuis le menu.
+    name: 'Utilisateurs',
+    href: '/dashboard/settings/users',
+    icon: UserPlus,
+    roles: ['admin', 'dg', 'rh'],
+    hideOnMobile: true,
   },
 ];
 
@@ -252,6 +316,8 @@ const mySpaceNavigation: NavItem[] = [
   { name: 'Mon Calendrier', href: '/dashboard/my-space/calendar', icon: CalendarDays, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Mon Parcours', href: '/dashboard/my-space/career', icon: TrendingUp, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Mes Congés', href: '/dashboard/my-space/leaves', icon: Calendar, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-my-leaves' },
+  { name: 'Mes maladies', href: '/dashboard/my-space/sick-declarations', icon: Heart, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
+  { name: 'Mes avances & prêts', href: '/dashboard/my-space/employee-finance', icon: Receipt, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
   { name: 'Mes Objectifs', href: '/dashboard/my-space/objectives', icon: Target, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-my-objectives' },
   { name: 'Mon Équipe', href: '/dashboard/my-space/team', icon: UsersRound, roles: ['manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-team' },
   { name: 'Mes Tâches', href: '/dashboard/my-space/tasks', icon: ClipboardList, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-tasks' },
@@ -313,6 +379,7 @@ const personnelNavigation: NavItem[] = [
   { name: 'Documents',    href: '/dashboard/employees?tab=documents',  icon: FileText,  roles: ['rh', 'admin', 'dg'] },
   { name: 'Congés',       href: '/dashboard/employees?tab=leaves',     icon: Calendar,  roles: ['rh', 'admin', 'dg'] },
   { name: 'Absences',     href: '/dashboard/employees?tab=absences',   icon: UserMinus, roles: ['rh', 'admin', 'dg', 'manager'] },
+  { name: 'Déclarations maladie', href: '/dashboard/sick-declarations', icon: Heart, roles: ['rh', 'admin', 'dg'] },
   { name: 'Formations',   href: '/dashboard/employees?tab=formations', icon: BookOpen,  roles: ['rh', 'admin', 'dg'] },
   { name: 'Sanctions',    href: '/dashboard/employees?tab=sanctions',  icon: Shield,    roles: ['rh', 'admin', 'dg'] },
   { name: 'Invitations',  href: '/dashboard/employees?tab=invitations', icon: UserPlus,  roles: ['rh', 'admin', 'dg'] },
@@ -439,7 +506,7 @@ function SidebarInner() {
       try {
         const userData = JSON.parse(userStr);
         setUser(userData);
-        setIsManager(userData.role?.toLowerCase() === 'manager' || userData.is_manager === true);
+        setIsManager(hasManagerSignal(userData));
         employeeId = userData.employee_id;
       } catch (e) {
         console.error('Error parsing user data:', e);
@@ -468,6 +535,23 @@ function SidebarInner() {
             if (emp?.is_juriste) {
               setUser((prev: UserData | null) => prev ? { ...prev, is_juriste: true } : prev);
             }
+            if (emp?.is_manager === true) {
+              setIsManager(true);
+              setUser((prev: UserData | null) => prev ? { ...prev, is_manager: true } : prev);
+            }
+          })
+          .catch(() => {});
+
+        // Dernier repli : avoir des rattachements directs suffit à ouvrir les menus manager
+        fetch(`${apiUrl}/api/tasks/team-members`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then(r => r.ok ? r.json() : [])
+          .then(members => {
+            if (Array.isArray(members) && members.length > 0) {
+              setIsManager(true);
+              setUser((prev: UserData | null) => prev ? { ...prev, is_manager: true } : prev);
+            }
           })
           .catch(() => {});
       }
@@ -476,8 +560,22 @@ function SidebarInner() {
     const handlePhotoUpdate = () => {
       setPhotoUrl(localStorage.getItem('employee_photo_url'));
     };
+    // Émis quand le layout hydrate has_manager_access depuis /api/auth/me
+    const handleUserUpdate = () => {
+      const str = localStorage.getItem('user');
+      if (!str) return;
+      try {
+        const userData = JSON.parse(str);
+        setUser((prev: UserData | null) => ({ ...prev, ...userData }));
+        setIsManager((prev) => prev || hasManagerSignal(userData));
+      } catch { /* payload illisible — on garde l'état courant */ }
+    };
     window.addEventListener('user:photo-updated', handlePhotoUpdate);
-    return () => window.removeEventListener('user:photo-updated', handlePhotoUpdate);
+    window.addEventListener('user:updated', handleUserUpdate);
+    return () => {
+      window.removeEventListener('user:photo-updated', handlePhotoUpdate);
+      window.removeEventListener('user:updated', handleUserUpdate);
+    };
   }, []);
 
   const userRole = normalizeRole(user?.role);

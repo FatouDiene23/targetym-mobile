@@ -19,11 +19,12 @@ import {
   type Task, type TaskStats, type TaskPriority, type PendingValidation, type TeamMember,
   type DailyValidation, type ObjectiveForLinking
 } from '@/lib/api';
+import { getStoredUser, hasManagerSignal } from '@/lib/managerAccess';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import CustomSelect from '@/components/CustomSelect';
-import CustomDatePicker from '@/components/CustomDatePicker';
 import Header from '@/components/Header';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // Couleurs par priorité (styling only - labels are translated in components)
 const PRIORITY_COLORS: Record<TaskPriority, { bg: string; text: string }> = {
@@ -974,9 +975,11 @@ function PendingValidationsSection({
 function MyTasksTab({
   onRefresh,
   hasManager,
+  isEffectiveManager,
 }: {
   onRefresh: () => void;
   hasManager: boolean;
+  isEffectiveManager: boolean;
 }) {
   const { t } = useI18n();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -1038,12 +1041,14 @@ function MyTasksTab({
         console.error('Error loading upcoming tasks:', err);
       }
 
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        const userIsManager = ['ADMIN', 'MANAGER', 'RH', 'DG'].includes(user.role?.toUpperCase());
+      const user = getStoredUser();
+      if (user) {
+        const userIsManager =
+          isEffectiveManager ||
+          hasManagerSignal(user) ||
+          ['ADMIN', 'MANAGER', 'RH', 'DG'].includes(user.role?.toUpperCase() || '');
         setIsManager(userIsManager);
-        
+
         if (userIsManager) {
           try {
             const pending = await getPendingValidations();
@@ -1058,7 +1063,7 @@ function MyTasksTab({
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isEffectiveManager]);
 
   useEffect(() => {
     loadData();
@@ -2216,25 +2221,27 @@ export default function MyTasksPage() {
 
   useEffect(() => {
     async function loadInitialData() {
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
+      const user = getStoredUser();
+      if (user) {
         try {
-          const user = JSON.parse(userStr);
           const employeeId = user.employee_id || 0;
           setCurrentEmployeeId(employeeId);
-          const userIsManager = ['ADMIN', 'MANAGER', 'RH', 'DG'].includes(user.role?.toUpperCase());
-          setIsManager(userIsManager);
+          let userIsManager =
+            hasManagerSignal(user) ||
+            ['ADMIN', 'MANAGER', 'RH', 'DG'].includes(user.role?.toUpperCase() || '');
 
           if (employeeId) {
             try {
               const employeeData = await getEmployee(employeeId);
               setHasManager(!!employeeData?.manager_id);
+              userIsManager = userIsManager || employeeData?.is_manager === true;
             } catch (err) {
               console.error('Error fetching employee:', err);
               setHasManager(false);
             }
           }
 
+          setIsManager(userIsManager);
           if (userIsManager) {
             getTeamMembers().then(setTeamMembers).catch(console.error);
           }
@@ -2338,7 +2345,7 @@ export default function MyTasksPage() {
 
         {/* Contenu des onglets */}
         {activeTab === 'my-tasks' && (
-          <MyTasksTab key={refreshKey} onRefresh={handleRefresh} hasManager={hasManager} />
+          <MyTasksTab key={refreshKey} onRefresh={handleRefresh} hasManager={hasManager} isEffectiveManager={isManager} />
         )}
         
         {activeTab === 'team-tasks' && isManager && (

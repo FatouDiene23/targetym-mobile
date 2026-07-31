@@ -9,14 +9,15 @@ import {
   Upload, FileDown, Save, Heart, FileText
 } from 'lucide-react';
 import Header from '@/components/Header';
-import CustomSelect from '@/components/CustomSelect';
-import CustomDatePicker from '@/components/CustomDatePicker';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import { getStoredUser, hasManagerSignal } from '@/lib/managerAccess';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import Pagination from '@/components/Pagination';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { leavesTips } from '@/config/pageTips';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES
@@ -284,23 +285,36 @@ async function getEmployeeById(id: number): Promise<EmployeeShort | null> {
   }
 }
 
-function getUserFromStorage(): { role: string; employeeId: number | null; firstName?: string; lastName?: string } {
-  if (typeof window === 'undefined') return { role: 'employee', employeeId: null };
+function getUserFromStorage(): {
+  role: string;
+  employeeId: number | null;
+  firstName?: string;
+  lastName?: string;
+  hasTeamAccess: boolean;
+} {
+  if (typeof window === 'undefined') {
+    return { role: 'employee', employeeId: null, hasTeamAccess: false };
+  }
   try {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const user = JSON.parse(userStr);
+    const user = getStoredUser();
+    if (user) {
       return {
         role: (user.role || 'employee').toLowerCase(),
         employeeId: user.employee_id || null,
         firstName: user.first_name,
         lastName: user.last_name,
+        hasTeamAccess: hasManagerSignal(user),
       };
     }
   } catch (e) {
     console.error('Error parsing user from localStorage:', e);
   }
-  return { role: 'employee', employeeId: null };
+  return { role: 'employee', employeeId: null, hasTeamAccess: false };
+}
+
+/** Un manager de fait garde le rôle `employee` : on l'aligne sur `manager` pour l'UI. */
+function resolveEffectiveRole(stored: { role: string; hasTeamAccess: boolean }): string {
+  return stored.role === 'employee' && stored.hasTeamAccess ? 'manager' : stored.role;
 }
 
 async function getEmployeeBalancesForYear(employeeId: number, year: number): Promise<EmployeeBalance[]> {
@@ -1745,7 +1759,7 @@ function NewLeaveRequestModal({
     (async () => {
       setLoadingEmployees(true);
       const stored = getUserFromStorage();
-      const role = stored.role;
+      const role = resolveEffectiveRole(stored);
       const empId = stored.employeeId;
       if (!cancelled) setUserRole(role);
 
@@ -2888,7 +2902,7 @@ export default function LeavesManagementPage() {
   }, []);
 
   useEffect(() => {
-    setCurrentUserRole(getUserFromStorage().role);
+    setCurrentUserRole(resolveEffectiveRole(getUserFromStorage()));
     getTenantRecallPolicy().then(setRecallPolicy);
   }, []);
 

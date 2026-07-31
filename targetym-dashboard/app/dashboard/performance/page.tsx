@@ -20,10 +20,10 @@ function AttitudeIcon({ name, className = 'w-4 h-4' }: { name: string; className
   return <Icon className={className} />;
 }
 import Header from '@/components/Header';
-import CustomSelect from '@/components/CustomSelect';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
+import CustomSelect from '@/components/CustomSelect';
 
 // =============================================
 // TYPES

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import CustomSelect from '@/components/CustomSelect';
 import Header from '@/components/Header';
 import { useGroupContext } from '@/hooks/useGroupContext';
 import { useI18n } from '@/lib/i18n/I18nContext';
@@ -10,6 +9,7 @@ import {
   Loader2, XCircle, X, BarChart2, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES

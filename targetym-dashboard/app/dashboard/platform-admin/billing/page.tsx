@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import CustomSelect from '@/components/CustomSelect';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -15,6 +14,8 @@ import {
   adminCancelInvoice, adminChangePlan,
   type TenantListItem, type InvoiceItem,
 } from '@/lib/api';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = (d?: string) => d ? new Date(d).toLocaleDateString('fr-FR') : '—';
@@ -495,11 +496,10 @@ export default function BillingAdminPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Date d'échéance</label>
-                <input
-                  type="date"
+                <CustomDatePicker
                   value={createForm.due_date}
-                  onChange={e => setCreateForm(f => ({ ...f, due_date: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  onChange={(v) => setCreateForm(f => ({ ...f, due_date: v }))}
+                  className="w-full"
                 />
               </div>
               <div>
@@ -638,11 +638,10 @@ export default function BillingAdminPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Fin du trial</label>
-                <input
-                  type="date"
+                <CustomDatePicker
                   value={planForm.trial_ends_at}
-                  onChange={e => setPlanForm(f => ({ ...f, trial_ends_at: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  onChange={(v) => setPlanForm(f => ({ ...f, trial_ends_at: v }))}
+                  className="w-full"
                 />
               </div>
               <div className="flex items-center gap-2 pt-5">

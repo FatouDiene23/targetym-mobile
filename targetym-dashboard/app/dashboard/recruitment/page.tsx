@@ -1,7 +1,6 @@
 ﻿'use client';
 
 import Header from '@/components/Header';
-import CustomSelect from '@/components/CustomSelect';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { recruitmentTips } from '@/config/pageTips';
@@ -16,6 +15,8 @@ import {
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import Pagination from '@/components/Pagination';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES
@@ -1455,7 +1456,11 @@ function JobModal({ job, departments, employees, onClose, onSave }: { job: Job |
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Salaire Max (XOF)</label><input type="number" value={formData.salary_max} onChange={(e) => setFormData({...formData, salary_max: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: 2000000" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Urgence</label><CustomSelect value={formData.urgency} onChange={(v) => setFormData({...formData, urgency: v})} options={[{value:'low', label:'Normal'},{value:'medium', label:'Modéré'},{value:'high', label:'Urgent'}]} className="w-full" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Hiring Manager</label><CustomSelect value={formData.hiring_manager_id} onChange={(v) => setFormData({...formData, hiring_manager_id: v})} options={[{value:'', label:'Sélectionner...'}, ...employees.map(emp => ({value: String(emp.id), label: `${emp.first_name} ${emp.last_name}`}))]} className="w-full" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">Date limite</label><input type="date" value={formData.deadline} onChange={(e) => setFormData({...formData, deadline: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Date limite</label><CustomDatePicker
+                                                                                                      value={formData.deadline}
+                                                                                                      onChange={(v) => setFormData({...formData, deadline: v})}
+                                                                                                      className="w-full"
+                                                                                                    /></div>
             <div className="flex items-center"><input type="checkbox" id="show_salary" checked={formData.show_salary} onChange={(e) => setFormData({...formData, show_salary: e.target.checked})} className="mr-2" /><label htmlFor="show_salary" className="text-sm text-gray-700">Afficher le salaire</label></div>
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">Type de diffusion</label>
@@ -1768,7 +1773,11 @@ function InterviewModal({ application, employees, onClose, onSave }: { applicati
             <CustomSelect value={formData.interview_type} onChange={(v) => setFormData({...formData, interview_type: v})} options={[{value:'phone', label:'Téléphonique'},{value:'video', label:'Vidéoconférence'},{value:'onsite', label:'Sur site'}]} className="w-full" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">Date *</label><input type="date" required value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Date *</label><CustomDatePicker
+                                                                                                 value={formData.date}
+                                                                                                 onChange={(v) => setFormData({...formData, date: v})}
+                                                                                                 className="w-full"
+                                                                                               /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Heure *</label><input type="time" required value={formData.time} onChange={(e) => setFormData({...formData, time: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
           </div>
           <div>

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import CustomSelect from '@/components/CustomSelect';
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
 import {
@@ -17,6 +16,8 @@ import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES
@@ -1561,7 +1562,11 @@ export default function OnboardingPage() {
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.startDate}</label>
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" />
+              <CustomDatePicker
+                value={startDate}
+                onChange={(v) => setStartDate(v)}
+                className="w-full"
+              />
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.notes}</label>
@@ -1643,7 +1648,11 @@ export default function OnboardingPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.dateRequired}</label>
-                <input type="date" value={date_} onChange={e => setDate_(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                <CustomDatePicker
+                  value={date_}
+                  onChange={(v) => setDate_(v)}
+                  className="w-full"
+                />
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.time}</label>

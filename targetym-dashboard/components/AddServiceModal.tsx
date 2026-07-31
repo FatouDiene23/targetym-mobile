@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Loader2, ChevronLeft } from 'lucide-react';
 import { createDepartment, getDepartments, type Department } from '@/lib/api';
+import CustomSelect from '@/components/CustomSelect';
 
 interface AddServiceModalProps {
   onClose: () => void;
@@ -113,21 +114,18 @@ export default function AddServiceModal({ onClose, onSuccess }: AddServiceModalP
             {/* Département parent */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Département parent *</label>
-              <select
-                name="parent_id"
+              <CustomSelect
                 value={formData.parent_id}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                required
+                onChange={(v) => setFormData(prev => ({ ...prev, parent_id: v }))}
                 disabled={isLoadingDepts}
-              >
-                <option value="">
-                  {isLoadingDepts ? 'Chargement...' : 'Sélectionner un département'}
-                </option>
-                {departments.map(dept => (
-                  <option key={dept.id} value={dept.id}>{dept.name}</option>
-                ))}
-              </select>
+                options={[
+                  { value: '', label: isLoadingDepts ? 'Chargement...' : 'Sélectionner un département' },
+                  ...departments.map(dept => (
+                  ({ value: String(dept.id), label: dept.name })
+                )),
+                ]}
+                className="w-full"
+              />
               {!isLoadingDepts && departments.length === 0 && (
                 <p className="text-xs text-amber-600 mt-1">
                   Aucun département disponible. Créez d&apos;abord un département.

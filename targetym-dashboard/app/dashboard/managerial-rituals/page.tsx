@@ -45,6 +45,8 @@ import {
   type ManagerialRitualTemplateItem,
   type ObjectiveForLinking,
 } from '@/lib/api';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 type Tab = 'active' | 'ritual-templates' | 'checklist-templates';
 
@@ -553,44 +555,43 @@ function ActivateModal({
                         <div className="grid grid-cols-1 sm:grid-cols-6 gap-2">
                           <label className="space-y-1">
                             <span className="text-[11px] text-gray-500">Début</span>
-                            <input
-                              type="date"
+                            <CustomDatePicker
                               value={link.dueDate}
-                              onChange={(e) => updateItemLink(item.id, { dueDate: e.target.value })}
-                              className="w-full border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm"
+                              onChange={(v) => updateItemLink(item.id, { dueDate: v })}
+                              className="w-full"
                             />
                           </label>
                           <label className="space-y-1">
                             <span className="text-[11px] text-gray-500">Jusqu'au</span>
-                            <input
-                              type="date"
+                            <CustomDatePicker
                               value={link.repeatUntil}
-                              onChange={(e) => updateItemLink(item.id, { repeatUntil: e.target.value })}
-                              className="w-full border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm"
+                              onChange={(v) => updateItemLink(item.id, { repeatUntil: v })}
+                              className="w-full"
                             />
                           </label>
-                          <select
+                          <CustomSelect
                             value={link.objectiveId}
-                            onChange={(e) => updateItemLink(item.id, { objectiveId: e.target.value })}
+                            onChange={(v) => updateItemLink(item.id, { objectiveId: v })}
                             disabled={objectives.length === 0}
-                            className="sm:col-span-2 border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm disabled:bg-gray-100"
-                          >
-                            <option value="">Aucun objectif lié</option>
-                            {objectives.map((objective) => (
-                              <option key={objective.id} value={objective.id}>{objective.title}</option>
-                            ))}
-                          </select>
-                          <select
+                            options={[
+                              { value: '', label: 'Aucun objectif lié' },
+                              ...objectives.map((objective) => (
+                              ({ value: String(objective.id), label: objective.title })
+                            )),
+                            ]}
+                            className="sm:col-span-2"
+                          />
+                          <CustomSelect
                             value={link.keyResultId}
-                            onChange={(e) => updateItemLink(item.id, { keyResultId: e.target.value })}
+                            onChange={(v) => updateItemLink(item.id, { keyResultId: v })}
                             disabled={!link.objectiveId || !selectedObjective?.key_results.length}
-                            className="border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm disabled:bg-gray-100"
-                          >
-                            <option value="">Aucun KR</option>
-                            {selectedObjective?.key_results.map((kr) => (
-                              <option key={kr.id} value={kr.id}>{kr.title}</option>
-                            ))}
-                          </select>
+                            options={[
+                              { value: '', label: 'Aucun KR' },
+                              ...(selectedObjective?.key_results ?? []).map((kr) => (
+                              ({ value: String(kr.id), label: kr.title })
+                            )),
+                            ]}
+                          />
                           <input
                             type="number"
                             min="0"
@@ -769,35 +770,36 @@ function AssignmentEditModal({
                       <p className="text-sm text-amber-700">Aucun objectif individuel aligné au N+1 disponible.</p>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                        <select
-                          value={objectiveId ?? ''}
-                          onChange={(e) => updateDraft(item.id, {
-                            objective_id: e.target.value ? Number(e.target.value) : null,
+                        <CustomSelect
+                          value={String(objectiveId ?? '')}
+                          onChange={(v) => updateDraft(item.id, {
+                            objective_id: v ? Number(v) : null,
                             key_result_id: null,
                             kr_contribution: null,
                           })}
                           disabled={readOnly}
-                          className="md:col-span-2 border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm disabled:bg-gray-100"
-                        >
-                          <option value="">Aucun objectif lié</option>
-                          {objectives.map((obj) => (
-                            <option key={obj.id} value={obj.id}>{obj.title}</option>
-                          ))}
-                        </select>
-                        <select
-                          value={keyResultId ?? ''}
-                          onChange={(e) => updateDraft(item.id, {
-                            key_result_id: e.target.value ? Number(e.target.value) : null,
-                            kr_contribution: e.target.value ? (typeof krContribution === 'number' ? krContribution : null) : null,
+                          options={[
+                            { value: '', label: 'Aucun objectif lié' },
+                            ...objectives.map((obj) => (
+                            ({ value: String(obj.id), label: obj.title })
+                          )),
+                          ]}
+                          className="md:col-span-2"
+                        />
+                        <CustomSelect
+                          value={String(keyResultId ?? '')}
+                          onChange={(v) => updateDraft(item.id, {
+                            key_result_id: v ? Number(v) : null,
+                            kr_contribution: v ? (typeof krContribution === 'number' ? krContribution : null) : null,
                           })}
                           disabled={readOnly || !objectiveId || !selectedObjective?.key_results.length}
-                          className="border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm disabled:bg-gray-100"
-                        >
-                          <option value="">Aucun KR</option>
-                          {selectedObjective?.key_results.map((kr) => (
-                            <option key={kr.id} value={kr.id}>{kr.title}</option>
-                          ))}
-                        </select>
+                          options={[
+                            { value: '', label: 'Aucun KR' },
+                            ...(selectedObjective?.key_results ?? []).map((kr) => (
+                            ({ value: String(kr.id), label: kr.title })
+                          )),
+                          ]}
+                        />
                         <input
                           type="number"
                           min="0"
@@ -1204,16 +1206,24 @@ export default function ManagerialRitualsPage() {
                   className="w-full border border-gray-200 rounded-lg pl-9 pr-3 py-2 text-sm"
                 />
               </div>
-              <select value={level} onChange={(e) => setLevel(e.target.value as ManagerialRitualLevel | 'all')} className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white">
-                <option value="all">Tous les niveaux</option>
-                <option value="director">Direction</option>
-                <option value="department_head">Chef de département</option>
-                <option value="employee">Collaborateur</option>
-              </select>
-              <select value={sector} onChange={(e) => setSector(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white">
-                <option value="all">Tous les secteurs</option>
-                {sectors.map((item) => <option key={item} value={item}>{item}</option>)}
-              </select>
+              <CustomSelect
+                value={level}
+                onChange={(v) => setLevel(v as ManagerialRitualLevel | 'all')}
+                options={[
+                  { value: 'all', label: 'Tous les niveaux' },
+                  { value: 'director', label: 'Direction' },
+                  { value: 'department_head', label: 'Chef de département' },
+                  { value: 'employee', label: 'Collaborateur' },
+                ]}
+              />
+              <CustomSelect
+                value={sector}
+                onChange={(v) => setSector(v)}
+                options={[
+                  { value: 'all', label: 'Tous les secteurs' },
+                  ...sectors.map((item) => ({ value: String(item), label: item })),
+                ]}
+              />
               {isPrivileged && sector !== 'all' && (
                 <div className="flex items-center gap-2">
                   <button

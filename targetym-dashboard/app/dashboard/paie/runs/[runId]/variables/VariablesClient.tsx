@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import CustomSelect from '@/components/CustomSelect';
 import { useParams } from 'next/navigation';
 import {
   Calendar, Plus, Loader2, X, Trash2, Lock, ChevronDown,
@@ -17,6 +16,7 @@ import {
   getComponents, getRun, MONTHS_FR,
   type PayVariable, type PayComponent,
 } from '@/lib/payrollApi';
+import CustomSelect from '@/components/CustomSelect';
 
 // ── Modals ────────────────────────────────────────────────────────────────────
 

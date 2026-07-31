@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import CustomSelect from '@/components/CustomSelect';
 import {
   Settings2, Plus, Loader2, X, Pencil, Trash2, ChevronUp, ChevronDown,
   ToggleLeft, ToggleRight, Receipt,
@@ -14,6 +13,7 @@ import {
   COMPONENT_TYPE_LABEL, COMPONENT_TYPE_COLOR,
   type PayComponent, type PayComponentCreate,
 } from '@/lib/payrollApi';
+import CustomSelect from '@/components/CustomSelect';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

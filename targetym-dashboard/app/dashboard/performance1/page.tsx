@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import CustomSelect from '@/components/CustomSelect';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { 
@@ -12,6 +11,8 @@ import {
 import { 
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer
 } from 'recharts';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // =============================================
 // TYPES
@@ -688,11 +689,19 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Date de début *</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
+              <CustomDatePicker
+                value={startDate}
+                onChange={(v) => setStartDate(v)}
+                className="w-full"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Date de fin *</label>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
+              <CustomDatePicker
+                value={endDate}
+                onChange={(v) => setEndDate(v)}
+                className="w-full"
+              />
             </div>
           </div>
           <div>
@@ -842,7 +851,11 @@ function CompleteOneOnOneModal({ meeting, onClose, onSuccess, currentEmployeeId 
               <div className="flex gap-2">
                 <CustomSelect value={newTaskType} onChange={v => setNewTaskType(v as 'task' | 'training')} options={[{value:'task', label:'📋 Tâche'},{value:'training', label:'🎓 Formation'}]} className="flex-1" />
                 <CustomSelect value={newTaskAssignee} onChange={v => setNewTaskAssignee(v as 'employee' | 'manager')} options={[{value:'employee', label:'👤 Collaborateur'},{value:'manager', label:'👔 Manager'}]} className="flex-1" />
-                <input type="date" value={newTaskDue} onChange={e => setNewTaskDue(e.target.value)} className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm" />
+                <CustomDatePicker
+                  value={newTaskDue}
+                  onChange={(v) => setNewTaskDue(v)}
+                  className="w-full"
+                />
               </div>
               <button onClick={addTask} disabled={!newTaskTitle.trim()} className="flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-700 disabled:opacity-40 font-medium">
                 <Plus className="w-4 h-4" />Ajouter
@@ -910,7 +923,11 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Date *</label>
-              <input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
+              <CustomDatePicker
+                value={scheduledDate}
+                onChange={(v) => setScheduledDate(v)}
+                className="w-full"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Heure</label>

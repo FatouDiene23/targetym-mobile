@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/Header';
-import CustomSelect from '@/components/CustomSelect';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import {
   DollarSign, Scale, Shield, TrendingUp, Calculator, FileText, Building2,
@@ -13,6 +12,8 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
@@ -2188,8 +2189,11 @@ export default function CompensationPage() {
                   </div>
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Date d&apos;effet *</label>
-                    <input type="date" value={agreeForm.effective_date} onChange={(e) => setAgreeForm(f => ({ ...f, effective_date: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
+                    <CustomDatePicker
+                      value={agreeForm.effective_date}
+                      onChange={(v) => setAgreeForm(f => ({ ...f, effective_date: v }))}
+                      className="w-full"
+                    />
                   </div>
                 </div>
                 <div>

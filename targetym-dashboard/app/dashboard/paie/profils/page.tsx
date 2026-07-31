@@ -5,7 +5,6 @@ import { User, Pencil, Plus, Loader2, X, CheckCircle2, AlertCircle, Trash2 } fro
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import CustomSelect from '@/components/CustomSelect';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import { getEmployees, type Employee } from '@/lib/api';
 import {
@@ -14,6 +13,7 @@ import {
   formatXOF,
   type EmployeePayrollProfile, type EmployeePayrollProfileCreate,
 } from '@/lib/payrollApi';
+import CustomSelect from '@/components/CustomSelect';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

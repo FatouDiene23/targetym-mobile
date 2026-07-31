@@ -7,6 +7,8 @@ import {
   ClipboardList, TrendingUp, Filter,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES
@@ -161,28 +163,36 @@ function AbsenceForm({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Employé *</label>
-          <select required value={form.employee_id} onChange={e => setForm(f => ({ ...f, employee_id: e.target.value }))}
-            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-orange-400">
-            <option value="">Sélectionner…</option>
-            {employees.map(e => (
-              <option key={e.id} value={e.id}>
-                {e.full_name || `${e.first_name || ''} ${e.last_name || ''}`.trim() || `Employé #${e.id}`}
-              </option>
-            ))}
-          </select>
+          <CustomSelect
+            value={form.employee_id}
+            onChange={v => setForm(f => ({ ...f, employee_id: v }))}
+            options={[
+              { value: '', label: 'Sélectionner…' },
+              ...employees.map(e => (
+              ({ value: String(e.id), label: e.full_name || `${e.first_name || ''} ${e.last_name || ''}`.trim() || `Employé #${e.id}` })
+            )),
+            ]}
+            className="w-full"
+          />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Type *</label>
-          <select required value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-orange-400">
-            {Object.entries(TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
+          <CustomSelect
+            value={form.type}
+            onChange={v => setForm(f => ({ ...f, type: v }))}
+            options={[
+              ...Object.entries(TYPE_LABELS).map(([k, v]) => ({ value: String(k), label: v })),
+            ]}
+            className="w-full"
+          />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Date du constat *</label>
-          <input required type="date" value={form.absence_date}
-            onChange={e => setForm(f => ({ ...f, absence_date: e.target.value }))}
-            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-orange-400" />
+          <CustomDatePicker
+            value={form.absence_date}
+            onChange={(v) => setForm(f => ({ ...f, absence_date: v }))}
+            className="w-full"
+          />
         </div>
         {isTardiness && (
           <>
@@ -451,20 +461,26 @@ export default function AbsencesTab({ employeesList = [], subsidiaryTenantId }: 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-gray-100">
           <Filter className="w-4 h-4 text-gray-400" />
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-            className="text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-orange-400">
-            <option value="">Tous les statuts</option>
-            {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-              <option key={k} value={k}>{v.label}</option>
-            ))}
-          </select>
-          <select value={filterType} onChange={e => setFilterType(e.target.value)}
-            className="text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-orange-400">
-            <option value="">Tous les types</option>
-            {Object.entries(TYPE_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
-            ))}
-          </select>
+          <CustomSelect
+            value={filterStatus}
+            onChange={v => setFilterStatus(v)}
+            options={[
+              { value: '', label: 'Tous les statuts' },
+              ...Object.entries(STATUS_CONFIG).map(([k, v]) => (
+              ({ value: String(k), label: v.label })
+            )),
+            ]}
+          />
+          <CustomSelect
+            value={filterType}
+            onChange={v => setFilterType(v)}
+            options={[
+              { value: '', label: 'Tous les types' },
+              ...Object.entries(TYPE_LABELS).map(([k, v]) => (
+              ({ value: String(k), label: v })
+            )),
+            ]}
+          />
           <span className="ml-auto text-sm text-gray-500">{total} constat{total !== 1 ? 's' : ''}</span>
           <button onClick={fetchData} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
             <RefreshCw className="w-4 h-4" />

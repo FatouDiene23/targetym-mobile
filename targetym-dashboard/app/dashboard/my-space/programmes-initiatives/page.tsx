@@ -9,10 +9,15 @@ import {
   Flag,
   Layers3,
   Loader2,
+  Pencil,
   Play,
+  Plus,
   RefreshCw,
+  Save,
   Target,
+  Trash2,
   UserCheck,
+  Wand2,
   X,
 } from 'lucide-react';
 
@@ -25,6 +30,7 @@ import {
   getProgramInitiatives,
   getManagedProgramInitiativeAssignments,
   getMyProgramInitiativeAssignments,
+  updateProgramInitiativeAssignment,
   type HREmployeeItem,
   type ObjectiveForLinking,
   type ProgramInitiative,
@@ -33,6 +39,8 @@ import {
   type ProgramInitiativeAssignmentItem,
   type ProgramInitiativeFrequency,
 } from '@/lib/api';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 const FREQUENCY_LABELS: Record<ProgramInitiativeFrequency, string> = {
   once: 'Ponctuel',
@@ -87,7 +95,14 @@ function AssignmentItemRow({ item }: { item: ProgramInitiativeAssignmentItem }) 
   );
 }
 
-function AssignmentCard({ assignment }: { assignment: ProgramInitiativeAssignment }) {
+function AssignmentCard({
+  assignment,
+  onEdit,
+}: {
+  assignment: ProgramInitiativeAssignment;
+  /** Fourni uniquement pour les programmes que l'utilisateur pilote en tant que manager. */
+  onEdit?: (assignment: ProgramInitiativeAssignment) => void;
+}) {
   const items = assignment.items || [];
   const frequencies = useMemo(() => {
     return items.reduce<Record<string, number>>((acc, item) => {
@@ -118,6 +133,16 @@ function AssignmentCard({ assignment }: { assignment: ProgramInitiativeAssignmen
                 <UserCheck className="w-4 h-4 text-primary-500" />
                 Activé par {assignment.manager.name}
               </p>
+            )}
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit(assignment)}
+                className="mt-3 w-full min-[420px]:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-primary-200 bg-white text-xs font-medium text-primary-700 hover:bg-primary-50"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Modifier le programme
+              </button>
             )}
           </div>
           <div className="w-full lg:w-56 shrink-0">
@@ -249,6 +274,347 @@ function ProgramTemplateCard({
   );
 }
 
+type EditableProgramItem = {
+  localId: string;
+  id?: number;
+  sourceItemId?: number | null;
+  title: string;
+  description: string;
+  frequency: ProgramInitiativeFrequency;
+  priority: string;
+  weightPct: number;
+  dueDate: string;
+  repeatUntil: string;
+  isEnabled: boolean;
+};
+
+function newEditableItem(startsOn = defaultDate(), endsOn = defaultDate(3)): EditableProgramItem {
+  return {
+    localId: `new-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    title: 'Nouvelle action',
+    description: '',
+    frequency: 'weekly',
+    priority: 'medium',
+    weightPct: 0,
+    dueDate: startsOn,
+    repeatUntil: endsOn,
+    isEnabled: true,
+  };
+}
+
+function assignmentItemsToEditable(items: ProgramInitiativeAssignmentItem[]): EditableProgramItem[] {
+  return items.map(item => ({
+    localId: `assigned-${item.id}`,
+    id: item.id,
+    sourceItemId: item.source_item_id,
+    title: item.title,
+    description: item.description || '',
+    frequency: item.frequency,
+    priority: item.priority || 'medium',
+    weightPct: item.weight_pct ?? item.effective_weight_pct ?? 0,
+    dueDate: item.due_date || defaultDate(),
+    repeatUntil: item.repeat_until || defaultDate(3),
+    isEnabled: item.is_enabled,
+  }));
+}
+
+function EditableItemsList({
+  items,
+  onChange,
+  startsOn,
+  endsOn,
+}: {
+  items: EditableProgramItem[];
+  onChange: (items: EditableProgramItem[]) => void;
+  startsOn: string;
+  endsOn: string;
+}) {
+  const updateItem = (localId: string, patch: Partial<EditableProgramItem>) => {
+    onChange(items.map(item => item.localId === localId ? { ...item, ...patch } : item));
+  };
+  const removeItem = (localId: string) => onChange(items.filter(item => item.localId !== localId));
+  const enabledItems = items.filter(item => item.isEnabled);
+  const totalWeight = enabledItems.reduce((total, item) => total + Number(item.weightPct || 0), 0);
+  const distributeWeights = () => {
+    if (enabledItems.length === 0) return;
+    const base = Math.floor((100 / enabledItems.length) * 100) / 100;
+    const enabledIds = new Set(enabledItems.map(item => item.localId));
+    let distributedCount = 0;
+    const distributed = items.map((item) => {
+      if (!enabledIds.has(item.localId)) return { ...item, weightPct: 0 };
+      distributedCount += 1;
+      const weight = distributedCount === enabledItems.length
+        ? Math.round((100 - base * (enabledItems.length - 1)) * 100) / 100
+        : base;
+      return { ...item, weightPct: weight };
+    });
+    onChange(distributed);
+  };
+
+  return (
+    <div>
+      <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between mb-2">
+        <div className="min-w-0">
+          <span className="text-xs font-medium text-gray-600">Actions et tâches du programme</span>
+          <p className="text-[11px] text-gray-400 mt-0.5">
+            Poids total saisi : {Math.round(totalWeight * 100) / 100}%
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={distributeWeights}
+          disabled={enabledItems.length === 0}
+          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-primary-200 bg-white text-xs font-medium text-primary-700 hover:bg-primary-50 disabled:opacity-50"
+        >
+          <Wand2 className="w-3.5 h-3.5" />
+          Répartir équitablement
+        </button>
+      </div>
+      <div className="space-y-3">
+        {items.map((item, index) => (
+          <div key={item.localId} className="bg-white rounded-lg border border-primary-100 p-3 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-semibold text-gray-500">Action {index + 1}</span>
+              <button
+                type="button"
+                onClick={() => removeItem(item.localId)}
+                className="inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Supprimer
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="space-y-1 sm:col-span-2">
+                <span className="text-xs font-medium text-gray-600">Titre de l&apos;action</span>
+                <input
+                  value={item.title}
+                  onChange={e => updateItem(item.localId, { title: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm"
+                />
+              </label>
+              <label className="space-y-1 sm:col-span-2">
+                <span className="text-xs font-medium text-gray-600">Description</span>
+                <textarea
+                  value={item.description}
+                  onChange={e => updateItem(item.localId, { description: e.target.value })}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm resize-none"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-xs font-medium text-gray-600">Fréquence</span>
+                <CustomSelect
+                  value={item.frequency}
+                  onChange={v => updateItem(item.localId, { frequency: v as ProgramInitiativeFrequency })}
+                  options={[
+                    ...Object.entries(FREQUENCY_LABELS).map(([value, label]) => ({ value: String(value), label: label })),
+                  ]}
+                  className="w-full"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-xs font-medium text-gray-600">Priorité</span>
+                <CustomSelect
+                  value={item.priority}
+                  onChange={v => updateItem(item.localId, { priority: v })}
+                  options={[
+                    { value: 'low', label: 'Basse' },
+                    { value: 'medium', label: 'Moyenne' },
+                    { value: 'high', label: 'Haute' },
+                    { value: 'urgent', label: 'Urgente' },
+                  ]}
+                  className="w-full"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-xs font-medium text-gray-600">Poids action (%)</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={item.weightPct}
+                  onChange={e => updateItem(item.localId, { weightPct: Number(e.target.value) })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-xs font-medium text-gray-600">Début tâche</span>
+                <CustomDatePicker value={item.dueDate} onChange={(v) => updateItem(item.localId, { dueDate: v })} className="w-full" />
+              </label>
+              <label className="space-y-1">
+                <span className="text-xs font-medium text-gray-600">Répéter jusqu&apos;au</span>
+                <CustomDatePicker value={item.repeatUntil} onChange={(v) => updateItem(item.localId, { repeatUntil: v })} className="w-full" />
+              </label>
+            </div>
+          </div>
+        ))}
+        {items.length === 0 && (
+          <div className="text-center py-8 bg-white rounded-lg border border-dashed border-gray-200 text-sm text-gray-500">
+            Aucune action. Ajoutez au moins une action pour générer des tâches.
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => onChange([...items, newEditableItem(startsOn, endsOn)])}
+          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-3 rounded-lg border border-dashed border-primary-200 bg-primary-50 text-sm font-medium text-primary-700 hover:bg-primary-100"
+        >
+          <Plus className="w-4 h-4" />
+          Ajouter une action
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AssignmentEditModal({
+  assignment,
+  onClose,
+  onDone,
+}: {
+  assignment: ProgramInitiativeAssignment;
+  onClose: () => void;
+  onDone: (message: string) => void;
+}) {
+  const [name, setName] = useState(assignment.name);
+  const [description, setDescription] = useState(assignment.description || '');
+  const [startsOn, setStartsOn] = useState(assignment.starts_on || defaultDate());
+  const [endsOn, setEndsOn] = useState(assignment.ends_on || defaultDate(3));
+  const [krWeight, setKrWeight] = useState(assignment.kr_weight || 0);
+  const [autoApplyToKr, setAutoApplyToKr] = useState(Boolean(assignment.auto_apply_to_kr));
+  const [items, setItems] = useState<EditableProgramItem[]>(() => assignmentItemsToEditable(assignment.items || []));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const hasKr = Boolean(assignment.key_result_id);
+
+  const submit = async () => {
+    const enabledItems = items.filter(item => item.title.trim());
+    if (enabledItems.length === 0) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const result = await updateProgramInitiativeAssignment(assignment.id, {
+        name,
+        description,
+        starts_on: startsOn,
+        ends_on: endsOn,
+        objective_id: assignment.objective_id,
+        key_result_id: assignment.key_result_id,
+        kr_weight: hasKr ? krWeight : null,
+        auto_apply_to_kr: Boolean(hasKr && autoApplyToKr),
+        items: enabledItems.map(item => ({
+          id: item.id || null,
+          title: item.title,
+          description: item.description,
+          frequency: item.frequency,
+          priority: item.priority,
+          due_date: item.dueDate || startsOn,
+          repeat_until: item.repeatUntil || endsOn,
+          is_enabled: item.isEnabled,
+          objective_id: assignment.objective_id,
+          key_result_id: assignment.key_result_id,
+          weight_pct: item.weightPct || null,
+        })),
+      });
+      onDone(`Programme mis à jour · ${result.created_tasks || 0} nouvelle(s) tâche(s) générée(s).`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour du programme.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-white rounded-t-xl sm:rounded-xl shadow-xl w-full sm:max-w-3xl max-h-[92vh] sm:max-h-[calc(100vh-2rem)] overflow-y-auto">
+        <div className="p-4 sm:p-5 border-b border-gray-200 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm text-primary-600 font-medium">Programme actif</p>
+            <h2 className="font-bold text-gray-900">Modifier le programme</h2>
+            {assignment.employee && <p className="text-sm text-gray-500 mt-1">Assigné à {assignment.employee.name}</p>}
+          </div>
+          <button type="button" onClick={onClose} className="p-2 rounded-lg text-gray-400 hover:bg-gray-100"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-4 sm:p-5 space-y-5">
+          {error && <div className="text-sm bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-2">{error}</div>}
+          <div className="bg-primary-50 border border-primary-100 rounded-xl p-3 sm:p-4">
+            <p className="font-semibold text-sm flex items-center gap-2 text-primary-800 mb-3">
+              <Pencil className="w-4 h-4 text-primary-600" />
+              Informations du programme
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="space-y-1 sm:col-span-2">
+                <span className="text-xs font-medium text-gray-600">Titre du programme</span>
+                <input value={name} onChange={e => setName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm" />
+              </label>
+              <label className="space-y-1 sm:col-span-2">
+                <span className="text-xs font-medium text-gray-600">Description du programme</span>
+                <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm resize-none" />
+              </label>
+              <label className="space-y-1">
+                <span className="text-xs font-medium text-gray-600">Début</span>
+                <CustomDatePicker value={startsOn} onChange={(v) => setStartsOn(v)} className="w-full" />
+              </label>
+              <label className="space-y-1">
+                <span className="text-xs font-medium text-gray-600">Jusqu&apos;au</span>
+                <CustomDatePicker value={endsOn} onChange={(v) => setEndsOn(v)} className="w-full" />
+              </label>
+              {hasKr && (
+                <>
+                  <label className="space-y-1">
+                    <span className="text-xs font-medium text-gray-600">Poids du programme dans le KR (%)</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={krWeight}
+                      onChange={e => setKrWeight(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm"
+                    />
+                  </label>
+                  <label className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={autoApplyToKr}
+                      onChange={e => setAutoApplyToKr(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-xs font-medium text-gray-600">Appliquer automatiquement au KR via les tâches</span>
+                  </label>
+                  <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="rounded-lg border border-primary-100 bg-white px-3 py-2">
+                      <p className="text-[11px] text-gray-400">Progression pondérée</p>
+                      <p className="text-sm font-semibold text-gray-900">{assignment.weighted_progress_pct ?? assignment.progress_pct}%</p>
+                    </div>
+                    <div className="rounded-lg border border-primary-100 bg-white px-3 py-2">
+                      <p className="text-[11px] text-gray-400">Contribution estimée</p>
+                      <p className="text-sm font-semibold text-gray-900">{assignment.estimated_kr_contribution_pct ?? 0}%</p>
+                    </div>
+                    <div className="rounded-lg border border-primary-100 bg-white px-3 py-2">
+                      <p className="text-[11px] text-gray-400">Déjà appliqué</p>
+                      <p className="text-sm font-semibold text-gray-900">{assignment.applied_kr_contribution ?? 0}</p>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          <EditableItemsList items={items} onChange={setItems} startsOn={startsOn} endsOn={endsOn} />
+        </div>
+        <div className="p-4 sm:p-5 border-t border-gray-200 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+          <button type="button" onClick={onClose} className="w-full sm:w-auto px-4 py-2 rounded-lg border border-gray-200 text-gray-600">Annuler</button>
+          <button type="button" onClick={submit} disabled={items.filter(item => item.title.trim()).length === 0 || saving} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary-500 text-white font-medium disabled:opacity-60">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Enregistrer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ActivateModal({
   program,
   employees,
@@ -325,38 +691,60 @@ function ActivateModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label className="space-y-1 sm:col-span-2">
                 <span className="text-xs font-medium text-gray-600">Collaborateur N-1</span>
-                <select value={employeeId} onChange={e => setEmployeeId(e.target.value ? Number(e.target.value) : '')} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
-                  <option value="">Sélectionner</option>
-                  {employees.map(employee => <option key={employee.id} value={employee.id}>{employee.name}{employee.job_title ? ` · ${employee.job_title}` : ''}</option>)}
-                </select>
+                <CustomSelect
+                  value={String(employeeId)}
+                  onChange={v => setEmployeeId(v ? Number(v) : '')}
+                  options={[
+                    { value: '', label: 'Sélectionner' },
+                    ...employees.map(employee => ({ value: String(employee.id), label: `${employee.name}${employee.job_title ? ` · ${employee.job_title}` : ''}` })),
+                  ]}
+                  className="w-full"
+                />
               </label>
               <label className="space-y-1">
                 <span className="text-xs font-medium text-gray-600">Fréquence</span>
-                <select value={frequency} onChange={e => setFrequency(e.target.value as ProgramInitiativeFrequency)} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm">
-                  {Object.entries(FREQUENCY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </select>
+                <CustomSelect
+                  value={frequency}
+                  onChange={v => setFrequency(v as ProgramInitiativeFrequency)}
+                  options={[
+                    ...Object.entries(FREQUENCY_LABELS).map(([value, label]) => ({ value: String(value), label: label })),
+                  ]}
+                  className="w-full"
+                />
               </label>
               <label className="space-y-1">
                 <span className="text-xs font-medium text-gray-600">Objectif OKR</span>
-                <select value={objectiveId} onChange={e => { setObjectiveId(e.target.value ? Number(e.target.value) : ''); setKeyResultId(''); }} disabled={!employeeId} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm disabled:bg-gray-100">
-                  <option value="">Aucun</option>
-                  {objectives.map(objective => <option key={objective.id} value={objective.id}>{objective.title}</option>)}
-                </select>
+                <CustomSelect
+                  value={String(objectiveId)}
+                  onChange={v => { setObjectiveId(v ? Number(v) : ''); setKeyResultId(''); }}
+                  disabled={!employeeId}
+                  options={[
+                    { value: '', label: 'Aucun' },
+                    ...objectives.map(objective => ({ value: String(objective.id), label: objective.title })),
+                  ]}
+                  className="w-full"
+                />
               </label>
               <label className="space-y-1">
                 <span className="text-xs font-medium text-gray-600">Début</span>
-                <input type="date" value={startsOn} onChange={e => setStartsOn(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm" />
+                <CustomDatePicker value={startsOn} onChange={(v) => setStartsOn(v)} className="w-full" />
               </label>
               <label className="space-y-1">
                 <span className="text-xs font-medium text-gray-600">Jusqu'au</span>
-                <input type="date" value={endsOn} onChange={e => setEndsOn(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm" />
+                <CustomDatePicker value={endsOn} onChange={(v) => setEndsOn(v)} className="w-full" />
               </label>
               <label className="space-y-1 sm:col-span-2">
                 <span className="text-xs font-medium text-gray-600">Key Result</span>
-                <select value={keyResultId} onChange={e => setKeyResultId(e.target.value ? Number(e.target.value) : '')} disabled={!selectedObjective?.key_results.length} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm disabled:bg-gray-100">
-                  <option value="">Aucun</option>
-                  {selectedObjective?.key_results.map(kr => <option key={kr.id} value={kr.id}>{kr.title}</option>)}
-                </select>
+                <CustomSelect
+                  value={String(keyResultId)}
+                  onChange={v => setKeyResultId(v ? Number(v) : '')}
+                  disabled={!selectedObjective?.key_results.length}
+                  options={[
+                    { value: '', label: 'Aucun' },
+                    ...(selectedObjective?.key_results ?? []).map(kr => ({ value: String(kr.id), label: kr.title })),
+                  ]}
+                  className="w-full"
+                />
               </label>
             </div>
           </div>
@@ -405,6 +793,7 @@ export default function MyProgrammesInitiativesPage() {
   const [programs, setPrograms] = useState<ProgramInitiative[]>([]);
   const [employees, setEmployees] = useState<HREmployeeItem[]>([]);
   const [selectedProgram, setSelectedProgram] = useState<(ProgramInitiative & { items?: ProgramInitiativeItem[] }) | null>(null);
+  const [selectedAssignment, setSelectedAssignment] = useState<ProgramInitiativeAssignment | null>(null);
   const [activatingId, setActivatingId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'active' | 'templates'>('active');
   const [canActivate, setCanActivate] = useState(false);
@@ -524,7 +913,9 @@ export default function MyProgrammesInitiativesPage() {
                   </div>
                 ) : (
                   <div className="space-y-5">
-                    {managedAssignments.map((assignment) => <AssignmentCard key={assignment.id} assignment={assignment} />)}
+                    {managedAssignments.map((assignment) => (
+                      <AssignmentCard key={assignment.id} assignment={assignment} onEdit={setSelectedAssignment} />
+                    ))}
                   </div>
                 )}
               </div>
@@ -556,6 +947,13 @@ export default function MyProgrammesInitiativesPage() {
           employees={employees}
           onClose={() => setSelectedProgram(null)}
           onDone={(msg) => { setSelectedProgram(null); setMessage(msg); setActiveTab('active'); load(); }}
+        />
+      )}
+      {selectedAssignment && (
+        <AssignmentEditModal
+          assignment={selectedAssignment}
+          onClose={() => setSelectedAssignment(null)}
+          onDone={(msg) => { setSelectedAssignment(null); setMessage(msg); load(); }}
         />
       )}
     </div>

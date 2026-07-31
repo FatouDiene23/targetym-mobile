@@ -6,7 +6,6 @@
 // ============================================
 
 import { useState, useCallback, useEffect } from 'react';
-import CustomSelect from '@/components/CustomSelect';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useLearning } from '../LearningContext';
 import { hasPermission } from '../shared';
@@ -17,6 +16,7 @@ import {
   Brain, Code2, Users, RotateCcw,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomSelect from '@/components/CustomSelect';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 

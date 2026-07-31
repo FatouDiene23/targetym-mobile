@@ -293,8 +293,8 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                   <label className="block text-sm text-gray-600 mb-1">{cm.birthDate}</label>
                   <CustomDatePicker
                     value={formData.birthDate}
-                    onChange={v => setFormData(prev => ({ ...prev, birthDate: v }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    onChange={(v) => setFormData(prev => ({ ...prev, birthDate: v }))}
+                    className="w-full"
                   />
                 </div>
                 <div>
@@ -331,16 +331,16 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                   <label className="block text-sm text-gray-600 mb-1">{cm.entryDate}</label>
                   <CustomDatePicker
                     value={formData.startDate}
-                    onChange={v => setFormData(prev => ({ ...prev, startDate: v }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    onChange={(v) => setFormData(prev => ({ ...prev, startDate: v }))}
+                    className="w-full"
                   />
                 </div>
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">{cm.exitDate} *</label>
                   <CustomDatePicker
                     value={formData.endDate}
-                    onChange={v => setFormData(prev => ({ ...prev, endDate: v }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    onChange={(v) => setFormData(prev => ({ ...prev, endDate: v }))}
+                    className="w-full"
                   />
                 </div>
                 <div className="md:col-span-2">
@@ -348,8 +348,12 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                   <CustomSelect
                     value={formData.departureReason}
                     onChange={(v) => setFormData(prev => ({ ...prev, departureReason: v }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    options={departureReasons.map(reason => ({ value: reason.value, label: reason.label }))}
+                    options={[
+                      ...departureReasons.map(reason => (
+                      ({ value: String(reason.value), label: reason.label })
+                    )),
+                    ]}
+                    className="w-full"
                   />
                 </div>
                 {formData.departureReason === 'other' && (
@@ -455,8 +459,8 @@ export default function CertificateModal({ employee, onClose, companyInfo }: Cer
                   <label className="block text-sm text-gray-600 mb-1">{cm.certificateDate}</label>
                   <CustomDatePicker
                     value={formData.certificateDate}
-                    onChange={v => setFormData(prev => ({ ...prev, certificateDate: v }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    onChange={(v) => setFormData(prev => ({ ...prev, certificateDate: v }))}
+                    className="w-full"
                   />
                 </div>
                 <div className="md:col-span-2">

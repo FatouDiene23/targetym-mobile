@@ -6,7 +6,6 @@
 'use client';
 
 import Header from '@/components/Header';
-import CustomSelect from '@/components/CustomSelect';
 import { useEffect, useState } from 'react';
 import { Crown, Plus, Eye, Edit, Trash2, UserPlus, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { useTalents } from '../TalentsContext';
@@ -14,6 +13,7 @@ import {
   SuccessionPlan, CRITICALITY_LABELS, RISK_LABELS, READINESS_LABELS,
   getInitials, isRH, isManager, apiFetch
 } from '../shared';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function SuccessionPage() {
   const {
@@ -406,7 +406,7 @@ function CreatePlanModal({ onClose, onCreate }: { onClose: () => void; onCreate:
               </div>
             )}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Criticité</label>
               <CustomSelect value={form.criticality} onChange={v => setForm({ ...form, criticality: v })} options={[{value:'critical', label:'Critique'},{value:'high', label:'Élevé'},{value:'medium', label:'Moyen'}]} className="w-full" />
@@ -516,7 +516,7 @@ function AddCandidateModal({ planId, onClose, onAdd }: {
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             {/* Readiness */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Disponibilité</label>

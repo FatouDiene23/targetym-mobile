@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import CustomSelect from '@/components/CustomSelect';
 import {
   CheckSquare, Square, Plus, Trash2, Edit2, Loader2,
   Target, ChevronDown, ChevronUp, X, Check, Users, ListChecks,
@@ -17,6 +16,7 @@ import {
 } from '@/lib/api';
 import Header from '@/components/Header';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // CONSTANTS
@@ -52,9 +52,37 @@ function getDayLabels(t: ReturnType<typeof useI18n>['t']): Record<DayOfWeek, str
 
 const ALL_DAYS: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
+type ChecklistFrequency = 'daily' | 'monthly' | 'quarterly';
+
 // ============================================
 // HELPERS
 // ============================================
+
+/** Noms de mois dans la langue active — évite 12 clés i18n par langue. */
+function getMonthLabels(locale: string): string[] {
+  const formatter = new Intl.DateTimeFormat(locale, { month: 'long' });
+  return Array.from({ length: 12 }, (_, index) => {
+    const label = formatter.format(new Date(2000, index, 1));
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  });
+}
+
+function getScheduleLabel(
+  item: ChecklistItem | ChecklistTodayItem,
+  t: ReturnType<typeof useI18n>['t'],
+  locale: string,
+): string {
+  const frequency = item.frequency || 'daily';
+  if (frequency === 'monthly') {
+    return `${t.mySpace.dailyChecklist.frequencyMonthly} · ${t.mySpace.dailyChecklist.dayOfMonth} ${item.day_of_month || 1}`;
+  }
+  if (frequency === 'quarterly') {
+    const months = getMonthLabels(locale);
+    const month = item.start_month ? months[item.start_month - 1] : months[0];
+    return `${t.mySpace.dailyChecklist.frequencyQuarterly} · ${month}, ${t.mySpace.dailyChecklist.dayOfMonth} ${item.day_of_month || 1}`;
+  }
+  return t.mySpace.dailyChecklist.frequencyDaily;
+}
 
 function getUser(): { role: string; employee_id?: number } | null {
   try {
@@ -122,10 +150,15 @@ interface ItemFormProps {
 }
 
 function ItemFormModal({ employeeId, item, objectives, onSave, onClose }: ItemFormProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [title, setTitle] = useState(item?.title ?? '');
   const [description, setDescription] = useState(item?.description ?? '');
   const [priority, setPriority] = useState<TaskPriority>(item?.priority ?? 'medium');
+  const [frequency, setFrequency] = useState<ChecklistFrequency>(item?.frequency ?? 'daily');
+  const [dayOfMonth, setDayOfMonth] = useState<string>(item?.day_of_month?.toString() ?? '1');
+  const [startMonth, setStartMonth] = useState<string>(
+    item?.start_month?.toString() ?? String(new Date().getMonth() + 1)
+  );
   const [days, setDays] = useState<DayOfWeek[]>(
     item?.days_of_week ?? ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
   );
@@ -148,13 +181,20 @@ function ItemFormModal({ employeeId, item, objectives, onSave, onClose }: ItemFo
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) { setError(t.mySpace.dailyChecklist.titleIsRequired); return; }
-    if (days.length === 0) { setError(t.mySpace.dailyChecklist.selectAtLeastOneDay); return; }
+    if (frequency === 'daily' && days.length === 0) { setError(t.mySpace.dailyChecklist.selectAtLeastOneDay); return; }
+    if (frequency !== 'daily' && (!dayOfMonth || Number(dayOfMonth) < 1 || Number(dayOfMonth) > 31)) {
+      setError(t.mySpace.dailyChecklist.invalidDayOfMonth);
+      return;
+    }
 
     const payload: ChecklistItemCreate & { is_active?: boolean } = {
       title: title.trim(),
       description: description.trim() || undefined,
       priority,
+      frequency,
       days_of_week: days,
+      day_of_month: frequency === 'daily' ? undefined : Number(dayOfMonth),
+      start_month: frequency === 'quarterly' ? Number(startMonth) : undefined,
       objective_id: objectiveId || undefined,
       key_result_id: keyResultId || undefined,
       kr_contribution: krContribution ? parseFloat(krContribution) : undefined,
@@ -218,7 +258,7 @@ function ItemFormModal({ employeeId, item, objectives, onSave, onClose }: ItemFo
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.mySpace.dailyChecklist.priorityLabel}</label>
               <CustomSelect
@@ -228,16 +268,57 @@ function ItemFormModal({ employeeId, item, objectives, onSave, onClose }: ItemFo
                 className="w-full"
               />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t.mySpace.dailyChecklist.activeDays}</label>
-            <div className="flex gap-1.5 flex-wrap">
-              {ALL_DAYS.map(d => (
-                <DayBadge key={d} day={d} active={days.includes(d)} onClick={() => toggleDay(d)} />
-              ))}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.mySpace.dailyChecklist.frequency}</label>
+              <CustomSelect
+                value={frequency}
+                onChange={v => setFrequency(v as ChecklistFrequency)}
+                options={[
+                  { value: 'daily', label: t.mySpace.dailyChecklist.frequencyDaily },
+                  { value: 'monthly', label: t.mySpace.dailyChecklist.frequencyMonthly },
+                  { value: 'quarterly', label: t.mySpace.dailyChecklist.frequencyQuarterly },
+                ]}
+                className="w-full"
+              />
             </div>
           </div>
+
+          {frequency === 'daily' ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t.mySpace.dailyChecklist.activeDays}</label>
+              <div className="flex gap-1.5 flex-wrap">
+                {ALL_DAYS.map(d => (
+                  <DayBadge key={d} day={d} active={days.includes(d)} onClick={() => toggleDay(d)} />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t.mySpace.dailyChecklist.dayOfMonth}</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="31"
+                  value={dayOfMonth}
+                  onChange={e => setDayOfMonth(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <p className="text-xs text-gray-400 mt-1">{t.mySpace.dailyChecklist.dayOfMonthHelp}</p>
+              </div>
+              {frequency === 'quarterly' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.mySpace.dailyChecklist.startMonth}</label>
+                  <CustomSelect
+                    value={startMonth}
+                    onChange={v => setStartMonth(v)}
+                    options={getMonthLabels(locale).map((month, index) => ({ value: String(index + 1), label: month }))}
+                    className="w-full"
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t.mySpace.dailyChecklist.linkedObjective}</label>
@@ -250,7 +331,7 @@ function ItemFormModal({ employeeId, item, objectives, onSave, onClose }: ItemFo
           </div>
 
           {selectedObjective && selectedObjective.key_results.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.mySpace.dailyChecklist.keyResult}</label>
                 <CustomSelect
@@ -302,7 +383,7 @@ function ItemFormModal({ employeeId, item, objectives, onSave, onClose }: ItemFo
 // ============================================
 
 function EmployeeChecklistView() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const PRIORITY_STYLES = getPriorityStylesCL(t);
   const [data, setData] = useState<DailyChecklistToday | null>(null);
   const [loading, setLoading] = useState(true);
@@ -413,6 +494,9 @@ function EmployeeChecklistView() {
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${pStyle.bg} ${pStyle.text}`}>
                     {pStyle.label}
                   </span>
+                  <span className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
+                    {getScheduleLabel(item, t, locale)}
+                  </span>
                   {item.key_result_id && (
                     <span className="flex items-center gap-1 text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
                       <Target className="w-3 h-3" />
@@ -445,7 +529,7 @@ function EmployeeChecklistView() {
 // ============================================
 
 function ManagerTemplateView() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const PRIORITY_STYLES = getPriorityStylesCL(t);
   const [members, setMembers] = useState<ChecklistTeamMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<ChecklistTeamMember | null>(null);
@@ -567,7 +651,7 @@ function ManagerTemplateView() {
       </div>
 
       {/* Template de l'employé sélectionné */}
-      <div className="col-span-2 bg-white rounded-xl border border-gray-200">
+      <div className="sm:col-span-2 bg-white rounded-xl border border-gray-200">
         {!selectedMember ? (
           <div className="flex flex-col items-center justify-center h-full py-16 text-center">
             <Users className="w-10 h-10 text-gray-300 mb-3" />
@@ -626,11 +710,16 @@ function ManagerTemplateView() {
                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${pStyle.bg} ${pStyle.text}`}>
                               {pStyle.label}
                             </span>
-                            <div className="flex gap-1">
-                              {item.days_of_week.map(d => (
-                                <DayBadge key={d} day={d} active />
-                              ))}
-                            </div>
+                            <span className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
+                              {getScheduleLabel(item, t, locale)}
+                            </span>
+                            {(item.frequency || 'daily') === 'daily' && (
+                              <div className="flex gap-1">
+                                {item.days_of_week.map(d => (
+                                  <DayBadge key={d} day={d} active />
+                                ))}
+                              </div>
+                            )}
                             {item.key_result_title && (
                               <span className="flex items-center gap-1 text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
                                 <Target className="w-3 h-3" />

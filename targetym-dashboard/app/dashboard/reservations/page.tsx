@@ -1,9 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import CustomSelect from '@/components/CustomSelect';
-import CustomDatePicker from '@/components/CustomDatePicker';
-import SearchableSelect from '@/components/SearchableSelect';
 import {
   Loader2, Plus, Edit, Trash2, Calendar, Clock, X, CheckCircle,
   XCircle, AlertCircle, Users, DoorOpen, ChevronRight, Ban,
@@ -12,6 +9,8 @@ import toast from 'react-hot-toast';
 import Header from '@/components/Header';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import { fetchWithAuth, API_URL } from '@/lib/api';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============ TYPES ============
 
@@ -485,22 +484,20 @@ export default function ReservationsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.rooms.roomLabel}</label>
-                  <SearchableSelect
+                  <CustomSelect
                     value={selectedRoomId != null ? String(selectedRoomId) : ''}
                     onChange={v => setSelectedRoomId(Number(v) || null)}
-                    placeholder={i18n.rooms.selectRoom}
-                    searchPlaceholder="Rechercher une salle..."
-                    options={rooms.map(rm => ({
-                      value: String(rm.id),
-                      label: rm.name,
-                      subtitle: `${rm.capacity} ${i18n.rooms.places}${rm.requires_validation ? ' · validation requise' : ''}`,
-                    }))}
+                    options={[{value:'', label: i18n.rooms.selectRoom}, ...rooms.map(rm => ({value: String(rm.id), label: `${rm.name} (${rm.capacity} ${i18n.rooms.places})`}))]}
                     className="w-full"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.rooms.dateLabel}</label>
-                  <CustomDatePicker value={selectedDate} onChange={v => setSelectedDate(v)} className="w-full" />
+                  <CustomDatePicker
+                    value={selectedDate}
+                    onChange={(v) => setSelectedDate(v)}
+                    className="w-full"
+                  />
                 </div>
               </div>
 
@@ -535,7 +532,7 @@ export default function ReservationsPage() {
                 {i18n.rooms.roomLabel} : <strong>{rooms.find(r => r.id === selectedRoomId)?.name}</strong> — {new Date(selectedDate + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{i18n.rooms.startTime}</label>
                   <input
@@ -639,8 +636,8 @@ export default function ReservationsPage() {
               <label className="block text-xs font-medium text-gray-500 mb-1">{i18n.rooms.dateLabel}</label>
               <CustomDatePicker
                 value={filterDate}
-                onChange={setFilterDate}
-                className="border rounded-lg px-3 py-1.5 text-sm"
+                onChange={(v) => setFilterDate(v)}
+                className="w-full"
               />
             </div>
             <div>
@@ -703,7 +700,7 @@ export default function ReservationsPage() {
               <p>{i18n.rooms.noRooms}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {rooms.map(rm => (
                 <div key={rm.id} className="bg-white rounded-lg border p-4">
                   <div className="flex items-start justify-between mb-2">

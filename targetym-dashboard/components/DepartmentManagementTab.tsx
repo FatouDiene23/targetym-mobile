@@ -9,14 +9,14 @@ import {
 import {
   getDepartments, updateDepartment, deleteDepartment,
   getEmployees, getGroupViewPersonnel,
-  type Department, type DepartmentCreate, type DepartmentUpdate, type Employee, type GroupPersonnelSubsidiary
+  type Department, type DepartmentCreate, type Employee, type GroupPersonnelSubsidiary
 } from '@/lib/api';
 import { useGroupContext } from '@/hooks/useGroupContext';
 import AddOrganizationalUnitModal from './AddOrganizationalUnitModal';
-import CustomSelect from './CustomSelect';
 import ConfirmDialog from './ConfirmDialog';
 import Pagination from './Pagination';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES
@@ -150,19 +150,19 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
     try {
       await deleteDepartment(dept.id);
       setShowDeleteConfirm(null);
-      await loadData();
+      loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : td.deleteError);
     }
   }
 
-  async function handleSaveEdit(data: DepartmentUpdate) {
+  async function handleSaveEdit(data: DepartmentCreate) {
     if (!editingDept) return;
     try {
       await updateDepartment(editingDept.id, data);
       setShowEditModal(false);
       setEditingDept(null);
-      await loadData();
+      loadData();
     } catch (err) {
       throw err;
     }
@@ -244,7 +244,7 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
             await deleteDepartment(id);
           }
           setSelectedIds(new Set());
-          await loadData();
+          loadData();
         } catch {}
         finally { setBulkLoading(false); }
       },
@@ -451,7 +451,7 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3">
                   <div className="text-center">
                     <p className="text-xl font-bold text-gray-800">{sub.departments_count}</p>
                     <p className="text-xs text-gray-500">{td.units}</p>
@@ -497,9 +497,9 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
       )}
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
-          <div className="relative w-full sm:max-w-xs sm:flex-1">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3 flex-1">
+          <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
@@ -536,7 +536,7 @@ export default function DepartmentManagementTab({ subsidiaryTenantId }: { subsid
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-2 gap-4 mb-4 lg:grid-cols-4">
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
           <p className="text-xs text-gray-500 mb-1">{td.totalUnits}</p>
           <p className="text-2xl font-bold text-gray-900">{departments.length}</p>
@@ -702,7 +702,7 @@ function EditDepartmentModal({
   departments: Department[];
   employees: Employee[];
   onClose: () => void;
-  onSave: (data: DepartmentUpdate) => Promise<void>;
+  onSave: (data: DepartmentCreate) => Promise<void>;
 }) {
   const { t } = useI18n();
   const td = t.departments;
@@ -746,12 +746,12 @@ function EditDepartmentModal({
     try {
       await onSave({
         name: form.name.trim(),
-        code: form.code.trim() || null,
-        description: form.description.trim() || null,
+        code: form.code.trim() || undefined,
+        description: form.description.trim() || undefined,
         color: LEVEL_COLOR_MAP[form.level] ?? '#6b7280',
         level: (form.level || undefined) as any,
-        parent_id: form.parent_id ? parseInt(form.parent_id) : null,
-        head_id: form.head_id ? parseInt(form.head_id) : null,
+        parent_id: form.parent_id ? parseInt(form.parent_id) : undefined,
+        head_id: form.head_id ? parseInt(form.head_id) : undefined,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : td.errorGeneric);
@@ -792,7 +792,7 @@ function EditDepartmentModal({
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {/* Code */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{td.codeLabel}</label>
@@ -811,11 +811,13 @@ function EditDepartmentModal({
               <CustomSelect
                 value={form.level}
                 onChange={(v) => setForm(f => ({ ...f, level: v }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 options={[
                   { value: '', label: td.notDefined },
-                  ...LEVEL_OPTIONS.map(o => ({ value: o.value, label: o.label })),
+                  ...LEVEL_OPTIONS.map(o => (
+                  ({ value: String(o.value), label: o.label })
+                )),
                 ]}
+                className="w-full"
               />
             </div>
           </div>
@@ -829,14 +831,13 @@ function EditDepartmentModal({
             <CustomSelect
               value={form.parent_id}
               onChange={(v) => setForm(f => ({ ...f, parent_id: v }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               options={[
                 { value: '', label: td.noneRoot },
-                ...availableParents.map(d => ({
-                  value: String(d.id),
-                  label: `${d.level ? `[${d.level.toUpperCase()}] ` : ''}${d.name}`,
-                })),
+                ...availableParents.map(d => (
+                ({ value: String(d.id), label: `${d.level ? `[${d.level.toUpperCase()}] ` : ''}${d.name}` })
+              )),
               ]}
+              className="w-full"
             />
           </div>
 
@@ -846,14 +847,13 @@ function EditDepartmentModal({
             <CustomSelect
               value={form.head_id}
               onChange={(v) => setForm(f => ({ ...f, head_id: v }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               options={[
                 { value: '', label: td.notAssigned },
-                ...employees.map(m => ({
-                  value: String(m.id),
-                  label: `${m.first_name} ${m.last_name} ${m.job_title ? `— ${m.job_title}` : ''}`,
-                })),
+                ...employees.map(m => (
+                ({ value: String(m.id), label: `${m.first_name} ${m.last_name} ${m.job_title ? `— ${m.job_title}` : ''}` })
+              )),
               ]}
+              className="w-full"
             />
           </div>
 

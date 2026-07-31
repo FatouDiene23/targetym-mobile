@@ -1,9 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import CustomSelect from '@/components/CustomSelect';
-import CustomDatePicker from '@/components/CustomDatePicker';
-import CustomTimePicker from '@/components/CustomTimePicker';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { 
@@ -14,6 +11,8 @@ import {
 import { 
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer
 } from 'recharts';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // =============================================
 // TYPES
@@ -687,46 +686,30 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
             <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
             <CustomSelect value={campaignType} onChange={(v) => setCampaignType(v)} options={[{value:'annual', label:"Évaluation Annuelle"},{value:'mid_year', label:"Évaluation Mi-Année"},{value:'360', label:"Feedback 360°"},{value:'probation', label:"Fin de Période d'Essai"}]} className="w-full" />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Date de début *</label>
-              <CustomDatePicker value={startDate} onChange={setStartDate} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
+              <CustomDatePicker
+                value={startDate}
+                onChange={(v) => setStartDate(v)}
+                className="w-full"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Date de fin *</label>
-              <CustomDatePicker value={endDate} onChange={setEndDate} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
+              <CustomDatePicker
+                value={endDate}
+                onChange={(v) => setEndDate(v)}
+                className="w-full"
+              />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Employés concernés</label>
             <p className="text-xs text-gray-500 mb-2">Laissez vide pour inclure tous les employés actifs</p>
-            <div className="w-full border rounded-lg max-h-48 overflow-y-auto bg-white">
-              {employees.map(emp => {
-                const isSelected = selectedEmployees.includes(emp.id);
-                return (
-                  <label
-                    key={emp.id}
-                    className={`flex items-center gap-2 px-3 py-2 text-sm cursor-pointer border-b border-gray-50 last:border-0 transition-colors ${
-                      isSelected ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-800 hover:bg-gray-50'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedEmployees([...selectedEmployees, emp.id]);
-                        } else {
-                          setSelectedEmployees(selectedEmployees.filter(id => id !== emp.id));
-                        }
-                      }}
-                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                    />
-                    <span>{emp.first_name} {emp.last_name}</span>
-                  </label>
-                );
-              })}
-            </div>
+            <select multiple value={selectedEmployees.map(String)} onChange={(e) => setSelectedEmployees(Array.from(e.target.selectedOptions, o => parseInt(o.value)))} className="w-full px-3 py-2.5 border rounded-lg text-sm h-32">
+              {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}
+            </select>
           </div>
         </div>
         <div className="p-5 border-t bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
@@ -868,7 +851,11 @@ function CompleteOneOnOneModal({ meeting, onClose, onSuccess, currentEmployeeId 
               <div className="flex gap-2">
                 <CustomSelect value={newTaskType} onChange={v => setNewTaskType(v as 'task' | 'training')} options={[{value:'task', label:'📋 Tâche'},{value:'training', label:'🎓 Formation'}]} className="flex-1" />
                 <CustomSelect value={newTaskAssignee} onChange={v => setNewTaskAssignee(v as 'employee' | 'manager')} options={[{value:'employee', label:'👤 Collaborateur'},{value:'manager', label:'👔 Manager'}]} className="flex-1" />
-                <CustomDatePicker value={newTaskDue} onChange={setNewTaskDue} className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm" />
+                <CustomDatePicker
+                  value={newTaskDue}
+                  onChange={(v) => setNewTaskDue(v)}
+                  className="w-full"
+                />
               </div>
               <button onClick={addTask} disabled={!newTaskTitle.trim()} className="flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-700 disabled:opacity-40 font-medium">
                 <Plus className="w-4 h-4" />Ajouter
@@ -933,17 +920,21 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
             <label className="block text-sm font-medium text-gray-700 mb-2">Collaborateur *</label>
             <CustomSelect value={employeeId} onChange={(v) => setEmployeeId(v)} options={[{value:'', label:'Sélectionner un collaborateur'}, ...employees.map(emp => ({value: String(emp.id), label: `${emp.first_name} ${emp.last_name}`}))]} className="w-full" />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Date *</label>
-              <CustomDatePicker value={scheduledDate} onChange={setScheduledDate} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
+              <CustomDatePicker
+                value={scheduledDate}
+                onChange={(v) => setScheduledDate(v)}
+                className="w-full"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Heure</label>
-              <CustomTimePicker value={scheduledTime} onChange={setScheduledTime} className="w-full" />
+              <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Durée</label>
               <CustomSelect value={String(duration)} onChange={(v) => setDuration(parseInt(v))} options={[{value:'15', label:'15 min'},{value:'30', label:'30 min'},{value:'45', label:'45 min'},{value:'60', label:'1 heure'},{value:'90', label:'1h30'}]} className="w-full" />
@@ -993,7 +984,7 @@ function EvaluationViewModal({ isOpen, onClose, evaluation }: {
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-500">Type</p>
               <p className="font-medium text-gray-900">{getTypeLabel(evaluation.type)}</p>

@@ -13,9 +13,9 @@ import {
   type Employee, type LeaveRequest, type Department, type Task
 } from '@/lib/api';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import type { Translations } from '@/lib/i18n';
 import CustomDatePicker from '@/components/CustomDatePicker';
 import CustomSelect from '@/components/CustomSelect';
-import type { Translations } from '@/lib/i18n';
 
 // ============================================
 // TYPES
@@ -403,7 +403,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
     return (
       <div className="p-6">
         <h3 className="text-sm font-medium text-gray-500 mb-4">{x.whatDataType}</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {DATA_TYPES.map(dt => {
             const Icon = dt.icon;
             const isSelected = dataType === dt.key;
@@ -440,18 +440,18 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
           <h3 className="text-sm font-medium text-gray-500 mb-3 flex items-center gap-2">
             <Filter className="w-4 h-4" /> {x.filters}
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {(dataType === 'employees' || dataType === 'leaves') && (
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">{x.colDepartment}</label>
                 <CustomSelect
-                  value={filters.department_id ? String(filters.department_id) : ''}
+                  value={String(filters.department_id || '')}
                   onChange={(v) => setFilters(f => ({ ...f, department_id: v ? parseInt(v) : undefined }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                   options={[
                     { value: '', label: x.allDepartments },
                     ...departments.map(d => ({ value: String(d.id), label: d.name })),
                   ]}
+                  className="w-full"
                 />
               </div>
             )}
@@ -462,7 +462,6 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
                 <CustomSelect
                   value={filters.status || ''}
                   onChange={(v) => setFilters(f => ({ ...f, status: v || undefined }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                   options={[
                     { value: '', label: x.allStatuses },
                     { value: 'active', label: x.activeSt },
@@ -471,6 +470,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
                     { value: 'suspended', label: x.suspended },
                     { value: 'terminated', label: x.terminated },
                   ]}
+                  className="w-full"
                 />
               </div>
             )}
@@ -482,24 +482,30 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
                   <CustomSelect
                     value={filters.status || ''}
                     onChange={(v) => setFilters(f => ({ ...f, status: v || undefined }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                     options={[
                       { value: '', label: x.allFilter },
                       { value: 'pending', label: x.pendingSt },
                       { value: 'approved', label: x.approved },
                       { value: 'rejected', label: x.rejected },
                     ]}
+                    className="w-full"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">{x.from}</label>
-                  <CustomDatePicker value={filters.date_from || ''} onChange={(v) => setFilters(f => ({ ...f, date_from: v || undefined }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
+                  <CustomDatePicker
+                    value={filters.date_from || ''}
+                    onChange={(v) => setFilters(f => ({ ...f, date_from: v || undefined }))}
+                    className="w-full"
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">{x.to}</label>
-                  <CustomDatePicker value={filters.date_to || ''} onChange={(v) => setFilters(f => ({ ...f, date_to: v || undefined }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" />
+                  <CustomDatePicker
+                    value={filters.date_to || ''}
+                    onChange={(v) => setFilters(f => ({ ...f, date_to: v || undefined }))}
+                    className="w-full"
+                  />
                 </div>
               </>
             )}
@@ -510,13 +516,13 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
                 <CustomSelect
                   value={filters.status || ''}
                   onChange={(v) => setFilters(f => ({ ...f, status: v || undefined }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                   options={[
                     { value: '', label: x.allFilter },
                     { value: 'pending', label: x.pendingSt },
                     { value: 'in_progress', label: x.inProgressSt },
                     { value: 'completed', label: x.completedSt },
                   ]}
+                  className="w-full"
                 />
               </div>
             )}
@@ -559,7 +565,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 p-2">
+          <div className="grid grid-cols-2 gap-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 p-2">
             {filteredColumns.map(col => (
               <button
                 key={col.key}
@@ -588,7 +594,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
       <div className="p-6 space-y-5">
         <div>
           <h3 className="text-sm font-medium text-gray-500 mb-3">{x.exportFormat}</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             {FORMAT_OPTIONS.map(f => {
               const Icon = f.icon;
               const isSelected = format === f.key;
@@ -613,7 +619,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
 
         <div className="bg-gray-50 rounded-xl p-4 space-y-2">
           <h3 className="text-sm font-semibold text-gray-700">{x.exportSummary}</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 text-sm">
+          <div className="grid grid-cols-2 gap-y-2 text-sm">
             <span className="text-gray-500">{x.data}</span>
             <span className="font-medium text-gray-900">{DATA_TYPES.find(d => d.key === dataType)?.label}</span>
             <span className="text-gray-500">{x.columns}</span>

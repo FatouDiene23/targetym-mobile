@@ -1,24 +1,19 @@
 'use client';
 
-/**
- * AuthContext — gestion sécurisée des tokens (Option C hybride)
- *
- * - access_token  → state React en mémoire uniquement (jamais dans localStorage)
- * - refresh_token → cookie httpOnly posé par le backend (invisible pour JS)
- * - user          → localStorage (pas sensible, juste des infos d'affichage)
- *
- * XSS ne peut pas voler le refresh_token (httpOnly).
- * Même si l'access_token est lu depuis la mémoire, sa durée de vie est 30 min.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// Adaptation mobile de @/context/AuthContext du dashboard web.
+//
+// Le web garde l'access_token en mémoire dans un AuthProvider adossé à un cookie
+// httpOnly. La WebView Capacitor n'a pas ce cookie : le mobile conserve token et
+// `user` dans localStorage (voir app/dashboard/layout.tsx et lib/api.ts).
+//
+// Ce module expose donc le même `useAuth()` — même forme d'objet, mêmes champs —
+// mais adossé au localStorage, sans provider à monter. Cela permet aux pages
+// portées depuis le web d'être reprises sans modification.
+// ─────────────────────────────────────────────────────────────────────────────
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useRef,
-  type ReactNode,
-} from 'react';
+import { useEffect, useState } from 'react';
+import { getStoredUser, type StoredUser } from '@/lib/managerAccess';
 
 export interface AuthUser {
   id: number;
@@ -33,120 +28,45 @@ export interface AuthUser {
   managed_employee_count?: number;
 }
 
-interface AuthState {
-  accessToken: string | null;
-  user: AuthUser | null;
+function toAuthUser(stored: StoredUser | null): AuthUser | null {
+  if (!stored || stored.id === undefined || !stored.email) return null;
+  return {
+    id: stored.id,
+    email: stored.email,
+    role: stored.role || 'employee',
+    first_name: stored.first_name,
+    last_name: stored.last_name,
+    employee_id: stored.employee_id,
+    is_manager: stored.is_manager,
+    has_manager_access: stored.has_manager_access,
+    managed_employee_count: stored.managed_employee_count,
+  };
 }
 
-interface AuthContextValue extends AuthState {
-  /** Définit l'access_token en mémoire + persiste le user dans localStorage */
-  setAuth: (accessToken: string, user: AuthUser) => void;
-  /** Met à jour uniquement l'access_token en mémoire (sans toucher au user) — utilisé par le refresh silencieux */
-  setAccessToken: (accessToken: string) => void;
-  /** Met à jour uniquement le user (sans changer le token) — utilisé pour synchroniser avec l'API */
-  updateUser: (user: AuthUser) => void;
-  /** Efface la session en mémoire + localStorage (le cookie httpOnly est effacé côté serveur) */
-  clearAuth: () => void;
-  /** Lit l'access_token courant (pour les headers Authorization) */
-  getAccessToken: () => string | null;
-  /** Vrai si une session est présente */
-  isAuthenticated: boolean;
-}
+export function useAuth(): { user: AuthUser | null; clearAuth: () => void } {
+  const [user, setUser] = useState<AuthUser | null>(null);
 
-const AuthContext = createContext<AuthContextValue | null>(null);
-
-/** Recharge le user depuis localStorage au montage (survivance au reload) */
-function loadUserFromStorage(): AuthUser | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem('user');
-    return raw ? (JSON.parse(raw) as AuthUser) : null;
-  } catch {
-    return null;
-  }
-}
-
-/** Ré-hydrate le token d'impersonation (le cookie de refresh reste super-admin :
- * sans ça, un reload repartirait sur la session super-admin / back-office). */
-function loadImpersonationToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    if (localStorage.getItem('is_impersonating') === 'true') {
-      return sessionStorage.getItem('impersonation_token');
-    }
-  } catch { /* ignore */ }
-  return null;
-}
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthState>(() => ({
-    // En impersonation, on repart du token stocké dès le 1er rendu synchrone → le
-    // layout voit un token et n'effectue pas le refresh cookie (qui est super-admin).
-    accessToken: loadImpersonationToken(),
-    // user rechargé depuis localStorage (infos d'affichage non sensibles)
-    user: loadUserFromStorage(),
-  }));
-
-  // Ref pour accès synchrone dans fetchWithAuth sans dépendance de closure
-  const tokenRef = useRef<string | null>(state.accessToken);
-
-  const setAuth = useCallback((accessToken: string, user: AuthUser) => {
-    tokenRef.current = accessToken;
-    setState({ accessToken, user });
-    // Supprime un éventuel JWT laissé par une version antérieure.
-    try { sessionStorage.removeItem('access_token'); } catch { /* ignore */ }
-    // Persiste les infos d'affichage (non sensibles)
-    localStorage.setItem('user', JSON.stringify(user));
-    // Nettoie les anciens tokens en clair
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+  useEffect(() => {
+    const sync = () => setUser(toAuthUser(getStoredUser()));
+    sync();
+    // Émis par patchStoredUser() / syncManagerAccess() au démarrage du layout
+    window.addEventListener('user:updated', sync);
+    const onStorage = (e: StorageEvent) => { if (e.key === 'user') sync(); };
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('user:updated', sync);
+      window.removeEventListener('storage', onStorage);
+    };
   }, []);
 
-  const setAccessToken = useCallback((accessToken: string) => {
-    tokenRef.current = accessToken;
-    setState(prev => ({ ...prev, accessToken }));
-    try { sessionStorage.removeItem('access_token'); } catch { /* ignore */ }
-  }, []);
+  const clearAuth = () => {
+    try {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+    } catch { /* stockage indisponible */ }
+    setUser(null);
+  };
 
-  const updateUser = useCallback((user: AuthUser) => {
-    setState(prev => ({ ...prev, user }));
-    localStorage.setItem('user', JSON.stringify(user));
-    window.dispatchEvent(new Event('user:updated'));
-  }, []);
-
-  const clearAuth = useCallback(() => {
-    tokenRef.current = null;
-    setState({ accessToken: null, user: null });
-    try { sessionStorage.removeItem('access_token'); } catch { /* ignore */ }
-    localStorage.removeItem('user');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('is_impersonating');
-  }, []);
-
-  const getAccessToken = useCallback((): string | null => {
-    return tokenRef.current;
-  }, []);
-
-  return (
-    <AuthContext.Provider
-      value={{
-        ...state,
-        setAuth,
-        setAccessToken,
-        updateUser,
-        clearAuth,
-        getAccessToken,
-        isAuthenticated: state.accessToken !== null,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');
-  return ctx;
+  return { user, clearAuth };
 }

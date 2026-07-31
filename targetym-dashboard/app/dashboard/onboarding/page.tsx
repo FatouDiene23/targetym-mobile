@@ -1,10 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import CustomSelect from '@/components/CustomSelect';
-import CustomDatePicker from '@/components/CustomDatePicker';
-import CustomTimePicker from '@/components/CustomTimePicker';
 import toast from 'react-hot-toast';
 import Header from '@/components/Header';
 import {
@@ -20,6 +16,8 @@ import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES
@@ -369,99 +367,28 @@ function SearchableSelect({
   if (!placeholder) placeholder = t.common.search + '...';
   if (!emptyLabel) emptyLabel = t.common.noResults;
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState('');
-  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setMounted(true); }, []);
-
-  useEffect(() => {
-    if (!open || !triggerRef.current) return;
-    const updatePosition = () => {
-      if (!triggerRef.current) return;
-      const rect = triggerRef.current.getBoundingClientRect();
-      setPosition({ top: rect.bottom + 4, left: rect.left, width: rect.width });
-    };
-    updatePosition();
-    window.addEventListener('scroll', updatePosition, true);
-    window.addEventListener('resize', updatePosition);
-    return () => {
-      window.removeEventListener('scroll', updatePosition, true);
-      window.removeEventListener('resize', updatePosition);
-    };
-  }, [open]);
-
-  const filtered = options.filter(o =>
+  const filtered = options.filter(o => 
     o.label.toLowerCase().includes(search.toLowerCase()) ||
     (o.subtitle && o.subtitle.toLowerCase().includes(search.toLowerCase()))
   );
 
   const selected = options.find(o => o.value === value);
 
-  const dropdown = open && mounted ? createPortal(
-    <>
-      {/* overlay transparent qui ferme le dropdown au tap extérieur */}
-      <div
-        style={{ position: 'fixed', inset: 0, zIndex: 99997 }}
-        onClick={() => { setOpen(false); setSearch(''); }}
-      />
-      <div
-        ref={dropdownRef}
-        style={{ position: 'fixed', top: `${position.top}px`, left: `${position.left}px`, width: `${position.width}px`, zIndex: 99999 }}
-        className="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden"
-      >
-        <div className="p-2 border-b">
-          <div className="flex items-center gap-2 bg-gray-50 rounded-md px-2 py-1.5">
-            <Search size={14} className="text-gray-400 flex-shrink-0" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder={`${t.common.search}...`}
-              className="flex-1 text-sm outline-none bg-transparent"
-            />
-            {search && (
-              <button onClick={() => setSearch('')} className="p-0.5 hover:bg-gray-200 rounded">
-                <X size={12} className="text-gray-400" />
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="max-h-48 overflow-y-auto">
-          {placeholder && (
-            <button
-              onClick={() => { onChange(''); setOpen(false); setSearch(''); }}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${!value ? 'bg-primary-50 text-primary-700' : 'text-gray-400'}`}
-            >
-              {placeholder}
-            </button>
-          )}
-          {filtered.length > 0 ? filtered.map(o => (
-            <button
-              key={o.value}
-              onClick={() => { onChange(o.value); setOpen(false); setSearch(''); }}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${o.value === value ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}`}
-            >
-              <span>{o.label}</span>
-              {o.subtitle && <span className="text-xs text-gray-400 ml-1">— {o.subtitle}</span>}
-            </button>
-          )) : (
-            <div className="px-3 py-4 text-sm text-gray-400 text-center">{emptyLabel}</div>
-          )}
-        </div>
-      </div>
-    </>,
-    document.body
-  ) : null;
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   return (
-    <div className={`relative ${className}`}>
+    <div ref={ref} className={`relative ${className}`}>
       <button
-        ref={triggerRef}
         type="button"
-        style={open ? { position: 'relative', zIndex: 99998 } : undefined}
         onClick={() => { setOpen(!open); setSearch(''); }}
         className="w-full border rounded-lg px-3 py-2 text-sm text-left flex items-center justify-between hover:border-gray-400 transition-colors"
       >
@@ -470,7 +397,51 @@ function SearchableSelect({
         </span>
         <ChevronDown size={16} className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
-      {dropdown}
+
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+          <div className="p-2 border-b">
+            <div className="flex items-center gap-2 bg-gray-50 rounded-md px-2 py-1.5">
+              <Search size={14} className="text-gray-400 flex-shrink-0" />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder={`${t.common.search}...`}
+                className="flex-1 text-sm outline-none bg-transparent"
+                autoFocus
+              />
+              {search && (
+                <button onClick={() => setSearch('')} className="p-0.5 hover:bg-gray-200 rounded">
+                  <X size={12} className="text-gray-400" />
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="max-h-48 overflow-y-auto">
+            {placeholder && (
+              <button
+                onClick={() => { onChange(''); setOpen(false); }}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${!value ? 'bg-primary-50 text-primary-700' : 'text-gray-400'}`}
+              >
+                {placeholder}
+              </button>
+            )}
+            {filtered.length > 0 ? filtered.map(o => (
+              <button
+                key={o.value}
+                onClick={() => { onChange(o.value); setOpen(false); }}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${o.value === value ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'}`}
+              >
+                <span>{o.label}</span>
+                {o.subtitle && <span className="text-xs text-gray-400 ml-1">— {o.subtitle}</span>}
+              </button>
+            )) : (
+              <div className="px-3 py-4 text-sm text-gray-400 text-center">{emptyLabel}</div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -735,7 +706,7 @@ export default function OnboardingPage() {
           <StatCard label={t.onboarding.overdue} value={stats.overdue_count} icon={AlertCircle} color="bg-red-50 text-red-600" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Onboardings actifs */}
           <div className="bg-white rounded-xl border border-gray-200">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -1356,7 +1327,7 @@ export default function OnboardingPage() {
               <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.programDescription}</label>
               <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder={t.onboarding.programDescPlaceholder} />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.common.department}</label>
                 <CustomSelect value={deptId} onChange={v => setDeptId(v)} options={[{value:'', label: t.onboarding.allDepartments}, ...departments.map(d => ({value: String(d.id), label: d.name}))]} className="w-full" />
@@ -1444,7 +1415,7 @@ export default function OnboardingPage() {
               <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.taskDescription}</label>
               <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={2} className="w-full border rounded-lg px-3 py-2 text-sm" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.category}</label>
                 <CustomSelect value={category} onChange={v => setCategory(v)} options={Object.entries(CATEGORY_CONFIG).map(([k, v]) => ({value: k, label: v.label}))} className="w-full" />
@@ -1569,7 +1540,7 @@ export default function OnboardingPage() {
                 options={programs.filter(p => p.is_active).map(p => ({ value: String(p.id), label: p.name, subtitle: `${p.task_count} tâches` }))}
               />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.manager}</label>
                 <SearchableSelect
@@ -1591,7 +1562,11 @@ export default function OnboardingPage() {
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.startDate}</label>
-              <CustomDatePicker value={startDate} onChange={setStartDate} className="w-full border rounded-lg px-3 py-2 text-sm" />
+              <CustomDatePicker
+                value={startDate}
+                onChange={(v) => setStartDate(v)}
+                className="w-full"
+              />
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.notes}</label>
@@ -1673,18 +1648,22 @@ export default function OnboardingPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.dateRequired}</label>
-                <CustomDatePicker value={date_} onChange={setDate_} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                <CustomDatePicker
+                  value={date_}
+                  onChange={(v) => setDate_(v)}
+                  className="w-full"
+                />
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.time}</label>
-                <CustomTimePicker value={time_} onChange={setTime_} className="w-full" />
+                <input type="time" value={time_} onChange={e => setTime_(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" />
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.durationMin}</label>
                 <input type="number" value={duration} onChange={e => setDuration(parseInt(e.target.value) || 30)} className="w-full border rounded-lg px-3 py-2 text-sm" />
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.locationLabel}</label>
                 <input value={location} onChange={e => setLocation(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder={t.onboarding.locationPlaceholder} />
@@ -1811,11 +1790,7 @@ export default function OnboardingPage() {
 
       {/* Dropdown flottant déclenché par le bouton Header "+" */}
       {showAddDropdown && (
-        <div
-          ref={addDropdownRef}
-          className="w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-1"
-          style={{ position: 'fixed', top: '128px', right: '16px', left: 'auto', zIndex: 50 }}
-        >
+        <div ref={addDropdownRef} className="fixed top-16 right-6 w-56 bg-white rounded-xl shadow-lg border border-gray-200 z-50 py-1">
           <button onClick={() => { setShowAddDropdown(false); setEditingProgram(null); setShowProgramModal(true); }}
             className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
             <ClipboardList size={16} className="text-primary-500" /> {t.onboarding.createProgram}

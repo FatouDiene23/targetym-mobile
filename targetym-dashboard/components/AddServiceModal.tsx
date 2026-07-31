@@ -117,12 +117,14 @@ export default function AddServiceModal({ onClose, onSuccess }: AddServiceModalP
               <CustomSelect
                 value={formData.parent_id}
                 onChange={(v) => setFormData(prev => ({ ...prev, parent_id: v }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 disabled={isLoadingDepts}
                 options={[
                   { value: '', label: isLoadingDepts ? 'Chargement...' : 'Sélectionner un département' },
-                  ...departments.map(dept => ({ value: String(dept.id), label: dept.name })),
+                  ...departments.map(dept => (
+                  ({ value: String(dept.id), label: dept.name })
+                )),
                 ]}
+                className="w-full"
               />
               {!isLoadingDepts && departments.length === 0 && (
                 <p className="text-xs text-amber-600 mt-1">

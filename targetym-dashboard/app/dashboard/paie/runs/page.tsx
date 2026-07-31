@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import CustomSelect from '@/components/CustomSelect';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import { useI18n } from '@/lib/i18n/I18nContext';
@@ -17,6 +16,7 @@ import {
   formatXOF, MONTHS_FR, RUN_STATUS,
   type PayrollRun, type PayrollConfig,
 } from '@/lib/payrollApi';
+import CustomSelect from '@/components/CustomSelect';
 
 // ── Composant badge statut ────────────────────────────────────────────────────
 

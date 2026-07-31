@@ -18,8 +18,8 @@ import { useLearning } from '../LearningContext';
 import { API_URL, getAuthHeaders, hasPermission } from '../shared';
 import toast from 'react-hot-toast';
 import { useI18n } from '@/lib/i18n/I18nContext';
-import CustomSelect from '@/components/CustomSelect';
 import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES
@@ -1284,7 +1284,7 @@ export default function PlanFormationPage() {
                   placeholder={tp.planPlaceholder}
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.yearRequired}</label>
                   <CustomSelect
@@ -1346,25 +1346,25 @@ export default function PlanFormationPage() {
                   </div>
                 </div>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.startDate}</label>
                   <CustomDatePicker
                     value={newPlan.start_date}
-                    onChange={v => setNewPlan(p => ({ ...p, start_date: v }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                    onChange={(v) => setNewPlan(p => ({ ...p, start_date: v }))}
+                    className="w-full"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.endDate}</label>
                   <CustomDatePicker
                     value={newPlan.end_date}
-                    onChange={v => setNewPlan(p => ({ ...p, end_date: v }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                    onChange={(v) => setNewPlan(p => ({ ...p, end_date: v }))}
+                    className="w-full"
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.budgetCeiling}</label>
                   <input
@@ -1436,7 +1436,7 @@ export default function PlanFormationPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.thYear}</label>
                   <CustomSelect
@@ -1456,7 +1456,7 @@ export default function PlanFormationPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.level}</label>
                   <CustomSelect
@@ -1476,21 +1476,21 @@ export default function PlanFormationPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.startDate}</label>
                   <CustomDatePicker
                     value={editPlan.start_date ?? ''}
-                    onChange={v => setEditPlan(p => p ? { ...p, start_date: v || null } : p)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                    onChange={(v) => setEditPlan(p => p ? { ...p, start_date: v || null } : p)}
+                    className="w-full"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.endDate}</label>
                   <CustomDatePicker
                     value={editPlan.end_date ?? ''}
-                    onChange={v => setEditPlan(p => p ? { ...p, end_date: v || null } : p)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                    onChange={(v) => setEditPlan(p => p ? { ...p, end_date: v || null } : p)}
+                    className="w-full"
                   />
                 </div>
               </div>
@@ -1560,7 +1560,7 @@ export default function PlanFormationPage() {
                   className="w-full"
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.modality}</label>
                   <CustomSelect
@@ -1589,7 +1589,7 @@ export default function PlanFormationPage() {
                   className="w-full"
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.unitCost} ({selectedPlan?.currency || 'XOF'})</label>
                   <input
@@ -1621,7 +1621,7 @@ export default function PlanFormationPage() {
                   />
                 </div>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.maxParticipants}</label>
                   <input
@@ -1771,25 +1771,28 @@ export default function PlanFormationPage() {
               </div>
             </div>
             <div className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date début</label>
                   <CustomDatePicker
                     value={newSchedule.start_date}
-                    onChange={val => setNewSchedule(p => ({ ...p, start_date: val, quarter: autoQuarter(val) }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                    onChange={(v) => {
+                      const val = v;
+                      setNewSchedule(p => ({ ...p, start_date: val, quarter: autoQuarter(val) }));
+                    }}
+                    className="w-full"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date fin</label>
                   <CustomDatePicker
                     value={newSchedule.end_date}
-                    onChange={v => setNewSchedule(p => ({ ...p, end_date: v }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                    onChange={(v) => setNewSchedule(p => ({ ...p, end_date: v }))}
+                    className="w-full"
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Trimestre</label>
                   <CustomSelect
@@ -2190,7 +2193,7 @@ function CalendarTab({ schedules }: { schedules: PlanSchedule[] }) {
   return (
     <div className="space-y-6">
       {/* Timeline by quarter */}
-      <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-4 gap-3 mb-4">
         {QUARTER_LABELS.map(q => {
           const items = byQuarter[q] || [];
           const completed = items.filter(s => s.status === 'completed').length;

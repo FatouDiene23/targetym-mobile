@@ -7,8 +7,8 @@ import {
   Search,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import CustomDatePicker from './CustomDatePicker';
-import CustomSelect from './CustomSelect';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES
@@ -117,12 +117,12 @@ function AssignModal({ employees, courses, onSave, onClose }: AssignModalProps) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 flex-shrink-0">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <h2 className="text-lg font-semibold text-gray-900">Assigner une formation</h2>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"><X className="w-5 h-5" /></button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Employee search + select */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Collaborateur <span className="text-red-500">*</span></label>
@@ -146,18 +146,17 @@ function AssignModal({ employees, courses, onSave, onClose }: AssignModalProps) 
                 className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
               />
             </div>
-            <select
+            <CustomSelect
               value={employeeId}
-              onChange={e => setEmployeeId(e.target.value)}
-              required
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-              size={5}
-            >
-              <option value="">— Sélectionner —</option>
-              {filteredEmps.map(e => (
-                <option key={e.id} value={e.id}>{empName(e)}</option>
-              ))}
-            </select>
+              onChange={v => setEmployeeId(v)}
+              options={[
+                { value: '', label: '— Sélectionner —' },
+                ...filteredEmps.map(e => (
+                ({ value: String(e.id), label: empName(e) })
+              )),
+              ]}
+              className="w-full"
+            />
           </div>
 
           {/* Course select */}
@@ -165,15 +164,14 @@ function AssignModal({ employees, courses, onSave, onClose }: AssignModalProps) 
             <label className="block text-sm font-medium text-gray-700 mb-1">Formation <span className="text-red-500">*</span></label>
             <CustomSelect
               value={courseId}
-              onChange={(v) => setCourseId(v)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+              onChange={v => setCourseId(v)}
               options={[
                 { value: '', label: '— Sélectionner une formation —' },
-                ...courses.map(c => ({
-                  value: String(c.id),
-                  label: `${c.title}${c.duration_hours ? ` (${c.duration_hours}h)` : ''}${c.category ? ` — ${c.category}` : ''}`,
-                })),
+                ...courses.map(c => (
+                ({ value: String(c.id), label: `${c.title}${c.duration_hours ? ` (${c.duration_hours}h)` : ''}${c.category ? ` — ${c.category}` : ''}` })
+              )),
               ]}
+              className="w-full"
             />
           </div>
 
@@ -181,12 +179,12 @@ function AssignModal({ employees, courses, onSave, onClose }: AssignModalProps) 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Date limite <span className="text-gray-400 font-normal">(optionnel)</span></label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <CustomDatePicker
                 value={deadline}
-                onChange={setDeadline}
+                onChange={(v) => setDeadline(v)}
                 min={new Date().toISOString().split('T')[0]}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                className="w-full"
               />
             </div>
           </div>
@@ -356,11 +354,12 @@ export default function FormationsTab({ employeesList = [] }: FormationsTabProps
             {/* Status filter */}
             <CustomSelect
               value={filterStatus}
-              onChange={(v) => setFilterStatus(v)}
-              className="w-full sm:w-auto sm:min-w-[160px] px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+              onChange={v => setFilterStatus(v)}
               options={[
                 { value: '', label: 'Tous les statuts' },
-                ...Object.entries(STATUS_CONFIG).map(([k, v]) => ({ value: k, label: v.label })),
+                ...Object.entries(STATUS_CONFIG).map(([k, v]) => (
+                ({ value: String(k), label: v.label })
+              )),
               ]}
             />
           </div>

@@ -1,7 +1,6 @@
 'use client';
 
 import Header from '@/components/Header';
-import CustomSelect from '@/components/CustomSelect';
 import EmployeeModal from '@/components/EmployeeModal';
 import AddModal from '@/components/AddModal';
 import EditEmployeeModal from '@/components/EditEmployeeModal';
@@ -35,6 +34,7 @@ import {
 } from '@/lib/api';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomSelect from '@/components/CustomSelect';
 
 const locations = ['Tous', 'Abidjan', 'Dakar', 'Bamako', 'Ouagadougou', 'Conakry', 'Remote'];
 

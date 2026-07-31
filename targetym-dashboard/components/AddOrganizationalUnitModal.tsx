@@ -209,7 +209,7 @@ export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOr
             {/* Type/Niveau */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Type d&apos;unité *</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
                 {ORGANIZATIONAL_LEVELS.map(level => {
                   const Icon = level.icon;
                   const isSelected = formData.level === level.value;
@@ -248,15 +248,14 @@ export default function AddOrganizationalUnitModal({ onClose, onSuccess }: AddOr
                 <CustomSelect
                   value={formData.parent_id}
                   onChange={(v) => setFormData(prev => ({ ...prev, parent_id: v }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                   disabled={isLoadingData}
                   options={[
                     { value: '', label: isLoadingData ? 'Chargement...' : 'Aucun (niveau racine)' },
-                    ...departments.map(dept => ({
-                      value: String(dept.id),
-                      label: `${getLevelLabel(dept.level || 'departement')} — ${dept.name}`,
-                    })),
+                    ...departments.map(dept => (
+                    ({ value: String(dept.id), label: `${getLevelLabel(dept.level || 'departement')} — ${dept.name}` })
+                  )),
                   ]}
+                  className="w-full"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Laissez vide pour créer une unité au niveau racine

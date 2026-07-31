@@ -11,121 +11,15 @@ import {
   X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { API_URL, fetchWithAuth } from '@/lib/api';
-
-// ============================================
-// TYPES
-// ============================================
-
-type EmployeeFinanceRequestType = 'advance' | 'loan';
-type EmployeeFinanceStatus =
-  | 'pending_hr'
-  | 'rejected'
-  | 'pending_finance'
-  | 'approved'
-  | 'paid_out'
-  | 'active'
-  | 'completed'
-  | 'cancelled';
-
-interface EmployeeLoanInstallment {
-  id: number;
-  period_year: number;
-  period_month: number;
-  amount_due: number | string;
-  amount_deducted: number | string;
-  status: string;
-}
-
-interface EmployeeFinanceRequest {
-  id: number;
-  tenant_id: number;
-  employee_id: number;
-  request_type: EmployeeFinanceRequestType;
-  amount_requested: number | string;
-  amount_approved?: number | string | null;
-  currency: string;
-  reason?: string | null;
-  status: EmployeeFinanceStatus;
-  first_payroll_year: number;
-  first_payroll_month: number;
-  installments_count?: number | null;
-  monthly_amount?: number | string | null;
-  remaining_amount?: number | string | null;
-  created_at?: string | null;
-  installments: EmployeeLoanInstallment[];
-}
-
-// ============================================
-// API
-// ============================================
-
-async function apiJson<T>(path: string, options: RequestInit = {}): Promise<T> {
-  let response: Response;
-  try {
-    response = await fetchWithAuth(`${API_URL}${path}`, options);
-  } catch {
-    throw new Error("API Avances & Prêts indisponible. Vérifiez que le backend est déployé.");
-  }
-  if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(payload?.detail || 'Erreur API');
-  }
-  return response.json();
-}
-
-function listMyRequests(): Promise<EmployeeFinanceRequest[]> {
-  return apiJson<EmployeeFinanceRequest[]>('/api/cb/employee-finance/my-requests');
-}
-
-function createMyRequest(body: {
-  request_type: EmployeeFinanceRequestType;
-  amount_requested: number;
-  reason?: string;
-  first_payroll_year: number;
-  first_payroll_month: number;
-  installments_count?: number;
-}): Promise<EmployeeFinanceRequest> {
-  return apiJson<EmployeeFinanceRequest>('/api/cb/employee-finance/my-requests', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-
-// ============================================
-// HELPERS
-// ============================================
-
-function formatMoney(value: number | string | null | undefined, currency = 'XOF') {
-  if (value == null) return '-';
-  const numericValue = Number(value);
-  if (Number.isNaN(numericValue)) return '-';
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(numericValue);
-}
-
-const EMPLOYEE_FINANCE_STATUS: Record<EmployeeFinanceStatus, { label: string; color: string }> = {
-  pending_hr: { label: 'En attente RH', color: 'bg-amber-100 text-amber-700' },
-  rejected: { label: 'Rejetée', color: 'bg-red-100 text-red-700' },
-  pending_finance: { label: 'À décaisser', color: 'bg-blue-100 text-blue-700' },
-  approved: { label: 'Approuvée', color: 'bg-indigo-100 text-indigo-700' },
-  paid_out: { label: 'Versée', color: 'bg-emerald-100 text-emerald-700' },
-  active: { label: 'Active', color: 'bg-green-100 text-green-700' },
-  completed: { label: 'Terminée', color: 'bg-gray-100 text-gray-700' },
-  cancelled: { label: 'Annulée', color: 'bg-gray-100 text-gray-600' },
-};
-
-const MONTHS_FR = [
-  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
-];
-
-// ============================================
-// COMPONENTS
-// ============================================
+import {
+  EMPLOYEE_FINANCE_STATUS,
+  MONTHS_FR,
+  employeeFinanceApi,
+  formatMoney,
+  type EmployeeFinanceRequest,
+  type EmployeeFinanceRequestType,
+} from '@/lib/employeeFinanceApi';
+import CustomSelect from '@/components/CustomSelect';
 
 function StatusBadge({ status }: { status: EmployeeFinanceRequest['status'] }) {
   const cfg = EMPLOYEE_FINANCE_STATUS[status] ?? EMPLOYEE_FINANCE_STATUS.pending_hr;
@@ -152,7 +46,7 @@ function RequestModal({
     event.preventDefault();
     setSaving(true);
     try {
-      await createMyRequest({
+      await employeeFinanceApi.createMyRequest({
         request_type: type,
         amount_requested: Number(amount),
         reason: reason || undefined,
@@ -172,7 +66,7 @@ function RequestModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-lg rounded-lg bg-white shadow-xl max-h-[92vh] overflow-y-auto">
+      <div className="w-full max-w-lg rounded-lg bg-white shadow-xl">
         <div className="flex items-center justify-between border-b p-5">
           <h2 className="text-lg font-semibold text-gray-900">Nouvelle demande</h2>
           <button onClick={onClose} className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
@@ -218,7 +112,7 @@ function RequestModal({
               onChange={(e) => setReason(e.target.value)}
             />
           </label>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-3">
             <label className="block text-sm text-gray-700">
               Année retenue
               <input
@@ -232,15 +126,12 @@ function RequestModal({
             </label>
             <label className="block text-sm text-gray-700">
               Mois retenue
-              <select
-                className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-                value={month}
-                onChange={(e) => setMonth(Number(e.target.value))}
-              >
-                {MONTHS_FR.map((label, index) => (
-                  <option key={label} value={index + 1}>{label}</option>
-                ))}
-              </select>
+              <CustomSelect
+                className="mt-1 w-full"
+                value={String(month)}
+                onChange={(v) => setMonth(Number(v))}
+                options={MONTHS_FR.map((label, index) => ({ value: String(index + 1), label }))}
+              />
             </label>
             {type === 'loan' && (
               <label className="block text-sm text-gray-700">
@@ -255,14 +146,14 @@ function RequestModal({
               </label>
             )}
           </div>
-          <div className="flex flex-col-reverse gap-3 border-t pt-4 sm:flex-row sm:justify-end">
+          <div className="flex justify-end gap-3 border-t pt-4">
             <button type="button" onClick={onClose} className="rounded bg-gray-100 px-4 py-2 text-sm text-gray-700 hover:bg-gray-200">
               Annuler
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center justify-center gap-2 rounded bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-60"
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               Envoyer
@@ -274,10 +165,6 @@ function RequestModal({
   );
 }
 
-// ============================================
-// MAIN PAGE
-// ============================================
-
 export default function MyEmployeeFinancePage() {
   const [requests, setRequests] = useState<EmployeeFinanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -288,7 +175,7 @@ export default function MyEmployeeFinancePage() {
     setLoading(true);
     setLoadError(null);
     try {
-      setRequests(await listMyRequests());
+      setRequests(await employeeFinanceApi.listMyRequests());
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur de chargement';
       setLoadError(message);
@@ -305,7 +192,7 @@ export default function MyEmployeeFinancePage() {
   return (
     <div>
       <Header title="Mes avances & prêts" subtitle="Demandes personnelles et suivi des remboursements" />
-      <main className="bg-gray-50 p-4 sm:p-6">
+      <main className="bg-gray-50 p-6">
         <div className="mb-5 flex justify-end">
           <button
             onClick={() => setShowModal(true)}
@@ -342,7 +229,7 @@ export default function MyEmployeeFinancePage() {
                   </div>
                   <StatusBadge status={request.status} />
                 </div>
-                <div className="mt-4 grid gap-3 text-sm grid-cols-2 md:grid-cols-4">
+                <div className="mt-4 grid gap-3 text-sm md:grid-cols-4">
                   <div>
                     <p className="text-xs text-gray-500">Montant demandé</p>
                     <p className="font-medium text-gray-900">{formatMoney(request.amount_requested, request.currency)}</p>

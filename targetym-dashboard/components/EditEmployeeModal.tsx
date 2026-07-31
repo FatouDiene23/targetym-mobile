@@ -7,10 +7,10 @@ import {
   type Employee, type EmployeeCreate, type Department, type GenderType, type ContractType, type StatusType, type EmployeeRole 
 } from '@/lib/api';
 import NationalitySelect from '@/components/NationalitySelect';
-import CustomDatePicker from '@/components/CustomDatePicker';
-import CustomSelect from '@/components/CustomSelect';
 import { COUNTRIES } from '@/data/countries';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 interface EditEmployeeModalProps {
   employee: Employee;
@@ -122,8 +122,6 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
     disability_description: employee.disability_description || '',
     emergency_contact_name: employee.emergency_contact_name || '',
     emergency_contact_phone: employee.emergency_contact_phone || '',
-    // Administratif
-    nir_number: employee.nir_number || '',
     // Organisation
     comex_member: employee.comex_member || '',
     hrbp: employee.hrbp || '',
@@ -220,7 +218,6 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
         disability_description: formData.disability_description || null,
         emergency_contact_name: formData.emergency_contact_name || null,
         emergency_contact_phone: formData.emergency_contact_phone || null,
-        nir_number: formData.nir_number || null,
         comex_member: formData.comex_member || null,
         hrbp: formData.hrbp || null,
         salary_category: formData.salary_category || null,
@@ -324,7 +321,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {/* Matricule */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.employeeId}</label>
@@ -394,12 +391,12 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               <CustomSelect
                 value={formData.gender}
                 onChange={(v) => setFormData(prev => ({ ...prev, gender: v as GenderType }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 options={[
                   { value: 'male', label: t.components.addEmployee.fields.male },
                   { value: 'female', label: t.components.addEmployee.fields.female },
                   { value: 'other', label: t.components.addEmployee.fields.other },
                 ]}
+                className="w-full"
               />
             </div>
 
@@ -407,10 +404,10 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.dateOfBirth}</label>
               <CustomDatePicker
-                value={formData.date_of_birth}
-                onChange={v => setFormData(prev => ({ ...prev, date_of_birth: v }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              />
+                  value={formData.date_of_birth}
+                  onChange={(v) => setFormData(prev => ({ ...prev, date_of_birth: v }))}
+                  className="w-full"
+                />
             </div>
 
             {/* Nationalité */}
@@ -442,15 +439,14 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               <CustomSelect
                 value={formData.department_id}
                 onChange={(v) => setFormData(prev => ({ ...prev, department_id: v }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 disabled={isLoadingData}
                 options={[
                   { value: '', label: isLoadingData ? t.common.loading : t.components.addEmployee.fields.selectOption },
-                  ...departments.map(dept => ({
-                    value: String(dept.id),
-                    label: dept.parent_id ? `  ↳ ${dept.name}` : dept.name,
-                  })),
+                  ...departments.map(dept => (
+                  ({ value: String(dept.id), label: dept.parent_id ? `  ↳ ${dept.name}` : dept.name })
+                )),
                 ]}
+                className="w-full"
               />
             </div>
 
@@ -460,15 +456,14 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               <CustomSelect
                 value={formData.manager_id}
                 onChange={(v) => setFormData(prev => ({ ...prev, manager_id: v }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 disabled={isLoadingData}
                 options={[
                   { value: '', label: isLoadingData ? t.common.loading : t.components.addEmployee.fields.noManager },
-                  ...managers.map(mgr => ({
-                    value: String(mgr.id),
-                    label: `${mgr.first_name} ${mgr.last_name} - ${mgr.job_title || mgr.position || ''}`,
-                  })),
+                  ...managers.map(mgr => (
+                  ({ value: String(mgr.id), label: `${mgr.first_name} ${mgr.last_name} - ${mgr.job_title || mgr.position || ''}` })
+                )),
                 ]}
+                className="w-full"
               />
             </div>
 
@@ -478,8 +473,12 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               <CustomSelect
                 value={formData.role}
                 onChange={(v) => setFormData(prev => ({ ...prev, role: v as EmployeeRole }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                options={ROLE_OPTIONS.map(option => ({ value: option.value, label: option.label }))}
+                options={[
+                  ...ROLE_OPTIONS.map(option => (
+                  ({ value: String(option.value), label: option.label })
+                )),
+                ]}
+                className="w-full"
               />
               <p className="text-xs text-gray-500 mt-1">
                 {ROLE_OPTIONS.find(r => r.value === formData.role)?.description}
@@ -530,10 +529,10 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.fields.hireDate}</label>
               <CustomDatePicker
-                value={formData.hire_date}
-                onChange={v => setFormData(prev => ({ ...prev, hire_date: v }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              />
+                  value={formData.hire_date}
+                  onChange={(v) => setFormData(prev => ({ ...prev, hire_date: v }))}
+                  className="w-full"
+                />
             </div>
 
             {/* Type de contrat */}
@@ -542,7 +541,6 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               <CustomSelect
                 value={formData.contract_type}
                 onChange={(v) => setFormData(prev => ({ ...prev, contract_type: v as ContractType }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 options={[
                   { value: 'cdi', label: t.components.addEmployee.fields.cdi },
                   { value: 'cdd', label: t.components.addEmployee.fields.cdd },
@@ -551,6 +549,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                   { value: 'consultant', label: t.components.addEmployee.fields.consultant },
                   { value: 'interim', label: t.components.addEmployee.fields.interim },
                 ]}
+                className="w-full"
               />
             </div>
 
@@ -562,8 +561,8 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                 </label>
                 <CustomDatePicker
                   value={formData.contract_end_date}
-                  onChange={v => setFormData(prev => ({ ...prev, contract_end_date: v }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  onChange={(v) => setFormData(prev => ({ ...prev, contract_end_date: v }))}
+                  className="w-full"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   {formData.contract_type === 'cdd' && "{t.components.addEmployee.fields.cddEndHint}"}
@@ -580,7 +579,6 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               <CustomSelect
                 value={formData.status}
                 onChange={(v) => setFormData(prev => ({ ...prev, status: v as StatusType }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 options={[
                   { value: 'active', label: t.components.addEmployee.fields.active },
                   { value: 'probation', label: t.components.addEmployee.fields.probation },
@@ -588,6 +586,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                   { value: 'suspended', label: t.components.addEmployee.fields.suspended },
                   { value: 'terminated', label: t.components.addEmployee.fields.terminated },
                 ]}
+                className="w-full"
               />
             </div>
 
@@ -599,8 +598,8 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                 </label>
                 <CustomDatePicker
                   value={formData.probation_end_date}
-                  onChange={v => setFormData(prev => ({ ...prev, probation_end_date: v }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  onChange={(v) => setFormData(prev => ({ ...prev, probation_end_date: v }))}
+                  className="w-full"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   {t.components.addEmployee.fields.probationEndHint}
@@ -614,7 +613,6 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               <CustomSelect
                 value={formData.classification}
                 onChange={(v) => setFormData(prev => ({ ...prev, classification: v }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 options={[
                   { value: '', label: t.components.addEmployee.fields.notDefined },
                   { value: 'Cadre dirigeant', label: t.components.addEmployee.fields.cadreDir },
@@ -625,6 +623,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                   { value: 'Non-cadre', label: t.components.addEmployee.fields.nonCadre },
                   { value: 'Ouvrier', label: t.components.addEmployee.fields.ouvrier },
                 ]}
+                className="w-full"
               />
             </div>
 
@@ -659,7 +658,6 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                 <CustomSelect
                   value={formData.currency}
                   onChange={(v) => setFormData(prev => ({ ...prev, currency: v }))}
-                  className="w-24 shrink-0 px-1 py-2 border border-l-0 border-gray-300 rounded-r-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-gray-50"
                   options={[
                     { value: 'XAF', label: 'XAF' },
                     { value: 'XOF', label: 'XOF' },
@@ -670,6 +668,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                     { value: 'EUR', label: 'EUR' },
                     { value: 'USD', label: 'USD' },
                   ]}
+                  className="w-24 shrink-0"
                 />
               </div>
             </div>
@@ -691,7 +690,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
             </div>
 
             {/* Photo de profil */}
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">{t.components.editEmployee.profilePhoto}</label>
               <div className="flex items-center gap-4">
                 {photoPreview ? (
@@ -714,7 +713,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
             </div>
 
             {/* === INFO FAMILIALE === */}
-            <div className="col-span-2 mt-4 mb-1">
+            <div className="sm:col-span-2 mt-4 mb-1">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">{t.components.addEmployee.sections.familyInfo}</h3>
             </div>
 
@@ -724,7 +723,6 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               <CustomSelect
                 value={formData.marital_status}
                 onChange={(v) => setFormData(prev => ({ ...prev, marital_status: v }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 options={[
                   { value: '', label: t.components.addEmployee.sections.notSpecified },
                   { value: 'celibataire', label: t.components.addEmployee.sections.single },
@@ -734,6 +732,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
                   { value: 'veuvage', label: t.components.addEmployee.sections.widowed },
                   { value: 'autre', label: t.components.addEmployee.fields.other },
                 ]}
+                className="w-full"
               />
             </div>
 
@@ -777,14 +776,14 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.spouseDob}</label>
               <CustomDatePicker
-                value={formData.spouse_birth_date}
-                onChange={v => setFormData(prev => ({ ...prev, spouse_birth_date: v }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              />
+                  value={formData.spouse_birth_date}
+                  onChange={(v) => setFormData(prev => ({ ...prev, spouse_birth_date: v }))}
+                  className="w-full"
+                />
             </div>
 
             {/* === ADRESSE PROFESSIONNELLE === */}
-            <div className="col-span-2 mt-4 mb-1">
+            <div className="sm:col-span-2 mt-4 mb-1">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">{t.components.addEmployee.sections.workAddress}</h3>
             </div>
 
@@ -815,7 +814,7 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
             </div>
 
             {/* === INFORMATION MÉDICALE === */}
-            <div className="col-span-2 mt-4 mb-1">
+            <div className="sm:col-span-2 mt-4 mb-1">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">{t.components.addEmployee.sections.medicalInfo}</h3>
             </div>
 
@@ -874,26 +873,8 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
               />
             </div>
 
-            {/* N° Sécurité Sociale (NIR) */}
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                N° Sécurité Sociale (NIR)
-                <span className="ml-1 text-xs font-normal text-gray-400">(optionnel)</span>
-              </label>
-              <input
-                type="text"
-                name="nir_number"
-                value={formData.nir_number}
-                onChange={handleChange}
-                placeholder="ex. 1 85 05 75 116 042 68"
-                maxLength={20}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none font-mono"
-              />
-              <p className="text-xs text-gray-400 mt-1">Utilisé sur la fiche de paie et dans les déclarations sociales.</p>
-            </div>
-
             {/* === ORGANISATION === */}
-            <div className="col-span-2 mt-4 mb-1">
+            <div className="sm:col-span-2 mt-4 mb-1">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">{t.components.addEmployee.sections.organization}</h3>
             </div>
 
@@ -937,12 +918,12 @@ export default function EditEmployeeModal({ employee, onClose, onSuccess }: Edit
             </div>
 
             {/* === ADRESSE PERSONNELLE === */}
-            <div className="col-span-2 mt-4 mb-1">
+            <div className="sm:col-span-2 mt-4 mb-1">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-4">{t.components.addEmployee.sections.personalAddress}</h3>
             </div>
 
             {/* Adresse */}
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.components.addEmployee.sections.address}</label>
               <textarea
                 name="address"

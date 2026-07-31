@@ -1,12 +1,13 @@
 'use client';
+import { resolveApiUrl } from '@/lib/apiUrl';
 import { getToken } from '@/lib/api';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import {
-  Target, ChevronDown, ChevronRight, Edit2, Check, X,
+import { 
+  Target, ChevronDown, ChevronRight, Edit2, Check, X, 
   TrendingUp, AlertCircle, Clock, CheckCircle, Loader2,
   Building2, Users, User, FileText, BarChart3, Search, CalendarDays,
   ClipboardList, Download, PenLine
@@ -132,12 +133,12 @@ type ObjectiveTab = 'objectives' | 'contract' | 'jobDescription' | 'teamContract
 // API
 // ============================================
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
+const API_URL = resolveApiUrl(process.env.NEXT_PUBLIC_API_URL);
 const JOB_DESCRIPTION_DOCUMENT_TYPE = 'autre';
 const JOB_DESCRIPTION_TITLE_PREFIX = 'Job description';
 
 function getAuthHeaders(): HeadersInit {
-  const token = getToken();
+    const token = getToken();
   return {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -147,7 +148,7 @@ function getAuthHeaders(): HeadersInit {
 async function getMyObjectives(employeeId: number): Promise<Objective[]> {
   try {
     const response = await fetch(
-      `${API_URL}/api/okr/objectives?owner_id=${employeeId}&page_size=100`,
+      `${API_URL}/api/okr/objectives?owner_id=${employeeId}&page_size=100`, 
       { headers: getAuthHeaders() }
     );
     if (!response.ok) return [];
@@ -355,13 +356,14 @@ const getContractStatusColor = (status: string) => {
 // COMPONENTS
 // ============================================
 
-function KeyResultEditor({
-  kr,
-  onSave,
-  onCancel
-}: {
-  kr: KeyResult;
-  onSave: (value: number) => void;
+// Composant pour éditer un Key Result
+function KeyResultEditor({ 
+  kr, 
+  onSave, 
+  onCancel 
+}: { 
+  kr: KeyResult; 
+  onSave: (value: number) => void; 
   onCancel: () => void;
 }) {
   const { t } = useI18n();
@@ -408,11 +410,12 @@ function KeyResultEditor({
   );
 }
 
-function KeyResultItem({
-  kr,
-  onUpdate
-}: {
-  kr: KeyResult;
+// Composant Key Result
+function KeyResultItem({ 
+  kr, 
+  onUpdate 
+}: { 
+  kr: KeyResult; 
   onUpdate: () => void;
 }) {
   const { t } = useI18n();
@@ -443,19 +446,21 @@ function KeyResultItem({
       </div>
 
       <div className="space-y-2">
+        {/* Progress bar */}
         <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div
+          <div 
             className={`h-full rounded-full transition-all duration-500 ${getProgressColor(progress)}`}
             style={{ width: `${progress}%` }}
           />
         </div>
 
+        {/* Valeurs */}
         <div className="flex items-center justify-between">
           {editing ? (
-            <KeyResultEditor
-              kr={kr}
-              onSave={handleSave}
-              onCancel={() => setEditing(false)}
+            <KeyResultEditor 
+              kr={kr} 
+              onSave={handleSave} 
+              onCancel={() => setEditing(false)} 
             />
           ) : (
             <>
@@ -486,11 +491,12 @@ function KeyResultItem({
   );
 }
 
-function ObjectiveCard({
-  objective,
-  onUpdate
-}: {
-  objective: Objective;
+// Composant Objectif
+function ObjectiveCard({ 
+  objective, 
+  onUpdate 
+}: { 
+  objective: Objective; 
   onUpdate: () => void;
 }) {
   const { t } = useI18n();
@@ -498,7 +504,8 @@ function ObjectiveCard({
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      <div
+      {/* Header */}
+      <div 
         className="p-5 cursor-pointer hover:bg-gray-50 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
@@ -507,9 +514,9 @@ function ObjectiveCard({
             <button className="mt-1 text-gray-400">
               {expanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
             </button>
-
+            
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <div className="flex items-center gap-2 mb-2">
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getLevelColor(objective.level)}`}>
                   {getLevelIcon(objective.level)}
                   {getLevelLabelFn(objective.level, t)}
@@ -519,14 +526,14 @@ function ObjectiveCard({
                 )}
                 <span className="text-xs text-gray-500">• {objective.period}</span>
               </div>
-
+              
               <h3 className="text-lg font-semibold text-gray-900 mb-1">{objective.title}</h3>
-
+              
               {objective.description && (
                 <p className="text-sm text-gray-500">{objective.description}</p>
               )}
-
-              <div className="flex items-center gap-3 mt-3 flex-wrap">
+              
+              <div className="flex items-center gap-3 mt-3">
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(objective.status)}`}>
                   {getStatusIcon(objective.status)}
                   {getStatusLabelFn(objective.status, t)}
@@ -538,10 +545,11 @@ function ObjectiveCard({
             </div>
           </div>
 
+          {/* Progression */}
           <div className="text-right ml-4">
             <div className="text-3xl font-bold text-gray-900">{Math.round(objective.progress)}%</div>
             <div className="w-32 h-2 bg-gray-100 rounded-full mt-2 overflow-hidden">
-              <div
+              <div 
                 className={`h-full rounded-full transition-all duration-500 ${getProgressColor(objective.progress)}`}
                 style={{ width: `${Math.min(objective.progress, 100)}%` }}
               />
@@ -550,6 +558,7 @@ function ObjectiveCard({
         </div>
       </div>
 
+      {/* Key Results */}
       {expanded && objective.key_results.length > 0 && (
         <div className="border-t border-gray-100 bg-gray-50 p-5">
           <h4 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
@@ -755,7 +764,7 @@ export default function MyObjectivesPage() {
   const [jobDescriptionDownloading, setJobDescriptionDownloading] = useState(false);
   const contractPageSize = 5;
 
-  const { showTips, dismissTips } = usePageTour('objectives');
+  const { showTips, dismissTips, resetTips } = usePageTour('objectives');
 
   const loadObjectives = useCallback(async () => {
     if (!employeeId) return;
@@ -801,6 +810,7 @@ export default function MyObjectivesPage() {
   }, []);
 
   useEffect(() => {
+    // Récupérer l'ID employé depuis le localStorage
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
@@ -837,9 +847,10 @@ export default function MyObjectivesPage() {
     }
   };
 
+  // Calculer les stats
   const totalObjectives = objectives.length;
-  const avgProgress = totalObjectives > 0
-    ? Math.round(objectives.reduce((acc, o) => acc + o.progress, 0) / totalObjectives)
+  const avgProgress = totalObjectives > 0 
+    ? Math.round(objectives.reduce((acc, o) => acc + o.progress, 0) / totalObjectives) 
     : 0;
   const onTrack = objectives.filter(o => o.status === 'on_track' || o.status === 'exceeded').length;
   const atRisk = objectives.filter(o => o.status === 'at_risk').length;
@@ -951,7 +962,8 @@ export default function MyObjectivesPage() {
       <Header title={t.mySpace.myObjectivesTitle} subtitle={t.mySpace.myObjectivesSubtitle} />
       <div className="min-h-screen bg-gray-50">
 
-      <div className="p-4 md:p-6">
+      <div className="p-6">
+        {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center gap-3">
@@ -964,7 +976,7 @@ export default function MyObjectivesPage() {
               </div>
             </div>
           </div>
-
+          
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
@@ -976,7 +988,7 @@ export default function MyObjectivesPage() {
               </div>
             </div>
           </div>
-
+          
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -988,7 +1000,7 @@ export default function MyObjectivesPage() {
               </div>
             </div>
           </div>
-
+          
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
@@ -1000,7 +1012,7 @@ export default function MyObjectivesPage() {
               </div>
             </div>
           </div>
-
+          
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
@@ -1014,7 +1026,7 @@ export default function MyObjectivesPage() {
           </div>
         </div>
 
-        <div className="mb-6 flex flex-wrap gap-2 rounded-xl bg-gray-100 p-1 overflow-x-auto">
+        <div className="mb-6 flex flex-wrap gap-2 rounded-xl bg-gray-100 p-1">
           {[
             { id: 'objectives' as const, label: 'Mes objectifs & actions', icon: Target },
             { id: 'contract' as const, label: "Contrat d'objectifs", icon: FileText },
@@ -1030,7 +1042,7 @@ export default function MyObjectivesPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+                className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                   isActive
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-500 hover:text-gray-900'

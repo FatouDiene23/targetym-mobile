@@ -8,10 +8,10 @@ import {
   Calendar, BarChart3, Bell, ExternalLink, File
 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
-import CustomDatePicker from './CustomDatePicker';
-import CustomSelect from './CustomSelect';
 import toast from 'react-hot-toast';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // CONFIG
@@ -596,8 +596,8 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
       )}
 
       {/* Sub-tabs: Documents / Alertes */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-full sm:w-auto">
+      <div className="flex items-center justify-between">
+        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
           <button
             onClick={() => setActiveSubTab('documents')}
             className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
@@ -700,14 +700,18 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="text-xs font-medium text-gray-700 mb-1 block">{td.documentType} *</label>
               <CustomSelect
                 value={uploadType}
-                onChange={(v) => setUploadType(v)}
-                className="w-full border rounded-lg px-3 py-2.5 text-sm"
-                options={ALL_DOC_TYPES.map(t => ({ value: t.value, label: `${t.icon} ${t.label}` }))}
+                onChange={v => setUploadType(v)}
+                options={[
+                  ...ALL_DOC_TYPES.map(t => (
+                  ({ value: String(t.value), label: `${t.icon} ${t.label}` })
+                )),
+                ]}
+                className="w-full"
               />
             </div>
             <div>
@@ -732,14 +736,22 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             <div>
               <label className="text-xs font-medium text-gray-700 mb-1 block">{td.documentDate}</label>
-              <CustomDatePicker value={uploadDocDate} onChange={setUploadDocDate} className="w-full border rounded-lg px-3 py-2.5 text-sm" />
+              <CustomDatePicker
+                value={uploadDocDate}
+                onChange={(v) => setUploadDocDate(v)}
+                className="w-full"
+              />
             </div>
             <div>
               <label className="text-xs font-medium text-gray-700 mb-1 block">{td.expiryDate}</label>
-              <CustomDatePicker value={uploadExpiry} onChange={setUploadExpiry} className="w-full border rounded-lg px-3 py-2.5 text-sm" />
+              <CustomDatePicker
+                value={uploadExpiry}
+                onChange={(v) => setUploadExpiry(v)}
+                className="w-full"
+              />
             </div>
             <div className="flex items-end gap-4">
               <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer pb-2.5">
@@ -803,21 +815,24 @@ export default function HRDocumentsTab({ onOpenEmployeeProfile, subsidiaryTenant
               </div>
               <CustomSelect
                 value={typeFilter}
-                onChange={(v) => setTypeFilter(v)}
-                className="w-full md:w-auto md:min-w-[180px] px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
+                onChange={v => setTypeFilter(v)}
                 options={[
                   { value: 'all', label: td.allTypes },
-                  ...ALL_DOC_TYPES.map(t => ({ value: t.value, label: `${t.icon} ${t.label}` })),
+                  ...ALL_DOC_TYPES.map(t => (
+                  ({ value: String(t.value), label: `${t.icon} ${t.label}` })
+                )),
                 ]}
               />
               <CustomSelect
                 value={employeeFilter ? String(employeeFilter) : ''}
-                onChange={(v) => setEmployeeFilter(v ? Number(v) : null)}
-                className="w-full md:w-auto md:max-w-[200px] px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
+                onChange={v => setEmployeeFilter(v ? Number(v) : null)}
                 options={[
                   { value: '', label: td.allEmployees },
-                  ...employees.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` })),
+                  ...employees.map(emp => (
+                  ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` })
+                )),
                 ]}
+                className="max-w-[200px]"
               />
               <label className="flex items-center gap-2 px-3 py-2.5 border border-gray-300 rounded-lg text-sm cursor-pointer hover:bg-gray-50">
                 <input type="checkbox" checked={expiredFilter} onChange={e => setExpiredFilter(e.target.checked)} className="rounded" />

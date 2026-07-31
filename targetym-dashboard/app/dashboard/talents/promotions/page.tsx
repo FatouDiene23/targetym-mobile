@@ -6,7 +6,6 @@
 'use client';
 
 import Header from '@/components/Header';
-import CustomSelect from '@/components/CustomSelect';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { ArrowUpRight, Check, X, Clock, Filter, RefreshCw, AlertTriangle } from 'lucide-react';
@@ -15,6 +14,7 @@ import { usePageTour } from '@/hooks/usePageTour';
 import { useTalents } from '../TalentsContext';
 import { ELIGIBILITY_LABELS, getInitials, formatDate, isRH } from '../shared';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function PromotionsPage() {
   const { t } = useI18n();

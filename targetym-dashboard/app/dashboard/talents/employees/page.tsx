@@ -20,8 +20,8 @@ import { useTalents } from '../TalentsContext';
 import { getInitials, ELIGIBILITY_LABELS, formatDate } from '../shared';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import CustomSelect from '@/components/CustomSelect';
 import CompetencyModal from './CompetencyModal';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function AllEmployeesCareerPage() {
   const { t } = useI18n();

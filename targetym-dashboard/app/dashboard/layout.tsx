@@ -14,6 +14,7 @@ import { getTourStepsByRole } from '@/components/AppTourSteps';
 import { useAppTour } from '@/hooks/useAppTour';
 import { HelpMenuProvider, useHelpMenu } from '@/hooks/useHelpMenu';
 import { check2FAStatus, setup2FAAuthenticated, verify2FAAuthenticated } from '@/lib/api';
+import { syncManagerAccess } from '@/lib/managerAccess';
 import { Shield, Smartphone } from 'lucide-react';
 
 function LoadingScreen() {
@@ -264,6 +265,9 @@ export default function DashboardLayout({
   useEffect(() => {
     if (isAuthenticated) {
       check2FA();
+      // Rafraîchit has_manager_access / managed_employee_count : les sessions
+      // ouvertes avant l'ajout de ces champs ont un `user` en cache incomplet.
+      syncManagerAccess().catch(() => {});
       import('@/lib/capacitor-plugins')
         .then(({ registerPushNotifications, isNative }) => {
           if (isNative()) return registerPushNotifications();

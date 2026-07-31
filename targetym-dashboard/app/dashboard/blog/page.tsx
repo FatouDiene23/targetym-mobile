@@ -9,6 +9,7 @@ import {
   X, BookOpen, Globe, FileText, Upload, Link, Settings2,
 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // CONFIG

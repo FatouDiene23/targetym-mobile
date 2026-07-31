@@ -12,10 +12,10 @@ import {
 } from 'lucide-react';
 import { getEmployeeAccessStatus, activateEmployeeAccess, type AccessStatus } from '@/lib/api';
 import EmployeeDocuments from '@/components/EmployeeDocuments';
-import CustomDatePicker from '@/components/CustomDatePicker';
-import CustomSelect from '@/components/CustomSelect';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 
@@ -1231,8 +1231,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                 </h3>
                 <CustomSelect
                   value={perfPeriod}
-                  onChange={(v) => setPerfPeriod(v)}
-                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:ring-1 focus:ring-primary-500 outline-none"
+                  onChange={v => setPerfPeriod(v)}
                   options={[
                     { value: 'month', label: 'Ce mois' },
                     { value: 'quarter', label: 'Ce trimestre' },
@@ -1250,7 +1249,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                     <div className={`text-2xl font-bold ${getScoreColor(perfScore.overall_score)}`}>{Math.round(perfScore.overall_score)}%</div>
                     <div className={`text-xs font-medium mt-1 ${getScoreColor(perfScore.overall_score)}`}>{getScoreLabel(perfScore.overall_score)}</div>
                   </div>
-                  <div className="col-span-4 grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-2">
+                  <div className="col-span-4 grid grid-cols-4 gap-2">
                     <ScoreCard label="OKRs" value={perfScore.okr_score} weight="40%" icon={<Target className="w-3.5 h-3.5" />} />
                     <ScoreCard label="Tâches" value={perfScore.task_score} weight="25%" icon={<CheckCircle2 className="w-3.5 h-3.5" />} />
                     <ScoreCard label="Validations" value={perfScore.validation_score} weight="20%" icon={<Clock className="w-3.5 h-3.5" />} />
@@ -1401,13 +1400,12 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                       className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none"
                       placeholder="Ex : Prime de transport, Voiture de fonction…" />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Catégorie</label>
                       <CustomSelect
                         value={newBenefit.category}
-                        onChange={(v) => setNewBenefit(p => ({ ...p, category: v }))}
-                        className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none"
+                        onChange={v => setNewBenefit(p => ({ ...p, category: v }))}
                         options={[
                           { value: 'financier', label: 'Financier' },
                           { value: 'nature', label: 'En nature' },
@@ -1418,14 +1416,14 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                           { value: 'formation', label: 'Formation' },
                           { value: 'autre', label: 'Autre' },
                         ]}
+                        className="w-full"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Périodicité</label>
                       <CustomSelect
                         value={newBenefit.frequency}
-                        onChange={(v) => setNewBenefit(p => ({ ...p, frequency: v }))}
-                        className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none"
+                        onChange={v => setNewBenefit(p => ({ ...p, frequency: v }))}
                         options={[
                           { value: 'mensuel', label: 'Mensuel' },
                           { value: 'trimestriel', label: 'Trimestriel' },
@@ -1433,10 +1431,11 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                           { value: 'annuel', label: 'Annuel' },
                           { value: 'unique', label: 'Versement unique' },
                         ]}
+                        className="w-full"
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Montant (optionnel)</label>
                       <input type="number" value={newBenefit.amount} onChange={e => setNewBenefit(p => ({ ...p, amount: e.target.value }))}
@@ -1447,8 +1446,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                       <label className="block text-xs font-medium text-gray-700 mb-1">Devise</label>
                       <CustomSelect
                         value={newBenefit.currency}
-                        onChange={(v) => setNewBenefit(p => ({ ...p, currency: v }))}
-                        className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none"
+                        onChange={v => setNewBenefit(p => ({ ...p, currency: v }))}
                         options={[
                           { value: 'XOF', label: 'XOF (FCFA)' },
                           { value: 'EUR', label: 'EUR' },
@@ -1456,13 +1454,17 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                           { value: 'GNF', label: 'GNF' },
                           { value: 'XAF', label: 'XAF' },
                         ]}
+                        className="w-full"
                       />
                     </div>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Date de début</label>
-                    <CustomDatePicker value={newBenefit.start_date} onChange={v => setNewBenefit(p => ({ ...p, start_date: v }))}
-                      className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none" />
+                    <CustomDatePicker
+                      value={newBenefit.start_date}
+                      onChange={(v) => setNewBenefit(p => ({ ...p, start_date: v }))}
+                      className="w-full"
+                    />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Notes (optionnel)</label>
@@ -1552,20 +1554,25 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
 
               {showAddSanction && (
                 <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-xl space-y-3">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Type *</label>
                       <CustomSelect
                         value={newSanction.type}
-                        onChange={(v) => setNewSanction(p => ({ ...p, type: v }))}
-                        className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none"
-                        options={Object.keys(SANCTION_TYPES).map(t => ({ value: t, label: t }))}
+                        onChange={v => setNewSanction(p => ({ ...p, type: v }))}
+                        options={[
+                          ...Object.keys(SANCTION_TYPES).map(t => ({ value: String(t), label: t })),
+                        ]}
+                        className="w-full"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Date *</label>
-                      <CustomDatePicker value={newSanction.date} onChange={v => setNewSanction(p => ({ ...p, date: v }))}
-                        className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none" />
+                      <CustomDatePicker
+                        value={newSanction.date}
+                        onChange={(v) => setNewSanction(p => ({ ...p, date: v }))}
+                        className="w-full"
+                      />
                     </div>
                   </div>
                   <div>

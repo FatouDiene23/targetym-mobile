@@ -6,7 +6,6 @@
 'use client';
 
 import Header from '@/components/Header';
-import CustomSelect from '@/components/CustomSelect';
 import { useEffect, useState } from 'react';
 import { Target, User, Filter, Eye, Edit, ArrowRight, ArrowUpRight, Award, RefreshCw, Zap } from 'lucide-react';
 import { useTalents } from '../TalentsContext';
@@ -18,6 +17,7 @@ import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import toast from 'react-hot-toast';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomSelect from '@/components/CustomSelect';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
 

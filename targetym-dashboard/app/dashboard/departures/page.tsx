@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import CustomSelect from '@/components/CustomSelect';
-import CustomDatePicker from '@/components/CustomDatePicker';
 import Header from '@/components/Header';
 import {
   UserMinus, Search, Plus, X, ChevronLeft, ChevronRight, Clock, CheckCircle,
@@ -12,6 +10,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES
@@ -641,7 +641,7 @@ export default function DeparturesPage() {
 
       <div className="p-6 space-y-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl border p-5">
             <div className="flex items-center justify-between">
               <div>
@@ -978,7 +978,7 @@ export default function DeparturesPage() {
         <hr />
 
         {/* Info grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <InfoCard label={t.departures.notificationDate} value={formatDate(selectedDep.notification_date)} />
           <InfoCard label={t.departures.requestedDate} value={formatDate(selectedDep.requested_departure_date)} />
           <InfoCard label={t.departures.noticePeriod} value={`${selectedDep.notice_period_days} ${t.departures.days}`} />
@@ -1155,11 +1155,14 @@ export default function DeparturesPage() {
           {showInterviewPlan && (
             <div className="bg-gray-50 rounded-lg p-4 space-y-3">
               <h4 className="text-sm font-semibold">{t.departures.planTheInterview}</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-gray-500">{t.departures.date}</label>
-                  <CustomDatePicker value={interviewDate} onChange={setInterviewDate}
-                    className="w-full border rounded-lg px-3 py-1.5 text-sm mt-1" />
+                  <CustomDatePicker
+                    value={interviewDate}
+                    onChange={(v) => setInterviewDate(v)}
+                    className="w-full mt-1"
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-gray-500">{t.departures.time}</label>
@@ -1250,7 +1253,7 @@ export default function DeparturesPage() {
             </div>
 
             {/* Boolean questions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-gray-500">{t.departures.wouldRecommend}</label>
                 <div className="flex gap-2 mt-1">
@@ -1358,7 +1361,7 @@ export default function DeparturesPage() {
     return (
       <div className="space-y-6">
         {/* Key metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl border p-5">
             <p className="text-sm text-gray-500">{t.departures.turnoverRate}</p>
             <p className="text-3xl font-bold text-red-600">{stats.turnover_rate}%</p>
@@ -1380,7 +1383,7 @@ export default function DeparturesPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Monthly evolution */}
           <div className="bg-white rounded-xl border p-5">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">{t.departures.monthlyEvolution}</h3>
@@ -1566,8 +1569,11 @@ export default function DeparturesPage() {
                 </div>
                 <div>
                   <label className="text-sm text-gray-600">{t.departures.requestedDepartureDate} <span className="text-red-500">*</span></label>
-                  <CustomDatePicker value={formDate} onChange={setFormDate}
-                    className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+                  <CustomDatePicker
+                    value={formDate}
+                    onChange={(v) => setFormDate(v)}
+                    className="w-full mt-1"
+                  />
                 </div>
               </div>
             )}

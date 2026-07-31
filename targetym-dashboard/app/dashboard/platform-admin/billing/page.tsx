@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import CustomSelect from '@/components/CustomSelect';
-import CustomDatePicker from '@/components/CustomDatePicker';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -16,6 +14,8 @@ import {
   adminCancelInvoice, adminChangePlan,
   type TenantListItem, type InvoiceItem,
 } from '@/lib/api';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = (d?: string) => d ? new Date(d).toLocaleDateString('fr-FR') : '—';
@@ -335,7 +335,7 @@ export default function BillingAdminPage() {
               </div>
 
               {/* Stats rapides */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+              <div className="grid grid-cols-3 gap-4 mb-5">
                 <div className="bg-white rounded-xl border border-gray-100 p-4">
                   <p className="text-xs text-gray-400 mb-1">Total factures</p>
                   <p className="text-2xl font-bold text-gray-900">{invoices.length}</p>
@@ -466,7 +466,7 @@ export default function BillingAdminPage() {
             </div>
             <p className="text-sm text-gray-500">Pour : <strong>{selectedTenant?.name}</strong></p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Montant <span className="text-red-500">*</span></label>
                 <input
@@ -493,13 +493,13 @@ export default function BillingAdminPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Date d'échéance</label>
                 <CustomDatePicker
                   value={createForm.due_date}
-                  onChange={v => setCreateForm(f => ({ ...f, due_date: v }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  onChange={(v) => setCreateForm(f => ({ ...f, due_date: v }))}
+                  className="w-full"
                 />
               </div>
               <div>
@@ -616,7 +616,7 @@ export default function BillingAdminPage() {
             </div>
             <p className="text-sm text-gray-500">Entreprise : <strong>{selectedTenant.name}</strong></p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Plan <span className="text-red-500">*</span></label>
                 <CustomSelect value={planForm.plan} onChange={v => {
@@ -635,13 +635,13 @@ export default function BillingAdminPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Fin du trial</label>
                 <CustomDatePicker
                   value={planForm.trial_ends_at}
-                  onChange={v => setPlanForm(f => ({ ...f, trial_ends_at: v }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  onChange={(v) => setPlanForm(f => ({ ...f, trial_ends_at: v }))}
+                  className="w-full"
                 />
               </div>
               <div className="flex items-center gap-2 pt-5">

@@ -242,6 +242,7 @@ const HIDDEN_ADD_ROUTES = [
   '/dashboard/my-space/calendar',
   '/dashboard/my-space/career',
   '/dashboard/my-space/daily-checklist',
+  '/dashboard/managerial-rituals',
   '/dashboard/my-space/leaves',
   '/dashboard/my-space/objectives',
   '/dashboard/my-space/surveys',

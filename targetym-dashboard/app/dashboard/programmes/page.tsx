@@ -1,24 +1,27 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import {
   LayoutList, ChevronDown, ChevronUp, CheckCircle2, Clock, AlertCircle,
   Circle, TrendingUp, DollarSign, Loader2, RefreshCw, Target, Users,
   Sparkles, BookOpen, Megaphone, Sprout, MessageSquare, Award, HeartHandshake,
-  Flag, Building2, UserCheck, Link2, X, Unlink, Search,
+  Flag, Building2, UserCheck, X, Unlink, Search,
   Lock, Download, Bell, LayoutGrid, Pencil, Trash2, Plus, Play, Eye,
   Upload, ImageIcon,
 } from 'lucide-react';
 import Header from '@/components/Header';
-import CustomSelect from '@/components/CustomSelect';
 import {
   HRProgram, HRProgramDetail, HRProgramAction, HRProgramsStats,
-  HREmployeeItem, HROKRItem, HRProgramsAccess, HRActionInput,
+  HREmployeeItem, HRProgramsAccess, HRActionInput,
+  ObjectiveForLinking, HRProgramFrequency,
   getHRPrograms, getHRProgram, updateHRAction, updateHRProgram, deleteHRProgram,
-  seedHCTemplates, getHRProgramsStats, getHREmployeesList, getHROKRList,
+  seedHCTemplates, getHRProgramsStats, getHREmployeesList,
   checkHRProgramsAccess, requestHRProgramsAddon, notifyOverdueActions, exportProgramCSV,
   createHRProgram, activateHRTemplate, uploadMediaImage, addHRAction, deleteHRAction,
+  assignHRProgram, getObjectivesForLinking,
 } from '@/lib/api';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
@@ -69,6 +72,29 @@ const PROGRAM_ICONS: Record<string, React.ReactNode> = {
   'PRG-06': <Award className="w-5 h-5" />,
   'PRG-07': <TrendingUp className="w-5 h-5" />,
   'PRG-08': <Building2 className="w-5 h-5" />,
+};
+
+/** Image de couverture par défaut par programme (Unsplash) */
+const DEFAULT_COVERS: Record<string, string> = {
+  'PRG-01': 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=70&auto=format&fit=crop',
+  'PRG-02': 'https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=800&q=70&auto=format&fit=crop',
+  'PRG-03': 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=800&q=70&auto=format&fit=crop',
+  'PRG-04': 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&q=70&auto=format&fit=crop',
+  'PRG-05': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=70&auto=format&fit=crop',
+  'PRG-06': 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=800&q=70&auto=format&fit=crop',
+  'PRG-07': 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=70&auto=format&fit=crop',
+  'PRG-08': 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=70&auto=format&fit=crop',
+};
+
+const DEFAULT_GRADIENTS: Record<string, string> = {
+  'PRG-01': 'from-pink-500 to-rose-600',
+  'PRG-02': 'from-violet-500 to-purple-600',
+  'PRG-03': 'from-sky-500 to-blue-600',
+  'PRG-04': 'from-emerald-500 to-teal-600',
+  'PRG-05': 'from-amber-500 to-orange-500',
+  'PRG-06': 'from-yellow-400 to-amber-500',
+  'PRG-07': 'from-primary-500 to-primary-700',
+  'PRG-08': 'from-slate-500 to-gray-700',
 };
 
 function fmt(n: number | null | undefined) {
@@ -262,10 +288,12 @@ function ActionRow({ action, onUpdate, onDelete }: { action: HRProgramAction; on
             <div>
               <p className="text-xs font-semibold text-gray-400 mb-1">Statut</p>
               <CustomSelect
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none bg-white"
                 value={status}
                 onChange={v => { const s = v as HRProgramAction['status']; setStatus(s); save({ status: s }); }}
-                options={Object.entries(STATUS_CFG).map(([v, c]) => ({ value: v, label: c.label }))}
+                options={[
+                  ...Object.entries(STATUS_CFG).map(([v, c]) => ({ value: String(v), label: c.label })),
+                ]}
+                className="w-full"
               />
             </div>
 
@@ -429,7 +457,12 @@ function ManagerTimeline({ programs, onSelect }: { programs: HRProgram[]; onSele
 
 // ─── ProgramCard ──────────────────────────────────────────────────────────────
 
-function ProgramCard({ program, onSelect }: { program: HRProgram; onSelect: (id: number) => void }) {
+function ProgramCard({ program, canAssign, onSelect, onActivate }: {
+  program: HRProgram;
+  canAssign: boolean;
+  onSelect: (id: number) => void;
+  onActivate: (id: number) => void;
+}) {
   const pc = program.progress_pct;
   const barBg = pc >= 80 ? 'bg-secondary' : pc >= 40 ? 'bg-primary-500' : pc > 0 ? 'bg-amber-400' : 'bg-gray-200';
   const headerGradient = pc >= 80
@@ -490,55 +523,118 @@ function ProgramCard({ program, onSelect }: { program: HRProgram; onSelect: (id:
             <div className={`h-full rounded-full transition-all ${barBg}`} style={{ width: `${pc}%` }} />
           </div>
         </div>
+        {canAssign && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onActivate(program.id);
+            }}
+            className="mt-4 w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 transition-colors"
+          >
+            <Play className="w-4 h-4" />
+            Activer
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
-// ─── AssignPanel (RH/Admin only) ──────────────────────────────────────────────
+// ─── AssignPanel ──────────────────────────────────────────────────────────────
 
-function AssignPanel({ programId, currentOwner, currentOKR, onSaved }: {
-  programId: number;
+function defaultProgramDate(offsetMonths = 0) {
+  const d = new Date();
+  if (offsetMonths) d.setMonth(d.getMonth() + offsetMonths);
+  return d.toISOString().slice(0, 10);
+}
+
+function AssignPanel({ detail, currentOwner, onSaved }: {
+  detail: HRProgramDetail;
   currentOwner: HRProgram['owner'];
-  currentOKR: HRProgram['linked_objective'];
   onSaved: () => void;
 }) {
   const [employees, setEmployees] = useState<HREmployeeItem[]>([]);
-  const [okrList, setOkrList] = useState<HROKRItem[]>([]);
+  const [objectives, setObjectives] = useState<ObjectiveForLinking[]>([]);
   const [ownerSearch, setOwnerSearch] = useState('');
-  const [okrSearch, setOkrSearch] = useState('');
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | ''>('');
+  const [frequency, setFrequency] = useState<HRProgramFrequency>('weekly');
+  const [objectiveId, setObjectiveId] = useState<number | ''>('');
+  const [keyResultId, setKeyResultId] = useState<number | ''>('');
+  const [startsOn, setStartsOn] = useState(defaultProgramDate());
+  const [endsOn, setEndsOn] = useState(defaultProgramDate(3));
+  const [selectedActionIds, setSelectedActionIds] = useState<number[]>([]);
+  const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loadErr, setLoadErr] = useState(false);
 
+  const allActions = Object.values(detail.actions_by_phase).flat();
+
   useEffect(() => {
-    Promise.all([getHREmployeesList(), getHROKRList()])
-      .then(([emps, okrs]) => { setEmployees(emps); setOkrList(okrs); })
+    setSelectedActionIds(allActions.map(a => a.id));
+  }, [detail.id]);
+
+  useEffect(() => {
+    getHREmployeesList()
+      .then((emps) => setEmployees(emps))
       .catch(() => setLoadErr(true));
   }, []);
+
+  useEffect(() => {
+    if (!selectedEmployeeId) {
+      setObjectives([]);
+      setObjectiveId('');
+      setKeyResultId('');
+      return;
+    }
+    getObjectivesForLinking(Number(selectedEmployeeId))
+      .then(setObjectives)
+      .catch(() => setObjectives([]));
+  }, [selectedEmployeeId]);
 
   const filteredEmps = employees.filter(e =>
     e.name.toLowerCase().includes(ownerSearch.toLowerCase()) ||
     (e.job_title ?? '').toLowerCase().includes(ownerSearch.toLowerCase())
   );
-  const filteredOkrs = okrList.filter(o =>
-    o.title.toLowerCase().includes(okrSearch.toLowerCase())
-  );
+  const selectedObjective = objectives.find(o => o.id === objectiveId);
 
   const assignOwner = async (empId: number | null) => {
     setSaving(true);
-    try { await updateHRProgram(programId, { owner_employee_id: empId }); onSaved(); }
+    try { await updateHRProgram(detail.id, { owner_employee_id: empId }); onSaved(); }
     finally { setSaving(false); }
   };
-  const assignOKR = async (okrId: number | null) => {
+  const toggleAction = (actionId: number) => {
+    setSelectedActionIds(current => current.includes(actionId) ? current.filter(id => id !== actionId) : [...current, actionId]);
+  };
+
+  const handleActivate = async () => {
+    if (!selectedEmployeeId) { setMessage('Sélectionnez un collaborateur.'); return; }
+    if (selectedActionIds.length === 0) { setMessage('Sélectionnez au moins une action.'); return; }
     setSaving(true);
-    try { await updateHRProgram(programId, { linked_objective_id: okrId }); onSaved(); }
-    finally { setSaving(false); }
+    setMessage(null);
+    try {
+      const result = await assignHRProgram(detail.id, {
+        employee_id: Number(selectedEmployeeId),
+        selected_action_ids: selectedActionIds,
+        frequency,
+        objective_id: objectiveId || null,
+        key_result_id: keyResultId || null,
+        starts_on: startsOn,
+        ends_on: endsOn,
+      });
+      setMessage(`Programme activé · ${result.created_tasks || 0} tâche(s) générée(s).`);
+      onSaved();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Erreur pendant l’activation.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loadErr) return <div className="text-xs text-error p-2">Erreur de chargement (droits insuffisants?)</div>;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
       {/* Owner */}
       <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
         <div className="flex items-center justify-between mb-3">
@@ -581,48 +677,102 @@ function AssignPanel({ programId, currentOwner, currentOKR, onSaved }: {
         </div>
       </div>
 
-      {/* OKR Link */}
+      {/* Activation */}
       <div className="bg-primary-50 border border-primary-100 rounded-xl p-4">
-        <div className="flex items-center justify-between mb-3">
-          <p className="font-semibold text-sm flex items-center gap-2 text-primary-800"><Link2 className="w-4 h-4 text-primary-600" />Objectif OKR lié</p>
-          {currentOKR && (
-            <button className="btn btn-ghost btn-xs gap-1" onClick={() => assignOKR(null)} disabled={saving}>
-              <Unlink className="w-3.5 h-3.5" />Délier
-            </button>
-          )}
+        <p className="font-semibold text-sm flex items-center gap-2 text-primary-800 mb-3">
+          <Play className="w-4 h-4 text-primary-600" />
+          Activer pour un collaborateur
+        </p>
+        {message && <div className="mb-3 text-xs rounded-lg border border-primary-100 bg-white px-3 py-2 text-primary-800">{message}</div>}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label className="space-y-1 sm:col-span-2">
+            <span className="text-xs font-medium text-gray-600">Collaborateur N-1</span>
+            <CustomSelect
+              value={String(selectedEmployeeId)}
+              onChange={v => setSelectedEmployeeId(v ? Number(v) : '')}
+              options={[
+                { value: '', label: 'Sélectionner' },
+                ...employees.map(e => ({ value: String(e.id), label: `${e.name}${e.job_title ? ` · ${e.job_title}` : ''}` })),
+              ]}
+              className="w-full"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs font-medium text-gray-600">Fréquence</span>
+            <CustomSelect
+              value={frequency}
+              onChange={v => setFrequency(v as HRProgramFrequency)}
+              options={[
+                { value: 'daily', label: 'Journalier' },
+                { value: 'weekly', label: 'Hebdomadaire' },
+                { value: 'monthly', label: 'Mensuel' },
+                { value: 'quarterly', label: 'Trimestriel' },
+                { value: 'once', label: 'Ponctuel' },
+              ]}
+              className="w-full"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs font-medium text-gray-600">Objectif OKR</span>
+            <CustomSelect
+              value={String(objectiveId)}
+              onChange={v => { setObjectiveId(v ? Number(v) : ''); setKeyResultId(''); }}
+              disabled={!selectedEmployeeId}
+              options={[
+                { value: '', label: 'Aucun' },
+                ...objectives.map(o => ({ value: String(o.id), label: o.title })),
+              ]}
+              className="w-full"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs font-medium text-gray-600">Début</span>
+            <CustomDatePicker value={startsOn} onChange={(v) => setStartsOn(v)} className="w-full" />
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs font-medium text-gray-600">Jusqu'au</span>
+            <CustomDatePicker value={endsOn} onChange={(v) => setEndsOn(v)} className="w-full" />
+          </label>
+          <label className="space-y-1 sm:col-span-2">
+            <span className="text-xs font-medium text-gray-600">Key Result</span>
+            <CustomSelect
+              value={String(keyResultId)}
+              onChange={v => setKeyResultId(v ? Number(v) : '')}
+              disabled={!selectedObjective?.key_results.length}
+              options={[
+                { value: '', label: 'Aucun' },
+                ...(selectedObjective?.key_results ?? []).map(kr => ({ value: String(kr.id), label: kr.title })),
+              ]}
+              className="w-full"
+            />
+          </label>
         </div>
-        {currentOKR ? (
-          <div className="bg-primary-100 rounded-lg p-2 mb-3">
-            <p className="text-sm font-semibold text-primary-800">{currentOKR.title}</p>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="flex-1 bg-primary-200 rounded-full h-1.5">
-                <div className="h-1.5 rounded-full bg-primary-500 transition-all" style={{ width: `${currentOKR.progress}%` }} />
-              </div>
-              <span className="text-xs text-gray-500">{Math.round(currentOKR.progress)}%</span>
-            </div>
-            <p className="text-xs text-gray-400 mt-1">{currentOKR.period}</p>
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-gray-600">Actions à déverser en tâches</span>
+            <button type="button" onClick={() => setSelectedActionIds(allActions.map(a => a.id))} className="text-xs text-primary-700 hover:text-primary-900">Tout sélectionner</button>
           </div>
-        ) : (
-          <p className="text-xs text-gray-400 mb-3 italic">Aucun objectif OKR lié</p>
-        )}
-        <div className="relative mb-2">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-400" />
-          <input
-            className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-            placeholder="Rechercher un OKR…"
-            value={okrSearch} onChange={e => setOkrSearch(e.target.value)} />
+          <div className="max-h-44 overflow-y-auto space-y-1">
+            {allActions.map(action => (
+              <label key={action.id} className="flex items-start gap-2 bg-white rounded-lg border border-primary-100 px-3 py-2 text-sm cursor-pointer">
+                <input type="checkbox" checked={selectedActionIds.includes(action.id)} onChange={() => toggleAction(action.id)} className="mt-1 rounded border-gray-300 text-primary-600" />
+                <span className="min-w-0">
+                  <span className="font-medium text-gray-800">{action.action_label}</span>
+                  <span className="ml-2 text-xs text-gray-400">{action.phase}</span>
+                </span>
+              </label>
+            ))}
+          </div>
         </div>
-        <div className="max-h-40 overflow-y-auto space-y-1">
-          {filteredOkrs.slice(0, 20).map(o => (
-            <button key={o.id} className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-gray-100 flex items-center justify-between ${currentOKR?.id === o.id ? 'bg-primary-50 font-semibold text-primary-800' : ''}`}
-              onClick={() => assignOKR(o.id)} disabled={saving}>
-              <span className="truncate">{o.title} <span className="text-xs text-gray-400">{o.period}</span></span>
-              {currentOKR?.id === o.id && <CheckCircle2 className="w-4 h-4 text-secondary shrink-0" />}
-            </button>
-          ))}
-          {okrList.length === 0 && !loadErr && <p className="text-xs text-center py-2 text-gray-400">Aucun OKR actif trouvé</p>}
-          {filteredOkrs.length === 0 && okrList.length > 0 && <p className="text-xs text-center py-2 text-gray-400">Aucun résultat</p>}
-        </div>
+        <button
+          type="button"
+          onClick={handleActivate}
+          disabled={saving}
+          className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 disabled:opacity-60"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+          Activer et générer les tâches
+        </button>
       </div>
     </div>
   );
@@ -715,12 +865,12 @@ function EditProgramModal({ detail, onSaved, onClose }: {
             <CustomSelect
               value={status}
               onChange={v => setStatus(v)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none bg-white"
               options={[
                 { value: 'active', label: 'Actif' },
                 { value: 'draft', label: 'Brouillon' },
                 { value: 'archived', label: 'Archivé' },
               ]}
+              className="w-full"
             />
           </div>
 
@@ -823,11 +973,17 @@ function EditProgramModal({ detail, onSaved, onClose }: {
 
 // ─── ProgramDetail ────────────────────────────────────────────────────────────
 
-function ProgramDetail({ programId, isRH, onBack }: { programId: number; isRH: boolean; onBack: () => void }) {
+function ProgramDetail({ programId, isRH, canAssign, openAssignOnLoad, onBack }: {
+  programId: number;
+  isRH: boolean;
+  canAssign: boolean;
+  openAssignOnLoad?: boolean;
+  onBack: () => void;
+}) {
   const [detail, setDetail] = useState<HRProgramDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [openPhases, setOpenPhases] = useState<Set<string>>(new Set(['T1', 'T2', 'T3', 'T4']));
-  const [showAssign, setShowAssign] = useState(false);
+  const [showAssign, setShowAssign] = useState(Boolean(openAssignOnLoad));
   const [exporting, setExporting] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -1034,6 +1190,10 @@ function ProgramDetail({ programId, isRH, onBack }: { programId: number; isRH: b
                 >
                   <Trash2 className="w-4 h-4" />Supprimer
                 </button>
+              </>
+            )}
+            {canAssign && (
+              <>
                 <div className="w-px h-5 bg-gray-200 mx-1" />
                 <button
                   onClick={() => setShowAssign(!showAssign)}
@@ -1099,12 +1259,11 @@ function ProgramDetail({ programId, isRH, onBack }: { programId: number; isRH: b
       </div>
 
       {/* Assign panel (RH only) */}
-      {showAssign && isRH && (
+      {showAssign && canAssign && (
         <div className="mb-6">
           <AssignPanel
-            programId={detail.id}
+            detail={detail}
             currentOwner={detail.owner}
-            currentOKR={detail.linked_objective}
             onSaved={async () => { await load(); }}
           />
         </div>
@@ -1329,7 +1488,7 @@ function CreateProgramModal({ onClose, onCreated }: { onClose: () => void; onCre
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 resize-none"
                 placeholder="Décrivez l'objectif de ce programme…" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Périmètre</label>
                 <input value={scope} onChange={e => setScope(e.target.value)}
@@ -1420,17 +1579,19 @@ function CreateProgramModal({ onClose, onCreated }: { onClose: () => void; onCre
                         className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400"
                         placeholder="Ex: Lancer une enquête de perception interne" />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Phase</label>
-                        <CustomSelect value={action.phase || 'T1'} onChange={v => updateAction(i, 'phase', v)}
-                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/30 bg-white"
+                        <CustomSelect
+                          value={action.phase || 'T1'}
+                          onChange={v => updateAction(i, 'phase', v)}
                           options={[
                             { value: 'T1', label: 'T1 — Diagnostic' },
                             { value: 'T2', label: 'T2 — Déploiement' },
                             { value: 'T3', label: 'T3 — Animation' },
                             { value: 'T4', label: 'T4 — Bilan' },
                           ]}
+                          className="w-full"
                         />
                       </div>
                       <div>
@@ -1472,43 +1633,192 @@ function CreateProgramModal({ onClose, onCreated }: { onClose: () => void; onCre
   );
 }
 
+// ─── ActivateModal ────────────────────────────────────────────────────────────
+
+function ActivateModal({
+  program,
+  onConfirm,
+  onClose,
+}: {
+  program: HRProgram;
+  onConfirm: (id: number, coverUrl: string | null) => Promise<void>;
+  onClose: () => void;
+}) {
+  const defaultCover = DEFAULT_COVERS[program.program_code] ?? null;
+  const defaultGradient = DEFAULT_GRADIENTS[program.program_code] ?? 'from-primary-500 to-primary-700';
+  const [coverUrl, setCoverUrl] = useState<string | null>(defaultCover);
+  const [uploading, setUploading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const result = await uploadMediaImage(file);
+      setCoverUrl(result.url);
+    } catch {
+      // silently fail — keep current cover
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleConfirm = async () => {
+    setConfirming(true);
+    await onConfirm(program.id, coverUrl);
+    setConfirming(false);
+  };
+
+  const icon = PROGRAM_ICONS[program.program_code] ?? <Flag className="w-8 h-8" />;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+        {/* Cover preview */}
+        <div className="relative h-44 overflow-hidden">
+          {coverUrl ? (
+            <img src={coverUrl} alt={program.name} className="w-full h-full object-cover" />
+          ) : (
+            <div className={`w-full h-full bg-gradient-to-br ${defaultGradient} flex items-center justify-center`}>
+              <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-white [&_svg]:w-8 [&_svg]:h-8">
+                {icon}
+              </div>
+            </div>
+          )}
+          {/* Overlay bouton changer */}
+          <label className="absolute bottom-2 right-2 cursor-pointer">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileChange}
+              disabled={uploading}
+            />
+            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg transition-colors
+              bg-white/90 hover:bg-white text-gray-700 backdrop-blur-sm
+              ${uploading ? 'opacity-60 cursor-wait' : ''}`}>
+              {uploading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Upload className="w-3.5 h-3.5" />
+              )}
+              {coverUrl === defaultCover ? 'Changer la photo' : 'Modifier'}
+            </span>
+          </label>
+          {/* Reset to default si image custom */}
+          {coverUrl !== defaultCover && defaultCover && (
+            <button
+              onClick={() => setCoverUrl(defaultCover)}
+              className="absolute bottom-2 left-2 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-white/80 hover:bg-white text-gray-600 shadow backdrop-blur-sm"
+            >
+              <RefreshCw className="w-3 h-3" /> Par d&apos;efaut
+            </button>
+          )}
+          {coverUrl !== null && (
+            <button
+              onClick={() => setCoverUrl(null)}
+              className="absolute top-2 right-2 p-1.5 rounded-full bg-black/30 hover:bg-black/50 text-white"
+              title="Supprimer l'image"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Infos programme */}
+        <div className="px-5 py-4">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{program.program_code}</span>
+            <span className="text-[10px] font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">Template</span>
+          </div>
+          <h3 className="text-base font-bold text-gray-900 mb-1">{program.name}</h3>
+          {program.global_objective && (
+            <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{program.global_objective}</p>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3 px-5 pb-5">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 text-sm font-medium border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={confirming || uploading}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-primary-500 rounded-xl hover:bg-primary-600 transition-colors disabled:opacity-50 shadow-sm"
+          >
+            {confirming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+            Activer ce programme
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── TemplateCard ─────────────────────────────────────────────────────────────
 
 function TemplateCard({ program, onActivate, activating }: { program: HRProgram; onActivate: (id: number) => void; activating: boolean }) {
   const icon = PROGRAM_ICONS[program.program_code] ?? <Flag className="w-5 h-5" />;
+  const defaultCover = DEFAULT_COVERS[program.program_code] ?? null;
+  const defaultGradient = DEFAULT_GRADIENTS[program.program_code] ?? 'from-primary-500 to-primary-700';
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-3 hover:border-primary-200 hover:shadow-sm transition-all h-full">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center text-primary-600 shrink-0">
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:border-primary-200 hover:shadow-md transition-all flex flex-col">
+      {/* Cover image */}
+      <div className={`relative h-28 overflow-hidden bg-gradient-to-br ${defaultGradient}`}>
+        {defaultCover && (
+          <img src={defaultCover} alt={program.name} className="absolute inset-0 w-full h-full object-cover" />
+        )}
+        {!defaultCover && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-white [&_svg]:w-6 [&_svg]:h-6">
+              {icon}
+            </div>
+          </div>
+        )}
+        {/* Badge template */}
+        <span className="absolute top-2 right-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/90 text-blue-600">Template</span>
+        {/* Overlay hover */}
+        <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-all flex items-center justify-center opacity-0 hover:opacity-100">
+          <ImageIcon className="w-7 h-7 text-white drop-shadow" />
+        </div>
+      </div>
+
+      {/* Contenu */}
+      <div className="p-4 flex flex-col gap-3 flex-1">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-primary-50 rounded-lg flex items-center justify-center text-primary-600 shrink-0 [&_svg]:w-4 [&_svg]:h-4">
             {icon}
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="text-[10px] font-mono text-gray-400 leading-none">{program.program_code}</span>
-            <h3 className="text-sm font-semibold text-gray-900 leading-tight mt-0.5">{program.name}</h3>
+            <h3 className="text-sm font-semibold text-gray-900 leading-tight truncate">{program.name}</h3>
           </div>
         </div>
-        <span className="shrink-0 text-[10px] font-medium bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">Template</span>
-      </div>
-      {program.global_objective && (
-        <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{program.global_objective}</p>
-      )}
-      <div className="flex items-center gap-3 text-xs text-gray-400 flex-wrap">
-        {program.total_actions > 0 && (
-          <span className="flex items-center gap-1"><Target className="w-3.5 h-3.5" /> {program.total_actions} actions</span>
+        {program.global_objective && (
+          <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{program.global_objective}</p>
         )}
-        {program.total_budget > 0 && (
-          <span className="flex items-center gap-1"><DollarSign className="w-3.5 h-3.5" /> {fmt(program.total_budget)}</span>
-        )}
+        <div className="flex items-center gap-3 text-xs text-gray-400 flex-wrap">
+          {program.total_actions > 0 && (
+            <span className="flex items-center gap-1"><Target className="w-3.5 h-3.5" /> {program.total_actions} actions</span>
+          )}
+          {program.total_budget > 0 && (
+            <span className="flex items-center gap-1"><DollarSign className="w-3.5 h-3.5" /> {fmt(program.total_budget)}</span>
+          )}
+        </div>
+        <button
+          onClick={() => onActivate(program.id)}
+          disabled={activating}
+          className="mt-auto flex items-center justify-center gap-2 w-full py-2.5 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50"
+        >
+          {activating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+          Activer ce programme
+        </button>
       </div>
-      <button
-        onClick={() => onActivate(program.id)}
-        disabled={activating}
-        className="mt-auto flex items-center justify-center gap-2 w-full py-2 text-sm font-medium text-white bg-primary-500 rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50"
-      >
-        {activating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-        Activer ce programme
-      </button>
     </div>
   );
 }
@@ -1524,10 +1834,13 @@ export default function ProgrammesPage() {
   const [seedMsg, setSeedMsg] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'templates' | 'programmes'>('programmes');
   const [activatingId, setActivatingId] = useState<number | null>(null);
+  const [activateModalTemplate, setActivateModalTemplate] = useState<HRProgram | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [openAssignOnLoad, setOpenAssignOnLoad] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRH, setIsRH] = useState(false);
+  const [canAssign, setCanAssign] = useState(false);
   const [access, setAccess] = useState<HRProgramsAccess | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'timeline'>('grid');
   const [notifying, setNotifying] = useState(false);
@@ -1538,23 +1851,31 @@ export default function ProgrammesPage() {
   useEffect(() => {
     const stored = localStorage.getItem('rh_budget_total');
     if (stored && !isNaN(Number(stored)) && Number(stored) > 0) setRhBudget(Number(stored));
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      setIsRH(['rh', 'admin', 'dg', 'super_admin'].includes(String(user.role || '').toLowerCase()));
+    } catch {
+      setIsRH(false);
+    }
   }, []);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [progs, tmpls, st, acc] = await Promise.all([
+      // Check access first (ne lève pas de 403 — endpoint dédié)
+      const acc = await checkHRProgramsAccess();
+      setAccess(acc);
+      if (!acc.has_access) return; // Affiche PlanGate, ne charge pas les endpoints protégés
+      const [progs, tmpls, st] = await Promise.all([
         getHRPrograms(false),
         getHRPrograms(true),
         getHRProgramsStats(),
-        checkHRProgramsAccess(),
       ]);
       setPrograms(progs);
       setTemplates(tmpls);
       setStats(st);
-      setAccess(acc);
-      getHREmployeesList().then(() => setIsRH(true)).catch(() => setIsRH(false));
+      getHREmployeesList().then(() => setCanAssign(true)).catch(() => setCanAssign(false));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur de chargement');
     } finally {
@@ -1585,11 +1906,20 @@ export default function ProgrammesPage() {
     } finally { setNotifying(false); }
   };
 
-  const handleActivateTemplate = async (templateId: number) => {
+  const handleActivateTemplate = (templateId: number) => {
+    const tmpl = templates.find(t => t.id === templateId);
+    if (tmpl) setActivateModalTemplate(tmpl);
+  };
+
+  const handleConfirmActivate = async (templateId: number, coverUrl: string | null) => {
     setActivatingId(templateId);
+    setActivateModalTemplate(null);
     try {
-      await activateHRTemplate(templateId);
-      setSeedMsg('✓ Programme activé avec succès.');
+      const newProgram = await activateHRTemplate(templateId);
+      if (coverUrl) {
+        try { await updateHRProgram(newProgram.id, { cover_image_url: coverUrl }); } catch { /* non-bloquant */ }
+      }
+      setSeedMsg('\u2713 Programme activé avec succès.');
       setActiveTab('programmes');
       await loadAll();
     } catch (e) {
@@ -1603,7 +1933,7 @@ export default function ProgrammesPage() {
   if (!loading && access && !access.has_access) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header title="Programmes RH" hideAddButton />
+        <Header title="Programmes RH" />
         <div className="max-w-3xl mx-auto p-6">
           <PlanGate access={access} onRequest={async () => { await requestHRProgramsAddon(); }} />
         </div>
@@ -1614,9 +1944,15 @@ export default function ProgrammesPage() {
   if (selectedId !== null) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header title="Programmes RH" hideAddButton />
+        <Header title="Programmes RH" />
         <div className="max-w-5xl mx-auto p-6">
-          <ProgramDetail programId={selectedId} isRH={isRH} onBack={() => { setSelectedId(null); loadAll(); }} />
+          <ProgramDetail
+            programId={selectedId}
+            isRH={isRH}
+            canAssign={canAssign}
+            openAssignOnLoad={openAssignOnLoad}
+            onBack={() => { setSelectedId(null); setOpenAssignOnLoad(false); loadAll(); }}
+          />
         </div>
       </div>
     );
@@ -1624,7 +1960,7 @@ export default function ProgrammesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header title="Programmes RH" hideAddButton />
+      <Header title="Programmes RH" />
       <div className="max-w-6xl mx-auto p-6 space-y-6">
 
         {/* Stats */}
@@ -1855,11 +2191,13 @@ export default function ProgrammesPage() {
           <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-200">
             <Flag className="w-12 h-12 text-gray-200 mx-auto mb-3" />
             <p className="font-semibold text-gray-500">
-              {isRH ? 'Aucun programme actif' : 'Aucun programme assigné'}
+              {isRH || canAssign ? 'Aucun programme actif' : 'Aucun programme assigné'}
             </p>
             <p className="text-sm text-gray-400 mt-1">
               {isRH
                 ? 'Activez un template ou créez un programme personnalisé.'
+                : canAssign
+                ? 'Un RH doit d’abord créer ou activer un programme pour que vous puissiez le lancer auprès de votre équipe.'
                 : 'Contactez votre équipe RH pour être assigné à un programme.'}
             </p>
             {isRH && (
@@ -1877,7 +2215,15 @@ export default function ProgrammesPage() {
           <ManagerTimeline programs={programs} onSelect={setSelectedId} />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {programs.map(p => <ProgramCard key={p.id} program={p} onSelect={setSelectedId} />)}
+            {programs.map(p => (
+              <ProgramCard
+                key={p.id}
+                program={p}
+                canAssign={canAssign}
+                onSelect={(id) => { setOpenAssignOnLoad(false); setSelectedId(id); }}
+                onActivate={(id) => { setOpenAssignOnLoad(true); setSelectedId(id); }}
+              />
+            ))}
           </div>
         )}
 
@@ -1885,6 +2231,13 @@ export default function ProgrammesPage() {
           <CreateProgramModal
             onClose={() => setShowCreate(false)}
             onCreated={() => { setShowCreate(false); setSeedMsg('✓ Programme créé avec succès.'); setActiveTab('programmes'); loadAll(); }}
+          />
+        )}
+        {activateModalTemplate && (
+          <ActivateModal
+            program={activateModalTemplate}
+            onConfirm={handleConfirmActivate}
+            onClose={() => setActivateModalTemplate(null)}
           />
         )}
       </div>

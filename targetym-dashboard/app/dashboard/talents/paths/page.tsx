@@ -16,9 +16,9 @@ import {
 import { useTalents } from '../TalentsContext';
 import { CareerPath, CareerLevel, PromotionFactor, isRH, getInitials, apiFetch, getAuthHeaders, ELIGIBILITY_LABELS } from '../shared';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import CustomSelect from '@/components/CustomSelect';
 import toast from 'react-hot-toast';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function PathsPage() {
   const { t } = useI18n();

@@ -1,9 +1,10 @@
-'use client';
+﻿'use client';
 
-import { Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Header from '@/components/Header';
 import SearchableSelect from '@/components/SearchableSelect';
+import { useAuth } from '@/context/AuthContext';
 import {
   Banknote,
   BarChart3,
@@ -68,6 +69,8 @@ import {
   type EmployeeBankLoanInput,
   type EmployeeBankLoanStatus,
 } from '@/lib/employeeFinanceApi';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 type TabId = 'dashboard' | 'requests' | 'advances' | 'loans' | 'bank-loans' | 'payouts' | 'repayments' | 'settings';
 
@@ -1043,11 +1046,16 @@ function SettingsPanel({
               />
             </SettingsCard>
             <SettingsCard icon={Wallet} title={tt("Plafond d'avance")} subtitle={tt('Limite maximale par demande')}>
-              <select value={advanceMaxType} onChange={(event) => setAdvanceMaxType(event.target.value)} className="w-full rounded border border-gray-300 px-3 py-2 text-sm">
-                <option value="percent_net_salary">{tt('Pourcentage du salaire net')}</option>
-                <option value="fixed_amount">{tt('Montant fixe')}</option>
-                <option value="none">{tt('Aucune limite')}</option>
-              </select>
+              <CustomSelect
+                value={advanceMaxType}
+                onChange={(v) => setAdvanceMaxType(v)}
+                options={[
+                  { value: 'percent_net_salary', label: tt('Pourcentage du salaire net') },
+                  { value: 'fixed_amount', label: tt('Montant fixe') },
+                  { value: 'none', label: tt('Aucune limite') },
+                ]}
+                className="w-full"
+              />
               <InputWithSuffix value={advanceMaxValue} onChange={setAdvanceMaxValue} suffix={advanceMaxType === 'percent_net_salary' ? '%' : settings?.currency ?? 'XOF'} />
               <InfoLine>{tt("Le plafond sera calculé sur le salaire net de l'employé.")}</InfoLine>
             </SettingsCard>
@@ -1107,11 +1115,16 @@ function SettingsPanel({
               <ToggleRow label={tt('Activer les demandes de prêt')} description={tt('Les collaborateurs pourront soumettre des demandes de prêt.')} checked={loanEnabled} onChange={setLoanEnabled} />
             </SettingsCard>
             <SettingsCard icon={Wallet} title={tt('Plafond du prêt')} subtitle={tt('Limite maximale par demande')}>
-              <select value={loanMaxType} onChange={(event) => setLoanMaxType(event.target.value)} className="w-full rounded border border-gray-300 px-3 py-2 text-sm">
-                <option value="months_net_salary">{tt('Multiple du salaire')}</option>
-                <option value="percent_net_salary">{tt('Pourcentage du salaire net')}</option>
-                <option value="fixed_amount">{tt('Montant fixe')}</option>
-              </select>
+              <CustomSelect
+                value={loanMaxType}
+                onChange={(v) => setLoanMaxType(v)}
+                options={[
+                  { value: 'months_net_salary', label: tt('Multiple du salaire') },
+                  { value: 'percent_net_salary', label: tt('Pourcentage du salaire net') },
+                  { value: 'fixed_amount', label: tt('Montant fixe') },
+                ]}
+                className="w-full"
+              />
               <InputWithSuffix value={loanMaxValue} onChange={setLoanMaxValue} suffix={loanMaxType === 'months_net_salary' ? `x ${tt('salaire')}` : settings?.currency ?? 'XOF'} />
               <InfoLine>{tt('Les prêts sont sans intérêt.')}</InfoLine>
             </SettingsCard>
@@ -1230,11 +1243,16 @@ function SettingsPanel({
           <div className="grid gap-5 xl:grid-cols-[0.8fr_1.7fr_1.1fr]">
             <SettingsCard icon={CalendarDays} title={tt('Gestion des échéances')}>
               <ToggleRow label={tt("Activer les reports/suspensions d'échéance")} description={tt('Autorise le report ou la suspension des échéances selon la politique définie.')} checked={allowInstallmentChanges} onChange={setAllowInstallmentChanges} />
-              <select value={installmentChangeMode} onChange={(event) => setInstallmentChangeMode(event.target.value)} className="w-full rounded border border-gray-300 px-3 py-2 text-sm">
-                <option value="time_limited">{tt('Encadré par une limite de temps')}</option>
-                <option value="manual_approval">{tt('Sur validation RH/Finance')}</option>
-                <option value="unlimited">{tt('Sans limite')}</option>
-              </select>
+              <CustomSelect
+                value={installmentChangeMode}
+                onChange={(v) => setInstallmentChangeMode(v)}
+                options={[
+                  { value: 'time_limited', label: tt('Encadré par une limite de temps') },
+                  { value: 'manual_approval', label: tt('Sur validation RH/Finance') },
+                  { value: 'unlimited', label: tt('Sans limite') },
+                ]}
+                className="w-full"
+              />
             </SettingsCard>
             <SettingsCard icon={CheckCircle2} title={tt('Net insuffisant')} subtitle={tt('Comportement à appliquer si le net à payer est insuffisant.')}>
               <ChoiceGrid
@@ -1755,34 +1773,49 @@ function DashboardView({
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
           <label className="text-sm font-medium text-gray-700 xl:col-span-2">
             {tt('Période')}
-            <div className="mt-1 grid grid-cols-2 gap-2">
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="rounded border border-gray-300 px-3 py-2 text-sm" />
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="rounded border border-gray-300 px-3 py-2 text-sm" />
+            <div className="mt-1 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
+              <CustomDatePicker value={startDate} onChange={setStartDate} className="w-full" />
+              <CustomDatePicker value={endDate} onChange={setEndDate} className="w-full" />
             </div>
           </label>
           <label className="text-sm font-medium text-gray-700">
             {tt('Type')}
-            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)} className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm">
-              <option value="all">{tt('Tous')}</option>
-              <option value="advance">{tt('Avances')}</option>
-              <option value="loan">{tt('Prêts')}</option>
-            </select>
+            <CustomSelect
+              value={typeFilter}
+              onChange={(v) => setTypeFilter(v as typeof typeFilter)}
+              options={[
+                { value: 'all', label: tt('Tous') },
+                { value: 'advance', label: tt('Avances') },
+                { value: 'loan', label: tt('Prêts') },
+              ]}
+              className="mt-1 w-full"
+            />
           </label>
           <label className="text-sm font-medium text-gray-700">
             {tt('Statut')}
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm">
-              <option value="all">{tt('Tous')}</option>
-              {Object.entries(EMPLOYEE_FINANCE_STATUS).map(([value, cfg]) => (
-                <option key={value} value={value}>{tt(cfg.label)}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={statusFilter}
+              onChange={(v) => setStatusFilter(v as typeof statusFilter)}
+              options={[
+                { value: 'all', label: tt('Tous') },
+                ...Object.entries(EMPLOYEE_FINANCE_STATUS).map(([value, cfg]) => (
+                ({ value: String(value), label: tt(cfg.label) })
+              )),
+              ]}
+              className="mt-1 w-full"
+            />
           </label>
           <label className="text-sm font-medium text-gray-700">
             {tt('Département')}
-            <select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm">
-              <option value="all">{tt('Tous')}</option>
-              {departments.map((dept) => <option key={dept} value={dept}>{dept}</option>)}
-            </select>
+            <CustomSelect
+              value={departmentFilter}
+              onChange={(v) => setDepartmentFilter(v)}
+              options={[
+                { value: 'all', label: tt('Tous') },
+                ...departments.map((dept) => ({ value: String(dept), label: dept })),
+              ]}
+              className="mt-1 w-full"
+            />
           </label>
           <label className="text-sm font-medium text-gray-700">
             {tt('Employé')}
@@ -1800,7 +1833,7 @@ function DashboardView({
         </div>
       </section>
 
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         {[
           { label: tt('Montant total en cours'), value: formatMoney(kpis.totalInProgress, currency), icon: Wallet, color: 'bg-blue-600' },
           { label: tt('Demandes en attente'), value: kpis.pendingCount, icon: Clock, color: 'bg-orange-500' },
@@ -1811,7 +1844,7 @@ function DashboardView({
         ].map((card) => {
           const Icon = card.icon;
           return (
-            <div key={card.label} className="rounded-lg border border-gray-200 bg-white p-3 sm:p-4">
+            <div key={card.label} className="rounded-lg border border-gray-200 bg-white p-4">
               <div className="flex items-center gap-3">
                 <div className={`flex h-11 w-11 items-center justify-center rounded-full text-white ${card.color}`}>
                   <Icon className="h-5 w-5" />
@@ -1882,8 +1915,7 @@ function DashboardView({
       <section className="grid gap-5 xl:grid-cols-5">
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white xl:col-span-3">
           <h2 className="border-b px-5 py-4 text-base font-semibold text-gray-900">{tt('Demandes à traiter')}</h2>
-          <div className="overflow-x-auto">
-          <table className="w-full min-w-[600px] text-sm">
+          <table className="w-full text-sm">
             <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
               <tr>
                 <th className="px-5 py-3">{tt('Employé')}</th>
@@ -1921,7 +1953,6 @@ function DashboardView({
               )}
             </tbody>
           </table>
-          </div>
         </div>
 
         <div className="rounded-lg border border-gray-200 bg-white p-5 xl:col-span-2">
@@ -1948,8 +1979,7 @@ function DashboardView({
       <section className="grid gap-5 xl:grid-cols-5">
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white xl:col-span-3">
           <h2 className="border-b px-5 py-4 text-base font-semibold text-gray-900">{tt('Remboursements actifs')}</h2>
-          <div className="overflow-x-auto">
-          <table className="w-full min-w-[520px] text-sm">
+          <table className="w-full text-sm">
             <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
               <tr>
                 <th className="px-5 py-3">{tt('Employé')}</th>
@@ -1979,7 +2009,6 @@ function DashboardView({
               )}
             </tbody>
           </table>
-          </div>
         </div>
 
         <div className="rounded-lg border border-gray-200 bg-white p-5 xl:col-span-2">
@@ -2122,15 +2151,16 @@ function NewRequestModal({
           </label>
           <label className="text-sm font-medium text-gray-700">
             {tt('Type')}
-            <select
+            <CustomSelect
               value={requestType}
+              onChange={(v) => setRequestType(v as typeof requestType)}
               disabled={lockType}
-              onChange={(event) => setRequestType(event.target.value as typeof requestType)}
-              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm disabled:bg-gray-50 disabled:text-gray-500"
-            >
-              <option value="advance">{tt('Avance sur salaire')}</option>
-              <option value="loan">{tt('Prêt interne')}</option>
-            </select>
+              options={[
+                { value: 'advance', label: tt('Avance sur salaire') },
+                { value: 'loan', label: tt('Prêt interne') },
+              ]}
+              className="mt-1 w-full"
+            />
           </label>
           <label className="text-sm font-medium text-gray-700">
             {tt('Montant demandé')}
@@ -2156,15 +2186,16 @@ function NewRequestModal({
           )}
           <label className="text-sm font-medium text-gray-700">
             {tt('Première retenue')}
-            <select
+            <CustomSelect
               value={firstPayrollMonth}
-              onChange={(event) => setFirstPayrollMonth(event.target.value)}
-              className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
-            >
-              {MONTHS_FR.map((month, index) => (
-                <option key={month} value={index + 1}>{month}</option>
-              ))}
-            </select>
+              onChange={(v) => setFirstPayrollMonth(v)}
+              options={[
+                ...MONTHS_FR.map((month, index) => (
+                ({ value: String(index + 1), label: month })
+              )),
+              ]}
+              className="mt-1 w-full"
+            />
           </label>
           <label className="text-sm font-medium text-gray-700">
             {tt('Année')}
@@ -2354,48 +2385,65 @@ function RequestsModule({
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
             <label className="text-sm font-medium text-gray-700 xl:col-span-2">
               {tt('Période')}
-              <div className="mt-1 grid grid-cols-2 gap-2">
-                <div className="relative">
-                  <CalendarDays className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                  <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className="w-full rounded border border-gray-300 py-2 pl-9 pr-3 text-sm" />
-                </div>
-                <input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} className="w-full rounded border border-gray-300 px-3 py-2 text-sm" />
+              <div className="mt-1 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
+                <CustomDatePicker value={startDate} onChange={setStartDate} className="w-full" />
+                <CustomDatePicker value={endDate} onChange={setEndDate} className="w-full" />
               </div>
             </label>
             <label className="text-sm font-medium text-gray-700">
               {tt('Type')}
-              <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as typeof typeFilter)} className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm">
-                <option value="all">{tt('Tous')}</option>
-                <option value="advance">{tt('Avance')}</option>
-                <option value="loan">{tt('Prêt')}</option>
-              </select>
+              <CustomSelect
+                value={typeFilter}
+                onChange={(v) => setTypeFilter(v as typeof typeFilter)}
+                options={[
+                  { value: 'all', label: tt('Tous') },
+                  { value: 'advance', label: tt('Avance') },
+                  { value: 'loan', label: tt('Prêt') },
+                ]}
+                className="mt-1 w-full"
+              />
             </label>
             <label className="text-sm font-medium text-gray-700">
               {tt('Statut')}
-              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm">
-                <option value="all">{tt('Tous')}</option>
-                {Object.entries(statusPill).map(([value, cfg]) => (
-                  <option key={value} value={value}>{tt(cfg.label)}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={statusFilter}
+                onChange={(v) => setStatusFilter(v as typeof statusFilter)}
+                options={[
+                  { value: 'all', label: tt('Tous') },
+                  ...Object.entries(statusPill).map(([value, cfg]) => (
+                  ({ value: String(value), label: tt(cfg.label) })
+                )),
+                ]}
+                className="mt-1 w-full"
+              />
             </label>
             <label className="text-sm font-medium text-gray-700">
               {tt('Département')}
-              <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm">
-                <option value="all">{tt('Tous')}</option>
-                {departments.map((department) => (
-                  <option key={department} value={department}>{department}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={departmentFilter}
+                onChange={(v) => setDepartmentFilter(v)}
+                options={[
+                  { value: 'all', label: tt('Tous') },
+                  ...departments.map((department) => (
+                  ({ value: String(department), label: department })
+                )),
+                ]}
+                className="mt-1 w-full"
+              />
             </label>
             <label className="text-sm font-medium text-gray-700">
               {tt('Priorité')}
-              <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value as typeof priorityFilter)} className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm">
-                <option value="all">{tt('Toutes')}</option>
-                <option value="high">{tt('Haute')}</option>
-                <option value="medium">{tt('Moyenne')}</option>
-                <option value="low">{tt('Basse')}</option>
-              </select>
+              <CustomSelect
+                value={priorityFilter}
+                onChange={(v) => setPriorityFilter(v as typeof priorityFilter)}
+                options={[
+                  { value: 'all', label: tt('Toutes') },
+                  { value: 'high', label: tt('Haute') },
+                  { value: 'medium', label: tt('Moyenne') },
+                  { value: 'low', label: tt('Basse') },
+                ]}
+                className="mt-1 w-full"
+              />
             </label>
             <label className="text-sm font-medium text-gray-700 xl:col-span-2">
               {tt('Employé')}
@@ -2508,11 +2556,15 @@ function RequestsModule({
           <div className="flex flex-col gap-4 border-t px-5 py-4 md:flex-row md:items-center md:justify-between">
             <label className="flex items-center gap-3 text-sm text-gray-500">
               {tt('Lignes par page:')}
-              <select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))} className="rounded border border-gray-300 px-3 py-2 text-sm text-gray-700">
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-              </select>
+              <CustomSelect
+                value={String(pageSize)}
+                onChange={(v) => setPageSize(Number(v))}
+                options={[
+                  { value: String(10), label: '10' },
+                  { value: String(20), label: '20' },
+                  { value: String(50), label: '50' },
+                ]}
+              />
             </label>
             <div className="flex items-center gap-2">
               <button disabled={page === 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="rounded border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-40">
@@ -2769,7 +2821,7 @@ function AdvancesModule({
 
       <section className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="text-xl sm:text-3xl font-bold text-gray-900">Avances</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Avances</h1>
           <p className="mt-1 text-sm text-gray-500">Suivi de toutes les avances accordées aux collaborateurs.</p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -2784,24 +2836,24 @@ function AdvancesModule({
         </div>
       </section>
 
-      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         {[
           { label: 'Total des avances en cours', value: formatMoney(remainingTotal, currency), sub: 'Capital restant dû', icon: Wallet, color: 'bg-blue-50 text-blue-700' },
-          { label: "Nombre d'avances actives", value: activeAdvances.length, sub: 'Collaborateurs concernés', icon: FileCheck, color: 'bg-emerald-50 text-emerald-700' },
+          { label: "Nombre d’avances actives", value: activeAdvances.length, sub: 'Collaborateurs concernés', icon: FileCheck, color: 'bg-emerald-50 text-emerald-700' },
           { label: 'À prélever sur la paie (ce mois)', value: formatMoney(thisMonthDue || fallbackMonthlyDue, currency), sub: 'Montant total prévu', icon: CalendarDays, color: 'bg-violet-50 text-violet-700' },
           { label: 'Avance moyenne par employé', value: formatMoney(averageAdvance, currency), sub: 'Employés avec avance active', icon: Percent, color: 'bg-orange-50 text-orange-700' },
         ].map((card) => {
           const Icon = card.icon;
           return (
-            <div key={card.label} className="rounded-lg border border-gray-200 bg-white p-3 sm:p-5 shadow-sm">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-                <span className={`flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl ${card.color}`}>
-                  <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+            <div key={card.label} className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-5">
+                <span className={`flex h-16 w-16 items-center justify-center rounded-2xl ${card.color}`}>
+                  <Icon className="h-7 w-7" />
                 </span>
                 <div>
-                  <p className="text-xs font-medium text-gray-600 leading-tight">{card.label}</p>
-                  <p className="mt-1 text-base sm:text-xl font-bold text-gray-900">{card.value}</p>
-                  <p className="text-xs text-gray-500">{card.sub}</p>
+                  <p className="text-sm font-semibold text-gray-600">{card.label}</p>
+                  <p className="mt-2 text-2xl font-bold text-gray-900">{card.value}</p>
+                  <p className="mt-1 text-sm text-gray-500">{card.sub}</p>
                 </div>
               </div>
             </div>
@@ -2820,21 +2872,31 @@ function AdvancesModule({
           </label>
           <label className="text-sm font-medium text-gray-600">
             Statut
-            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-700">
-              <option value="all">Tous les statuts</option>
-              {Object.entries(filterLabels).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={statusFilter}
+              onChange={(v) => setStatusFilter(v as typeof statusFilter)}
+              options={[
+                { value: 'all', label: 'Tous les statuts' },
+                ...Object.entries(filterLabels).map(([value, label]) => (
+                ({ value: String(value), label: label })
+              )),
+              ]}
+              className="mt-2 w-full"
+            />
           </label>
           <label className="text-sm font-medium text-gray-600">
             Département
-            <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-700">
-              <option value="all">Tous les départements</option>
-              {departments.map((department) => (
-                <option key={department} value={department}>{department}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={departmentFilter}
+              onChange={(v) => setDepartmentFilter(v)}
+              options={[
+                { value: 'all', label: 'Tous les départements' },
+                ...departments.map((department) => (
+                ({ value: String(department), label: department })
+              )),
+              ]}
+              className="mt-2 w-full"
+            />
           </label>
           <div className="flex items-end">
             <button onClick={() => setShowAdvanced((value) => !value)} className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">
@@ -2953,11 +3015,16 @@ function AdvancesModule({
             <button disabled={page === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-40">
               <ChevronRight className="h-4 w-4" />
             </button>
-            <select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))} className="ml-2 rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700">
-              <option value={5}>5 / page</option>
-              <option value={10}>10 / page</option>
-              <option value={20}>20 / page</option>
-            </select>
+            <CustomSelect
+              value={String(pageSize)}
+              onChange={(v) => setPageSize(Number(v))}
+              options={[
+                { value: String(5), label: '5 / page' },
+                { value: String(10), label: '10 / page' },
+                { value: String(20), label: '20 / page' },
+              ]}
+              className="ml-2"
+            />
           </div>
         </div>
       </section>
@@ -3137,7 +3204,7 @@ function FinanceTrackingModule({
         </div>
       </section>
 
-      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         {[
           {
             label: isLoan ? tt('Total des prêts en cours') : tt('Total des avances en cours'),
@@ -3170,15 +3237,15 @@ function FinanceTrackingModule({
         ].map((card) => {
           const Icon = card.icon;
           return (
-            <div key={card.label} className="rounded-lg border border-gray-200 bg-white p-3 sm:p-5 shadow-sm">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-                <span className={`flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl ${card.color}`}>
-                  <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+            <div key={card.label} className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-5">
+                <span className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full ${card.color}`}>
+                  <Icon className="h-8 w-8" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-gray-700 leading-tight">{card.label}</p>
-                  <p className="mt-1 text-base sm:text-xl font-bold text-gray-900">{card.value}</p>
-                  <p className="text-xs text-gray-500">{card.sub}</p>
+                  <p className="text-sm font-semibold text-gray-700">{card.label}</p>
+                  <p className="mt-3 text-2xl font-bold text-gray-950">{card.value}</p>
+                  <p className="mt-2 text-sm text-gray-500">{card.sub}</p>
                 </div>
               </div>
             </div>
@@ -3197,21 +3264,31 @@ function FinanceTrackingModule({
           </label>
           <label className="text-sm font-medium text-gray-700">
             {tt('Statut')}
-            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} className="mt-2 w-full rounded border border-gray-300 px-4 py-3 text-sm">
-              <option value="all">{tt('Tous les statuts')}</option>
-              {Object.entries(statusLabels).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={statusFilter}
+              onChange={(v) => setStatusFilter(v as typeof statusFilter)}
+              options={[
+                { value: 'all', label: tt('Tous les statuts') },
+                ...Object.entries(statusLabels).map(([value, label]) => (
+                ({ value: String(value), label: label })
+              )),
+              ]}
+              className="mt-2 w-full"
+            />
           </label>
           <label className="text-sm font-medium text-gray-700">
             {tt('Département')}
-            <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="mt-2 w-full rounded border border-gray-300 px-4 py-3 text-sm">
-              <option value="all">{tt('Tous les départements')}</option>
-              {departments.map((department) => (
-                <option key={department} value={department}>{department}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={departmentFilter}
+              onChange={(v) => setDepartmentFilter(v)}
+              options={[
+                { value: 'all', label: tt('Tous les départements') },
+                ...departments.map((department) => (
+                ({ value: String(department), label: department })
+              )),
+              ]}
+              className="mt-2 w-full"
+            />
           </label>
           <div className="flex items-end">
             <button onClick={() => setShowAdvanced((value) => !value)} className="inline-flex w-full items-center justify-center gap-2 rounded border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50">
@@ -3329,11 +3406,16 @@ function FinanceTrackingModule({
             <button disabled={page === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} className="rounded border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-40">
               <ChevronRight className="h-4 w-4" />
             </button>
-            <select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))} className="ml-2 rounded border border-gray-300 px-4 py-2 text-sm text-gray-700">
-              <option value={5}>5 / page</option>
-              <option value={10}>10 / page</option>
-              <option value={20}>20 / page</option>
-            </select>
+            <CustomSelect
+              value={String(pageSize)}
+              onChange={(v) => setPageSize(Number(v))}
+              options={[
+                { value: String(5), label: '5 / page' },
+                { value: String(10), label: '10 / page' },
+                { value: String(20), label: '20 / page' },
+              ]}
+              className="ml-2"
+            />
           </div>
         </div>
       </section>
@@ -3555,32 +3637,52 @@ function PayoutsModule({
             </label>
             <label className="text-sm font-medium text-gray-600">
               {tt('Type')}
-              <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as typeof typeFilter)} className="mt-2 w-full rounded border border-gray-300 px-3 py-3 text-sm">
-                <option value="all">{tt('Tous les types')}</option>
-                <option value="advance">{tt('Avances')}</option>
-                <option value="loan">{tt('Prêts')}</option>
-              </select>
+              <CustomSelect
+                value={typeFilter}
+                onChange={(v) => setTypeFilter(v as typeof typeFilter)}
+                options={[
+                  { value: 'all', label: tt('Tous les types') },
+                  { value: 'advance', label: tt('Avances') },
+                  { value: 'loan', label: tt('Prêts') },
+                ]}
+                className="mt-2 w-full"
+              />
             </label>
             <label className="text-sm font-medium text-gray-600">
               {tt('Statut')}
-              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} className="mt-2 w-full rounded border border-gray-300 px-3 py-3 text-sm">
-                <option value="all">{tt('Tous les statuts')}</option>
-                {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-              </select>
+              <CustomSelect
+                value={statusFilter}
+                onChange={(v) => setStatusFilter(v as typeof statusFilter)}
+                options={[
+                  { value: 'all', label: tt('Tous les statuts') },
+                  ...Object.entries(statusLabels).map(([value, label]) => ({ value: String(value), label: label })),
+                ]}
+                className="mt-2 w-full"
+              />
             </label>
             <label className="text-sm font-medium text-gray-600">
               {tt('Département')}
-              <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="mt-2 w-full rounded border border-gray-300 px-3 py-3 text-sm">
-                <option value="all">{tt('Tous les départements')}</option>
-                {departments.map((department) => <option key={department} value={department}>{department}</option>)}
-              </select>
+              <CustomSelect
+                value={departmentFilter}
+                onChange={(v) => setDepartmentFilter(v)}
+                options={[
+                  { value: 'all', label: tt('Tous les départements') },
+                  ...departments.map((department) => ({ value: String(department), label: department })),
+                ]}
+                className="mt-2 w-full"
+              />
             </label>
             <label className="text-sm font-medium text-gray-600">
               {tt('Mode de paiement')}
-              <select value={paymentFilter} onChange={(event) => setPaymentFilter(event.target.value)} className="mt-2 w-full rounded border border-gray-300 px-3 py-3 text-sm">
-                <option value="all">{tt('Tous les modes')}</option>
-                {paymentMethods.map((method) => <option key={method} value={method}>{method}</option>)}
-              </select>
+              <CustomSelect
+                value={paymentFilter}
+                onChange={(v) => setPaymentFilter(v)}
+                options={[
+                  { value: 'all', label: tt('Tous les modes') },
+                  ...paymentMethods.map((method) => ({ value: String(method), label: method })),
+                ]}
+                className="mt-2 w-full"
+              />
             </label>
             <div className="flex items-end">
               <button onClick={() => setShowAdvanced((value) => !value)} className="inline-flex w-full items-center justify-center gap-2 rounded border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50">
@@ -3673,11 +3775,16 @@ function PayoutsModule({
               {totalPages > 5 && <span className="px-2 text-sm text-gray-400">...</span>}
               {totalPages > 5 && <button onClick={() => setPage(totalPages)} className="rounded border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">{totalPages}</button>}
               <button disabled={page === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} className="rounded border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
-              <select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))} className="ml-2 rounded border border-gray-300 px-4 py-2 text-sm text-gray-700">
-                <option value={5}>5 / page</option>
-                <option value={10}>10 / page</option>
-                <option value={20}>20 / page</option>
-              </select>
+              <CustomSelect
+                value={String(pageSize)}
+                onChange={(v) => setPageSize(Number(v))}
+                options={[
+                  { value: String(5), label: '5 / page' },
+                  { value: String(10), label: '10 / page' },
+                  { value: String(20), label: '20 / page' },
+                ]}
+                className="ml-2"
+              />
             </div>
           </div>
         </section>
@@ -4033,34 +4140,54 @@ function RepaymentsModule({
             </label>
             <label className="text-sm font-medium text-gray-600">
               {tt('Type')}
-              <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as typeof typeFilter)} className="mt-2 w-full rounded border border-gray-300 px-3 py-3 text-sm">
-                <option value="all">{tt('Tous les types')}</option>
-                <option value="advance">{tt('Avances')}</option>
-                <option value="loan">{tt('Prêts')}</option>
-              </select>
+              <CustomSelect
+                value={typeFilter}
+                onChange={(v) => setTypeFilter(v as typeof typeFilter)}
+                options={[
+                  { value: 'all', label: tt('Tous les types') },
+                  { value: 'advance', label: tt('Avances') },
+                  { value: 'loan', label: tt('Prêts') },
+                ]}
+                className="mt-2 w-full"
+              />
             </label>
             <label className="text-sm font-medium text-gray-600">
               {tt('Statut')}
-              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} className="mt-2 w-full rounded border border-gray-300 px-3 py-3 text-sm">
-                <option value="all">{tt('Tous les statuts')}</option>
-                {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-              </select>
+              <CustomSelect
+                value={statusFilter}
+                onChange={(v) => setStatusFilter(v as typeof statusFilter)}
+                options={[
+                  { value: 'all', label: tt('Tous les statuts') },
+                  ...Object.entries(statusLabels).map(([value, label]) => ({ value: String(value), label: label })),
+                ]}
+                className="mt-2 w-full"
+              />
             </label>
             <label className="text-sm font-medium text-gray-600">
               {tt('Département')}
-              <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="mt-2 w-full rounded border border-gray-300 px-3 py-3 text-sm">
-                <option value="all">{tt('Tous les départements')}</option>
-                {departments.map((department) => <option key={department} value={department}>{department}</option>)}
-              </select>
+              <CustomSelect
+                value={departmentFilter}
+                onChange={(v) => setDepartmentFilter(v)}
+                options={[
+                  { value: 'all', label: tt('Tous les départements') },
+                  ...departments.map((department) => ({ value: String(department), label: department })),
+                ]}
+                className="mt-2 w-full"
+              />
             </label>
             <label className="text-sm font-medium text-gray-600">
               {tt('Période')}
-              <select value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value as typeof periodFilter)} className="mt-2 w-full rounded border border-gray-300 px-3 py-3 text-sm">
-                <option value="all">{tt('Toutes')}</option>
-                <option value="current">{tt('Ce mois')}</option>
-                <option value="next">{tt('Mois prochain')}</option>
-                <option value="late">{tt('En retard')}</option>
-              </select>
+              <CustomSelect
+                value={periodFilter}
+                onChange={(v) => setPeriodFilter(v as typeof periodFilter)}
+                options={[
+                  { value: 'all', label: tt('Toutes') },
+                  { value: 'current', label: tt('Ce mois') },
+                  { value: 'next', label: tt('Mois prochain') },
+                  { value: 'late', label: tt('En retard') },
+                ]}
+                className="mt-2 w-full"
+              />
             </label>
             <div className="flex items-end">
               <button onClick={() => setShowAdvanced((value) => !value)} className="inline-flex w-full items-center justify-center gap-2 rounded border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50">
@@ -4151,11 +4278,16 @@ function RepaymentsModule({
                 <button key={item} onClick={() => setPage(item)} className={`rounded border px-3 py-2 text-sm font-medium ${page === item ? 'border-primary-600 bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{item}</button>
               ))}
               <button disabled={page === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} className="rounded border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button>
-              <select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))} className="ml-2 rounded border border-gray-300 px-4 py-2 text-sm text-gray-700">
-                <option value={8}>8 / page</option>
-                <option value={15}>15 / page</option>
-                <option value={30}>30 / page</option>
-              </select>
+              <CustomSelect
+                value={String(pageSize)}
+                onChange={(v) => setPageSize(Number(v))}
+                options={[
+                  { value: String(8), label: '8 / page' },
+                  { value: String(15), label: '15 / page' },
+                  { value: String(30), label: '30 / page' },
+                ]}
+                className="ml-2"
+              />
             </div>
           </div>
         </section>
@@ -4373,18 +4505,23 @@ function BankLoanForm({
           </label>
           <label className="text-sm font-medium text-gray-700">
             {tt('Date de début')} *
-            <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className="mt-1 w-full rounded border border-gray-300 px-3 py-2" />
+            <CustomDatePicker value={startDate} onChange={setStartDate} className="mt-1 w-full" />
           </label>
           <label className="text-sm font-medium text-gray-700">
             {tt('Date de fin')} *
-            <input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} className="mt-1 w-full rounded border border-gray-300 px-3 py-2" />
+            <CustomDatePicker value={endDate} onChange={setEndDate} className="mt-1 w-full" />
           </label>
           <label className="text-sm font-medium text-gray-700">
             {tt("Type d'échéancier")}
-            <select value={scheduleType} onChange={(event) => setScheduleType(event.target.value as 'fixed' | 'custom')} className="mt-1 w-full rounded border border-gray-300 px-3 py-2">
-              <option value="fixed">{tt('Mensualité fixe')}</option>
-              <option value="custom">{tt('Échéancier personnalisé')}</option>
-            </select>
+            <CustomSelect
+              value={scheduleType}
+              onChange={(v) => setScheduleType(v as 'fixed' | 'custom')}
+              options={[
+                { value: 'fixed', label: tt('Mensualité fixe') },
+                { value: 'custom', label: tt('Échéancier personnalisé') },
+              ]}
+              className="mt-1 w-full"
+            />
           </label>
           {scheduleType === 'fixed' && (
             <label className="text-sm font-medium text-gray-700">
@@ -4549,17 +4686,27 @@ function BankLoansModule({ settings }: { settings: EmployeeFinanceSettings | nul
           </label>
           <label className="text-sm font-medium text-gray-700">
             {tt('Statut')}
-            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} className="mt-1 w-full rounded border border-gray-300 px-3 py-2">
-              <option value="all">{tt('Tous les statuts')}</option>
-              {Object.entries(bankLoanStatusConfig).map(([value, config]) => <option key={value} value={value}>{tt(config.label)}</option>)}
-            </select>
+            <CustomSelect
+              value={statusFilter}
+              onChange={(v) => setStatusFilter(v as typeof statusFilter)}
+              options={[
+                { value: 'all', label: tt('Tous les statuts') },
+                ...Object.entries(bankLoanStatusConfig).map(([value, config]) => ({ value: String(value), label: tt(config.label) })),
+              ]}
+              className="mt-1 w-full"
+            />
           </label>
           <label className="text-sm font-medium text-gray-700">
             {tt('Département')}
-            <select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)} className="mt-1 w-full rounded border border-gray-300 px-3 py-2">
-              <option value="all">{tt('Tous les départements')}</option>
-              {departments.map((department) => <option key={department} value={department}>{department}</option>)}
-            </select>
+            <CustomSelect
+              value={departmentFilter}
+              onChange={(v) => setDepartmentFilter(v)}
+              options={[
+                { value: 'all', label: tt('Tous les départements') },
+                ...departments.map((department) => ({ value: String(department), label: department })),
+              ]}
+              className="mt-1 w-full"
+            />
           </label>
         </div>
       </section>
@@ -4595,15 +4742,14 @@ function BankLoansModule({ settings }: { settings: EmployeeFinanceSettings | nul
                     <td className="px-5 py-4">{shortDate(new Date(`${loan.start_date}T00:00:00`))} - {shortDate(new Date(`${loan.end_date}T00:00:00`))}</td>
                     <td className="px-5 py-4"><span className={`rounded px-2 py-1 text-xs font-semibold ${config.color}`}>{tt(config.label)}</span></td>
                     <td className="px-5 py-4">
-                      <select
+                      <CustomSelect
                         value={loan.status}
+                        onChange={(v) => updateStatus(loan, v as EmployeeBankLoanStatus)}
                         disabled={updatingId === loan.id}
-                        onChange={(event) => updateStatus(loan, event.target.value as EmployeeBankLoanStatus)}
-                        className="rounded border border-gray-300 px-2 py-1.5 text-sm disabled:opacity-60"
-                        aria-label={tt('Modifier le statut')}
-                      >
-                        {Object.entries(bankLoanStatusConfig).map(([value, item]) => <option key={value} value={value}>{tt(item.label)}</option>)}
-                      </select>
+                        options={[
+                          ...Object.entries(bankLoanStatusConfig).map(([value, item]) => ({ value: String(value), label: tt(item.label) })),
+                        ]}
+                      />
                     </td>
                   </tr>
                 );
@@ -4633,6 +4779,7 @@ function BankLoansModule({ settings }: { settings: EmployeeFinanceSettings | nul
 function EmployeeFinanceContent() {
   const tt = useEmployeeFinanceText();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
   const [tab, setTab] = useState<TabId>('dashboard');
   const [requests, setRequests] = useState<EmployeeFinanceRequest[]>([]);
   const [settings, setSettings] = useState<EmployeeFinanceSettings | null>(null);
@@ -4640,9 +4787,7 @@ function EmployeeFinanceContent() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [payoutReference, setPayoutReference] = useState('');
   const [proofUrl, setProofUrl] = useState('');
-  const userRole = useMemo(() => {
-    try { return (JSON.parse(localStorage.getItem('user') ?? '{}') as { role?: string }).role?.toLowerCase() ?? 'employee'; } catch { return 'employee'; }
-  }, []);
+  const userRole = user?.role?.toLowerCase() ?? 'employee';
   const isFinanceRestrictedProfile = !['admin', 'rh', 'dg', 'super_admin'].includes(userRole);
 
   const load = useCallback(async () => {
@@ -4776,7 +4921,7 @@ function EmployeeFinanceContent() {
   return (
     <div>
       <Header title={headerMeta[tab].title} subtitle={headerMeta[tab].subtitle} hideAddButton />
-      <main className="bg-gray-50 p-4 sm:p-6">
+      <main className="bg-gray-50 p-6">
         {loading ? (
           <div className="flex items-center justify-center py-20 text-gray-500">
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -4858,8 +5003,7 @@ function EmployeeFinanceContent() {
 
             {!['dashboard', 'requests', 'advances', 'loans', 'bank-loans', 'payouts', 'repayments', 'settings'].includes(tab) && (
               <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-              <div className="overflow-x-auto">
-              <table className="w-full min-w-[500px] text-sm">
+              <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
                   <tr>
                     <th className="px-4 py-3">Employé</th>
@@ -4910,7 +5054,6 @@ function EmployeeFinanceContent() {
                   )}
                 </tbody>
               </table>
-              </div>
             </section>
             )}
           </div>

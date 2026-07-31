@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckCircle, FileText, Heart, Loader2, Plus, RefreshCw, Search, Upload, X } from 'lucide-react';
@@ -6,6 +6,8 @@ import toast from 'react-hot-toast';
 import Header from '@/components/Header';
 import SearchableSelect from '@/components/SearchableSelect';
 import { API_URL, fetchWithAuth, getEmployee, getEmployees, type Employee } from '@/lib/api';
+import CustomDatePicker from '@/components/CustomDatePicker';
+import CustomSelect from '@/components/CustomSelect';
 
 interface SickDeclaration {
   id: number;
@@ -286,12 +288,10 @@ function NewDeclarationModal({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Date de debut</label>
-            <input
-              type="date"
-              required
+            <CustomDatePicker
               value={sickStartDate}
-              onChange={(event) => setSickStartDate(event.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500"
+              onChange={setSickStartDate}
+              className="w-full"
             />
           </div>
 
@@ -387,10 +387,10 @@ export default function SickDeclarationsPage() {
   return (
     <>
       <Header title="Declarations maladie" />
-      <div className="p-4 md:p-6 max-w-7xl mx-auto">
+      <div className="p-6 max-w-7xl mx-auto">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Declarations maladie</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Declarations maladie</h1>
             <p className="text-sm text-gray-500 mt-1">Suivi RH des declarations hors conges. Les maladies pendant conges restent dans le module Conges.</p>
           </div>
           <button
@@ -429,15 +429,16 @@ export default function SickDeclarationsPage() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <select
+              <CustomSelect
                 value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              >
-                <option value="all">Tous</option>
-                <option value="active">En cours</option>
-                <option value="closed">Cloturees</option>
-              </select>
+                onChange={(v) => setStatusFilter(v as typeof statusFilter)}
+                options={[
+                  { value: 'all', label: 'Tous' },
+                  { value: 'active', label: 'En cours' },
+                  { value: 'closed', label: 'Cloturees' },
+                ]}
+                className="w-full sm:w-40"
+              />
               <button onClick={loadData} className="rounded-lg p-2 text-gray-600 hover:bg-gray-100" title="Actualiser">
                 <RefreshCw className="w-5 h-5" />
               </button>

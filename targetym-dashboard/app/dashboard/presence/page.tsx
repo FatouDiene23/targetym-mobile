@@ -290,7 +290,7 @@ export default function PresencePage() {
     { id: 'historique', label: 'Mon historique', icon: Calendar },
     { id: 'mensuel', label: 'Clôture mensuelle', icon: ClipboardCheck, rhOnly: true },
     { id: 'stats', label: 'Statistiques', icon: BarChart3, rhOnly: true },
-    { id: 'sites', label: 'Sites', icon: MapPin, rhOnly: true },
+    { id: 'sites', label: 'Sites', icon: MapPin, dayView: true },
     { id: 'parametres', label: 'Paramètres', icon: Settings, rhOnly: true },
   ];
 
@@ -334,7 +334,7 @@ export default function PresencePage() {
         {tab === 'historique' && <TabHistorique />}
         {tab === 'mensuel' && isRH && <TabMensuel />}
         {tab === 'stats' && isRH && <TabStats />}
-        {tab === 'sites' && isRH && <TabSites />}
+        {tab === 'sites' && hasDayView && <TabSites />}
         {tab === 'parametres' && isRH && <TabParametres />}
 
       </main>
@@ -362,9 +362,9 @@ function TabPointage({ onViewHistory }: { onViewHistory: () => void }) {
         apiFetch('/api/attendance/today'),
         apiFetch('/api/attendance/settings').catch(() => null),
         apiFetch(`/api/attendance/my-history?start_date=${firstLocalDayOfMonthISO()}&end_date=${localDateISO()}`).catch(() => []),
-        apiFetch('/api/attendance/sites').catch(() => []),
+        apiFetch('/api/attendance/sites').catch((e: any) => { if (!silent) toast.error(`Sites : ${e.message}`); return []; }),
       ]);
-      const activeSites = (Array.isArray(siteList) ? siteList : []).filter((site: AttendanceSite) => site.is_active);
+      const activeSites = (Array.isArray(siteList) ? siteList : []).filter((site: AttendanceSite) => site.is_active !== false);
       // Ne remplacer le record que si la réponse contient bien des données
       if (r && (r.id || r.check_in)) setRecord(r);
       else if (!silent) setRecord(r); // page init : accepter {} aussi
@@ -564,7 +564,7 @@ function TabPointage({ onViewHistory }: { onViewHistory: () => void }) {
                   onChange={setSelectedSiteId}
                   disabled={(!!record?.check_in && !!record?.site_id) || actionLoading}
                   options={[
-                    { value: '', label: 'Choisir un site' },
+                    { value: '', label: sites.length === 0 ? 'Aucun site disponible' : 'Choisir un site' },
                     ...sites.map(site => ({
                       value: String(site.id),
                       label: `${site.name} · rayon ${site.radius_meters} m`,
@@ -572,6 +572,9 @@ function TabPointage({ onViewHistory }: { onViewHistory: () => void }) {
                   ]}
                   className="w-full"
                 />
+                {!loading && sites.length === 0 && (
+                  <p className="mt-1 text-xs text-amber-600">Aucun site de pointage configuré. Contactez votre responsable RH pour en créer un.</p>
+                )}
               </label>
               <div className="flex h-11 items-center gap-2 rounded-lg border border-teal-100 bg-teal-50 px-3 text-sm font-semibold text-teal-800">
                 <MapPin className="h-4 w-4" />
@@ -2375,6 +2378,8 @@ function TabStats() {
 // TAB : Sites
 // ─────────────────────────────────────────────
 function TabSites() {
+  const { role: siteRole } = getUserFromStorage();
+  const canEdit = canManage(siteRole);
   const [sites, setSites] = useState<AttendanceSite[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -2445,7 +2450,7 @@ function TabSites() {
     }
     setSaving(true);
     try {
-      const body = { name: form.name, latitude: lat, longitude: lng, radius_meters: parseInt(form.radius_meters), address: form.address || undefined };
+      const body = { name: form.name, latitude: lat, longitude: lng, radius_meters: parseInt(form.radius_meters), address: form.address || undefined, is_active: true };
       if (editing) await apiFetch(`/api/attendance/sites/${editing.id}`, { method: 'PUT', body: JSON.stringify(body) });
       else await apiFetch('/api/attendance/sites', { method: 'POST', body: JSON.stringify(body) });
       toast.success(editing ? 'Site modifié' : 'Site créé');
@@ -2489,9 +2494,11 @@ function TabSites() {
           <h2 className="text-2xl font-bold text-gray-950">Sites de pointage</h2>
           <p className="mt-1 text-sm text-gray-500">Gérez les lieux de pointage autorisés pour vos collaborateurs.</p>
         </div>
-        <button onClick={openCreate} className="flex h-10 items-center gap-2 rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white hover:bg-teal-800">
-          <Plus className="h-4 w-4" /> Nouveau site
-        </button>
+        {canEdit && (
+          <button onClick={openCreate} className="flex h-10 items-center gap-2 rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white hover:bg-teal-800">
+            <Plus className="h-4 w-4" /> Nouveau site
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -2547,7 +2554,7 @@ function TabSites() {
                       <th className="px-5 py-4 text-left">Rayon autorisé</th>
                       <th className="px-5 py-4 text-left">Collaborateurs</th>
                       <th className="px-5 py-4 text-left">Statut</th>
-                      <th className="px-5 py-4 text-right">Actions</th>
+                      {canEdit && <th className="px-5 py-4 text-right">Actions</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -2574,10 +2581,12 @@ function TabSites() {
                             {site.is_active ? 'Actif' : 'Inactif'}
                           </span>
                         </td>
-                        <td className="px-5 py-4 text-right">
-                          <button onClick={(e) => { e.stopPropagation(); openEdit(site); }} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-teal-700"><Edit className="h-4 w-4" /></button>
-                          <button onClick={(e) => { e.stopPropagation(); setConfirmDelete(site); }} className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
-                        </td>
+                        {canEdit && (
+                          <td className="px-5 py-4 text-right">
+                            <button onClick={(e) => { e.stopPropagation(); openEdit(site); }} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-teal-700"><Edit className="h-4 w-4" /></button>
+                            <button onClick={(e) => { e.stopPropagation(); setConfirmDelete(site); }} className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                     {paginatedSites.length === 0 && (

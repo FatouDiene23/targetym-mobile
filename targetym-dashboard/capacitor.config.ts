@@ -26,7 +26,7 @@ const config: CapacitorConfig = {
       backgroundColor: '#ffffff'
     },
     CapacitorUpdater: {
-      autoUpdate: true,
+      autoUpdate: false,
       appReadyTimeout: 10000,
       defaultChannel: 'production',
       appId: 'com.targetym.app',

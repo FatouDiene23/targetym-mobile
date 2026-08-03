@@ -873,7 +873,7 @@ function TabJournee() {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-7">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-7">
         {[
           { label: 'Présents', count: present, pct: Math.round((present / total) * 100), icon: CheckCircle, bg: 'bg-emerald-50', color: 'text-emerald-700', ring: 'bg-emerald-100' },
           { label: 'En retard', count: late, pct: Math.round((late / total) * 100), icon: Clock, bg: 'bg-orange-50', color: 'text-orange-700', ring: 'bg-orange-100' },
@@ -1325,7 +1325,7 @@ function TabHistorique() {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {[
           { label: 'Jours travaillés', value: workedDays, icon: Calendar, color: 'text-emerald-700', bg: 'bg-emerald-50' },
           { label: 'Heures travaillées', value: fmtH(totalH), icon: Clock, color: 'text-orange-700', bg: 'bg-orange-50' },
@@ -1616,7 +1616,7 @@ function TabMensuel() {
         </button>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-6">
         {[
           { label: 'Collaborateurs', value: rows.length, sub: 'Total', icon: Users, color: 'text-emerald-700', bg: 'bg-emerald-50' },
           { label: 'Pointages valides', value: closedCount, sub: `${progress}%`, icon: CheckCircle, color: 'text-emerald-700', bg: 'bg-emerald-50' },
@@ -2217,7 +2217,7 @@ function TabStats() {
         <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary-500" /></div>
       ) : (
         <>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-6">
             {cards.map(c => (
               <div key={c.label} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                 <div className="flex items-center gap-3">
@@ -2505,7 +2505,7 @@ function TabSites() {
         <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary-500" /></div>
       ) : (
         <>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
             {[
               { label: 'Total des sites', value: sites.length, sub: `${activeSites.length} actifs`, icon: Building2, color: 'text-emerald-700', bg: 'bg-emerald-50' },
               { label: 'Sites actifs', value: activeSites.length, sub: sites.length ? `${Math.round((activeSites.length / sites.length) * 100)}%` : '0%', icon: MapPin, color: 'text-blue-700', bg: 'bg-blue-50' },

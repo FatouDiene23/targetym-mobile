@@ -760,7 +760,7 @@ export default function ResourcesPage() {
               </div>
             ))}
             {categories.length === 0 && (
-              <p className="text-sm text-gray-400 col-span-3">Aucune catégorie. Créez-en une pour organiser vos ressources.</p>
+              <p className="text-sm text-gray-400 sm:col-span-3">Aucune catégorie. Créez-en une pour organiser vos ressources.</p>
             )}
           </div>
         </div>

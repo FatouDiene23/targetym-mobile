@@ -742,7 +742,7 @@ function NewRecallModal({
                 ]}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t.leaves.recallDate} <span className="text-red-500">*</span></label>
                 <CustomDatePicker value={form.recall_date} onChange={v => setForm({ ...form, recall_date: v })} className="w-full" />
@@ -1921,7 +1921,7 @@ function NewLeaveRequestModal({
             </div>
 
             {/* Dates */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t.leaves.startLabel} <span className="text-red-500">*</span>

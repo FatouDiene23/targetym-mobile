@@ -1009,7 +1009,7 @@ export default function PlatformAdminDashboard() {
             </div>
             <form onSubmit={handleCreateTenant} className="p-6 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nom de l&apos;entreprise *</label>
                   <input required type="text" value={createTenantForm.company_name}
                     onChange={e => setCreateTenantForm(f => ({ ...f, company_name: e.target.value }))}
@@ -1030,14 +1030,14 @@ export default function PlatformAdminDashboard() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     placeholder="Dupont" />
                 </div>
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email admin *</label>
                   <input required type="email" value={createTenantForm.email}
                     onChange={e => setCreateTenantForm(f => ({ ...f, email: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     placeholder="admin@acmecorp.com" />
                 </div>
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe *</label>
                   <input required type="password" value={createTenantForm.password}
                     onChange={e => setCreateTenantForm(f => ({ ...f, password: e.target.value }))}
@@ -1057,7 +1057,7 @@ export default function PlatformAdminDashboard() {
                   <input type="number" readOnly value={createTenantForm.max_employees}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-600 cursor-not-allowed" />
                 </div>
-                <div className="col-span-2 flex items-center gap-2">
+                <div className="sm:col-span-2 flex items-center gap-2">
                   <input type="checkbox" id="is_trial" checked={createTenantForm.is_trial}
                     onChange={e => setCreateTenantForm(f => ({ ...f, is_trial: e.target.checked }))}
                     className="w-4 h-4 text-primary-600 rounded" />

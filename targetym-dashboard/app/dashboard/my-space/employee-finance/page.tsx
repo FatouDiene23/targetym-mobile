@@ -74,7 +74,7 @@ function RequestModal({
           </button>
         </div>
         <form onSubmit={submit} className="space-y-4 p-5">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setType('advance')}

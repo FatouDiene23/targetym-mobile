@@ -270,7 +270,7 @@ export default function EmployeeDocuments({ employeeId, employeeName, readOnly =
 
           {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-1 rounded">{error}</p>}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Type *</label>
               <CustomSelect
@@ -307,7 +307,7 @@ export default function EmployeeDocuments({ employeeId, employeeName, readOnly =
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Date du document</label>
               <CustomDatePicker

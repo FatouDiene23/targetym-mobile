@@ -25,7 +25,7 @@ function OnboardingPreview({ data }: { data: any }) {
 
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-2 gap-2 text-xs">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
         <div className="bg-white rounded p-2 border">
           <span className="text-gray-500">Programme</span>
           <p className="font-semibold text-gray-800 truncate">{data.name}</p>
@@ -35,7 +35,7 @@ function OnboardingPreview({ data }: { data: any }) {
           <p className="font-semibold text-gray-800">{data.duration_days} jours</p>
         </div>
         {data.job_title && (
-          <div className="bg-white rounded p-2 border col-span-2">
+          <div className="bg-white rounded p-2 border sm:col-span-2">
             <span className="text-gray-500">Poste visé</span>
             <p className="font-semibold text-gray-800">{data.job_title}</p>
           </div>

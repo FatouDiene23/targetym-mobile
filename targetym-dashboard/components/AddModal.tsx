@@ -342,7 +342,7 @@ function CandidateForm({ jobs, onSuccess, onCancel }: { jobs: Job[]; onSuccess: 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.firstName} *</label>
           <input type="text" required value={formData.first_name} onChange={(e) => setFormData({...formData, first_name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
@@ -356,7 +356,7 @@ function CandidateForm({ jobs, onSuccess, onCancel }: { jobs: Job[]; onSuccess: 
         <label className="block text-sm font-medium text-gray-700 mb-1">{a.email} *</label>
         <input type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.phone}</label>
           <input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
@@ -382,7 +382,7 @@ function CandidateForm({ jobs, onSuccess, onCancel }: { jobs: Job[]; onSuccess: 
         <label className="block text-sm font-medium text-gray-700 mb-1">{a.skills}</label>
         <input type="text" value={formData.skills} onChange={(e) => setFormData({...formData, skills: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder={a.skillsPlaceholder} />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.experienceYears}</label>
           <input type="number" min="0" value={formData.experience_years} onChange={(e) => setFormData({...formData, experience_years: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
@@ -455,7 +455,7 @@ function JobForm({ departments, employees, onSuccess, onCancel }: { departments:
         <label className="block text-sm font-medium text-gray-700 mb-1">{a.jobTitle} *</label>
         <input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder={a.jobTitlePlaceholder} />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.department}</label>
           <CustomSelect
@@ -473,7 +473,7 @@ function JobForm({ departments, employees, onSuccess, onCancel }: { departments:
           <input type="text" required value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Dakar" />
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.contract}</label>
           <CustomSelect
@@ -565,7 +565,7 @@ function TrainingForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel
         <label className="block text-sm font-medium text-gray-700 mb-1">{a.title} *</label>
         <input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.category}</label>
           <CustomSelect
@@ -712,7 +712,7 @@ function LeaveForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: (
           className="w-full"
         />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{a.startDate} *</label>
           <CustomDatePicker

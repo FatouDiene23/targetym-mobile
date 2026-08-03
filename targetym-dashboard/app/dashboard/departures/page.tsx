@@ -978,7 +978,7 @@ export default function DeparturesPage() {
         <hr />
 
         {/* Info grid */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <InfoCard label={t.departures.notificationDate} value={formatDate(selectedDep.notification_date)} />
           <InfoCard label={t.departures.requestedDate} value={formatDate(selectedDep.requested_departure_date)} />
           <InfoCard label={t.departures.noticePeriod} value={`${selectedDep.notice_period_days} ${t.departures.days}`} />
@@ -1155,7 +1155,7 @@ export default function DeparturesPage() {
           {showInterviewPlan && (
             <div className="bg-gray-50 rounded-lg p-4 space-y-3">
               <h4 className="text-sm font-semibold">{t.departures.planTheInterview}</h4>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-gray-500">{t.departures.date}</label>
                   <CustomDatePicker
@@ -1253,7 +1253,7 @@ export default function DeparturesPage() {
             </div>
 
             {/* Boolean questions */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-gray-500">{t.departures.wouldRecommend}</label>
                 <div className="flex gap-2 mt-1">

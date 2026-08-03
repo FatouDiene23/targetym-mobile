@@ -21,7 +21,6 @@ def run_migrations():
 
     try:
         alembic_cfg = Config("alembic.ini")
-
         print("🔍 Vérification des migrations en attente...")
         print("⬆️  Application des migrations...")
 

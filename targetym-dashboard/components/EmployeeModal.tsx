@@ -1244,12 +1244,12 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
               {isLoadingPerf ? (
                 <div className="flex items-center justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
               ) : perfScore ? (
-                <div className="grid grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                   <div className={`p-4 rounded-xl text-center ${getScoreBg(perfScore.overall_score)}`}>
                     <div className={`text-2xl font-bold ${getScoreColor(perfScore.overall_score)}`}>{Math.round(perfScore.overall_score)}%</div>
                     <div className={`text-xs font-medium mt-1 ${getScoreColor(perfScore.overall_score)}`}>{getScoreLabel(perfScore.overall_score)}</div>
                   </div>
-                  <div className="col-span-4 grid grid-cols-4 gap-2">
+                  <div className="col-span-4 grid grid-cols-2 lg:grid-cols-4 gap-2">
                     <ScoreCard label="OKRs" value={perfScore.okr_score} weight="40%" icon={<Target className="w-3.5 h-3.5" />} />
                     <ScoreCard label="Tâches" value={perfScore.task_score} weight="25%" icon={<CheckCircle2 className="w-3.5 h-3.5" />} />
                     <ScoreCard label="Validations" value={perfScore.validation_score} weight="20%" icon={<Clock className="w-3.5 h-3.5" />} />
@@ -1400,7 +1400,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                       className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary-500 outline-none"
                       placeholder="Ex : Prime de transport, Voiture de fonction…" />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Catégorie</label>
                       <CustomSelect
@@ -1435,7 +1435,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Montant (optionnel)</label>
                       <input type="number" value={newBenefit.amount} onChange={e => setNewBenefit(p => ({ ...p, amount: e.target.value }))}
@@ -1554,7 +1554,7 @@ ${sanctions.length > 0 ? `<div class="section"><h2>⚠️ Sanctions Disciplinair
 
               {showAddSanction && (
                 <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-xl space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Type *</label>
                       <CustomSelect

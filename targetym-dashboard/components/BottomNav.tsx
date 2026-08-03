@@ -167,7 +167,7 @@ export default function BottomNav() {
                 <X className="w-4 h-4 text-gray-500" />
               </button>
             </div>
-            <div className="grid grid-cols-4 gap-1">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-1">
               {visibleMoreTabs.map(tab => {
                 const active = isActive(tab.href);
                 return (

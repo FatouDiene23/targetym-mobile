@@ -1327,7 +1327,7 @@ export default function OnboardingPage() {
               <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.programDescription}</label>
               <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder={t.onboarding.programDescPlaceholder} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.common.department}</label>
                 <CustomSelect value={deptId} onChange={v => setDeptId(v)} options={[{value:'', label: t.onboarding.allDepartments}, ...departments.map(d => ({value: String(d.id), label: d.name}))]} className="w-full" />
@@ -1415,7 +1415,7 @@ export default function OnboardingPage() {
               <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.taskDescription}</label>
               <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={2} className="w-full border rounded-lg px-3 py-2 text-sm" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.category}</label>
                 <CustomSelect value={category} onChange={v => setCategory(v)} options={Object.entries(CATEGORY_CONFIG).map(([k, v]) => ({value: k, label: v.label}))} className="w-full" />
@@ -1540,7 +1540,7 @@ export default function OnboardingPage() {
                 options={programs.filter(p => p.is_active).map(p => ({ value: String(p.id), label: p.name, subtitle: `${p.task_count} tâches` }))}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.manager}</label>
                 <SearchableSelect
@@ -1663,7 +1663,7 @@ export default function OnboardingPage() {
                 <input type="number" value={duration} onChange={e => setDuration(parseInt(e.target.value) || 30)} className="w-full border rounded-lg px-3 py-2 text-sm" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">{t.onboarding.locationLabel}</label>
                 <input value={location} onChange={e => setLocation(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder={t.onboarding.locationPlaceholder} />

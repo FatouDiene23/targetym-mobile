@@ -2739,7 +2739,7 @@ export default function OKRPage() {
                 className="w-full lg:w-44"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3 lg:flex">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:flex">
               <button
                 onClick={() => exportOKRsToCSV(objectives)}
                 className="flex items-center justify-center px-4 py-2 border text-gray-700 text-sm rounded-lg hover:bg-gray-50"
@@ -3321,7 +3321,7 @@ export default function OKRPage() {
                 <AlertTriangle className="w-5 h-5 text-amber-600" />
                 {t.okr.actionAlerts}
               </h3>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button onClick={() => setDrilldown('behind')} className="rounded-lg bg-red-50 border border-red-100 p-4 text-left hover:border-red-200">
                   <p className="text-xs text-red-700">{t.okr.behind}</p>
                   <p className="text-3xl font-bold text-red-700 mt-1">{dashboardStats.by_status['behind'] || 0}</p>
@@ -3346,7 +3346,7 @@ export default function OKRPage() {
                 <GitBranch className="w-5 h-5 text-primary-600" />
                 {t.okr.cascadeHealth}
               </h3>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="rounded-lg bg-primary-50 border border-primary-100 p-4">
                   <p className="text-xs text-primary-700">{t.okr.cascadeRate}</p>
                   <p className="text-3xl font-bold text-primary-800 mt-1">{dashboardStats.cascade.cascade_rate}%</p>

@@ -268,7 +268,7 @@ function CategoryModal({
         </div>
         <div className="p-5 space-y-3">
           {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">Code NRG *</label>
               <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })}

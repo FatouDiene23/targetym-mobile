@@ -686,7 +686,7 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
             <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
             <CustomSelect value={campaignType} onChange={(v) => setCampaignType(v)} options={[{value:'annual', label:"Évaluation Annuelle"},{value:'mid_year', label:"Évaluation Mi-Année"},{value:'360', label:"Feedback 360°"},{value:'probation', label:"Fin de Période d'Essai"}]} className="w-full" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Date de début *</label>
               <CustomDatePicker
@@ -920,7 +920,7 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
             <label className="block text-sm font-medium text-gray-700 mb-2">Collaborateur *</label>
             <CustomSelect value={employeeId} onChange={(v) => setEmployeeId(v)} options={[{value:'', label:'Sélectionner un collaborateur'}, ...employees.map(emp => ({value: String(emp.id), label: `${emp.first_name} ${emp.last_name}`}))]} className="w-full" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Date *</label>
               <CustomDatePicker
@@ -934,7 +934,7 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
               <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Durée</label>
               <CustomSelect value={String(duration)} onChange={(v) => setDuration(parseInt(v))} options={[{value:'15', label:'15 min'},{value:'30', label:'30 min'},{value:'45', label:'45 min'},{value:'60', label:'1 heure'},{value:'90', label:'1h30'}]} className="w-full" />
@@ -984,7 +984,7 @@ function EvaluationViewModal({ isOpen, onClose, evaluation }: {
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-6">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="p-4 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-500">Type</p>
               <p className="font-medium text-gray-900">{getTypeLabel(evaluation.type)}</p>

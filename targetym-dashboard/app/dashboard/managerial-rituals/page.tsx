@@ -167,7 +167,7 @@ function TemplateCard({
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-2 mt-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-4">
           {FREQUENCY_ORDER.map((frequency) => (
             <div key={frequency} className={`border rounded-md px-2 py-1.5 ${FREQUENCY_STYLE[frequency]}`}>
               <p className="text-sm font-bold">{frequencyCount(template, frequency)}</p>

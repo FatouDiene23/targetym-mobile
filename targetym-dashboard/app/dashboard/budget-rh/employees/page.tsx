@@ -328,7 +328,7 @@ export default function BudgetRHEmployeesPage() {
       )}
 
       {/* Summary strip */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[
           { label: "Employés", value: filtered.length.toString(), icon: Users, color: "text-primary-600 bg-primary-50" },
           { label: "Salaire brut total", value: fmt(totalGross, true), icon: DollarSign, color: "text-emerald-600 bg-emerald-50" },

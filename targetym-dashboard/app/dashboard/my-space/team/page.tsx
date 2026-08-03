@@ -448,7 +448,7 @@ function MemberDetailPanel({ member, onClose }: { member: Employee; onClose: () 
                       </div>
                       <p className="text-sm font-medium text-gray-700">{t.mySpace.overallScore}</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {[
                         { label: 'OKR', value: perfScore.okr_score, icon: Target },
                         { label: 'Tâches', value: perfScore.task_score, icon: ListTodo },

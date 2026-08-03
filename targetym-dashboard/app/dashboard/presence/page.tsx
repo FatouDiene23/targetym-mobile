@@ -683,7 +683,7 @@ function TabPointage({ onViewHistory }: { onViewHistory: () => void }) {
 
         <div className="bg-white border border-gray-200 rounded-xl p-5">
           <h3 className="text-base font-semibold text-gray-900">Ce mois-ci</h3>
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="rounded-xl border border-gray-200 p-4">
               <CheckCircle className="h-6 w-6 text-emerald-600" />
               <p className="mt-3 text-xs font-medium text-gray-500">Présences</p>
@@ -2189,7 +2189,7 @@ function TabStats() {
         <CustomSelect value="custom" onChange={() => {}}
           options={[{ value: 'custom', label: 'Personnalisée' }]}
           className="w-full lg:w-44" />
-        <div className="grid grid-cols-2 gap-2 min-[420px]:col-span-2 lg:flex lg:items-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 min-[420px]:col-span-2 lg:flex lg:items-center">
           <CustomDatePicker value={startDate} onChange={setStartDate} className="w-full lg:w-40" />
           <CustomDatePicker value={endDate} onChange={setEndDate} className="w-full lg:w-40" />
         </div>

@@ -341,7 +341,7 @@ function QuickActions({ role, isManager }: { role: UserRole; isManager: boolean 
         </div>
         {t.dashboard.quickActions}
       </h2>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {filteredActions.map((action) => (
           <Link key={action.href} href={action.href} className="group flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gradient-to-r hover:from-primary-50 hover:to-primary-100 transition-all duration-200 hover:scale-[1.02]">
             <div className={`w-10 h-10 ${action.color} rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow`}>
@@ -423,7 +423,7 @@ function MyLearningWidget({ assignments }: { assignments: MyAssignment[] }) {
       ) : (
         <>
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             <div className="text-center p-3 bg-gradient-to-br from-primary-50 to-indigo-50 rounded-xl">
               <p className="text-2xl font-bold text-primary-600">{inProgress.length}</p>
               <p className="text-xs text-primary-700">{t.dashboard.inProgress}</p>
@@ -492,7 +492,7 @@ function MyPerformanceWidget({ stats }: { stats: MyPerformanceStats | null }) {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div className="p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl text-center">
               <div className="flex items-center justify-center gap-1 mb-1"><ThumbsUp className="w-4 h-4 text-green-500" /><span className="text-lg font-bold text-green-600">{stats.feedbacks_received}</span></div>
               <p className="text-xs text-green-700">{t.dashboard.feedbacksReceived}</p>
@@ -560,7 +560,7 @@ function TeamOverviewWidget({ teamMembers, pendingRequests }: { teamMembers: Tea
         </div>
         <Link href="/dashboard/my-space/team" className="text-primary-600 text-xs hover:underline flex items-center gap-1">{t.dashboard.view} <ChevronRight className="w-3 h-3" /></Link>
       </div>
-      <div className="grid grid-cols-3 keep-cols gap-2 sm:gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 keep-cols gap-2 sm:gap-3 mb-4">
         <div className="text-center p-2 sm:p-3 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl"><p className="text-lg sm:text-2xl font-bold text-gray-900">{teamMembers.length}</p><p className="text-[10px] sm:text-xs text-gray-500">{t.dashboard.teamTotal}</p></div>
         <div className="text-center p-2 sm:p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl"><p className="text-lg sm:text-2xl font-bold text-green-600">{activeCount}</p><p className="text-[10px] sm:text-xs text-green-700">{t.dashboard.teamActive}</p></div>
         <div className="text-center p-2 sm:p-3 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl"><p className="text-lg sm:text-2xl font-bold text-orange-600">{onLeaveCount}</p><p className="text-[10px] sm:text-xs text-orange-700">{t.dashboard.teamOnLeave}</p></div>
@@ -884,7 +884,7 @@ function TasksWidget({ stats }: { stats: TaskStats | null }) {
       ) : (
         <>
           {/* Stats rapides */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             <div className="text-center p-3 bg-gradient-to-br from-primary-50 to-indigo-50 rounded-xl">
               <p className="text-2xl font-bold text-primary-600">{(stats?.pending || 0) + (stats?.in_progress || 0)}</p>
               <p className="text-xs text-primary-700">{t.dashboard.toDo}</p>

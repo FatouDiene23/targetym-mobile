@@ -160,7 +160,7 @@ function AbsenceForm({
         <button type="button" onClick={onCancel} className="text-gray-400 hover:text-gray-600 text-sm">Annuler</button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Employé *</label>
           <CustomSelect
@@ -224,14 +224,14 @@ function AbsenceForm({
               className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-orange-400" />
           </div>
         )}
-        <div className="col-span-2">
+        <div className="sm:col-span-2">
           <label className="block text-xs font-medium text-gray-600 mb-1">Raison fournie par l'employé</label>
           <input type="text" value={form.reason}
             onChange={e => setForm(f => ({ ...f, reason: e.target.value }))}
             placeholder="Optionnel…"
             className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-orange-400" />
         </div>
-        <div className="col-span-2">
+        <div className="sm:col-span-2">
           <label className="block text-xs font-medium text-gray-600 mb-1">Observations du manager</label>
           <textarea value={form.notes} rows={2}
             onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
@@ -348,7 +348,7 @@ function AbsenceRow({
       </div>
 
       {expanded && (
-        <div className="px-5 pb-4 bg-orange-50/40 border-t border-orange-100 grid grid-cols-2 gap-4 text-sm">
+        <div className="px-5 pb-4 bg-orange-50/40 border-t border-orange-100 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           {report.expected_start_time && (
             <div><p className="text-xs font-semibold text-gray-500 uppercase mb-1">Heure prévue</p><p className="text-gray-700">{report.expected_start_time}</p></div>
           )}
@@ -356,10 +356,10 @@ function AbsenceRow({
             <div><p className="text-xs font-semibold text-gray-500 uppercase mb-1">{report.type === 'early_departure' ? 'Heure de départ' : 'Heure réelle'}</p><p className="text-gray-700">{report.actual_start_time}</p></div>
           )}
           {report.reason && (
-            <div className="col-span-2"><p className="text-xs font-semibold text-gray-500 uppercase mb-1">Raison</p><p className="text-gray-700">{report.reason}</p></div>
+            <div className="sm:col-span-2"><p className="text-xs font-semibold text-gray-500 uppercase mb-1">Raison</p><p className="text-gray-700">{report.reason}</p></div>
           )}
           {report.notes && (
-            <div className="col-span-2"><p className="text-xs font-semibold text-gray-500 uppercase mb-1">Observations</p><p className="text-gray-700">{report.notes}</p></div>
+            <div className="sm:col-span-2"><p className="text-xs font-semibold text-gray-500 uppercase mb-1">Observations</p><p className="text-gray-700">{report.notes}</p></div>
           )}
           <div><p className="text-xs font-semibold text-gray-500 uppercase mb-1">Enregistré le</p><p className="text-gray-700">{fmtDateTime(report.created_at)}</p></div>
           <div><p className="text-xs font-semibold text-gray-500 uppercase mb-1">Notification envoyée</p><p className="text-gray-700">{report.notification_sent ? '✅ Oui' : '❌ Non'}</p></div>

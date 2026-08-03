@@ -1330,7 +1330,7 @@ export default function RecruitmentPage() {
                           </div>
                           <p className="text-xs text-gray-600 mt-2 line-clamp-2">{r.analysis}</p>
                           {r.score_details.length > 0 && (
-                            <div className="grid grid-cols-2 gap-1 mt-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 mt-2">
                               {r.score_details.map(d => (
                                 <div key={d.category} className="flex items-center gap-1">
                                   <div className="h-1.5 bg-gray-200 rounded-full flex-1"><div className={`h-full rounded-full ${d.score >= 85 ? 'bg-green-500' : d.score >= 65 ? 'bg-yellow-400' : 'bg-red-400'}`} style={{ width: `${d.score}%` }} /></div>
@@ -1447,7 +1447,7 @@ function JobModal({ job, departments, employees, onClose, onSave }: { job: Job |
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Titre du poste *</label><input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: Développeur Full Stack Senior" /></div>
+            <div className="sm:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Titre du poste *</label><input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: Développeur Full Stack Senior" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Département</label><CustomSelect value={formData.department_id} onChange={(v) => setFormData({...formData, department_id: v})} options={[{value:'', label:'Sélectionner...'}, ...departments.map(d => ({value: String(d.id), label: d.name}))]} className="w-full" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Adresse *</label><input type="text" required value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Ex: 12 rue Carnot, Dakar" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Type de contrat</label><CustomSelect value={formData.contract_type} onChange={(v) => setFormData({...formData, contract_type: v})} options={[{value:'CDI', label:'CDI'},{value:'CDD', label:'CDD'},{value:'Stage', label:'Stage'},{value:'Alternance', label:'Alternance'},{value:'Freelance', label:'Freelance'}]} className="w-full" /></div>
@@ -1462,7 +1462,7 @@ function JobModal({ job, departments, employees, onClose, onSave }: { job: Job |
                                                                                                       className="w-full"
                                                                                                     /></div>
             <div className="flex items-center"><input type="checkbox" id="show_salary" checked={formData.show_salary} onChange={(e) => setFormData({...formData, show_salary: e.target.checked})} className="mr-2" /><label htmlFor="show_salary" className="text-sm text-gray-700">Afficher le salaire</label></div>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">Type de diffusion</label>
               <div className="flex items-center gap-6">
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -1475,8 +1475,8 @@ function JobModal({ job, departments, employees, onClose, onSave }: { job: Job |
                 </label>
               </div>
             </div>
-            <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea rows={4} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Description du poste..." /></div>
-            <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Prérequis (un par ligne)</label><textarea rows={4} value={formData.requirements} onChange={(e) => setFormData({...formData, requirements: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="5+ ans d'expérience&#10;React/Node.js&#10;PostgreSQL" /></div>
+            <div className="sm:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea rows={4} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Description du poste..." /></div>
+            <div className="sm:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Prérequis (un par ligne)</label><textarea rows={4} value={formData.requirements} onChange={(e) => setFormData({...formData, requirements: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="5+ ans d'expérience&#10;React/Node.js&#10;PostgreSQL" /></div>
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Annuler</button>
@@ -1526,8 +1526,8 @@ function AddCandidateModal({ jobs, onClose, onSave }: { jobs: Job[]; onClose: ()
             <div><label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn URL</label><input type="url" value={formData.linkedin_url} onChange={(e) => setFormData({...formData, linkedin_url: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="https://linkedin.com/in/..." /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Entreprise actuelle</label><input type="text" value={formData.current_company} onChange={(e) => setFormData({...formData, current_company: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Années d&apos;expérience</label><input type="number" min="0" value={formData.experience_years} onChange={(e) => setFormData({...formData, experience_years: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
-            <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Formation</label><input type="text" value={formData.education} onChange={(e) => setFormData({...formData, education: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Master Informatique - Université XYZ" /></div>
-            <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Compétences (séparées par virgule)</label><input type="text" value={formData.skills} onChange={(e) => setFormData({...formData, skills: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="React, Node.js, TypeScript, PostgreSQL" /></div>
+            <div className="sm:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Formation</label><input type="text" value={formData.education} onChange={(e) => setFormData({...formData, education: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="Master Informatique - Université XYZ" /></div>
+            <div className="sm:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Compétences (séparées par virgule)</label><input type="text" value={formData.skills} onChange={(e) => setFormData({...formData, skills: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="React, Node.js, TypeScript, PostgreSQL" /></div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Salaire attendu</label>
               <div className="flex gap-2">
@@ -1538,7 +1538,7 @@ function AddCandidateModal({ jobs, onClose, onSave }: { jobs: Job[]; onClose: ()
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Préavis</label><input type="text" value={formData.notice_period} onChange={(e) => setFormData({...formData, notice_period: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="1 mois" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Source</label><CustomSelect value={formData.source} onChange={(v) => setFormData({...formData, source: v})} options={[{value:'LinkedIn', label:'LinkedIn'},{value:'Indeed', label:'Indeed'},{value:'Site Carrière', label:'Site Carrière'},{value:'Référence interne', label:'Référence interne'},{value:'Référence externe', label:'Référence externe'},{value:'Chasseur de tête', label:'Chasseur de tête'},{value:'Cabinet', label:'Cabinet'},{value:'Autre', label:'Autre'}]} className="w-full" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Poste visé</label><CustomSelect value={formData.job_posting_id} onChange={(v) => setFormData({...formData, job_posting_id: v})} options={[{value:'', label:'Sélectionner un poste...'}, ...jobs.map(j => ({value: String(j.id), label: j.title}))]} className="w-full" /></div>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">CV (PDF, DOC, DOCX)</label>
               <div className="flex items-center gap-3">
                 <label className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 text-sm text-gray-600 flex-1">
@@ -1691,7 +1691,7 @@ function EditCandidateModal({ application, onClose, onSave }: { application: App
             <div><label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn</label><input type="url" value={formData.linkedin_url} onChange={(e) => setFormData({...formData, linkedin_url: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="https://linkedin.com/in/..." /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Entreprise actuelle</label><input type="text" value={formData.current_company} onChange={(e) => setFormData({...formData, current_company: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Formation</label><input type="text" value={formData.education} onChange={(e) => setFormData({...formData, education: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" /></div>
-            <div className="col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Compétences (séparées par virgule)</label><input type="text" value={formData.skills} onChange={(e) => setFormData({...formData, skills: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="React, Node.js, TypeScript" /></div>
+            <div className="sm:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Compétences (séparées par virgule)</label><input type="text" value={formData.skills} onChange={(e) => setFormData({...formData, skills: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="React, Node.js, TypeScript" /></div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Salaire attendu</label>
               <div className="flex gap-2">
@@ -1700,7 +1700,7 @@ function EditCandidateModal({ application, onClose, onSave }: { application: App
               </div>
             </div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Préavis</label><input type="text" value={formData.notice_period} onChange={(e) => setFormData({...formData, notice_period: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none" placeholder="1 mois" /></div>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">{application.candidate_cv_url ? 'Remplacer le CV (PDF, DOC, DOCX)' : 'Ajouter un CV (PDF, DOC, DOCX)'}</label>
               <div className="flex items-center gap-3">
                 <label className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 text-sm text-gray-600 flex-1">

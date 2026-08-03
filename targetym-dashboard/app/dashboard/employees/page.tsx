@@ -988,7 +988,7 @@ function EmployeesPageInner() {
         )}
 
         {activeTab === 'orgchart' && (
-          <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Users className="w-5 h-5 text-primary-500 mb-2" /><p className="text-2xl font-bold text-gray-900">{dynamicStats.total}</p><p className="text-xs text-gray-500">{t.employees.collaborators}</p></div>
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Building2 className="w-5 h-5 text-purple-500 mb-2" /><p className="text-2xl font-bold text-purple-600">{departments.length}</p><p className="text-xs text-gray-500">{t.employees.units}</p></div>
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"><Briefcase className="w-5 h-5 text-indigo-500 mb-2" /><p className="text-2xl font-bold text-indigo-600">{dynamicStats.managers}</p><p className="text-xs text-gray-500">{t.employees.managers}</p></div>
@@ -1473,7 +1473,7 @@ function EmployeesPageInner() {
             ) : (
               <>
                 {/* Stats */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
                     <Users className="w-5 h-5 text-indigo-500 mb-2" />
                     <p className="text-2xl font-bold text-gray-900">{mobilityData.total_transfers}</p>

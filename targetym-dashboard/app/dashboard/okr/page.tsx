@@ -2818,33 +2818,33 @@ function OKRContent() {
                                 </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 flex-shrink-0">
                               <div className="text-right">
-                                <span className="text-2xl font-bold text-gray-900">{Math.round(obj.progress)}%</span>
-                                <div className="w-28 h-2 bg-gray-200 rounded-full mt-1">
+                                <span className="text-base font-bold text-gray-900">{Math.round(obj.progress)}%</span>
+                                <div className="w-16 h-1.5 bg-gray-200 rounded-full mt-1">
                                   <div className={`h-full rounded-full ${getProgressColor(obj.progress)}`} style={{ width: `${Math.min(obj.progress, 100)}%` }} />
                                 </div>
                               </div>
                               {canEditObjective(obj) && (
-                                <div className="relative">
-                                  <button 
-                                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                                <div className="flex flex-col">
+                                  <button
+                                    className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setEditingObjective(obj);
                                       setShowObjectiveModal(true);
                                     }}
                                   >
-                                    <Edit className="w-4 h-4" />
+                                    <Edit className="w-3.5 h-3.5" />
                                   </button>
-                                  <button 
-                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                  <button
+                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleDeleteObjective(obj.id);
                                     }}
                                   >
-                                    <Trash2 className="w-4 h-4" />
+                                    <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               )}

@@ -2616,7 +2616,7 @@ function RequestsModule({
                   ))}
                 </dl>
                 <div className="mt-5 grid gap-3">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button disabled={selectedRequest.status !== 'pending_hr'} onClick={() => onApprove(selectedRequest)} className="inline-flex items-center justify-center gap-2 rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-40">
                       <CheckCircle2 className="h-4 w-4" />
                       {tt('Approuver')}

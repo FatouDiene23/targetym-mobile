@@ -403,7 +403,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
     return (
       <div className="p-6">
         <h3 className="text-sm font-medium text-gray-500 mb-4">{x.whatDataType}</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {DATA_TYPES.map(dt => {
             const Icon = dt.icon;
             const isSelected = dataType === dt.key;
@@ -440,7 +440,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
           <h3 className="text-sm font-medium text-gray-500 mb-3 flex items-center gap-2">
             <Filter className="w-4 h-4" /> {x.filters}
           </h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {(dataType === 'employees' || dataType === 'leaves') && (
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">{x.colDepartment}</label>
@@ -528,7 +528,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
             )}
 
             {dataType === 'employees' && (
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <label className="block text-xs font-medium text-gray-600 mb-1">{x.search}</label>
                 <input type="text" placeholder={x.searchPlaceholder} value={filters.search || ''}
                   onChange={(e) => setFilters(f => ({ ...f, search: e.target.value || undefined }))}
@@ -565,7 +565,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 p-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 p-2">
             {filteredColumns.map(col => (
               <button
                 key={col.key}
@@ -594,7 +594,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
       <div className="p-6 space-y-5">
         <div>
           <h3 className="text-sm font-medium text-gray-500 mb-3">{x.exportFormat}</h3>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {FORMAT_OPTIONS.map(f => {
               const Icon = f.icon;
               const isSelected = format === f.key;
@@ -619,7 +619,7 @@ ${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join(''
 
         <div className="bg-gray-50 rounded-xl p-4 space-y-2">
           <h3 className="text-sm font-semibold text-gray-700">{x.exportSummary}</h3>
-          <div className="grid grid-cols-2 gap-y-2 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-sm">
             <span className="text-gray-500">{x.data}</span>
             <span className="font-medium text-gray-900">{DATA_TYPES.find(d => d.key === dataType)?.label}</span>
             <span className="text-gray-500">{x.columns}</span>

@@ -1952,7 +1952,7 @@ export default function CompensationPage() {
                   </div>
                 </div>
                 <div className="p-5 space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs text-gray-500 mb-1">{t.compensation.minSeniority}</label>
                       <input type="number" min={0} value={meritConfig.min_seniority_months}
@@ -1971,11 +1971,11 @@ export default function CompensationPage() {
                   <div className="max-w-md">
                     <label className="block text-xs text-gray-500 mb-2">{t.compensation.scoreToIncrease}</label>
                     <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
-                      <div className="grid grid-cols-2 text-xs font-medium text-gray-500 bg-gray-100 px-4 py-2 border-b border-gray-200">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 text-xs font-medium text-gray-500 bg-gray-100 px-4 py-2 border-b border-gray-200">
                         <span>{t.compensation.performanceScore}</span><span>{t.compensation.increasePercentage}</span>
                       </div>
                       {['5', '4', '3', '2', '1'].map(score => (
-                        <div key={score} className="grid grid-cols-2 items-center px-4 py-2.5 border-b border-gray-100 last:border-0">
+                        <div key={score} className="grid grid-cols-1 sm:grid-cols-2 items-center px-4 py-2.5 border-b border-gray-100 last:border-0">
                           <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
                             <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">{score}</span>
                             {score === '5' ? t.compensation.exceptional : score === '4' ? t.compensation.veryGood : score === '3' ? t.compensation.satisfactory : score === '2' ? t.compensation.toImprove : t.compensation.insufficient}
@@ -2012,7 +2012,7 @@ export default function CompensationPage() {
                   </div>
                 </div>
                 <div className="p-5 space-y-4">
-                  <div className="grid grid-cols-2 gap-4 max-w-md">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
                     <div>
                       <label className="block text-xs text-gray-500 mb-1">{t.compensation.defaultCurrency}</label>
                       <input value={configCurrency} onChange={(e) => setConfigCurrency(e.target.value)}
@@ -2084,7 +2084,7 @@ export default function CompensationPage() {
                   <input value={evalForm.job_family} onChange={(e) => setEvalForm(f => ({ ...f, job_family: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Pays (code ISO)</label>
                     <input value={evalForm.country} onChange={(e) => setEvalForm(f => ({ ...f, country: e.target.value }))} placeholder="SN"
@@ -2124,7 +2124,7 @@ export default function CompensationPage() {
                 {/* Données marché */}
                 <div>
                   <label className="block text-xs text-gray-500 mb-2">Données marché (optionnel)</label>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     <div>
                       <label className="block text-[10px] text-gray-400 mb-0.5">P25</label>
                       <input type="number" value={evalForm.market_p25} onChange={(e) => setEvalForm(f => ({ ...f, market_p25: e.target.value }))} placeholder="0"
@@ -2169,7 +2169,7 @@ export default function CompensationPage() {
                   <input value={agreeForm.name} onChange={(e) => setAgreeForm(f => ({ ...f, name: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Pays (code ISO) *</label>
                     <input value={agreeForm.country} onChange={(e) => setAgreeForm(f => ({ ...f, country: e.target.value }))} placeholder="SN"
@@ -2181,7 +2181,7 @@ export default function CompensationPage() {
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Version</label>
                     <input value={agreeForm.version} onChange={(e) => setAgreeForm(f => ({ ...f, version: e.target.value }))}
@@ -2223,7 +2223,7 @@ export default function CompensationPage() {
                 <button onClick={() => setShowCategoryModal(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
               </div>
               <div className="p-5 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Code *</label>
                     <input value={catForm.category_code} onChange={(e) => setCatForm(f => ({ ...f, category_code: e.target.value }))} placeholder="III-A"
@@ -2245,7 +2245,7 @@ export default function CompensationPage() {
                   <input type="number" value={catForm.min_salary} onChange={(e) => setCatForm(f => ({ ...f, min_salary: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Band Mercer min</label>
                     <input value={catForm.mercer_band_min} onChange={(e) => setCatForm(f => ({ ...f, mercer_band_min: e.target.value }))} placeholder="Band 1"
@@ -2284,7 +2284,7 @@ export default function CompensationPage() {
                   <input value={simForm.title} onChange={(e) => setSimForm(f => ({ ...f, title: e.target.value }))} placeholder="Révision salariale 2026"
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Année</label>
                     <input type="number" value={simForm.year} onChange={(e) => setSimForm(f => ({ ...f, year: parseInt(e.target.value) || 2026 }))}
@@ -2296,7 +2296,7 @@ export default function CompensationPage() {
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Type de budget</label>
                     <CustomSelect value={simForm.budget_type} onChange={(v) => setSimForm(f => ({ ...f, budget_type: v }))} options={[{value:'percentage', label:'Pourcentage (%)'},{value:'amount', label:'Montant fixe'}]} className="w-full" />
@@ -2322,7 +2322,7 @@ export default function CompensationPage() {
                 {simForm.policy === 'merit' && (
                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
                     <h4 className="text-xs font-semibold text-amber-800 flex items-center gap-1.5"><Star className="w-3.5 h-3.5" /> Configuration mérite</h4>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs text-gray-600 mb-1">Ancienneté min. (mois)</label>
                         <input type="number" min={0} value={simMeritSeniority} onChange={(e) => setSimMeritSeniority(parseInt(e.target.value) || 0)}
@@ -2339,11 +2339,11 @@ export default function CompensationPage() {
                     <div>
                       <label className="block text-xs text-gray-600 mb-2">Grille mérite</label>
                       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                        <div className="grid grid-cols-2 text-xs font-medium text-gray-500 bg-gray-50 px-3 py-1.5 border-b border-gray-100">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 text-xs font-medium text-gray-500 bg-gray-50 px-3 py-1.5 border-b border-gray-100">
                           <span>Score</span><span>% Augmentation</span>
                         </div>
                         {['5', '4', '3', '2', '1'].map(score => (
-                          <div key={score} className="grid grid-cols-2 items-center px-3 py-1.5 border-b border-gray-50 last:border-0">
+                          <div key={score} className="grid grid-cols-1 sm:grid-cols-2 items-center px-3 py-1.5 border-b border-gray-50 last:border-0">
                             <span className="text-sm font-medium text-gray-700 flex items-center gap-1">
                               {score} <span className="text-xs text-gray-400">/ 5</span>
                             </span>
@@ -2360,7 +2360,7 @@ export default function CompensationPage() {
                     </div>
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">Périmètre</label>
                     <CustomSelect value={simForm.scope_type} onChange={(v) => setSimForm(f => ({ ...f, scope_type: v, scope_id: null }))} options={[{value:'all', label:'Tous les employés'},{value:'department', label:'Par département'}]} className="w-full" />

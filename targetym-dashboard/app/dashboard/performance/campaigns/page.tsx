@@ -471,7 +471,7 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.common.details}</label>
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder={t.performance.descriptionOptional} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.evaluationType}</label>
                   <CustomSelect
@@ -506,7 +506,7 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.startDate} *</label>
                   <CustomDatePicker value={startDate} onChange={setStartDate} className="w-full" />
@@ -520,7 +520,7 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
               {/* Types d'évaluateurs */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.evaluatorTypes}</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {[
                     { label: t.performance.selfEvaluation, desc: t.performance.selfEvalDesc, checked: includeSelf, set: setIncludeSelf },
                     { label: t.performance.managerEval, desc: t.performance.managerEvalDesc, checked: includeManager, set: setIncludeManager },
@@ -547,25 +547,25 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
                       {t.performance.weightTotal} : {totalWeight}% {totalWeight !== 100 ? `(${t.performance.weightMustBe100})` : '✓'}
                     </span>
                   </label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {includeSelf && (
                       <div><label className="text-xs text-gray-500 mb-1 block">{t.performance.selfEvaluation}</label>
-                        <div className="flex items-center gap-2"><input type="range" min={0} max={100} value={weightSelf} onChange={(e) => setWeightSelf(parseInt(e.target.value))} className="flex-1 min-w-0" /><span className="w-10 text-sm font-medium text-right shrink-0">{weightSelf}%</span></div>
+                        <div className="flex items-center gap-2"><input type="range" min={0} max={100} value={weightSelf} onChange={(e) => setWeightSelf(parseInt(e.target.value))} className="flex-1" /><span className="w-10 text-sm font-medium text-right">{weightSelf}%</span></div>
                       </div>
                     )}
                     {includeManager && (
                       <div><label className="text-xs text-gray-500 mb-1 block">{t.performance.managerEval}</label>
-                        <div className="flex items-center gap-2"><input type="range" min={0} max={100} value={weightManager} onChange={(e) => setWeightManager(parseInt(e.target.value))} className="flex-1 min-w-0" /><span className="w-10 text-sm font-medium text-right shrink-0">{weightManager}%</span></div>
+                        <div className="flex items-center gap-2"><input type="range" min={0} max={100} value={weightManager} onChange={(e) => setWeightManager(parseInt(e.target.value))} className="flex-1" /><span className="w-10 text-sm font-medium text-right">{weightManager}%</span></div>
                       </div>
                     )}
                     {includePeer && (
                       <div><label className="text-xs text-gray-500 mb-1 block">Pairs</label>
-                        <div className="flex items-center gap-2"><input type="range" min={0} max={100} value={weightPeer} onChange={(e) => setWeightPeer(parseInt(e.target.value))} className="flex-1 min-w-0" /><span className="w-10 text-sm font-medium text-right shrink-0">{weightPeer}%</span></div>
+                        <div className="flex items-center gap-2"><input type="range" min={0} max={100} value={weightPeer} onChange={(e) => setWeightPeer(parseInt(e.target.value))} className="flex-1" /><span className="w-10 text-sm font-medium text-right">{weightPeer}%</span></div>
                       </div>
                     )}
                     {includeDirectReport && (
                       <div><label className="text-xs text-gray-500 mb-1 block">Collaborateurs</label>
-                        <div className="flex items-center gap-2"><input type="range" min={0} max={100} value={weightDirectReport} onChange={(e) => setWeightDirectReport(parseInt(e.target.value))} className="flex-1 min-w-0" /><span className="w-10 text-sm font-medium text-right shrink-0">{weightDirectReport}%</span></div>
+                        <div className="flex items-center gap-2"><input type="range" min={0} max={100} value={weightDirectReport} onChange={(e) => setWeightDirectReport(parseInt(e.target.value))} className="flex-1" /><span className="w-10 text-sm font-medium text-right">{weightDirectReport}%</span></div>
                       </div>
                     )}
                   </div>
@@ -576,33 +576,9 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Employés concernés</label>
                 <p className="text-xs text-gray-500 mb-2">Laissez vide pour inclure tous les employés actifs</p>
-                <div className="w-full border rounded-lg max-h-48 overflow-y-auto bg-white">
-                  {employees.map(emp => {
-                    const isSelected = selectedEmployees.includes(emp.id);
-                    return (
-                      <label
-                        key={emp.id}
-                        className={`flex items-center gap-2 px-3 py-2 text-sm cursor-pointer border-b border-gray-50 last:border-0 transition-colors ${
-                          isSelected ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-800 hover:bg-gray-50'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedEmployees([...selectedEmployees, emp.id]);
-                            } else {
-                              setSelectedEmployees(selectedEmployees.filter(id => id !== emp.id));
-                            }
-                          }}
-                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                        />
-                        <span>{emp.first_name} {emp.last_name}</span>
-                      </label>
-                    );
-                  })}
-                </div>
+                <select multiple value={selectedEmployees.map(String)} onChange={(e) => setSelectedEmployees(Array.from(e.target.selectedOptions, o => parseInt(o.value)))} className="w-full px-3 py-2.5 border rounded-lg text-sm h-32">
+                  {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}
+                </select>
                 {selectedEmployees.length > 0 && <p className="text-xs text-primary-600 mt-1">{selectedEmployees.length} employé(s) sélectionné(s)</p>}
               </div>
             </>
@@ -866,15 +842,15 @@ export default function CampaignsPage() {
       {/* Content */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
-          <div className="flex-1 relative">
+        <div className="flex gap-4 mb-6 flex-wrap">
+          <div className="flex-1 min-w-[200px] relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              placeholder="Rechercher une campagne..."
-              className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            <input 
+              type="text" 
+              value={search} 
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }} 
+              placeholder="Rechercher une campagne..." 
+              className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" 
             />
           </div>
           <CustomSelect
@@ -888,7 +864,7 @@ export default function CampaignsPage() {
               { value: 'cancelled', label: 'Annulé' },
               ...(showArchived ? [{ value: 'archived', label: 'Archivé' }] : []),
             ]}
-            className="w-full sm:min-w-[150px] sm:w-auto"
+            className="min-w-[150px]"
           />
           <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
             <input 

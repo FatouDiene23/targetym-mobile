@@ -275,7 +275,7 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
               className="w-full"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.dateLabel} *</label>
               <CustomDatePicker value={scheduledDate} onChange={setScheduledDate} className="w-full" />
@@ -285,7 +285,7 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
               <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.durationLabel}</label>
               <CustomSelect

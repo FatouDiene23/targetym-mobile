@@ -335,7 +335,7 @@ export default function BillingAdminPage() {
               </div>
 
               {/* Stats rapides */}
-              <div className="grid grid-cols-3 gap-4 mb-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
                 <div className="bg-white rounded-xl border border-gray-100 p-4">
                   <p className="text-xs text-gray-400 mb-1">Total factures</p>
                   <p className="text-2xl font-bold text-gray-900">{invoices.length}</p>
@@ -466,7 +466,7 @@ export default function BillingAdminPage() {
             </div>
             <p className="text-sm text-gray-500">Pour : <strong>{selectedTenant?.name}</strong></p>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Montant <span className="text-red-500">*</span></label>
                 <input
@@ -493,7 +493,7 @@ export default function BillingAdminPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Date d'échéance</label>
                 <CustomDatePicker
@@ -616,7 +616,7 @@ export default function BillingAdminPage() {
             </div>
             <p className="text-sm text-gray-500">Entreprise : <strong>{selectedTenant.name}</strong></p>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Plan <span className="text-red-500">*</span></label>
                 <CustomSelect value={planForm.plan} onChange={v => {
@@ -635,7 +635,7 @@ export default function BillingAdminPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Fin du trial</label>
                 <CustomDatePicker

@@ -856,7 +856,7 @@ export default function MyProgrammesInitiativesPage() {
         {canActivate && (
           <div className="mb-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-              <div className="grid grid-cols-2 rounded-lg border border-gray-200 bg-white p-1 w-full sm:inline-flex sm:w-fit">
+              <div className="grid grid-cols-1 sm:grid-cols-2 rounded-lg border border-gray-200 bg-white p-1 w-full sm:inline-flex sm:w-fit">
                 <button
                   type="button"
                   onClick={() => setActiveTab('active')}

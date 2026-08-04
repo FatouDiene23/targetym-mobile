@@ -285,7 +285,7 @@ function EvaluationViewModal({ isOpen, onClose, evaluation }: {
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="p-4 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-500">{perf.typeLabel}</p>
               <p className="font-medium text-gray-900">{getTypeLabelT(evaluation.type, perf)}</p>
@@ -698,21 +698,21 @@ export default function EvaluationsPage() {
         )}
 
         {/* Filters (onglet Toutes seulement) */}
-        {tab === 'all' && <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-6">
-          <div className="relative w-full sm:flex-1">
+        {tab === 'all' && <div className="flex flex-wrap gap-4 mb-6">
+          <div className="flex-1 min-w-[200px] relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              placeholder={perf.searchEvaluation}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            <input 
+              type="text" 
+              value={search} 
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }} 
+              placeholder={perf.searchEvaluation} 
+              className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" 
             />
           </div>
           <CustomSelect
             value={filterStatus}
             onChange={(v) => { setFilterStatus(v); setPage(1); }}
-            className="w-full sm:min-w-[160px] sm:w-auto"
+            className="min-w-[160px]"
             options={[
               { value: 'all', label: perf.allStatuses },
               { value: 'pending', label: perf.pendingStatus },

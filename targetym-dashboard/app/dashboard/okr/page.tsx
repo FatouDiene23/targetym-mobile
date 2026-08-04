@@ -5,6 +5,7 @@ import { generateObjectiveContractPDF } from '@/lib/generateObjectiveContractPDF
 import PageLoading from '@/components/PageLoading';
 import Pagination from '@/components/Pagination';
 import SearchableSelect from '@/components/SearchableSelect';
+import CustomSelect from '@/components/CustomSelect';
 
 import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import toast from 'react-hot-toast';
@@ -1080,16 +1081,17 @@ function ObjectiveModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.level} *</label>
-              <select
+              <CustomSelect
                 value={formData.level}
-                onChange={(e) => setFormData({ ...formData, level: e.target.value as ObjectiveLevel, parent_id: undefined, parent_key_result_id: undefined })}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                {canCreateEnterprise && <option value="enterprise">{t.okr.enterprise}</option>}
-                <option value="department">{t.okr.department}</option>
-                <option value="team">{t.okr.team}</option>
-                <option value="individual">{t.okr.individual}</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, level: val as ObjectiveLevel, parent_id: undefined, parent_key_result_id: undefined })}
+                options={[
+                  ...(canCreateEnterprise ? [{ value: 'enterprise', label: t.okr.enterprise }] : []),
+                  { value: 'department', label: t.okr.department },
+                  { value: 'team', label: t.okr.team },
+                  { value: 'individual', label: t.okr.individual },
+                ]}
+                className="w-full"
+              />
             </div>
 
             <div>
@@ -1110,38 +1112,38 @@ function ObjectiveModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.period} *</label>
-              <select
+              <CustomSelect
                 value={formData.period}
-                onChange={(e) => setFormData({ ...formData, period: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="2026">2026</option>
-                <option value="Q1 2026">Q1 2026</option>
-                <option value="Q2 2026">Q2 2026</option>
-                <option value="Q3 2026">Q3 2026</option>
-                <option value="Q4 2026">Q4 2026</option>
-                <option value="2025">2025</option>
-                <option value="Q1 2025">Q1 2025</option>
-                <option value="Q2 2025">Q2 2025</option>
-                <option value="Q3 2025">Q3 2025</option>
-                <option value="Q4 2025">Q4 2025</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, period: val })}
+                options={[
+                  { value: '2026', label: '2026' },
+                  { value: 'Q1 2026', label: 'Q1 2026' },
+                  { value: 'Q2 2026', label: 'Q2 2026' },
+                  { value: 'Q3 2026', label: 'Q3 2026' },
+                  { value: 'Q4 2026', label: 'Q4 2026' },
+                  { value: '2025', label: '2025' },
+                  { value: 'Q1 2025', label: 'Q1 2025' },
+                  { value: 'Q2 2025', label: 'Q2 2025' },
+                  { value: 'Q3 2025', label: 'Q3 2025' },
+                  { value: 'Q4 2025', label: 'Q4 2025' },
+                ]}
+                className="w-full"
+              />
             </div>
           </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.departmentLabel}</label>
-              <select
-                value={formData.department_id || ''}
-                onChange={(e) => setFormData({ ...formData, department_id: e.target.value ? parseInt(e.target.value) : undefined })}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">{t.okr.none}</option>
-                {departments.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={String(formData.department_id || '')}
+                onChange={(val) => setFormData({ ...formData, department_id: val ? parseInt(val) : undefined })}
+                options={[
+                  { value: '', label: t.okr.none },
+                  ...departments.map((d) => ({ value: String(d.id), label: d.name })),
+                ]}
+                className="w-full"
+              />
               {!canSeeAll && departments.length === 1 && (
                 <p className="text-xs text-gray-500 mt-1">
                   {t.okr.departmentPreselected}
@@ -1167,16 +1169,15 @@ function ObjectiveModal({
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.parentObjective}</label>
-            <select
-              value={formData.parent_id || ''}
-              onChange={(e) => setFormData({ ...formData, parent_id: e.target.value ? parseInt(e.target.value) : undefined, parent_key_result_id: undefined })}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="">{t.okr.none}</option>
-              {availableParentObjectives.map((o) => (
-                <option key={o.id} value={o.id}>[{getLevelLabel(o.level, t)}] {o.title}</option>
-              ))}
-            </select>
+            <CustomSelect
+              value={String(formData.parent_id || '')}
+              onChange={(val) => setFormData({ ...formData, parent_id: val ? parseInt(val) : undefined, parent_key_result_id: undefined })}
+              options={[
+                { value: '', label: t.okr.none },
+                ...availableParentObjectives.map((o) => ({ value: String(o.id), label: `[${getLevelLabel(o.level, t)}] ${o.title}` })),
+              ]}
+              className="w-full"
+            />
             {requiresParent && (
               <p className="text-xs text-gray-500 mt-1">
                 {formData.level === 'individual' && selectedOwner?.manager_id
@@ -1189,35 +1190,35 @@ function ObjectiveModal({
           {parentObjective && parentObjective.key_results?.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.parentKeyResult}</label>
-              <select
-                value={formData.parent_key_result_id || ''}
-                onChange={(e) => setFormData({ ...formData, parent_key_result_id: e.target.value ? parseInt(e.target.value) : undefined })}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">{t.okr.noSpecificParentKr}</option>
-                {parentObjective.key_results.map((kr) => (
-                  <option key={kr.id} value={kr.id}>{kr.title}</option>
-                ))}
-              </select>
+              <CustomSelect
+                value={String(formData.parent_key_result_id || '')}
+                onChange={(val) => setFormData({ ...formData, parent_key_result_id: val ? parseInt(val) : undefined })}
+                options={[
+                  { value: '', label: t.okr.noSpecificParentKr },
+                  ...parentObjective.key_results.map((kr) => ({ value: String(kr.id), label: kr.title })),
+                ]}
+                className="w-full"
+              />
               <p className="text-xs text-gray-500 mt-1">{t.okr.parentKeyResultHelp}</p>
             </div>
           )}
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.statusLabel}</label>
-            <select
+            <CustomSelect
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="draft">{t.okr.draft}</option>
-              <option value="active">{t.okr.active}</option>
-              <option value="on_track">{t.okr.onTrack}</option>
-              <option value="at_risk">{t.okr.atRisk}</option>
-              <option value="behind">{t.okr.behind}</option>
-              <option value="completed">{t.okr.completed}</option>
-              <option value="exceeded">{t.okr.exceeded}</option>
-            </select>
+              onChange={(val) => setFormData({ ...formData, status: val })}
+              options={[
+                { value: 'draft', label: t.okr.draft },
+                { value: 'active', label: t.okr.active },
+                { value: 'on_track', label: t.okr.onTrack },
+                { value: 'at_risk', label: t.okr.atRisk },
+                { value: 'behind', label: t.okr.behind },
+                { value: 'completed', label: t.okr.completed },
+                { value: 'exceeded', label: t.okr.exceeded },
+              ]}
+              className="w-full"
+            />
           </div>
           
           <div className="flex justify-end gap-3 pt-4 border-t">
@@ -1386,15 +1387,16 @@ function KeyResultModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.measurementDirection}</label>
-              <select
+              <CustomSelect
                 value={formData.measurement_direction}
-                onChange={(e) => setFormData({ ...formData, measurement_direction: e.target.value as 'increase' | 'decrease' | 'maintain' })}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="increase">{t.okr.directionIncrease}</option>
-                <option value="decrease">{t.okr.directionDecrease}</option>
-                <option value="maintain">{t.okr.directionMaintain}</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, measurement_direction: val as 'increase' | 'decrease' | 'maintain' })}
+                options={[
+                  { value: 'increase', label: t.okr.directionIncrease },
+                  { value: 'decrease', label: t.okr.directionDecrease },
+                  { value: 'maintain', label: t.okr.directionMaintain },
+                ]}
+                className="w-full"
+              />
             </div>
           </div>
 
@@ -1434,24 +1436,23 @@ function KeyResultModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.unit}</label>
-              <select
+              <CustomSelect
                 value={isCustomUnit ? '__autre__' : (formData.unit || '')}
-                onChange={(e) => {
-                  if (e.target.value === '__autre__') {
+                onChange={(val) => {
+                  if (val === '__autre__') {
                     setIsCustomUnit(true);
                     setFormData({ ...formData, unit: '' });
                   } else {
                     setIsCustomUnit(false);
-                    setFormData({ ...formData, unit: e.target.value });
+                    setFormData({ ...formData, unit: val });
                   }
                 }}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="">{t.okr.chooseUnit}</option>
-                {UNIT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
+                options={[
+                  { value: '', label: t.okr.chooseUnit },
+                  ...UNIT_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
+                ]}
+                className="w-full"
+              />
               {isCustomUnit && (
                 <input
                   type="text"
@@ -2702,26 +2703,23 @@ function OKRContent() {
         {(activeTab === 'list' || activeTab === 'cascade') && (
           <div className="flex justify-between items-center gap-4 mb-6">
             <div className="flex gap-3">
-              <select value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value)} className="px-4 py-2 border rounded-lg text-sm bg-white">
-                <option value="all">{t.okr.allPeriods}</option>
-                <option value="2026">2026</option>
-                <option value="Q1 2026">Q1 2026</option>
-                <option value="Q2 2026">Q2 2026</option>
-                <option value="Q3 2026">Q3 2026</option>
-                <option value="Q4 2026">Q4 2026</option>
-                <option value="2025">2025</option>
-                <option value="Q1 2025">Q1 2025</option>
-                <option value="Q2 2025">Q2 2025</option>
-                <option value="Q3 2025">Q3 2025</option>
-                <option value="Q4 2025">Q4 2025</option>
-              </select>
-              <select value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)} className="px-4 py-2 border rounded-lg text-sm bg-white">
-                <option value="all">{t.okr.allLevels}</option>
-                <option value="enterprise">{t.okr.enterprise}</option>
-                <option value="department">{t.okr.department}</option>
-                <option value="team">{t.okr.team}</option>
-                <option value="individual">{t.okr.individual}</option>
-              </select>
+              <CustomSelect value={filterPeriod} onChange={setFilterPeriod}
+                options={[
+                  { value: 'all', label: t.okr.allPeriods },
+                  { value: '2026', label: '2026' }, { value: 'Q1 2026', label: 'Q1 2026' },
+                  { value: 'Q2 2026', label: 'Q2 2026' }, { value: 'Q3 2026', label: 'Q3 2026' },
+                  { value: 'Q4 2026', label: 'Q4 2026' }, { value: '2025', label: '2025' },
+                  { value: 'Q1 2025', label: 'Q1 2025' }, { value: 'Q2 2025', label: 'Q2 2025' },
+                  { value: 'Q3 2025', label: 'Q3 2025' }, { value: 'Q4 2025', label: 'Q4 2025' },
+                ]} className="w-36" />
+              <CustomSelect value={filterLevel} onChange={setFilterLevel}
+                options={[
+                  { value: 'all', label: t.okr.allLevels },
+                  { value: 'enterprise', label: t.okr.enterprise },
+                  { value: 'department', label: t.okr.department },
+                  { value: 'team', label: t.okr.team },
+                  { value: 'individual', label: t.okr.individual },
+                ]} className="w-36" />
             </div>
             <div className="flex gap-3">
               <button 
@@ -4013,20 +4011,16 @@ function OKRContent() {
                   {!editingContractItem && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.level} *</label>
-                    <select
+                    <CustomSelect
                       value={contractObjectiveDraft.objective_level}
-                      onChange={(e) => setContractObjectiveDraft({
-                        ...contractObjectiveDraft,
-                        objective_level: e.target.value as Extract<ObjectiveLevel, 'department' | 'team' | 'individual'>,
-                        parent_id: undefined,
-                        parent_key_result_id: undefined,
-                      })}
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
-                    >
-                      <option value="department">{t.okr.department}</option>
-                      <option value="team">{t.okr.team}</option>
-                      <option value="individual">{t.okr.individual}</option>
-                    </select>
+                      onChange={(val) => setContractObjectiveDraft({ ...contractObjectiveDraft, objective_level: val as Extract<ObjectiveLevel, 'department' | 'team' | 'individual'>, parent_id: undefined, parent_key_result_id: undefined })}
+                      options={[
+                        { value: 'department', label: t.okr.department },
+                        { value: 'team', label: t.okr.team },
+                        { value: 'individual', label: t.okr.individual },
+                      ]}
+                      className="w-full"
+                    />
                   </div>
                   )}
                   <div>
@@ -4055,16 +4049,15 @@ function OKRContent() {
                   {!editingContractItem && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.parentObjective}</label>
-                    <select
-                      value={contractObjectiveDraft.parent_id || ''}
-                      onChange={(e) => setContractObjectiveDraft({ ...contractObjectiveDraft, parent_id: e.target.value ? parseInt(e.target.value) : undefined, parent_key_result_id: undefined })}
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    >
-                      <option value="">{t.okr.none}</option>
-                      {contractParentCandidates.map((objective) => (
-                        <option key={objective.id} value={objective.id}>[{getLevelLabel(objective.level, t)}] {objective.title}</option>
-                      ))}
-                    </select>
+                    <CustomSelect
+                      value={String(contractObjectiveDraft.parent_id || '')}
+                      onChange={(val) => setContractObjectiveDraft({ ...contractObjectiveDraft, parent_id: val ? parseInt(val) : undefined, parent_key_result_id: undefined })}
+                      options={[
+                        { value: '', label: t.okr.none },
+                        ...contractParentCandidates.map((o) => ({ value: String(o.id), label: `[${getLevelLabel(o.level, t)}] ${o.title}` })),
+                      ]}
+                      className="w-full"
+                    />
                     <p className="text-xs text-gray-500 mt-1">
                       {contractObjectiveDraft.objective_level === 'department'
                         ? 'Sélectionnez l’objectif entreprise parent.'
@@ -4077,16 +4070,15 @@ function OKRContent() {
                   {contractParentObjective && contractParentObjective.key_results?.length > 0 && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.parentKeyResult}</label>
-                    <select
-                      value={contractObjectiveDraft.parent_key_result_id || ''}
-                      onChange={(e) => setContractObjectiveDraft({ ...contractObjectiveDraft, parent_key_result_id: e.target.value ? parseInt(e.target.value) : undefined })}
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    >
-                      <option value="">{t.okr.noSpecificParentKr}</option>
-                      {contractParentObjective.key_results.map((kr) => (
-                        <option key={kr.id} value={kr.id}>{kr.title}</option>
-                      ))}
-                    </select>
+                    <CustomSelect
+                      value={String(contractObjectiveDraft.parent_key_result_id || '')}
+                      onChange={(val) => setContractObjectiveDraft({ ...contractObjectiveDraft, parent_key_result_id: val ? parseInt(val) : undefined })}
+                      options={[
+                        { value: '', label: t.okr.noSpecificParentKr },
+                        ...contractParentObjective.key_results.map((kr) => ({ value: String(kr.id), label: kr.title })),
+                      ]}
+                      className="w-full"
+                    />
                     <p className="text-xs text-gray-500 mt-1">{t.okr.parentKeyResultHelp}</p>
                   </div>
                   )}
@@ -4160,15 +4152,16 @@ function OKRContent() {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.measurementDirection}</label>
-                          <select
+                          <CustomSelect
                             value={kr.measurement_direction}
-                            onChange={(e) => updateContractKeyResultDraft(index, { measurement_direction: e.target.value as 'increase' | 'decrease' | 'maintain' })}
-                            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
-                          >
-                            <option value="increase">{t.okr.directionIncrease}</option>
-                            <option value="decrease">{t.okr.directionDecrease}</option>
-                            <option value="maintain">{t.okr.directionMaintain}</option>
-                          </select>
+                            onChange={(val) => updateContractKeyResultDraft(index, { measurement_direction: val as 'increase' | 'decrease' | 'maintain' })}
+                            options={[
+                              { value: 'increase', label: t.okr.directionIncrease },
+                              { value: 'decrease', label: t.okr.directionDecrease },
+                              { value: 'maintain', label: t.okr.directionMaintain },
+                            ]}
+                            className="w-full"
+                          />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.target}</label>
@@ -4181,22 +4174,18 @@ function OKRContent() {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">{t.okr.unit}</label>
-                          <select
+                          <CustomSelect
                             value={kr.is_custom_unit ? '__autre__' : (kr.unit || '')}
-                            onChange={(e) => {
-                              if (e.target.value === '__autre__') {
-                                updateContractKeyResultDraft(index, { is_custom_unit: true, unit: '' });
-                              } else {
-                                updateContractKeyResultDraft(index, { is_custom_unit: false, unit: e.target.value });
-                              }
+                            onChange={(val) => {
+                              if (val === '__autre__') { updateContractKeyResultDraft(index, { is_custom_unit: true, unit: '' }); }
+                              else { updateContractKeyResultDraft(index, { is_custom_unit: false, unit: val }); }
                             }}
-                            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
-                          >
-                            <option value="">{t.okr.chooseUnit}</option>
-                            {UNIT_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>{option.label}</option>
-                            ))}
-                          </select>
+                            options={[
+                              { value: '', label: t.okr.chooseUnit },
+                              ...UNIT_OPTIONS.map((o) => ({ value: o.value, label: o.label })),
+                            ]}
+                            className="w-full"
+                          />
                           {kr.is_custom_unit && (
                             <input
                               type="text"

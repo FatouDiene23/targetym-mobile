@@ -116,13 +116,8 @@ export default function SearchableSelect({
 
       {open && (
         <div
-          className={
-            isNative
-              // En flux sur mobile : le panneau pousse le contenu au lieu de le
-              // recouvrir, comme CustomSelect.
-              ? 'relative mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden'
-              : 'absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden'
-          }
+          className="absolute z-50 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden"
+          style={{ minWidth: 'max(100%, 220px)', left: 0 }}
         >
           <div className="p-2 border-b">
             <div className="flex items-center gap-2 bg-gray-50 rounded-md px-2 py-1.5">

@@ -84,6 +84,7 @@ interface NavItem {
   disabledReason?: string;
   dataTour?: string;
   hideOnMobile?: boolean;
+  badge?: string;
 }
 
 
@@ -165,6 +166,13 @@ const navigation: NavItem[] = [
     icon: LayoutList,
     roles: ['rh', 'admin', 'dg'],
     dataTour: 'sidebar-programmes'
+  },
+  {
+    name: 'Copilote AI',
+    href: '/dashboard/copilot',
+    icon: Sparkles,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
+    badge: 'BETA',
   },
   {
     name: 'Gestion du Personnel',
@@ -679,12 +687,17 @@ function SidebarInner() {
     return (
       <Link 
         href={item.href} 
-        className={`flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'} rounded-lg transition-colors group relative ${isActive ? 'bg-primary-500 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`} 
+        className={`flex items-center ${isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5'} rounded-lg transition-colors group relative ${
+          item.href === '/dashboard/copilot'
+            ? (isActive ? 'bg-primary-600 text-white ring-1 ring-primary-300' : 'bg-primary-700/70 text-white hover:bg-primary-600')
+            : (isActive ? 'bg-primary-500 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white')
+        }`}
         title={isCollapsed ? item.name : undefined}
         data-tour={item.dataTour}
       >
         <item.icon className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
         {!isCollapsed && <span className="text-sm font-medium">{item.name}</span>}
+        {!isCollapsed && item.badge && <span className="ml-auto rounded-full bg-white/90 px-2 py-0.5 text-[9px] font-extrabold tracking-wider text-primary-700">{item.badge}</span>}
         {showTooltip && (
           <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-xs text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
             {item.name}

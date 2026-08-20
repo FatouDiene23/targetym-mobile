@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import ImpersonationBanner from '@/components/ImpersonationBanner';
 import AppTour from '@/components/AppTour';
-import AIChatBox from '@/components/AIChatBox';
+import CopilotLauncher from '@/components/CopilotLauncher';
 import BottomNav from '@/components/BottomNav';
 import GroupContextSwitcher from '@/components/GroupContextSwitcher';
 import { GroupContextProvider } from '@/context/GroupContext';
@@ -374,8 +374,8 @@ function DashboardContent({
         onSkip={handleSkipTour}
       />
 
-      {/* Chatbot AI */}
-      <AIChatBox />
+      {/* Copilote AI — accès opt-in tenant + rôles de management uniquement */}
+      <CopilotLauncher />
 
       {/* Navigation mobile en bas */}
       <BottomNav />

@@ -1815,6 +1815,7 @@ export interface ChatMessage {
   content: string;
   created_at: string;
   tokens_used?: number;
+  pending_actions?: CopilotPendingAction[];
 }
 
 export interface ChatConversation {
@@ -1952,6 +1953,86 @@ export async function getChatbotStatus(): Promise<ChatbotStatus> {
   }
 
   return response.json();
+}
+
+// ============================================
+// COPILOTE AI (nouvelle expérience web/mobile)
+// ============================================
+
+export class CopilotForbiddenError extends Error {
+  constructor() { super('Le Copilote n’est pas activé pour votre profil.'); }
+}
+
+export interface CopilotPendingAction {
+  pending_id?: string;
+  id?: string;
+  tool_name?: string;
+  display_label?: string;
+  label?: string;
+  data?: Record<string, unknown>;
+  status?: string;
+}
+
+export type CopilotStreamEvent =
+  | { type: 'token'; text?: string; content?: string }
+  | { type: 'pending'; pending_actions?: CopilotPendingAction[]; tool_result?: CopilotPendingAction }
+  | { type: 'done'; reply?: string; text?: string; conversation_id?: number; pending_actions?: CopilotPendingAction[] }
+  | { type: 'error'; message?: string; error?: string };
+
+async function throwCopilotError(response: Response): Promise<never> {
+  if (response.status === 403) throw new CopilotForbiddenError();
+  throw new Error(await parseApiError(response));
+}
+
+export async function renameChatConversation(conversationId: number, title: string): Promise<ChatConversation> {
+  const response = await fetchWithAuth(`${API_URL}/api/ai-chat/conversations/${conversationId}`, {
+    method: 'PATCH', body: JSON.stringify({ title }),
+  });
+  if (!response.ok) return throwCopilotError(response);
+  return response.json();
+}
+
+export async function streamCopilotMessage(
+  payload: { message: string; conversation_id?: number; page_path?: string; file_text?: string; file_name?: string },
+  onEvent: (event: CopilotStreamEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const response = await fetchWithAuth(`${API_URL}/api/ai-chat/stream`, {
+    method: 'POST', body: JSON.stringify(payload), signal,
+    headers: { Accept: 'text/event-stream' },
+  });
+  if (!response.ok || !response.body) return throwCopilotError(response);
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  const flush = (frame: string) => {
+    const data = frame.split(/\r?\n/).filter((line) => line.startsWith('data:'))
+      .map((line) => line.slice(5).trim()).join('\n');
+    if (!data || data === '[DONE]') return;
+    const event = JSON.parse(data) as CopilotStreamEvent;
+    onEvent(event);
+    if (event.type === 'error') throw new Error(event.message || event.error || 'Le tour Copilote a échoué.');
+  };
+  while (true) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+    const frames = buffer.split(/\r?\n\r?\n/);
+    buffer = frames.pop() || '';
+    frames.forEach(flush);
+    if (done) break;
+  }
+  if (buffer.trim()) flush(buffer);
+}
+
+export async function approveCopilotPending(pendingId: string): Promise<void> {
+  const response = await fetchWithAuth(`${API_URL}/api/ai-chat/pending/${pendingId}/approve`, { method: 'POST' });
+  if (!response.ok) return throwCopilotError(response);
+}
+
+export async function rejectCopilotPending(pendingId: string): Promise<void> {
+  const response = await fetchWithAuth(`${API_URL}/api/ai-chat/pending/${pendingId}/reject`, { method: 'POST' });
+  if (!response.ok) return throwCopilotError(response);
 }
 // ============================================
 // PLATFORM ADMIN (SUPER_ADMIN ONLY)

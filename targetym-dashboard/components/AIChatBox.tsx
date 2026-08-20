@@ -96,6 +96,38 @@ export default function AIChatBox() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  // On Capacitor/iOS, VisualViewport tracks the visible area when the keyboard opens.
+  const [mobileViewportHeight, setMobileViewportHeight] = useState<number | undefined>();
+
+  useEffect(() => {
+    if (!isOpen || typeof window === 'undefined') return;
+
+    const isMobile = () => window.matchMedia('(max-width: 1023px)').matches;
+    const syncViewport = () => {
+      setMobileViewportHeight(
+        isMobile() ? Math.round(window.visualViewport?.height ?? window.innerHeight) : undefined
+      );
+    };
+
+    syncViewport();
+    window.visualViewport?.addEventListener('resize', syncViewport);
+    window.addEventListener('resize', syncViewport);
+
+    const previousOverflow = document.body.style.overflow;
+    if (isMobile()) document.body.style.overflow = 'hidden';
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', syncViewport);
+      window.removeEventListener('resize', syncViewport);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 150);
+    return () => window.clearTimeout(focusTimer);
+  }, [isOpen]);
 
   // Lire le rôle et le nom depuis localStorage au montage
   useEffect(() => {
@@ -417,10 +449,16 @@ export default function AIChatBox() {
 
       {/* Fenêtre du chat */}
       {isOpen && (
-        <div className="fixed bottom-16 right-0 lg:bottom-6 lg:right-6 w-full lg:w-[420px] h-[calc(100dvh-9rem)] lg:h-[min(620px,calc(100dvh-2rem))] bg-white rounded-t-2xl lg:rounded-2xl shadow-2xl flex flex-col z-50 border border-gray-200 overflow-hidden">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Targetym AI"
+          className="fixed inset-0 z-[10000] flex w-full flex-col overflow-hidden bg-white shadow-2xl lg:inset-auto lg:bottom-6 lg:right-6 lg:h-[min(620px,calc(100dvh-2rem))] lg:w-[420px] lg:rounded-2xl lg:border lg:border-gray-200"
+          style={mobileViewportHeight ? { height: `${mobileViewportHeight}px` } : undefined}
+        >
 
           {/* Header */}
-          <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-3 py-3 sm:px-5 sm:py-4 rounded-t-2xl flex items-center justify-between flex-shrink-0 gap-2">
+          <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-3 py-3 sm:px-5 sm:py-4 lg:rounded-t-2xl flex items-center justify-between flex-shrink-0 gap-2 pt-[max(0.75rem,env(safe-area-inset-top))] lg:pt-4">
             <div className="flex items-center gap-2 min-w-0">
               <div className="bg-white/20 p-2 rounded-lg flex-shrink-0">
                 {agentMode ? <Zap size={20} /> : <MessageCircle size={20} />}
@@ -511,7 +549,7 @@ export default function AIChatBox() {
           )}
 
           {/* Zone des messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-4 bg-gray-50">
             {!isEnabled && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
                 <p className="text-sm text-yellow-800 font-medium">⚠️ {c.chatbotNotConfigured}</p>
@@ -672,7 +710,7 @@ export default function AIChatBox() {
           )}
 
           {/* Zone de saisie */}
-          <div className="p-4 bg-white border-t border-gray-200 rounded-b-2xl">
+          <div className="p-3 sm:p-4 bg-white border-t border-gray-200 lg:rounded-b-2xl pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:pb-4">
             <div className="flex items-end gap-2">
               {/* Upload PDF (mode agent seulement) */}
               {agentMode && (

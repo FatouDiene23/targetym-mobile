@@ -6,7 +6,7 @@ workflows:
       groups:
         - ios-credentials
       vars:
-        XCODE_PROJECT: "targetym-dashboard/ios/App/App.xcodeproj"
+        XCODE_WORKSPACE: "targetym-dashboard/ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
         APP_STORE_APPLE_ID: "6804746218"
         BUNDLE_ID: "com.targetym.app"
@@ -39,8 +39,6 @@ workflows:
             --create
           keychain initialize
           keychain add-certificates
-          cd targetym-dashboard/ios/App
-          xcode-project use-profiles
 
       - name: Set version and build number
         script: |
@@ -52,9 +50,56 @@ workflows:
 
       - name: Build and archive
         script: |
-          xcode-project build-ipa \
-            --project "$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME"
+          PROFILE=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -1)
+          security cms -D -i "$PROFILE" > /tmp/profile.plist
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /tmp/profile.plist)
+          TEAM_ID=$(/usr/libexec/PlistBuddy -c "Print :TeamIdentifier:0" /tmp/profile.plist)
+          echo "Profile UUID: $PROFILE_UUID | Team: $TEAM_ID"
+
+          ARCHIVE_PATH="$CM_BUILD_DIR/build/ios/xcarchive/App.xcarchive"
+          IPA_PATH="$CM_BUILD_DIR/build/ios/ipa"
+          mkdir -p "$IPA_PATH"
+
+          xcodebuild \
+            -workspace "$XCODE_WORKSPACE" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -archivePath "$ARCHIVE_PATH" \
+            archive \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="iPhone Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
+            DEVELOPMENT_TEAM="$TEAM_ID"
+
+          cat > /tmp/ExportOptions.plist << EXPORTEOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store</string>
+    <key>teamID</key>
+    <string>$TEAM_ID</string>
+    <key>signingStyle</key>
+    <string>manual</string>
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>$BUNDLE_ID</key>
+        <string>$PROFILE_UUID</string>
+    </dict>
+    <key>uploadSymbols</key>
+    <true/>
+    <key>compileBitcode</key>
+    <false/>
+</dict>
+</plist>
+EXPORTEOF
+
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$IPA_PATH" \
+            -exportOptionsPlist /tmp/ExportOptions.plist
 
     artifacts:
       - build/ios/ipa/*.ipa

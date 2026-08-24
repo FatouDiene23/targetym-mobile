@@ -2779,65 +2779,50 @@ function OKRContent() {
                     {section.data.slice((okrPages[section.level] - 1) * OKR_PAGE_SIZE, okrPages[section.level] * OKR_PAGE_SIZE).map((obj) => (
                       <div key={obj.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                         <div className="p-4 cursor-pointer hover:bg-gray-50" onClick={() => toggleExpand(obj.id)}>
-                          <div className="flex items-start gap-3">
-                            {/* Chevron expand */}
-                            <button className={`mt-0.5 w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center transition-all ${expandedObjectiveId === obj.id ? `${section.bgLight} ${section.textColor}` : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
-                              {expandedObjectiveId === obj.id ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-                            </button>
-                            {/* Contenu principal */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap mb-1">
-                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${getLevelColor(obj.level)}`}>
-                                  {getLevelIcon(obj.level)}{getLevelLabel(obj.level, t)}
-                                </span>
-                                <span className="text-xs text-gray-500">{t.okr.weight}: {obj.weight || 0}%</span>
-                                {obj.department_name && <span className="text-xs text-gray-500">• {obj.department_name}</span>}
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(obj.status)}`}>
-                                  {getStatusLabel(obj.status, t)}
-                                </span>
-                              </div>
-                              <h3 className="text-base font-semibold text-gray-900">{getObjectiveDisplayTitle(obj)}</h3>
-                              {obj.parent_key_result_title && (
-                                <p className="mt-1 text-xs text-primary-700 bg-primary-50 inline-flex px-2 py-0.5 rounded-full">
-                                  {t.okr.parentKeyResultShort}: {obj.parent_key_result_title}
-                                </p>
-                              )}
-                              <div className="flex items-center gap-3 mt-2 flex-wrap">
-                                {obj.owner_name && (
-                                  <div className="flex items-center">
-                                    <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center text-xs font-medium text-primary-700">
-                                      {obj.owner_initials}
-                                    </div>
-                                    <span className="ml-1.5 text-sm text-gray-600">{obj.owner_name}</span>
-                                  </div>
-                                )}
-                                <span className="text-sm text-gray-500">{obj.period}</span>
-                              </div>
-                              {/* Barre de progression en bas */}
-                              <div className="mt-2 flex items-center gap-2">
-                                <div className="flex-1 h-1.5 bg-gray-200 rounded-full">
-                                  <div className={`h-full rounded-full ${getProgressColor(obj.progress)}`} style={{ width: `${Math.min(obj.progress, 100)}%` }} />
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start flex-1 min-w-0">
+                              <button type="button" className={`mt-0.5 mr-3 w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center transition-all ${expandedObjectiveId === obj.id ? `${section.bgLight} ${section.textColor}` : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+                                {expandedObjectiveId === obj.id ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                              </button>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${getLevelColor(obj.level)}`}>
+                                    {getLevelIcon(obj.level)}{getLevelLabel(obj.level, t)}
+                                  </span>
+                                  <span className="text-xs text-gray-500">{t.okr.weight}: {obj.weight || 0}%</span>
+                                  {obj.department_name && <span className="text-xs text-gray-500">• {obj.department_name}</span>}
                                 </div>
-                                <span className="text-sm font-semibold text-gray-700 w-10 text-right">{Math.round(obj.progress)}%</span>
+                                <h3 className="text-sm font-semibold text-gray-900 leading-snug">{getObjectiveDisplayTitle(obj)}</h3>
+                                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                  {obj.owner_name && (
+                                    <div className="flex items-center">
+                                      <div className="w-5 h-5 bg-primary-100 rounded-full flex items-center justify-center text-xs font-medium text-primary-700">{obj.owner_initials}</div>
+                                      <span className="ml-1 text-xs text-gray-600">{obj.owner_name}</span>
+                                    </div>
+                                  )}
+                                  <span className="text-xs text-gray-500">{obj.period}</span>
+                                  <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(obj.status)}`}>{getStatusLabel(obj.status, t)}</span>
+                                </div>
                               </div>
                             </div>
-                            {/* Boutons édition */}
-                            {canEditObjective(obj) && (
-                              <div className="flex flex-col flex-shrink-0 gap-1">
-                                <button
-                                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                                  onClick={(e) => { e.stopPropagation(); setEditingObjective(obj); setShowObjectiveModal(true); }}
-                                >
-                                  <Edit className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                                  onClick={(e) => { e.stopPropagation(); handleDeleteObjective(obj.id); }}
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                            <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                              <div className="text-right">
+                                <span className="text-sm font-bold text-gray-900">{Math.round(obj.progress)}%</span>
+                                <div className="w-14 h-1.5 bg-gray-200 rounded-full mt-1">
+                                  <div className={`h-full rounded-full ${getProgressColor(obj.progress)}`} style={{ width: `${Math.min(obj.progress, 100)}%` }} />
+                                </div>
                               </div>
-                            )}
+                              {canEditObjective(obj) && (
+                                <div className="flex flex-col gap-0.5">
+                                  <button type="button" className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg" onClick={(e) => { e.stopPropagation(); setEditingObjective(obj); setShowObjectiveModal(true); }}>
+                                    <Edit className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button type="button" className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg" onClick={(e) => { e.stopPropagation(); handleDeleteObjective(obj.id); }}>
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                         

@@ -39,7 +39,8 @@ workflows:
             --create
           keychain initialize
           keychain add-certificates
-          xcode-project use-profiles --project "$XCODE_PROJECT"
+          cd targetym-dashboard/ios/App
+          xcode-project use-profiles
 
       - name: Set version and build number
         script: |

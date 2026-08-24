@@ -5,9 +5,6 @@ workflows:
     environment:
       groups:
         - ios-credentials
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.targetym.app
       vars:
         XCODE_PROJECT: "targetym-dashboard/ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
@@ -34,6 +31,15 @@ workflows:
         script: |
           cd targetym-dashboard/ios/App
           pod install
+
+      - name: Set up code signing
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain initialize
+          keychain add-certificates
+          xcode-project use-profiles
 
       - name: Set version and build number
         script: |

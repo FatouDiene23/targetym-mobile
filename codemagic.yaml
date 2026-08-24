@@ -1,6 +1,6 @@
 workflows:
   ios-release:
-    name: Targetym AI - iOS Release
+    name: Targetym AI - iOS Release v5
     max_build_duration: 60
     environment:
       groups:

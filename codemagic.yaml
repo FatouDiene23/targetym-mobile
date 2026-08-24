@@ -71,29 +71,14 @@ workflows:
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
             DEVELOPMENT_TEAM="$TEAM_ID"
 
-          cat > /tmp/ExportOptions.plist << EXPORTEOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>method</key>
-    <string>app-store</string>
-    <key>teamID</key>
-    <string>$TEAM_ID</string>
-    <key>signingStyle</key>
-    <string>manual</string>
-    <key>provisioningProfiles</key>
-    <dict>
-        <key>$BUNDLE_ID</key>
-        <string>$PROFILE_UUID</string>
-    </dict>
-    <key>uploadSymbols</key>
-    <true/>
-    <key>compileBitcode</key>
-    <false/>
-</dict>
-</plist>
-EXPORTEOF
+          rm -f /tmp/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :method string app-store" /tmp/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :teamID string $TEAM_ID" /tmp/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :signingStyle string manual" /tmp/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" /tmp/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:$BUNDLE_ID string $PROFILE_UUID" /tmp/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool YES" /tmp/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :compileBitcode bool NO" /tmp/ExportOptions.plist
 
           xcodebuild \
             -exportArchive \

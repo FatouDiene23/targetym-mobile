@@ -2573,7 +2573,7 @@ function TabSites() {
                           </div>
                         </td>
                         <td className="px-5 py-4 text-gray-600">{site.name.slice(0, 2).toUpperCase()}{String(site.id).padStart(3, '0')}</td>
-                        <td className="px-5 py-4 text-gray-600"><span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-gray-400" /> {site.latitude.toFixed(5)}, {site.longitude.toFixed(5)}</span></td>
+                        <td className="px-5 py-4 text-gray-600"><span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-gray-400" /> {site.latitude != null && site.longitude != null ? `${site.latitude.toFixed(5)}, ${site.longitude.toFixed(5)}` : '—'}</span></td>
                         <td className="px-5 py-4"><span className="rounded-lg bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{site.radius_meters} m</span></td>
                         <td className="px-5 py-4 text-gray-600"><span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-gray-400" /> {site.assigned_employees || 0}</span></td>
                         <td className="px-5 py-4">
@@ -2627,7 +2627,7 @@ function TabSites() {
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between gap-3"><span className="text-gray-500">Code</span><span className="font-semibold text-gray-900">{selectedSite.name.slice(0, 2).toUpperCase()}{String(selectedSite.id).padStart(3, '0')}</span></div>
                     <div className="flex justify-between gap-3"><span className="text-gray-500">Adresse</span><span className="text-right font-semibold text-gray-900">{selectedSite.address || 'Non renseignée'}</span></div>
-                    <div className="flex justify-between gap-3"><span className="text-gray-500">Coordonnées</span><span className="font-semibold text-gray-900">{selectedSite.latitude.toFixed(5)}, {selectedSite.longitude.toFixed(5)}</span></div>
+                    <div className="flex justify-between gap-3"><span className="text-gray-500">Coordonnées</span><span className="font-semibold text-gray-900">{selectedSite.latitude != null && selectedSite.longitude != null ? `${selectedSite.latitude.toFixed(5)}, ${selectedSite.longitude.toFixed(5)}` : '—'}</span></div>
                     <div className="flex justify-between gap-3"><span className="text-gray-500">Rayon autorisé</span><span className="font-semibold text-gray-900">{selectedSite.radius_meters} mètres</span></div>
                     <div className="flex justify-between gap-3"><span className="text-gray-500">Collaborateurs assignés</span><span className="font-semibold text-gray-900">{selectedSite.assigned_employees || 0}</span></div>
                     <div className="flex justify-between gap-3"><span className="text-gray-500">Utilisé aujourd'hui</span><span className="font-semibold text-gray-900">{selectedSite.used_today || 0}</span></div>

@@ -50,7 +50,7 @@ const mobileNavScript = `
     e.preventDefault();
     e.stopPropagation();
     // Force full page reload via index.html (export statique Next.js)
-    var cleanHref = href.replace(/\/$/, '');
+    var cleanHref = href.endsWith('/') ? href.slice(0, -1) : href;
     var target = cleanHref + '/index.html';
     window.location.href = target;
   }, true);

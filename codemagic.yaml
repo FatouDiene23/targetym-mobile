@@ -1,0 +1,60 @@
+workflows:
+  ios-release:
+    name: Targetym AI - iOS Release
+    max_build_duration: 60
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.targetym.app
+      vars:
+        XCODE_PROJECT: "targetym-dashboard/ios/App/App.xcodeproj"
+        XCODE_SCHEME: "App"
+        APP_STORE_APPLE_ID: "6804746218"
+        BUNDLE_ID: "com.targetym.app"
+      node: 20.18.0
+    scripts:
+      - name: Install dependencies
+        script: |
+          cd targetym-dashboard
+          npm ci
+
+      - name: Build Next.js (mobile)
+        script: |
+          cd targetym-dashboard
+          BUILD_TARGET=mobile npm run build
+
+      - name: Sync Capacitor iOS
+        script: |
+          cd targetym-dashboard
+          npx cap sync ios
+
+      - name: Install CocoaPods
+        script: |
+          cd targetym-dashboard/ios/App
+          pod install
+
+      - name: Set version and build number
+        script: |
+          cd targetym-dashboard/ios/App
+          LATEST_BUILD=$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID" || echo "0")
+          BUILD_NUMBER=$((LATEST_BUILD + 1))
+          agvtool new-version -all $BUILD_NUMBER
+          agvtool new-marketing-version "1.0.8"
+
+      - name: Build and archive
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
+        submit_to_app_store: false

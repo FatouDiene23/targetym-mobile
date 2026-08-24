@@ -313,13 +313,13 @@ const mySpaceNavigation: NavItem[] = [
       { name: 'Mes Enquêtes', href: '/dashboard/my-space/surveys', icon: MessageSquare, roles: ['employee', 'manager', 'rh', 'admin', 'dg'] },
     ],
   },
-  { name: 'Mon Équipe', href: '/dashboard/my-space/team', icon: UsersRound, roles: ['manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-team' },
   {
     name: 'Travail & équipe',
     href: '#travail-equipe',
     icon: ClipboardList,
     roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
     children: [
+      { name: 'Mon Équipe', href: '/dashboard/my-space/team', icon: UsersRound, roles: ['manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-team' },
       { name: 'Mes Tâches', href: '/dashboard/my-space/tasks', icon: ClipboardList, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-tasks' },
       { name: 'Rituels et check-lists', href: '/dashboard/my-space/daily-checklist', icon: CheckSquare, roles: ['employee', 'manager', 'rh', 'admin', 'dg'], dataTour: 'sidebar-managerial-rituals' },
       { name: 'Absences & retards', href: '/dashboard/my-space/team/absences', icon: UserMinus, roles: ['manager'] },

@@ -96,13 +96,8 @@ export async function registerPushNotifications() {
     return null;
   }
 
-  // S'enregistrer auprès du service de notifications
-  await PushNotifications.register();
-
-  // Écouter le token FCM (Firebase) / APNs
+  // Listeners avant register() pour éviter la race condition sur le token FCM
   PushNotifications.addListener('registration', async (token) => {
-    console.log('Push token:', token.value);
-    // Envoyer le token au backend pour les notifications ciblées
     try {
       const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
       const authToken = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
@@ -123,17 +118,20 @@ export async function registerPushNotifications() {
     }
   });
 
-  // Écouter les notifications reçues en foreground
+  PushNotifications.addListener('registrationError', (err) => {
+    console.error('Erreur registration FCM:', err);
+  });
+
   PushNotifications.addListener('pushNotificationReceived', (notification) => {
     console.log('Notification reçue:', notification);
   });
 
-  // Écouter les clics sur notifications
   PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
     console.log('Notification cliquée:', action);
   });
 
-  return PushNotifications;
+  // register() après les listeners pour capturer le token dès qu'il arrive
+  await PushNotifications.register();
 }
 
 // ─── CAMÉRA ────────────────────────────────────────────────────────────────────

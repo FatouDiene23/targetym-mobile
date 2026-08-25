@@ -56,6 +56,12 @@ workflows:
           TEAM_ID=$(security find-identity -v -p codesigning | grep -oE '\([A-Z0-9]+\)' | head -1 | tr -d '()')
           echo "Team ID: $TEAM_ID"
 
+          PROFILES_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          PROFILE_PATH=$(find "$PROFILES_DIR" -name "*.mobileprovision" | head -1)
+          security cms -D -i "$PROFILE_PATH" -o /tmp/profile.plist
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /tmp/profile.plist)
+          echo "Profile UUID: $PROFILE_UUID"
+
           ARCHIVE_PATH="$CM_BUILD_DIR/build/ios/xcarchive/App.xcarchive"
           IPA_PATH="$CM_BUILD_DIR/build/ios/ipa"
           mkdir -p "$IPA_PATH"
@@ -72,6 +78,8 @@ workflows:
           /usr/libexec/PlistBuddy -c "Add :method string app-store-connect" /tmp/ExportOptions.plist
           /usr/libexec/PlistBuddy -c "Add :teamID string $TEAM_ID" /tmp/ExportOptions.plist
           /usr/libexec/PlistBuddy -c "Add :signingStyle string manual" /tmp/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" /tmp/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:$BUNDLE_ID string $PROFILE_UUID" /tmp/ExportOptions.plist
           /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool YES" /tmp/ExportOptions.plist
           /usr/libexec/PlistBuddy -c "Add :compileBitcode bool NO" /tmp/ExportOptions.plist
 

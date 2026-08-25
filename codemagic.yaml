@@ -53,7 +53,7 @@ workflows:
         script: |
           xcode-project use-profiles
 
-          TEAM_ID=$(security find-identity -v -p codesigning | grep "iPhone Distribution" | grep -oE '\([A-Z0-9]+\)' | head -1 | tr -d '()')
+          TEAM_ID=$(security find-identity -v -p codesigning | grep -oE '\([A-Z0-9]+\)' | head -1 | tr -d '()')
           echo "Team ID: $TEAM_ID"
 
           ARCHIVE_PATH="$CM_BUILD_DIR/build/ios/xcarchive/App.xcarchive"
@@ -69,7 +69,7 @@ workflows:
             -allowProvisioningUpdates
 
           rm -f /tmp/ExportOptions.plist
-          /usr/libexec/PlistBuddy -c "Add :method string app-store" /tmp/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :method string app-store-connect" /tmp/ExportOptions.plist
           /usr/libexec/PlistBuddy -c "Add :teamID string $TEAM_ID" /tmp/ExportOptions.plist
           /usr/libexec/PlistBuddy -c "Add :signingStyle string manual" /tmp/ExportOptions.plist
           /usr/libexec/PlistBuddy -c "Add :uploadSymbols bool YES" /tmp/ExportOptions.plist

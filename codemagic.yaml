@@ -58,7 +58,8 @@ workflows:
 
           PROFILES_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
           PROFILE_PATH=$(find "$PROFILES_DIR" -name "*.mobileprovision" | head -1)
-          security cms -D -i "$PROFILE_PATH" -o /tmp/profile.plist
+          echo "Profile path: $PROFILE_PATH"
+          security cms -D -i "$PROFILE_PATH" > /tmp/profile.plist
           PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /tmp/profile.plist | tr -d '[:space:]')
           echo "Profile UUID: $PROFILE_UUID"
 
@@ -74,7 +75,8 @@ workflows:
             archive \
             -allowProvisioningUpdates
 
-          python3 -c "import plistlib; plistlib.dump({'method':'app-store-connect','teamID':'${TEAM_ID}','signingStyle':'manual','provisioningProfiles':{'${BUNDLE_ID}':'${PROFILE_UUID}'},'uploadSymbols':True,'compileBitcode':False}, open('/tmp/ExportOptions.plist','wb'))"
+          export TEAM_ID PROFILE_UUID
+          python3 -c "import plistlib, os; plistlib.dump({'method':'app-store-connect','teamID':os.environ['TEAM_ID'],'signingStyle':'manual','provisioningProfiles':{os.environ['BUNDLE_ID']:os.environ['PROFILE_UUID']},'uploadSymbols':True,'compileBitcode':False}, open('/tmp/ExportOptions.plist','wb'))"
 
           xcodebuild \
             -exportArchive \

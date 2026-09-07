@@ -14,8 +14,7 @@ import { useI18n } from '@/lib/i18n/I18nContext';
 
 function LearningContent({ children }: { children: React.ReactNode }) {
   const { isLoading } = useLearning();
-  const rawPathname = usePathname();
-  const pathname = (rawPathname?.replace(/\/$/, '') || rawPathname || '');
+  const pathname = usePathname();
   const { t } = useI18n();
 
   const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {

@@ -7,6 +7,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import SearchableSelect from '@/components/SearchableSelect';
+import Pagination from '@/components/Pagination';
 import { useRouter } from 'next/navigation';
 import {
   Plus, Search, Eye, Edit, Copy, X, ChevronLeft, Trash2,
@@ -18,8 +20,6 @@ import { useLearning } from '../LearningContext';
 import { API_URL, getAuthHeaders, hasPermission } from '../shared';
 import toast from 'react-hot-toast';
 import { useI18n } from '@/lib/i18n/I18nContext';
-import CustomDatePicker from '@/components/CustomDatePicker';
-import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES
@@ -289,6 +289,8 @@ export default function PlanFormationPage() {
   const [filterYear, setFilterYear] = useState<number | ''>('');
   const [filterStatus, setFilterStatus] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPlanPage, setCurrentPlanPage] = useState(1);
+  const PLAN_PAGE_SIZE = 10;
 
   // ── Detail view state ──
   const [selectedPlan, setSelectedPlan] = useState<TrainingPlan | null>(null);
@@ -946,6 +948,9 @@ export default function PlanFormationPage() {
     if (searchQuery && !p.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
+  const paginatedPlans = filteredPlans.slice((currentPlanPage - 1) * PLAN_PAGE_SIZE, currentPlanPage * PLAN_PAGE_SIZE);
+
+  useEffect(() => { setCurrentPlanPage(1); }, [filterYear, filterStatus, searchQuery]);
 
   // ============================================
   // DETAIL VIEW
@@ -1137,20 +1142,26 @@ export default function PlanFormationPage() {
           </div>
 
           {/* Year filter */}
-          <CustomSelect
-            value={String(filterYear)}
-            onChange={v => setFilterYear(v ? parseInt(v) : '')}
-            options={[{value:'', label: tp.allYears}, ...yearOptions.map(y => ({value: String(y), label: String(y)}))]}
+          <select
+            value={filterYear}
+            onChange={e => setFilterYear(e.target.value ? parseInt(e.target.value) : '')}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-          />
+          >
+            <option value="">{tp.allYears}</option>
+            {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
 
           {/* Status filter */}
-          <CustomSelect
+          <select
             value={filterStatus}
-            onChange={v => setFilterStatus(v)}
-            options={[{value:'', label: tp.allStatuses}, ...Object.entries(PLAN_STATUS_CONFIG).map(([k, v]) => ({value: k, label: v.label}))]}
+            onChange={e => setFilterStatus(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-          />
+          >
+            <option value="">{tp.allStatuses}</option>
+            {Object.entries(PLAN_STATUS_CONFIG).map(([k, v]) => (
+              <option key={k} value={k}>{v.label}</option>
+            ))}
+          </select>
         </div>
 
         {canManage && (
@@ -1192,7 +1203,7 @@ export default function PlanFormationPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredPlans.map(plan => (
+                {paginatedPlans.map(plan => (
                   <tr key={plan.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
                       <button
@@ -1255,6 +1266,12 @@ export default function PlanFormationPage() {
                 ))}
               </tbody>
             </table>
+            <Pagination
+              page={currentPlanPage}
+              total={filteredPlans.length}
+              pageSize={PLAN_PAGE_SIZE}
+              onPageChange={setCurrentPlanPage}
+            />
           </div>
         </div>
       )}
@@ -1284,30 +1301,37 @@ export default function PlanFormationPage() {
                   placeholder={tp.planPlaceholder}
                 />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.yearRequired}</label>
-                  <CustomSelect
-                    value={String(newPlan.year)}
-                    onChange={v => setNewPlan(p => ({ ...p, year: parseInt(v) }))}
-                    options={yearOptions.map(y => ({value: String(y), label: String(y)}))}
-                    className="w-full"
-                  />
+                  <select
+                    value={newPlan.year}
+                    onChange={e => setNewPlan(p => ({ ...p, year: parseInt(e.target.value) }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
                 </div>
                 {/* Niveau — adapté selon le type de tenant */}
                 {tenantInfo?.group_type !== 'standalone' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">{tp.level}</label>
-                    <CustomSelect
+                    <select
                       value={newPlan.plan_level}
-                      onChange={v => { setNewPlan(p => ({ ...p, plan_level: v })); setExcludedSubIds(new Set()); }}
-                      options={[
-                        {value:'local', label: tp.levelLocal},
-                        ...(tenantInfo?.parent_tenant_id != null ? [{value:'subsidiary', label: tp.levelSubsidiary}] : []),
-                        ...(tenantInfo?.is_group && !tenantInfo?.parent_tenant_id ? [{value:'subsidiary', label: tp.levelSubsidiary},{value:'group', label: tp.levelGroup}] : []),
-                      ]}
-                      className="w-full"
-                    />
+                      onChange={e => { setNewPlan(p => ({ ...p, plan_level: e.target.value })); setExcludedSubIds(new Set()); }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="local">{tp.levelLocal}</option>
+                      {tenantInfo?.parent_tenant_id != null && (
+                        <option value="subsidiary">{tp.levelSubsidiary}</option>
+                      )}
+                      {tenantInfo?.is_group && !tenantInfo?.parent_tenant_id && (
+                        <>
+                          <option value="subsidiary">{tp.levelSubsidiary}</option>
+                          <option value="group">{tp.levelGroup}</option>
+                        </>
+                      )}
+                    </select>
                   </div>
                 )}
               </div>
@@ -1346,25 +1370,27 @@ export default function PlanFormationPage() {
                   </div>
                 </div>
               )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.startDate}</label>
-                  <CustomDatePicker
+                  <input
+                    type="date"
                     value={newPlan.start_date}
-                    onChange={(v) => setNewPlan(p => ({ ...p, start_date: v }))}
-                    className="w-full"
+                    onChange={e => setNewPlan(p => ({ ...p, start_date: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.endDate}</label>
-                  <CustomDatePicker
+                  <input
+                    type="date"
                     value={newPlan.end_date}
-                    onChange={(v) => setNewPlan(p => ({ ...p, end_date: v }))}
-                    className="w-full"
+                    onChange={e => setNewPlan(p => ({ ...p, end_date: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.budgetCeiling}</label>
                   <input
@@ -1377,12 +1403,15 @@ export default function PlanFormationPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.currency}</label>
-                  <CustomSelect
+                  <select
                     value={newPlan.currency}
-                    onChange={v => setNewPlan(p => ({ ...p, currency: v }))}
-                    options={[{value:'XOF', label:'XOF (FCFA)'},{value:'EUR', label:'EUR'},{value:'USD', label:'USD'}]}
-                    className="w-full"
-                  />
+                    onChange={e => setNewPlan(p => ({ ...p, currency: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="XOF">XOF (FCFA)</option>
+                    <option value="EUR">EUR</option>
+                    <option value="USD">USD</option>
+                  </select>
                 </div>
               </div>
               <div>
@@ -1436,35 +1465,42 @@ export default function PlanFormationPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.thYear}</label>
-                  <CustomSelect
-                    value={String(editPlan.year)}
-                    onChange={v => setEditPlan(p => p ? { ...p, year: parseInt(v) } : p)}
-                    options={yearOptions.map(y => ({value: String(y), label: String(y)}))}
-                    className="w-full"
-                  />
+                  <select
+                    value={editPlan.year}
+                    onChange={e => setEditPlan(p => p ? { ...p, year: parseInt(e.target.value) } : p)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{t.common.status}</label>
-                  <CustomSelect
+                  <select
                     value={editPlan.status}
-                    onChange={v => setEditPlan(p => p ? { ...p, status: v } : p)}
-                    options={Object.entries(PLAN_STATUS_CONFIG).map(([k, v]) => ({value: k, label: v.label}))}
-                    className="w-full"
-                  />
+                    onChange={e => setEditPlan(p => p ? { ...p, status: e.target.value } : p)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    {Object.entries(PLAN_STATUS_CONFIG).map(([k, v]) => (
+                      <option key={k} value={k}>{v.label}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.level}</label>
-                  <CustomSelect
+                  <select
                     value={editPlan.plan_level}
-                    onChange={v => setEditPlan(p => p ? { ...p, plan_level: v } : p)}
-                    options={[{value:'local', label: tp.levelLocal},{value:'subsidiary', label: tp.levelSubsidiary},{value:'group', label: tp.levelGroup}]}
-                    className="w-full"
-                  />
+                    onChange={e => setEditPlan(p => p ? { ...p, plan_level: e.target.value } : p)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="local">{tp.levelLocal}</option>
+                    <option value="subsidiary">{tp.levelSubsidiary}</option>
+                    <option value="group">{tp.levelGroup}</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.budgetCeiling}</label>
@@ -1476,21 +1512,23 @@ export default function PlanFormationPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.startDate}</label>
-                  <CustomDatePicker
+                  <input
+                    type="date"
                     value={editPlan.start_date ?? ''}
-                    onChange={(v) => setEditPlan(p => p ? { ...p, start_date: v || null } : p)}
-                    className="w-full"
+                    onChange={e => setEditPlan(p => p ? { ...p, start_date: e.target.value || null } : p)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.endDate}</label>
-                  <CustomDatePicker
+                  <input
+                    type="date"
                     value={editPlan.end_date ?? ''}
-                    onChange={(v) => setEditPlan(p => p ? { ...p, end_date: v || null } : p)}
-                    className="w-full"
+                    onChange={e => setEditPlan(p => p ? { ...p, end_date: e.target.value || null } : p)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
               </div>
@@ -1553,43 +1591,51 @@ export default function PlanFormationPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{tp.catalogCourse}</label>
-                <CustomSelect
+                <SearchableSelect
                   value={newAction.course_id}
-                  onChange={v => setNewAction(p => ({ ...p, course_id: v }))}
-                  options={[{value:'', label: tp.noCourse}, ...coursesList.map(c => ({value: String(c.id), label: c.title}))]}
-                  className="w-full"
+                  onChange={(val) => setNewAction(p => ({ ...p, course_id: val }))}
+                  placeholder={tp.noCourse}
+                  options={coursesList.map(c => ({ value: String(c.id), label: c.title }))}
                 />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.modality}</label>
-                  <CustomSelect
+                  <select
                     value={newAction.modality}
-                    onChange={v => setNewAction(p => ({ ...p, modality: v }))}
-                    options={[{value:'presentiel', label: tp.modalityPresential},{value:'distanciel', label: tp.modalityRemote},{value:'blended', label: tp.modalityBlended},{value:'elearning', label: tp.modalityElearning}]}
-                    className="w-full"
-                  />
+                    onChange={e => setNewAction(p => ({ ...p, modality: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="presentiel">{tp.modalityPresential}</option>
+                    <option value="distanciel">{tp.modalityRemote}</option>
+                    <option value="blended">{tp.modalityBlended}</option>
+                    <option value="elearning">{tp.modalityElearning}</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.targetType}</label>
-                  <CustomSelect
+                  <select
                     value={newAction.target_type}
-                    onChange={v => setNewAction(p => ({ ...p, target_type: v }))}
-                    options={[{value:'individual', label: tp.actionTargetIndividual},{value:'job', label: tp.actionTargetJob},{value:'department', label: tp.actionTargetDepartment},{value:'group', label: tp.actionTargetGroup}]}
-                    className="w-full"
-                  />
+                    onChange={e => setNewAction(p => ({ ...p, target_type: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="individual">{tp.actionTargetIndividual}</option>
+                    <option value="job">{tp.actionTargetJob}</option>
+                    <option value="department">{tp.actionTargetDepartment}</option>
+                    <option value="group">{tp.actionTargetGroup}</option>
+                  </select>
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{tp.provider}</label>
-                <CustomSelect
+                <SearchableSelect
                   value={newAction.provider_id}
-                  onChange={v => setNewAction(p => ({ ...p, provider_id: v }))}
-                  options={[{value:'', label: tp.noProviderOption}, ...providersList.map(p => ({value: String(p.id), label: p.name}))]}
-                  className="w-full"
+                  onChange={(val) => setNewAction(p => ({ ...p, provider_id: val }))}
+                  placeholder={tp.noProviderOption}
+                  options={providersList.map(pr => ({ value: String(pr.id), label: pr.name }))}
                 />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.unitCost} ({selectedPlan?.currency || 'XOF'})</label>
                   <input
@@ -1602,26 +1648,30 @@ export default function PlanFormationPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.billingMode}</label>
-                  <CustomSelect
+                  <select
                     value={newAction.billing_mode}
-                    onChange={v => setNewAction(p => ({ ...p, billing_mode: v }))}
-                    options={[{value:'', label: tp.billingNotDefined},{value:'per_participant', label: tp.billingPerParticipant},{value:'per_session', label: tp.billingPerSession},{value:'forfait', label: tp.billingForfait}]}
-                    className="w-full"
-                  />
+                    onChange={e => setNewAction(p => ({ ...p, billing_mode: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">{tp.billingNotDefined}</option>
+                    <option value="per_participant">{tp.billingPerParticipant}</option>
+                    <option value="per_session">{tp.billingPerSession}</option>
+                    <option value="forfait">{tp.billingForfait}</option>
+                  </select>
                 </div>
               </div>
               {objectives.length > 0 && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.linkedObjective}</label>
-                  <CustomSelect
+                  <SearchableSelect
                     value={newAction.objective_id}
-                    onChange={v => setNewAction(p => ({ ...p, objective_id: v }))}
-                    options={[{value:'', label: tp.noObjectiveOption}, ...objectives.map(o => ({value: String(o.id), label: o.title}))]}
-                    className="w-full"
+                    onChange={(val) => setNewAction(p => ({ ...p, objective_id: val }))}
+                    placeholder={tp.noObjectiveOption}
+                    options={objectives.map(o => ({ value: String(o.id), label: o.title }))}
                   />
                 </div>
               )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{tp.maxParticipants}</label>
                   <input
@@ -1666,11 +1716,11 @@ export default function PlanFormationPage() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{tp.employeeRequired}</label>
-                <CustomSelect
+                <SearchableSelect
                   value={newNeed.employee_id}
-                  onChange={v => setNewNeed(p => ({ ...p, employee_id: v }))}
-                  options={[{value:'', label: tp.selectOption}, ...employeesList.map(e => ({value: String(e.id), label: e.name}))]}
-                  className="w-full"
+                  onChange={(val) => setNewNeed(p => ({ ...p, employee_id: val }))}
+                  placeholder={tp.selectOption}
+                  options={employeesList.map(e => ({ value: String(e.id), label: e.name }))}
                 />
               </div>
               <div>
@@ -1694,11 +1744,11 @@ export default function PlanFormationPage() {
                   </>
                 ) : (
                   <>
-                    <CustomSelect
+                    <SearchableSelect
                       value={newNeed.skill_target}
-                      onChange={v => setNewNeed(p => ({ ...p, skill_target: v }))}
-                      options={[{value:'', label:'— Sélectionner une compétence —'}, ...skillsList.map(s => ({value: s.name, label: s.name}))]}
-                      className="w-full"
+                      onChange={(val) => setNewNeed(p => ({ ...p, skill_target: val }))}
+                      placeholder={tp.selectOption}
+                      options={skillsList.map(s => ({ value: s.name, label: s.name }))}
                     />
                     <button
                       type="button"
@@ -1741,12 +1791,15 @@ export default function PlanFormationPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Priorité</label>
-                <CustomSelect
+                <select
                   value={newNeed.priority}
-                  onChange={v => setNewNeed(p => ({ ...p, priority: v }))}
-                  options={[{value:'high', label:'Haute'},{value:'medium', label:'Moyenne'},{value:'low', label:'Faible'}]}
-                  className="w-full"
-                />
+                  onChange={e => setNewNeed(p => ({ ...p, priority: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="high">Haute</option>
+                  <option value="medium">Moyenne</option>
+                  <option value="low">Faible</option>
+                </select>
               </div>
             </div>
             <div className="p-6 border-t border-gray-200 flex gap-3">
@@ -1771,36 +1824,43 @@ export default function PlanFormationPage() {
               </div>
             </div>
             <div className="p-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date début</label>
-                  <CustomDatePicker
+                  <input
+                    type="date"
                     value={newSchedule.start_date}
-                    onChange={(v) => {
-                      const val = v;
+                    onChange={e => {
+                      const val = e.target.value;
                       setNewSchedule(p => ({ ...p, start_date: val, quarter: autoQuarter(val) }));
                     }}
-                    className="w-full"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date fin</label>
-                  <CustomDatePicker
+                  <input
+                    type="date"
                     value={newSchedule.end_date}
-                    onChange={(v) => setNewSchedule(p => ({ ...p, end_date: v }))}
-                    className="w-full"
+                    onChange={e => setNewSchedule(p => ({ ...p, end_date: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Trimestre</label>
-                  <CustomSelect
+                  <select
                     value={newSchedule.quarter}
-                    onChange={v => setNewSchedule(p => ({ ...p, quarter: v }))}
-                    options={[{value:'', label:'Auto-calculé'},{value:'T1', label:'T1 (Jan-Mar)'},{value:'T2', label:'T2 (Avr-Jun)'},{value:'T3', label:'T3 (Jul-Sep)'},{value:'T4', label:'T4 (Oct-Déc)'}]}
-                    className="w-full"
-                  />
+                    onChange={e => setNewSchedule(p => ({ ...p, quarter: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">Auto-calculé</option>
+                    <option value="T1">T1 (Jan-Mar)</option>
+                    <option value="T2">T2 (Avr-Jun)</option>
+                    <option value="T3">T3 (Jul-Sep)</option>
+                    <option value="T4">T4 (Oct-Déc)</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Lieu</label>
@@ -1815,11 +1875,11 @@ export default function PlanFormationPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Formateur interne</label>
-                <CustomSelect
+                <SearchableSelect
                   value={newSchedule.trainer_id}
-                  onChange={v => setNewSchedule(p => ({ ...p, trainer_id: v }))}
-                  options={[{value:'', label:'— Aucun —'}, ...employeesList.map(e => ({value: String(e.id), label: e.name}))]}
-                  className="w-full"
+                  onChange={(val) => setNewSchedule(p => ({ ...p, trainer_id: val }))}
+                  placeholder="— Aucun —"
+                  options={employeesList.map(e => ({ value: String(e.id), label: e.name }))}
                 />
               </div>
               <div>
@@ -1843,11 +1903,11 @@ export default function PlanFormationPage() {
                   </>
                 ) : (
                   <>
-                    <CustomSelect
+                    <SearchableSelect
                       value={newSchedule.external_trainer}
-                      onChange={v => setNewSchedule(p => ({ ...p, external_trainer: v }))}
-                      options={[{value:'', label:'— Sélectionner un fournisseur —'}, ...providersList.map(p => ({value: p.name, label: p.name}))]}
-                      className="w-full"
+                      onChange={(val) => setNewSchedule(p => ({ ...p, external_trainer: val }))}
+                      placeholder={tp.noProviderOption}
+                      options={providersList.map(pr => ({ value: pr.name, label: pr.name }))}
                     />
                     <button
                       type="button"
@@ -1891,18 +1951,25 @@ export default function PlanFormationPage() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Type d&apos;objectif</label>
-                <CustomSelect
+                <select
                   value={newObjective.objective_type}
-                  onChange={v => {
+                  onChange={e => {
+                    const type = e.target.value;
                     setNewObjective(p => ({
                       ...p,
-                      objective_type: v,
-                      okr_id: v !== 'okr' ? '' : p.okr_id,
+                      objective_type: type,
+                      okr_id: type !== 'okr' ? '' : p.okr_id,
                     }));
                   }}
-                  options={[{value:'okr', label:'OKR'},{value:'excellence_operationnelle', label:'Excellence opérationnelle'},{value:'developpement_competences', label:'Développement compétences'},{value:'conformite_reglementaire', label:'Conformité réglementaire'},{value:'managerial', label:'Managérial'},{value:'autre', label:'Autre'}]}
-                  className="w-full"
-                />
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="okr">OKR</option>
+                  <option value="excellence_operationnelle">Excellence opérationnelle</option>
+                  <option value="developpement_competences">Développement compétences</option>
+                  <option value="conformite_reglementaire">Conformité réglementaire</option>
+                  <option value="managerial">Managérial</option>
+                  <option value="autre">Autre</option>
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
@@ -1919,18 +1986,22 @@ export default function PlanFormationPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">OKR lié</label>
                   {okrList.length > 0 ? (
                     <>
-                      <CustomSelect
+                      <SearchableSelect
                         value={newObjective.okr_id}
-                        onChange={v => {
-                          const okr = okrList.find(o => String(o.id) === v);
+                        onChange={(val) => {
+                          const okr = okrList.find(o => String(o.id) === val);
                           setNewObjective(p => ({
                             ...p,
-                            okr_id: v,
+                            okr_id: val,
                             title: okr ? okr.title : p.title,
                           }));
                         }}
-                        options={[{value:'', label:'— Sélectionner un OKR —'}, ...okrList.map(o => ({value: String(o.id), label:`${o.title} — ${o.period} (${Math.round(o.progress)}%)`}))]}
-                        className="w-full"
+                        placeholder={tp.selectOption}
+                        options={okrList.map(o => ({
+                          value: String(o.id),
+                          label: o.title,
+                          subtitle: `${o.period} — ${Math.round(o.progress)}%`,
+                        }))}
                       />
                       {newObjective.okr_id && (() => {
                         const selected = okrList.find(o => String(o.id) === newObjective.okr_id);
@@ -1989,25 +2060,28 @@ export default function PlanFormationPage() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Type de cible</label>
-                <CustomSelect
+                <select
                   value={newTarget.target_type}
-                  onChange={v => setNewTarget(p => ({ ...p, target_type: v, target_id: '', target_label: '' }))}
-                  options={[{value:'department', label:'Département'},{value:'profile', label:'Profil'},{value:'level', label:'Niveau'}]}
-                  className="w-full"
-                />
+                  onChange={e => setNewTarget(p => ({ ...p, target_type: e.target.value, target_id: '', target_label: '' }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="department">Département</option>
+                  <option value="profile">Profil</option>
+                  <option value="level">Niveau</option>
+                </select>
               </div>
               {newTarget.target_type === 'department' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Département *</label>
                   {departmentsList.length > 0 ? (
-                    <CustomSelect
+                    <SearchableSelect
                       value={newTarget.target_id}
-                      onChange={v => {
-                        const dept = departmentsList.find(d => String(d.id) === v);
-                        setNewTarget(p => ({ ...p, target_id: v, target_label: dept?.name || '' }));
+                      onChange={(val) => {
+                        const dept = departmentsList.find(d => String(d.id) === val);
+                        setNewTarget(p => ({ ...p, target_id: val, target_label: dept?.name || '' }));
                       }}
-                      options={[{value:'', label:'— Sélectionner —'}, ...departmentsList.map(d => ({value: String(d.id), label: d.name}))]}
-                      className="w-full"
+                      placeholder={tp.selectOption}
+                      options={departmentsList.map(d => ({ value: String(d.id), label: d.name }))}
                     />
                   ) : (
                     <p className="text-sm text-gray-400 italic">Aucun département disponible</p>
@@ -2017,28 +2091,49 @@ export default function PlanFormationPage() {
               {newTarget.target_type === 'profile' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Profil concerné *</label>
-                  <CustomSelect
+                  <select
                     value={newTarget.target_label}
-                    onChange={v => setNewTarget(p => ({ ...p, target_label: v }))}
-                    options={[
-                      {value:'', label:'— Sélectionner un profil —'},
-                      {value:'Commercial', label:'Commercial'},{value:'Support Clients', label:'Support Clients'},{value:'Formateur', label:'Formateur'},{value:'Coach', label:'Coach'},
-                      {value:'Communication', label:'Communication'},{value:'Marketing', label:'Marketing'},{value:'Opérations', label:'Opérations'},{value:'Projets', label:'Projets'},
-                      {value:'RH', label:'RH'},{value:'IT', label:'IT'},{value:'Finance', label:'Finance'},{value:'Juridique', label:'Juridique'},{value:'Conformité', label:'Conformité'},{value:'Services Généraux', label:'Services Généraux'},
-                    ]}
-                    className="w-full"
-                  />
+                    onChange={e => setNewTarget(p => ({ ...p, target_label: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">— Sélectionner un profil —</option>
+                    <optgroup label="Front Office">
+                      <option value="Commercial">Commercial</option>
+                      <option value="Support Clients">Support Clients</option>
+                      <option value="Formateur">Formateur</option>
+                      <option value="Coach">Coach</option>
+                    </optgroup>
+                    <optgroup label="Middle Office">
+                      <option value="Communication">Communication</option>
+                      <option value="Marketing">Marketing</option>
+                      <option value="Opérations">Opérations</option>
+                      <option value="Projets">Projets</option>
+                    </optgroup>
+                    <optgroup label="Back Office">
+                      <option value="RH">RH</option>
+                      <option value="IT">IT</option>
+                      <option value="Finance">Finance</option>
+                      <option value="Juridique">Juridique</option>
+                      <option value="Conformité">Conformité</option>
+                      <option value="Services Généraux">Services Généraux</option>
+                    </optgroup>
+                  </select>
                 </div>
               )}
               {newTarget.target_type === 'level' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Niveau *</label>
-                  <CustomSelect
+                  <select
                     value={newTarget.target_label}
-                    onChange={v => setNewTarget(p => ({ ...p, target_label: v }))}
-                    options={[{value:'', label:'— Sélectionner —'},{value:'Débutant', label:'Débutant'},{value:'Intermédiaire', label:'Intermédiaire'},{value:'Confirmé', label:'Confirmé'},{value:'Senior', label:'Senior'}]}
-                    className="w-full"
-                  />
+                    onChange={e => setNewTarget(p => ({ ...p, target_label: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">— Sélectionner —</option>
+                    <option value="Débutant">Débutant</option>
+                    <option value="Intermédiaire">Intermédiaire</option>
+                    <option value="Confirmé">Confirmé</option>
+                    <option value="Senior">Senior</option>
+                  </select>
                 </div>
               )}
             </div>
@@ -2193,7 +2288,7 @@ function CalendarTab({ schedules }: { schedules: PlanSchedule[] }) {
   return (
     <div className="space-y-6">
       {/* Timeline by quarter */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-4 gap-3 mb-4">
         {QUARTER_LABELS.map(q => {
           const items = byQuarter[q] || [];
           const completed = items.filter(s => s.status === 'completed').length;

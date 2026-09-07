@@ -1,9 +1,11 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useLearning } from './LearningContext';
 import { hasPermission, getLevelColor, getLevelLabel, categories } from './shared';
 import {
-  BookOpen, Search, Plus, User, Users, Eye, FileWarning, MessageSquarePlus
+  BookOpen, Search, Plus, User, Users, Eye, FileWarning, MessageSquarePlus,
+  LayoutGrid, List,
 } from 'lucide-react';
 import PageTourTips from '@/components/PageTourTips';
 import Pagination from '@/components/Pagination';
@@ -18,6 +20,19 @@ export default function CatalogPage() {
     coursePage, setCoursePage, totalCourses,
   } = useLearning();
   const { t } = useI18n();
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  useEffect(() => {
+    const savedView = window.localStorage.getItem('training-catalog-view');
+    if (savedView === 'grid' || savedView === 'list') {
+      setViewMode(savedView);
+    }
+  }, []);
+
+  const selectViewMode = (mode: 'grid' | 'list') => {
+    setViewMode(mode);
+    window.localStorage.setItem('training-catalog-view', mode);
+  };
 
   const totalCatalogHours = courses.reduce((s, c) => s + (c.duration_hours || 0), 0);
 
@@ -61,15 +76,49 @@ export default function CatalogPage() {
           </div>
         </div>
       </div>
-      <div data-tour="learning-filters" className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 mb-6">
-        <div className="relative flex-1 min-w-0 sm:min-w-64">
+      <div data-tour="learning-filters" className="flex flex-wrap gap-4 mb-6">
+        <div className="relative flex-1 min-w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input type="text" placeholder={t.training.searchTraining} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm" />
         </div>
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0 sm:flex-wrap pb-1">
+        <div className="flex gap-2 flex-wrap">
           {categories.map((cat) => (
-            <button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 ${selectedCategory === cat ? 'bg-primary-500 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>{cat}</button>
+            <button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${selectedCategory === cat ? 'bg-primary-500 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>{cat}</button>
           ))}
+        </div>
+        <div
+          className="flex items-center rounded-lg border border-gray-300 bg-gray-50 p-1"
+          role="group"
+          aria-label={t.training.displayMode}
+        >
+          <button
+            type="button"
+            onClick={() => selectViewMode('grid')}
+            aria-label={t.training.gridView}
+            aria-pressed={viewMode === 'grid'}
+            title={t.training.gridView}
+            className={`rounded-md p-1.5 transition-colors ${
+              viewMode === 'grid'
+                ? 'bg-white text-primary-600 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => selectViewMode('list')}
+            aria-label={t.training.listView}
+            aria-pressed={viewMode === 'list'}
+            title={t.training.listView}
+            className={`rounded-md p-1.5 transition-colors ${
+              viewMode === 'list'
+                ? 'bg-white text-primary-600 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <List className="h-4 w-4" />
+          </button>
         </div>
         {hasPermission(userRole, 'create_course') && (
           <button onClick={() => setShowCreateCourse(true)} className="flex items-center px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600">
@@ -97,7 +146,7 @@ export default function CatalogPage() {
           <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500">{t.training.noTrainingFound}</p>
         </div>
-      ) : (
+      ) : viewMode === 'grid' ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {courses.map((course) => (
             <div key={course.id} onClick={() => setSelectedCourse(course)} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all cursor-pointer group">
@@ -134,6 +183,92 @@ export default function CatalogPage() {
               </div>
             </div>
           ))}
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-[900px] w-full text-left text-sm">
+              <thead className="border-b border-gray-200 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <tr>
+                  <th scope="col" className="px-4 py-3">{t.training.training}</th>
+                  <th scope="col" className="px-4 py-3">{t.training.category}</th>
+                  <th scope="col" className="px-4 py-3">{t.training.level}</th>
+                  <th scope="col" className="px-4 py-3">{t.training.duration}</th>
+                  <th scope="col" className="px-4 py-3">{t.training.provider}</th>
+                  <th scope="col" className="px-4 py-3 text-center">{t.training.participants}</th>
+                  <th scope="col" className="px-4 py-3">{t.training.progress}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {courses.map((course) => (
+                  <tr
+                    key={course.id}
+                    onClick={() => setSelectedCourse(course)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setSelectedCourse(course);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`${t.training.openTraining}: ${course.title}`}
+                    className="cursor-pointer transition-colors hover:bg-primary-50/40 focus:bg-primary-50/40 focus:outline-none"
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex min-w-72 items-center gap-3">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-2xl">
+                          {course.image_emoji || '📚'}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <p className="max-w-72 truncate font-semibold text-gray-900">{course.title}</p>
+                            {course.is_mandatory && (
+                              <span className="rounded bg-red-50 px-1.5 py-0.5 text-[11px] font-medium text-red-700">
+                                {t.training.mandatory}
+                              </span>
+                            )}
+                            {course.requires_certificate && (
+                              <span className="rounded bg-purple-50 px-1.5 py-0.5 text-[11px] font-medium text-purple-700">
+                                {t.training.certif}
+                              </span>
+                            )}
+                          </div>
+                          {course.skills?.length > 0 && (
+                            <p className="mt-1 max-w-80 truncate text-xs text-gray-500">
+                              {course.skills.slice(0, 3).map((skill) => skill.name).join(' · ')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">{course.category || '—'}</td>
+                    <td className="px-4 py-3">
+                      <span className={`whitespace-nowrap rounded px-2 py-1 text-xs font-medium ${getLevelColor(course.level)}`}>
+                        {getLevelLabel(course.level)}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-gray-600">{course.duration_hours || 0}h</td>
+                    <td className="max-w-48 truncate px-4 py-3 text-gray-600">
+                      {course.provider_name || course.provider || t.training.internal}
+                    </td>
+                    <td className="px-4 py-3 text-center font-medium text-gray-700">{course.enrolled}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex min-w-28 items-center gap-2">
+                        <div className="h-1.5 flex-1 rounded-full bg-gray-200">
+                          <div
+                            className="h-full rounded-full bg-green-500"
+                            style={{ width: `${course.completion_rate}%` }}
+                          />
+                        </div>
+                        <span className="w-9 text-right text-xs text-gray-500">{course.completion_rate}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
       <Pagination page={coursePage} total={totalCourses} pageSize={10} onPageChange={setCoursePage} />

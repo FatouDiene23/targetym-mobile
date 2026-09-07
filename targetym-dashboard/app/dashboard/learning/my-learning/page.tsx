@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { useLearning } from '../LearningContext';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import { getStatusColor, getStatusLabel, hasPermission } from '../shared';
+import Pagination from '@/components/Pagination';
 import {
   Clock, CheckCircle, Play, ExternalLink, Edit, XCircle, RefreshCw, AlertTriangle, BookOpen
 } from 'lucide-react';
@@ -21,6 +23,20 @@ export default function MyLearningPage() {
   const pendingValidation = myAssignments.filter(a => a.status === 'pending_validation');
   const completed = myAssignments.filter(a => a.status === 'completed');
   const rejected = myAssignments.filter(a => a.status === 'rejected');
+
+  const ASSIGNMENT_PAGE_SIZE = 10;
+  const [pages, setPages] = useState<Record<string, number>>({
+    inProgress: 1, assigned: 1, pendingValidation: 1, completed: 1, rejected: 1,
+  });
+  const paginate = <T,>(arr: T[], key: string) => arr.slice((pages[key] - 1) * ASSIGNMENT_PAGE_SIZE, pages[key] * ASSIGNMENT_PAGE_SIZE);
+  const renderPagination = (total: number, key: string) => (
+    <Pagination
+      page={pages[key]}
+      total={total}
+      pageSize={ASSIGNMENT_PAGE_SIZE}
+      onPageChange={(p) => setPages(prev => ({ ...prev, [key]: p }))}
+    />
+  );
 
   const renderAssignment = (assignment: typeof myAssignments[0]) => (
     <div key={assignment.id} className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow">
@@ -105,19 +121,19 @@ export default function MyLearningPage() {
         </div>
       </div>
       {pendingValidation.length > 0 && (
-        <div><h3 className="text-sm font-semibold text-orange-700 mb-3 flex items-center gap-2"><Clock className="w-4 h-4" />{tm.pendingValidationLabel} ({pendingValidation.length})</h3><div className="space-y-3">{pendingValidation.map(renderAssignment)}</div></div>
+        <div><h3 className="text-sm font-semibold text-orange-700 mb-3 flex items-center gap-2"><Clock className="w-4 h-4" />{tm.pendingValidationLabel} ({pendingValidation.length})</h3><div className="space-y-3">{paginate(pendingValidation, 'pendingValidation').map(renderAssignment)}</div>{renderPagination(pendingValidation.length, 'pendingValidation')}</div>
       )}
       {rejected.length > 0 && (
-        <div><h3 className="text-sm font-semibold text-red-700 mb-3 flex items-center gap-2"><XCircle className="w-4 h-4" />{tm.rejected} ({rejected.length})</h3><div className="space-y-3">{rejected.map(renderAssignment)}</div></div>
+        <div><h3 className="text-sm font-semibold text-red-700 mb-3 flex items-center gap-2"><XCircle className="w-4 h-4" />{tm.rejected} ({rejected.length})</h3><div className="space-y-3">{paginate(rejected, 'rejected').map(renderAssignment)}</div>{renderPagination(rejected.length, 'rejected')}</div>
       )}
       {inProgress.length > 0 && (
-        <div><h3 className="text-sm font-semibold text-primary-700 mb-3">{tm.inProgress} ({inProgress.length})</h3><div className="space-y-3">{inProgress.map(renderAssignment)}</div></div>
+        <div><h3 className="text-sm font-semibold text-primary-700 mb-3">{tm.inProgress} ({inProgress.length})</h3><div className="space-y-3">{paginate(inProgress, 'inProgress').map(renderAssignment)}</div>{renderPagination(inProgress.length, 'inProgress')}</div>
       )}
       {assigned.length > 0 && (
-        <div><h3 className="text-sm font-semibold text-gray-700 mb-3">{tm.toStart} ({assigned.length})</h3><div className="space-y-3">{assigned.map(renderAssignment)}</div></div>
+        <div><h3 className="text-sm font-semibold text-gray-700 mb-3">{tm.toStart} ({assigned.length})</h3><div className="space-y-3">{paginate(assigned, 'assigned').map(renderAssignment)}</div>{renderPagination(assigned.length, 'assigned')}</div>
       )}
       {completed.length > 0 && (
-        <div><h3 className="text-sm font-semibold text-green-700 mb-3 flex items-center gap-2"><CheckCircle className="w-4 h-4" />{tm.completed} ({completed.length})</h3><div className="space-y-3">{completed.map(renderAssignment)}</div></div>
+        <div><h3 className="text-sm font-semibold text-green-700 mb-3 flex items-center gap-2"><CheckCircle className="w-4 h-4" />{tm.completed} ({completed.length})</h3><div className="space-y-3">{paginate(completed, 'completed').map(renderAssignment)}</div>{renderPagination(completed.length, 'completed')}</div>
       )}
       {myAssignments.length === 0 && (
         <div className="bg-white rounded-xl p-12 text-center"><p className="text-gray-500">{tm.noTrainingAssigned}</p></div>

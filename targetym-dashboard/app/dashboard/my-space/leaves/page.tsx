@@ -1,17 +1,19 @@
 'use client';
+import { resolveApiUrl } from '@/lib/apiUrl';
+import { getToken } from '@/lib/api';
+import Link from 'next/link';
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import {
-  Calendar, Plus, X, AlertCircle, Clock, CheckCircle, XCircle, Info, ChevronDown, ChevronUp, Heart, FileText
+  Calendar, Plus, X, AlertCircle, Clock, CheckCircle, XCircle, Info, ChevronDown, ChevronUp, Heart, FileText, Upload, ArrowLeftRight
 } from 'lucide-react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import Header from '@/components/Header';
+import Pagination from '@/components/Pagination';
 import { useI18n } from '@/lib/i18n/I18nContext';
-import CustomDatePicker from '@/components/CustomDatePicker';
-import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES
@@ -61,6 +63,7 @@ interface LeaveRequest {
   approved_at?: string;
   approved_by_name?: string;
   rejection_reason?: string;
+  current_approval_step?: 'manager_n1' | 'manager_n2' | 'hr' | null;
 }
 
 interface LeaveType {
@@ -71,16 +74,17 @@ interface LeaveType {
   is_active: boolean;
   is_annual?: boolean;
   accrual_rate?: number;
+  eligible_gender?: 'all' | 'female' | 'male';
 }
 
 // ============================================
 // API
 // ============================================
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
+const API_URL = resolveApiUrl(process.env.NEXT_PUBLIC_API_URL);
 
 function getAuthHeaders(): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const token = getToken();
   return {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -99,8 +103,8 @@ async function getLeaveBalances(employeeId: number): Promise<LeaveBalanceSummary
   return response.json();
 }
 
-async function getLeaveTypes(): Promise<LeaveType[]> {
-  const response = await fetch(`${API_URL}/api/leaves/types`, { headers: getAuthHeaders() });
+async function getLeaveTypes(employeeId: number): Promise<LeaveType[]> {
+  const response = await fetch(`${API_URL}/api/leaves/types?employee_id=${employeeId}`, { headers: getAuthHeaders() });
   if (!response.ok) return [];
   return response.json();
 }
@@ -127,7 +131,12 @@ async function createLeaveRequest(employeeId: number, data: {
   });
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || 'Erreur');
+    const detail = error.detail;
+    throw new Error(
+      typeof detail === 'object' && detail?.code
+        ? detail.code
+        : (typeof detail === 'string' ? detail : 'Erreur')
+    );
   }
   return response.json();
 }
@@ -207,13 +216,13 @@ function getRecallStatusLabels(t: any): Record<string, { label: string; classNam
 
 interface SickDeclaration {
   id: number;
-  leave_id: number;
+  leave_id?: number | null;
   employee_id: number;
   sick_start_date: string;
   estimated_duration_days: number;
   estimated_end_date: string;
   actual_end_date?: string | null;
-  certificate_url: string;
+  certificate_url?: string | null;
   certificate_filename?: string | null;
   status: string;
   recovery_type?: string | null;
@@ -236,7 +245,7 @@ function getSickStatusLabels(t: any): Record<string, { label: string; className:
 
 async function getMySickDeclarations(employeeId: number): Promise<SickDeclaration[]> {
   try {
-    const response = await fetch(`${API_URL}/api/leave-sick-declarations/?employee_id=${employeeId}`, { headers: getAuthHeaders() });
+    const response = await fetch(`${API_URL}/api/leave-sick-declarations/?employee_id=${employeeId}&standalone=false`, { headers: getAuthHeaders() });
     if (!response.ok) return [];
     const data = await response.json();
     return Array.isArray(data) ? data : [];
@@ -246,20 +255,20 @@ async function getMySickDeclarations(employeeId: number): Promise<SickDeclaratio
 }
 
 async function createSickDeclaration(payload: {
-  leave_id: number;
+  leave_id?: number | null;
   sick_start_date: string;
   estimated_duration_days: number;
   notes?: string;
-  certificate: File;
+  certificate?: File | null;
 }): Promise<void> {
   const fd = new FormData();
-  fd.append('leave_id', String(payload.leave_id));
+  if (payload.leave_id) fd.append('leave_id', String(payload.leave_id));
   fd.append('sick_start_date', payload.sick_start_date);
   fd.append('estimated_duration_days', String(payload.estimated_duration_days));
   if (payload.notes) fd.append('notes', payload.notes);
-  fd.append('certificate', payload.certificate);
+  if (payload.certificate) fd.append('certificate', payload.certificate);
 
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const token = getToken();
   const response = await fetch(`${API_URL}/api/leave-sick-declarations/`, {
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -281,7 +290,7 @@ async function extendSickDeclaration(id: number, payload: {
   if (payload.notes) fd.append('notes', payload.notes);
   fd.append('certificate', payload.certificate);
 
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const token = getToken();
   const response = await fetch(`${API_URL}/api/leave-sick-declarations/${id}/extend`, {
     method: 'PUT',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -305,6 +314,22 @@ async function recoverSickDeclaration(id: number, recovery_type: 'resume_leave' 
   }
 }
 
+async function uploadSickCertificate(id: number, certificate: File): Promise<void> {
+  const fd = new FormData();
+  fd.append('certificate', certificate);
+
+  const token = getToken();
+  const response = await fetch(`${API_URL}/api/leave-sick-declarations/${id}/certificate`, {
+    method: 'PUT',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: fd,
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Erreur lors de l'envoi du justificatif");
+  }
+}
+
 async function cancelLeaveRequest(requestId: number): Promise<void> {
   const response = await fetch(`${API_URL}/api/leaves/requests/${requestId}/cancel`, {
     method: 'POST',
@@ -317,10 +342,25 @@ async function cancelLeaveRequest(requestId: number): Promise<void> {
 // COMPONENTS
 // ============================================
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({
+  status,
+  currentApprovalStep,
+}: {
+  status: string;
+  currentApprovalStep?: LeaveRequest['current_approval_step'];
+}) {
   const { t } = useI18n();
+  const pendingLabel = currentApprovalStep === 'manager_n1'
+    ? t.mySpace.statusPendingN1
+    : currentApprovalStep === 'manager_n2'
+      ? t.mySpace.statusPendingN2
+      : currentApprovalStep === 'hr'
+        ? t.mySpace.statusPendingRh
+        : t.mySpace.statusPending;
   const configs: Record<string, { bg: string; text: string; label: string; icon: React.ReactNode }> = {
-    pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: t.mySpace.statusPending, icon: <Clock className="w-3.5 h-3.5" /> },
+    pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: pendingLabel, icon: <Clock className="w-3.5 h-3.5" /> },
+    manager_approved: { bg: 'bg-blue-100', text: 'text-blue-800', label: pendingLabel, icon: <Clock className="w-3.5 h-3.5" /> },
+    n2_approved: { bg: 'bg-indigo-100', text: 'text-indigo-800', label: pendingLabel, icon: <Clock className="w-3.5 h-3.5" /> },
     approved: { bg: 'bg-green-100', text: 'text-green-800', label: t.mySpace.statusApproved, icon: <CheckCircle className="w-3.5 h-3.5" /> },
     rejected: { bg: 'bg-red-100', text: 'text-red-800', label: t.mySpace.statusRejected, icon: <XCircle className="w-3.5 h-3.5" /> },
     cancelled: { bg: 'bg-gray-100', text: 'text-gray-800', label: t.mySpace.statusCancelled, icon: <X className="w-3.5 h-3.5" /> },
@@ -337,6 +377,12 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function formatLeaveDays(value?: number | string | null): string {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return '0';
+  return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+}
+
 function BalanceCard({ balance }: { balance: LeaveBalance }) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
@@ -350,13 +396,13 @@ function BalanceCard({ balance }: { balance: LeaveBalance }) {
         </span>
       </div>
       <div className="text-2xl font-bold text-primary-600 mb-2">
-        {balance.available}
+        {formatLeaveDays(balance.available)}
         <span className="text-sm font-normal text-gray-500"> {t.mySpace.daysAvailable}</span>
       </div>
       <div className="flex gap-4 text-xs text-gray-500 mb-2">
-        <span>{t.mySpace.taken}: {balance.taken}</span>
+        <span>{t.mySpace.taken}: {formatLeaveDays(balance.taken)}</span>
         {balance.pending > 0 && (
-          <span className="text-yellow-600">{t.mySpace.pendingTab}: {balance.pending}</span>
+          <span className="text-yellow-600">{t.mySpace.pendingTab}: {formatLeaveDays(balance.pending)}</span>
         )}
       </div>
 
@@ -374,34 +420,34 @@ function BalanceCard({ balance }: { balance: LeaveBalance }) {
           {balance.initial_balance !== undefined && (
             <div className="flex justify-between">
               <span>{t.mySpace.initialBalance}</span>
-              <span className="font-medium text-gray-900">{balance.initial_balance} j</span>
+              <span className="font-medium text-gray-900">{formatLeaveDays(balance.initial_balance)} j</span>
             </div>
           )}
           {balance.carried_over > 0 && (
             <div className="flex justify-between">
               <span>{t.mySpace.carryOver}</span>
-              <span className="font-medium text-gray-900">{balance.carried_over} j</span>
+              <span className="font-medium text-gray-900">{formatLeaveDays(balance.carried_over)} j</span>
             </div>
           )}
           {balance.accrued !== undefined && (
             <div className="flex justify-between">
               <span>{t.mySpace.accruedThisYear} {balance.accrual_rate ? `(${balance.accrual_rate}×mois)` : ''}</span>
-              <span className="font-medium text-gray-900">{balance.accrued} j</span>
+              <span className="font-medium text-gray-900">{formatLeaveDays(balance.accrued)} j</span>
             </div>
           )}
           <div className="flex justify-between">
             <span>{t.mySpace.taken}</span>
-            <span className="font-medium text-gray-900">-{balance.taken} j</span>
+            <span className="font-medium text-gray-900">-{formatLeaveDays(balance.taken)} j</span>
           </div>
           {balance.pending > 0 && (
             <div className="flex justify-between">
               <span>{t.mySpace.pendingTab}</span>
-              <span className="font-medium text-yellow-600">-{balance.pending} j</span>
+              <span className="font-medium text-yellow-600">-{formatLeaveDays(balance.pending)} j</span>
             </div>
           )}
           <div className="flex justify-between pt-1.5 border-t border-gray-200 font-semibold text-gray-900">
             <span>{t.mySpace.available}</span>
-            <span>{balance.available} j</span>
+            <span>{formatLeaveDays(balance.available)} j</span>
           </div>
         </div>
       )}
@@ -424,7 +470,7 @@ function NewLeaveRequestModal({
   balances: LeaveBalanceSummary | null;
   onSuccess: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [formData, setFormData] = useState({
     leave_type_id: '',
     start_date: '',
@@ -435,6 +481,21 @@ function NewLeaveRequestModal({
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [handoverNeeded, setHandoverNeeded] = useState(false);
+  const handoverCopy = {
+    fr: {
+      label: 'Une passation est nécessaire pour ce congé',
+      help: 'Après l’envoi, vous pourrez choisir un intérimaire et préparer les tâches ou dossiers à transmettre.',
+    },
+    en: {
+      label: 'A handover is needed for this leave',
+      help: 'After submitting, you can choose a substitute and prepare the tasks or files to hand over.',
+    },
+    pt: {
+      label: 'É necessária uma passagem para estas férias',
+      help: 'Após o envio, poderá escolher um substituto e preparar as tarefas ou dossiês a transmitir.',
+    },
+  }[locale];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -447,7 +508,7 @@ function NewLeaveRequestModal({
     setError('');
 
     try {
-      await createLeaveRequest(employeeId, {
+      const created = await createLeaveRequest(employeeId, {
         leave_type_id: parseInt(formData.leave_type_id),
         start_date: formData.start_date,
         end_date: formData.end_date,
@@ -465,8 +526,18 @@ function NewLeaveRequestModal({
         start_half_day: false,
         end_half_day: false,
       });
+      setHandoverNeeded(false);
+      if (handoverNeeded) {
+        window.location.assign(
+          `/dashboard/my-space/leave-handovers?leave_request_id=${created.id}`,
+        );
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur');
+      setError(
+        err instanceof Error && err.message === 'leave_type_gender_ineligible'
+          ? t.mySpace.leaveTypeGenderIneligible
+          : (err instanceof Error ? err.message : 'Erreur')
+      );
     } finally {
       setSubmitting(false);
     }
@@ -498,23 +569,32 @@ function NewLeaveRequestModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t.mySpace.leaveTypeLabel} <span className="text-red-500">*</span>
               </label>
-              <CustomSelect
+              <select
                 value={formData.leave_type_id}
-                onChange={(v) => setFormData({ ...formData, leave_type_id: v })}
-                placeholder={t.mySpace.selectType}
-                options={[
-                  { value: '', label: t.mySpace.selectType },
-                  ...leaveTypes.map((type) => {
-                    const bal = balances?.balances.find((b) => b.leave_type_id === type.id);
-                    let suffix = '';
-                    if (bal) suffix = ` — ${bal.available} j disponibles`;
-                    else if (type.is_annual) suffix = type.accrual_rate ? ` — ${type.accrual_rate} j/mois` : '';
-                    else if (type.default_days > 0) suffix = ` — quota : ${type.default_days} j/an`;
-                    else suffix = ' — sans quota fixe';
-                    return { value: String(type.id), label: `${type.name} (${type.code})${suffix}` };
-                  }),
-                ]}
-              />
+                onChange={(e) => setFormData({ ...formData, leave_type_id: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                required
+              >
+                <option value="">{t.mySpace.selectType}</option>
+                {leaveTypes.map((type) => {
+                  const bal = balances?.balances.find((b) => b.leave_type_id === type.id);
+                  let suffix = '';
+                  if (bal) {
+                    suffix = ` \u2014 ${formatLeaveDays(bal.available)} j disponibles`;
+                  } else if (type.is_annual) {
+                    suffix = type.accrual_rate ? ` \u2014 ${type.accrual_rate} j/mois` : '';
+                  } else if (type.default_days > 0) {
+                    suffix = ` \u2014 quota : ${type.default_days} j/an`;
+                  } else {
+                    suffix = ' \u2014 sans quota fixe';
+                  }
+                  return (
+                    <option key={type.id} value={type.id}>
+                      {type.name} ({type.code}){suffix}
+                    </option>
+                  );
+                })}
+              </select>
             </div>
 
             {formData.leave_type_id && (() => {
@@ -524,8 +604,8 @@ function NewLeaveRequestModal({
               if (bal) {
                 return (
                   <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800">
-                    {t.mySpace.availableBalance} <span className="font-bold">{bal.available} {bal.available !== 1 ? t.mySpace.daysWord : t.mySpace.dayWord}</span>
-                    {bal.pending > 0 && <span className="ml-2 text-xs text-amber-600">({bal.pending} j {t.mySpace.inPending})</span>}
+                    {t.mySpace.availableBalance} <span className="font-bold">{formatLeaveDays(bal.available)} {bal.available !== 1 ? t.mySpace.daysWord : t.mySpace.dayWord}</span>
+                    {bal.pending > 0 && <span className="ml-2 text-xs text-amber-600">({formatLeaveDays(bal.pending)} j {t.mySpace.inPending})</span>}
                   </div>
                 );
               } else if (leaveType) {
@@ -554,26 +634,33 @@ function NewLeaveRequestModal({
               return null;
             })()}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t.mySpace.startDate} <span className="text-red-500">*</span>
                 </label>
-                <CustomDatePicker
+                <input
+                  type="date"
                   value={formData.start_date}
-                  onChange={(v) => setFormData({ ...formData, start_date: v })}
+                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  required
                 />
+
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t.mySpace.endDate} <span className="text-red-500">*</span>
                 </label>
-                <CustomDatePicker
+                <input
+                  type="date"
                   value={formData.end_date}
-                  onChange={(v) => setFormData({ ...formData, end_date: v })}
-                  min={formData.start_date || undefined}
+                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  required
                 />
+
               </div>
             </div>
 
@@ -595,6 +682,19 @@ function NewLeaveRequestModal({
                 <strong>Note :</strong> {t.mySpace.justificativeNote}
               </p>
             </div>
+
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-primary-100 bg-primary-50 p-3">
+              <input
+                type="checkbox"
+                checked={handoverNeeded}
+                onChange={(event) => setHandoverNeeded(event.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600"
+              />
+              <span>
+                <span className="block text-sm font-semibold text-primary-900">{handoverCopy.label}</span>
+                <span className="mt-1 block text-xs text-primary-700">{handoverCopy.help}</span>
+              </span>
+            </label>
 
             <div className="flex gap-3 pt-4">
               <button
@@ -706,7 +806,7 @@ function ChooseCompensationModal({
 // ============================================
 
 function ReportSickModal({ leave, onClose, onSuccess }: {
-  leave: LeaveRequest | null;
+  leave: LeaveRequest | null | undefined;
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -717,18 +817,14 @@ function ReportSickModal({ leave, onClose, onSuccess }: {
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  if (!leave) return null;
+  if (leave === undefined) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) {
-      toast.error(t.mySpace.medicalCertificateRequired);
-      return;
-    }
     setSubmitting(true);
     try {
       await createSickDeclaration({
-        leave_id: leave.id,
+        leave_id: leave?.id,
         sick_start_date: sickStartDate,
         estimated_duration_days: duration,
         notes: notes || undefined,
@@ -760,7 +856,8 @@ function ReportSickModal({ leave, onClose, onSuccess }: {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {t.mySpace.sickStartDate} <span className="text-red-500">*</span>
               </label>
-              <CustomDatePicker value={sickStartDate} onChange={setSickStartDate} className="w-full" />
+              <input type="date" value={sickStartDate} onChange={(e) => setSickStartDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" required />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -771,10 +868,10 @@ function ReportSickModal({ leave, onClose, onSuccess }: {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t.mySpace.medicalCertificate} <span className="text-red-500">*</span>
+                {t.mySpace.medicalCertificate}
               </label>
               <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="w-full text-sm text-gray-700" required />
+                className="w-full text-sm text-gray-700" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t.mySpace.notes}</label>
@@ -872,6 +969,64 @@ function ExtendSickModal({ declaration, onClose, onSuccess }: {
   );
 }
 
+function SickCertificateModal({ declaration, onClose, onSuccess }: {
+  declaration: SickDeclaration | null;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const { t } = useI18n();
+  const [file, setFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  if (!declaration) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!file) {
+      toast.error(t.mySpace.newCertificateRequired);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await uploadSickCertificate(declaration.id, file);
+      toast.success('Justificatif enregistré');
+      onSuccess();
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erreur');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+        <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Upload className="w-5 h-5 text-orange-500" />
+              Justificatif maladie
+            </h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setFile(e.target.files?.[0] || null)}
+              className="w-full text-sm text-gray-700" required />
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">{t.common.cancel}</button>
+              <button type="submit" disabled={submitting} className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50">
+                {submitting ? t.mySpace.sending : 'Enregistrer'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RecoverSickModal({ declaration, onClose, onSuccess }: {
   declaration: SickDeclaration | null;
   onClose: () => void;
@@ -882,6 +1037,7 @@ function RecoverSickModal({ declaration, onClose, onSuccess }: {
   const [submitting, setSubmitting] = useState(false);
 
   if (!declaration) return null;
+  const hasLinkedLeave = Boolean(declaration.leave_id);
 
   const today = new Date();
   const sickStart = new Date(declaration.sick_start_date);
@@ -891,7 +1047,7 @@ function RecoverSickModal({ declaration, onClose, onSuccess }: {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await recoverSickDeclaration(declaration.id, recoveryType);
+      await recoverSickDeclaration(declaration.id, hasLinkedLeave ? recoveryType : 'return_to_work');
       toast.success(t.mySpace.recoveryRecorded);
       onSuccess();
       onClose();
@@ -913,16 +1069,18 @@ function RecoverSickModal({ declaration, onClose, onSuccess }: {
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                recoveryType === 'resume_leave' ? 'border-primary-600 bg-primary-50' : 'border-gray-200 hover:bg-gray-50'
-              }`}>
-                <input type="radio" name="recovery" checked={recoveryType === 'resume_leave'}
-                  onChange={() => setRecoveryType('resume_leave')} className="mt-1" />
-                <div>
-                  <div className="font-medium text-gray-900">{t.mySpace.resumeLeave}</div>
-                  <div className="text-xs text-gray-600 mt-0.5">{t.mySpace.resumeLeaveDesc} {days} {t.mySpace.dayCount}</div>
-                </div>
-              </label>
+              {hasLinkedLeave && (
+                <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  recoveryType === 'resume_leave' ? 'border-primary-600 bg-primary-50' : 'border-gray-200 hover:bg-gray-50'
+                }`}>
+                  <input type="radio" name="recovery" checked={recoveryType === 'resume_leave'}
+                    onChange={() => setRecoveryType('resume_leave')} className="mt-1" />
+                  <div>
+                    <div className="font-medium text-gray-900">{t.mySpace.resumeLeave}</div>
+                    <div className="text-xs text-gray-600 mt-0.5">{t.mySpace.resumeLeaveDesc} {days} {t.mySpace.dayCount}</div>
+                  </div>
+                </label>
+              )}
               <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                 recoveryType === 'return_to_work' ? 'border-primary-600 bg-primary-50' : 'border-gray-200 hover:bg-gray-50'
               }`}>
@@ -961,6 +1119,9 @@ export default function MyLeavesPage() {
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [currentLeavePage, setCurrentLeavePage] = useState(1);
+  const LEAVE_PAGE_SIZE = 10;
+  useEffect(() => { setCurrentLeavePage(1); }, [activeTab]);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -974,8 +1135,9 @@ export default function MyLeavesPage() {
   const [recallPolicy, setRecallPolicy] = useState<'employee_chooses' | 'employer_decides'>('employee_chooses');
   const [compRecall, setCompRecall] = useState<MyLeaveRecall | null>(null);
   const [sickDeclarations, setSickDeclarations] = useState<SickDeclaration[]>([]);
-  const [reportSickLeave, setReportSickLeave] = useState<LeaveRequest | null>(null);
+  const [reportSickLeave, setReportSickLeave] = useState<LeaveRequest | null | undefined>(undefined);
   const [extendSickDecl, setExtendSickDecl] = useState<SickDeclaration | null>(null);
+  const [certificateSickDecl, setCertificateSickDecl] = useState<SickDeclaration | null>(null);
   const [recoverSickDecl, setRecoverSickDecl] = useState<SickDeclaration | null>(null);
 
   const loadData = useCallback(async () => {
@@ -993,7 +1155,7 @@ export default function MyLeavesPage() {
 
       const [balancesData, typesData, requestsData] = await Promise.all([
         getLeaveBalances(user.employee_id).catch(() => null),
-        getLeaveTypes(),
+        getLeaveTypes(user.employee_id),
         getMyLeaveRequests(user.employee_id),
       ]);
 
@@ -1043,6 +1205,7 @@ export default function MyLeavesPage() {
 
   const filteredRequests = requests.filter(r => {
     if (activeTab === 'all') return true;
+    if (activeTab === 'pending') return ['pending', 'manager_approved', 'n2_approved'].includes(r.status);
     return r.status === activeTab;
   });
 
@@ -1073,7 +1236,14 @@ export default function MyLeavesPage() {
       <Header title={t.mySpace.myLeavesTitle} subtitle={t.mySpace.myLeavesSubtitle} />
       <div className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-end mb-8">
+        <div className="flex flex-wrap items-center justify-end gap-3 mb-8">
+          <Link
+            href="/dashboard/my-space/leave-handovers"
+            className="flex items-center gap-2 px-4 py-2 border border-primary-200 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition-colors"
+          >
+            <ArrowLeftRight className="w-5 h-5" />
+            {t.sidebar.myLeaveHandovers}
+          </Link>
           <button
             onClick={() => setShowModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
@@ -1093,14 +1263,14 @@ export default function MyLeavesPage() {
             </h2>
             {balances && (
               <div className="text-right">
-                <p className="text-3xl font-bold text-primary-600">{balances.total_available}</p>
+                <p className="text-3xl font-bold text-primary-600">{formatLeaveDays(balances.total_available)}</p>
                 <p className="text-sm text-gray-500">{t.mySpace.daysAvailable}</p>
               </div>
             )}
           </div>
 
           {balances && balances.balances.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-tour="leave-balance">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" data-tour="leave-balance">
               {balances.balances.map((balance) => (
                 <BalanceCard key={balance.id} balance={balance} />
               ))}
@@ -1149,7 +1319,7 @@ export default function MyLeavesPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredRequests.map((request) => {
+              {filteredRequests.slice((currentLeavePage - 1) * LEAVE_PAGE_SIZE, currentLeavePage * LEAVE_PAGE_SIZE).map((request) => {
                 const todayStr = new Date().toISOString().split('T')[0];
                 const isInProgress =
                   request.status === 'approved' &&
@@ -1166,7 +1336,7 @@ export default function MyLeavesPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-1">
                       <span className="font-medium text-gray-900">{request.leave_type_name}</span>
-                      <StatusBadge status={request.status} />
+                      <StatusBadge status={request.status} currentApprovalStep={request.current_approval_step} />
                     </div>
                     <div className="flex items-center gap-4 text-sm text-gray-500">
                       <span>
@@ -1230,6 +1400,14 @@ export default function MyLeavesPage() {
                 );
               })}
             </div>
+          )}
+          {filteredRequests.length > 0 && (
+            <Pagination
+              page={currentLeavePage}
+              total={filteredRequests.length}
+              pageSize={LEAVE_PAGE_SIZE}
+              onPageChange={setCurrentLeavePage}
+            />
           )}
         </div>
 
@@ -1299,10 +1477,10 @@ export default function MyLeavesPage() {
         </div>
 
         {/* Mes déclarations de maladie */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6 overflow-hidden">
+        <div id="sick-declarations" className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6 overflow-hidden scroll-mt-24">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Heart className="w-5 h-5 text-orange-500" />
-            {t.mySpace.mySickDeclarations}
+            Maladie pendant congé
           </h2>
           {sickDeclarations.length === 0 ? (
             <p className="text-center py-6 text-gray-500 text-sm">{t.mySpace.noDeclaration}</p>
@@ -1328,6 +1506,9 @@ export default function MyLeavesPage() {
                         ({new Date(linkedLeave.start_date).toLocaleDateString('fr-FR')} → {new Date(linkedLeave.end_date).toLocaleDateString('fr-FR')})
                       </p>
                     )}
+                    {!linkedLeave && !d.leave_id && (
+                      <p className="text-sm text-gray-600 mb-1">Déclaration hors congé</p>
+                    )}
                     <p className="text-sm text-gray-700 mb-1">
                       {t.mySpace.sicknessRef} {new Date(d.sick_start_date).toLocaleDateString('fr-FR')} → {new Date(endDate).toLocaleDateString('fr-FR')}
                       {!d.actual_end_date && <span className="text-xs text-gray-500"> ({t.mySpace.estimated})</span>}
@@ -1336,14 +1517,18 @@ export default function MyLeavesPage() {
                       <p className="text-xs text-gray-600 mb-1">{d.days_credited} {t.mySpace.daysCredited}</p>
                     )}
                     <div className="flex gap-2 flex-wrap mt-2">
-                      <a
-                        href={d.certificate_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-sm text-primary-600 hover:text-primary-700 inline-flex items-center gap-1"
-                      >
-                        <FileText className="w-3.5 h-3.5" /> {t.mySpace.viewCertificate}
-                      </a>
+                      {d.certificate_url ? (
+                        <a
+                          href={d.certificate_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sm text-primary-600 hover:text-primary-700 inline-flex items-center gap-1"
+                        >
+                          <FileText className="w-3.5 h-3.5" /> {t.mySpace.viewCertificate}
+                        </a>
+                      ) : (
+                        <span className="text-sm text-gray-500">Aucun justificatif</span>
+                      )}
                       {d.extension_certificate_url && (
                         <a
                           href={d.extension_certificate_url}
@@ -1354,8 +1539,15 @@ export default function MyLeavesPage() {
                           <FileText className="w-3.5 h-3.5" /> {t.mySpace.extensionCertificate}
                         </a>
                       )}
-                      {d.status === 'active' && (
+                      {(d.status === 'active' || d.status === 'prolongee') && (
                         <>
+                          <button
+                            onClick={() => setCertificateSickDecl(d)}
+                            className="text-sm text-orange-700 px-3 py-1 border border-orange-200 rounded-lg hover:bg-orange-50 inline-flex items-center gap-1"
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            {d.certificate_url ? 'Remplacer' : 'Ajouter'}
+                          </button>
                           <button
                             onClick={() => setExtendSickDecl(d)}
                             className="text-sm text-orange-700 px-3 py-1 border border-orange-200 rounded-lg hover:bg-orange-50"
@@ -1399,12 +1591,17 @@ export default function MyLeavesPage() {
 
       <ReportSickModal
         leave={reportSickLeave}
-        onClose={() => setReportSickLeave(null)}
+        onClose={() => setReportSickLeave(undefined)}
         onSuccess={loadData}
       />
       <ExtendSickModal
         declaration={extendSickDecl}
         onClose={() => setExtendSickDecl(null)}
+        onSuccess={loadData}
+      />
+      <SickCertificateModal
+        declaration={certificateSickDecl}
+        onClose={() => setCertificateSickDecl(null)}
         onSuccess={loadData}
       />
       <RecoverSickModal

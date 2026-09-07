@@ -1,13 +1,19 @@
 'use client';
 
+import { useState } from 'react';
 import { useLearning } from '../LearningContext';
 import { getStatusColor, getStatusLabel } from '../shared';
 import { UsersRound, Play, CheckCircle, Clock } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/I18nContext';
+import Pagination from '@/components/Pagination';
 
 export default function TeamPage() {
   const { t } = useI18n();
   const { employees, teamAssignments, setSelectedAssignment, setShowValidationModal } = useLearning();
+  const [currentTeamPage, setCurrentTeamPage] = useState(1);
+  const TEAM_PAGE_SIZE = 10;
+  const employeesWithAssignments = employees.filter(emp => teamAssignments.some(a => a.employee_id === emp.id));
+  const paginatedEmployees = employeesWithAssignments.slice((currentTeamPage - 1) * TEAM_PAGE_SIZE, currentTeamPage * TEAM_PAGE_SIZE);
 
   const inProgressCount = teamAssignments.filter(a => a.status === 'in_progress' || a.status === 'assigned').length;
   const completedCount = teamAssignments.filter(a => a.status === 'completed').length;
@@ -68,7 +74,7 @@ export default function TeamPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {employees.map((emp) => {
+                {paginatedEmployees.map((emp) => {
                   const empAssignments = teamAssignments.filter(a => a.employee_id === emp.id);
                   if (empAssignments.length === 0) return null;
                   const inProgress = empAssignments.filter(a => a.status === 'in_progress' || a.status === 'assigned').length;
@@ -112,6 +118,12 @@ export default function TeamPage() {
                     </div>
                   );
                 })}
+                <Pagination
+                  page={currentTeamPage}
+                  total={employeesWithAssignments.length}
+                  pageSize={TEAM_PAGE_SIZE}
+                  onPageChange={setCurrentTeamPage}
+                />
               </div>
             )}
           </div>

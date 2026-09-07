@@ -1,4 +1,6 @@
 'use client';
+import { resolveApiUrl } from '@/lib/apiUrl';
+import { getToken } from '@/lib/api';
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -11,7 +13,6 @@ import Header from '@/components/Header';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
 import { useI18n } from '@/lib/i18n/I18nContext';
-import CustomSelect from '@/components/CustomSelect';
 
 // ============================================
 // TYPES
@@ -26,6 +27,7 @@ interface Employee {
   job_title?: string;
   department_name?: string;
   status: string;
+  contract_type?: string;
   end_date?: string;
 }
 
@@ -45,10 +47,10 @@ type DocType = 'attestation' | 'certificat';
 // API
 // ============================================
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
+const API_URL = resolveApiUrl(process.env.NEXT_PUBLIC_API_URL);
 
 function getAuthHeaders(): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const token = getToken();
   return {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -82,8 +84,8 @@ async function getCertificateHistory(
   return response.json();
 }
 
-async function generateDocument(employeeId: number, docType: DocType): Promise<Blob> {
-  const token = localStorage.getItem('access_token');
+async function generateDocument(employeeId: number, docType: DocType): Promise<{ blob: Blob; filename?: string }> {
+  const token = getToken();
   const response = await fetch(
     `${API_URL}/api/certificates/employee/${employeeId}/work-certificate?doc_type=${docType}`,
     { method: 'GET', headers: { 'Authorization': `Bearer ${token}` } }
@@ -92,7 +94,9 @@ async function generateDocument(employeeId: number, docType: DocType): Promise<B
     const error = await response.json();
     throw new Error(error.detail || 'Erreur lors de la génération');
   }
-  return response.blob();
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const filename = disposition.match(/filename="([^"]+)"/)?.[1];
+  return { blob: await response.blob(), filename };
 }
 
 // ============================================
@@ -137,6 +141,7 @@ function DocTypeModal({
 }) {
   const { t } = useI18n();
   const isFormer = ['terminated', 'inactive'].includes(employee.status);
+  const isIntern = employee.contract_type === 'stage';
   const [selected, setSelected] = useState<DocType>(isFormer ? 'certificat' : 'attestation');
 
   return (
@@ -179,9 +184,11 @@ function DocTypeModal({
               <FileCheck className={`w-5 h-5 ${selected === 'attestation' ? 'text-white' : 'text-gray-500'}`} />
             </div>
             <div>
-              <p className="font-medium text-gray-900 text-sm">{t.documents.attestationTitle}</p>
+              <p className="font-medium text-gray-900 text-sm">
+                {isIntern ? t.documents.internshipAttestationTitle : t.documents.attestationTitle}
+              </p>
               <p className="text-xs text-gray-500 mt-0.5">
-                {t.documents.attestationFullDesc}
+                {isIntern ? t.documents.internshipAttestationFullDesc : t.documents.attestationFullDesc}
               </p>
             </div>
           </button>
@@ -302,13 +309,15 @@ export default function CertificatesPage() {
     setSelectedEmployee(null);
     setGeneratingFor(employee.id);
     try {
-      const blob = await generateDocument(employee.id, docType);
-      const docLabel = docType === 'attestation' ? 'Attestation_Travail' : 'Certificat_Travail';
+      const { blob, filename } = await generateDocument(employee.id, docType);
+      const docLabel = docType === 'attestation'
+        ? employee.contract_type === 'stage' ? 'Attestation_Stage' : 'Attestation_Travail'
+        : 'Certificat_Travail';
       const fullName = `${employee.last_name}_${employee.first_name}`.replace(/\s+/g, '_');
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${docLabel}_${fullName}_${new Date().toISOString().split('T')[0]}.pdf`;
+      a.download = filename || `${docLabel}_${fullName}_${new Date().toISOString().split('T')[0]}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -398,8 +407,8 @@ export default function CertificatesPage() {
                   </div>
 
                   {/* Filtres */}
-                  <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 mb-5" data-tour="certificates-search">
-                    <div className="w-full sm:flex-1 sm:min-w-[220px] relative">
+                  <div className="flex gap-3 mb-5 flex-wrap" data-tour="certificates-search">
+                    <div className="flex-1 min-w-[220px] relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="text"
@@ -409,26 +418,21 @@ export default function CertificatesPage() {
                         className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                       />
                     </div>
-                    <CustomSelect
+                    <select
                       value={statusFilter}
-                      onChange={(v) => { setStatusFilter(v); setEmployeePage(1); }}
-                      className="w-full sm:w-auto sm:min-w-[160px]"
-                      options={[
-                        { value: '', label: t.documents.allStatusesFilter },
-                        { value: 'active', label: t.documents.activeFilter },
-                        { value: 'terminated', label: t.documents.terminatedFilter },
-                        { value: 'inactive', label: t.documents.inactiveFilter },
-                        { value: 'on_leave', label: t.documents.onLeaveFilter },
-                      ]}
-                    />
+                      onChange={(e) => { setStatusFilter(e.target.value); setEmployeePage(1); }}
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="">{t.documents.allStatusesFilter}</option>
+                      <option value="active">{t.documents.activeFilter}</option>
+                      <option value="terminated">{t.documents.terminatedFilter}</option>
+                      <option value="inactive">{t.documents.inactiveFilter}</option>
+                      <option value="on_leave">{t.documents.onLeaveFilter}</option>
+                    </select>
                   </div>
 
                   {/* Liste */}
-                  {loadingEmployees ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
-                    </div>
-                  ) : employees.length === 0 ? (
+                  {employees.length === 0 ? (
                     <div className="text-center py-12 text-gray-500">
                       <User className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                       <p className="font-medium">{t.documents.noEmployeeFound}</p>
@@ -544,11 +548,7 @@ export default function CertificatesPage() {
                     </button>
                   </div>
 
-                  {loadingHistory ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
-                    </div>
-                  ) : history.length === 0 ? (
+                  {history.length === 0 ? (
                     <div className="text-center py-12 text-gray-500">
                       <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                       <p>{t.documents.noDocGenerated}</p>

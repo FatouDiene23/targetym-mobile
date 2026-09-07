@@ -1,4 +1,6 @@
 'use client';
+import { resolveApiUrl } from '@/lib/apiUrl';
+import { getToken } from '@/lib/api';
 
 // ============================================
 // LEARNING MODULE — Référentiel Compétences
@@ -7,6 +9,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import Pagination from '@/components/Pagination';
 import { useLearning } from '../LearningContext';
 import { hasPermission } from '../shared';
 import type { Skill } from '../shared';
@@ -16,9 +19,8 @@ import {
   Brain, Code2, Users, RotateCcw,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/I18nContext';
-import CustomSelect from '@/components/CustomSelect';
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
+const API_URL = resolveApiUrl(process.env.NEXT_PUBLIC_API_URL);
 
 function useReferentielConfig() {
   const { t } = useI18n();
@@ -82,7 +84,7 @@ function getAuthHeaders(): HeadersInit {
   const raw = document.cookie.split('; ').find(r => r.startsWith('auth_token='));
   const token = raw
     ? raw.split('=')[1]
-    : (localStorage.getItem('access_token') ?? localStorage.getItem('auth_token') ?? '');
+    : (getToken() ?? localStorage.getItem('auth_token') ?? '');
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 }
 
@@ -98,6 +100,8 @@ export default function ReferentielPage() {
   const [filterLevel, setFilterLevel] = useState('');
   const [filterDept, setFilterDept] = useState('');
   const [grouped, setGrouped] = useState(true);
+  const [currentSkillPage, setCurrentSkillPage] = useState(1);
+  const SKILL_PAGE_SIZE = 10;
 
   const [showModal, setShowModal] = useState(false);
   const [editSkill, setEditSkill] = useState<Skill | null>(null);
@@ -213,11 +217,20 @@ export default function ReferentielPage() {
           />
         </div>
 
-        <CustomSelect value={filterType} onChange={v => setFilterType(v)} options={SKILL_TYPES.map(t => ({value: t.value, label: t.label}))} className="border border-gray-300 rounded-lg text-sm px-3 py-2" />
+        <select value={filterType} onChange={e => setFilterType(e.target.value)}
+          className="border border-gray-300 rounded-lg text-sm px-3 py-2">
+          {SKILL_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+        </select>
 
-        <CustomSelect value={filterLevel} onChange={v => setFilterLevel(v)} options={HIERARCHY_LEVELS.map(h => ({value: h.value, label: h.label}))} className="border border-gray-300 rounded-lg text-sm px-3 py-2" />
+        <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)}
+          className="border border-gray-300 rounded-lg text-sm px-3 py-2">
+          {HIERARCHY_LEVELS.map(h => <option key={h.value} value={h.value}>{h.label}</option>)}
+        </select>
 
-        <CustomSelect value={filterDept} onChange={v => setFilterDept(v)} options={DEPARTMENTS.map(d => ({value: d.value, label: d.label}))} className="border border-gray-300 rounded-lg text-sm px-3 py-2" />
+        <select value={filterDept} onChange={e => setFilterDept(e.target.value)}
+          className="border border-gray-300 rounded-lg text-sm px-3 py-2">
+          {DEPARTMENTS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+        </select>
 
         <button onClick={() => setGrouped(g => !g)}
           className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
@@ -274,7 +287,10 @@ export default function ReferentielPage() {
           </div>
         ))
       ) : (
-        <SkillTable skills={filtered} canEdit={canEdit} deptLabel={deptLabel} onEdit={openEdit} onDelete={deleteSkill} />
+        <>
+          <SkillTable skills={filtered.slice((currentSkillPage - 1) * SKILL_PAGE_SIZE, currentSkillPage * SKILL_PAGE_SIZE)} canEdit={canEdit} deptLabel={deptLabel} onEdit={openEdit} onDelete={deleteSkill} />
+          <Pagination page={currentSkillPage} total={filtered.length} pageSize={SKILL_PAGE_SIZE} onPageChange={setCurrentSkillPage} />
+        </>
       )}
 
       {/* Modal create/edit */}
@@ -292,10 +308,15 @@ export default function ReferentielPage() {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="ex: Communication interpersonnelle" />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{rp.typeLabel}</label>
-                  <CustomSelect value={form.skill_type} onChange={v => setForm(f => ({ ...f, skill_type: v }))} options={[{value:'soft_skill', label: rp.softSkill},{value:'technical', label: rp.technical},{value:'management', label: rp.management}]} className="w-full" />
+                  <select value={form.skill_type} onChange={e => setForm(f => ({ ...f, skill_type: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="soft_skill">{rp.softSkill}</option>
+                    <option value="technical">{rp.technical}</option>
+                    <option value="management">{rp.management}</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{rp.categoryLabel}</label>
@@ -304,14 +325,21 @@ export default function ReferentielPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{rp.hierarchyLevel}</label>
-                  <CustomSelect value={form.hierarchy_level} onChange={v => setForm(f => ({ ...f, hierarchy_level: v }))} options={[{value:'', label: rp.allLevels}, ...HIERARCHY_LEVELS.filter(h => h.value).map(h => ({value: h.value, label: h.label}))]} className="w-full" />
+                  <select value={form.hierarchy_level} onChange={e => setForm(f => ({ ...f, hierarchy_level: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="">{rp.allLevels}</option>
+                    {HIERARCHY_LEVELS.filter(h => h.value).map(h => <option key={h.value} value={h.value}>{h.label}</option>)}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{rp.departmentLabel}</label>
-                  <CustomSelect value={form.department} onChange={v => setForm(f => ({ ...f, department: v }))} options={DEPARTMENTS.filter(d => d.value).map(d => ({value: d.value, label: d.label}))} className="w-full" />
+                  <select value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    {DEPARTMENTS.filter(d => d.value).map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                  </select>
                 </div>
               </div>
 

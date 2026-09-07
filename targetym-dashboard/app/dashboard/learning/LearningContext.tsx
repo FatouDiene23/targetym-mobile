@@ -1,4 +1,5 @@
 'use client';
+import { getToken } from '@/lib/api';
 
 // ============================================
 // LEARNING MODULE - CONTEXT PROVIDER
@@ -7,6 +8,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import toast from 'react-hot-toast';
+import { useI18n } from '@/lib/i18n/I18nContext';
 import {
   API_URL, getAuthHeaders, hasPermission,
   Course, LearningPath, Assignment, Certification, CertificationHolder, Skill,
@@ -213,6 +215,7 @@ export function useLearning() {
 // ============================================
 
 export function LearningProvider({ children }: { children: ReactNode }) {
+  const { t } = useI18n();
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState('employee');
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
@@ -300,7 +303,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     external_url: '', duration_hours: '', level: 'beginner', image_emoji: '📚',
     is_mandatory: false, requires_certificate: false, skill_ids: [] as number[]
   });
-  const [assignData, setAssignData] = useState({ employee_id: '', course_id: '', deadline: '' });
+  const [assignData, setAssignData] = useState({ employee_ids: [] as number[], course_ids: [] as number[], deadline: '' });
   const [validationData, setValidationData] = useState({ approved: true, rejection_reason: '' });
   const [newCertification, setNewCertification] = useState({ name: '', provider: '', provider_id: null as number | null, description: '', validity_months: '' });
   const [newPath, setNewPath] = useState({ title: '', description: '', category: 'Technique', course_ids: [] as number[] });
@@ -367,6 +370,10 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   const fetchCertifications = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/api/learning/certifications/`, { headers: getAuthHeaders() });
+      if (!response.ok) {
+        setCertifications([]);
+        return;
+      }
       const data = await response.json();
       setCertifications(data || []);
     } catch (error) { console.error('Error fetching certifications:', error); }
@@ -375,6 +382,10 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   const fetchCertificationHolders = async (certId: number) => {
     try {
       const response = await fetch(`${API_URL}/api/learning/certifications/${certId}/holders`, { headers: getAuthHeaders() });
+      if (!response.ok) {
+        setCertHolders([]);
+        return;
+      }
       const data = await response.json();
       setCertHolders(data || []);
     } catch (error) { console.error('Error fetching holders:', error); }
@@ -527,17 +538,22 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     } catch (error) { console.error('Error starting assignment:', error); }
   };
 
-  const uploadCertificateFile = async (assignmentId: number, file: File): Promise<boolean> => {
+  const uploadCertificateFile = async (assignmentId: number, file: File): Promise<{ ok: boolean; error?: string }> => {
     try {
       const formData = new FormData();
       formData.append('file', file);
       const response = await fetch(`${API_URL}/api/learning/assignments/${assignmentId}/upload-certificate`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+        headers: { 'Authorization': `Bearer ${getToken()}` },
         body: formData
       });
-      return response.ok;
-    } catch (error) { console.error('Error uploading certificate:', error); return false; }
+      if (response.ok) return { ok: true };
+      // Remonter le message précis du backend (ex : « Fichier trop volumineux (max 20 Mo) »)
+      let detail = '';
+      try { const j = await response.json(); detail = j?.detail || ''; } catch { /* réponse non-JSON */ }
+      if (!detail && response.status === 413) detail = 'Fichier trop volumineux (max 20 Mo). Compressez le PDF ou réduisez la qualité du scan.';
+      return { ok: false, error: detail };
+    } catch (error) { console.error('Error uploading certificate:', error); return { ok: false, error: 'Erreur de connexion' }; }
   };
 
   const completeAssignment = async () => {
@@ -546,7 +562,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     try {
       if (completionFile) {
         const uploaded = await uploadCertificateFile(assignmentToComplete.id, completionFile);
-        if (!uploaded) { toast.error('Erreur lors de l\'upload du certificat'); setIsSubmitting(false); return; }
+        if (!uploaded.ok) { toast.error(uploaded.error || 'Erreur lors de l\'upload du certificat'); setIsSubmitting(false); return; }
       }
       if (assignmentToComplete.requires_certificate && !completionFile && !assignmentToComplete.certificate_file) {
         toast.error('Un certificat est requis pour cette formation'); setIsSubmitting(false); return;
@@ -627,14 +643,25 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   };
 
   const assignCourse = async () => {
+    if (assignData.employee_ids.length === 0 || assignData.course_ids.length === 0) return;
+    setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_URL}/api/learning/assignments/`, {
+      const response = await fetch(`${API_URL}/api/learning/assignments/bulk`, {
         method: 'POST', headers: getAuthHeaders(),
-        body: JSON.stringify({ employee_id: parseInt(assignData.employee_id), course_id: parseInt(assignData.course_id), deadline: assignData.deadline || null })
+        body: JSON.stringify({ employee_ids: assignData.employee_ids, course_ids: assignData.course_ids, deadline: assignData.deadline || null })
       });
-      if (response.ok) { setShowAssignModal(false); setAssignData({ employee_id: '', course_id: '', deadline: '' }); fetchPendingValidations(); fetchCourses(); fetchTeamAssignments(); }
+      if (response.ok) {
+        const result = await response.json();
+        toast.success(t.training.bulkAssignmentSuccess
+          .replace('{created}', String(result.created))
+          .replace('{skipped}', String(result.already_assigned)));
+        setShowAssignModal(false);
+        setAssignData({ employee_ids: [], course_ids: [], deadline: '' });
+        fetchPendingValidations(); fetchCourses(); fetchTeamAssignments();
+      }
       else { const error = await response.json(); toast.error('Erreur: ' + (error.detail || 'Erreur')); }
     } catch (error) { console.error('Error assigning course:', error); }
+    finally { setIsSubmitting(false); }
   };
 
   const validateAssignment = async () => {

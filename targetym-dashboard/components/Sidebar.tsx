@@ -168,13 +168,6 @@ const navigation: NavItem[] = [
     dataTour: 'sidebar-programmes'
   },
   {
-    name: 'Copilote AI',
-    href: '/dashboard/copilot',
-    icon: Sparkles,
-    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
-    badge: 'BETA',
-  },
-  {
     name: 'Gestion du Personnel',
     href: '/dashboard/employees', 
     icon: Users,
@@ -206,6 +199,13 @@ const navigation: NavItem[] = [
     href: '/dashboard/presence',
     icon: ScanLine,
     roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
+  },
+  {
+    name: 'Copilote AI',
+    href: '/dashboard/copilot',
+    icon: Sparkles,
+    roles: ['employee', 'manager', 'rh', 'admin', 'dg'],
+    badge: 'BETA',
   },
   {
     name: 'Gestion des Contentieux',

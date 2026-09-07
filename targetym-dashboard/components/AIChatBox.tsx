@@ -57,13 +57,19 @@ interface AgentTurn {
   timestamp: Date;
 }
 
-export default function AIChatBox() {
+interface AIChatBoxProps {
+  initiallyOpen?: boolean;
+  hideLauncher?: boolean;
+  onClose?: () => void;
+}
+
+export default function AIChatBox({ initiallyOpen = false, hideLauncher = false, onClose }: AIChatBoxProps) {
   const pathname = usePathname();
   const { t } = useI18n();
   const c = t.components.aiChat;
   const agentContext: string = getAgentContext(pathname);
 
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(initiallyOpen);
   const [isEnabled, setIsEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -437,7 +443,7 @@ export default function AIChatBox() {
   return (
     <>
       {/* Bouton flottant */}
-      {!isOpen && (
+      {!isOpen && !hideLauncher && (
         <button
           onClick={() => setIsOpen(true)}
           className="fixed bottom-24 lg:bottom-6 right-4 sm:right-6 bg-primary-600 text-white p-4 rounded-full shadow-lg hover:bg-primary-700 transition-all hover:scale-110 z-50"
@@ -453,8 +459,8 @@ export default function AIChatBox() {
           role="dialog"
           aria-modal="true"
           aria-label="Targetym AI"
-          className="fixed inset-0 z-[10000] flex w-full flex-col overflow-hidden bg-white shadow-2xl lg:inset-auto lg:bottom-6 lg:right-6 lg:h-[min(620px,calc(100dvh-2rem))] lg:w-[420px] lg:rounded-2xl lg:border lg:border-gray-200"
-          style={mobileViewportHeight ? { height: `${mobileViewportHeight}px` } : undefined}
+          className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[10000] flex h-[min(76dvh,620px)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl sm:left-auto sm:right-6 sm:w-[420px]"
+          style={mobileViewportHeight ? { maxHeight: `${mobileViewportHeight - 24}px` } : undefined}
         >
 
           {/* Header */}
@@ -502,7 +508,7 @@ export default function AIChatBox() {
               >
                 <Plus size={17} />
               </button>
-              <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+              <button onClick={() => { setIsOpen(false); onClose?.(); }} className="p-2 hover:bg-white/10 rounded-lg transition-colors" aria-label="Fermer le chatbot" title="Fermer">
                 <X size={19} />
               </button>
             </div>

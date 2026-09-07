@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
   Clock3, Plus, Settings, ShieldOff, X,
 } from 'lucide-react';
@@ -14,7 +13,6 @@ import { useCopilotAccess } from '@/hooks/useCopilotAccess';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
 export default function CopilotPage() {
-  const router = useRouter();
   const { t } = useI18n();
   const c = t.components.copilot;
   const { canUseCopilot } = useCopilotAccess();
@@ -46,13 +44,8 @@ export default function CopilotPage() {
     setHistoryOpen(false);
   };
 
-  const closeCopilot = () => {
-    if (window.history.length > 1) router.back();
-    else router.push('/dashboard');
-  };
-
   return (
-    <div className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[10000] flex h-[min(82dvh,820px)] flex-col overflow-hidden rounded-[26px] border border-white/90 bg-[#f5f8fa] shadow-[0_32px_80px_-42px_rgba(15,23,42,0.55),0_14px_32px_-24px_rgba(6,108,108,0.32)] ring-1 ring-slate-200/70 sm:inset-auto sm:bottom-6 sm:right-6 sm:h-[min(780px,calc(100dvh-3rem))] sm:w-[min(920px,calc(100vw-3rem))]">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#f5f8fa]">
       <header className="relative z-30 flex flex-wrap items-center gap-3 border-b border-slate-200/90 bg-white px-4 py-3 shadow-[0_1px_0_rgba(15,23,42,0.02)] sm:px-6 sm:py-4">
         <div className="mr-1 flex min-w-0 items-center gap-2.5">
           <h1 className="truncate text-xl font-bold tracking-[-0.025em] text-slate-900 sm:text-2xl">
@@ -93,15 +86,6 @@ export default function CopilotPage() {
             <Settings size={19} />
             <span className="hidden md:inline">{c.config.openConfig}</span>
           </Link>
-          <button
-            type="button"
-            onClick={closeCopilot}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
-            aria-label={c.close}
-            title={c.close}
-          >
-            <X size={21} />
-          </button>
         </div>
       </header>
 

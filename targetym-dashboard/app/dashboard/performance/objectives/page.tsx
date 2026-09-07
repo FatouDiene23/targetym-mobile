@@ -1,8 +1,10 @@
 'use client';
+import { resolveApiUrl } from '@/lib/apiUrl';
+import { getToken } from '@/lib/api';
+import PageLoading from '@/components/PageLoading';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Target, ChevronRight } from 'lucide-react';
 import PerformanceStats from '../components/PerformanceStats';
 import Header from '@/components/Header';
@@ -12,10 +14,10 @@ import { useI18n } from '@/lib/i18n/I18nContext';
 // API
 // =============================================
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
+const API_URL = resolveApiUrl(process.env.NEXT_PUBLIC_API_URL);
 
 function getAuthHeaders(): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const token = getToken();
   return {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -29,7 +31,7 @@ interface MyStats {
 async function fetchMyStats(): Promise<MyStats> {
   try {
     const response = await fetch(`${API_URL}/api/performance/my-stats`, { headers: getAuthHeaders() });
-    if (!response.ok) throw new Error('API error');
+    if (!response.ok) throw new Error('Impossible de charger les données pour le moment.');
     return response.json();
   } catch {
     return { okr_achievement: 0 };
@@ -61,16 +63,7 @@ export default function ObjectivesPage() {
     return () => window.removeEventListener('objectives-add', handler);
   }, [router]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500">{t.common.loading}</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <PageLoading />;
 
   return (
     <>
@@ -82,8 +75,8 @@ export default function ObjectivesPage() {
       {/* Content */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         {/* Link to OKR page */}
-        <Link
-          href="/dashboard/okr"
+        <a 
+          href="/dashboard/okr" 
           className="flex items-center justify-between p-4 border rounded-xl hover:shadow-md hover:border-primary-300 transition-all group"
         >
           <div className="flex items-center gap-4">
@@ -96,7 +89,7 @@ export default function ObjectivesPage() {
             </div>
           </div>
           <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-primary-500 transition-colors" />
-        </Link>
+        </a>
         
         {/* Stats */}
         {stats && (

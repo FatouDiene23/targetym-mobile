@@ -1,4 +1,8 @@
 'use client';
+import { resolveApiUrl } from '@/lib/apiUrl';
+import { getToken } from '@/lib/api';
+import { normalizeApiErrorMessage } from '@/lib/apiErrorMessages';
+import PageLoading from '@/components/PageLoading';
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -9,8 +13,6 @@ import {
 import PerformanceStats from '../components/PerformanceStats';
 import Header from '@/components/Header';
 import { useI18n } from '@/lib/i18n/I18nContext';
-import CustomDatePicker from '@/components/CustomDatePicker';
-import CustomSelect from '@/components/CustomSelect';
 
 // =============================================
 // TYPES
@@ -48,15 +50,27 @@ interface CurrentUser {
 // API
 // =============================================
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
+const API_URL = resolveApiUrl(process.env.NEXT_PUBLIC_API_URL);
 const ITEMS_PER_PAGE = 10;
 
 function getAuthHeaders(): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const token = getToken();
   return {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
   };
+}
+
+function parseApiError(errorData: Record<string, unknown>, fallback: string): string {
+  if (typeof errorData.detail === 'string') return normalizeApiErrorMessage(errorData.detail);
+  if (Array.isArray(errorData.detail)) {
+    return normalizeApiErrorMessage(
+      errorData.detail
+        .map((e: { msg?: string; message?: string }) => e.msg || e.message || JSON.stringify(e))
+        .join(', ')
+    );
+  }
+  return normalizeApiErrorMessage(fallback);
 }
 
 async function fetchCurrentUser(): Promise<CurrentUser | null> {
@@ -72,7 +86,7 @@ async function fetchCurrentUser(): Promise<CurrentUser | null> {
 async function fetchOneOnOnes(): Promise<OneOnOne[]> {
   try {
     const response = await fetch(`${API_URL}/api/performance/one-on-ones?page_size=100`, { headers: getAuthHeaders() });
-    if (!response.ok) throw new Error('API error');
+    if (!response.ok) throw new Error('Impossible de charger les données pour le moment.');
     const data = await response.json();
     return data.items || [];
   } catch {
@@ -85,7 +99,7 @@ async function fetchEmployees(managerId?: number): Promise<Employee[]> {
     let url = `${API_URL}/api/employees/?page_size=200&status=active`;
     if (managerId) url += `&manager_id=${managerId}`;
     const response = await fetch(url, { headers: getAuthHeaders() });
-    if (!response.ok) throw new Error('API error');
+    if (!response.ok) throw new Error('Impossible de charger les données pour le moment.');
     const data = await response.json();
     return data.items || [];
   } catch {
@@ -105,11 +119,11 @@ async function completeOneOnOne(id: number, data: {
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      return { success: false, error: errorData.detail || 'Update error' };
+      return { success: false, error: parseApiError(errorData, "Impossible d'enregistrer l'entretien pour le moment.") };
     }
     return { success: true };
   } catch {
-    return { success: false, error: 'Connection error' };
+    return { success: false, error: normalizeApiErrorMessage('Connection error') };
   }
 }
 
@@ -127,11 +141,11 @@ async function createTask(data: {
     });
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      return { success: false, error: err.detail || 'Task creation error' };
+      return { success: false, error: parseApiError(err, "Impossible de creer la tache pour le moment.") };
     }
     return { success: true };
   } catch {
-    return { success: false, error: 'Network error' };
+    return { success: false, error: normalizeApiErrorMessage('Network error') };
   }
 }
 
@@ -144,11 +158,11 @@ async function createOneOnOne(data: {
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      return { success: false, error: errorData.detail || 'Creation error' };
+      return { success: false, error: parseApiError(errorData, "Impossible de creer cet entretien pour le moment.") };
     }
     return { success: true };
   } catch {
-    return { success: false, error: 'Connection error' };
+    return { success: false, error: normalizeApiErrorMessage('Connection error') };
   }
 }
 
@@ -265,41 +279,31 @@ function CreateOneOnOneModal({ isOpen, onClose, employees, onSuccess }: {
           {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.collaboratorLabel} *</label>
-            <CustomSelect
-              value={employeeId}
-              onChange={v => setEmployeeId(v)}
-              options={[
-                { value: '', label: t.performance.selectCollaborator },
-                ...employees.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` })),
-              ]}
-              className="w-full"
-            />
+            <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm">
+              <option value="">{t.performance.selectCollaborator}</option>
+              {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}
+            </select>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.dateLabel} *</label>
-              <CustomDatePicker value={scheduledDate} onChange={setScheduledDate} className="w-full" />
+              <input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.timeLabel}</label>
               <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.durationLabel}</label>
-              <CustomSelect
-                value={String(duration)}
-                onChange={v => setDuration(parseInt(v))}
-                options={[
-                  { value: '15', label: '15 min' },
-                  { value: '30', label: '30 min' },
-                  { value: '45', label: '45 min' },
-                  { value: '60', label: t.performance.duration1h },
-                  { value: '90', label: t.performance.duration1h30 },
-                ]}
-                className="w-full"
-              />
+              <select value={duration} onChange={(e) => setDuration(parseInt(e.target.value))} className="w-full px-3 py-2.5 border rounded-lg text-sm">
+                <option value={15}>15 min</option>
+                <option value={30}>30 min</option>
+                <option value={45}>45 min</option>
+                <option value={60}>{t.performance.duration1h}</option>
+                <option value={90}>{t.performance.duration1h30}</option>
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.locationLabel}</label>
@@ -499,32 +503,30 @@ function EvaluateModal({ meeting, onClose, onSuccess }: {
                         value={task.title} onChange={e => updateTask(task.id, 'title', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-400 sm:col-span-2"
                       />
-                      <CustomSelect
-                        value={String(task.assigned_to_id)}
-                        onChange={v => updateTask(task.id, 'assigned_to_id', parseInt(v))}
-                        options={[
-                          { value: String(meeting.employee_id), label: `→ ${meeting.employee_name} (${t.performance.collaboratorAssign})` },
-                          { value: String(meeting.manager_id), label: `→ ${meeting.manager_name} (${t.performance.meAssign})` },
-                        ]}
-                        className="w-full"
-                      />
+                      <select
+                        value={task.assigned_to_id}
+                        onChange={e => updateTask(task.id, 'assigned_to_id', parseInt(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-400"
+                      >
+                        <option value={meeting.employee_id}>→ {meeting.employee_name} ({t.performance.collaboratorAssign})</option>
+                        <option value={meeting.manager_id}>→ {meeting.manager_name} ({t.performance.meAssign})</option>
+                      </select>
                       <div className="flex gap-2">
-                        <CustomDatePicker
-                          value={task.due_date}
-                          onChange={v => updateTask(task.id, 'due_date', v)}
-                          className="flex-1"
+                        <input
+                          type="date" value={task.due_date}
+                          onChange={e => updateTask(task.id, 'due_date', e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-400"
                         />
-                        <CustomSelect
+                        <select
                           value={task.priority}
-                          onChange={v => updateTask(task.id, 'priority', v)}
-                          options={[
-                            { value: 'low', label: t.performance.priorityLowFem },
-                            { value: 'medium', label: t.performance.priorityMediumFem },
-                            { value: 'high', label: t.performance.priorityHighFem },
-                            { value: 'urgent', label: t.performance.priorityUrgentFem },
-                          ]}
-                          className="w-28"
-                        />
+                          onChange={e => updateTask(task.id, 'priority', e.target.value)}
+                          className="w-28 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-400"
+                        >
+                          <option value="low">{t.performance.priorityLowFem}</option>
+                          <option value="medium">{t.performance.priorityMediumFem}</option>
+                          <option value="high">{t.performance.priorityHighFem}</option>
+                          <option value="urgent">{t.performance.priorityUrgentFem}</option>
+                        </select>
                       </div>
                     </div>
                     <button type="button" onClick={() => removeTask(task.id)}
@@ -606,16 +608,7 @@ export default function OneOnOnePage() {
   const paginatedOneOnOnes = filteredOneOnOnes.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
   const totalPages = Math.ceil(filteredOneOnOnes.length / ITEMS_PER_PAGE);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500">{t.common.loading}</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <PageLoading />;
 
   return (
     <>

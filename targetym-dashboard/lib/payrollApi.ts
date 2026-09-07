@@ -4,7 +4,7 @@
  */
 import { fetchWithAuth, API_URL } from './api';
 
-// ── Types Addon Gate ─────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────
 
 export type AddonModuleStatus =
   | 'not_requested'
@@ -33,6 +33,18 @@ export async function getPayrollModuleInfo(): Promise<PayrollModuleInfo> {
   return r.json();
 }
 
+export interface BudgetRHAccess {
+  has_access: boolean;
+  via_cb_module: boolean;
+  via_payroll: boolean;
+}
+
+export async function getBudgetRHAccess(): Promise<BudgetRHAccess> {
+  const r = await fetchWithAuth(`${API_URL}/api/billing/budget-rh-check-access`);
+  if (!r.ok) return { has_access: false, via_cb_module: false, via_payroll: false };
+  return r.json();
+}
+
 export async function requestPayrollModule(params?: {
   message?: string;
   country_code?: string;
@@ -53,8 +65,6 @@ export async function requestPayrollModule(params?: {
   }
   return r.json();
 }
-
-// ── Types ────────────────────────────────────────────────────────────────────
 
 export interface PayrollConfig {
   id: number;
@@ -327,7 +337,7 @@ export interface EmployeePayrollProfile {
   tenant_id: number;
   classification: string | null;
   salary_scale_id: number | null;
-  contract_type: 'cdi' | 'cdd' | 'stage' | 'consultant' | null;
+  contract_type: 'cdi' | 'cdd' | 'stage' | 'consultant' | 'alternance' | 'interim' | 'mandataire' | null;
   base_salary: number | null;
   transport_allowance: number | null;
   housing_allowance: number | null;
@@ -347,7 +357,7 @@ export interface EmployeePayrollProfileCreate {
   transport_allowance?: number;
   housing_allowance?: number;
   family_parts?: number;
-  contract_type?: 'cdi' | 'cdd' | 'stage' | 'consultant';
+  contract_type?: 'cdi' | 'cdd' | 'stage' | 'consultant' | 'alternance' | 'interim' | 'mandataire';
   classification?: string | null;
   ipres_enrolled: boolean;
   ipm_enrolled: boolean;
@@ -483,16 +493,16 @@ export const RUN_STATUS: Record<string, { label: string; color: string }> = {
 
 export const COMPONENT_TYPE_LABEL: Record<string, string> = {
   earning: 'Gain',
-  deduction: 'Retenue salarié',
+  deduction_employee: 'Retenue salarié',
+  deduction_employer: 'Charge patronale',
   employer_contribution: 'Charge patronale',
-  info: 'Information',
   net_adjustment: 'Ajustement net',
 };
 
 export const COMPONENT_TYPE_COLOR: Record<string, string> = {
   earning: 'bg-green-100 text-green-700',
-  deduction: 'bg-red-100 text-red-700',
+  deduction_employee: 'bg-red-100 text-red-700',
+  deduction_employer: 'bg-orange-100 text-orange-700',
   employer_contribution: 'bg-orange-100 text-orange-700',
-  info: 'bg-gray-100 text-gray-600',
   net_adjustment: 'bg-purple-100 text-purple-700',
 };

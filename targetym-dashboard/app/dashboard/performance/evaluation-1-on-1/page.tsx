@@ -1,4 +1,7 @@
 'use client';
+import { resolveApiUrl } from '@/lib/apiUrl';
+import { getToken } from '@/lib/api';
+import { normalizeApiErrorMessage } from '@/lib/apiErrorMessages';
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -9,8 +12,6 @@ import {
 } from 'lucide-react';
 import Header from '@/components/Header';
 import { useI18n } from '@/lib/i18n/I18nContext';
-import CustomDatePicker from '@/components/CustomDatePicker';
-import CustomSelect from '@/components/CustomSelect';
 
 // =============================================
 // TYPES
@@ -58,11 +59,11 @@ interface EvaluationCriterion {
 // API
 // =============================================
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
+const API_URL = resolveApiUrl(process.env.NEXT_PUBLIC_API_URL);
 const ITEMS_PER_PAGE = 10;
 
 function getAuthHeaders(): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const token = getToken();
   return {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -82,7 +83,7 @@ async function fetchCurrentUser(): Promise<CurrentUser | null> {
 async function fetchCompletedSessions(): Promise<OneOnOne[]> {
   try {
     const res = await fetch(`${API_URL}/api/performance/one-on-ones?page_size=100&status=completed`, { headers: getAuthHeaders() });
-    if (!res.ok) throw new Error('API error');
+    if (!res.ok) throw new Error('Impossible de charger les données pour le moment.');
     const data = await res.json();
     return data.items || [];
   } catch {
@@ -104,11 +105,11 @@ async function submitEvaluation(id: number, payload: {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      return { success: false, error: err.detail || 'Submission error' };
+      return { success: false, error: normalizeApiErrorMessage(err.detail || "Impossible d'enregistrer l'evaluation pour le moment.") };
     }
     return { success: true };
   } catch {
-    return { success: false, error: 'Connection error' };
+    return { success: false, error: normalizeApiErrorMessage('Connection error') };
   }
 }
 
@@ -447,7 +448,7 @@ function EvaluationReportModal({ session, onClose, onSuccess }: {
               <TrendingUp className="w-4 h-4 text-purple-500" />
               {t.performance.recommendation} <span className="text-red-500">*</span>
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {getRecommendations(t).map(r => (
                 <button
                   key={r.value}
@@ -496,23 +497,23 @@ function EvaluationReportModal({ session, onClose, onSuccess }: {
                       placeholder={t.performance.taskTitlePlaceholder}
                       className="w-full px-2.5 py-1.5 border rounded text-sm bg-white focus:outline-none focus:ring-1 focus:ring-indigo-300"
                     />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <CustomDatePicker
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="date"
                         value={task.due_date}
-                        onChange={v => updateTask(task.id, 'due_date', v)}
-                        className="w-full"
+                        onChange={e => updateTask(task.id, 'due_date', e.target.value)}
+                        className="px-2.5 py-1.5 border rounded text-xs bg-white"
                       />
-                      <CustomSelect
+                      <select
                         value={task.priority}
-                        onChange={v => updateTask(task.id, 'priority', v)}
-                        options={[
-                          { value: 'low', label: t.performance.priorityLow },
-                          { value: 'medium', label: t.performance.priorityMedium },
-                          { value: 'high', label: t.performance.priorityHigh },
-                          { value: 'urgent', label: t.performance.priorityUrgent },
-                        ]}
-                        className="w-full"
-                      />
+                        onChange={e => updateTask(task.id, 'priority', e.target.value)}
+                        className="px-2.5 py-1.5 border rounded text-xs bg-white"
+                      >
+                        <option value="low">{t.performance.priorityLow}</option>
+                        <option value="medium">{t.performance.priorityMedium}</option>
+                        <option value="high">{t.performance.priorityHigh}</option>
+                        <option value="urgent">{t.performance.priorityUrgent}</option>
+                      </select>
                     </div>
                   </div>
                   <button
@@ -626,7 +627,7 @@ export default function Evaluation1on1Page() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-primary-50 text-primary-700 rounded-xl p-4 flex items-center gap-3">
             <CheckCircle2 className="w-6 h-6 shrink-0" />
             <div>
@@ -675,11 +676,7 @@ export default function Evaluation1on1Page() {
 
         {/* List */}
         <div className="bg-white rounded-xl border shadow-sm">
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-            </div>
-          ) : paginated.length === 0 ? (
+          {paginated.length === 0 ? (
             <div className="text-center py-20">
               <ClipboardCheck className="w-10 h-10 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-500 font-medium">{t.performance.noSessionFound}</p>

@@ -1,4 +1,8 @@
 'use client';
+import { resolveApiUrl } from '@/lib/apiUrl';
+import { getToken } from '@/lib/api';
+import { normalizeApiErrorMessage } from '@/lib/apiErrorMessages';
+import PageLoading from '@/components/PageLoading';
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -10,8 +14,6 @@ import PerformanceStats from '../components/PerformanceStats';
 import Header from '@/components/Header';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useI18n } from '@/lib/i18n/I18nContext';
-import CustomDatePicker from '@/components/CustomDatePicker';
-import CustomSelect from '@/components/CustomSelect';
 
 // =============================================
 // TYPES
@@ -37,6 +39,16 @@ interface Employee {
   department_id?: number | null;
   department_name?: string | null;
   manager_id?: number | null;
+  user_id?: number | null;
+}
+
+interface CampaignEvaluation {
+  id: number;
+  employee_name?: string;
+  evaluator_name?: string;
+  type: string;
+  status: string;
+  due_date?: string;
 }
 
 interface CurrentUser {
@@ -44,15 +56,22 @@ interface CurrentUser {
   role: string;
 }
 
+interface QuestionnaireTemplate {
+  id: number;
+  name: string;
+  version: number;
+  is_default: boolean;
+}
+
 // =============================================
 // API
 // =============================================
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
+const API_URL = resolveApiUrl(process.env.NEXT_PUBLIC_API_URL);
 const ITEMS_PER_PAGE = 10;
 
 function getAuthHeaders(): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const token = getToken();
   return {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -75,7 +94,7 @@ async function fetchCampaigns(includeArchived: boolean = false): Promise<Evaluat
       ? `${API_URL}/api/performance/campaigns?page_size=100`
       : `${API_URL}/api/performance/campaigns?page_size=100`;
     const response = await fetch(url, { headers: getAuthHeaders() });
-    if (!response.ok) throw new Error('API error');
+    if (!response.ok) throw new Error('Impossible de charger les données pour le moment.');
     const data = await response.json();
     return data.items || [];
   } catch {
@@ -86,9 +105,61 @@ async function fetchCampaigns(includeArchived: boolean = false): Promise<Evaluat
 async function fetchEmployees(): Promise<Employee[]> {
   try {
     const response = await fetch(`${API_URL}/api/employees/?page_size=200&status=active`, { headers: getAuthHeaders() });
-    if (!response.ok) throw new Error('API error');
+    if (!response.ok) throw new Error('Impossible de charger les données pour le moment.');
     const data = await response.json();
     return data.items || [];
+  } catch {
+    return [];
+  }
+}
+
+async function fetchCampaignEvaluations(
+  campaignId: number,
+  loadError: string,
+  partialError: string,
+): Promise<{ items: CampaignEvaluation[]; error?: string }> {
+  try {
+    const response = await fetch(
+      `${API_URL}/api/performance/evaluations?campaign_id=${campaignId}&page_size=100`,
+      { headers: getAuthHeaders() },
+    );
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        items: [],
+        error: parseApiError(errorData, loadError),
+      };
+    }
+    const data = await response.json();
+    const firstPage: CampaignEvaluation[] = data.items || [];
+    const totalPages = Number(data.total_pages || 1);
+    if (totalPages <= 1) return { items: firstPage };
+
+    const remainingResponses = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, index) =>
+        fetch(
+          `${API_URL}/api/performance/evaluations?campaign_id=${campaignId}&page_size=100&page=${index + 2}`,
+          { headers: getAuthHeaders() },
+        )
+      )
+    );
+    if (remainingResponses.some(item => !item.ok)) {
+      return { items: firstPage, error: partialError };
+    }
+    const remainingPages = await Promise.all(remainingResponses.map(item => item.json()));
+    return {
+      items: [firstPage, ...remainingPages.map(page => page.items || [])].flat(),
+    };
+  } catch {
+    return { items: [], error: loadError };
+  }
+}
+
+async function fetchQuestionnaireTemplates(): Promise<QuestionnaireTemplate[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/performance/questionnaire-templates`, { headers: getAuthHeaders() });
+    if (!response.ok) return [];
+    return response.json();
   } catch {
     return [];
   }
@@ -105,6 +176,7 @@ async function createCampaign(data: {
   include_direct_report_evaluation?: boolean;
   weight_self?: number; weight_manager?: number; weight_peer?: number; weight_direct_report?: number;
   evaluator_selections?: EvaluatorSelection[];
+  questionnaire_template_id?: number;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     const response = await fetch(`${API_URL}/api/performance/campaigns`, {
@@ -142,7 +214,7 @@ async function cancelCampaign(campaignId: number, reason?: string): Promise<{ su
     return { success: true, data };
   } catch (err) {
     console.error('Cancel exception:', err);
-    return { success: false, error: 'Erreur de connexion: ' + (err instanceof Error ? err.message : String(err)) };
+    return { success: false, error: normalizeApiErrorMessage(err instanceof Error ? err.message : 'Network error') };
   }
 }
 
@@ -166,7 +238,7 @@ async function archiveCampaign(campaignId: number): Promise<{ success: boolean; 
     return { success: true };
   } catch (err) {
     console.error('Archive exception:', err);
-    return { success: false, error: 'Erreur de connexion: ' + (err instanceof Error ? err.message : String(err)) };
+    return { success: false, error: normalizeApiErrorMessage(err instanceof Error ? err.message : 'Network error') };
   }
 }
 
@@ -190,7 +262,7 @@ async function restoreCampaign(campaignId: number): Promise<{ success: boolean; 
     return { success: true };
   } catch (err) {
     console.error('Restore exception:', err);
-    return { success: false, error: 'Erreur de connexion: ' + (err instanceof Error ? err.message : String(err)) };
+    return { success: false, error: normalizeApiErrorMessage(err instanceof Error ? err.message : 'Network error') };
   }
 }
 
@@ -199,13 +271,13 @@ async function restoreCampaign(campaignId: number): Promise<{ success: boolean; 
 // =============================================
 
 function parseApiError(errorData: Record<string, unknown>, fallback: string): string {
-  if (typeof errorData.detail === 'string') return errorData.detail;
+  if (typeof errorData.detail === 'string') return normalizeApiErrorMessage(errorData.detail);
   if (Array.isArray(errorData.detail)) {
-    return errorData.detail
+    return normalizeApiErrorMessage(errorData.detail
       .map((e: { msg?: string; message?: string }) => e.msg || e.message || JSON.stringify(e))
-      .join(', ');
+      .join(', '));
   }
-  return fallback;
+  return normalizeApiErrorMessage(fallback);
 }
 
 function getStatusColor(status: string) {
@@ -262,8 +334,8 @@ function Pagination({ currentPage, totalPages, onPageChange }: {
 // =============================================
 // PEER SELECTOR — autocomplete de sélection multi-employés
 // =============================================
-function PeerSelector({ all, selected, onChange, maxSelectable, placeholder }: {
-  all: Employee[]; selected: number[]; onChange: (ids: number[]) => void; maxSelectable: number; placeholder: string;
+function PeerSelector({ all, selected, onChange, maxSelectable, placeholder, unavailableLabel }: {
+  all: Employee[]; selected: number[]; onChange: (ids: number[]) => void; maxSelectable: number; placeholder: string; unavailableLabel: string;
 }) {
   const [searchText, setSearchText] = useState('');
   const [open, setOpen] = useState(false);
@@ -274,6 +346,8 @@ function PeerSelector({ all, selected, onChange, maxSelectable, placeholder }: {
   );
 
   const toggle = (id: number) => {
+    const employee = all.find(item => item.id === id);
+    if (!employee?.user_id) return;
     if (selected.length < maxSelectable) onChange([...selected, id]);
     setSearchText('');
   };
@@ -305,12 +379,13 @@ function PeerSelector({ all, selected, onChange, maxSelectable, placeholder }: {
           {open && filtered.length > 0 && (
             <div className="absolute z-20 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-40 overflow-y-auto">
               {filtered.slice(0, 10).map(emp => (
-                <button key={emp.id} type="button" onMouseDown={() => toggle(emp.id)}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-left">
+                <button key={emp.id} type="button" onMouseDown={() => toggle(emp.id)} disabled={!emp.user_id}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-left disabled:opacity-50 disabled:cursor-not-allowed">
                   <div className="w-6 h-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs shrink-0">
                     {emp.first_name[0]}{emp.last_name[0]}
                   </div>
-                  {emp.first_name} {emp.last_name}
+                  <span>{emp.first_name} {emp.last_name}</span>
+                  {!emp.user_id && <span className="ml-auto text-xs text-orange-600">{unavailableLabel}</span>}
                 </button>
               ))}
             </div>
@@ -324,8 +399,8 @@ function PeerSelector({ all, selected, onChange, maxSelectable, placeholder }: {
 // =============================================
 // CREATE CAMPAIGN MODAL — 2 étapes
 // =============================================
-function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
-  isOpen: boolean; onClose: () => void; employees: Employee[]; onSuccess: () => void;
+function CreateCampaignModal({ isOpen, onClose, employees, questionnaires, onSuccess }: {
+  isOpen: boolean; onClose: () => void; employees: Employee[]; questionnaires: QuestionnaireTemplate[]; onSuccess: () => void;
 }) {
   const { t } = useI18n();
 
@@ -354,6 +429,7 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [campaignType, setCampaignType] = useState('annual');
+  const [questionnaireId, setQuestionnaireId] = useState<number | ''>('');
   const [period, setPeriod] = useState('annual');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -372,6 +448,12 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
   const [error, setError] = useState('');
 
   const needsStep2 = includePeer || includeDirectReport;
+
+  useEffect(() => {
+    if (!isOpen || questionnaireId !== '') return;
+    const preferred = questionnaires.find(item => item.is_default) || questionnaires[0];
+    if (preferred) setQuestionnaireId(preferred.id);
+  }, [isOpen, questionnaireId, questionnaires]);
 
   // Recalcule les pondérations automatiquement quand on coche/décoche un type
   useEffect(() => {
@@ -395,14 +477,14 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
   }, [step, employees, selectedEmployees]);
 
   const resetForm = () => {
-    setStep(1); setName(''); setDescription(''); setCampaignType('annual'); setPeriod('annual');
+    setStep(1); setName(''); setDescription(''); setCampaignType('annual'); setPeriod('annual'); setQuestionnaireId('');
     setStartDate(''); setEndDate(''); setSelectedEmployees([]);
     setIncludeSelf(true); setIncludeManager(true); setIncludePeer(false); setIncludeDirectReport(false);
     setEvaluatorSelections([]);
   };
 
   const handleStep1Next = () => {
-    if (!name || !startDate || !endDate) { setError(t.performance.fillRequiredFields); return; }
+    if (!name || !startDate || !endDate || questionnaireId === '') { setError(t.performance.fillRequiredFields); return; }
     setError('');
     if (needsStep2) { setStep(2); } else { handleSubmit(); }
   };
@@ -418,6 +500,7 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
       weight_self: weightSelf, weight_manager: weightManager,
       weight_peer: weightPeer, weight_direct_report: weightDirectReport,
       evaluator_selections: needsStep2 ? evaluatorSelections : undefined,
+      questionnaire_template_id: questionnaireId === '' ? undefined : questionnaireId,
     });
     setSaving(false);
     if (result.success) { resetForm(); onSuccess(); onClose(); }
@@ -471,56 +554,58 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.common.details}</label>
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder={t.performance.descriptionOptional} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.evaluationType}</label>
-                  <CustomSelect
-                    value={campaignType}
-                    onChange={(v) => setCampaignType(v)}
-                    options={[
-                      { value: 'annual', label: t.performance.annualEvaluation },
-                      { value: 'mid_year', label: t.performance.midYearEvaluation },
-                      { value: '360', label: t.performance.evaluation360 },
-                      { value: 'probation', label: t.performance.endOfProbation },
-                      { value: 'entretien_1on1', label: t.performance.interview1on1Eval },
-                      { value: 'coaching_1on1', label: t.performance.coaching1on1Session },
-                      { value: 'revue_hebdo', label: t.performance.weeklyPerfReview },
-                      { value: 'feedback_360', label: t.performance.feedback360Eval },
-                      { value: 'prise_de_fonction', label: t.performance.onboardingEvaluation },
-                      { value: 'prise_dessai', label: t.performance.trialEvaluation },
-                    ]}
-                    className="w-full"
-                  />
+                  <select value={campaignType} onChange={(e) => setCampaignType(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm">
+                    <option value="annual">{t.performance.annualEvaluation}</option>
+                    <option value="mid_year">{t.performance.midYearEvaluation}</option>
+                    <option value="360">{t.performance.evaluation360}</option>
+                    <option value="probation">{t.performance.endOfProbation}</option>
+                    <option value="entretien_1on1">{t.performance.interview1on1Eval}</option>
+                    <option value="coaching_1on1">{t.performance.coaching1on1Session}</option>
+                    <option value="revue_hebdo">{t.performance.weeklyPerfReview}</option>
+                    <option value="feedback_360">{t.performance.feedback360Eval}</option>
+                    <option value="prise_de_fonction">{t.performance.onboardingEvaluation}</option>
+                    <option value="prise_dessai">{t.performance.trialEvaluation}</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.periodicity}</label>
-                  <CustomSelect
-                    value={period}
-                    onChange={(v) => setPeriod(v)}
-                    options={[
-                      { value: 'annual', label: t.performance.annual },
-                      { value: 'semester', label: t.performance.semester },
-                      { value: 'quarterly', label: t.performance.quarterly },
-                    ]}
-                    className="w-full"
-                  />
+                  <select value={period} onChange={(e) => setPeriod(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm">
+                    <option value="annual">{t.performance.annual}</option>
+                    <option value="semester">{t.performance.semester}</option>
+                    <option value="quarterly">{t.performance.quarterly}</option>
+                  </select>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Modèle de questionnaire *</label>
+                <select value={questionnaireId} onChange={(e) => setQuestionnaireId(e.target.value ? Number(e.target.value) : '')} className="w-full px-3 py-2.5 border rounded-lg text-sm">
+                  <option value="">Sélectionner un modèle</option>
+                  {questionnaires.map(item => (
+                    <option key={item.id} value={item.id}>{item.name} — v{item.version}{item.is_default ? ' (par défaut)' : ''}</option>
+                  ))}
+                </select>
+                {questionnaires.length === 0 && (
+                  <p className="mt-1 text-xs text-orange-600">Créez d’abord un modèle dans Performance & Feedback → Modèles d’évaluation.</p>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.startDate} *</label>
-                  <CustomDatePicker value={startDate} onChange={setStartDate} className="w-full" />
+                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.endDate} *</label>
-                  <CustomDatePicker value={endDate} onChange={setEndDate} min={startDate} className="w-full" />
+                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg text-sm" />
                 </div>
               </div>
 
               {/* Types d'évaluateurs */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.evaluatorTypes}</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {[
                     { label: t.performance.selfEvaluation, desc: t.performance.selfEvalDesc, checked: includeSelf, set: setIncludeSelf },
                     { label: t.performance.managerEval, desc: t.performance.managerEvalDesc, checked: includeManager, set: setIncludeManager },
@@ -547,7 +632,7 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
                       {t.performance.weightTotal} : {totalWeight}% {totalWeight !== 100 ? `(${t.performance.weightMustBe100})` : '✓'}
                     </span>
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     {includeSelf && (
                       <div><label className="text-xs text-gray-500 mb-1 block">{t.performance.selfEvaluation}</label>
                         <div className="flex items-center gap-2"><input type="range" min={0} max={100} value={weightSelf} onChange={(e) => setWeightSelf(parseInt(e.target.value))} className="flex-1" /><span className="w-10 text-sm font-medium text-right">{weightSelf}%</span></div>
@@ -577,7 +662,11 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Employés concernés</label>
                 <p className="text-xs text-gray-500 mb-2">Laissez vide pour inclure tous les employés actifs</p>
                 <select multiple value={selectedEmployees.map(String)} onChange={(e) => setSelectedEmployees(Array.from(e.target.selectedOptions, o => parseInt(o.value)))} className="w-full px-3 py-2.5 border rounded-lg text-sm h-32">
-                  {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>)}
+                  {employees.map(emp => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.first_name} {emp.last_name}{!emp.user_id ? ` — ${t.performance.platformAccessMissing}` : ''}
+                    </option>
+                  ))}
                 </select>
                 {selectedEmployees.length > 0 && <p className="text-xs text-primary-600 mt-1">{selectedEmployees.length} employé(s) sélectionné(s)</p>}
               </div>
@@ -627,7 +716,7 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
                             Pairs évaluateurs (max 3)
                             {peerCandidates.length > 0 && <span className="font-normal text-gray-400 ml-1">— collègues du département {emp.department_name}</span>}
                           </label>
-                          <PeerSelector all={peerList} selected={sel.peer_ids} onChange={(ids) => updateSel(emp.id, { peer_ids: ids })} maxSelectable={3} placeholder="Rechercher un pair..." />
+                          <PeerSelector all={peerList} selected={sel.peer_ids} onChange={(ids) => updateSel(emp.id, { peer_ids: ids })} maxSelectable={3} placeholder={t.performance.searchPeer} unavailableLabel={t.performance.platformAccessMissing} />
                         </div>
                       )}
                       {includeDirectReport && (
@@ -636,7 +725,7 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
                             Collaborateurs directs évaluateurs (max 3)
                             {directReportCandidates.length === 0 && <span className="font-normal text-orange-400 ml-1">— aucun subordonné direct trouvé</span>}
                           </label>
-                          <PeerSelector all={directList} selected={sel.direct_report_ids} onChange={(ids) => updateSel(emp.id, { direct_report_ids: ids })} maxSelectable={3} placeholder="Rechercher un collaborateur direct..." />
+                          <PeerSelector all={directList} selected={sel.direct_report_ids} onChange={(ids) => updateSel(emp.id, { direct_report_ids: ids })} maxSelectable={3} placeholder={t.performance.searchDirectReport} unavailableLabel={t.performance.platformAccessMissing} />
                         </div>
                       )}
                     </div>
@@ -661,6 +750,73 @@ function CreateCampaignModal({ isOpen, onClose, employees, onSuccess }: {
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
             {step === 1 && needsStep2 ? <><ChevronRight className="w-4 h-4" />Suivant : sélectionner les évaluateurs</> : <><Plus className="w-4 h-4" />Créer la campagne</>}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CampaignDetailModal({ campaign, evaluations, loading, error, onClose, getStatusLabel, getTypeLabel, labels }: {
+  campaign: EvaluationCampaign | null;
+  evaluations: CampaignEvaluation[];
+  loading: boolean;
+  error: string | null;
+  onClose: () => void;
+  getStatusLabel: (status: string) => string;
+  getTypeLabel: (type: string) => string;
+  labels: {
+    status: string;
+    evaluations: string;
+    progress: string;
+    assignments: string;
+    evaluated: string;
+    evaluator: string;
+    noEvaluations: string;
+    close: string;
+  };
+}) {
+  if (!campaign) return null;
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={event => event.stopPropagation()}>
+        <div className="p-5 border-b flex items-start justify-between sticky top-0 bg-white z-10">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">{campaign.name}</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              {getTypeLabel(campaign.type)} • {formatDate(campaign.start_date)} - {formatDate(campaign.end_date)}
+            </p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg" aria-label={labels.close}>
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+        <div className="p-5 space-y-5">
+          {campaign.description && <p className="text-sm text-gray-700">{campaign.description}</p>}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="p-3 rounded-xl bg-gray-50"><p className="text-xs text-gray-500">{labels.status}</p><p className="font-semibold mt-1">{getStatusLabel(campaign.status)}</p></div>
+            <div className="p-3 rounded-xl bg-gray-50"><p className="text-xs text-gray-500">{labels.evaluations}</p><p className="font-semibold mt-1">{campaign.total_evaluations}</p></div>
+            <div className="p-3 rounded-xl bg-gray-50"><p className="text-xs text-gray-500">{labels.progress}</p><p className="font-semibold mt-1">{Math.round(campaign.progress_percentage)}%</p></div>
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900 mb-3">{labels.assignments}</h3>
+            {loading ? (
+              <div className="py-10 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary-500" /></div>
+            ) : error ? (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{error}</div>
+            ) : evaluations.length === 0 ? (
+              <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl text-sm text-orange-700">{labels.noEvaluations}</div>
+            ) : (
+              <div className="border rounded-xl divide-y overflow-hidden">
+                {evaluations.map(evaluation => (
+                  <div key={evaluation.id} className="p-3 grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-center text-sm">
+                    <div><span className="text-gray-500">{labels.evaluated} :</span> <span className="font-medium">{evaluation.employee_name || '—'}</span></div>
+                    <div><span className="text-gray-500">{labels.evaluator} :</span> <span className="font-medium">{evaluation.evaluator_name || '—'}</span></div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(evaluation.status)}`}>{getStatusLabel(evaluation.status)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -696,6 +852,7 @@ export default function CampaignsPage() {
 
   const [campaigns, setCampaigns] = useState<EvaluationCampaign[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [questionnaires, setQuestionnaires] = useState<QuestionnaireTemplate[]>([]);
   const [userRole, setUserRole] = useState('employee');
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -705,6 +862,10 @@ export default function CampaignsPage() {
   const [showModal, setShowModal] = useState(false);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [openMenu, setOpenMenu] = useState<number | null>(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<EvaluationCampaign | null>(null);
+  const [campaignEvaluations, setCampaignEvaluations] = useState<CampaignEvaluation[]>([]);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean; title: string; message: string;
     onConfirm: () => void; danger?: boolean;
@@ -714,9 +875,10 @@ export default function CampaignsPage() {
     setLoading(true);
     const user = await fetchCurrentUser();
     if (user) setUserRole(user.role?.toLowerCase() || 'employee');
-    const [campaignsData, employeesData] = await Promise.all([fetchCampaigns(showArchived), fetchEmployees()]);
+    const [campaignsData, employeesData, questionnaireData] = await Promise.all([fetchCampaigns(showArchived), fetchEmployees(), fetchQuestionnaireTemplates()]);
     setCampaigns(campaignsData);
     setEmployees(employeesData);
+    setQuestionnaires(questionnaireData);
     setLoading(false);
   }, [showArchived]);
 
@@ -807,6 +969,21 @@ export default function CampaignsPage() {
     });
   };
 
+  const handleOpenCampaign = async (campaign: EvaluationCampaign) => {
+    setSelectedCampaign(campaign);
+    setCampaignEvaluations([]);
+    setDetailError(null);
+    setDetailLoading(true);
+    const result = await fetchCampaignEvaluations(
+      campaign.id,
+      t.performance.campaignDetailLoadError,
+      t.performance.campaignDetailPartial,
+    );
+    setCampaignEvaluations(result.items);
+    setDetailError(result.error || null);
+    setDetailLoading(false);
+  };
+
   // Filtrer les campagnes
   let filteredCampaigns = campaigns.filter(c => 
     c.name.toLowerCase().includes(search.toLowerCase()) &&
@@ -821,16 +998,7 @@ export default function CampaignsPage() {
   const paginatedCampaigns = filteredCampaigns.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
   const totalPages = Math.ceil(filteredCampaigns.length / ITEMS_PER_PAGE);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500">Chargement...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <PageLoading />;
 
   return (
     <>
@@ -853,19 +1021,14 @@ export default function CampaignsPage() {
               className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" 
             />
           </div>
-          <CustomSelect
-            value={filterStatus}
-            onChange={v => { setFilterStatus(v); setPage(1); }}
-            options={[
-              { value: 'all', label: 'Tous les statuts' },
-              { value: 'draft', label: 'Brouillon' },
-              { value: 'active', label: 'Actif' },
-              { value: 'completed', label: 'Terminé' },
-              { value: 'cancelled', label: 'Annulé' },
-              ...(showArchived ? [{ value: 'archived', label: 'Archivé' }] : []),
-            ]}
-            className="min-w-[150px]"
-          />
+          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }} className="px-3 py-2 border rounded-lg text-sm">
+            <option value="all">Tous les statuts</option>
+            <option value="draft">Brouillon</option>
+            <option value="active">Actif</option>
+            <option value="completed">Terminé</option>
+            <option value="cancelled">Annulé</option>
+            {showArchived && <option value="archived">Archivé</option>}
+          </select>
           <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
             <input 
               type="checkbox" 
@@ -880,7 +1043,10 @@ export default function CampaignsPage() {
         {/* Campaigns List */}
         <div className="space-y-4">
           {paginatedCampaigns.length > 0 ? paginatedCampaigns.map(campaign => (
-            <div key={campaign.id} className={`p-4 border rounded-xl transition-shadow ${campaign.status === 'archived' ? 'bg-gray-50 border-gray-200' : 'border-gray-200 hover:shadow-md'}`}>
+            <div key={campaign.id} role={canManageCampaigns ? 'button' : undefined} tabIndex={canManageCampaigns ? 0 : undefined}
+              onClick={() => { if (canManageCampaigns) handleOpenCampaign(campaign); }}
+              onKeyDown={(event) => { if (canManageCampaigns && (event.key === 'Enter' || event.key === ' ')) handleOpenCampaign(campaign); }}
+              className={`p-4 border rounded-xl transition-shadow ${canManageCampaigns ? 'cursor-pointer' : ''} ${campaign.status === 'archived' ? 'bg-gray-50 border-gray-200' : 'border-gray-200 hover:shadow-md'}`}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex-1">
                   <h3 className={`font-semibold ${campaign.status === 'archived' ? 'text-gray-500' : 'text-gray-900'}`}>{campaign.name}</h3>
@@ -895,7 +1061,7 @@ export default function CampaignsPage() {
                   {canManageCampaigns && (
                     <div className="relative">
                       <button 
-                        onClick={() => setOpenMenu(openMenu === campaign.id ? null : campaign.id)}
+                        onClick={(event) => { event.stopPropagation(); setOpenMenu(openMenu === campaign.id ? null : campaign.id); }}
                         className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
                         disabled={actionLoading === campaign.id}
                       >
@@ -911,7 +1077,7 @@ export default function CampaignsPage() {
                           {/* Annuler - seulement pour active/draft */}
                           {['active', 'draft'].includes(campaign.status) && (
                             <button 
-                              onClick={() => handleCancel(campaign.id, campaign.name)}
+                              onClick={(event) => { event.stopPropagation(); handleCancel(campaign.id, campaign.name); }}
                               className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
                             >
                               <XCircle className="w-4 h-4" />
@@ -922,7 +1088,7 @@ export default function CampaignsPage() {
                           {/* Archiver - seulement pour completed/cancelled */}
                           {['completed', 'cancelled'].includes(campaign.status) && (
                             <button 
-                              onClick={() => handleArchive(campaign.id, campaign.name)}
+                              onClick={(event) => { event.stopPropagation(); handleArchive(campaign.id, campaign.name); }}
                               className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
                             >
                               <Archive className="w-4 h-4" />
@@ -933,7 +1099,7 @@ export default function CampaignsPage() {
                           {/* Restaurer - seulement pour archived */}
                           {campaign.status === 'archived' && (
                             <button 
-                              onClick={() => handleRestore(campaign.id, campaign.name)}
+                              onClick={(event) => { event.stopPropagation(); handleRestore(campaign.id, campaign.name); }}
                               className="w-full flex items-center gap-2 px-3 py-2 text-sm text-primary-600 hover:bg-primary-50"
                             >
                               <RotateCcw className="w-4 h-4" />
@@ -967,7 +1133,26 @@ export default function CampaignsPage() {
       </div>
 
       {/* Modal */}
-      <CreateCampaignModal isOpen={showModal} onClose={() => setShowModal(false)} employees={employees} onSuccess={loadData} />
+      <CreateCampaignModal isOpen={showModal} onClose={() => setShowModal(false)} employees={employees} questionnaires={questionnaires} onSuccess={loadData} />
+      <CampaignDetailModal
+        campaign={selectedCampaign}
+        evaluations={campaignEvaluations}
+        loading={detailLoading}
+        error={detailError}
+        onClose={() => setSelectedCampaign(null)}
+        getStatusLabel={getStatusLabel}
+        getTypeLabel={getTypeLabel}
+        labels={{
+          status: t.performance.status,
+          evaluations: t.performance.evaluations,
+          progress: t.performance.progress,
+          assignments: t.performance.campaignAssignments,
+          evaluated: t.performance.campaignEvaluated,
+          evaluator: t.performance.campaignEvaluator,
+          noEvaluations: t.performance.campaignNoEvaluations,
+          close: t.common.close,
+        }}
+      />
       
       {/* Fermer le menu si on clique ailleurs */}
       {openMenu && (

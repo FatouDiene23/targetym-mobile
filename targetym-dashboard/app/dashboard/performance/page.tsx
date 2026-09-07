@@ -1,4 +1,8 @@
 'use client';
+import { resolveApiUrl } from '@/lib/apiUrl';
+import { getToken } from '@/lib/api';
+import { normalizeApiErrorMessage } from '@/lib/apiErrorMessages';
+import PageLoading from '@/components/PageLoading';
 
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -20,10 +24,10 @@ function AttitudeIcon({ name, className = 'w-4 h-4' }: { name: string; className
   return <Icon className={className} />;
 }
 import Header from '@/components/Header';
+import SearchableSelect from '@/components/SearchableSelect';
 import { useI18n } from '@/lib/i18n/I18nContext';
 import PageTourTips from '@/components/PageTourTips';
 import { usePageTour } from '@/hooks/usePageTour';
-import CustomSelect from '@/components/CustomSelect';
 
 // =============================================
 // TYPES
@@ -108,11 +112,11 @@ type TabView = 'received' | 'sent' | 'feed' | 'attitudes';
 // API
 // =============================================
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
+const API_URL = resolveApiUrl(process.env.NEXT_PUBLIC_API_URL);
 const ITEMS_PER_PAGE = 10;
 
 function getAuthHeaders(): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const token = getToken();
   return {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -122,7 +126,7 @@ function getAuthHeaders(): HeadersInit {
 async function fetchFeedbacks(): Promise<FeedbackItem[]> {
   try {
     const response = await fetch(`${API_URL}/api/performance/feedbacks?page_size=100`, { headers: getAuthHeaders() });
-    if (!response.ok) throw new Error('API error');
+    if (!response.ok) throw new Error('Impossible de charger les données pour le moment.');
     const data = await response.json();
     return data.items || [];
   } catch {
@@ -141,7 +145,7 @@ async function createFeedback(data: {
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      return { success: false, error: errorData.detail || 'creation_error' };
+      return { success: false, error: normalizeApiErrorMessage(errorData.detail || 'creation_error') };
     }
     return { success: true };
   } catch {
@@ -191,7 +195,7 @@ async function postReply(feedbackId: number, content: string): Promise<ReplyItem
 async function fetchEmployees(): Promise<Employee[]> {
   try {
     const response = await fetch(`${API_URL}/api/employees/?page_size=200&status=active`, { headers: getAuthHeaders() });
-    if (!response.ok) throw new Error('API error');
+    if (!response.ok) throw new Error('Impossible de charger les données pour le moment.');
     const data = await response.json();
     return data.items || [];
   } catch { return []; }
@@ -199,9 +203,8 @@ async function fetchEmployees(): Promise<Employee[]> {
 
 async function fetchAttitudes(): Promise<AttitudeItem[]> {
   try {
-    await fetch(`${API_URL}/api/performance/attitudes/initialize`, { method: 'POST', headers: getAuthHeaders() });
     const response = await fetch(`${API_URL}/api/attitudes?active_only=true`, { headers: getAuthHeaders() });
-    if (!response.ok) throw new Error('API error');
+    if (!response.ok) throw new Error('Impossible de charger les données pour le moment.');
     return await response.json();
   } catch { return []; }
 }
@@ -679,20 +682,22 @@ function CreateFeedbackModal({ isOpen, onClose, employees, attitudes, onSuccess 
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.recipient} *</label>
-            <CustomSelect
+            <SearchableSelect
               value={toEmployee}
-              onChange={(v) => setToEmployee(v)}
+              onChange={(val) => setToEmployee(val)}
               placeholder={t.performance.selectColleague}
-              options={employees.map(emp => ({ value: String(emp.id), label: `${emp.first_name} ${emp.last_name}` }))}
-              className="w-full"
+              options={employees.map(emp => ({
+                value: String(emp.id),
+                label: `${emp.first_name} ${emp.last_name}`.trim(),
+              }))}
             />
           </div>
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t.performance.feedbackType}</label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2">
               {feedbackTypes.map(type => (
-                <button key={type.value} onClick={() => setFeedbackType(type.value)} className={`px-2.5 py-2 rounded-lg text-xs sm:text-sm font-medium border transition-all whitespace-nowrap ${feedbackType === type.value ? type.color : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                <button key={type.value} onClick={() => setFeedbackType(type.value)} className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${feedbackType === type.value ? type.color : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
                   {type.label}
                 </button>
               ))}
@@ -891,36 +896,36 @@ function StatsCards({ stats, attitudeScore }: { stats: MyStats | null; attitudeS
   const { t } = useI18n();
   if (!stats) return null;
   return (
-    <div className="flex md:grid md:grid-cols-6 gap-3 md:gap-4 mb-6 overflow-x-auto scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 pb-1">
-      <div className="bg-white rounded-xl p-3 md:p-4 border border-gray-200 shadow-sm min-w-[130px] md:min-w-0 shrink-0 md:shrink">
-        <p className="text-xs md:text-sm text-gray-500">{t.performance.avgScore}</p>
-        <p className="text-xl md:text-2xl font-bold text-gray-900">{stats.avg_score > 0 ? `${stats.avg_score}/5` : '-'}</p>
+    <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+        <p className="text-sm text-gray-500">{t.performance.avgScore}</p>
+        <p className="text-2xl font-bold text-gray-900">{stats.avg_score > 0 ? `${stats.avg_score}/5` : '-'}</p>
       </div>
-      <div className="bg-white rounded-xl p-3 md:p-4 border border-gray-200 shadow-sm min-w-[130px] md:min-w-0 shrink-0 md:shrink">
-        <p className="text-xs md:text-sm text-gray-500">{t.performance.evaluations}</p>
-        <p className="text-xl md:text-2xl font-bold text-green-600">{stats.evaluations_completed}/{stats.evaluations_total}</p>
-        <p className="text-[10px] md:text-xs text-gray-400">{stats.evaluations_total > 0 ? `${Math.round(stats.completion_rate)}%` : ''}</p>
+      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+        <p className="text-sm text-gray-500">{t.performance.evaluations}</p>
+        <p className="text-2xl font-bold text-green-600">{stats.evaluations_completed}/{stats.evaluations_total}</p>
+        <p className="text-xs text-gray-400">{stats.evaluations_total > 0 ? `${Math.round(stats.completion_rate)}%` : ''}</p>
       </div>
-      <div className="bg-white rounded-xl p-3 md:p-4 border border-gray-200 shadow-sm min-w-[130px] md:min-w-0 shrink-0 md:shrink">
-        <p className="text-xs md:text-sm text-gray-500">{t.performance.feedbacksReceived}</p>
-        <p className="text-xl md:text-2xl font-bold text-purple-600">{stats.feedbacks_received}</p>
-        <p className="text-[10px] md:text-xs text-gray-400">{stats.feedbacks_given} {t.performance.sent}</p>
+      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+        <p className="text-sm text-gray-500">{t.performance.feedbacksReceived}</p>
+        <p className="text-2xl font-bold text-purple-600">{stats.feedbacks_received}</p>
+        <p className="text-xs text-gray-400">{stats.feedbacks_given} {t.performance.sent}</p>
       </div>
-      <div className="bg-white rounded-xl p-3 md:p-4 border border-gray-200 shadow-sm min-w-[130px] md:min-w-0 shrink-0 md:shrink">
-        <p className="text-xs md:text-sm text-gray-500">{t.performance.attitudesLabel}</p>
-        <p className={`text-xl md:text-2xl font-bold ${attitudeScore !== null ? getScoreColor(attitudeScore) : 'text-gray-300'}`}>
+      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+        <p className="text-sm text-gray-500">{t.performance.attitudesLabel}</p>
+        <p className={`text-2xl font-bold ${attitudeScore !== null ? getScoreColor(attitudeScore) : 'text-gray-300'}`}>
           {attitudeScore !== null ? `${attitudeScore}%` : '-'}
         </p>
-        <p className="text-[10px] md:text-xs text-gray-400">{attitudeScore !== null && attitudeScore >= 95 ? '✅ ≥95%' : t.performance.globalScore}</p>
+        <p className="text-xs text-gray-400">{attitudeScore !== null && attitudeScore >= 95 ? '✅ ≥95%' : t.performance.globalScore}</p>
       </div>
-      <div className="bg-white rounded-xl p-3 md:p-4 border border-gray-200 shadow-sm min-w-[130px] md:min-w-0 shrink-0 md:shrink">
-        <p className="text-xs md:text-sm text-gray-500">{t.performance.okrs}</p>
-        <p className="text-xl md:text-2xl font-bold text-orange-600">{stats.okr_achievement}%</p>
+      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+        <p className="text-sm text-gray-500">{t.performance.okrs}</p>
+        <p className="text-2xl font-bold text-orange-600">{stats.okr_achievement}%</p>
       </div>
-      <div className="bg-white rounded-xl p-3 md:p-4 border border-gray-200 shadow-sm min-w-[130px] md:min-w-0 shrink-0 md:shrink">
-        <p className="text-xs md:text-sm text-gray-500">{t.performance.oneOnOne}</p>
-        <p className="text-xl md:text-2xl font-bold text-primary-600">{stats.one_on_ones_scheduled}</p>
-        <p className="text-[10px] md:text-xs text-gray-400">{stats.one_on_ones_completed} {t.performance.completed}</p>
+      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+        <p className="text-sm text-gray-500">{t.performance.oneOnOne}</p>
+        <p className="text-2xl font-bold text-primary-600">{stats.one_on_ones_scheduled}</p>
+        <p className="text-xs text-gray-400">{stats.one_on_ones_completed} {t.performance.completed}</p>
       </div>
     </div>
   );
@@ -1000,19 +1005,7 @@ export default function FeedbackPage() {
   // Page Tour Hook
   const { showTips, dismissTips, resetTips } = usePageTour('performance');
 
-  if (loading) {
-    return (
-      <>
-        <Header title={t.performance.feedbackTitle} subtitle={t.common.loading} />
-        <div className="flex-1 flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-gray-500">{t.common.loading}</p>
-          </div>
-        </div>
-      </>
-    );
-  }
+  if (loading) return <PageLoading />;
 
   return (
     <>
@@ -1031,17 +1024,17 @@ export default function FeedbackPage() {
         </div>
 
       {/* Tabs */}
-      <div data-tour="feedback-tabs" className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 overflow-x-auto scrollbar-hide">
-        <button onClick={() => { setActiveTab('received'); setPage(1); }} className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${activeTab === 'received' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+      <div data-tour="feedback-tabs" className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
+        <button onClick={() => { setActiveTab('received'); setPage(1); }} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'received' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
           📥 Reçus
         </button>
-        <button onClick={() => { setActiveTab('sent'); setPage(1); }} className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${activeTab === 'sent' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+        <button onClick={() => { setActiveTab('sent'); setPage(1); }} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'sent' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
           📤 Envoyés
         </button>
-        <button onClick={() => { setActiveTab('feed'); setPage(1); }} className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${activeTab === 'feed' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
-          📋 Fil d&apos;actualités
+        <button onClick={() => { setActiveTab('feed'); setPage(1); }} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'feed' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+          📋 Fil d&apos;actualité
         </button>
-        <button onClick={() => setActiveTab('attitudes')} className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${activeTab === 'attitudes' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+        <button onClick={() => setActiveTab('attitudes')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'attitudes' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
           📊 Mes Attitudes
         </button>
       </div>

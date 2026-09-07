@@ -1,4 +1,8 @@
 'use client';
+import { resolveApiUrl } from '@/lib/apiUrl';
+import { getToken } from '@/lib/api';
+import { normalizeApiErrorMessage } from '@/lib/apiErrorMessages';
+import PageLoading from '@/components/PageLoading';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -12,7 +16,6 @@ import {
 import PerformanceStats from '../components/PerformanceStats';
 import Header from '@/components/Header';
 import { useI18n } from '@/lib/i18n/I18nContext';
-import CustomSelect from '@/components/CustomSelect';
 
 // =============================================
 // TYPES
@@ -27,11 +30,12 @@ interface Evaluation {
   employee_job_title?: string;
   evaluator_id?: number;
   evaluator_name?: string;
+  is_current_user_evaluator?: boolean;
   type: 'self' | 'manager' | 'peer' | 'direct_report' | '360';
   status: 'pending' | 'in_progress' | 'submitted' | 'validated' | 'cancelled';
   period?: string;
   weighted_score?: number;
-  scores?: Record<string, { score: number; comment?: string }>;
+  scores?: Record<string, { score?: number | null; comment?: string; answer?: string | number | boolean | null; label?: string; category_name?: string; type?: string }>;
   overall_score?: number;
   strengths?: string;
   improvements?: string;
@@ -41,7 +45,17 @@ interface Evaluation {
   due_date?: string;
   campaign_id?: number;
   campaign_name?: string;
+  questionnaire_snapshot?: QuestionnaireSnapshot;
 }
+
+interface QuestionnaireOption { id: string; label: string; score: number }
+interface QuestionnaireQuestion {
+  id: string; label: string; description?: string; type: 'rating_5' | 'text' | 'boolean' | 'single_choice';
+  required: boolean; weight: number; comment_required: boolean; evaluator_types: string[]; options: QuestionnaireOption[];
+}
+interface QuestionnaireCategory { id: string; name: string; description?: string; weight: number; questions: QuestionnaireQuestion[] }
+interface QuestionnaireSnapshot { id: number; name: string; version: number; definition: { categories: QuestionnaireCategory[] } }
+interface QuestionnaireAnswer { answer: string | number | boolean | null; comment: string }
 
 interface CurrentUser {
   id: number;
@@ -60,11 +74,11 @@ interface ValidationError {
 // API
 // =============================================
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.targetym.ai').replace(/^http:\/\//, 'https://');
+const API_URL = resolveApiUrl(process.env.NEXT_PUBLIC_API_URL);
 const ITEMS_PER_PAGE = 10;
 
 function getAuthHeaders(): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const token = getToken();
   return {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -81,19 +95,24 @@ async function fetchCurrentUser(): Promise<CurrentUser | null> {
   }
 }
 
-async function fetchEvaluations(): Promise<Evaluation[]> {
+async function fetchEvaluations(fallbackError: string): Promise<{ items: Evaluation[]; error?: string }> {
   try {
     const response = await fetch(`${API_URL}/api/performance/evaluations?page_size=100`, { headers: getAuthHeaders() });
-    if (!response.ok) throw new Error('API error');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { items: [], error: normalizeApiErrorMessage(
+        typeof errorData.detail === 'string' ? errorData.detail : fallbackError
+      ) };
+    }
     const data = await response.json();
-    return data.items || [];
+    return { items: data.items || [] };
   } catch {
-    return [];
+    return { items: [], error: fallbackError };
   }
 }
 
 async function submitEvaluation(evaluationId: number, data: {
-  scores: Record<string, { score: number; comment?: string }>; overall_score: number;
+  scores: Record<string, unknown>; overall_score?: number;
   strengths?: string; improvements?: string; goals?: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
@@ -103,15 +122,15 @@ async function submitEvaluation(evaluationId: number, data: {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       let errorMsg = 'Erreur lors de la soumission';
-      if (typeof errorData.detail === 'string') errorMsg = errorData.detail;
+      if (typeof errorData.detail === 'string') errorMsg = normalizeApiErrorMessage(errorData.detail);
       else if (Array.isArray(errorData.detail)) {
-        errorMsg = errorData.detail.map((e: ValidationError) => e.msg || e.message || JSON.stringify(e)).join(', ');
+        errorMsg = normalizeApiErrorMessage(errorData.detail.map((e: ValidationError) => e.msg || e.message || JSON.stringify(e)).join(', '));
       }
       return { success: false, error: errorMsg };
     }
     return { success: true };
   } catch {
-    return { success: false, error: 'Erreur de connexion' };
+    return { success: false, error: normalizeApiErrorMessage('Erreur de connexion') };
   }
 }
 
@@ -122,11 +141,11 @@ async function validateEvaluation(evaluationId: number, data: { approved: boolea
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      return { success: false, error: errorData.detail || 'Erreur lors de la validation' };
+      return { success: false, error: normalizeApiErrorMessage(errorData.detail || 'Erreur lors de la validation') };
     }
     return { success: true };
   } catch {
-    return { success: false, error: 'Erreur de connexion' };
+    return { success: false, error: normalizeApiErrorMessage('Erreur de connexion') };
   }
 }
 
@@ -203,7 +222,7 @@ function canUserEditEvaluation(evaluation: Evaluation, userRole: UserRole, curre
 
   if (evaluation.status === 'pending' || evaluation.status === 'in_progress') {
     // L'évaluateur assigné peut toujours remplir son évaluation
-    if (evaluation.evaluator_id === currentEmployeeId) return true;
+    if (evaluation.is_current_user_evaluator || evaluation.evaluator_id === currentEmployeeId) return true;
     // Fallback : auto-éval sans evaluator_id explicite
     if (evaluation.type === 'self' && evaluation.employee_id === currentEmployeeId) return true;
   }
@@ -270,9 +289,13 @@ function EvaluationViewModal({ isOpen, onClose, evaluation }: {
   const perf = t.performance;
   if (!isOpen || !evaluation) return null;
 
-  const radarData = evaluation.scores ? Object.entries(evaluation.scores).map(([name, data]) => ({
-    subject: name.length > 15 ? name.substring(0, 15) + '...' : name, score: data.score, fullMark: 100
-  })) : [];
+  const isQuestionnaire = Boolean(evaluation.questionnaire_snapshot);
+  const radarData = evaluation.scores ? Object.entries(evaluation.scores)
+    .filter(([, data]) => typeof data.score === 'number')
+    .map(([name, data]) => {
+      const label = data.label || name;
+      return { subject: label.length > 15 ? label.substring(0, 15) + '...' : label, score: data.score, fullMark: isQuestionnaire ? 5 : 100 };
+    }) : [];
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -285,7 +308,7 @@ function EvaluationViewModal({ isOpen, onClose, evaluation }: {
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-500">{perf.typeLabel}</p>
               <p className="font-medium text-gray-900">{getTypeLabelT(evaluation.type, perf)}</p>
@@ -324,11 +347,23 @@ function EvaluationViewModal({ isOpen, onClose, evaluation }: {
                   <RadarChart data={radarData}>
                     <PolarGrid />
                     <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11 }} />
-                    <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                    <PolarRadiusAxis angle={30} domain={[0, isQuestionnaire ? 5 : 100]} />
                     <Radar name="Score" dataKey="score" stroke="#066C6C" fill="#066C6C" fillOpacity={0.5} />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
+            </div>
+          )}
+          {isQuestionnaire && evaluation.scores && (
+            <div className="space-y-3">
+              <h4 className="font-semibold text-gray-900">Réponses au questionnaire</h4>
+              {Object.entries(evaluation.scores).map(([id, data]) => (
+                <div key={id} className="rounded-lg border p-3">
+                  <p className="text-sm font-medium text-gray-800">{data.label || id}</p>
+                  <p className="mt-1 text-sm text-gray-600">{typeof data.answer === 'boolean' ? (data.answer ? 'Oui' : 'Non') : String(data.answer ?? '—')}</p>
+                  {data.comment && <p className="mt-2 text-xs italic text-gray-500">{data.comment}</p>}
+                </div>
+              ))}
             </div>
           )}
           {evaluation.strengths && (
@@ -361,9 +396,10 @@ function EvaluationViewModal({ isOpen, onClose, evaluation }: {
 function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, currentEmployeeId }: {
   isOpen: boolean; onClose: () => void; evaluation: Evaluation | null; onSave: () => void; userRole: UserRole; currentEmployeeId?: number;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const perf = t.performance;
   const [scores, setScores] = useState<Record<string, { score: number; comment: string }>>({});
+  const [questionnaireAnswers, setQuestionnaireAnswers] = useState<Record<string, QuestionnaireAnswer>>({});
   const [strengths, setStrengths] = useState('');
   const [improvements, setImprovements] = useState('');
   const [goals, setGoals] = useState('');
@@ -373,10 +409,19 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
 
   useEffect(() => {
     if (evaluation) {
+      const eligibleQuestions = evaluation.questionnaire_snapshot?.definition.categories.flatMap(category =>
+        category.questions.filter(question => question.evaluator_types.includes(evaluation.type))
+      ) || [];
+      const initialAnswers: Record<string, QuestionnaireAnswer> = {};
+      eligibleQuestions.forEach(question => {
+        const stored = evaluation.scores?.[question.id];
+        initialAnswers[question.id] = { answer: stored?.answer ?? null, comment: stored?.comment || '' };
+      });
+      setQuestionnaireAnswers(initialAnswers);
       const defaultCompetencies = [perf.technicalSkills, perf.communication, perf.leadership, perf.teamwork, perf.innovation];
       const initialScores: Record<string, { score: number; comment: string }> = {};
       if (evaluation.scores && Object.keys(evaluation.scores).length > 0) {
-        Object.entries(evaluation.scores).forEach(([key, val]) => { initialScores[key] = { score: val.score, comment: val.comment || '' }; });
+        Object.entries(evaluation.scores).forEach(([key, val]) => { initialScores[key] = { score: Number(val.score ?? 0), comment: val.comment || '' }; });
       } else {
         defaultCompetencies.forEach(comp => { initialScores[comp] = { score: 75, comment: '' }; });
       }
@@ -397,7 +442,9 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
   const handleSubmit = async () => {
     if (!evaluation) return;
     setError(''); setSaving(true);
-    const result = await submitEvaluation(evaluation.id, { scores, overall_score: calculateOverall(), strengths: strengths || undefined, improvements: improvements || undefined, goals: goals || undefined });
+    const result = await submitEvaluation(evaluation.id, evaluation.questionnaire_snapshot
+      ? { scores: questionnaireAnswers, strengths: strengths || undefined, improvements: improvements || undefined, goals: goals || undefined }
+      : { scores, overall_score: calculateOverall(), strengths: strengths || undefined, improvements: improvements || undefined, goals: goals || undefined });
     setSaving(false);
     if (result.success) { onSave(); onClose(); } else setError(result.error || 'Erreur');
   };
@@ -430,10 +477,21 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
 
   const canEdit = canUserEditEvaluation(evaluation, userRole, currentEmployeeId);
   const canValidate = canUserValidateEvaluation(evaluation, userRole, currentEmployeeId);
-  const isAutoEval = evaluation.type === 'self' && evaluation.employee_id === currentEmployeeId && (evaluation.status === 'pending' || evaluation.status === 'in_progress');
-  const isPeerEval = (evaluation.type === 'peer' || evaluation.type === 'direct_report' || evaluation.type === 'manager') && evaluation.evaluator_id === currentEmployeeId && (evaluation.status === 'pending' || evaluation.status === 'in_progress');
+  const assignedToCurrentUser = Boolean(
+    evaluation.is_current_user_evaluator || evaluation.evaluator_id === currentEmployeeId
+  );
+  const isAutoEval = evaluation.type === 'self' && assignedToCurrentUser && (evaluation.status === 'pending' || evaluation.status === 'in_progress');
+  const isPeerEval = (evaluation.type === 'peer' || evaluation.type === 'direct_report' || evaluation.type === 'manager') && assignedToCurrentUser && (evaluation.status === 'pending' || evaluation.status === 'in_progress');
   const isEmployeeEditing = isAutoEval || isPeerEval;
   const isManagerReviewing = canValidate;
+  const questionnaireCategories = evaluation.questionnaire_snapshot?.definition.categories
+    .map(category => ({ ...category, questions: category.questions.filter(question => question.evaluator_types.includes(evaluation.type)) }))
+    .filter(category => category.questions.length > 0) || [];
+  const qCopy = {
+    fr: { questionnaire: 'Questionnaire', required: 'Obligatoire', comment: 'Commentaire', optional: 'optionnel', yes: 'Oui', no: 'Non', select: 'Sélectionner une réponse', serverScore: 'Le score final sera calculé automatiquement lors de la soumission.' },
+    en: { questionnaire: 'Questionnaire', required: 'Required', comment: 'Comment', optional: 'optional', yes: 'Yes', no: 'No', select: 'Select an answer', serverScore: 'The final score will be calculated automatically on submission.' },
+    pt: { questionnaire: 'Questionário', required: 'Obrigatório', comment: 'Comentário', optional: 'opcional', yes: 'Sim', no: 'Não', select: 'Selecionar uma resposta', serverScore: 'A nota final será calculada automaticamente no envio.' },
+  }[locale];
 
   const modalTitle = isAutoEval
     ? perf.myAutoEvaluation
@@ -460,25 +518,39 @@ function EvaluationEditModal({ isOpen, onClose, evaluation, onSave, userRole, cu
         <div className="p-5 space-y-6">
           {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
           
-          <div>
-            <h4 className="font-semibold text-gray-900 mb-4">{perf.competencyEvaluation}</h4>
-            <div className="space-y-4">
-              {Object.entries(scores).map(([comp, data]) => (
-                <div key={comp} className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="font-medium text-gray-700">{comp}</label>
-                    <span className="text-lg font-bold text-primary-600">{data.score}%</span>
+          {evaluation.questionnaire_snapshot ? (
+            <div>
+              <div className="mb-4 flex items-center justify-between"><h4 className="font-semibold text-gray-900">{evaluation.questionnaire_snapshot.name}</h4><span className="text-xs text-gray-400">v{evaluation.questionnaire_snapshot.version}</span></div>
+              <div className="space-y-5">{questionnaireCategories.map(category => <section key={category.id}><h5 className="mb-2 font-semibold text-primary-700">{category.name}</h5><div className="space-y-3">{category.questions.map(question => {
+                const value = questionnaireAnswers[question.id] || { answer: null, comment: '' };
+                const setAnswer = (answer: QuestionnaireAnswer['answer']) => setQuestionnaireAnswers(current => ({ ...current, [question.id]: { ...value, answer } }));
+                return <div key={question.id} className="rounded-xl border p-4"><label className="font-medium text-gray-800">{question.label}{question.required && <span className="ml-1 text-red-500">*</span>}</label>{question.description && <p className="mt-1 text-xs text-gray-500">{question.description}</p>}
+                  <div className="mt-3">
+                    {question.type === 'rating_5' && <div className="flex gap-2">{[1, 2, 3, 4, 5].map(score => <button key={score} type="button" disabled={!canEdit} onClick={() => setAnswer(score)} className={`h-10 w-10 rounded-lg border font-semibold ${value.answer === score ? 'border-primary-600 bg-primary-600 text-white' : 'bg-white text-gray-700'} disabled:opacity-60`}>{score}</button>)}</div>}
+                    {question.type === 'text' && <textarea disabled={!canEdit} rows={3} value={typeof value.answer === 'string' ? value.answer : ''} onChange={e => setAnswer(e.target.value)} className="w-full rounded-lg border px-3 py-2 text-sm disabled:bg-gray-50" />}
+                    {question.type === 'boolean' && <select disabled={!canEdit} value={value.answer === null ? '' : String(value.answer)} onChange={e => setAnswer(e.target.value === '' ? null : e.target.value === 'true')} className="w-full rounded-lg border px-3 py-2 text-sm disabled:bg-gray-50"><option value="">{qCopy.select}</option><option value="true">{qCopy.yes}</option><option value="false">{qCopy.no}</option></select>}
+                    {question.type === 'single_choice' && <select disabled={!canEdit} value={typeof value.answer === 'string' ? value.answer : ''} onChange={e => setAnswer(e.target.value || null)} className="w-full rounded-lg border px-3 py-2 text-sm disabled:bg-gray-50"><option value="">{qCopy.select}</option>{question.options.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}</select>}
                   </div>
-                  <input type="range" min="0" max="100" value={data.score} onChange={(e) => setScores(prev => ({ ...prev, [comp]: { ...prev[comp], score: Number(e.target.value) } }))} disabled={!canEdit} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500 disabled:opacity-50" />
-                  <input type="text" placeholder={perf.commentOptional} value={data.comment} onChange={(e) => setScores(prev => ({ ...prev, [comp]: { ...prev[comp], comment: e.target.value } }))} disabled={!canEdit} className="w-full mt-2 px-3 py-2 text-sm border rounded-lg disabled:bg-gray-50" />
-                </div>
-              ))}
+                  <input disabled={!canEdit} value={value.comment} onChange={e => setQuestionnaireAnswers(current => ({ ...current, [question.id]: { ...value, comment: e.target.value } }))} placeholder={`${qCopy.comment} (${question.comment_required ? qCopy.required.toLowerCase() : qCopy.optional})`} className="mt-3 w-full rounded-lg border px-3 py-2 text-sm disabled:bg-gray-50" />
+                </div>;
+              })}</div></section>)}</div>
+              <p className="mt-4 rounded-lg bg-primary-50 p-3 text-center text-sm text-primary-700">{qCopy.serverScore}</p>
             </div>
-            <div className="mt-4 p-4 bg-primary-50 rounded-lg text-center">
-              <span className="text-sm text-gray-600">{perf.overallScore}:</span>
-              <span className="text-2xl font-bold text-primary-600 ml-2">{calculateOverall()}/5</span>
+          ) : (
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-4">{perf.competencyEvaluation}</h4>
+              <div className="space-y-4">
+                {Object.entries(scores).map(([comp, data]) => (
+                  <div key={comp} className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2"><label className="font-medium text-gray-700">{comp}</label><span className="text-lg font-bold text-primary-600">{data.score}%</span></div>
+                    <input type="range" min="0" max="100" value={data.score} onChange={(e) => setScores(prev => ({ ...prev, [comp]: { ...prev[comp], score: Number(e.target.value) } }))} disabled={!canEdit} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-500 disabled:opacity-50" />
+                    <input type="text" placeholder={perf.commentOptional} value={data.comment} onChange={(e) => setScores(prev => ({ ...prev, [comp]: { ...prev[comp], comment: e.target.value } }))} disabled={!canEdit} className="w-full mt-2 px-3 py-2 text-sm border rounded-lg disabled:bg-gray-50" />
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 p-4 bg-primary-50 rounded-lg text-center"><span className="text-sm text-gray-600">{perf.overallScore}:</span><span className="text-2xl font-bold text-primary-600 ml-2">{calculateOverall()}/5</span></div>
             </div>
-          </div>
+          )}
 
           {isEmployeeEditing && (
             <>
@@ -567,6 +639,7 @@ export default function EvaluationsPage() {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [userRole, setUserRole] = useState<UserRole>('employee');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [tab, setTab] = useState<'all' | 'to_complete'>('to_complete');
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -583,10 +656,11 @@ export default function EvaluationsPage() {
       setCurrentUser(user); 
       setUserRole(normalizeRole(user.role)); 
     }
-    const evaluationsData = await fetchEvaluations();
-    setEvaluations(evaluationsData);
+    const evaluationsData = await fetchEvaluations(t.performance.evaluationsLoadError);
+    setEvaluations(evaluationsData.items);
+    setLoadError(evaluationsData.error || null);
     setLoading(false);
-  }, []);
+  }, [t.performance.evaluationsLoadError]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -601,7 +675,7 @@ export default function EvaluationsPage() {
 
   // Évaluations que l'utilisateur doit remplir (il est l'évaluateur)
   const toCompleteEvaluations = evaluations.filter(e =>
-    e.evaluator_id === currentUser?.employee_id &&
+    (e.is_current_user_evaluator || e.evaluator_id === currentUser?.employee_id) &&
     (e.status === 'pending' || e.status === 'in_progress')
   );
 
@@ -625,16 +699,7 @@ export default function EvaluationsPage() {
   // Compteur d'annulées
   const cancelledCount = evaluations.filter(e => e.status === 'cancelled').length;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500">{t.common.loading}</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <PageLoading />;
 
   return (
     <>
@@ -642,6 +707,16 @@ export default function EvaluationsPage() {
       <main className="flex-1 p-6 overflow-auto bg-gray-50">
       {/* Stats KPIs */}
       <PerformanceStats />
+
+      {loadError && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium text-red-800">{t.performance.evaluationsLoadTitle}</p>
+            <p className="text-sm text-red-700 mt-0.5">{loadError}</p>
+          </div>
+        </div>
+      )}
 
       {/* Onglets */}
       <div className="flex gap-1 mb-4 bg-white border border-gray-200 rounded-xl p-1 w-fit">
@@ -709,19 +784,14 @@ export default function EvaluationsPage() {
               className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" 
             />
           </div>
-          <CustomSelect
-            value={filterStatus}
-            onChange={(v) => { setFilterStatus(v); setPage(1); }}
-            className="min-w-[160px]"
-            options={[
-              { value: 'all', label: perf.allStatuses },
-              { value: 'pending', label: perf.pendingStatus },
-              { value: 'in_progress', label: perf.inProgress },
-              { value: 'submitted', label: perf.submitted },
-              { value: 'validated', label: perf.validated },
-              ...(showCancelled ? [{ value: 'cancelled', label: perf.cancelled }] : []),
-            ]}
-          />
+          <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }} className="px-3 py-2 border rounded-lg text-sm">
+            <option value="all">{perf.allStatuses}</option>
+            <option value="pending">{perf.pendingStatus}</option>
+            <option value="in_progress">{perf.inProgress}</option>
+            <option value="submitted">{perf.submitted}</option>
+            <option value="validated">{perf.validated}</option>
+            {showCancelled && <option value="cancelled">{perf.cancelled}</option>}
+          </select>
           
           {/* ✅ CHECKBOX AFFICHER LES ANNULÉES */}
           {cancelledCount > 0 && (

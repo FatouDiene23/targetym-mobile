@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Clock3, FileText, Loader2, Paperclip, Plus, Send, ShieldOff, Sparkles, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import ChatMessageContent from '@/components/ChatMessageContent';
 import { useCopilotAccess } from '@/hooks/useCopilotAccess';
 import {
@@ -13,6 +14,7 @@ import {
 type LocalMessage = ChatMessage & { pendingActions?: CopilotPendingAction[]; streaming?: boolean };
 
 export default function CopilotPage() {
+  const router = useRouter();
   const { canUseCopilot, checked } = useCopilotAccess();
   const [sessions, setSessions] = useState<ChatConversation[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -106,6 +108,13 @@ export default function CopilotPage() {
     } catch { setError('Cette action n’a pas pu être traitée.'); }
   };
 
+  // Le Copilote est affiché comme une vue plein écran sur mobile. Ce contrôle
+  // restitue l'écran depuis lequel l'utilisateur l'a ouvert, comme le X de
+  // l'ancienne fenêtre de chat web.
+  const closeCopilot = () => {
+    if (window.history.length > 1) router.back();
+    else router.push('/dashboard');
+  };
   if (!checked) return <div className="min-h-[60vh] bg-slate-50" />;
   if (!canUseCopilot) return <Forbidden />;
 
@@ -113,6 +122,9 @@ export default function CopilotPage() {
     <div className="fixed inset-0 z-[10000] flex h-[100dvh] flex-col bg-[#f5f8fa]">
       <header className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-3 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] shadow-sm sm:px-6">
         <div className="mr-auto flex min-w-0 items-center gap-2"><Sparkles className="text-primary-600" size={23} /><h1 className="truncate text-xl font-bold text-slate-900">Copilote AI</h1><span className="rounded-full border border-secondary-200 bg-secondary-50 px-2 py-0.5 text-[10px] font-extrabold tracking-wider text-primary-700">BETA</span></div>
+        <button onClick={closeCopilot} className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800" aria-label="Fermer le Copilote" title="Fermer">
+          <X size={21} />
+        </button>
         <button onClick={() => setHistoryOpen(true)} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-600"><Clock3 size={17} /><span className="hidden sm:inline">Historique</span></button>
         <button onClick={newSession} className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary-600 px-3 text-sm font-semibold text-white shadow-sm"><Plus size={18} /><span className="hidden sm:inline">Nouvelle session</span></button>
       </header>

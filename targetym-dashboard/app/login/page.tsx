@@ -148,7 +148,7 @@ export default function LoginPage() {
                 />
                 <span className="text-sm text-gray-600">Se souvenir de moi</span>
               </label>
-              <a href="/forgot-password/index.html" className="text-sm text-primary-600 font-medium hover:text-primary-700">
+              <a href="https://www.targetym.ai/forgot-password" className="text-sm text-primary-600 font-medium hover:text-primary-700">
                 Mot de passe oublié ?
               </a>
             </div>

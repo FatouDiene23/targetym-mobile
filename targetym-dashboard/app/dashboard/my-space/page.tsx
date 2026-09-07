@@ -770,12 +770,16 @@ export default function MyProfilePage() {
       if (!me) { setOrgLoading(false); return; }
 
       // Construire le noeud "Moi" avec mes N-1 et leurs N-1
-      const buildNode = (emp: Employee, depth: number): OrgNode => {
+      const buildNode = (emp: Employee, depth: number, ancestors = new Set<number>()): OrgNode => {
+        // Une donnée manager_id cyclique ne doit jamais bloquer l'affichage.
+        // On ne reprend pas un employé déjà rencontré sur la branche courante.
+        const nextAncestors = new Set(ancestors);
+        nextAncestors.add(emp.id);
         const children = depth < 2
           ? activeEmps
-              .filter(e => e.manager_id === emp.id)
+              .filter(e => e.manager_id === emp.id && !nextAncestors.has(e.id))
               .sort((a, b) => (a.last_name || '').localeCompare(b.last_name || ''))
-              .map(e => buildNode(e, depth + 1))
+              .map(e => buildNode(e, depth + 1, nextAncestors))
           : [];
         return {
           id: emp.id,
@@ -793,10 +797,14 @@ export default function MyProfilePage() {
       // Construire la chaîne N+1 → N+2 → N+3 ... vers le haut
       let tree: OrgNode = myNode;
       let currentEmp = me;
+      const visitedManagerIds = new Set<number>([me.id]);
       
       while (currentEmp.manager_id) {
         const manager = activeEmps.find(e => e.id === currentEmp.manager_id);
-        if (!manager || manager.id === currentEmp.id) break; // sécurité anti-boucle
+        // manager.id === currentEmp.id couvre une auto-référence ; le Set
+        // couvre les cycles indirects (ex. A → B → A).
+        if (!manager || visitedManagerIds.has(manager.id)) break;
+        visitedManagerIds.add(manager.id);
         tree = {
           id: manager.id,
           first_name: manager.first_name,

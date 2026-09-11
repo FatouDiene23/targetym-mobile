@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
+import PullToRefresh from '@/components/PullToRefresh';
 import ImpersonationBanner from '@/components/ImpersonationBanner';
 import AppTour from '@/components/AppTour';
 import CopilotLauncher from '@/components/CopilotLauncher';
@@ -342,7 +343,7 @@ function DashboardContent({
     <div className="flex min-h-screen bg-white">
       <ImpersonationBanner />
       <Sidebar />
-      <main className="flex-1 overflow-auto min-w-0 pb-20 lg:pb-0">
+      <PullToRefresh className="flex-1 overflow-auto min-w-0 pb-20 lg:pb-0">
         {/* Barre mobile avec hamburger */}
         <div className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
           <button
@@ -364,7 +365,7 @@ function DashboardContent({
         {/* Bandeau contexte groupe — visible uniquement sur Dashboard et People Analytics */}
         {showGroupContextSwitcher && <GroupContextSwitcher />}
         {children}
-      </main>
+      </PullToRefresh>
 
       {/* Tour Applicatif */}
       <AppTour

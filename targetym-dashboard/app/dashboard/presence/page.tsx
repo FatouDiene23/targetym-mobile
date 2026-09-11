@@ -385,12 +385,29 @@ function TabPointage({ onViewHistory }: { onViewHistory: () => void }) {
 
   const getPosition = (): Promise<{ lat: number; lng: number }> =>
     new Promise((resolve, reject) => {
-      if (!navigator.geolocation) return reject(new Error("La géolocalisation n'est pas disponible sur ce navigateur."));
-      navigator.geolocation.getCurrentPosition(
-        p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
-        () => reject(new Error('Activez la géolocalisation pour pointer sur ce site.')),
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      if (!navigator.geolocation) return reject(new Error("La géolocalisation n'est pas disponible sur cet appareil."));
+
+      const attempt = (options: PositionOptions) => new Promise<GeolocationPosition>((res, rej) =>
+        navigator.geolocation.getCurrentPosition(res, rej, options)
       );
+
+      // Sur iOS, la première acquisition GPS (haute précision) peut mettre plus de temps à se
+      // fixer que sur Android : on retente une fois en précision réduite avant d'abandonner.
+      attempt({ enableHighAccuracy: true, timeout: 12000, maximumAge: 0 })
+        .catch(err => {
+          if (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE) {
+            return attempt({ enableHighAccuracy: false, timeout: 10000, maximumAge: 5000 });
+          }
+          throw err;
+        })
+        .then(p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }))
+        .catch((err: GeolocationPositionError) => {
+          if (err.code === err.PERMISSION_DENIED) {
+            reject(new Error('Autorisez l\'accès à la position dans les réglages de votre téléphone pour pointer.'));
+          } else {
+            reject(new Error('Impossible de récupérer votre position. Vérifiez votre GPS et réessayez.'));
+          }
+        });
     });
 
   const doAction = async (endpoint: string, body: object = {}) => {
@@ -2417,19 +2434,31 @@ function TabSites() {
   const useMyPosition = () => {
     if (!navigator.geolocation) { toast.error('Géolocalisation non disponible'); return; }
     setGpsLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        setForm(f => ({
-          ...f,
-          latitude: pos.coords.latitude.toFixed(6),
-          longitude: pos.coords.longitude.toFixed(6),
-        }));
-        toast.success('Position récupérée');
-        setGpsLoading(false);
-      },
-      () => { toast.error('Impossible de récupérer la position'); setGpsLoading(false); },
-      { timeout: 8000 }
-    );
+    const onSuccess = (pos: GeolocationPosition) => {
+      setForm(f => ({
+        ...f,
+        latitude: pos.coords.latitude.toFixed(6),
+        longitude: pos.coords.longitude.toFixed(6),
+      }));
+      toast.success('Position récupérée');
+      setGpsLoading(false);
+    };
+    const onError = (err: GeolocationPositionError) => {
+      // Sur iOS, une première tentative en haute précision peut expirer avant que le GPS
+      // se fixe : on retente une fois en précision réduite avant d'abandonner.
+      if (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE) {
+        navigator.geolocation.getCurrentPosition(onSuccess, () => {
+          toast.error('Impossible de récupérer la position');
+          setGpsLoading(false);
+        }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 5000 });
+        return;
+      }
+      toast.error(err.code === err.PERMISSION_DENIED
+        ? 'Autorisez l\'accès à la position dans les réglages de votre téléphone.'
+        : 'Impossible de récupérer la position');
+      setGpsLoading(false);
+    };
+    navigator.geolocation.getCurrentPosition(onSuccess, onError, { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
   };
 
   // Normalise une coordonnée saisie : accepte la virgule décimale (fr) et

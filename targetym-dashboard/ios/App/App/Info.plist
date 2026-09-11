@@ -57,5 +57,7 @@
 	<string>Targetym a besoin du microphone pour les enregistrements vocaux et appels.</string>
 	<key>NSDocumentsFolderUsageDescription</key>
 	<string>Targetym a besoin d'accéder à vos documents pour importer des fichiers.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Targetym a besoin de votre position pour valider votre pointage sur le site de travail.</string>
 </dict>
 </plist>
